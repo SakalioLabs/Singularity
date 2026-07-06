@@ -1,0 +1,1 @@
+﻿# Forge/Fabric Notes | Forge: mature but slower updates. Fabric: faster updates, lightweight. Both require Java mod loading. Not needed for M1-M5 (Mineflayer sufficient). Evaluate for M6 vision integration.

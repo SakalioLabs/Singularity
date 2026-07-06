@@ -1,0 +1,1 @@
+﻿# API Notes | Mineflayer API: bot.entity, bot.health, bot.food, bot.inventory, bot.blockAt, bot.dig, bot.placeBlock, bot.craft, bot.attack, bot.lookAt, bot.pathfinder.goto. Python bridge uses TCP socket JSON-RPC.

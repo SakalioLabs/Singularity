@@ -1,0 +1,1 @@
+﻿# Local Model Notes | Ollama: run Llama 3.1, Qwen 2.5 locally. Lower quality than GPT-4o but zero cost. Use for routine operations, save GPT-4o for planning. Test with qwen2.5:14b for planning quality.
