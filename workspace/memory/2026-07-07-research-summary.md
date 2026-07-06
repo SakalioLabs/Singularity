@@ -1,0 +1,1 @@
+﻿# Research Summary 2026-07-07 | M0-M3 source code complete. 15 paper cards, 3 repo cards. Architecture: Hybrid Route F (LLM+Mineflayer). Key finding: Voyager skill library and ReAct loop are the strongest foundations. Next: environment setup and benchmark testing.
