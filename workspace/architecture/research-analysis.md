@@ -1,0 +1,1 @@
+﻿# Research Analysis | RQ1: Hybrid action space | RQ2: Hierarchical+ReAct | RQ3: Multi-layer Markdown | RQ4: Code+NL skills | RQ5: Recipe DB+RAG | RQ6: Structured output+verify | RQ7: Fixed-seed benchmarks | RQ8: API bot until M6 | RQ9: Leader-follower | RQ10: Modular+logging
