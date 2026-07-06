@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Mineflayer Bot Bridge Server
  * 
  * Runs a persistent TCP socket server that the Python agent connects to.
@@ -7,6 +7,7 @@
  * Usage: node bot_server.js [--host localhost] [--port 25565] [--bridge-port 3000]
  */
 
+const { Vec3 } = require('vec3');
 const mineflayer = require('mineflayer');
 const net = require('net');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
@@ -266,3 +267,4 @@ server.listen(BRIDGE_PORT, '127.0.0.1', () => {
     console.log(`[Bridge] Listening on 127.0.0.1:${BRIDGE_PORT}`);
     console.log(`[Bridge] Connecting to MC server ${MC_HOST}:${MC_PORT} as ${MC_USERNAME}`);
 });
+

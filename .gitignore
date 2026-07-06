@@ -1,38 +1,34 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 __pycache__/
 *.pyc
-.pytest_cache/
-venv/
-.env
+package-lock.json
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*.swo
 
 # OS
 .DS_Store
 Thumbs.db
 
 # Minecraft server
+mc-server/
+jdk-17/
+jdk17.zip
 *.jar
-logs/
-world/
-world_nether/
-world_the_end/
+*.log
+usercache.json
+bot_output.log
+bot_error.log
+eula.txt
 server.properties
 ops.json
 whitelist.json
 banned-ips.json
 banned-players.json
-eula.txt
 
-# Build artifacts
+# Build
 dist/
 build/
 *.egg-info/
-
-# Logs (keep structured logs, ignore server logs)
-*.log
