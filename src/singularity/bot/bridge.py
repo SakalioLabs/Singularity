@@ -152,6 +152,9 @@ class BotBridge:
         except Exception as e:
             return {"success": False, "error": str(e)}
     # Action commands
+    def walk_to(self, x: float, z: float, y: float = None, ms: int = 2000) -> dict:
+        return self._send_command_single("walk_to", {"x": x, "z": z, "y": y, "ms": ms})
+
     def move_to(self, x: float, z: float, y: float = None) -> dict:
         return self._send_command_single("move_to", {"x": x, "z": z, "y": y})
 

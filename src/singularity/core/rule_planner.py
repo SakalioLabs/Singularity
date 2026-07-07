@@ -41,7 +41,7 @@ class RuleBasedPlanner:
             tpos = nearest.get("position", {})
             dist = nearest.get("distance", 999)
             # If tree is within 5 blocks, just dig it directly
-            if dist <= 5.0:
+            if dist <= 3.0:
                 return {
                     "status": "in_progress",
                     "reasoning": f"Digging {nearest['name']} at distance {dist:.1f}",
@@ -54,7 +54,7 @@ class RuleBasedPlanner:
                 "status": "in_progress",
                 "reasoning": f"Navigating to {nearest['name']} at {dist:.1f} blocks",
                 "actions": [
-                    {"type": "move_to", "parameters": {"x": tpos.get("x", 0), "z": tpos.get("z", 0)}},
+                    {"type": "walk_to", "parameters": {"x": tpos.get("x", 0), "z": tpos.get("z", 0), "ms": 1500}},
                     {"type": "dig", "parameters": {"x": tpos.get("x", 0), "y": tpos.get("y", 0), "z": tpos.get("z", 0)}},
                 ]
             }

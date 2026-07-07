@@ -1,0 +1,52 @@
+[
+  {
+    "task_id": "BM-001",
+    "task_name": "Chop 3 oak logs",
+    "status": "fail",
+    "cycles": 100,
+    "duration_s": 167.33,
+    "inventory": {},
+    "error": "",
+    "log": "logs\\session_2818ff2a-612.jsonl"
+  },
+  {
+    "task_id": "BM-002",
+    "task_name": "Craft workbench",
+    "status": "fail",
+    "cycles": 100,
+    "duration_s": 55.0,
+    "inventory": {},
+    "error": "",
+    "log": "logs\\session_bcd06511-00a.jsonl"
+  },
+  {
+    "task_id": "BM-003",
+    "task_name": "Craft wooden pickaxe",
+    "status": "fail",
+    "cycles": 100,
+    "duration_s": 54.78,
+    "inventory": {},
+    "error": "",
+    "log": "logs\\session_dc8fff18-00b.jsonl"
+  },
+  {
+    "task_id": "BM-004",
+    "task_name": "Mine cobblestone",
+    "status": "fail",
+    "cycles": 100,
+    "duration_s": 54.76,
+    "inventory": {},
+    "error": "",
+    "log": "logs\\session_4138b270-949.jsonl"
+  },
+  {
+    "task_id": "BM-005",
+    "task_name": "Craft stone tools",
+    "status": "fail",
+    "cycles": 100,
+    "duration_s": 54.54,
+    "inventory": {},
+    "error": "",
+    "log": "logs\\session_67ba45ce-2e1.jsonl"
+  }
+]

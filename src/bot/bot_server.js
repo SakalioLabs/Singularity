@@ -44,8 +44,6 @@ function createBot() {
         defaultMove.canOpenDoors = true;
         defaultMove.allowParkour = true;
         defaultMove.allowSprinting = true;
-        defaultMove.blocksToAvoid.delete(mcData.blocksByName.leaves?.id);
-        defaultMove.blocksToAvoid.delete(mcData.blocksByName.oak_leaves?.id);
         bot.pathfinder.setMovements(defaultMove);
     });
 
@@ -162,17 +160,35 @@ const handlers = {
         trees.sort((a, b) => a.distance - b.distance);
         return { trees: trees.slice(0, 10) };
     },
-        move_to: async (params) => {
-        const MOVE_TIMEOUT = 2000;
+        walk_to: async (params) => {
+        const target = new Vec3(params.x, params.y || bot.entity.position.y, params.z);
         try {
-            const goal = new goals.GoalNear(params.x, params.y || bot.entity.position.y, params.z, 1);
-            const result = await Promise.race([
-                bot.pathfinder.goto(goal).then(() => ({ ok: true })),
-                new Promise((_, rej) => setTimeout(() => rej(new Error('Pathfinding timeout')), MOVE_TIMEOUT))
-            ]);
+            await bot.lookAt(target);
+            bot.setControlState("forward", true);
+            const maxTime = params.ms || 2000;
+            await new Promise(r => setTimeout(r, maxTime));
+            bot.setControlState("forward", false);
             return { success: true, position: bot.entity.position };
         } catch (e) {
-            bot.pathfinder.stop();
+            bot.setControlState("forward", false);
+            return { success: false, error: e.message };
+        }
+    },
+    move_to: async (params) => {
+        const target = new Vec3(params.x, params.y || bot.entity.position.y, params.z);
+        try {
+            await bot.lookAt(target);
+            bot.setControlState("forward", true);
+            let waited = 0;
+            while (bot.entity.position.distanceTo(target) > 2 && waited < 3000) {
+                await new Promise(r => setTimeout(r, 100));
+                bot.lookAt(target);
+                waited += 100;
+            }
+            bot.setControlState("forward", false);
+            return { success: true, position: bot.entity.position };
+        } catch (e) {
+            bot.setControlState("forward", false);
             return { success: false, error: e.message };
         }
     },
@@ -299,6 +315,7 @@ server.listen(BRIDGE_PORT, '127.0.0.1', () => {
     console.log(`[Bridge] Listening on 127.0.0.1:${BRIDGE_PORT}`);
     console.log(`[Bridge] Connecting to MC server ${MC_HOST}:${MC_PORT} as ${MC_USERNAME}`);
 });
+
 
 
 

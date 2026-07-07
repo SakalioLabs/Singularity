@@ -13,6 +13,7 @@ class ActionController:
         self.bot = bot
         self.config = config
         self._action_handlers = {
+            "walk_to": self._walk_to,
             "move_to": self._move_to,
             "look_at": self._look_at,
             "dig": self._dig,
@@ -114,6 +115,13 @@ class ActionController:
     def _chat(self, params: dict) -> dict:
         message = params.get("message", "")
         return self.bot.chat(message)
+
+    def _walk_to(self, params: dict) -> dict:
+        x = params.get("x", 0)
+        z = params.get("z", 0)
+        y = params.get("y")
+        ms = params.get("ms", 2000)
+        return self.bot.walk_to(x, z, y, ms)
 
     def _wait(self, params: dict) -> dict:
         ms = params.get("ms", 1000)
