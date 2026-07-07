@@ -27,7 +27,7 @@ const BRIDGE_PORT = parseInt(getArg('bridge-port', '3000'));
 
 let bot = null;
 
-function createBot() {
+function connectBot() {
     bot = mineflayer.createBot({
         host: MC_HOST,
         port: MC_PORT,
@@ -49,7 +49,10 @@ function createBot() {
 
     bot.on('error', (err) => console.error('[Bot] Error:', err.message));
     bot.on('kicked', (reason) => console.warn('[Bot] Kicked:', reason));
-    bot.on('end', () => console.log('[Bot] Disconnected'));
+    bot.on('end', () => {
+        console.log('[Bot] Disconnected - reconnecting in 5s');
+        setTimeout(connectBot, 5000);
+    });
 }
 
 // Command handlers
@@ -310,7 +313,7 @@ const server = net.createServer((socket) => {
 });
 
 // Start
-createBot();
+connectBot();
 server.listen(BRIDGE_PORT, '127.0.0.1', () => {
     console.log(`[Bridge] Listening on 127.0.0.1:${BRIDGE_PORT}`);
     console.log(`[Bridge] Connecting to MC server ${MC_HOST}:${MC_PORT} as ${MC_USERNAME}`);

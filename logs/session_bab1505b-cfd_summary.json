@@ -1,0 +1,8 @@
+{
+  "session_id": "bab1505b-cfd",
+  "duration_s": 166.6,
+  "total_events": 281,
+  "action_count": 112,
+  "error_count": 35,
+  "log_path": "logs\\session_bab1505b-cfd.jsonl"
+}
