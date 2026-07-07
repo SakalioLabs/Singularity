@@ -5,7 +5,7 @@ import logging
 
 logger = logging.getLogger("singularity.knowledge")
 
-_DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+_DATA_DIR = os.path.dirname(__file__)
 
 
 class KnowledgeBase:
@@ -84,3 +84,4 @@ class KnowledgeBase:
                 ing_str = ", ".join(f"{v}x {k}" for k, v in ingredients.items())
                 lines.append(f"  {item}: {ing_str} -> {recipe['output']}x {item}")
         return "\n".join(lines)
+

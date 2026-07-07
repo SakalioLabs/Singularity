@@ -39,7 +39,7 @@ class Explorer:
         dist = self.distance_to_base(current)
         if inventory_count >= self.inventory_full_threshold:
             return True, "Inventory full"
-        if dist > self.max_exploration_distance:
+        if dist >= self.max_exploration_distance:
             return True, f"Too far from base ({dist:.0f} blocks)"
         return False, ""
 
@@ -77,3 +77,4 @@ class Explorer:
                     "z": self.base_position["z"] + r * math.sin(angle),
                 }
         return {"x": current.get("x", 0) + 30, "z": current.get("z", 0) + 30}
+
