@@ -1,213 +1,232 @@
-ï»¿# Singularity â€” Minecraft LLM Agent
+# Singularity - Minecraft LLM Agent
 
-An evolving modular agent system that drives a Minecraft Java Edition player through natural-language goals, progressing from basic connectivity to autonomous multi-agent collaboration.
+> An evolving modular agent system that drives a Minecraft Java Edition player through natural-language goals, progressing from basic connectivity to autonomous multi-agent collaboration.
 
-## Vision
+[![M0: Research Baseline](https://img.shields.io/badge/M0-Complete-brightgreen)]()
+[![M1: Minimum Viable Bot](https://img.shields.io/badge/M1-In%20Progress-yellow)]()
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.20.4-green)]()
+[![Python](https://img.shields.io/badge/Python-3.12-blue)]()
+[![Node.js](https://img.shields.io/badge/Node.js-24.x-blue)]()
 
-Build a long-lived, evidence-driven research system where an LLM-powered agent can:
-- Understand natural-language tasks
-- Decompose long-term goals into executable subtasks
-- Navigate, explore, and survive in Minecraft worlds
-- Learn and reuse skills across sessions
-- Recover from failures and adapt to new environments
-- Eventually collaborate with other agents or human players
-
-## Capability Levels
-
-| Level | Description |
-|-------|-------------|
-| 0 | Connect to Minecraft server, read basic state, execute simple commands |
-| 1 | Complete short tasks from natural language: move, gather, mine, craft basics |
-| 2 | Multi-step tasks: craft iron pickaxe, build a shelter, prepare night resources |
-| 3 | Maintain task queue, long-term memory, skill library; retry on failure |
-| 4 | Self-directed goal-setting: survival bootstrapping, resource gathering, tech tree |
-| 5 | Explore unknown worlds, learn and reuse skills, adapt to new maps |
-| 6 | Integrate vision / multimodal input / VLA, reduce script dependency |
-| 7 | Multi-agent collaboration, division of labor, long-term human co-play |
-
-## Tech Stack (Planned)
-
-- **Language**: Python 3.11+
-- **Minecraft Interface**: Mineflayer (via Node.js) or MineDojo / custom bot bridge
-- **Pathfinding**: Baritone (optional, for navigation)
-- **LLM Backend**: OpenAI GPT-4o / Claude / DeepSeek / Qwen / local models via Ollama
-- **Memory**: Multi-layer (context window, working memory, episodic, semantic, skill, decision, research)
-- **Task System**: Hierarchical state machine with dependency tracking
-- **Skill Library**: Code-based + natural-language hybrid skills
-- **Evaluation**: Structured benchmark suite across survival, crafting, exploration, building, collaboration
-
-## Architecture Overview
+## Architecture
 
 ```
 User Goal (Natural Language)
         |
         v
   +-----------+
-  |  Planner  |  (LLM-powered: strategic / tactical / action plans)
+  |  Planner  |  LLM-powered: strategic / tactical / action plans
   +-----------+
         |
         v
   +-----------+
-  | Task System|  (hierarchical tasks, dependencies, priorities, state machine)
+  | Task System|  Hierarchical tasks, dependencies, priorities, state machine
   +-----------+
         |
         v
   +---------------+
-  | Skill Library |  (reusable action units: code, action sequences, NL strategies)
+  | Skill Library |  Reusable action units: code, action sequences, NL strategies
   +---------------+
         |
         v
   +------------------+
-  | Action Controller|  (pre-check, execute, post-verify, timeout, rollback)
+  | Action Controller|  Pre-check, execute, post-verify, timeout, rollback
   +------------------+
         |
         v
   +------------------+
-  | Minecraft Server |  (via Mineflayer / Baritone / Mod API)
+  | Minecraft Server |  Via Mineflayer / Baritone / Mod API
   +------------------+
         |
         v
   +---------------+
-  |  Observation  |  (position, health, inventory, entities, blocks, time, weather)
-  +---------------+
-        |
-        v
-  +---------------+
-  | World State   |  (structured state, LLM-readable summaries)
+  |  Observation  |  Position, health, inventory, entities, blocks, time, weather
   +---------------+
         |
         v
   +-----------+
-  | Reflector |  (failure analysis, strategy adjustment, memory updates)
+  | Reflector |  Failure analysis, strategy adjustment, memory updates
   +-----------+
         |
         v
   +-----------+
-  |  Memory   |  (L0-L6 layered memory system)
+  |  Memory   |  L0-L6 layered memory system
   +-----------+
-        |
-        v
-  +-----------+
-  | Evaluator |  (benchmark suite, task success, resource cost, safety)
-  +-----------+
+```
+
+## Tech Stack
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| Agent Core | Python 3.12 | Main observe-think-act loop |
+| Bot Interface | Mineflayer (Node.js) | Minecraft protocol interaction |
+| Pathfinding | mineflayer-pathfinder | Navigation with obstacle avoidance |
+| LLM Backend | OpenAI / Anthropic / DeepSeek / Ollama | Planning, reflection, skill generation |
+| Memory | Markdown + JSON (Phase 1) | Human-readable, git-tracked knowledge |
+| Task System | Python state machine | Hierarchical task management |
+| Skill Library | Python dataclass + file storage | Versioned reusable skills |
+| Evaluation | Python benchmark suite | Structured task evaluation |
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.12+
+- Node.js 18+
+- JDK 17+ (for Minecraft server)
+- Minecraft Java Edition server (1.20.4)
+
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/SakalioLabs/Singularity.git
+cd Singularity
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Install Node.js dependencies
+npm install
+
+# Download Minecraft server (requires manual setup)
+# See docs/SERVER_SETUP.md for details
+```
+
+### Running the Agent
+
+```bash
+# 1. Start Minecraft server
+cd mc-server
+java -Xmx1G -Xms512M -jar server.jar nogui
+
+# 2. Start bot bridge (in new terminal)
+node src/bot/bot_server.js
+
+# 3. Run agent (in new terminal)
+python -m singularity.main --goal "Gather 3 oak logs"
+
+# Options:
+#   --goal "natural language goal"
+#   --host localhost
+#   --port 25565
+#   --username Singularity
+#   --llm-provider openai
+#   --llm-model gpt-4o-mini
+#   --api-key YOUR_API_KEY
+#   --log-level INFO
 ```
 
 ## Project Structure
 
 ```
 Singularity/
-â”œâ”€â”€ README.md                          # This file
-â”œâ”€â”€ workspace/                         # Research knowledge base
-â”‚   â”œâ”€â”€ MEMORY.md                      # Long-term validated knowledge
-â”‚   â”œâ”€â”€ ROADMAP.md                     # Phase roadmap (M0-M7)
-â”‚   â”œâ”€â”€ DECISIONS.md                   # Architecture decisions log
-â”‚   â”œâ”€â”€ RISKS.md                       # Risk register
-â”‚   â”œâ”€â”€ OPEN_QUESTIONS.md             # Unresolved research questions
-â”‚   â”œâ”€â”€ STATUS.md                      # Current project status
-â”‚   â”œâ”€â”€ memory/                        # Daily research journals
-â”‚   â”‚   â””â”€â”€ YYYY-MM-DD.md
-â”‚   â”œâ”€â”€ papers/                        # Paper index and cards
-â”‚   â”‚   â”œâ”€â”€ paper-index.md
-â”‚   â”‚   â””â”€â”€ YYYY-MM-DD-paper-title.md
-â”‚   â”œâ”€â”€ repos/                         # Open-source project cards
-â”‚   â”‚   â”œâ”€â”€ repo-index.md
-â”‚   â”‚   â””â”€â”€ repo-name.md
-â”‚   â”œâ”€â”€ architecture/                  # Module design documents
-â”‚   â”‚   â”œâ”€â”€ current-architecture.md
-â”‚   â”‚   â”œâ”€â”€ module-planner.md
-â”‚   â”‚   â”œâ”€â”€ module-memory.md
-â”‚   â”‚   â”œâ”€â”€ module-task-system.md
-â”‚   â”‚   â”œâ”€â”€ module-skill-library.md
-â”‚   â”‚   â”œâ”€â”€ module-perception.md
-â”‚   â”‚   â”œâ”€â”€ module-action-controller.md
-â”‚   â”‚   â”œâ”€â”€ module-evaluator.md
-â”‚   â”‚   â””â”€â”€ module-safety.md
-â”‚   â”œâ”€â”€ experiments/                   # Experiment records
-â”‚   â”‚   â”œâ”€â”€ experiment-index.md
-â”‚   â”‚   â””â”€â”€ EXP-NNNN-title.md
-â”‚   â”œâ”€â”€ benchmarks/                    # Benchmark task suites
-â”‚   â”‚   â”œâ”€â”€ benchmark-index.md
-â”‚   â”‚   â”œâ”€â”€ task-suite-survival.md
-â”‚   â”‚   â”œâ”€â”€ task-suite-crafting.md
-â”‚   â”‚   â”œâ”€â”€ task-suite-exploration.md
-â”‚   â”‚   â”œâ”€â”€ task-suite-building.md
-â”‚   â”‚   â””â”€â”€ task-suite-collaboration.md
-â”‚   â”œâ”€â”€ implementation/                # Technical notes
-â”‚   â”‚   â”œâ”€â”€ tech-stack.md
-â”‚   â”‚   â”œâ”€â”€ api-notes.md
-â”‚   â”‚   â”œâ”€â”€ minecraft-version-notes.md
-â”‚   â”‚   â”œâ”€â”€ mineflayer-notes.md
-â”‚   â”‚   â”œâ”€â”€ baritone-notes.md
-â”‚   â”‚   â”œâ”€â”€ forge-fabric-notes.md
-â”‚   â”‚   â”œâ”€â”€ model-provider-notes.md
-â”‚   â”‚   â””â”€â”€ local-model-notes.md
-â”‚   â”œâ”€â”€ skills/                        # Skill library
-â”‚   â”‚   â”œâ”€â”€ skill-index.md
-â”‚   â”‚   â”œâ”€â”€ gather-wood.md
-â”‚   â”‚   â”œâ”€â”€ craft-tools.md
-â”‚   â”‚   â”œâ”€â”€ mine-stone.md
-â”‚   â”‚   â”œâ”€â”€ mine-iron.md
-â”‚   â”‚   â”œâ”€â”€ smelt-iron.md
-â”‚   â”‚   â”œâ”€â”€ build-shelter.md
-â”‚   â”‚   â”œâ”€â”€ defend-self.md
-â”‚   â”‚   â””â”€â”€ navigate-to-target.md
-â”‚   â””â”€â”€ tasks/                         # Task tracking
-â”‚       â”œâ”€â”€ backlog.md
-â”‚       â”œâ”€â”€ active.md
-â”‚       â”œâ”€â”€ done.md
-â”‚       â””â”€â”€ blocked.md
-â”œâ”€â”€ src/                               # Agent source code (future)
-â”œâ”€â”€ docs/                              # Additional documentation (future)
-â””â”€â”€ .gitignore
+©À©¤©¤ README.md                          # This file
+©À©¤©¤ requirements.txt                   # Python dependencies
+©À©¤©¤ package.json                       # Node.js dependencies
+©À©¤©¤ src/
+©¦   ©À©¤©¤ singularity/                   # Python agent package
+©¦   ©¦   ©À©¤©¤ core/
+©¦   ©¦   ©¦   ©À©¤©¤ agent.py              # Main observe-think-act loop
+©¦   ©¦   ©¦   ©À©¤©¤ config.py             # Configuration dataclasses
+©¦   ©¦   ©¦   ©À©¤©¤ planner.py            # LLM-powered goal decomposition
+©¦   ©¦   ©¦   ©À©¤©¤ reflector.py          # Failure analysis and re-planning
+©¦   ©¦   ©¦   ©À©¤©¤ skill_library.py      # 17 builtin skills with versioning
+©¦   ©¦   ©¦   ©À©¤©¤ task_system.py        # Hierarchical task state machine
+©¦   ©¦   ©¦   ©¸©¤©¤ memory.py             # L0-L6 multi-layer memory
+©¦   ©¦   ©À©¤©¤ llm/
+©¦   ©¦   ©¦   ©¸©¤©¤ provider.py           # Swappable LLM (OpenAI/Anthropic/Ollama)
+©¦   ©¦   ©À©¤©¤ observation/
+©¦   ©¦   ©¦   ©¸©¤©¤ observer.py           # Game state collection
+©¦   ©¦   ©À©¤©¤ action/
+©¦   ©¦   ©¦   ©¸©¤©¤ controller.py         # Action execution with safety
+©¦   ©¦   ©À©¤©¤ bot/
+©¦   ©¦   ©¦   ©¸©¤©¤ bridge.py             # Python-Node.js TCP socket bridge
+©¦   ©¦   ©¸©¤©¤ main.py                   # CLI entry point
+©¦   ©¸©¤©¤ bot/
+©¦       ©¸©¤©¤ bot_server.js             # Node.js Mineflayer server
+©À©¤©¤ workspace/                         # Research knowledge base
+©¦   ©À©¤©¤ ROADMAP.md                    # M0-M7 phase roadmap
+©¦   ©À©¤©¤ STATUS.md                     # Current project status
+©¦   ©À©¤©¤ MEMORY.md                     # Long-term validated knowledge
+©¦   ©À©¤©¤ DECISIONS.md                  # Architecture decisions log
+©¦   ©À©¤©¤ RISKS.md                      # Risk register
+©¦   ©À©¤©¤ OPEN_QUESTIONS.md            # Unresolved research questions
+©¦   ©À©¤©¤ PROGRESS.md                   # Detailed progress tracking
+©¦   ©À©¤©¤ papers/                       # 17 paper cards
+©¦   ©À©¤©¤ repos/                        # 4 repo cards
+©¦   ©À©¤©¤ architecture/                 # 8 module design docs
+©¦   ©À©¤©¤ benchmarks/                   # 5 benchmark suites (14 tasks)
+©¦   ©¸©¤©¤ implementation/               # 15+ technical notes
+©¸©¤©¤ docs/
+    ©¸©¤©¤ SERVER_SETUP.md               # Server setup guide
 ```
 
-## Research Methodology
+## Capability Levels
 
-Every research cycle follows an 8-step loop:
-1. **Scan** â€” Search papers, repos, benchmarks, blogs
-2. **Filter** â€” Score by relevance, novelty, reproducibility, engineering value
-3. **Read** â€” Write detailed cards for high-priority sources
-4. **Map** â€” Link findings to agent modules
-5. **Experiment** â€” Write executable experiment tickets
-6. **Implement** â€” Build minimum viable prototypes
-7. **Evaluate** â€” Measure task success, cost, failure types
-8. **Remember** â€” Update memory, decisions, roadmap, risks
+| Level | Description | Status |
+|-------|-------------|--------|
+| 0 | Connect to Minecraft server, read basic state, execute simple commands | **Complete** |
+| 1 | Complete short tasks from natural language: move, gather, mine, craft basics | In Progress |
+| 2 | Multi-step tasks: craft iron pickaxe, build a shelter, prepare night resources | Planned |
+| 3 | Maintain task queue, long-term memory, skill library; retry on failure | Planned |
+| 4 | Self-directed goal-setting: survival bootstrapping, resource gathering, tech tree | Planned |
+| 5 | Explore unknown worlds, learn and reuse skills, adapt to new maps | Planned |
+| 6 | Integrate vision / multimodal input / VLA, reduce script dependency | Planned |
+| 7 | Multi-agent collaboration, division of labor, long-term human co-play | Planned |
+
+## Research Foundation
+
+- **17 papers** analyzed: Voyager, MineDojo, JARVIS-1, GITM, DEPS, STEVE-1, OmniJARVIS, Mindcraft, Optimus-1, ReAct, Reflexion, Code-as-Policies, Tree of Thoughts, Toolformer, Genie, SkillForge, Multi-Agent MC
+- **4 key repos** evaluated: Mindcraft, Mineflayer, Baritone, MineDojo
+- **5 architecture decisions** documented with rollback conditions
+- **10 research questions** identified and tracked
 
 ## Design Constraints
 
-1. LLM never directly executes dangerous code â€” all actions go through safety layer
-2. All game actions are interruptible (stop / pause / resume / rollback)
-3. Every task must have measurable success criteria
-4. Memory must resist pollution â€” only verified, reusable information enters long-term memory
-5. Research must track licenses â€” record citation, reuse boundaries
-6. Model providers must be swappable â€” no single-provider lock-in
-7. Minecraft version must be pinned per experiment
-8. No capability claims without 3+ repeated experiment results
+1. **Safety First**: LLM never directly executes dangerous code. All actions go through safety layer.
+2. **Interruptible**: All game actions are interruptible (stop / pause / resume / rollback).
+3. **Measurable**: Every task must have measurable success criteria.
+4. **Memory Integrity**: Memory must resist pollution. Only verified, reusable information enters long-term memory.
+5. **License Compliance**: Research must track licenses. Record citation and reuse boundaries.
+6. **Model Agnostic**: Model providers must be swappable. No single-provider lock-in.
+7. **Version Pinned**: Minecraft version must be pinned per experiment.
+8. **Evidence Based**: No capability claims without 3+ repeated experiment results.
 
 ## Current Phase
 
-**M0: Research Baseline** â€” Building paper library, repo library, architecture draft, and first benchmark suite.
+**M1: Minimum Viable Bot** - Environment ready, bot connects to MC server. Working on benchmark validation.
 
-## Getting Started
+### M1 Milestones
+- [x] Python agent package (agent, config, observer, action controller, bot bridge)
+- [x] Node.js Mineflayer bot server with pathfinding
+- [x] JDK 17 + MC 1.20.4 server environment
+- [x] EXP-0001: Bot connected to MC server
+- [ ] BM-001 through BM-005 benchmark validation
+- [ ] Session logger with structured JSON output
+- [ ] Error handling and retry logic
 
-```bash
-# Clone the repository
-git clone https://github.com/SakalioLabs/Singularity.git
-cd Singularity
+### Next: M2 (LLM Task Planning)
+- Integrate Planner module with actual LLM API calls
+- Test end-to-end goal completion
+- Implement reflection and re-planning
 
-# Browse the research workspace
-cd workspace
-cat ROADMAP.md          # Phase roadmap
-cat paper-index.md      # Related papers
-cat repo-index.md       # Related open-source projects
-cat current-architecture.md  # Current architecture design
-```
+## Contributing
+
+This is a research project. Contributions welcome:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -m 'Add your feature'`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a Pull Request
 
 ## License
 
-TBD â€” Research project. Individual dependencies retain their original licenses.
+TBD - Research project. Individual dependencies retain their original licenses.
 
 ## Contact
 
-- Repository: [SakalioLabs/Singularity](https://github.com/SakalioLabs/Singularity)
-- Email: sakalioling@rankchord.com
+- **Repository**: [SakalioLabs/Singularity](https://github.com/SakalioLabs/Singularity)
+- **Email**: sakalioling@rankchord.com
+- **Issues**: [GitHub Issues](https://github.com/SakalioLabs/Singularity/issues)
