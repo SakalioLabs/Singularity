@@ -12,13 +12,16 @@ class RuleBasedPlanner:
         inv = world_state.get("inventory", {})
         trees = world_state.get("trees_found", [])
 
+        # Order matters: more specific matches first
         if "oak" in goal_lower and ("log" in goal_lower or "wood" in goal_lower):
             return self._plan_gather_wood(inv, trees)
         elif "craft" in goal_lower and "table" in goal_lower:
             return self._plan_craft_workbench(inv)
         elif "craft" in goal_lower and "pickaxe" in goal_lower and "wooden" in goal_lower:
             return self._plan_craft_wooden_pickaxe(inv)
-        elif "cobblestone" in goal_lower or "stone" in goal_lower:
+        elif "craft" in goal_lower and "pickaxe" in goal_lower and "stone" in goal_lower:
+            return self._plan_craft_stone_pickaxe(inv)
+        elif "cobblestone" in goal_lower or ("mine" in goal_lower and "stone" in goal_lower):
             return self._plan_mine_cobblestone(inv)
         elif "stone" in goal_lower and "pickaxe" in goal_lower:
             return self._plan_craft_stone_pickaxe(inv)
@@ -75,7 +78,7 @@ class RuleBasedPlanner:
 
     def _plan_mine_cobblestone(self, inv: dict) -> dict:
         if inv.get("cobblestone", 0) >= 3:
-            return {"status": "complete", "reasoning": f"Have {inv.get("cobblestone")} cobblestone", "actions": []}
+            return {"status": "complete", "reasoning": f"Have {inv.get('cobblestone', 0)} cobblestone", "actions": []}
         if inv.get("wooden_pickaxe", 0) >= 1 or inv.get("stone_pickaxe", 0) >= 1:
             return {"status": "in_progress", "reasoning": "Mining",
                     "actions": [{"type": "dig", "parameters": {"x": -9, "y": 64, "z": 3}}]}

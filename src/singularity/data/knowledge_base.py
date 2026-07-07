@@ -20,7 +20,7 @@ class KnowledgeBase:
     def _load(self):
         path = os.path.join(_DATA_DIR, 'crafting_recipes.json')
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, 'r', encoding='utf-8-sig') as f:
                 data = json.load(f)
             self.recipes = data.get('recipes', {})
             self.tool_progression = data.get('tool_progression', [])
@@ -56,18 +56,22 @@ class KnowledgeBase:
                 craftable.append(item)
         return craftable
 
-    def get_recipe_chain(self, item: str, depth: int = 0) -> dict:
+    def list_recipes(self) -> list[str]:
+        """Return list of all known recipe names."""
+        return list(self.recipes.keys())
+
+    def get_recipe_chain(self, item: str, depth: int = 0) -> list:
         """Get full recipe chain showing all required raw materials."""
         if depth > 5:
-            return {item: "deep recursion"}
+            return [{"item": item, "note": "deep recursion"}]
         recipe = self.recipes.get(item)
         if not recipe:
-            return {item: "raw material"}
-        chain = {}
+            return [{"item": item, "source": "raw material"}]
+        chain = []
         for mat, count in recipe.get('ingredients', {}).items():
             sub_chain = self.get_recipe_chain(mat, depth + 1)
-            chain[mat] = {"count": count, "chain": sub_chain}
-        return {item: chain}
+            chain.append({"item": mat, "count": count, "chain": sub_chain})
+        return chain
 
     def format_for_prompt(self, max_items: int = 20) -> str:
         """Format recipes as compact text for LLM prompts."""
@@ -84,4 +88,3 @@ class KnowledgeBase:
                 ing_str = ", ".join(f"{v}x {k}" for k, v in ingredients.items())
                 lines.append(f"  {item}: {ing_str} -> {recipe['output']}x {item}")
         return "\n".join(lines)
-
