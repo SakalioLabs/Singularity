@@ -1,4 +1,4 @@
-﻿"""Bot bridge -- communicates with the Node.js Mineflayer bot via persistent TCP socket."""
+"""Bot bridge -- communicates with the Node.js Mineflayer bot via persistent TCP socket."""
 import json
 import socket
 import logging
@@ -70,10 +70,14 @@ class BotBridge:
                 response = b""
                 while True:
                     chunk = self._socket.recv(4096)
+                    if not chunk:
+                        break
                     response += chunk
                     if b"\n" in response:
                         break
-                return json.loads(response.decode("utf-8").strip())
+                # Only parse first JSON in case of multi-response chunk
+                first_line = response.split(b"\n", 1)[0]
+                return json.loads(first_line.decode("utf-8").strip())
             except (socket.timeout, ConnectionError, BrokenPipeError) as e:
                 delay = RETRY_BASE_DELAY * (2 ** attempt)
                 logger.warning(f"Command '{command}' attempt {attempt+1}/{MAX_RETRIES} failed: {e}, retrying in {delay}s")
@@ -148,7 +152,9 @@ class BotBridge:
                 response += chunk
                 if b"\n" in response:
                     break
-            return json.loads(response.decode("utf-8").strip())
+                # Only parse first JSON in case of multi-response chunk
+                first_line = response.split(b"\n", 1)[0]
+            return json.loads(first_line.decode("utf-8").strip())
         except Exception as e:
             return {"success": False, "error": str(e)}
     # Action commands
