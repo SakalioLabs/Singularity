@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Mineflayer Bot Bridge Server
  * 
  * Runs a persistent TCP socket server that the Python agent connects to.
@@ -41,6 +41,11 @@ function createBot() {
         console.log(`[Bot] Spawned in world at ${bot.entity.position}`);
         const mcData = require('minecraft-data')(bot.version);
         const defaultMove = new Movements(bot, mcData);
+        defaultMove.canOpenDoors = true;
+        defaultMove.allowParkour = true;
+        defaultMove.allowSprinting = true;
+        defaultMove.blocksToAvoid.delete(mcData.blocksByName.leaves?.id);
+        defaultMove.blocksToAvoid.delete(mcData.blocksByName.oak_leaves?.id);
         bot.pathfinder.setMovements(defaultMove);
     });
 
@@ -71,7 +76,7 @@ const handlers = {
     }),
 
     get_nearby_entities: (params) => {
-        const radius = params.radius || 32;
+        const radius = Math.min(params.radius || 16, 16);
         const entities = [];
         for (const [id, entity] of Object.entries(bot.entities)) {
             if (entity === bot.entity) continue;
@@ -135,12 +140,39 @@ const handlers = {
         return { light_level: block ? block.light : 0 };
     },
 
-    move_to: async (params) => {
+    get_nearby_trees: (params) => {
+        const radius = Math.min(params.radius || 16, 16);
+        const treeNames = new Set(['oak_log','birch_log','spruce_log','jungle_log','acacia_log','dark_oak_log']);
+        const trees = [];
+        const pos = bot.entity.position;
+        for (let x = -radius; x <= radius; x++) {
+            for (let y = -2; y <= 5; y++) {
+                for (let z = -radius; z <= radius; z++) {
+                    const block = bot.blockAt(pos.offset(x, y, z));
+                    if (block && treeNames.has(block.name)) {
+                        trees.push({
+                            name: block.name,
+                            position: block.position,
+                            distance: Math.sqrt(x*x + y*y + z*z),
+                        });
+                    }
+                }
+            }
+        }
+        trees.sort((a, b) => a.distance - b.distance);
+        return { trees: trees.slice(0, 10) };
+    },
+        move_to: async (params) => {
+        const MOVE_TIMEOUT = 2000;
         try {
             const goal = new goals.GoalNear(params.x, params.y || bot.entity.position.y, params.z, 1);
-            await bot.pathfinder.goto(goal);
+            const result = await Promise.race([
+                bot.pathfinder.goto(goal).then(() => ({ ok: true })),
+                new Promise((_, rej) => setTimeout(() => rej(new Error('Pathfinding timeout')), MOVE_TIMEOUT))
+            ]);
             return { success: true, position: bot.entity.position };
         } catch (e) {
+            bot.pathfinder.stop();
             return { success: false, error: e.message };
         }
     },
@@ -267,4 +299,7 @@ server.listen(BRIDGE_PORT, '127.0.0.1', () => {
     console.log(`[Bridge] Listening on 127.0.0.1:${BRIDGE_PORT}`);
     console.log(`[Bridge] Connecting to MC server ${MC_HOST}:${MC_PORT} as ${MC_USERNAME}`);
 });
+
+
+
 

@@ -32,10 +32,11 @@ class Observer:
             obs["time_of_day"] = self.bot.get_time()
             obs["is_daytime"] = 0 <= obs["time_of_day"] < 12000 or obs["time_of_day"] >= 23000
             obs["weather"] = self.bot.get_weather()
-            # Scan wider for trees
-            blocks_wide = self.bot.get_nearby_blocks(radius=32)
-            obs["nearby_blocks"] = blocks_wide[:50]
-            obs["trees_found"] = self._find_blocks(blocks_wide, TREE_BLOCKS)
+            # Small scan for general context
+            blocks_near = self.bot.get_nearby_blocks(radius=8)
+            obs["nearby_blocks"] = blocks_near[:50]
+            # Dedicated tree scanner at larger radius
+            obs["trees_found"] = self.bot.get_nearby_trees(radius=32)
             obs["ground_block"] = self.bot.get_block_below()
         if mode == "deep":
             obs["biome"] = self.bot.get_biome()
@@ -62,19 +63,6 @@ class Observer:
             })
         summarized.sort(key=lambda x: x["distance"])
         return summarized[:20]
-
-    def _find_blocks(self, blocks: list, target_names: set) -> list:
-        """Find specific block types from nearby blocks list."""
-        found = []
-        for b in blocks:
-            if b.get("name", "") in target_names:
-                found.append({
-                    "name": b["name"],
-                    "position": b.get("position"),
-                    "distance": round(b.get("distance", 0), 1),
-                })
-        found.sort(key=lambda x: x["distance"])
-        return found[:10]
 
     def _identify_dangers(self, entities: list) -> list:
         dangers = []

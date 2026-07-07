@@ -131,9 +131,29 @@ class BotBridge:
         result = self._send_command("get_light_level")
         return result.get("light_level", 0)
 
+
+    def get_nearby_trees(self, radius: int = 32) -> list:
+        result = self._send_command("get_nearby_trees", {"radius": radius})
+        return result.get("trees", [])
+
+    def _send_command_single(self, command: str, params: dict = None) -> dict:
+        if not self._connected or not self._socket:
+            return {"success": False, "error": "Not connected to bot bridge"}
+        msg = json.dumps({"command": command, "params": params or {}}) + "\n"
+        try:
+            self._socket.sendall(msg.encode("utf-8"))
+            response = b""
+            while True:
+                chunk = self._socket.recv(4096)
+                response += chunk
+                if b"\n" in response:
+                    break
+            return json.loads(response.decode("utf-8").strip())
+        except Exception as e:
+            return {"success": False, "error": str(e)}
     # Action commands
     def move_to(self, x: float, z: float, y: float = None) -> dict:
-        return self._send_command("move_to", {"x": x, "z": z, "y": y})
+        return self._send_command_single("move_to", {"x": x, "z": z, "y": y})
 
     def look_at(self, x: float, y: float, z: float) -> dict:
         return self._send_command("look_at", {"x": x, "y": y, "z": z})
@@ -158,3 +178,5 @@ class BotBridge:
 
     def chat(self, message: str) -> dict:
         return self._send_command("chat", {"message": message})
+
+
