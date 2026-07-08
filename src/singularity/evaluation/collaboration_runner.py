@@ -705,6 +705,8 @@ class CollaborationBenchmarkRunner:
         baseline: CollaborationExecutionReport,
         patched: CollaborationExecutionReport,
     ) -> dict:
+        baseline_control = self.control_policy_summary_from_execution(baseline)
+        patched_control = self.control_policy_summary_from_execution(patched)
         return {
             "type": "collaboration_mixed_policy_ablation_comparison",
             "baseline_spec_id": baseline.spec_id,
@@ -718,6 +720,9 @@ class CollaborationBenchmarkRunner:
             "deadline_misses_delta": patched.deadline_misses - baseline.deadline_misses,
             "total_elapsed_s_delta": round(patched.total_elapsed_s - baseline.total_elapsed_s, 3),
             "shared_state_changed": baseline.shared_state != patched.shared_state,
+            "control_policy_changed": baseline_control != patched_control,
+            "baseline_control_policy": baseline_control,
+            "patched_control_policy": patched_control,
             "task_status_changed": [
                 {
                     "task_id": base.source_task_id,
@@ -725,9 +730,127 @@ class CollaborationBenchmarkRunner:
                     "patched_status": other.status,
                 }
                 for base, other in self._paired_task_results(baseline, patched)
-                if base.status != other.status
+            if base.status != other.status
             ],
         }
+
+    def control_policy_summary_from_execution(self, report: CollaborationExecutionReport) -> dict:
+        summary = {
+            "task_count": len(report.task_results),
+            "log_count": 0,
+            "action_event_count": 0,
+            "control_policy_event_count": 0,
+            "backend_counts": {},
+            "preferred_backend_counts": {},
+            "preferred_control_counts": {},
+            "fallback_count": 0,
+            "fallback_reasons": {},
+            "action_backend_counts": {},
+            "logs": [],
+        }
+        for item in report.task_results:
+            log_path = self._task_session_log_path(item)
+            if not log_path:
+                continue
+            log_summary = self.control_policy_summary_from_log(log_path)
+            log_summary["task_id"] = item.source_task_id or item.task_id
+            log_summary["role_id"] = item.assigned_to
+            summary["logs"].append(log_summary)
+            summary["log_count"] += int(log_summary.get("log_available", False))
+            summary["action_event_count"] += int(log_summary.get("action_event_count", 0) or 0)
+            summary["control_policy_event_count"] += int(log_summary.get("control_policy_event_count", 0) or 0)
+            summary["fallback_count"] += int(log_summary.get("fallback_count", 0) or 0)
+            self._merge_counts(summary["backend_counts"], log_summary.get("backend_counts", {}))
+            self._merge_counts(summary["preferred_backend_counts"], log_summary.get("preferred_backend_counts", {}))
+            self._merge_counts(summary["preferred_control_counts"], log_summary.get("preferred_control_counts", {}))
+            self._merge_counts(summary["fallback_reasons"], log_summary.get("fallback_reasons", {}))
+            self._merge_counts(summary["action_backend_counts"], log_summary.get("action_backend_counts", {}))
+        for key in (
+            "backend_counts",
+            "preferred_backend_counts",
+            "preferred_control_counts",
+            "fallback_reasons",
+            "action_backend_counts",
+        ):
+            summary[key] = dict(sorted(summary[key].items()))
+        return summary
+
+    def control_policy_summary_from_log(self, session_log_path: str) -> dict:
+        summary = {
+            "log_path": session_log_path or "",
+            "log_available": bool(session_log_path and os.path.exists(session_log_path)),
+            "action_event_count": 0,
+            "control_policy_event_count": 0,
+            "backend_counts": {},
+            "preferred_backend_counts": {},
+            "preferred_control_counts": {},
+            "fallback_count": 0,
+            "fallback_reasons": {},
+            "action_backend_counts": {},
+        }
+        if not summary["log_available"]:
+            return summary
+        try:
+            with open(session_log_path, "r", encoding="utf-8-sig") as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    try:
+                        event = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if event.get("type") != "action":
+                        continue
+                    data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+                    action = data.get("action", {}) if isinstance(data.get("action", {}), dict) else {}
+                    result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+                    summary["action_event_count"] += 1
+                    policy = result.get("control_policy", {}) if isinstance(result.get("control_policy", {}), dict) else {}
+                    if not policy:
+                        continue
+                    summary["control_policy_event_count"] += 1
+                    action_type = str(policy.get("action_type") or result.get("action_type") or action.get("type") or "unknown")
+                    backend = str(policy.get("backend") or result.get("backend") or "unknown")
+                    preferred_backend = str(policy.get("preferred_backend") or "unknown")
+                    preferred_control = str(policy.get("preferred_control") or "unknown")
+                    self._increment(summary["backend_counts"], backend)
+                    self._increment(summary["preferred_backend_counts"], preferred_backend)
+                    self._increment(summary["preferred_control_counts"], preferred_control)
+                    self._increment(summary["action_backend_counts"], f"{action_type}:{backend}")
+                    fallback = str(policy.get("fallback_reason") or "")
+                    if fallback:
+                        summary["fallback_count"] += 1
+                        self._increment(summary["fallback_reasons"], fallback)
+        except Exception as exc:
+            summary["error"] = str(exc)
+        for key in (
+            "backend_counts",
+            "preferred_backend_counts",
+            "preferred_control_counts",
+            "fallback_reasons",
+            "action_backend_counts",
+        ):
+            summary[key] = dict(sorted(summary[key].items()))
+        return summary
+
+    def _task_session_log_path(self, task_result: CollaborationTaskExecution) -> str:
+        result = task_result.result if isinstance(task_result.result, dict) else {}
+        agent_result = result.get("agent_result", {}) if isinstance(result.get("agent_result", {}), dict) else {}
+        summary = agent_result.get("summary", {}) if isinstance(agent_result.get("summary", {}), dict) else {}
+        return str(summary.get("log_path") or result.get("session_log_path") or "")
+
+    def _merge_counts(self, target: dict, source: dict):
+        if not isinstance(source, dict):
+            return
+        for key, value in source.items():
+            try:
+                amount = int(value)
+            except (TypeError, ValueError):
+                amount = 1
+            self._increment(target, str(key), amount)
+
+    def _increment(self, counts: dict, key: str, amount: int = 1):
+        counts[key] = counts.get(key, 0) + amount
 
     def compare_schedule_reports(
         self,

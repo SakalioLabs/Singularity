@@ -160,6 +160,7 @@
 - [x] Add live benchmark mixed-policy ablation mode that runs suites without and with approved patches, then compares control-policy logs.
 - [x] Wire approved mixed-policy patches into M7 Agent-backed collaboration executor roles.
 - [x] Add M7 Agent-backed mixed-policy ablation mode that runs collaboration once without and once with approved patches.
+- [x] Add M7 mixed-policy role-log control-policy summaries for baseline vs patched collaboration runs.
 - [ ] Run live M1/M2/M7 with an approved mixed-policy patch and compare control-policy decisions plus mixed-policy review decisions against baseline.
 - [ ] Use `mixed-initiative-policy-ablation` on approved live-trace patches before running the corresponding patched benchmark suite.
 - [ ] Run `benchmark --mixed-policy-ablation --mixed-policy-patch ...` on M1/M2 once the bridge and Minecraft server are live.

@@ -266,7 +266,42 @@ def test_collaboration_runner_compares_against_single_agent_baseline():
 
 
 def test_collaboration_runner_compares_mixed_policy_executions():
+    tmpdir = tempfile.mkdtemp()
     runner = CollaborationBenchmarkRunner()
+
+    def write_action_log(name, preferred_control, fallback_reason=""):
+        path = os.path.join(tmpdir, name)
+        control_policy = {
+            "action_type": "place",
+            "backend": "mineflayer",
+            "preferred_backend": "desktop" if preferred_control == "consider_low_level_visual_control" else "mineflayer",
+            "preferred_control": preferred_control,
+            "reason": "visual_or_precision_sensitive" if preferred_control == "consider_low_level_visual_control" else "default_backend",
+        }
+        if fallback_reason:
+            control_policy["fallback_reason"] = fallback_reason
+        event = {
+            "type": "action",
+            "data": {
+                "action": {"type": "place", "parameters": {"item": "torch"}},
+                "result": {
+                    "success": True,
+                    "action_type": "place",
+                    "backend": "mineflayer",
+                    "control_policy": control_policy,
+                },
+            },
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(json.dumps(event) + "\n")
+        return path
+
+    baseline_log = write_action_log("baseline.jsonl", "mineflayer_api_ok")
+    patched_log = write_action_log(
+        "patched.jsonl",
+        "consider_low_level_visual_control",
+        "preferred backend desktop is not enabled",
+    )
     baseline = CollaborationExecutionReport(
         spec_id="BM-701",
         ok=False,
@@ -291,6 +326,7 @@ def test_collaboration_runner_compares_mixed_policy_executions():
                 assigned_to="resource_runner",
                 status="failed",
                 elapsed_s=20.0,
+                result={"agent_result": {"summary": {"log_path": baseline_log}}},
             ),
         ],
     )
@@ -318,6 +354,7 @@ def test_collaboration_runner_compares_mixed_policy_executions():
                 assigned_to="resource_runner",
                 status="completed",
                 elapsed_s=20.0,
+                result={"agent_result": {"summary": {"log_path": patched_log}}},
             ),
         ],
     )
@@ -332,6 +369,11 @@ def test_collaboration_runner_compares_mixed_policy_executions():
     assert comparison["deadline_misses_delta"] == -1
     assert comparison["total_elapsed_s_delta"] == -4.0
     assert comparison["shared_state_changed"]
+    assert comparison["control_policy_changed"]
+    assert comparison["baseline_control_policy"]["preferred_control_counts"]["mineflayer_api_ok"] == 1
+    assert comparison["patched_control_policy"]["preferred_control_counts"]["consider_low_level_visual_control"] == 1
+    assert comparison["patched_control_policy"]["fallback_count"] == 1
+    assert comparison["patched_control_policy"]["logs"][0]["task_id"] == "deliver_wood"
     assert comparison["task_status_changed"] == [
         {
             "task_id": "deliver_wood",

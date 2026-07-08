@@ -822,6 +822,11 @@ def main():
                 print(f"  completed delta: {mixed_policy_comparison['completed_tasks_delta']}")
                 print(f"  failed delta: {mixed_policy_comparison['failed_tasks_delta']}")
                 print(f"  elapsed delta: {mixed_policy_comparison['total_elapsed_s_delta']}s")
+                baseline_control = mixed_policy_comparison.get("baseline_control_policy", {})
+                patched_control = mixed_policy_comparison.get("patched_control_policy", {})
+                print(f"  control changed: {mixed_policy_comparison.get('control_policy_changed', False)}")
+                print(f"  baseline control: {baseline_control.get('preferred_control_counts', {})}")
+                print(f"  patched control: {patched_control.get('preferred_control_counts', {})}, fallbacks={patched_control.get('fallback_count', 0)}")
                 output_payload["baseline_execution"] = baseline_mixed_runner.execution_report_to_dict(baseline_result)
                 output_payload["patched_execution"] = patched_mixed_runner.execution_report_to_dict(patched_result)
                 output_payload["baseline_schedule_execution_comparison"] = baseline_mixed_runner.schedule_execution_comparison_to_dict(
