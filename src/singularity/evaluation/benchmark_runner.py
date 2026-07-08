@@ -3518,6 +3518,13 @@ class BenchmarkRunner:
             "policy_hints": policy_hints,
         }
 
+    def apply_skill_memory_quality_feedback(self, report: SkillMemoryQualityReport, skill_library) -> dict:
+        """Apply skill-memory quality feedback to a SkillLibrary-like object."""
+        feedback = self.skill_memory_quality_feedback(report)
+        if hasattr(skill_library, "record_skill_memory_quality_feedback"):
+            skill_library.record_skill_memory_quality_feedback(feedback)
+        return feedback
+
     def run_memory_policy_report_from_logs(self, session_log_paths: list[str]) -> MemoryPolicyTraceReport:
         """Summarize memory write/read/manage evidence and policy gaps in session logs."""
         report = MemoryPolicyTraceReport()

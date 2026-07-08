@@ -2721,6 +2721,11 @@ def test_skill_memory_quality_report_labels_typed_hint_outcomes():
     assert policies["keep_review_only_skill_memory_gated"]["count"] == 1
     assert policies["candidate_promote_reuse_hints"]["priority"] == "low"
     assert policies["instrument_skill_memory_hints"]["count"] == 1
+    skill_library = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=False)
+    applied = runner.apply_skill_memory_quality_feedback(report, skill_library)
+    profile = skill_library.skill_memory_quality_profile()
+    assert applied == feedback
+    assert "demote_conflicting_reuse_hints" in profile["policy_hints"]
     print("PASS: Skill memory quality report labels typed hint outcomes")
 
 

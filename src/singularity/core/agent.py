@@ -68,6 +68,7 @@ class Agent:
             else None
         )
         self.skill_library = SkillLibrary(storage_path=config.skill_dir, persist=True)
+        self.skill_memory_quality_feedback_report = self._load_skill_memory_quality_feedback()
         self.task_system = TaskSystem()
         self.goal_generator = GoalGenerator()
         self.curriculum = CurriculumManager()
@@ -188,6 +189,44 @@ class Agent:
         if report["loaded_count"] or report["errors"]:
             logger.info(
                 "Self-evolution feedback loaded: "
+                f"{report['loaded_count']} files, "
+                f"hints={report['policy_hints_applied']}, "
+                f"errors={len(report['errors'])}"
+            )
+        return report
+
+    def _load_skill_memory_quality_feedback(self) -> dict:
+        """Load offline skill-memory quality feedback into retrieval ranking."""
+        paths = [
+            path for path in (getattr(self.config, "skill_memory_quality_feedback_paths", []) or [])
+            if path
+        ]
+        report = {
+            "paths": list(paths),
+            "loaded_count": 0,
+            "skipped_count": 0,
+            "policy_hints_applied": 0,
+            "advisory_only": True,
+            "errors": [],
+        }
+        if not getattr(self.config, "enable_skill_memory_context", True):
+            report["skipped_count"] = len(paths)
+            return report
+        for path in paths:
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    payload = json.load(f)
+                feedback = payload.get("skill_memory_quality_feedback", payload) if isinstance(payload, dict) else {}
+                applied = self.skill_library.record_skill_memory_quality_feedback(feedback)
+                report["loaded_count"] += 1
+                report["policy_hints_applied"] += int(applied or 0)
+            except Exception as e:
+                message = f"{path}: {e}"
+                report["errors"].append(message)
+                logger.warning(f"Failed to load skill-memory quality feedback {message}")
+        if report["loaded_count"] or report["errors"]:
+            logger.info(
+                "Skill-memory quality feedback loaded: "
                 f"{report['loaded_count']} files, "
                 f"hints={report['policy_hints_applied']}, "
                 f"errors={len(report['errors'])}"

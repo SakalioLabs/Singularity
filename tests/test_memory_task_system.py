@@ -1569,6 +1569,28 @@ def test_skill_library_records_skill_level_memory_and_transfer_report():
     assert hints[1].startswith("AVOID craft_torch_memory_skill")
     assert hints[2].startswith("REVIEW_ONLY craft_torch_memory_skill")
     assert "transfer=review" in hints[2]
+
+    applied = reloaded.record_skill_memory_quality_feedback({
+        "quality_label_counts": {
+            "reuse_conflicted_with_failures": 1,
+            "avoid_unheeded_post_hint_failures": 1,
+            "review_only_present_keep_gated": 1,
+        },
+        "task_family_counts": {"crafting": 2},
+        "policy_hints": [
+            {"skill_memory_policy": "demote_conflicting_reuse_hints", "priority": "high", "count": 1},
+            {"skill_memory_policy": "tighten_avoid_hint_prompting", "priority": "medium", "count": 1},
+            {"skill_memory_policy": "keep_review_only_skill_memory_gated", "priority": "medium", "count": 1},
+        ],
+    })
+    adjusted_hints = reloaded.get_skill_memory_hints("Craft torches", task_family="crafting", limit=3)
+    profile = reloaded.skill_memory_quality_profile()
+
+    assert applied == 3
+    assert adjusted_hints[0].startswith("AVOID craft_torch_memory_skill")
+    assert "quality=tighten_avoid_hint_prompting" in adjusted_hints[0]
+    assert any("quality=demote_conflicting_reuse_hints" in hint for hint in adjusted_hints)
+    assert "demote_conflicting_reuse_hints" in profile["policy_hints"]
     print("PASS: SkillLibrary records skill-level memory and transfer report")
 
 

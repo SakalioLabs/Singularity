@@ -105,6 +105,36 @@ def _write_self_evolution_feedback(tmpdir):
     return feedback_path
 
 
+def _write_skill_memory_quality_feedback(tmpdir):
+    feedback_path = os.path.join(tmpdir, "skill_memory_quality.json")
+    with open(feedback_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "skill_memory_quality_feedback": {
+                "quality_label_counts": {
+                    "reuse_conflicted_with_failures": 1,
+                    "avoid_unheeded_post_hint_failures": 1,
+                },
+                "hint_type_counts": {"REUSE": 2, "AVOID": 1},
+                "task_family_counts": {"crafting": 2},
+                "policy_hints": [
+                    {
+                        "skill_memory_policy": "demote_conflicting_reuse_hints",
+                        "priority": "high",
+                        "reason": "REUSE hint conflicted with later failures",
+                        "count": 1,
+                    },
+                    {
+                        "skill_memory_policy": "tighten_avoid_hint_prompting",
+                        "priority": "medium",
+                        "reason": "AVOID hint was followed by failed actions",
+                        "count": 1,
+                    },
+                ],
+            },
+        }, f)
+    return feedback_path
+
+
 def test_self_evolution_policy_formats_advisory_context():
     policy = SelfEvolutionPolicy()
     applied = policy.record_self_evolution_feedback({
@@ -314,6 +344,26 @@ def test_agent_loads_self_evolution_feedback_into_planner_policy():
     print("PASS: Agent loads self-evolution feedback into planner policy")
 
 
+def test_agent_loads_skill_memory_quality_feedback_into_library():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = _write_skill_memory_quality_feedback(tmpdir)
+    config = Config(
+        log_dir=os.path.join(tmpdir, "logs"),
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        skill_memory_quality_feedback_paths=[feedback_path],
+    )
+
+    agent = Agent(config)
+    profile = agent.skill_library.skill_memory_quality_profile()
+
+    assert agent.skill_memory_quality_feedback_report["loaded_count"] == 1
+    assert agent.skill_memory_quality_feedback_report["policy_hints_applied"] == 2
+    assert "demote_conflicting_reuse_hints" in profile["policy_hints"]
+    assert profile["task_family_counts"]["crafting"] == 2
+    print("PASS: Agent loads skill-memory quality feedback into library")
+
+
 def test_agent_skips_mixed_policy_patch_when_gate_is_not_approved():
     for readiness in ("review", "rejected"):
         tmpdir = tempfile.mkdtemp()
@@ -350,5 +400,6 @@ if __name__ == "__main__":
     test_agent_loads_mixed_policy_patch_into_runtime_policies()
     test_agent_loads_mixed_policy_patch_when_gate_is_approved()
     test_agent_loads_self_evolution_feedback_into_planner_policy()
+    test_agent_loads_skill_memory_quality_feedback_into_library()
     test_agent_skips_mixed_policy_patch_when_gate_is_not_approved()
     print("\nAction controller tests PASSED")

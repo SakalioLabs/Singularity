@@ -41,6 +41,7 @@ class Config:
     mixed_policy_patch_paths: list[str] = field(default_factory=list)
     mixed_policy_gate_paths: list[str] = field(default_factory=list)
     self_evolution_feedback_paths: list[str] = field(default_factory=list)
+    skill_memory_quality_feedback_paths: list[str] = field(default_factory=list)
     enable_self_evolution_policy: bool = True
     enable_screenshot_capture: bool = False
     screenshot_dir: str = "logs/screenshots"

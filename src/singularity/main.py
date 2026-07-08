@@ -65,6 +65,7 @@ def main():
     run_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load at runtime")
     run_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading runtime policy patches")
     run_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
+    run_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     run_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Autonomous mode (M4 + M5)
@@ -90,6 +91,7 @@ def main():
     auto_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load at runtime")
     auto_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading runtime policy patches")
     auto_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
+    auto_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     auto_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Benchmark command
@@ -114,6 +116,7 @@ def main():
     bench_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load in benchmark agents")
     bench_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading benchmark policy patches")
     bench_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
+    bench_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     bench_parser.add_argument("--log-level", type=str, default="INFO")
     bench_parser.add_argument("--output", type=str, default="benchmark_results.json")
     bench_parser.add_argument("--preflight", action="store_true", help="Run readiness checks before benchmarks")
@@ -341,6 +344,7 @@ def main():
     collab_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load in Agent executor roles")
     collab_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading Agent executor policy patches")
     collab_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
+    collab_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     collab_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     collab_parser.add_argument("--log-level", type=str, default="INFO")
 
@@ -1388,6 +1392,7 @@ def main():
                     mixed_policy_patch_paths=list(mixed_policy_patch_paths or []),
                     mixed_policy_gate_paths=getattr(args, "mixed_policy_gate", []) or [],
                     self_evolution_feedback_paths=getattr(args, "self_evolution_feedback", []) or [],
+                    skill_memory_quality_feedback_paths=getattr(args, "skill_memory_quality_feedback", []) or [],
                     screenshot_dir=getattr(args, "screenshot_dir", "logs/screenshots"),
                     screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),
                 ), bridge_port_base=getattr(args, "bridge_port_base", 0) or None, role_bridge_ports=role_bridge_ports)
@@ -2592,6 +2597,7 @@ def main():
         mixed_policy_patch_paths=getattr(args, "mixed_policy_patch", []) or [],
         mixed_policy_gate_paths=getattr(args, "mixed_policy_gate", []) or [],
         self_evolution_feedback_paths=getattr(args, "self_evolution_feedback", []) or [],
+        skill_memory_quality_feedback_paths=getattr(args, "skill_memory_quality_feedback", []) or [],
         enable_screenshot_capture=getattr(args, "capture_screenshots", False),
         screenshot_dir=getattr(args, "screenshot_dir", "logs/screenshots"),
         screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),

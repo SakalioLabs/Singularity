@@ -328,6 +328,8 @@ python -m singularity.main skill-memory-report --skill-storage-path workspace/sk
 # and typed as REUSE, AVOID, or REVIEW_ONLY before they can influence planning.
 # Audit typed hint quality against later actions and goal outcomes in session logs:
 python -m singularity.main skill-memory-quality-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/skill_memory_quality.json
+# Feed quality feedback back into runtime retrieval ranking without mutating skills:
+python -m singularity.main run --goal "Craft torches" --skill-memory-quality-feedback logs/benchmarks/skill_memory_quality.json
 # Use --no-skill-memory-context on run/autonomous/benchmark/collab-benchmark for baselines.
 python -m singularity.main benchmark --suite m1 --skill-memory-ablation --output logs/benchmarks/skill_memory_ablation.json
 

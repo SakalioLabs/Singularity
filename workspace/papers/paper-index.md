@@ -1046,6 +1046,24 @@
 
 ---
 
+## P-057: Agent-Native Memory System
+
+- **Title**: Are We Ready For An Agent-Native Memory System?
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2606.24775
+- **Type**: System-level study of long-term memory for LLM agents
+- **Task Type**: Agent memory workloads across storage, extraction, retrieval/routing, and maintenance modules
+- **Core Method**: Decomposes memory systems into module-level axes and measures retrieval precision, update correctness, cost, and long-horizon stability
+- **Action Space**: Agent tasks with persistent textual, structured, and system-level memory
+- **Memory**: Representation/storage, extraction, retrieval/routing, localized maintenance, and dynamic knowledge updates
+- **Key Results**: Shows no single architecture dominates and localized maintenance can be more cost-efficient than global reorganization
+- **Scores**: R=5, N=4, R=4, E=5
+- **Value to Project**: Supports module-level Minecraft memory diagnostics and localized skill-memory retrieval maintenance before mutating skill stores
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-agent-native-memory-system.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1106,3 +1124,4 @@
 | P-054 | MUSE-Autoskill | 2026 | R4/N5/R4/E5 | P2 |
 | P-055 | RIZZ | 2026 | R4/N5/R4/E5 | P2 |
 | P-056 | Memory Management and Experience-Following | 2026 | R5/N4/R4/E5 | P1 |
+| P-057 | Agent-Native Memory System | 2026 | R5/N4/R4/E5 | P1 |
