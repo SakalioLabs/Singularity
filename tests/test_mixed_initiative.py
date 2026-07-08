@@ -61,12 +61,80 @@ def test_fetch_tool_template_asks_single_targeted_clarification():
 def test_unknown_goal_uses_unsupported_template_candidate():
     compiler = MixedInitiativeTemplateCompiler()
 
-    plan = compiler.compile_goal("Craft torches before night")
+    plan = compiler.compile_goal("Organize inventory for later")
 
     assert plan.template_id == "unsupported_request"
     assert plan.category == "template_gap"
     assert plan.subtasks[0].id == "template_needed"
     print("PASS: Unknown mixed-initiative goals use unsupported template instead of wrong validator")
+
+
+def test_craft_template_binds_item_count_and_validates_inventory():
+    compiler = MixedInitiativeTemplateCompiler()
+
+    plan = compiler.compile_goal("Craft 4 torches before night")
+
+    assert plan.template_id == "craft_or_process_item"
+    produce = plan.subtasks[0]
+    assert produce.id == "produce_item"
+    assert produce.bound_parameters["item"] == "torch"
+    assert produce.bound_parameters["count"] == 4
+    assert produce.bound_parameters["process_action"] == "craft"
+    assert produce.success_validator["inventory_at_least"]["torch"] == 4
+
+    report = build_mixed_initiative_report(
+        "Craft 4 torches before night",
+        evidence={"post_observation": {"inventory": {"torch": 4}}},
+    )
+
+    assert report["validation_summary"]["checked_subtasks"] == 1
+    assert report["validation_summary"]["passed"] == 1
+    print("PASS: Craft/process template binds item counts and validates output inventory")
+
+
+def test_mine_template_splits_source_block_and_inventory_drop():
+    compiler = MixedInitiativeTemplateCompiler()
+
+    plan = compiler.compile_goal("Mine 3 coal ore within 12 blocks")
+
+    assert plan.template_id == "collect_or_mine_resource"
+    locate = next(subtask for subtask in plan.subtasks if subtask.id == "locate_resource_source")
+    collect = next(subtask for subtask in plan.subtasks if subtask.id == "collect_resource")
+    assert locate.bound_parameters["source_block"] == "coal_ore"
+    assert locate.bound_parameters["search_radius"] == 12
+    assert locate.success_validator["nearby_block_present"] == ["coal_ore"]
+    assert collect.bound_parameters["resource"] == "coal"
+    assert collect.bound_parameters["count"] == 3
+    assert collect.preconditions["nearby_block_present"] == ["coal_ore"]
+    assert collect.success_validator["inventory_at_least"]["coal"] == 3
+    print("PASS: Generic mine template separates source blocks from inventory drops")
+
+
+def test_build_template_accepts_equivalent_place_actions():
+    compiler = MixedInitiativeTemplateCompiler()
+
+    plan = compiler.compile_goal("Build a cobblestone wall")
+
+    assert plan.template_id == "build_or_place_structure"
+    build = plan.subtasks[0]
+    assert build.bound_parameters["structure"] == "wall"
+    assert build.bound_parameters["material"] == "cobblestone"
+
+    result = BoundedEvidenceValidator().validate_subtask(
+        build,
+        {
+            "actions": [
+                {
+                    "action": {"type": "place_block", "parameters": {"block": "cobblestone"}},
+                    "result": {"success": True},
+                }
+            ]
+        },
+    )
+
+    assert result.success
+    assert result.status == "passed"
+    print("PASS: Build/place template accepts equivalent successful placement actions")
 
 
 def test_clarification_answer_resolves_validator_and_memory_candidate():
@@ -259,23 +327,23 @@ def test_mixed_initiative_trace_report_flags_policy_violation():
 
 def test_mixed_initiative_trace_report_groups_template_candidates():
     first_path = write_jsonl([
-        {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {"type": "goal_start", "data": {"goal": "Organize inventory"}},
         {"type": "observation", "data": {"inventory": {"stick": 1, "coal": 1}}},
-        {"type": "goal_end", "data": {"goal": "Craft torches", "result": {"completed": False}}},
+        {"type": "goal_end", "data": {"goal": "Organize inventory", "result": {"completed": False}}},
     ])
     second_path = write_jsonl([
-        {"type": "goal_start", "data": {"goal": "Smelt iron ingot"}},
+        {"type": "goal_start", "data": {"goal": "Sort inventory"}},
         {"type": "observation", "data": {"inventory": {"raw_iron": 1, "coal": 1}}},
-        {"type": "goal_end", "data": {"goal": "Smelt iron ingot", "result": {"completed": False}}},
+        {"type": "goal_end", "data": {"goal": "Sort inventory", "result": {"completed": False}}},
     ])
 
     report = build_mixed_initiative_trace_report([first_path, second_path])
 
     assert report.unsupported_goal_count == 2
     candidate = report.template_candidates[0]
-    assert candidate["candidate_id"] == "craft_or_process_item"
+    assert candidate["candidate_id"] == "general_player_request"
     assert candidate["count"] == 2
-    assert "inventory_at_least" in candidate["suggested_validators"]
+    assert "goal_verification" in candidate["suggested_validators"]
     assert all(case.template_id == "unsupported_request" for case in report.cases)
     print("PASS: Mixed-initiative trace report groups unsupported goals into template candidates")
 
@@ -284,6 +352,9 @@ if __name__ == "__main__":
     test_collect_logs_template_binds_goal_slots_and_context()
     test_fetch_tool_template_asks_single_targeted_clarification()
     test_unknown_goal_uses_unsupported_template_candidate()
+    test_craft_template_binds_item_count_and_validates_inventory()
+    test_mine_template_splits_source_block_and_inventory_drop()
+    test_build_template_accepts_equivalent_place_actions()
     test_clarification_answer_resolves_validator_and_memory_candidate()
     test_bounded_validator_accepts_inventory_evidence()
     test_bounded_validator_rejects_privileged_commands()

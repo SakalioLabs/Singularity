@@ -330,11 +330,25 @@ class MixedInitiativeTemplateCompiler:
             return self.templates[template_id]
 
         goal_lower = str(goal or "").lower()
+        collection_terms = ("mine", "dig", "collect", "gather", "harvest", "get", "fetch", "bring", "retrieve")
+        craft_terms = ("craft", "make", "smelt", "cook")
+        build_terms = ("build", "place", "shelter", "house", "wall", "bridge")
+        oak_log_terms = ("log", "logs", "wood", "oak")
         if any(token in goal_lower for token in ("pickaxe", "pick axe", "tool")) and any(
             token in goal_lower for token in ("get", "fetch", "bring", "retrieve")
         ):
             return self.templates["fetch_named_tool"]
-        if any(token in goal_lower for token in ("log", "logs", "wood", "oak")):
+        if any(token in goal_lower for token in craft_terms):
+            return self.templates["craft_or_process_item"]
+        if any(token in goal_lower for token in oak_log_terms) and any(
+            token in goal_lower for token in collection_terms
+        ):
+            return self.templates["collect_oak_logs"]
+        if any(token in goal_lower for token in ("mine", "dig", "collect", "gather", "harvest")):
+            return self.templates["collect_or_mine_resource"]
+        if any(token in goal_lower for token in build_terms):
+            return self.templates["build_or_place_structure"]
+        if any(token in goal_lower for token in oak_log_terms):
             return self.templates["collect_oak_logs"]
         return self.templates["unsupported_request"]
 
@@ -476,6 +490,35 @@ class MixedInitiativeTemplateCompiler:
             slots["search_radius"] = int(radius.group(1))
         if template_id == "collect_oak_logs" and any(token in goal_lower for token in ("oak", "log", "wood")):
             slots.setdefault("resource", "oak_log")
+        if template_id == "craft_or_process_item":
+            target = _target_after_keywords(goal_lower, ["craft", "make", "smelt", "cook"])
+            item = _canonical_item_name(target)
+            if item:
+                slots["item"] = item
+            slots.setdefault("count", 1)
+            if any(token in goal_lower for token in ("smelt", "cook")):
+                slots["process_action"] = "smelt"
+                slots.setdefault("station", "furnace")
+            else:
+                slots["process_action"] = "craft"
+        if template_id == "collect_or_mine_resource":
+            target = _target_after_keywords(goal_lower, ["mine", "dig", "collect", "gather", "harvest"])
+            resource, source_block = _resource_item_and_source_block(target)
+            if resource:
+                slots["resource"] = resource
+            if source_block:
+                slots["source_block"] = source_block
+            slots.setdefault("count", 1)
+        if template_id == "build_or_place_structure":
+            target = _target_after_keywords(goal_lower, ["build", "place"]) or _structure_keyword(goal_lower)
+            structure, material = _structure_and_material_from_target(target)
+            if structure:
+                slots["structure"] = structure
+            explicit_material = _material_after_goal(goal_lower)
+            if explicit_material:
+                slots["material"] = explicit_material
+            elif material:
+                slots["material"] = material
         if template_id == "fetch_named_tool":
             for variant in ("wooden", "stone", "iron", "diamond", "netherite"):
                 if re.search(rf"\b{variant}\s+pick(?:axe| axe)\b", goal_lower):
@@ -552,6 +595,7 @@ class BoundedEvidenceValidator:
         checks.extend(self._check_nearby_entities_absent(validator, evidence, evidence_lines, missing))
         checks.extend(self._check_recent_chat(validator, evidence, evidence_lines, missing))
         checks.extend(self._check_action_success(validator, evidence, evidence_lines, missing))
+        checks.extend(self._check_action_success_any(validator, evidence, evidence_lines, missing))
         checks.extend(self._check_position_delta(validator, evidence, evidence_lines, missing))
 
         if not checks:
@@ -765,6 +809,26 @@ class BoundedEvidenceValidator:
                 missing.append(f"no successful action observed: {action_type}")
         return checks
 
+    def _check_action_success_any(self, validator: dict, evidence: dict, evidence_lines: list[str], missing: list[str]) -> list[bool]:
+        expected = validator.get("action_success_any", [])
+        if isinstance(expected, str):
+            expected = [expected]
+        if not expected:
+            return []
+        actions = evidence.get("actions", []) or []
+        observed = {
+            self._event_action_type(event)
+            for event in actions
+            if self._event_success(event)
+        }
+        ok = any(action_type in observed for action_type in expected)
+        if ok:
+            matched = sorted(str(action_type) for action_type in expected if action_type in observed)
+            evidence_lines.append(f"successful action observed: {matched[0]}")
+        else:
+            missing.append(f"no successful action observed from any of: {', '.join(str(item) for item in expected)}")
+        return [ok]
+
     def _check_position_delta(self, validator: dict, evidence: dict, evidence_lines: list[str], missing: list[str]) -> list[bool]:
         required = validator.get("position_delta_at_least")
         if required in (None, ""):
@@ -951,6 +1015,79 @@ def builtin_minenpc_templates() -> dict[str, MixedInitiativeTaskTemplate]:
             ),
         ],
     )
+    craft_or_process_item = MixedInitiativeTaskTemplate(
+        id="craft_or_process_item",
+        name="Craft or process item",
+        category="crafting_processing",
+        goal_pattern="craft/process {count} {item}",
+        bounded_policy=common_policy,
+        subtasks=[
+            SubtaskTemplate(
+                id="produce_item",
+                name="produce requested item",
+                slots=[
+                    SlotSpec("item", required=True, question="Which item should I craft or process?"),
+                    SlotSpec("count", required=False, default=1),
+                    SlotSpec("process_action", required=False, default="craft"),
+                    SlotSpec("station", required=False, default="available_station"),
+                ],
+                success_criterion="Inventory contains the requested crafted or processed item count.",
+                success_validator={"inventory_at_least": {"$item": "$count"}},
+            ),
+        ],
+    )
+    collect_or_mine_resource = MixedInitiativeTaskTemplate(
+        id="collect_or_mine_resource",
+        name="Collect or mine resource",
+        category="resource_collection",
+        goal_pattern="collect/mine {count} {resource}",
+        bounded_policy=common_policy,
+        subtasks=[
+            SubtaskTemplate(
+                id="locate_resource_source",
+                name="locate resource source",
+                slots=[
+                    SlotSpec("source_block", required=True, question="Which block or source should I search for?"),
+                    SlotSpec("search_radius", required=False, default=64),
+                ],
+                success_criterion="Find bounded local evidence of the resource source before mining or gathering.",
+                success_validator={"nearby_block_present": ["$source_block"]},
+            ),
+            SubtaskTemplate(
+                id="collect_resource",
+                name="collect requested resource",
+                dependencies=["locate_resource_source"],
+                slots=[
+                    SlotSpec("resource", required=True, question="Which resource should I collect?"),
+                    SlotSpec("count", required=False, default=1),
+                    SlotSpec("source_block", required=False),
+                ],
+                preconditions={"nearby_block_present": ["$source_block"]},
+                success_criterion="Inventory contains the requested resource count.",
+                success_validator={"inventory_at_least": {"$resource": "$count"}},
+            ),
+        ],
+    )
+    build_or_place_structure = MixedInitiativeTaskTemplate(
+        id="build_or_place_structure",
+        name="Build or place structure",
+        category="construction_building",
+        goal_pattern="build/place {structure}",
+        bounded_policy=common_policy,
+        subtasks=[
+            SubtaskTemplate(
+                id="place_or_build_structure",
+                name="place or build requested structure",
+                slots=[
+                    SlotSpec("structure", required=True, question="What structure or object should I build or place?"),
+                    SlotSpec("material", required=False, default="available_blocks"),
+                    SlotSpec("location", required=False, default="current_player_location"),
+                ],
+                success_criterion="A bounded build/place action succeeds for the requested structure.",
+                success_validator={"action_success_any": ["place", "place_block", "build"]},
+            ),
+        ],
+    )
     unsupported_request = MixedInitiativeTaskTemplate(
         id="unsupported_request",
         name="Unsupported mixed-initiative request",
@@ -969,6 +1106,9 @@ def builtin_minenpc_templates() -> dict[str, MixedInitiativeTaskTemplate]:
     return {
         collect_oak_logs.id: collect_oak_logs,
         fetch_named_tool.id: fetch_named_tool,
+        craft_or_process_item.id: craft_or_process_item,
+        collect_or_mine_resource.id: collect_or_mine_resource,
+        build_or_place_structure.id: build_or_place_structure,
         unsupported_request.id: unsupported_request,
     }
 
@@ -1313,6 +1453,133 @@ def _template_candidate_for_goal(goal: str) -> dict:
 def _first_number(text: str) -> Optional[int]:
     match = re.search(r"\b(\d+)\b", text)
     return int(match.group(1)) if match else None
+
+
+PLURAL_ITEM_OVERRIDES = {
+    "torches": "torch",
+    "logs": "log",
+    "ingots": "ingot",
+}
+PLURAL_ITEM_KEEP = {
+    "planks",
+    "stairs",
+    "leggings",
+}
+ORE_BLOCK_DROPS = {
+    "coal_ore": "coal",
+    "deepslate_coal_ore": "coal",
+    "iron_ore": "raw_iron",
+    "deepslate_iron_ore": "raw_iron",
+    "gold_ore": "raw_gold",
+    "deepslate_gold_ore": "raw_gold",
+    "copper_ore": "raw_copper",
+    "deepslate_copper_ore": "raw_copper",
+    "diamond_ore": "diamond",
+    "deepslate_diamond_ore": "diamond",
+    "emerald_ore": "emerald",
+    "deepslate_emerald_ore": "emerald",
+    "redstone_ore": "redstone",
+    "deepslate_redstone_ore": "redstone",
+    "lapis_ore": "lapis_lazuli",
+    "deepslate_lapis_ore": "lapis_lazuli",
+}
+RESOURCE_SOURCE_BLOCKS = {
+    "coal": "coal_ore",
+    "iron": "iron_ore",
+    "raw_iron": "iron_ore",
+    "gold": "gold_ore",
+    "raw_gold": "gold_ore",
+    "copper": "copper_ore",
+    "raw_copper": "copper_ore",
+    "diamond": "diamond_ore",
+    "emerald": "emerald_ore",
+    "redstone": "redstone_ore",
+    "lapis": "lapis_ore",
+    "lapis_lazuli": "lapis_ore",
+}
+RESOURCE_ITEM_ALIASES = {
+    "iron": "raw_iron",
+    "gold": "raw_gold",
+    "copper": "raw_copper",
+    "lapis": "lapis_lazuli",
+}
+STRUCTURE_WORDS = {
+    "shelter",
+    "house",
+    "wall",
+    "bridge",
+    "tower",
+    "farm",
+    "base",
+    "roof",
+    "floor",
+    "path",
+    "stair",
+    "stairs",
+    "torch",
+}
+
+
+def _canonical_item_name(raw: str) -> str:
+    text = str(raw or "").lower().strip()
+    text = re.sub(r"^\d+\s*", "", text)
+    text = re.sub(r"\b(?:minecraft|items?|blocks?|pieces?|stacks?)\b", " ", text)
+    text = re.sub(r"[^a-z0-9_]+", "_", text).strip("_")
+    text = re.sub(r"_+", "_", text)
+    if not text:
+        return ""
+    parts = [part for part in text.split("_") if part and part not in {"of", "the"}]
+    if not parts:
+        return ""
+    last = parts[-1]
+    if last in PLURAL_ITEM_OVERRIDES:
+        parts[-1] = PLURAL_ITEM_OVERRIDES[last]
+    elif last not in PLURAL_ITEM_KEEP:
+        if last.endswith("ies") and len(last) > 4:
+            parts[-1] = f"{last[:-3]}y"
+        elif last.endswith(("ches", "shes", "xes", "ses", "zes")) and len(last) > 4:
+            parts[-1] = last[:-2]
+        elif last.endswith("s") and not last.endswith("ss") and len(last) > 3:
+            parts[-1] = last[:-1]
+    return "_".join(parts)
+
+
+def _resource_item_and_source_block(raw: str) -> tuple[str, str]:
+    target = _canonical_item_name(raw)
+    if not target:
+        return "", ""
+    if target in ORE_BLOCK_DROPS:
+        return ORE_BLOCK_DROPS[target], target
+    source_block = RESOURCE_SOURCE_BLOCKS.get(target, target)
+    resource = RESOURCE_ITEM_ALIASES.get(target, target)
+    return resource, source_block
+
+
+def _structure_keyword(text: str) -> str:
+    for keyword in sorted(STRUCTURE_WORDS):
+        if re.search(rf"\b{re.escape(keyword)}\b", text):
+            return keyword
+    return ""
+
+
+def _structure_and_material_from_target(raw: str) -> tuple[str, str]:
+    target = _canonical_item_name(raw)
+    if not target:
+        return "", ""
+    parts = target.split("_")
+    for index, part in enumerate(parts):
+        if part in STRUCTURE_WORDS:
+            material = "_".join(parts[:index])
+            return part, material
+    return target, ""
+
+
+def _material_after_goal(text: str) -> str:
+    match = re.search(r"\b(?:with|using)\s+(?:a|an|the|some)?\s*([a-z0-9_ -]+)", text)
+    if not match:
+        return ""
+    material = re.split(r"\b(?:near|at|from|to|before|after|and|then)\b", match.group(1))[0].strip()
+    return _canonical_item_name(material)
 
 
 def _target_after_keywords(text: str, keywords: list[str]) -> str:

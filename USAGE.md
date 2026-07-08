@@ -154,14 +154,18 @@ python -m singularity.main action-abstraction-report --session-log logs/session_
 # Compile a MineNPC-style mixed-initiative task preview and optional bounded validator report
 python -m singularity.main mixed-initiative-report --goal "Collect 20 oak logs"
 python -m singularity.main mixed-initiative-report --goal "Get me a pickaxe" --context-json "{\"memory_preferences\":{\"landmark\":\"weapon_storage\"}}"
+python -m singularity.main mixed-initiative-report --goal "Craft 4 torches before night"
+python -m singularity.main mixed-initiative-report --goal "Mine 3 coal ore within 12 blocks"
+python -m singularity.main mixed-initiative-report --goal "Build a cobblestone wall"
 # Use --evidence-file with pre_observation/post_observation/actions/recent_chat JSON to validate subtasks
 # without admin commands, hidden world state, or global map shortcuts.
 
 # Replay session logs through the same MineNPC-style template validators and
 # compare bounded validator outcomes with logged GoalVerifier decisions.
 python -m singularity.main mixed-initiative-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/mixed_initiative_trace.json
-# The saved JSON includes `template_candidates` for unsupported player requests,
-# with suggested slots and validators for the next templates to implement.
+# Built-in templates cover oak-log collection, pickaxe retrieval, generic craft/process,
+# generic collect/mine, and build/place requests. The saved JSON still includes
+# `template_candidates` for remaining unsupported player requests.
 
 # M2 benchmarks (LLM planning)
 python -m singularity.main benchmark --suite m2

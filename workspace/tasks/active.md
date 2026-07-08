@@ -116,6 +116,8 @@
 - [x] Add `mixed-initiative-trace-report` so session logs can be replayed through MineNPC-style validators and compared against logged `GoalVerifier` decisions for stricter/looser evidence gates.
 - [x] Make unsupported mixed-initiative goals explicit and aggregate them into template candidates with suggested slots/validators instead of forcing unknown requests through the oak-log template.
 - [x] Add NitroGen to the paper index as a cross-game visual-action foundation-model reference for future low-level control trace collection.
+- [x] Convert the first high-count mixed-initiative template candidates into built-in craft/process, collect/mine, and build/place templates with bounded validators.
+- [x] Add GameWorld and OmniGameArena paper cards for verifiable game-agent evaluation and improvement-dynamics benchmarking.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -131,7 +133,7 @@
 - [ ] Run live M7 with shared-memory governance enabled and compare `false_promotion_review_count` plus provenance histories across collaboration logs.
 - [ ] Add mutable-world-state keys to live M7/autonomous traces and compare `state_revision_count` plus `implicit_conflict_count` against stale-task decisions.
 - [ ] Run `memory_read_filter_report()` on live autonomous/M7 memory stores and compare filtered stale/conditional entries against actual task outcomes.
-- [ ] Convert the highest-count `mixed-initiative-trace-report.template_candidates` into additional task templates beyond oak-log collection and pickaxe retrieval.
+- [x] Convert the highest-count `mixed-initiative-trace-report.template_candidates` into additional task templates beyond oak-log collection and pickaxe retrieval.
 - [ ] Run `exploration-trace-report` on real autonomous session logs, apply `curriculum_feedback`, and compare before/after curriculum candidate rankings.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.

@@ -286,7 +286,16 @@ def main():
     # Offline mixed-initiative task template report
     mixed_parser = subparsers.add_parser("mixed-initiative-report", help="Compile MineNPC-style task templates and optionally validate bounded evidence")
     mixed_parser.add_argument("--goal", type=str, default="Collect 20 oak logs", help="Natural-language Minecraft request")
-    mixed_parser.add_argument("--template", type=str, default="auto", choices=["auto", "collect_oak_logs", "fetch_named_tool", "unsupported_request"], help="Template to use")
+    mixed_template_choices = [
+        "auto",
+        "collect_oak_logs",
+        "fetch_named_tool",
+        "craft_or_process_item",
+        "collect_or_mine_resource",
+        "build_or_place_structure",
+        "unsupported_request",
+    ]
+    mixed_parser.add_argument("--template", type=str, default="auto", choices=mixed_template_choices, help="Template to use")
     mixed_parser.add_argument("--context-json", type=str, default="", help="Optional JSON object with slots, memory_preferences, or clarification_answers")
     mixed_parser.add_argument("--context-file", type=str, default="", help="Optional JSON file with context")
     mixed_parser.add_argument("--evidence-json", type=str, default="", help="Optional bounded evidence JSON object")
@@ -297,7 +306,7 @@ def main():
     # Offline mixed-initiative trace report
     mixed_trace_parser = subparsers.add_parser("mixed-initiative-trace-report", help="Replay session logs through MineNPC-style task validators")
     mixed_trace_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
-    mixed_trace_parser.add_argument("--template", type=str, default="auto", choices=["auto", "collect_oak_logs", "fetch_named_tool", "unsupported_request"], help="Template to use for all goals")
+    mixed_trace_parser.add_argument("--template", type=str, default="auto", choices=mixed_template_choices, help="Template to use for all goals")
     mixed_trace_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     mixed_trace_parser.add_argument("--log-level", type=str, default="INFO")
 

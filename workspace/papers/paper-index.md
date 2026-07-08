@@ -722,6 +722,42 @@
 
 ---
 
+## P-039: GameWorld
+
+- **Title**: GameWorld: Towards Standardized and Verifiable Evaluation of Multimodal Game Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2604.07429
+- **Type**: Benchmark / verifiable evaluation framework
+- **Task Type**: Browser-game multimodal agent tasks with standardized semantic and keyboard/mouse action interfaces
+- **Core Method**: 34 games and 170 tasks with deterministic Semantic Action Parsing and state-verifiable outcome metrics
+- **Action Space**: Direct computer-use controls plus semantic action parsing
+- **Memory**: Evaluates context-memory sensitivity as part of repeated benchmark analysis
+- **Key Results**: Reports that current model-interface pairs remain far from human-level play and exposes real-time, memory, and action-validity challenges
+- **Scores**: R=4, N=5, R=4, E=5
+- **Value to Project**: Reinforces Singularity's direction of pairing semantic action abstractions with bounded, state-verifiable task validators
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-gameworld.md`
+
+---
+
+## P-040: OmniGameArena
+
+- **Title**: OmniGameArena: A Unified UE5 Benchmark for VLM Game Agents with Improvement Dynamics
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2606.09826
+- **Type**: Benchmark / reflection-harness evaluation
+- **Task Type**: Real-time solo, PvP, and cooperative VLM game tasks
+- **Core Method**: Unified UE5 benchmark plus Improvement Dynamics Curve for bounded multi-round skill-prompt refinement and held-out variants
+- **Action Space**: Unified real-time game action interfaces
+- **Memory**: Tests whether reflection-derived skill prompts improve or overfit across repeated rounds
+- **Key Results**: Adds improvement dynamics and held-out task behavior as evaluation signals beyond one cold-start score
+- **Scores**: R=3, N=5, R=3, E=4
+- **Value to Project**: Suggests extending Singularity's ablation reports into repeated replay curves before promoting visual-action policies or mixed-initiative templates
+- **Reproduction Priority**: P3
+- **Card**: `2026-07-08-omnigamearena.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -764,3 +800,5 @@
 | P-036 | ActMem | 2026 | R4/N5/R3/E5 | P2 |
 | P-037 | MineNPC-Task | 2026 | R5/N4/R4/E5 | P2 |
 | P-038 | NitroGen | 2026 | R3/N5/R4/E4 | P3 |
+| P-039 | GameWorld | 2026 | R4/N5/R4/E5 | P2 |
+| P-040 | OmniGameArena | 2026 | R3/N5/R3/E4 | P3 |
