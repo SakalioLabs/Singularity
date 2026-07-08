@@ -2362,6 +2362,64 @@ class BenchmarkRunner:
             curriculum_manager.record_exploration_feedback(feedback)
         return feedback
 
+    def world_model_curriculum_feedback(self, report: WorldModelTraceReport) -> dict:
+        """Aggregate explicit world-model reports into curriculum feedback."""
+        frontiers = []
+        resource_hotspots = []
+        danger_cells = []
+        suggested_goals = []
+        for case in report.cases:
+            suggested_goals.extend(case.suggested_exploration_goals)
+            for frontier in case.frontiers:
+                frontiers.append({
+                    "source_log": case.source_log,
+                    "cell": frontier.get("cell", {}),
+                    "center": frontier.get("center", {}),
+                    "from_cell": frontier.get("from_cell", {}),
+                    "direction": frontier.get("direction", ""),
+                    "nearby_resources": frontier.get("nearby_resources", []),
+                    "nearby_danger_count": frontier.get("nearby_danger_count", 0),
+                    "score": frontier.get("score", 0),
+                })
+            for hotspot in case.resource_hotspots:
+                resource_hotspots.append({
+                    "source_log": case.source_log,
+                    "resource": hotspot.get("resource", ""),
+                    "cell": hotspot.get("cell", {}),
+                    "center": hotspot.get("center", {}),
+                    "danger_count": hotspot.get("danger_count", 0),
+                    "visit_count": hotspot.get("visit_count", 0),
+                })
+            for cell in case.cells:
+                if int(cell.get("danger_count", 0) or 0) <= 0:
+                    continue
+                danger_cells.append({
+                    "source_log": case.source_log,
+                    "cell": cell.get("cell", {}),
+                    "center": cell.get("center", {}),
+                    "danger_count": cell.get("danger_count", 0),
+                    "entities": cell.get("entities", []),
+                })
+        frontiers.sort(key=lambda item: (-float(item.get("score", 0) or 0), str(item.get("source_log", ""))))
+        resource_hotspots.sort(key=lambda item: (int(item.get("danger_count", 0) or 0), -int(item.get("visit_count", 0) or 0), str(item.get("resource", ""))))
+        danger_cells.sort(key=lambda item: (-int(item.get("danger_count", 0) or 0), str(item.get("source_log", ""))))
+        return {
+            "frontier_count": report.frontier_count,
+            "resource_hotspot_count": report.resource_hotspot_count,
+            "danger_cell_count": report.danger_cell_count,
+            "suggested_goals": self._dedupe_strings(suggested_goals)[:12],
+            "frontiers": frontiers[:12],
+            "resource_hotspots": resource_hotspots[:12],
+            "danger_cells": danger_cells[:12],
+        }
+
+    def apply_world_model_feedback_to_curriculum(self, report: WorldModelTraceReport, curriculum_manager) -> dict:
+        """Apply world-model frontier/resource feedback to a CurriculumManager-like object."""
+        feedback = self.world_model_curriculum_feedback(report)
+        if hasattr(curriculum_manager, "record_world_model_feedback"):
+            curriculum_manager.record_world_model_feedback(feedback)
+        return feedback
+
     def run_self_evolution_report_from_logs(self, session_log_paths: list[str]) -> SelfEvolutionTraceReport:
         """Summarize MineEvolve-style monitor/inducer/adaptor signals in session logs."""
         report = SelfEvolutionTraceReport()
@@ -6076,6 +6134,13 @@ class BenchmarkRunner:
             "  cells/frontiers/resources/dangers: "
             f"{report.unique_cell_count}/{report.frontier_count}/"
             f"{report.resource_hotspot_count}/{report.danger_cell_count}"
+        )
+        feedback = self.world_model_curriculum_feedback(report)
+        print(
+            "  curriculum feedback: "
+            f"goals={len(feedback['suggested_goals'])}, "
+            f"frontiers={len(feedback['frontiers'])}, "
+            f"hotspots={len(feedback['resource_hotspots'])}"
         )
         for case in report.cases:
             marker = "+" if case.ready_for_world_model_review else "!"

@@ -914,7 +914,7 @@
 - **Memory**: Explicit world-state map beyond message-history working memory
 - **Key Results**: Shows vanilla LLMs struggle to represent even simple mazes internally; message-history working memory helps but remains insufficient
 - **Scores**: R=4, N=5, R=3, E=5
-- **Value to Project**: Supports explicit Minecraft world-model reports with visited cells, transitions, frontier candidates, resources, and dangers for autonomous exploration
+- **Value to Project**: Supports explicit Minecraft world-model reports and curriculum feedback with visited cells, transitions, frontier candidates, resources, and dangers for autonomous exploration
 - **Reproduction Priority**: P2
 - **Card**: `2026-07-09-agimaze.md`
 

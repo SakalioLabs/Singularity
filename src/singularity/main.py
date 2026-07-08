@@ -1443,6 +1443,7 @@ def main():
             limit=getattr(args, "limit", 12),
         )
         runner.print_world_model_report(report)
+        world_model_feedback = runner.world_model_curriculum_feedback(report)
         if getattr(args, "output", ""):
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump({
@@ -1453,6 +1454,7 @@ def main():
                     "frontier_count": report.frontier_count,
                     "resource_hotspot_count": report.resource_hotspot_count,
                     "danger_cell_count": report.danger_cell_count,
+                    "world_model_feedback": world_model_feedback,
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)

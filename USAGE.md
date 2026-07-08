@@ -156,6 +156,7 @@ python -m singularity.main exploration-trace-report --session-log logs/session_x
 # The saved JSON includes `curriculum_feedback`, which can be applied to CurriculumManager for candidate reranking.
 # Build a lightweight world-state map with visited cells, frontiers, resource hotspots, and next exploration goals.
 python -m singularity.main world-model-report --session-log logs/session_xxx.jsonl --cell-size 8 --output logs/benchmarks/world_model.json
+# The saved JSON includes `world_model_feedback` for frontier/resource/danger-aware curriculum reranking.
 
 # Summarize MineEvolve-style execution progress, stagnation, and adaptor hints
 python -m singularity.main self-evolution-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/self_evolution.json

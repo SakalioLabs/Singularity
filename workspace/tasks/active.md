@@ -101,6 +101,7 @@
 - [x] Add offline `exploration-trace-report` for MineExplorer-style autonomous/open-world coverage: visited position spread, newly observed blocks/entities/resources, visual evidence, hazards, multi-step plans, and action failure categories.
 - [x] Add a curriculum feedback bridge from `exploration-trace-report`: reports now emit `curriculum_feedback`, and `CurriculumManager.record_exploration_feedback()` uses discovered resources, low-movement logs, and failure categories to adjust future exploration candidates.
 - [x] Add AGI-Maze-style `world-model-report` that reconstructs visited X/Z cells, cell transitions, resource hotspots, danger cells, unexplored frontiers, and next exploration goals from session logs.
+- [x] Add a world-model feedback bridge: `world-model-report` emits `world_model_feedback`, and `CurriculumManager.record_world_model_feedback()` turns frontier, hotspot, and danger-cell evidence into ranked curriculum candidates.
 - [x] Add offline `discovery-application-report` for SciCrafter-style hypothesis, experiment, causal consolidation, and held-out application evidence.
 - [x] Gate experiment-derived skill promotion with discovery-to-application evidence before writing approved skills.
 - [x] Add SkillDAG to the paper index and expose `skill-graph-report` for dependency/provenance/gate audits over approved skills.
@@ -160,6 +161,7 @@
 - [x] Convert the highest-count `mixed-initiative-trace-report.template_candidates` into additional task templates beyond oak-log collection and pickaxe retrieval.
 - [ ] Run `exploration-trace-report` on real autonomous session logs, apply `curriculum_feedback`, and compare before/after curriculum candidate rankings.
 - [ ] Run `world-model-report` on real autonomous/M7 session logs and compare suggested frontier goals against subsequent exploration success and stuck-path failures.
+- [ ] Feed `world_model_feedback` from real reports into autonomous curriculum runs and compare frontier/hotspot candidate ranking against generic exploration goals.
 - [ ] Run `discovery-application-report` on real redstone/building session logs and use `discovery_feedback` to gate experiment-derived skills before runtime use.
 - [ ] Compare approved vs review-blocked discovery skill candidates on held-out redstone/building variants before enabling defaults.
 - [ ] Run `skill-graph-report` after real skill approvals and resolve missing dependencies, ungoverned custom skills, or graph cycles before runtime defaults.

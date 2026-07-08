@@ -60,6 +60,15 @@ class CurriculumManager:
             "hostile_encounter_count": 0,
             "path_distance": 0.0,
         }
+        self.world_model_feedback: dict = {
+            "suggested_goals": [],
+            "frontiers": [],
+            "resource_hotspots": [],
+            "danger_cells": [],
+            "frontier_count": 0,
+            "resource_hotspot_count": 0,
+            "danger_cell_count": 0,
+        }
 
     def next_goal(
         self,
@@ -256,6 +265,12 @@ class CurriculumManager:
                     opportunity=10.0,
                 ))
             if self._has_basic_kit(inventory):
+                for candidate in self._world_model_goal_candidates(
+                    observation,
+                    discovered,
+                    skill_library,
+                ):
+                    candidates.append(candidate)
                 coverage_bonus = self._exploration_coverage_gap_bonus()
                 reasons = ["open_ended_map_expansion"]
                 if coverage_bonus:
@@ -340,6 +355,21 @@ class CurriculumManager:
             float(feedback.get("path_distance", 0.0) or 0.0),
         )
 
+    def record_world_model_feedback(self, feedback: dict):
+        """Ingest explicit map/frontier feedback from world-model reports."""
+        if not isinstance(feedback, dict):
+            return
+        for key in ("frontier_count", "resource_hotspot_count", "danger_cell_count"):
+            self.world_model_feedback[key] = max(
+                int(self.world_model_feedback.get(key, 0) or 0),
+                int(feedback.get(key, 0) or 0),
+            )
+        for key in ("suggested_goals", "frontiers", "resource_hotspots", "danger_cells"):
+            self.world_model_feedback[key] = self._merge_feedback_records(
+                self.world_model_feedback.get(key, []),
+                feedback.get(key, []),
+            )
+
     def summary(self) -> dict:
         """Return serializable curriculum state for logs and benchmark reports."""
         return {
@@ -355,6 +385,7 @@ class CurriculumManager:
             },
             "last_decision": self.last_decision,
             "exploration_feedback": self.exploration_feedback,
+            "world_model_feedback": self.world_model_feedback,
         }
 
     def _candidate(
@@ -523,6 +554,107 @@ class CurriculumManager:
         if low_movement <= 0:
             return 0.0
         return min(12.0, 4.0 + low_movement * 4.0)
+
+    def _world_model_goal_candidates(
+        self,
+        observation: dict,
+        discovered: set[str],
+        skill_library=None,
+    ) -> list[CurriculumGoalCandidate]:
+        candidates = []
+        for goal in self.world_model_feedback.get("suggested_goals", [])[:3]:
+            title = str(goal or "").strip()
+            if not title:
+                continue
+            candidates.append(self._candidate(
+                title,
+                "world_model_frontier",
+                44.0,
+                observation,
+                discovered,
+                skill_library,
+                target_items=["landmark"],
+                skill_targets=["navigate_to_target", "move_to"],
+                reasons=["world_model_frontier_feedback"],
+                opportunity=self._world_model_frontier_bonus(),
+                novelty_override=3.0,
+            ))
+
+        for hotspot in self.world_model_feedback.get("resource_hotspots", [])[:3]:
+            if not isinstance(hotspot, dict):
+                continue
+            resource = str(hotspot.get("resource") or "").strip().lower()
+            if not resource:
+                continue
+            center = hotspot.get("center", {}) if isinstance(hotspot.get("center", {}), dict) else {}
+            title = f"Revisit {resource} hotspot"
+            if center:
+                title += f" near x={center.get('x')}, z={center.get('z')}"
+            danger_count = int(hotspot.get("danger_count", 0) or 0)
+            reasons = ["world_model_resource_hotspot"]
+            if danger_count:
+                reasons.append("danger_aware_route")
+            candidates.append(self._candidate(
+                title,
+                "world_model_resource",
+                40.0,
+                observation,
+                discovered,
+                skill_library,
+                target_items=[resource],
+                skill_targets=["navigate_to_target", "move_to"],
+                reasons=reasons,
+                opportunity=max(0.0, 8.0 - danger_count * 2.0),
+                novelty_override=0.0 if resource in discovered else 4.0,
+            ))
+
+        if self.world_model_feedback.get("danger_cells"):
+            candidates.append(self._candidate(
+                "Scout safer route around mapped danger cells",
+                "world_model_safety",
+                39.0,
+                observation,
+                discovered,
+                skill_library,
+                target_items=["landmark"],
+                skill_targets=["look_at", "navigate_to_target"],
+                reasons=["world_model_danger_feedback"],
+                opportunity=min(8.0, float(self.world_model_feedback.get("danger_cell_count", 0) or 0) * 2.0),
+                novelty_override=1.0,
+            ))
+        return candidates
+
+    def _world_model_frontier_bonus(self) -> float:
+        frontier_count = int(self.world_model_feedback.get("frontier_count", 0) or 0)
+        if frontier_count <= 0:
+            return 0.0
+        return min(10.0, 2.0 + frontier_count * 0.5)
+
+    def _merge_feedback_records(self, current, incoming, limit: int = 20) -> list:
+        records = list(current) if isinstance(current, list) else []
+        incoming_records = incoming if isinstance(incoming, list) else []
+        seen = {self._feedback_record_key(record) for record in records}
+        for record in incoming_records:
+            key = self._feedback_record_key(record)
+            if not key or key in seen:
+                continue
+            records.append(record)
+            seen.add(key)
+        return records[:limit]
+
+    def _feedback_record_key(self, record) -> str:
+        if isinstance(record, dict):
+            if record.get("id"):
+                return str(record.get("id"))
+            cell = record.get("cell")
+            if isinstance(cell, dict):
+                return "|".join([
+                    str(record.get("resource") or record.get("direction") or record.get("type") or "cell"),
+                    str(cell.get("x")),
+                    str(cell.get("z")),
+                ])
+            return "|".join(f"{key}={record[key]}" for key in sorted(record))
+        return str(record or "").strip()
 
     def _recently_repeated(self, title: str) -> bool:
         recent = [entry.get("goal") for entry in self.recent_goals[-3:]]

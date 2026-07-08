@@ -1179,6 +1179,37 @@ def test_world_model_report_builds_cells_frontiers_and_hotspots():
     coal_cell = next(cell for cell in case.cells if "coal_ore" in cell["resources"])
     assert coal_cell["cell"] == {"x": 1, "z": 0}
     assert coal_cell["danger_count"] == 1
+
+    feedback = runner.world_model_curriculum_feedback(report)
+    assert feedback["frontier_count"] == report.frontier_count
+    assert feedback["resource_hotspot_count"] == 3
+    assert feedback["danger_cell_count"] == 2
+    assert feedback["suggested_goals"]
+    assert feedback["frontiers"][0]["cell"]
+    assert any(item["resource"] == "coal_ore" for item in feedback["resource_hotspots"])
+
+    from singularity.core.curriculum import CurriculumManager
+    curriculum = CurriculumManager()
+    applied = runner.apply_world_model_feedback_to_curriculum(report, curriculum)
+    assert applied == feedback
+    summary = curriculum.summary()
+    assert summary["world_model_feedback"]["frontier_count"] >= report.frontier_count
+
+    candidates = curriculum.propose_goals(
+        {
+            "health": 20,
+            "time_of_day": 6000,
+            "inventory": {"crafting_table": 1, "stone_pickaxe": 1, "oak_log": 6, "cobblestone": 12, "torch": 8},
+            "nearby_entities": [],
+            "nearby_blocks": [],
+        },
+        "Explore surroundings",
+    )
+    categories = {candidate.category for candidate in candidates}
+    assert "world_model_frontier" in categories
+    assert "world_model_resource" in categories
+    assert "world_model_safety" in categories
+    assert any("world_model_frontier_feedback" in candidate.reasons for candidate in candidates)
     print("PASS: World model report builds cells, frontiers, and hotspots")
 
 
