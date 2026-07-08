@@ -201,6 +201,14 @@ def main():
     memory_policy_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     memory_policy_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline bounded planner context report
+    bounded_context_parser = subparsers.add_parser("bounded-context-report", help="Audit bounded typed retrieval context before planner calls")
+    bounded_context_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    bounded_context_parser.add_argument("--max-read-chars", type=int, default=1200, help="Maximum characters allowed from any single memory read")
+    bounded_context_parser.add_argument("--max-cycle-chars", type=int, default=2400, help="Maximum total memory-read characters allowed before each plan")
+    bounded_context_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    bounded_context_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline memory read filter report
     memory_read_parser = subparsers.add_parser("memory-read-filter-report", help="Report stale or condition-mismatched durable memories for a query")
     memory_read_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
@@ -810,6 +818,46 @@ def main():
                     "read_filtered_entry_count": report.read_filtered_entry_count,
                     "read_filter_reasons": report.read_filter_reasons,
                     "memory_policy_feedback": memory_policy_feedback,
+                    "errors": report.errors,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "bounded-context-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("bounded-context-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_bounded_context_report_from_logs(
+            session_logs,
+            max_read_chars=getattr(args, "max_read_chars", 1200),
+            max_cycle_chars=getattr(args, "max_cycle_chars", 2400),
+        )
+        runner.print_bounded_context_report(report)
+        bounded_context_feedback = runner.bounded_context_feedback(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "log_count": report.log_count,
+                    "ready_log_count": report.ready_log_count,
+                    "planning_cycle_count": report.planning_cycle_count,
+                    "bounded_cycle_count": report.bounded_cycle_count,
+                    "unbounded_cycle_count": report.unbounded_cycle_count,
+                    "missing_read_cycle_count": report.missing_read_cycle_count,
+                    "oversized_read_cycle_count": report.oversized_read_cycle_count,
+                    "oversized_cycle_count": report.oversized_cycle_count,
+                    "raw_context_cycle_count": report.raw_context_cycle_count,
+                    "low_diversity_cycle_count": report.low_diversity_cycle_count,
+                    "max_read_chars": report.max_read_chars,
+                    "max_cycle_chars": report.max_cycle_chars,
+                    "read_layers": report.read_layers,
+                    "read_types": report.read_types,
+                    "bounded_context_feedback": bounded_context_feedback,
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)

@@ -1763,6 +1763,97 @@ def test_memory_policy_report_counts_write_read_manage_gaps_and_feedback():
     print("PASS: Memory policy report counts write/read/manage gaps and feedback")
 
 
+def test_bounded_context_report_audits_typed_planner_context():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_bounded_context.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "mixed",
+                "memory_type": "relevant_memory",
+                "source": "planner_goal",
+                "query": "Craft torches",
+                "result_chars": 180,
+                "has_result": True,
+            },
+        },
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "task",
+                "memory_type": "task_memory",
+                "source": "planner_task_memory",
+                "query": "Craft torches",
+                "result_chars": 120,
+                "has_result": True,
+            },
+        },
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "context",
+                "memory_type": "context_window",
+                "source": "planner_context",
+                "query": "context_window",
+                "result_chars": 80,
+                "has_result": True,
+            },
+        },
+        {"type": "plan", "data": {"status": "in_progress", "actions": [{"type": "craft", "parameters": {"item": "torch"}}]}},
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "context",
+                "memory_type": "raw_transcript",
+                "source": "full_history",
+                "query": "message_history",
+                "result_chars": 2000,
+                "has_result": True,
+            },
+        },
+        {"type": "plan", "data": {"status": "in_progress", "actions": [{"type": "dig", "parameters": {"block": "coal_ore"}}]}},
+        {"type": "plan", "data": {"status": "blocked", "actions": []}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_bounded_context_report_from_logs(
+        [session_path],
+        max_read_chars=1000,
+        max_cycle_chars=1500,
+    )
+    case = report.cases[0]
+
+    assert report.log_count == 1
+    assert report.ready_log_count == 1
+    assert report.planning_cycle_count == 3
+    assert report.bounded_cycle_count == 1
+    assert report.unbounded_cycle_count == 2
+    assert report.missing_read_cycle_count == 1
+    assert report.oversized_read_cycle_count == 1
+    assert report.oversized_cycle_count == 1
+    assert report.raw_context_cycle_count == 1
+    assert case.cycles[0].bounded_ok is True
+    assert case.cycles[0].has_relevant_memory is True
+    assert case.cycles[0].has_task_memory is True
+    assert "raw_context_risk" in case.cycles[1].issues
+    assert "missing_memory_read_trace" in case.cycles[2].issues
+    assert report.read_types["relevant_memory"] == 1
+    assert report.read_types["raw_transcript"] == 1
+
+    feedback = runner.bounded_context_feedback(report)
+    policies = {hint["bounded_context_policy"]: hint for hint in feedback["policy_hints"]}
+    assert policies["instrument_planning_context_reads"]["priority"] == "high"
+    assert policies["tighten_planner_context_budget"]["count"] == 2
+    assert policies["replace_raw_transcript_with_typed_retrieval"]["count"] == 1
+    assert "increase_typed_retrieval_diversity" in policies
+    print("PASS: Bounded context report audits typed planner context")
+
+
 def test_ingest_queues_repeated_causal_summary_candidate():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_repeated.jsonl")
@@ -2274,6 +2365,7 @@ if __name__ == "__main__":
     test_discovery_skill_gate_controls_experiment_derived_skill_promotion()
     test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates()
     test_memory_policy_report_counts_write_read_manage_gaps_and_feedback()
+    test_bounded_context_report_audits_typed_planner_context()
     test_ingest_queues_repeated_causal_summary_candidate()
     test_ingest_queues_failure_correction_candidate()
     test_benchmark_results_persist_intervention_metrics()

@@ -275,6 +275,9 @@ python -m singularity.main review-label-template --session-log logs/session_xxx.
 # Validate filled labels before using them for agreement metrics
 python -m singularity.main review-label-validate --label-file workspace/reviews/session_xxx_labels.jsonl --output logs/benchmarks/session_xxx_label_validation.json
 
+# Audit whether each planner cycle used bounded typed retrieval instead of raw accumulated transcript context
+python -m singularity.main bounded-context-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/bounded_context.json
+
 # Run the full offline visual review chain in one report
 python -m singularity.main visual-review-pipeline --session-log logs/session_xxx.jsonl --mode both --output logs/benchmarks/visual_review_pipeline.json
 python -m singularity.main visual-review-pipeline --session-log logs/session_xxx.jsonl --mode both --label-file workspace/reviews/session_xxx_labels.jsonl --run-ablations --promotion-critic --goal-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL --output logs/benchmarks/visual_review_pipeline.json

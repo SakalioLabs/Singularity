@@ -1015,6 +1015,113 @@ class MemoryPolicyTraceReport:
 
 
 @dataclass
+class BoundedPlanningContextCycle:
+    cycle_index: int
+    goal: str = ""
+    plan_status: str = ""
+    action_count: int = 0
+    memory_read_count: int = 0
+    typed_layer_count: int = 0
+    total_result_chars: int = 0
+    max_result_chars: int = 0
+    has_relevant_memory: bool = False
+    has_task_memory: bool = False
+    has_context_window: bool = False
+    read_layers: dict = field(default_factory=dict)
+    read_types: dict = field(default_factory=dict)
+    read_sources: dict = field(default_factory=dict)
+    issues: list[str] = field(default_factory=list)
+    bounded_ok: bool = False
+
+
+@dataclass
+class BoundedPlanningContextCase:
+    source_log: str
+    event_count: int = 0
+    plan_count: int = 0
+    planning_cycle_count: int = 0
+    bounded_cycle_count: int = 0
+    unbounded_cycle_count: int = 0
+    missing_read_cycle_count: int = 0
+    oversized_read_cycle_count: int = 0
+    oversized_cycle_count: int = 0
+    raw_context_cycle_count: int = 0
+    low_diversity_cycle_count: int = 0
+    max_cycle_result_chars: int = 0
+    total_result_chars: int = 0
+    read_layers: dict = field(default_factory=dict)
+    read_types: dict = field(default_factory=dict)
+    read_sources: dict = field(default_factory=dict)
+    issues: list[str] = field(default_factory=list)
+    cycles: list[BoundedPlanningContextCycle] = field(default_factory=list)
+    ready_for_bounded_context_review: bool = False
+
+
+@dataclass
+class BoundedPlanningContextReport:
+    max_read_chars: int = 1200
+    max_cycle_chars: int = 2400
+    cases: list[BoundedPlanningContextCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_log_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_bounded_context_review)
+
+    @property
+    def planning_cycle_count(self) -> int:
+        return sum(case.planning_cycle_count for case in self.cases)
+
+    @property
+    def bounded_cycle_count(self) -> int:
+        return sum(case.bounded_cycle_count for case in self.cases)
+
+    @property
+    def unbounded_cycle_count(self) -> int:
+        return sum(case.unbounded_cycle_count for case in self.cases)
+
+    @property
+    def missing_read_cycle_count(self) -> int:
+        return sum(case.missing_read_cycle_count for case in self.cases)
+
+    @property
+    def oversized_read_cycle_count(self) -> int:
+        return sum(case.oversized_read_cycle_count for case in self.cases)
+
+    @property
+    def oversized_cycle_count(self) -> int:
+        return sum(case.oversized_cycle_count for case in self.cases)
+
+    @property
+    def raw_context_cycle_count(self) -> int:
+        return sum(case.raw_context_cycle_count for case in self.cases)
+
+    @property
+    def low_diversity_cycle_count(self) -> int:
+        return sum(case.low_diversity_cycle_count for case in self.cases)
+
+    @property
+    def read_layers(self) -> dict:
+        counts = {}
+        for case in self.cases:
+            for key, value in case.read_layers.items():
+                counts[key] = counts.get(key, 0) + int(value or 0)
+        return counts
+
+    @property
+    def read_types(self) -> dict:
+        counts = {}
+        for case in self.cases:
+            for key, value in case.read_types.items():
+                counts[key] = counts.get(key, 0) + int(value or 0)
+        return counts
+
+
+@dataclass
 class ReviewLabelValidationCase:
     index: int
     label_type: str = "unknown"
@@ -3004,6 +3111,227 @@ class BenchmarkRunner:
         if hasattr(memory_policy, "record_memory_policy_feedback"):
             memory_policy.record_memory_policy_feedback(feedback)
         return feedback
+
+    def run_bounded_context_report_from_logs(
+        self,
+        session_log_paths: list[str],
+        max_read_chars: int = 1200,
+        max_cycle_chars: int = 2400,
+    ) -> BoundedPlanningContextReport:
+        """Audit AgenticSTS-style bounded, typed retrieval contracts before planner calls."""
+        report = BoundedPlanningContextReport(
+            max_read_chars=max(1, int(max_read_chars or 1200)),
+            max_cycle_chars=max(1, int(max_cycle_chars or 2400)),
+        )
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                report.cases.append(self._bounded_context_trace_case(
+                    path,
+                    events,
+                    report.max_read_chars,
+                    report.max_cycle_chars,
+                ))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
+    def bounded_context_feedback(self, report: BoundedPlanningContextReport) -> dict:
+        """Aggregate bounded-context traces into planner/memory contract hints."""
+        policy_hints = []
+        if report.missing_read_cycle_count:
+            policy_hints.append({
+                "bounded_context_policy": "instrument_planning_context_reads",
+                "priority": "high",
+                "reason": "planner cycles lack memory_read trace evidence before plan events",
+                "count": report.missing_read_cycle_count,
+            })
+        if report.oversized_read_cycle_count or report.oversized_cycle_count:
+            policy_hints.append({
+                "bounded_context_policy": "tighten_planner_context_budget",
+                "priority": "high",
+                "reason": "planner memory context exceeds per-read or per-cycle character budget",
+                "count": report.oversized_read_cycle_count + report.oversized_cycle_count,
+            })
+        if report.raw_context_cycle_count:
+            policy_hints.append({
+                "bounded_context_policy": "replace_raw_transcript_with_typed_retrieval",
+                "priority": "high",
+                "reason": "planning context shows raw/transcript-like memory sources or oversized context windows",
+                "count": report.raw_context_cycle_count,
+            })
+        if report.low_diversity_cycle_count:
+            policy_hints.append({
+                "bounded_context_policy": "increase_typed_retrieval_diversity",
+                "priority": "medium",
+                "reason": "planning cycles rely on too few typed context layers for ablation-friendly decisions",
+                "count": report.low_diversity_cycle_count,
+            })
+        return {
+            "log_count": report.log_count,
+            "ready_log_count": report.ready_log_count,
+            "planning_cycle_count": report.planning_cycle_count,
+            "bounded_cycle_count": report.bounded_cycle_count,
+            "unbounded_cycle_count": report.unbounded_cycle_count,
+            "missing_read_cycle_count": report.missing_read_cycle_count,
+            "oversized_read_cycle_count": report.oversized_read_cycle_count,
+            "oversized_cycle_count": report.oversized_cycle_count,
+            "raw_context_cycle_count": report.raw_context_cycle_count,
+            "low_diversity_cycle_count": report.low_diversity_cycle_count,
+            "max_read_chars": report.max_read_chars,
+            "max_cycle_chars": report.max_cycle_chars,
+            "read_layers": dict(sorted(report.read_layers.items())),
+            "read_types": dict(sorted(report.read_types.items())),
+            "policy_hints": policy_hints,
+        }
+
+    def _bounded_context_trace_case(
+        self,
+        source_log: str,
+        events: list[dict],
+        max_read_chars: int,
+        max_cycle_chars: int,
+    ) -> BoundedPlanningContextCase:
+        current_goal = ""
+        pending_reads = []
+        cycles = []
+        for event in events:
+            event_type = event.get("type")
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event_type == "goal_start":
+                current_goal = str(data.get("goal") or current_goal or "")
+            elif event_type == "goal_end":
+                current_goal = str(data.get("goal") or current_goal or "")
+            elif event_type == "memory_read":
+                pending_reads.append(event)
+            elif event_type == "plan":
+                cycles.append(self._bounded_context_cycle(
+                    len(cycles) + 1,
+                    current_goal,
+                    data,
+                    pending_reads,
+                    max_read_chars,
+                    max_cycle_chars,
+                ))
+                pending_reads = []
+
+        read_layers = {}
+        read_types = {}
+        read_sources = {}
+        issues = {}
+        for cycle in cycles:
+            self._merge_counts(read_layers, cycle.read_layers)
+            self._merge_counts(read_types, cycle.read_types)
+            self._merge_counts(read_sources, cycle.read_sources)
+            for issue in cycle.issues:
+                issues[issue] = issues.get(issue, 0) + 1
+
+        case = BoundedPlanningContextCase(
+            source_log=source_log,
+            event_count=len(events),
+            plan_count=sum(1 for event in events if event.get("type") == "plan"),
+            planning_cycle_count=len(cycles),
+            bounded_cycle_count=sum(1 for cycle in cycles if cycle.bounded_ok),
+            unbounded_cycle_count=sum(1 for cycle in cycles if not cycle.bounded_ok),
+            missing_read_cycle_count=sum(1 for cycle in cycles if "missing_memory_read_trace" in cycle.issues),
+            oversized_read_cycle_count=sum(1 for cycle in cycles if "oversized_memory_read" in cycle.issues),
+            oversized_cycle_count=sum(1 for cycle in cycles if "oversized_planning_context" in cycle.issues),
+            raw_context_cycle_count=sum(1 for cycle in cycles if "raw_context_risk" in cycle.issues),
+            low_diversity_cycle_count=sum(1 for cycle in cycles if "low_retrieval_diversity" in cycle.issues),
+            max_cycle_result_chars=max((cycle.total_result_chars for cycle in cycles), default=0),
+            total_result_chars=sum(cycle.total_result_chars for cycle in cycles),
+            read_layers=dict(sorted(read_layers.items())),
+            read_types=dict(sorted(read_types.items())),
+            read_sources=dict(sorted(read_sources.items())),
+            issues=sorted(issues),
+            cycles=cycles,
+            ready_for_bounded_context_review=bool(cycles),
+        )
+        return case
+
+    def _bounded_context_cycle(
+        self,
+        cycle_index: int,
+        goal: str,
+        plan: dict,
+        read_events: list[dict],
+        max_read_chars: int,
+        max_cycle_chars: int,
+    ) -> BoundedPlanningContextCycle:
+        read_layers = {}
+        read_types = {}
+        read_sources = {}
+        total_chars = 0
+        max_chars = 0
+        has_relevant_memory = False
+        has_task_memory = False
+        has_context_window = False
+        raw_context_risk = False
+        for event in read_events:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            layer = str(data.get("layer") or "unknown")
+            memory_type = str(data.get("memory_type") or "unknown")
+            source = str(data.get("source") or "unknown")
+            result_chars = self._safe_int(data.get("result_chars"), default=0)
+            total_chars += result_chars
+            max_chars = max(max_chars, result_chars)
+            self._increment(read_layers, layer)
+            self._increment(read_types, memory_type)
+            self._increment(read_sources, source)
+            lower_blob = " ".join([layer, memory_type, source, str(data.get("query") or "")]).lower()
+            if memory_type == "relevant_memory":
+                has_relevant_memory = True
+            if memory_type == "task_memory" or layer == "task":
+                has_task_memory = True
+            if memory_type == "context_window":
+                has_context_window = True
+            if any(token in lower_blob for token in ("raw", "transcript", "full_history", "message_history")):
+                raw_context_risk = True
+            if memory_type == "context_window" and result_chars > max_read_chars:
+                raw_context_risk = True
+
+        actions = plan.get("actions", []) if isinstance(plan.get("actions", []), list) else []
+        typed_pairs = {
+            f"{event.get('data', {}).get('layer', 'unknown')}:{event.get('data', {}).get('memory_type', 'unknown')}"
+            for event in read_events
+            if isinstance(event.get("data", {}), dict)
+        }
+        issues = []
+        if not read_events:
+            issues.append("missing_memory_read_trace")
+        if max_chars > max_read_chars:
+            issues.append("oversized_memory_read")
+        if total_chars > max_cycle_chars:
+            issues.append("oversized_planning_context")
+        if raw_context_risk:
+            issues.append("raw_context_risk")
+        if read_events and len(typed_pairs) < 2:
+            issues.append("low_retrieval_diversity")
+
+        hard_issues = {
+            "missing_memory_read_trace",
+            "oversized_memory_read",
+            "oversized_planning_context",
+            "raw_context_risk",
+        }
+        return BoundedPlanningContextCycle(
+            cycle_index=cycle_index,
+            goal=goal,
+            plan_status=str(plan.get("status") or ""),
+            action_count=len(actions),
+            memory_read_count=len(read_events),
+            typed_layer_count=len(typed_pairs),
+            total_result_chars=total_chars,
+            max_result_chars=max_chars,
+            has_relevant_memory=has_relevant_memory,
+            has_task_memory=has_task_memory,
+            has_context_window=has_context_window,
+            read_layers=dict(sorted(read_layers.items())),
+            read_types=dict(sorted(read_types.items())),
+            read_sources=dict(sorted(read_sources.items())),
+            issues=sorted(set(issues)),
+            bounded_ok=not any(issue in hard_issues for issue in issues),
+        )
 
     def run_visual_review_pipeline(
         self,
@@ -6387,13 +6715,82 @@ class BenchmarkRunner:
         for error in report.errors:
             print(f"  error: {error}")
 
+    def print_bounded_context_report(self, report: BoundedPlanningContextReport):
+        print("\nBounded Planning Context Trace")
+        print(f"  logs: {report.log_count}")
+        print(f"  ready logs: {report.ready_log_count}")
+        print(
+            "  cycles: "
+            f"bounded={report.bounded_cycle_count}, "
+            f"unbounded={report.unbounded_cycle_count}, "
+            f"total={report.planning_cycle_count}"
+        )
+        print(
+            "  issues: "
+            f"missing_reads={report.missing_read_cycle_count}, "
+            f"oversized_reads={report.oversized_read_cycle_count}, "
+            f"oversized_cycles={report.oversized_cycle_count}, "
+            f"raw_context={report.raw_context_cycle_count}, "
+            f"low_diversity={report.low_diversity_cycle_count}"
+        )
+        print(
+            "  budgets: "
+            f"max_read_chars={report.max_read_chars}, "
+            f"max_cycle_chars={report.max_cycle_chars}"
+        )
+        if report.read_types:
+            print(f"  read types: {self._format_counts(report.read_types)}")
+        feedback = self.bounded_context_feedback(report)
+        if feedback["policy_hints"]:
+            hints = [
+                f"{hint['bounded_context_policy']}({hint['priority']})"
+                for hint in feedback["policy_hints"][:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for case in report.cases:
+            marker = "+" if case.unbounded_cycle_count == 0 and case.planning_cycle_count else "!"
+            if not case.planning_cycle_count:
+                marker = "~"
+            print(f"  [{marker}] {case.source_log}")
+            print(
+                f"      cycles={case.planning_cycle_count}, bounded={case.bounded_cycle_count}, "
+                f"unbounded={case.unbounded_cycle_count}, max_chars={case.max_cycle_result_chars}"
+            )
+            if case.read_types:
+                print(f"      read types: {self._format_counts(case.read_types)}")
+            if case.issues:
+                print(f"      issues: {', '.join(case.issues)}")
+            for cycle in case.cycles[:5]:
+                cycle_marker = "+" if cycle.bounded_ok else "!"
+                print(
+                    f"      [{cycle_marker}] cycle {cycle.cycle_index}: "
+                    f"reads={cycle.memory_read_count}, typed={cycle.typed_layer_count}, "
+                    f"chars={cycle.total_result_chars}, actions={cycle.action_count}, "
+                    f"status={cycle.plan_status or 'unknown'}"
+                )
+                if cycle.issues:
+                    print(f"          issues: {', '.join(cycle.issues)}")
+        for error in report.errors:
+            print(f"  error: {error}")
+
     def _format_counts(self, counts: dict, limit: int = 8) -> str:
         items = sorted(counts.items(), key=lambda item: (-int(item[1]), str(item[0])))
         return ", ".join(f"{key}={value}" for key, value in items[:limit])
 
     def _merge_counts(self, target: dict, source: dict):
         for key, value in (source or {}).items():
-            target[str(key)] = target.get(str(key), 0) + int(value or 0)
+            target[str(key)] = target.get(str(key), 0) + self._safe_int(value, default=0)
+
+    def _safe_int(self, value, default: int = 0) -> int:
+        if value in (None, ""):
+            return default
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            try:
+                return int(float(value))
+            except (TypeError, ValueError):
+                return default
 
     def print_review_label_validation_report(self, report: ReviewLabelValidationReport):
         print("\nReview Label Validation")

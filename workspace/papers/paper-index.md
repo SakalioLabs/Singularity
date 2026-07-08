@@ -938,6 +938,42 @@
 
 ---
 
+## P-051: AgenticSTS
+
+- **Title**: AgenticSTS: A Bounded-Memory Testbed for Long-Horizon LLM Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2607.02255
+- **Type**: Bounded-memory contract testbed for long-horizon agents
+- **Task Type**: Long-horizon game decisions with typed memory/skill snapshots and ablations
+- **Core Method**: Replaces raw accumulated prompt history with fresh prompts assembled from typed retrieval layers, then releases trajectories, condition tags, snapshots, prompt records, and analysis scripts
+- **Action Space**: Game decisions in a closed-rule stochastic deck-building environment
+- **Memory**: Typed retrieval layers and frozen memory/skill snapshots instead of raw cross-decision transcript accumulation
+- **Key Results**: Finds the largest directional win-rate difference when triggered strategic skills are enabled in a fixed-A0 ablation
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Supports bounded planner-context auditing, typed retrieval layer accounting, and raw-transcript risk checks for Minecraft planning cycles
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-agenticsts.md`
+
+---
+
+## P-052: AgentOdyssey
+
+- **Title**: AgentOdyssey: Open-Ended Long-Horizon Text Game Generation for Test-Time Continual Learning Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2606.24893
+- **Type**: Open-ended long-horizon game generation and test-time continual learning benchmark
+- **Task Type**: Procedurally generated text games with exploration, world dynamics, and long-horizon goals
+- **Core Method**: Generates open-ended games and evaluates progress plus world-knowledge acquisition, episodic memory, object/action exploration, action diversity, and cost
+- **Action Space**: Text-game actions over generated entities and dynamics
+- **Memory**: Short-term and episodic memory as mechanisms for test-time continual learning
+- **Key Results**: Shows strong agents remain far below human performance and that short-term memory helps multiple agent paradigms
+- **Scores**: R=4, N=5, R=4, E=5
+- **Value to Project**: Motivates a unified Minecraft continual-learning diagnostic over exploration, world model, memory, action diversity, and meaningful horizon
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-agentodyssey.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -992,3 +1028,5 @@
 | P-048 | MemoryArena | 2026 | R5/N4/R3/E5 | P2 |
 | P-049 | AGI Maze | 2026 | R4/N5/R3/E5 | P2 |
 | P-050 | COS-PLAY | 2026 | R5/N5/R4/E5 | P1 |
+| P-051 | AgenticSTS | 2026 | R5/N5/R4/E5 | P1 |
+| P-052 | AgentOdyssey | 2026 | R4/N5/R4/E5 | P2 |
