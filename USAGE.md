@@ -137,6 +137,10 @@ python -m singularity.main skill-candidates --session logs/session_xxx.jsonl --f
 # Report repeatedly recalled memories/experiences that are worth consolidation review
 python -m singularity.main memory-consolidation-report --memory-dir workspace/memory --min-recall-count 2 --min-unique-queries 2
 
+# Audit session logs for memory write/read/manage policy gaps
+python -m singularity.main memory-policy-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/memory_policy.json
+# The saved JSON includes `memory_policy_feedback` for future memory-write and retrieval policy tuning.
+
 # Summarize open-world exploration coverage from autonomous/session logs
 python -m singularity.main exploration-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/exploration_trace.json
 # The saved JSON includes `curriculum_feedback`, which can be applied to CurriculumManager for candidate reranking.

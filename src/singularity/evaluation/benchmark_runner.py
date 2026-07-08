@@ -650,6 +650,87 @@ class ActionAbstractionTraceReport:
 
 
 @dataclass
+class MemoryPolicyTraceCase:
+    source_log: str
+    event_count: int = 0
+    observation_count: int = 0
+    plan_count: int = 0
+    action_count: int = 0
+    failed_action_count: int = 0
+    goal_count: int = 0
+    completed_goal_count: int = 0
+    explicit_memory_write_count: int = 0
+    explicit_memory_read_count: int = 0
+    explicit_memory_manage_count: int = 0
+    context_write_candidate_count: int = 0
+    episodic_write_candidate_count: int = 0
+    semantic_write_candidate_count: int = 0
+    missed_semantic_write_count: int = 0
+    failure_learning_candidate_count: int = 0
+    consolidation_signal_count: int = 0
+    noisy_write_candidate_count: int = 0
+    missing_read_trace_count: int = 0
+    write_operations: dict = field(default_factory=dict)
+    read_queries: list[str] = field(default_factory=list)
+    policy_hints: list[str] = field(default_factory=list)
+    ready_for_memory_policy_review: bool = False
+
+
+@dataclass
+class MemoryPolicyTraceReport:
+    cases: list[MemoryPolicyTraceCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_log_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_memory_policy_review)
+
+    @property
+    def event_count(self) -> int:
+        return sum(case.event_count for case in self.cases)
+
+    @property
+    def explicit_memory_write_count(self) -> int:
+        return sum(case.explicit_memory_write_count for case in self.cases)
+
+    @property
+    def explicit_memory_read_count(self) -> int:
+        return sum(case.explicit_memory_read_count for case in self.cases)
+
+    @property
+    def explicit_memory_manage_count(self) -> int:
+        return sum(case.explicit_memory_manage_count for case in self.cases)
+
+    @property
+    def semantic_write_candidate_count(self) -> int:
+        return sum(case.semantic_write_candidate_count for case in self.cases)
+
+    @property
+    def missed_semantic_write_count(self) -> int:
+        return sum(case.missed_semantic_write_count for case in self.cases)
+
+    @property
+    def failure_learning_candidate_count(self) -> int:
+        return sum(case.failure_learning_candidate_count for case in self.cases)
+
+    @property
+    def consolidation_signal_count(self) -> int:
+        return sum(case.consolidation_signal_count for case in self.cases)
+
+    @property
+    def noisy_write_candidate_count(self) -> int:
+        return sum(case.noisy_write_candidate_count for case in self.cases)
+
+    @property
+    def missing_read_trace_count(self) -> int:
+        return sum(case.missing_read_trace_count for case in self.cases)
+
+
+@dataclass
 class ReviewLabelValidationCase:
     index: int
     label_type: str = "unknown"
@@ -1945,6 +2026,87 @@ class BenchmarkRunner:
             action_policy.record_action_abstraction_feedback(feedback)
         return feedback
 
+    def run_memory_policy_report_from_logs(self, session_log_paths: list[str]) -> MemoryPolicyTraceReport:
+        """Summarize memory write/read/manage evidence and policy gaps in session logs."""
+        report = MemoryPolicyTraceReport()
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                report.cases.append(self._memory_policy_trace_case(path, events))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
+    def memory_policy_feedback(self, report: MemoryPolicyTraceReport) -> dict:
+        """Aggregate memory traces into write/read/manage policy hints."""
+        write_operations = {}
+        read_queries = set()
+        for case in report.cases:
+            self._merge_counts(write_operations, case.write_operations)
+            read_queries.update(case.read_queries)
+
+        policy_hints = []
+        if report.missing_read_trace_count:
+            policy_hints.append({
+                "memory_policy": "instrument_memory_retrieval",
+                "priority": "high",
+                "reason": "plans lack explicit memory-read trace evidence",
+                "count": report.missing_read_trace_count,
+            })
+        if report.missed_semantic_write_count:
+            policy_hints.append({
+                "memory_policy": "promote_verified_outcomes",
+                "priority": "high",
+                "reason": "verified goal outcomes lack durable semantic write evidence",
+                "count": report.missed_semantic_write_count,
+            })
+        if report.failure_learning_candidate_count:
+            policy_hints.append({
+                "memory_policy": "record_failure_corrections",
+                "priority": "medium",
+                "reason": "failure or correction traces should become reusable experience",
+                "count": report.failure_learning_candidate_count,
+            })
+        if report.noisy_write_candidate_count:
+            policy_hints.append({
+                "memory_policy": "tighten_memory_write_gate",
+                "priority": "medium",
+                "reason": "explicit writes appear low-confidence, too-short, or raw-observation-like",
+                "count": report.noisy_write_candidate_count,
+            })
+        if report.consolidation_signal_count:
+            policy_hints.append({
+                "memory_policy": "queue_consolidation_review",
+                "priority": "low",
+                "reason": "trace contains repeated or completed behaviors worth offline consolidation review",
+                "count": report.consolidation_signal_count,
+            })
+
+        return {
+            "log_count": report.log_count,
+            "ready_log_count": report.ready_log_count,
+            "event_count": report.event_count,
+            "explicit_memory_write_count": report.explicit_memory_write_count,
+            "explicit_memory_read_count": report.explicit_memory_read_count,
+            "explicit_memory_manage_count": report.explicit_memory_manage_count,
+            "semantic_write_candidate_count": report.semantic_write_candidate_count,
+            "missed_semantic_write_count": report.missed_semantic_write_count,
+            "failure_learning_candidate_count": report.failure_learning_candidate_count,
+            "consolidation_signal_count": report.consolidation_signal_count,
+            "noisy_write_candidate_count": report.noisy_write_candidate_count,
+            "missing_read_trace_count": report.missing_read_trace_count,
+            "write_operations": write_operations,
+            "read_queries": sorted(read_queries),
+            "policy_hints": policy_hints,
+        }
+
+    def apply_memory_policy_feedback(self, report: MemoryPolicyTraceReport, memory_policy) -> dict:
+        """Apply memory-policy feedback to a policy-like object when supported."""
+        feedback = self.memory_policy_feedback(report)
+        if hasattr(memory_policy, "record_memory_policy_feedback"):
+            memory_policy.record_memory_policy_feedback(feedback)
+        return feedback
+
     def run_visual_review_pipeline(
         self,
         session_log_paths: list[str],
@@ -2354,6 +2516,191 @@ class BenchmarkRunner:
             lower_level_action_types=lower_level_action_types,
             task_recommendations=recommendations[:12],
         )
+
+    def _memory_policy_trace_case(self, source_log: str, events: list[dict]) -> MemoryPolicyTraceCase:
+        observation_count = 0
+        plan_count = 0
+        action_count = 0
+        failed_action_count = 0
+        goal_count = 0
+        completed_goal_count = 0
+        explicit_writes = 0
+        explicit_reads = 0
+        explicit_manage = 0
+        explicit_semantic_writes = 0
+        noisy_writes = 0
+        write_operations = {}
+        read_queries = []
+        episodic_candidates = 0
+        semantic_candidates = 0
+        failure_candidates = 0
+        success_action_types = {}
+        failed_action_types = {}
+
+        episodic_event_types = {
+            "goal_start", "goal_end", "action", "reflection", "error",
+            "visual_action_suggestion", "visual_action_intervention",
+            "goal_verification", "failure_correction_selected",
+            "failure_correction_action", "failure_correction_completed",
+            "failure_correction_failed", "runtime_interrupt",
+            "runtime_emergency_action", "task_state_update",
+            "auto_goal", "auto_goal_complete", "auto_goal_failed",
+            "curriculum_goal",
+        }
+
+        for event in events:
+            event_type = str(event.get("type") or "")
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event_type == "observation":
+                observation_count += 1
+            if event_type == "plan":
+                plan_count += 1
+            if event_type == "goal_start":
+                goal_count += 1
+            if event_type in episodic_event_types:
+                episodic_candidates += 1
+
+            memory_kind = self._memory_event_kind(event_type, data)
+            if memory_kind == "write":
+                explicit_writes += 1
+                operation = self._memory_write_operation(event_type, data)
+                write_operations[operation] = write_operations.get(operation, 0) + 1
+                if self._memory_write_is_semantic(data):
+                    explicit_semantic_writes += 1
+                if self._memory_write_is_noisy(data):
+                    noisy_writes += 1
+            elif memory_kind == "read":
+                explicit_reads += 1
+                query = self._memory_read_query(data)
+                if query and query not in read_queries:
+                    read_queries.append(query)
+            elif memory_kind == "manage":
+                explicit_manage += 1
+
+            if event_type == "action":
+                action_count += 1
+                action = data.get("action", {}) if isinstance(data.get("action", {}), dict) else {}
+                result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+                action_type = str(action.get("type") or result.get("action_type") or "unknown")
+                if result.get("success") is False:
+                    failed_action_count += 1
+                    failed_action_types[action_type] = failed_action_types.get(action_type, 0) + 1
+                    failure_candidates += 1
+                elif result.get("success") is True:
+                    success_action_types[action_type] = success_action_types.get(action_type, 0) + 1
+            elif event_type == "goal_end":
+                result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+                if result.get("completed") is True or result.get("success") is True:
+                    completed_goal_count += 1
+                    semantic_candidates += 1
+            elif event_type == "goal_verification":
+                context = data.get("context", {}) if isinstance(data.get("context", {}), dict) else {}
+                if data.get("achieved") is True and context.get("accepted") is not False:
+                    semantic_candidates += 1
+            elif event_type in {"reflection", "failure_correction_selected", "failure_correction_completed", "failure_correction_failed"}:
+                failure_candidates += 1
+
+        repeated_successes = sum(1 for count in success_action_types.values() if count >= 2)
+        repeated_failures = sum(1 for count in failed_action_types.values() if count >= 2)
+        consolidation_signals = completed_goal_count + repeated_successes + repeated_failures + explicit_manage
+        missed_semantic = max(0, semantic_candidates - explicit_semantic_writes)
+        missing_reads = max(0, plan_count - explicit_reads)
+
+        hints = []
+        if missing_reads:
+            hints.append("instrument_memory_retrieval")
+        if missed_semantic:
+            hints.append("promote_verified_outcomes")
+        if failure_candidates:
+            hints.append("record_failure_corrections")
+        if noisy_writes:
+            hints.append("tighten_memory_write_gate")
+        if consolidation_signals:
+            hints.append("queue_consolidation_review")
+
+        return MemoryPolicyTraceCase(
+            source_log=source_log,
+            event_count=len(events),
+            observation_count=observation_count,
+            plan_count=plan_count,
+            action_count=action_count,
+            failed_action_count=failed_action_count,
+            goal_count=goal_count,
+            completed_goal_count=completed_goal_count,
+            explicit_memory_write_count=explicit_writes,
+            explicit_memory_read_count=explicit_reads,
+            explicit_memory_manage_count=explicit_manage,
+            context_write_candidate_count=observation_count + plan_count,
+            episodic_write_candidate_count=episodic_candidates,
+            semantic_write_candidate_count=semantic_candidates,
+            missed_semantic_write_count=missed_semantic,
+            failure_learning_candidate_count=failure_candidates,
+            consolidation_signal_count=consolidation_signals,
+            noisy_write_candidate_count=noisy_writes,
+            missing_read_trace_count=missing_reads,
+            write_operations=write_operations,
+            read_queries=read_queries[:12],
+            policy_hints=hints,
+            ready_for_memory_policy_review=bool(hints or explicit_writes or explicit_reads or explicit_manage),
+        )
+
+    def _memory_event_kind(self, event_type: str, data: dict) -> str:
+        normalized = str(event_type or "").lower()
+        operation = str(data.get("operation") or data.get("op") or data.get("kind") or "").lower()
+        write_ops = {"write", "add", "append", "replace", "remove", "update", "promote"}
+        read_ops = {"read", "recall", "retrieve", "search", "query"}
+        manage_ops = {"manage", "consolidate", "consolidation", "compact", "prune", "curate"}
+        if normalized in {"memory_write", "memory_add", "memory_replace", "memory_remove", "memory_update"}:
+            return "write"
+        if normalized == "memory_operation" and operation in write_ops:
+            return "write"
+        if normalized in {"memory_read", "memory_recall", "memory_search", "memory_retrieve", "memory_context"}:
+            return "read"
+        if normalized == "memory_operation" and operation in read_ops:
+            return "read"
+        if normalized in {"memory_manage", "memory_consolidation", "memory_compaction", "memory_prune", "memory_curate"}:
+            return "manage"
+        if normalized == "memory_operation" and operation in manage_ops:
+            return "manage"
+        return ""
+
+    def _memory_write_operation(self, event_type: str, data: dict) -> str:
+        operation = str(data.get("operation") or data.get("op") or "").lower()
+        layer = str(data.get("layer") or data.get("memory_layer") or "").lower()
+        memory_type = str(data.get("memory_type") or data.get("type") or "").lower()
+        parts = [part for part in (operation or event_type, layer, memory_type) if part]
+        return ":".join(parts)
+
+    def _memory_write_is_semantic(self, data: dict) -> bool:
+        layer = str(data.get("layer") or data.get("memory_layer") or "").lower()
+        memory_type = str(data.get("memory_type") or data.get("type") or "").lower()
+        operation = str(data.get("operation") or data.get("op") or "").lower()
+        return layer in {"semantic", "l3", "long_term"} or memory_type in {"fact", "semantic"} or operation == "promote"
+
+    def _memory_write_is_noisy(self, data: dict) -> bool:
+        content = str(data.get("content") or data.get("value") or data.get("text") or data.get("memory") or "")
+        memory_type = str(data.get("memory_type") or data.get("type") or "").lower()
+        source = str(data.get("source") or "").lower()
+        confidence = self._safe_float(data.get("confidence"), default=1.0)
+        if content and len(content.strip()) < 12:
+            return True
+        if confidence < 0.4:
+            return True
+        if memory_type in {"raw_observation", "observation_dump"}:
+            return True
+        if source in {"raw_observation", "observation"} and len(content) > 500:
+            return True
+        return False
+
+    def _memory_read_query(self, data: dict) -> str:
+        query = data.get("query") or data.get("goal") or data.get("prompt") or data.get("text") or ""
+        return str(query).strip()[:160]
+
+    def _safe_float(self, value, default: float = 0.0) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
 
     def _segment_has_visual_evidence(self, events: list[dict], source_log: str = "") -> bool:
         for event in events:
@@ -4145,6 +4492,57 @@ class BenchmarkRunner:
                 print(f"      lower-level reasons: {self._format_counts(case.lower_level_reasons)}")
             for recommendation in case.task_recommendations[:4]:
                 print(f"      recommendation: {recommendation}")
+        for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_memory_policy_report(self, report: MemoryPolicyTraceReport):
+        print("\nMemory Policy Trace")
+        print(f"  logs: {report.log_count}")
+        print(f"  ready logs: {report.ready_log_count}")
+        print(
+            "  explicit memory events: "
+            f"writes={report.explicit_memory_write_count}, "
+            f"reads={report.explicit_memory_read_count}, "
+            f"manage={report.explicit_memory_manage_count}"
+        )
+        print(
+            "  inferred gaps: "
+            f"missed_semantic_writes={report.missed_semantic_write_count}, "
+            f"missing_read_traces={report.missing_read_trace_count}, "
+            f"failure_learning={report.failure_learning_candidate_count}, "
+            f"noisy_writes={report.noisy_write_candidate_count}"
+        )
+        feedback = self.memory_policy_feedback(report)
+        if feedback["policy_hints"]:
+            hints = [
+                f"{hint['memory_policy']}({hint['priority']})"
+                for hint in feedback["policy_hints"][:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for case in report.cases:
+            marker = "+" if case.ready_for_memory_policy_review else "~"
+            print(f"  [{marker}] {case.source_log}")
+            print(
+                f"      events={case.event_count}, observations={case.observation_count}, "
+                f"plans={case.plan_count}, actions={case.action_count}, failed={case.failed_action_count}"
+            )
+            print(
+                f"      explicit: writes={case.explicit_memory_write_count}, "
+                f"reads={case.explicit_memory_read_count}, manage={case.explicit_memory_manage_count}"
+            )
+            print(
+                f"      candidates: context={case.context_write_candidate_count}, "
+                f"episodic={case.episodic_write_candidate_count}, "
+                f"semantic={case.semantic_write_candidate_count}, "
+                f"failure_learning={case.failure_learning_candidate_count}, "
+                f"consolidation={case.consolidation_signal_count}"
+            )
+            if case.write_operations:
+                print(f"      writes: {self._format_counts(case.write_operations)}")
+            if case.read_queries:
+                print(f"      read queries: {', '.join(case.read_queries[:4])}")
+            if case.policy_hints:
+                print(f"      hints: {', '.join(case.policy_hints)}")
         for error in report.errors:
             print(f"  error: {error}")
 

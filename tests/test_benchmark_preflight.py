@@ -1199,6 +1199,85 @@ def test_action_abstraction_report_counts_backend_mapping_and_low_level_candidat
     print("PASS: Action abstraction report counts backend mapping and low-level candidates")
 
 
+def test_memory_policy_report_counts_write_read_manage_gaps_and_feedback():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_memory_policy.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {"type": "memory_read", "data": {"query": "craft torches"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}]}},
+        {"type": "plan", "data": {"status": "in_progress", "actions": [{"type": "craft", "parameters": {"item": "torch"}}]}},
+        {"type": "action", "data": {"action": {"type": "craft", "parameters": {"item": "torch"}}, "result": {"success": False, "error": "Missing coal"}}},
+        {"type": "reflection", "data": {"lesson": "Need coal before crafting torches"}},
+        {"type": "failure_correction_completed", "data": {"skill": "collect_coal_before_torch", "success": True}},
+        {"type": "action", "data": {"action": {"type": "craft", "parameters": {"item": "torch"}}, "result": {"success": True, "item": "torch"}}},
+        {"type": "goal_verification", "data": {"achieved": True, "context": {"accepted": True}}},
+        {
+            "type": "memory_write",
+            "data": {
+                "layer": "semantic",
+                "memory_type": "fact",
+                "content": "Torch crafting verified after collecting coal.",
+                "confidence": 0.95,
+            },
+        },
+        {
+            "type": "memory_write",
+            "data": {
+                "layer": "context",
+                "memory_type": "raw_observation",
+                "content": "raw observation " * 80,
+                "source": "observation",
+                "confidence": 0.3,
+            },
+        },
+        {"type": "goal_end", "data": {"goal": "Craft torches", "result": {"completed": True}}},
+        {"type": "memory_consolidation", "data": {"operation": "consolidate", "count": 1}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_memory_policy_report_from_logs([session_path])
+    case = report.cases[0]
+
+    assert report.log_count == 1
+    assert report.ready_log_count == 1
+    assert case.explicit_memory_write_count == 2
+    assert case.explicit_memory_read_count == 1
+    assert case.explicit_memory_manage_count == 1
+    assert case.semantic_write_candidate_count == 2
+    assert case.missed_semantic_write_count == 1
+    assert case.failure_learning_candidate_count == 3
+    assert case.noisy_write_candidate_count == 1
+    assert case.missing_read_trace_count == 0
+    assert case.write_operations["memory_write:semantic:fact"] == 1
+    assert case.write_operations["memory_write:context:raw_observation"] == 1
+    assert "craft torches" in case.read_queries
+
+    feedback = runner.memory_policy_feedback(report)
+    policies = {hint["memory_policy"]: hint for hint in feedback["policy_hints"]}
+    assert "instrument_memory_retrieval" not in policies
+    assert policies["promote_verified_outcomes"]["priority"] == "high"
+    assert policies["record_failure_corrections"]["count"] == 3
+    assert policies["tighten_memory_write_gate"]["count"] == 1
+    assert policies["queue_consolidation_review"]["count"] == 2
+
+    class RecordingMemoryPolicy:
+        def __init__(self):
+            self.feedback = None
+
+        def record_memory_policy_feedback(self, recorded_feedback):
+            self.feedback = recorded_feedback
+
+    policy = RecordingMemoryPolicy()
+    applied = runner.apply_memory_policy_feedback(report, policy)
+    assert applied == feedback
+    assert policy.feedback == feedback
+    print("PASS: Memory policy report counts write/read/manage gaps and feedback")
+
+
 def test_ingest_queues_repeated_causal_summary_candidate():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_repeated.jsonl")
@@ -1603,6 +1682,7 @@ if __name__ == "__main__":
     test_visual_trace_report_validates_screenshot_files()
     test_exploration_trace_report_counts_open_world_coverage()
     test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates()
+    test_memory_policy_report_counts_write_read_manage_gaps_and_feedback()
     test_ingest_queues_repeated_causal_summary_candidate()
     test_ingest_queues_failure_correction_candidate()
     test_benchmark_results_persist_intervention_metrics()

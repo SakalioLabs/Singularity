@@ -146,6 +146,12 @@ def main():
     memory_report_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     memory_report_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline memory policy trace report
+    memory_policy_parser = subparsers.add_parser("memory-policy-report", help="Report memory write/read/manage policy gaps in session logs")
+    memory_policy_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    memory_policy_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    memory_policy_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Skill candidate review queue
     candidates_parser = subparsers.add_parser("skill-candidates", help="Review extracted skill candidates")
     candidates_parser.add_argument("--queue", type=str, default="workspace/skills/skill_candidates.jsonl")
@@ -357,6 +363,40 @@ def main():
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"  saved: {args.output}")
+        return
+
+    if args.command == "memory-policy-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("memory-policy-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_memory_policy_report_from_logs(session_logs)
+        runner.print_memory_policy_report(report)
+        memory_policy_feedback = runner.memory_policy_feedback(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "log_count": report.log_count,
+                    "ready_log_count": report.ready_log_count,
+                    "event_count": report.event_count,
+                    "explicit_memory_write_count": report.explicit_memory_write_count,
+                    "explicit_memory_read_count": report.explicit_memory_read_count,
+                    "explicit_memory_manage_count": report.explicit_memory_manage_count,
+                    "semantic_write_candidate_count": report.semantic_write_candidate_count,
+                    "missed_semantic_write_count": report.missed_semantic_write_count,
+                    "failure_learning_candidate_count": report.failure_learning_candidate_count,
+                    "consolidation_signal_count": report.consolidation_signal_count,
+                    "noisy_write_candidate_count": report.noisy_write_candidate_count,
+                    "missing_read_trace_count": report.missing_read_trace_count,
+                    "memory_policy_feedback": memory_policy_feedback,
+                    "errors": report.errors,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
         return
 
     if args.command == "skill-candidates":

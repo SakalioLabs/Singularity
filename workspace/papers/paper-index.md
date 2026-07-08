@@ -578,6 +578,24 @@
 
 ---
 
+## P-031: Memory for Autonomous LLM Agents
+
+- **Title**: Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Open Challenges
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2603.07670
+- **Type**: Survey
+- **Task Type**: General long-horizon autonomous-agent memory
+- **Core Method**: Formalizes agent memory as a write-manage-read loop across temporal scope, representation, and control policy
+- **Action Space**: Memory lifecycle operations linked to perception and action
+- **Memory**: Write, management, retrieval, update, and evaluation mechanisms
+- **Key Results**: Provides a taxonomy and evaluation framing for memory as a controlled agent subsystem
+- **Scores**: R=5, N=4, R=4, E=5
+- **Value to Project**: Direct justification for separating Singularity memory write/read/manage policy metrics in session-log reports
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-08-agent-memory-survey.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -612,3 +630,4 @@
 | P-028 | MineExplorer | 2026 | R4/N4/R3/E4 | P2 |
 | P-029 | OpenHA / CrossAgent | 2025-2026 | R4/N5/R4/E4 | P2 |
 | P-030 | AutoMem | 2026 | R5/N5/R4/E4 | P2 |
+| P-031 | Memory for Autonomous LLM Agents | 2026 | R5/N4/R4/E5 | P1 |
