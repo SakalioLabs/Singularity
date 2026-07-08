@@ -17,5 +17,6 @@
 **Singularity Adaptation**:
   - Runtime mixed-policy patch loading now honors approved gate reports before offline patch artifacts can affect `ActionController` or mixed-initiative template policy.
   - Experiment-derived skill promotion now honors discovery skill gates before candidates are written to the persistent skill library.
-  - The same gate pattern should be reused for durable memory promotion, shared M7 state consolidation, and future generated Minecraft skills.
-**Next Action**: Add poison-resistance cases to memory write-gate tests before enabling stricter default memory enforcement.
+  - Durable memory writes now run a promptware scanner before promotion: obvious instruction override, role hijack, credential exfiltration, tool hijack, persistence, and C2-loop payloads are routed to high-priority review or strict suppression.
+  - Durable memory reads and transfer-experience retrieval now reuse the same scanner so suspicious recalled state is filtered before planner context; `memory-promptware-report` audits memory stores offline without printing raw memory payloads.
+**Next Action**: Run `memory-promptware-report` on live autonomous/M7 memory stores and compare flagged entries against downstream task outcomes before enabling stricter default memory enforcement.

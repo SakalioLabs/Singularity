@@ -200,6 +200,15 @@ def main():
     memory_read_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     memory_read_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline promptware memory audit
+    memory_promptware_parser = subparsers.add_parser("memory-promptware-report", help="Report promptware or memory-injection threats in durable memory")
+    memory_promptware_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
+    memory_promptware_parser.add_argument("--query", type=str, default="", help="Optional retrieval query to scope the audit")
+    memory_promptware_parser.add_argument("--current-state-json", type=str, default="", help="Optional current state JSON object for conditional applicability checks")
+    memory_promptware_parser.add_argument("--current-state-file", type=str, default="", help="Optional JSON file with current state for conditional applicability checks")
+    memory_promptware_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    memory_promptware_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Skill candidate review queue
     candidates_parser = subparsers.add_parser("skill-candidates", help="Review extracted skill candidates")
     candidates_parser.add_argument("--queue", type=str, default="workspace/skills/skill_candidates.jsonl")
@@ -757,6 +766,46 @@ def main():
         for reason, count in sorted(report["filter_reasons"].items()):
             print(f"    - {reason}: {count}")
         if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "memory-promptware-report":
+        from singularity.core.memory import MemorySystem
+
+        current_state = {}
+        if getattr(args, "current_state_file", ""):
+            with open(args.current_state_file, "r", encoding="utf-8-sig") as f:
+                current_state = json.load(f)
+        elif getattr(args, "current_state_json", ""):
+            current_state = json.loads(args.current_state_json)
+        if current_state and not isinstance(current_state, dict):
+            print("memory-promptware-report current state must be a JSON object")
+            sys.exit(1)
+
+        memory = MemorySystem(memory_dir=getattr(args, "memory_dir", "workspace/memory"))
+        report = memory.memory_promptware_report(
+            query=getattr(args, "query", ""),
+            current_state=current_state or None,
+        )
+        print("\nMemory Promptware Report")
+        print(f"  memory dir: {getattr(args, 'memory_dir', 'workspace/memory')}")
+        print(f"  query: {report['query'] or '-'}")
+        print(
+            f"  flagged entries: {report['flagged_entry_count']}, "
+            f"flagged experiences: {report['flagged_experience_count']}"
+        )
+        for reason, count in sorted(report["reason_counts"].items()):
+            print(f"    - {reason}: {count}")
+        for entry in report["flagged_entries"]:
+            print(f"  - memory {entry['id']} flags={','.join(entry['flags'])} tags={','.join(entry['tags'])}")
+        for experience in report["flagged_experiences"]:
+            print(f"  - experience {experience['id']} flags={','.join(experience['flags'])} tags={','.join(experience['tags'])}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")

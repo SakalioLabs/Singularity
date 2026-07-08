@@ -1,7 +1,83 @@
 """Policy helpers for memory lifecycle decisions."""
 from dataclasses import dataclass, field
 import json
+import re
 from typing import Optional
+
+
+PROMPTWARE_THREAT_PATTERNS = (
+    (
+        "instruction_override",
+        re.compile(
+            r"\b(ignore|disregard|forget|bypass|override)\b.{0,80}"
+            r"\b(previous|prior|system|developer|safety|policy|instructions?)\b",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    ),
+    (
+        "role_hijack",
+        re.compile(
+            r"\b(you are now|act as|become)\b.{0,50}"
+            r"\b(system|developer|root|administrator|operator)\b",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    ),
+    (
+        "secret_exfiltration_request",
+        re.compile(
+            r"\b(reveal|print|dump|send|upload|exfiltrate|leak|post)\b.{0,120}"
+            r"\b(api[-_ ]?key|token|secret|password|credential|github[-_]?pat|sk-[a-z0-9])\b",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    ),
+    (
+        "tool_hijack_request",
+        re.compile(
+            r"\b(run|execute|spawn|start|call)\b.{0,60}"
+            r"\b(shell|terminal|powershell|cmd|curl|wget|python|subprocess|command)\b.{0,120}"
+            r"\b(token|secret|credential|delete|exfiltrate|upload|c2|callback)\b",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    ),
+    (
+        "promptware_c2_loop",
+        re.compile(
+            r"\b(register as (a )?node|heartbeat|pull tasking|command\s*&?\s*control|"
+            r"c2 server|one[- ]liners? only|never.{0,40}script.{0,40}disk)\b",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    ),
+    (
+        "memory_persistence_payload",
+        re.compile(
+            r"\b(save|store|write|remember)\b.{0,80}\b(this|following|new)\b.{0,80}"
+            r"\b(instruction|rule|policy|system message|developer message)\b",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    ),
+)
+
+
+def content_text(content) -> str:
+    """Return a stable string representation for policy scanners."""
+    try:
+        return json.dumps(content, ensure_ascii=False, sort_keys=True, default=str)
+    except Exception:
+        return str(content or "")
+
+
+def promptware_threat_flags(content) -> list[str]:
+    """Detect obvious promptware or memory-injection payloads in memory content."""
+    text = content_text(content)
+    if not text.strip():
+        return []
+    flags = []
+    for flag, pattern in PROMPTWARE_THREAT_PATTERNS:
+        if pattern.search(text):
+            flags.append(flag)
+    if flags:
+        flags.append("promptware_threat")
+    return sorted(set(flags))
 
 
 @dataclass
@@ -81,17 +157,21 @@ class MemoryLifecyclePolicy:
 
         if flags:
             feedback_requested_gate = self._has_hint("tighten_memory_write_gate")
+            has_promptware = "promptware_threat" in flags
+            reason = (
+                "potential promptware or memory-injection payload requires review"
+                if has_promptware
+                else "low-confidence or raw memory candidate"
+            )
+            if feedback_requested_gate and not has_promptware:
+                reason = "low-confidence or raw memory candidate; feedback requested stricter write gate"
             return MemoryPolicyDecision(
                 operation=normalized_operation,
                 layer=normalized_layer,
                 memory_type=normalized_type,
                 decision="write_suppressed" if self.enforce_write_gate else "write_review_needed",
-                reason=(
-                    "low-confidence or raw memory candidate; feedback requested stricter write gate"
-                    if feedback_requested_gate
-                    else "low-confidence or raw memory candidate"
-                ),
-                priority=self._hint_priority("tighten_memory_write_gate", "medium"),
+                reason=reason,
+                priority="high" if has_promptware else self._hint_priority("tighten_memory_write_gate", "medium"),
                 should_persist=not self.enforce_write_gate,
                 should_review=True,
                 quality_flags=flags,
@@ -270,7 +350,8 @@ class MemoryLifecyclePolicy:
             flags.append("state_revision")
         if validity == "implicit_conflict":
             flags.append("implicit_conflict")
-        return flags
+        flags.extend(promptware_threat_flags(content))
+        return sorted(set(flags))
 
     def _is_verified_outcome(self, memory_type: str, content) -> bool:
         if memory_type in {"goal_end", "goal_verification", "auto_goal_complete"}:
@@ -288,7 +369,4 @@ class MemoryLifecyclePolicy:
         }
 
     def _content_text(self, content) -> str:
-        try:
-            return json.dumps(content, ensure_ascii=False, sort_keys=True, default=str)
-        except Exception:
-            return str(content or "")
+        return content_text(content)

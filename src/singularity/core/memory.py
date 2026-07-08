@@ -1,4 +1,5 @@
 """Memory system - multi-layered memory for the Singularity agent."""
+import hashlib
 import json
 import logging
 import os
@@ -8,6 +9,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Optional
 
 from singularity.core.causal_index import CausalEvent, CausalEventIndex, aggregate_causal_events
+from singularity.core.memory_policy import promptware_threat_flags
 
 logger = logging.getLogger("singularity.memory")
 
@@ -359,6 +361,8 @@ class MemorySystem:
         state_words = self._transfer_tokens(json.dumps(current_state or {}, default=str))
         ranked = []
         for record in self.experiences.values():
+            if self._experience_filter_reasons(record):
+                continue
             score, axis_scores, axis_matches, base_matches = self._transfer_experience_score(
                 record,
                 query_words,
@@ -421,6 +425,8 @@ class MemorySystem:
         selected = []
         total = 0
         for entry in entries:
+            if self._entry_filter_reasons(entry):
+                continue
             length = len(entry.prompt_line()) + 1
             if total + length > limit:
                 continue
@@ -487,6 +493,14 @@ class MemorySystem:
             mark_recalled=False,
         )
         axis_counts = {}
+        filtered_reasons = {}
+        filtered_experience_count = 0
+        for record in self.experiences.values():
+            reasons = self._experience_filter_reasons(record)
+            if reasons:
+                filtered_experience_count += 1
+                for reason in reasons:
+                    filtered_reasons[reason] = filtered_reasons.get(reason, 0) + 1
         for item in matches:
             for axis in item["matched_axes"]:
                 axis_counts[axis] = axis_counts.get(axis, 0) + 1
@@ -495,6 +509,8 @@ class MemorySystem:
             "current_state": current_state or {},
             "experience_count": len(self.experiences),
             "match_count": len(matches),
+            "filtered_experience_count": filtered_experience_count,
+            "experience_filter_reasons": filtered_reasons,
             "min_score": min_score,
             "axis_counts": axis_counts,
             "matches": [
@@ -587,7 +603,7 @@ class MemorySystem:
             )
         filtered = profile.get("read_filter_report", {}).get("filtered_entries", 0)
         if filtered:
-            lines.append(f"- filtered stale/conditional memories: {filtered}")
+            lines.append(f"- filtered unsafe/stale/conditional memories: {filtered}")
         return "\n".join(lines)
 
     def memory_read_filter_report(self, query: str = "", current_state: Optional[dict] = None) -> dict:
@@ -613,6 +629,63 @@ class MemorySystem:
             else:
                 report["usable_entries"] += 1
         return report
+
+    def memory_promptware_report(self, query: str = "", current_state: Optional[dict] = None) -> dict:
+        """Audit durable memories and experiences for promptware-like payloads."""
+        query_words = self._keywords(query)
+        flagged_entries = []
+        flagged_experiences = []
+        reason_counts = {}
+
+        for entry in self.entries.values():
+            if query_words and not (query_words & self._keywords(entry.prompt_line())):
+                continue
+            payload = self._entry_security_payload(entry)
+            flags = promptware_threat_flags(payload)
+            if not flags:
+                continue
+            for flag in flags:
+                reason_counts[flag] = reason_counts.get(flag, 0) + 1
+            flagged_entries.append({
+                "id": entry.id,
+                "layer": entry.layer,
+                "memory_type": entry.memory_type,
+                "tags": list(entry.tags),
+                "source": entry.source,
+                "flags": flags,
+                "payload_hash": self._payload_fingerprint(payload),
+                "read_filter_reasons": self._entry_filter_reasons(entry, current_state),
+            })
+
+        for record in self.experiences.values():
+            if query_words and not (query_words & self._keywords(record.searchable_text())):
+                continue
+            payload = self._experience_security_payload(record)
+            flags = promptware_threat_flags(payload)
+            if not flags:
+                continue
+            for flag in flags:
+                reason_counts[flag] = reason_counts.get(flag, 0) + 1
+            flagged_experiences.append({
+                "id": record.id,
+                "tags": list(record.tags),
+                "success": record.success,
+                "flags": flags,
+                "payload_hash": self._payload_fingerprint(payload),
+                "read_filter_reasons": self._experience_filter_reasons(record),
+            })
+
+        return {
+            "query": query,
+            "current_state": current_state or {},
+            "total_entries": len(self.entries),
+            "total_experiences": len(self.experiences),
+            "flagged_entry_count": len(flagged_entries),
+            "flagged_experience_count": len(flagged_experiences),
+            "reason_counts": reason_counts,
+            "flagged_entries": flagged_entries,
+            "flagged_experiences": flagged_experiences,
+        }
 
     def memory_consolidation_candidates(
         self,
@@ -970,7 +1043,37 @@ class MemorySystem:
                 if actual != expected:
                     reasons.append("conditional_mismatch")
                     break
+        reasons.extend(promptware_threat_flags(self._entry_security_payload(entry)))
         return sorted(set(reasons))
+
+    def _experience_filter_reasons(self, record: ExperienceRecord) -> list[str]:
+        return promptware_threat_flags(self._experience_security_payload(record))
+
+    def _entry_security_payload(self, entry: MemoryEntry) -> dict:
+        return {
+            "content": entry.content,
+            "tags": entry.tags,
+            "source": entry.source,
+            "metadata": entry.metadata,
+        }
+
+    def _experience_security_payload(self, record: ExperienceRecord) -> dict:
+        return {
+            "goal": record.goal,
+            "task": record.task,
+            "outcome": record.outcome,
+            "correction": record.correction,
+            "actions": record.actions,
+            "observations": record.observations,
+            "dimensions": record.dimensions,
+            "causal": record.causal,
+            "metrics": record.metrics,
+            "tags": record.tags,
+        }
+
+    def _payload_fingerprint(self, payload: dict) -> str:
+        text = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
     def _nested_value(self, data: dict, dotted_key: str):
         current = data

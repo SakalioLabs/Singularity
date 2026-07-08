@@ -788,7 +788,7 @@
 - **Memory**: Persistent fact and preference memories with provenance-sensitive trust boundaries
 - **Key Results**: Shows memory poisoning can persist and transfer across persistent-agent architectures and memory backends
 - **Scores**: R=5, N=5, R=3, E=5
-- **Value to Project**: Direct support for gate-first promotion of memory, skills, shared-state consolidations, and mixed-policy patches before runtime use
+- **Value to Project**: Direct support for gate-first promotion plus read-time filtering of promptware-like memory, skills, shared-state consolidations, and mixed-policy patches before runtime use
 - **Reproduction Priority**: P1
 - **Card**: `2026-07-09-whisperbench.md`
 
