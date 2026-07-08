@@ -169,6 +169,8 @@ def main():
     bench_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
     bench_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     bench_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
+    bench_parser.add_argument("--skill-memory-quality-preflight", action="store_true", help="Run gate and offline ranking preflight before quality-feedback-assisted benchmarks")
+    bench_parser.add_argument("--skill-memory-quality-preflight-output", type=str, default="", help="Optional JSON path for the skill-memory quality benchmark preflight report")
     bench_parser.add_argument("--log-level", type=str, default="INFO")
     bench_parser.add_argument("--output", type=str, default="benchmark_results.json")
     bench_parser.add_argument("--preflight", action="store_true", help="Run readiness checks before benchmarks")
@@ -2796,6 +2798,15 @@ def main():
             )
             runner.print_preflight(report)
             if not report.ok:
+                sys.exit(1)
+        quality_feedback_paths = getattr(args, "skill_memory_quality_feedback", []) or []
+        if getattr(args, "skill_memory_quality_preflight", False) or quality_feedback_paths:
+            report = runner.run_skill_memory_quality_preflight(suite=args.suite)
+            runner.print_skill_memory_quality_preflight_report(report)
+            quality_preflight_output = getattr(args, "skill_memory_quality_preflight_output", "") or ""
+            if quality_preflight_output:
+                runner.save_skill_memory_quality_preflight_report(report, quality_preflight_output)
+            if not report.get("ready"):
                 sys.exit(1)
         if getattr(args, "policy_skill_ablation", False):
             report = runner.run_policy_skill_benchmark_ablation(suite=args.suite)

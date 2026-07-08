@@ -2821,6 +2821,87 @@ def test_skill_memory_quality_gate_controls_reuse_promotion():
     print("PASS: Skill memory quality gate controls REUSE promotion")
 
 
+def test_skill_memory_quality_preflight_requires_gate_and_ranking_effect():
+    tmpdir = tempfile.mkdtemp()
+    skill_dir = os.path.join(tmpdir, "skills")
+    skill_library = SkillLibrary(storage_path=skill_dir, persist=True)
+    skill_library.create_skill(
+        "supported_torch_skill",
+        "Craft torches with skill-local memory evidence",
+        json.dumps([{"type": "craft", "parameters": {"item": "torch", "count": 4}}]),
+        postconditions={"inventory": {"torch": 4}},
+        gate={"decision": "approve", "verification": {"status": "achieved"}},
+    )
+    skill_library.record_skill_memory(
+        "supported_torch_skill",
+        "Mine coal before crafting torches.",
+        memory_type="replay",
+        outcome="success",
+        task_family="crafting",
+        confidence=0.9,
+    )
+
+    feedback_path = os.path.join(tmpdir, "skill_memory_quality.json")
+    gate_path = os.path.join(tmpdir, "skill_memory_quality_gate.json")
+    with open(feedback_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "skill_memory_quality_feedback": {
+                "task_family_counts": {"crafting": 2},
+                "hint_quality_items": [
+                    {
+                        "hint_type": "REUSE",
+                        "skill": "supported_torch_skill",
+                        "task_family": "crafting",
+                        "count": 2,
+                        "labels": {"reuse_supported_by_goal_success": 2},
+                    }
+                ],
+                "policy_hints": [
+                    {
+                        "skill_memory_policy": "candidate_promote_reuse_hints",
+                        "priority": "low",
+                        "count": 2,
+                    }
+                ],
+            }
+        }, f)
+    with open(gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "readiness": "approved",
+            "decision": "allow_supported_reuse_skill_memory_promotion",
+            "reason": "localized REUSE hints are repeatedly supported",
+            "approved_count": 1,
+            "review_count": 0,
+            "rejected_count": 0,
+        }, f)
+
+    task = BenchmarkTask("BM-Q", "Quality feedback task", "Craft torches", "M1")
+    approved_runner = BenchmarkRunner(Config(
+        skill_dir=skill_dir,
+        skill_memory_quality_feedback_paths=[feedback_path],
+        skill_memory_quality_gate_paths=[gate_path],
+    ))
+    approved = approved_runner.run_skill_memory_quality_preflight(tasks=[task])
+
+    assert approved["ready"]
+    assert approved["readiness"] == "approved"
+    assert approved["gate_approved"]
+    assert approved["case_count"] == 1
+    assert approved["quality_policy_application_count"] == 1
+    assert approved["quality_ablation"]["cases"][0]["task_family"] == "crafting"
+
+    ungated_runner = BenchmarkRunner(Config(
+        skill_dir=skill_dir,
+        skill_memory_quality_feedback_paths=[feedback_path],
+    ))
+    ungated = ungated_runner.run_skill_memory_quality_preflight(tasks=[task])
+
+    assert not ungated["ready"]
+    assert ungated["readiness"] == "review"
+    assert "skill_memory_quality_gate" in ungated["missing"]
+    print("PASS: Skill memory quality preflight requires gate and ranking effect")
+
+
 def test_visual_action_benchmark_ablation_compares_live_suite_modes():
     class FakeVisualActionBenchmarkRunner(BenchmarkRunner):
         def _run_task_with_config(self, task, config):
@@ -3067,6 +3148,7 @@ if __name__ == "__main__":
     test_skill_memory_benchmark_ablation_compares_policy_only_baseline()
     test_skill_memory_quality_report_labels_typed_hint_outcomes()
     test_skill_memory_quality_gate_controls_reuse_promotion()
+    test_skill_memory_quality_preflight_requires_gate_and_ranking_effect()
     test_visual_action_benchmark_ablation_compares_live_suite_modes()
     test_mixed_policy_benchmark_ablation_compares_live_patch_modes()
     test_scheduling_ablation_report_compares_causal_switch()

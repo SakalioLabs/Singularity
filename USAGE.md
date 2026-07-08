@@ -337,6 +337,9 @@ python -m singularity.main skill-memory-quality-gate --skill-memory-report logs/
 python -m singularity.main run --goal "Craft torches" --skill-memory-quality-feedback logs/benchmarks/skill_memory_quality.json --skill-memory-quality-gate logs/benchmarks/skill_memory_quality_gate.json
 # When `--skill-memory-quality-gate` is supplied to run/autonomous/benchmark/collab-benchmark,
 # feedback is loaded only if every gate report is `approved`.
+# Benchmark automatically runs the quality preflight when `--skill-memory-quality-feedback` is supplied.
+# The preflight requires an approved gate and an offline ranking effect before live suite runs:
+python -m singularity.main benchmark --suite m1 --skill-memory-quality-feedback logs/benchmarks/skill_memory_quality.json --skill-memory-quality-gate logs/benchmarks/skill_memory_quality_gate.json --skill-memory-quality-preflight-output logs/benchmarks/skill_memory_quality_preflight.json
 # Use --no-skill-memory-context on run/autonomous/benchmark/collab-benchmark for baselines.
 python -m singularity.main benchmark --suite m1 --skill-memory-ablation --output logs/benchmarks/skill_memory_ablation.json
 

@@ -2232,6 +2232,252 @@ class BenchmarkRunner:
             ))
         return report
 
+    def run_skill_memory_quality_preflight(
+        self,
+        tasks: Optional[list[BenchmarkTask]] = None,
+        suite: str = "m1",
+        feedback_paths: Optional[list[str]] = None,
+        gate_paths: Optional[list[str]] = None,
+        skill_storage_path: str = "",
+        limit: int = 5,
+    ) -> dict:
+        """Check quality feedback gates and offline ranking effects before live benchmarks."""
+        from singularity.core.skill_library import SkillLibrary
+
+        clean_feedback_paths = [
+            path for path in (
+                feedback_paths
+                if feedback_paths is not None
+                else getattr(self.config, "skill_memory_quality_feedback_paths", [])
+            ) or []
+            if path
+        ]
+        clean_gate_paths = [
+            path for path in (
+                gate_paths
+                if gate_paths is not None
+                else getattr(self.config, "skill_memory_quality_gate_paths", [])
+            ) or []
+            if path
+        ]
+        storage_path = skill_storage_path or getattr(self.config, "skill_dir", "workspace/skills")
+        report = {
+            "required": bool(clean_feedback_paths),
+            "ready": not bool(clean_feedback_paths),
+            "readiness": "not_required" if not clean_feedback_paths else "review",
+            "decision": "skip_quality_feedback_preflight" if not clean_feedback_paths else "hold_quality_feedback_benchmark",
+            "reason": "no skill-memory quality feedback configured",
+            "suite": suite,
+            "skill_storage_path": storage_path,
+            "feedback_paths": list(clean_feedback_paths),
+            "gate_paths": list(clean_gate_paths),
+            "feedback_count": 0,
+            "gate_count": 0,
+            "gate_readiness": "not_required",
+            "gate_approved": not bool(clean_feedback_paths),
+            "case_count": 0,
+            "changed_count": 0,
+            "quality_policy_application_count": 0,
+            "feedback_policy_hint_count": 0,
+            "feedback_hint_quality_item_count": 0,
+            "cases": [],
+            "quality_ablation": {},
+            "gate_reports": [],
+            "checks": [],
+            "missing": [],
+            "errors": [],
+        }
+        if not clean_feedback_paths:
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "skill_memory_quality_preflight",
+                "pass",
+                "no quality feedback is configured for this benchmark",
+                {"feedback_paths": 0},
+            ))
+            return report
+
+        if not getattr(self.config, "enable_skill_memory_context", True):
+            report["missing"].append("skill_memory_context_enabled")
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "skill_memory_context",
+                "warn",
+                "skill-memory context is disabled, so quality feedback cannot affect retrieval",
+                {"enabled": 0},
+            ))
+
+        feedback_items = self._load_gate_payloads(
+            [],
+            clean_feedback_paths,
+            report["errors"],
+            "skill_memory_quality_feedback",
+        )
+        report["feedback_count"] = len(feedback_items)
+        feedback = self._merge_skill_memory_quality_feedback_items(feedback_items)
+        report["feedback_policy_hint_count"] = len(feedback.get("policy_hints", []))
+        report["feedback_hint_quality_item_count"] = len(feedback.get("hint_quality_items", []))
+        if not feedback_items:
+            report["missing"].append("skill_memory_quality_feedback")
+        if not feedback.get("policy_hints") and not feedback.get("hint_quality_items"):
+            report["missing"].append("actionable_skill_memory_quality_feedback")
+
+        gate_items = self._load_gate_payloads(
+            [],
+            clean_gate_paths,
+            report["errors"],
+            "skill_memory_quality_gate",
+        )
+        report["gate_count"] = len(gate_items)
+        self._attach_skill_memory_quality_preflight_gates(report, gate_items)
+
+        try:
+            skill_library = SkillLibrary(storage_path=storage_path, persist=True)
+            source_tasks = tasks if tasks is not None else self.tasks_for_suite(suite)
+            cases = self._skill_memory_quality_preflight_cases(source_tasks, skill_library)
+            report["cases"] = cases
+            report["case_count"] = len(cases)
+            if not cases:
+                report["missing"].append("benchmark_cases")
+            if feedback_items and cases:
+                ablation = skill_library.skill_memory_quality_ablation(feedback, cases, limit=limit)
+                report["quality_ablation"] = ablation
+                report["changed_count"] = int(ablation.get("changed_count", 0) or 0)
+                report["quality_policy_application_count"] = int(
+                    ablation.get("quality_policy_application_count", 0) or 0
+                )
+                status = "pass" if report["quality_policy_application_count"] else "warn"
+                detail = (
+                    "quality feedback affects current skill-memory ranking candidates"
+                    if report["quality_policy_application_count"]
+                    else "quality feedback did not affect current skill-memory ranking candidates"
+                )
+                report["checks"].append(self._gate_check(
+                    "skill_memory_quality_ablation",
+                    "offline_ranking_effect",
+                    status,
+                    detail,
+                    {
+                        "case_count": report["case_count"],
+                        "changed_count": report["changed_count"],
+                        "quality_policy_application_count": report["quality_policy_application_count"],
+                    },
+                ))
+        except Exception as e:
+            report["errors"].append(f"skill_memory_quality_preflight: {e}")
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "block_quality_feedback_benchmark"
+            report["reason"] = "skill-memory quality preflight inputs could not be loaded"
+        elif report["missing"]:
+            report["readiness"] = "review"
+            report["decision"] = "hold_quality_feedback_benchmark"
+            report["reason"] = "skill-memory quality preflight is missing required evidence"
+        elif not report["gate_approved"]:
+            report["readiness"] = report["gate_readiness"] or "review"
+            report["decision"] = "block_quality_feedback_benchmark"
+            report["reason"] = "quality feedback gate is not approved"
+        elif report["quality_policy_application_count"] <= 0:
+            report["readiness"] = "review"
+            report["decision"] = "hold_quality_feedback_benchmark"
+            report["reason"] = "quality feedback has no observable effect on current skill-memory rankings"
+        else:
+            report["ready"] = True
+            report["readiness"] = "approved"
+            report["decision"] = "allow_quality_feedback_benchmark"
+            report["reason"] = "approved gates and offline ranking effects are present"
+        report["ready"] = report["readiness"] in {"approved", "not_required"}
+        return report
+
+    def _merge_skill_memory_quality_feedback_items(self, items: list[tuple[str, dict]]) -> dict:
+        feedback = {
+            "quality_label_counts": {},
+            "hint_type_counts": {},
+            "task_family_counts": {},
+            "hint_quality_items": [],
+            "policy_hints": [],
+        }
+        for _source, payload in items:
+            current = payload.get("skill_memory_quality_feedback", payload) if isinstance(payload, dict) else {}
+            if not isinstance(current, dict):
+                continue
+            for key in ("quality_label_counts", "hint_type_counts", "task_family_counts"):
+                values = current.get(key, {}) if isinstance(current.get(key, {}), dict) else {}
+                for name, count in values.items():
+                    feedback[key][str(name)] = feedback[key].get(str(name), 0) + self._gate_int(count)
+            for key in ("hint_quality_items", "policy_hints"):
+                values = current.get(key, [])
+                if isinstance(values, list):
+                    feedback[key].extend(item for item in values if isinstance(item, dict))
+        return feedback
+
+    def _attach_skill_memory_quality_preflight_gates(self, report: dict, gate_items: list[tuple[str, dict]]):
+        if not gate_items:
+            report["missing"].append("skill_memory_quality_gate")
+            report["gate_readiness"] = "missing"
+            report["gate_approved"] = False
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "skill_memory_quality_gate",
+                "warn",
+                "quality feedback benchmarks require an approved skill-memory-quality-gate report",
+                {"gate_reports": 0},
+            ))
+            return
+
+        readinesses = []
+        for source, payload in gate_items:
+            readiness = str(payload.get("readiness") or "").strip().lower() or "unknown"
+            summary = {
+                "path": source,
+                "readiness": readiness,
+                "decision": str(payload.get("decision") or "").strip(),
+                "reason": str(payload.get("reason") or "").strip()[:300],
+                "approved_count": self._gate_int(payload.get("approved_count", 0)),
+                "review_count": self._gate_int(payload.get("review_count", 0)),
+                "rejected_count": self._gate_int(payload.get("rejected_count", 0)),
+            }
+            report["gate_reports"].append(summary)
+            readinesses.append(readiness)
+            status = "pass" if readiness == "approved" else "fail" if readiness in {"rejected", "error"} else "warn"
+            report["checks"].append(self._gate_check(
+                source,
+                "skill_memory_quality_gate",
+                status,
+                summary["reason"] or f"gate readiness is {readiness}",
+                {
+                    "approved_count": summary["approved_count"],
+                    "review_count": summary["review_count"],
+                    "rejected_count": summary["rejected_count"],
+                },
+            ))
+
+        if any(readiness == "error" for readiness in readinesses):
+            report["gate_readiness"] = "error"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report["gate_readiness"] = "approved"
+            report["gate_approved"] = True
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report["gate_readiness"] = "rejected"
+        elif any(readiness == "review" for readiness in readinesses):
+            report["gate_readiness"] = "review"
+        else:
+            report["gate_readiness"] = "unknown"
+
+    def _skill_memory_quality_preflight_cases(self, tasks: list[BenchmarkTask], skill_library) -> list[dict]:
+        cases = []
+        for index, task in enumerate(tasks or [], start=1):
+            goal = str(getattr(task, "goal", "") or "").strip()
+            task_id = str(getattr(task, "id", "") or getattr(task, "task_id", "") or f"task_{index}")
+            task_family = skill_library.infer_task_family(goal)
+            cases.append({
+                "id": task_id,
+                "goal": goal,
+                "task_family": task_family,
+            })
+        return cases
+
     def _run_task_with_config(self, task: BenchmarkTask, config: Config) -> BenchmarkResult:
         runner = BenchmarkRunner(config, output_dir=self.output_dir, bridge_factory=self.bridge_factory)
         return runner.run_task(task)
@@ -8253,6 +8499,23 @@ class BenchmarkRunner:
             json.dump(data, f, indent=2, ensure_ascii=False)
         logger.info(f"Mixed-policy benchmark ablation saved to {path}")
 
+    def save_skill_memory_quality_preflight_report(
+        self,
+        report: dict,
+        filename: str = "skill_memory_quality_preflight.json",
+    ):
+        path = filename
+        if not os.path.isabs(path) and not os.path.dirname(path):
+            os.makedirs(self.output_dir, exist_ok=True)
+            path = os.path.join(self.output_dir, path)
+        else:
+            parent = os.path.dirname(path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+        logger.info(f"Skill-memory quality preflight saved to {path}")
+
     def print_summary(self):
         total = len(self.results)
         passed = sum(1 for r in self.results if r.status == "pass")
@@ -8304,6 +8567,55 @@ class BenchmarkRunner:
                 f"      enabled:  {case.enabled_status} ({case.enabled_duration_s}s), "
                 f"skill_memory_hints={case.enabled_skill_memory_hints}"
             )
+
+    def print_skill_memory_quality_preflight_report(self, report: dict):
+        print("\nSkill Memory Quality Benchmark Preflight")
+        print(f"  suite: {report.get('suite', 'm1')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  inputs: "
+            f"feedback={report.get('feedback_count', 0)}, "
+            f"gates={report.get('gate_count', 0)}, "
+            f"cases={report.get('case_count', 0)}, "
+            f"skill_dir={report.get('skill_storage_path', '')}"
+        )
+        print(
+            "  feedback: "
+            f"policy_hints={report.get('feedback_policy_hint_count', 0)}, "
+            f"localized_items={report.get('feedback_hint_quality_item_count', 0)}"
+        )
+        print(
+            "  ablation: "
+            f"changed={report.get('changed_count', 0)}, "
+            f"quality_policy_applications={report.get('quality_policy_application_count', 0)}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for gate in report.get("gate_reports", [])[:6]:
+            marker = "+" if gate.get("readiness") == "approved" else "x" if gate.get("readiness") == "rejected" else "!"
+            print(
+                f"  [{marker}] gate {gate.get('path')}: {gate.get('readiness')} "
+                f"approved={gate.get('approved_count', 0)} review={gate.get('review_count', 0)} "
+                f"rejected={gate.get('rejected_count', 0)}"
+            )
+            if gate.get("reason"):
+                print(f"      {gate.get('reason')}")
+        for check in report.get("checks", [])[:10]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
+        for case in report.get("quality_ablation", {}).get("cases", [])[:6]:
+            marker = "~" if case.get("changed") else "="
+            if case.get("quality_policy_application_count", 0):
+                marker = "+"
+            print(
+                f"  [{marker}] {case.get('id')}: family={case.get('task_family') or 'unknown'} "
+                f"apps={case.get('quality_policy_application_count', 0)} "
+                f"promoted={len(case.get('promoted', []))} demoted={len(case.get('demoted', []))}"
+            )
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
 
     def print_visual_action_benchmark_ablation_report(self, report: VisualActionBenchmarkAblationReport):
         total = len(report.cases)
