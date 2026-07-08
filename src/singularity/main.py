@@ -310,6 +310,23 @@ def main():
     mixed_trace_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     mixed_trace_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline mixed-initiative held-out variant report
+    mixed_variant_parser = subparsers.add_parser(
+        "mixed-initiative-variant-report",
+        help="Replay held-out natural-language variants through mixed-initiative templates",
+    )
+    mixed_variant_parser.add_argument("--case-file", action="append", default=[], help="JSON/JSONL variant case file")
+    mixed_variant_parser.add_argument("--no-builtins", action="store_true", help="Skip built-in held-out variant cases")
+    mixed_variant_parser.add_argument(
+        "--template",
+        type=str,
+        default="auto",
+        choices=mixed_template_choices,
+        help="Template to force for all variants",
+    )
+    mixed_variant_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    mixed_variant_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline visual review pipeline
     visual_pipeline_parser = subparsers.add_parser("visual-review-pipeline", help="Run visual trace audit, review templates, label validation, and optional ablations")
     visual_pipeline_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -1041,6 +1058,45 @@ def main():
         if getattr(args, "output", ""):
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "mixed-initiative-variant-report":
+        from singularity.evaluation.mixed_initiative import build_mixed_initiative_variant_report
+
+        report = build_mixed_initiative_variant_report(
+            case_paths=getattr(args, "case_file", []) or [],
+            include_builtin=not getattr(args, "no_builtins", False),
+            template_id=getattr(args, "template", "auto"),
+        )
+        print("\nMixed-Initiative Variant Report")
+        print(f"  cases: {report.case_count}")
+        print(f"  fully passed: {report.fully_passed_count}/{report.case_count}")
+        print(f"  template matches: {report.template_match_count}/{report.case_count}")
+        print(f"  slot matches: {report.slot_match_count}/{report.case_count}")
+        print(f"  validation success: {report.validation_success_count}/{report.validation_checked_count}")
+        print(f"  clarifications: {report.clarification_count}")
+        for case in report.cases:
+            marker = "+" if case.fully_passed else "x"
+            expected = case.expected_template_id or "<none>"
+            print(f"  [{marker}] {case.id}: {case.goal}")
+            print(f"      template: expected={expected}, actual={case.actual_template_id}")
+            if case.slot_mismatches:
+                print(f"      slot mismatches: {'; '.join(case.slot_mismatches[:3])}")
+            if case.needs_clarification:
+                print(f"      clarification needed, unbound_slots={case.unbound_slot_count}")
+            if case.validation_checked:
+                status = "passed" if case.validation_success else "failed"
+                print(
+                    f"      validation: {status}, passed={case.validation_passed_count}, "
+                    f"failed={case.validation_failed_count}, invalid={case.validation_invalid_count}, "
+                    f"unknown={case.validation_unknown_count}"
+                )
+        for error in report.errors:
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
         return
 

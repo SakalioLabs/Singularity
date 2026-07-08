@@ -11,6 +11,7 @@ from singularity.evaluation.mixed_initiative import (
     MixedInitiativeTemplateCompiler,
     build_mixed_initiative_report,
     build_mixed_initiative_trace_report,
+    build_mixed_initiative_variant_report,
 )
 
 
@@ -348,6 +349,63 @@ def test_mixed_initiative_trace_report_groups_template_candidates():
     print("PASS: Mixed-initiative trace report groups unsupported goals into template candidates")
 
 
+def test_mixed_initiative_variant_report_checks_heldout_templates():
+    report = build_mixed_initiative_variant_report()
+
+    assert report.case_count >= 7
+    assert report.template_mismatch_count == 0
+    assert report.slot_mismatch_count == 0
+    assert report.validation_failure_count == 0
+    assert report.fully_passed_count == report.case_count
+    assert report.validation_checked_count >= 6
+    assert report.validation_success_count == report.validation_checked_count
+    assert any(case.id == "smelt_ingots_heldout" for case in report.cases)
+    print("PASS: Mixed-initiative variant report validates held-out template paraphrases")
+
+
+def test_mixed_initiative_variant_report_flags_slot_mismatch():
+    report = build_mixed_initiative_variant_report(
+        include_builtin=False,
+        cases=[
+            {
+                "id": "bad_expected_item",
+                "goal": "Craft 4 torches",
+                "expected_template_id": "craft_or_process_item",
+                "expected_slots": {"item": "stick"},
+            }
+        ],
+    )
+
+    assert report.case_count == 1
+    assert report.template_match_count == 1
+    assert report.slot_mismatch_count == 1
+    assert report.fully_passed_count == 0
+    assert "item: expected stick, got torch" in report.cases[0].slot_mismatches
+    print("PASS: Mixed-initiative variant report flags held-out slot regressions")
+
+
+def test_mixed_initiative_variant_report_loads_jsonl_case_file():
+    path = write_jsonl([
+        {
+            "id": "jsonl_craft_variant",
+            "goal": "Make 2 torches",
+            "expected_template_id": "craft_or_process_item",
+            "expected_slots": {"item": "torch", "count": 2},
+        }
+    ])
+
+    report = build_mixed_initiative_variant_report(
+        include_builtin=False,
+        case_paths=[path],
+    )
+
+    assert report.errors == []
+    assert report.case_count == 1
+    assert report.fully_passed_count == 1
+    assert report.cases[0].source == path
+    print("PASS: Mixed-initiative variant report loads JSONL held-out case files")
+
+
 if __name__ == "__main__":
     test_collect_logs_template_binds_goal_slots_and_context()
     test_fetch_tool_template_asks_single_targeted_clarification()
@@ -363,4 +421,7 @@ if __name__ == "__main__":
     test_mixed_initiative_trace_report_flags_validator_stricter_case()
     test_mixed_initiative_trace_report_flags_policy_violation()
     test_mixed_initiative_trace_report_groups_template_candidates()
+    test_mixed_initiative_variant_report_checks_heldout_templates()
+    test_mixed_initiative_variant_report_flags_slot_mismatch()
+    test_mixed_initiative_variant_report_loads_jsonl_case_file()
     print("\nMixed-initiative tests PASSED")

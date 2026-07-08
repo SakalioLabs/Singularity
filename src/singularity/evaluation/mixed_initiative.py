@@ -271,6 +271,115 @@ class MixedInitiativeTraceReport:
         }
 
 
+@dataclass
+class MixedInitiativeVariantCase:
+    id: str
+    goal: str
+    expected_template_id: str = ""
+    expected_slots: dict = field(default_factory=dict)
+    context: dict = field(default_factory=dict)
+    evidence: dict = field(default_factory=dict)
+    tags: list[str] = field(default_factory=list)
+    source: str = "builtin"
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
+class MixedInitiativeVariantResult:
+    id: str
+    source: str
+    goal: str
+    tags: list[str] = field(default_factory=list)
+    expected_template_id: str = ""
+    actual_template_id: str = ""
+    template_match: bool = True
+    expected_slots: dict = field(default_factory=dict)
+    bound_slots: dict = field(default_factory=dict)
+    slot_matches: dict = field(default_factory=dict)
+    slot_mismatches: list[str] = field(default_factory=list)
+    slot_match: bool = True
+    needs_clarification: bool = False
+    unbound_slot_count: int = 0
+    plan_preview: str = ""
+    validation_checked: bool = False
+    validation_success: Optional[bool] = None
+    validation_passed_count: int = 0
+    validation_failed_count: int = 0
+    validation_invalid_count: int = 0
+    validation_unknown_count: int = 0
+    policy_violation_count: int = 0
+    fully_passed: bool = False
+    plan: dict = field(default_factory=dict)
+    validation: list[dict] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
+class MixedInitiativeVariantReport:
+    cases: list[MixedInitiativeVariantResult] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def case_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def template_match_count(self) -> int:
+        return sum(1 for case in self.cases if case.template_match)
+
+    @property
+    def template_mismatch_count(self) -> int:
+        return sum(1 for case in self.cases if not case.template_match)
+
+    @property
+    def slot_match_count(self) -> int:
+        return sum(1 for case in self.cases if case.slot_match)
+
+    @property
+    def slot_mismatch_count(self) -> int:
+        return sum(1 for case in self.cases if not case.slot_match)
+
+    @property
+    def validation_checked_count(self) -> int:
+        return sum(1 for case in self.cases if case.validation_checked)
+
+    @property
+    def validation_success_count(self) -> int:
+        return sum(1 for case in self.cases if case.validation_success is True)
+
+    @property
+    def validation_failure_count(self) -> int:
+        return sum(1 for case in self.cases if case.validation_success is False)
+
+    @property
+    def clarification_count(self) -> int:
+        return sum(1 for case in self.cases if case.needs_clarification)
+
+    @property
+    def fully_passed_count(self) -> int:
+        return sum(1 for case in self.cases if case.fully_passed)
+
+    def to_dict(self) -> dict:
+        return {
+            "case_count": self.case_count,
+            "template_match_count": self.template_match_count,
+            "template_mismatch_count": self.template_mismatch_count,
+            "slot_match_count": self.slot_match_count,
+            "slot_mismatch_count": self.slot_mismatch_count,
+            "validation_checked_count": self.validation_checked_count,
+            "validation_success_count": self.validation_success_count,
+            "validation_failure_count": self.validation_failure_count,
+            "clarification_count": self.clarification_count,
+            "fully_passed_count": self.fully_passed_count,
+            "errors": list(self.errors),
+            "cases": [case.to_dict() for case in self.cases],
+        }
+
+
 class MixedInitiativeTemplateCompiler:
     """Compile template subtasks into auditable records with slot binding."""
 
@@ -1142,6 +1251,263 @@ def build_mixed_initiative_report(
             "unknown": sum(1 for result in validation if result["status"] == "unknown"),
         },
     }
+
+
+def builtin_mixed_initiative_variant_cases() -> list[MixedInitiativeVariantCase]:
+    """Held-out natural-language variants for template-selection regression checks."""
+    return [
+        MixedInitiativeVariantCase(
+            id="collect_oak_logs_heldout",
+            goal="Gather 12 oak logs within 20 blocks",
+            expected_template_id="collect_oak_logs",
+            expected_slots={"count": 12, "resource": "oak_log", "search_radius": 20},
+            evidence={
+                "post_observation": {
+                    "inventory": {"oak_log": 12},
+                    "nearby_blocks": [{"name": "oak_log"}],
+                },
+                "recent_chat": ["logs collected"],
+            },
+            tags=["resource_collection", "paraphrase"],
+        ),
+        MixedInitiativeVariantCase(
+            id="fetch_pickaxe_heldout",
+            goal="Bring me the iron pickaxe from weapon storage",
+            expected_template_id="fetch_named_tool",
+            expected_slots={"tool_variant": "iron", "landmark": "weapon_storage"},
+            evidence={
+                "pre_observation": {"position": {"x": 0, "y": 64, "z": 0}},
+                "post_observation": {
+                    "position": {"x": 3, "y": 64, "z": 0},
+                    "flags": ["landmark_resolved"],
+                    "inventory": {"iron_pickaxe": 1},
+                },
+            },
+            tags=["navigation_retrieval", "paraphrase"],
+        ),
+        MixedInitiativeVariantCase(
+            id="craft_torches_heldout",
+            goal="Make 8 torches before night",
+            expected_template_id="craft_or_process_item",
+            expected_slots={"item": "torch", "count": 8, "process_action": "craft"},
+            evidence={"post_observation": {"inventory": {"torch": 8}}},
+            tags=["crafting_processing", "paraphrase"],
+        ),
+        MixedInitiativeVariantCase(
+            id="smelt_ingots_heldout",
+            goal="Smelt 2 iron ingots",
+            expected_template_id="craft_or_process_item",
+            expected_slots={
+                "item": "iron_ingot",
+                "count": 2,
+                "process_action": "smelt",
+                "station": "furnace",
+            },
+            evidence={"post_observation": {"inventory": {"iron_ingot": 2}}},
+            tags=["crafting_processing", "processing"],
+        ),
+        MixedInitiativeVariantCase(
+            id="mine_diamond_heldout",
+            goal="Dig 2 diamond ore near camp",
+            expected_template_id="collect_or_mine_resource",
+            expected_slots={"resource": "diamond", "source_block": "diamond_ore", "count": 2},
+            evidence={
+                "post_observation": {
+                    "inventory": {"diamond": 2},
+                    "nearby_blocks": [{"name": "diamond_ore"}],
+                },
+            },
+            tags=["resource_collection", "ore_drop"],
+        ),
+        MixedInitiativeVariantCase(
+            id="place_wall_heldout",
+            goal="Place a cobblestone wall at the base",
+            expected_template_id="build_or_place_structure",
+            expected_slots={"structure": "wall", "material": "cobblestone"},
+            evidence={
+                "actions": [
+                    {
+                        "action": {"type": "place_block", "parameters": {"block": "cobblestone"}},
+                        "result": {"success": True},
+                    }
+                ]
+            },
+            tags=["construction_building", "place_action"],
+        ),
+        MixedInitiativeVariantCase(
+            id="unsupported_inventory_heldout",
+            goal="Organize inventory for later",
+            expected_template_id="unsupported_request",
+            expected_slots={},
+            tags=["unsupported", "template_gap"],
+        ),
+    ]
+
+
+def build_mixed_initiative_variant_report(
+    cases: Optional[list[Any]] = None,
+    case_paths: Optional[list[str]] = None,
+    include_builtin: bool = True,
+    template_id: str = "auto",
+) -> MixedInitiativeVariantReport:
+    """Replay held-out goal variants through template selection, slot binding, and validators."""
+    compiler = MixedInitiativeTemplateCompiler()
+    report = MixedInitiativeVariantReport()
+    variant_cases: list[MixedInitiativeVariantCase] = []
+    if include_builtin:
+        variant_cases.extend(builtin_mixed_initiative_variant_cases())
+    for index, item in enumerate(cases or [], start=1):
+        try:
+            variant_cases.append(_variant_case_from_any(item, source="inline", default_id=f"inline_{index}"))
+        except Exception as exc:
+            report.errors.append(f"inline case {index}: {exc}")
+    for path in case_paths or []:
+        try:
+            loaded = _load_mixed_initiative_variant_cases(path)
+            variant_cases.extend(loaded)
+        except Exception as exc:
+            report.errors.append(f"{path}: {exc}")
+
+    for index, case in enumerate(variant_cases, start=1):
+        if not case.id:
+            case.id = f"case_{index}"
+        if not case.goal:
+            report.errors.append(f"{case.source}:{case.id}: missing goal")
+            continue
+        try:
+            report.cases.append(_mixed_initiative_variant_result(case, compiler, template_id))
+        except Exception as exc:
+            report.errors.append(f"{case.source}:{case.id}: {exc}")
+    return report
+
+
+def _mixed_initiative_variant_result(
+    case: MixedInitiativeVariantCase,
+    compiler: MixedInitiativeTemplateCompiler,
+    template_id: str,
+) -> MixedInitiativeVariantResult:
+    plan = compiler.compile_goal(case.goal, template_id=template_id, context=case.context or {})
+    bound_slots = _bound_slots_from_plan(plan)
+    template_match = (
+        plan.template_id == case.expected_template_id
+        if case.expected_template_id
+        else True
+    )
+    slot_matches = {}
+    slot_mismatches = []
+    for slot, expected in (case.expected_slots or {}).items():
+        actual = bound_slots.get(slot)
+        ok = actual == expected
+        slot_matches[slot] = ok
+        if not ok:
+            slot_mismatches.append(f"{slot}: expected {expected}, got {actual}")
+    validation = []
+    validation_checked = bool(case.evidence)
+    validation_success: Optional[bool] = None
+    if validation_checked:
+        validator = BoundedEvidenceValidator(
+            max_scan_radius=int(plan.bounded_policy.get("max_scan_radius", 128))
+        )
+        validation = [
+            validator.validate_subtask(subtask, case.evidence).to_dict()
+            for subtask in plan.subtasks
+        ]
+        validation_success = bool(validation) and all(result["success"] for result in validation)
+    slot_match = not slot_mismatches
+    fully_passed = (
+        template_match
+        and slot_match
+        and not plan.needs_clarification
+        and (validation_success is not False)
+    )
+    return MixedInitiativeVariantResult(
+        id=case.id,
+        source=case.source,
+        goal=case.goal,
+        tags=list(case.tags),
+        expected_template_id=case.expected_template_id,
+        actual_template_id=plan.template_id,
+        template_match=template_match,
+        expected_slots=dict(case.expected_slots or {}),
+        bound_slots=bound_slots,
+        slot_matches=slot_matches,
+        slot_mismatches=slot_mismatches,
+        slot_match=slot_match,
+        needs_clarification=plan.needs_clarification,
+        unbound_slot_count=plan.unbound_slot_count,
+        plan_preview=plan.plan_preview,
+        validation_checked=validation_checked,
+        validation_success=validation_success,
+        validation_passed_count=sum(1 for result in validation if result["success"]),
+        validation_failed_count=sum(1 for result in validation if result["status"] == "failed"),
+        validation_invalid_count=sum(1 for result in validation if result["status"] == "invalid"),
+        validation_unknown_count=sum(1 for result in validation if result["status"] == "unknown"),
+        policy_violation_count=sum(len(result.get("policy_violations", [])) for result in validation),
+        fully_passed=fully_passed,
+        plan=plan.to_dict(),
+        validation=validation,
+    )
+
+
+def _bound_slots_from_plan(plan: MixedInitiativePlan) -> dict:
+    slots = {}
+    for subtask in plan.subtasks:
+        for key, value in subtask.bound_parameters.items():
+            if key not in slots or slots[key] in (None, ""):
+                slots[key] = value
+    return slots
+
+
+def _load_mixed_initiative_variant_cases(path: str) -> list[MixedInitiativeVariantCase]:
+    with open(path, "r", encoding="utf-8-sig") as f:
+        text = f.read().strip()
+    if not text:
+        return []
+    records = []
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                records.append(json.loads(line))
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"line {line_number}: invalid JSON: {exc}") from exc
+    else:
+        if isinstance(data, dict):
+            data = data.get("cases", [data])
+        if not isinstance(data, list):
+            raise ValueError("variant file must contain a JSON object, JSON list, or JSONL records")
+        records = data
+    cases = []
+    for index, item in enumerate(records, start=1):
+        cases.append(_variant_case_from_any(item, source=path, default_id=f"case_{index}"))
+    return cases
+
+
+def _variant_case_from_any(item: Any, source: str, default_id: str) -> MixedInitiativeVariantCase:
+    if isinstance(item, MixedInitiativeVariantCase):
+        if not item.source:
+            item.source = source
+        if not item.id:
+            item.id = default_id
+        return item
+    if isinstance(item, str):
+        return MixedInitiativeVariantCase(id=default_id, goal=item, source=source)
+    if not isinstance(item, dict):
+        raise ValueError("variant case must be a string, object, or MixedInitiativeVariantCase")
+    return MixedInitiativeVariantCase(
+        id=str(item.get("id", default_id)),
+        goal=str(item.get("goal", "")),
+        expected_template_id=str(item.get("expected_template_id", item.get("template_id", ""))),
+        expected_slots=dict(item.get("expected_slots", item.get("slots", {})) or {}),
+        context=dict(item.get("context", {}) or {}),
+        evidence=dict(item.get("evidence", {}) or {}),
+        tags=list(item.get("tags", []) or []),
+        source=str(item.get("source", source)),
+    )
 
 
 def build_mixed_initiative_trace_report(

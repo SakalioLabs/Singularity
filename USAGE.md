@@ -167,6 +167,11 @@ python -m singularity.main mixed-initiative-trace-report --session-log logs/sess
 # generic collect/mine, and build/place requests. The saved JSON still includes
 # `template_candidates` for remaining unsupported player requests.
 
+# Replay held-out paraphrases and optional JSON/JSONL case files before promoting
+# new mixed-initiative templates or changing auto-selection heuristics.
+python -m singularity.main mixed-initiative-variant-report --output logs/benchmarks/mixed_initiative_variants.json
+python -m singularity.main mixed-initiative-variant-report --case-file workspace/evals/mixed_variants.jsonl
+
 # M2 benchmarks (LLM planning)
 python -m singularity.main benchmark --suite m2
 

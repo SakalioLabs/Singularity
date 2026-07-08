@@ -18,4 +18,5 @@
   - Existing promotion/goal/visual-action ablations can be extended into small improvement curves over repeated session-log replays.
   - Mixed-initiative templates can use held-out natural-language paraphrases as variants before becoming default auto-selected templates.
   - M7 collaboration tests can borrow the same idea by replaying schedule-policy changes against held-out collaboration specs.
-**Next Action**: Add a lightweight repeated-replay harness for mixed-initiative template variants and visual-action grounding cases.
+**Implemented Hook**: `mixed-initiative-variant-report` now replays built-in and JSON/JSONL held-out natural-language variants through template selection, slot binding, and optional bounded validators before template promotion.
+**Next Action**: Mine real player/session requests into external variant files and track whether template changes improve held-out coverage without regressing older variants.

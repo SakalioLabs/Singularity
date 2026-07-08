@@ -118,6 +118,7 @@
 - [x] Add NitroGen to the paper index as a cross-game visual-action foundation-model reference for future low-level control trace collection.
 - [x] Convert the first high-count mixed-initiative template candidates into built-in craft/process, collect/mine, and build/place templates with bounded validators.
 - [x] Add GameWorld and OmniGameArena paper cards for verifiable game-agent evaluation and improvement-dynamics benchmarking.
+- [x] Add `mixed-initiative-variant-report` for held-out template paraphrases, expected slot checks, JSON/JSONL case files, and optional bounded validator replay.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -136,6 +137,7 @@
 - [x] Convert the highest-count `mixed-initiative-trace-report.template_candidates` into additional task templates beyond oak-log collection and pickaxe retrieval.
 - [ ] Run `exploration-trace-report` on real autonomous session logs, apply `curriculum_feedback`, and compare before/after curriculum candidate rankings.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
+- [ ] Mine real player/session requests into `mixed-initiative-variant-report --case-file` suites and track held-out template coverage before changing auto-selection heuristics.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
 - [ ] Run an unknown visual/environment goal with `--goal-critic` and inspect `goal_verification_metrics` plus critic evidence in the session log.
 - [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces and compare completion judgments against manual review.
