@@ -349,3 +349,4 @@ Structured perception should affect the action interface before a full VLA polic
 - Added OpenHA/CrossAgent research notes and mapped Chain-of-Action style cross-level action abstraction onto the existing `ActionMapper` roadmap.
 - Added `action-abstraction-report`, an offline session-log report that counts canonical action types, observed backend commands, planned desktop mappings, unknown canonical actions, failed mappings, and lower-level visual-control candidates.
 - Added `action_abstraction_feedback`, which converts those traces into action-policy hints such as `mineflayer_api_ok`, `consider_low_level_visual_control`, and `define_canonical_mapping`.
+- Added `ActionGranularityPolicy`, which consumes action-abstraction feedback and records per-action `control_policy` decisions while keeping Mineflayer as the safe executable fallback until desktop control is implemented.

@@ -1,9 +1,10 @@
 ﻿"""Action controller — translates structured action commands into bot operations with safety checks."""
-import time
 import logging
+import time
 from typing import Optional
 
 from singularity.action.mapping import ActionMapper
+from singularity.action.policy import ActionGranularityPolicy, ActionPolicyDecision
 
 logger = logging.getLogger("singularity.action")
 
@@ -11,11 +12,19 @@ logger = logging.getLogger("singularity.action")
 class ActionController:
     """Executes actions on the Minecraft bot with pre/post validation."""
 
-    def __init__(self, bot, config, backend: str = "mineflayer", mapper: Optional[ActionMapper] = None):
+    def __init__(
+        self,
+        bot,
+        config,
+        backend: str = "mineflayer",
+        mapper: Optional[ActionMapper] = None,
+        action_policy: Optional[ActionGranularityPolicy] = None,
+    ):
         self.bot = bot
         self.config = config
         self.backend = backend
         self.mapper = mapper or ActionMapper()
+        self.action_policy = action_policy
         self._action_handlers = {
             "walk_to": self._walk_to,
             "move_to": self._move_to,
@@ -32,7 +41,8 @@ class ActionController:
 
     def execute(self, action: dict, world_state: dict) -> dict:
         """Execute a single action with pre/post checks."""
-        command = self.mapper.map(action, self.backend)
+        policy_decision = self._select_action_policy(action)
+        command = self.mapper.map(action, policy_decision.backend)
         action_type = command.command
         params = command.params
         start_time = time.time()
@@ -46,17 +56,36 @@ class ActionController:
                 "backend": command.backend,
                 "backend_command": command.command,
                 "backend_params": command.params,
+                "control_policy": policy_decision.as_dict(),
             }
 
         # Pre-condition check
         pre_ok, pre_msg = self._check_preconditions(action_type, params, world_state)
         if not pre_ok:
-            return {"success": False, "error": f"Pre-condition failed: {pre_msg}", "duration_ms": 0}
+            return {
+                "success": False,
+                "error": f"Pre-condition failed: {pre_msg}",
+                "duration_ms": 0,
+                "action_type": action.get("type", action_type),
+                "backend": command.backend,
+                "backend_command": command.command,
+                "backend_params": command.params,
+                "control_policy": policy_decision.as_dict(),
+            }
 
         # Execute
         handler = self._action_handlers.get(action_type)
         if not handler:
-            return {"success": False, "error": f"Unknown action: {action_type}", "duration_ms": 0}
+            return {
+                "success": False,
+                "error": f"Unknown action: {action_type}",
+                "duration_ms": 0,
+                "action_type": action.get("type", action_type),
+                "backend": command.backend,
+                "backend_command": command.command,
+                "backend_params": command.params,
+                "control_policy": policy_decision.as_dict(),
+            }
 
         try:
             result = handler(params)
@@ -70,7 +99,17 @@ class ActionController:
         result["backend"] = command.backend
         result["backend_command"] = command.command
         result["backend_params"] = command.params
+        result["control_policy"] = policy_decision.as_dict()
         return result
+
+    def _select_action_policy(self, action: dict) -> ActionPolicyDecision:
+        if self.action_policy is None:
+            return ActionPolicyDecision(
+                action_type=str(action.get("type") or "unknown"),
+                backend=self.backend,
+                preferred_backend=self.backend,
+            )
+        return self.action_policy.select_backend(action, self.backend, self.mapper)
 
     def _check_preconditions(self, action_type: str, params: dict, state: dict) -> tuple:
         """Check if action can be safely executed."""

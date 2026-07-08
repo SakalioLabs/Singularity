@@ -102,6 +102,7 @@
 - [x] Add OpenHA/CrossAgent to the paper index and map Chain-of-Action ideas onto Singularity's action abstraction layer.
 - [x] Add offline `action-abstraction-report` for OpenHA/CrossAgent-style analysis of canonical actions, backend commands, failed mappings, and actions that may need lower-level visual control.
 - [x] Add `action_abstraction_feedback` policy hints and an application hook so action-policy experiments can consume API-vs-visual-control recommendations.
+- [x] Add `ActionGranularityPolicy` and wire `ActionController` results with `control_policy` decisions for safe Mineflayer fallback plus future visual/desktop control switching.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -114,7 +115,7 @@
 - [ ] Keep all live M7 role ports unique with `--bridge-port-base` or repeated `--role-bridge-port ROLE=PORT`.
 - [ ] Run autonomous mode with the new curriculum enabled and inspect `curriculum.last_decision` plus `auto_goal_complete/failed` episodes for goal-loop quality.
 - [ ] Run `exploration-trace-report` on real autonomous session logs, apply `curriculum_feedback`, and compare before/after curriculum candidate rankings.
-- [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs and compare `action_abstraction_feedback` policy hints by task family.
+- [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
 - [ ] Run an unknown visual/environment goal with `--goal-critic` and inspect `goal_verification_metrics` plus critic evidence in the session log.
 - [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces and compare completion judgments against manual review.

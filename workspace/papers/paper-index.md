@@ -560,6 +560,24 @@
 
 ---
 
+## P-030: AutoMem
+
+- **Title**: AutoMem: Automated Learning of Memory as a Cognitive Skill
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2607.01224
+- **Type**: Paper
+- **Task Type**: Long-horizon game-agent memory optimization
+- **Core Method**: Treats memory management as a trainable cognitive skill with scaffold revision and training from good memory decisions
+- **Action Space**: Task actions plus explicit file-system memory actions
+- **Memory**: File-system memory operations, scaffold revision, and memory proficiency learning
+- **Key Results**: Reports that optimizing memory alone improves long-horizon game-agent performance without changing task actions
+- **Scores**: R=5, N=5, R=4, E=4
+- **Value to Project**: Blueprint for turning Singularity memory reports into a feedback policy for what to write, retrieve, consolidate, or ignore
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-automem.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -593,3 +611,4 @@
 | P-027 | OpenSkill | 2026 | R4/N5/R2/E5 | P2 |
 | P-028 | MineExplorer | 2026 | R4/N4/R3/E4 | P2 |
 | P-029 | OpenHA / CrossAgent | 2025-2026 | R4/N5/R4/E4 | P2 |
+| P-030 | AutoMem | 2026 | R5/N5/R4/E4 | P2 |
