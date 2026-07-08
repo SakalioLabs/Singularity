@@ -228,6 +228,21 @@ def main():
     task_stream_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     task_stream_parser.add_argument("--log-level", type=str, default="INFO")
 
+    task_stream_gate_parser = subparsers.add_parser(
+        "task-stream-transfer-gate",
+        help="Gate memory or skill promotion using AgentCL-style task-stream transfer reports",
+    )
+    task_stream_gate_parser.add_argument("--transfer-report", action="append", default=[], help="Saved task-stream-transfer-report JSON")
+    task_stream_gate_parser.add_argument("--target", type=str, default="memory_or_skill_promotion", help="Promotion target label for the gate report")
+    task_stream_gate_parser.add_argument("--min-plasticity-gain", type=float, default=0.01, help="Minimum baseline-to-first-pass gain required")
+    task_stream_gate_parser.add_argument("--min-stability-gain", type=float, default=0.0, help="Minimum second-pass minus first-pass gain required")
+    task_stream_gate_parser.add_argument("--min-generalization-gain", type=float, default=0.0, help="Minimum held-out minus baseline gain required")
+    task_stream_gate_parser.add_argument("--min-reuse-coverage", type=float, default=0.5, help="Minimum expected reuse-tag coverage required")
+    task_stream_gate_parser.add_argument("--max-interference-count", type=int, default=0, help="Maximum allowed transfer/interference regressions")
+    task_stream_gate_parser.add_argument("--no-require-heldout", action="store_true", help="Allow approval without held-out generalization evidence")
+    task_stream_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    task_stream_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline memory read filter report
     memory_read_parser = subparsers.add_parser("memory-read-filter-report", help="Report stale or condition-mismatched durable memories for a query")
     memory_read_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
@@ -957,6 +972,31 @@ def main():
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "task-stream-transfer-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        transfer_reports = getattr(args, "transfer_report", []) or []
+        if not transfer_reports:
+            print("task-stream-transfer-gate requires at least one --transfer-report")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.build_task_stream_transfer_gate(
+            transfer_report_paths=transfer_reports,
+            target=getattr(args, "target", "memory_or_skill_promotion"),
+            min_plasticity_gain=getattr(args, "min_plasticity_gain", 0.01),
+            min_stability_gain=getattr(args, "min_stability_gain", 0.0),
+            min_generalization_gain=getattr(args, "min_generalization_gain", 0.0),
+            min_reuse_coverage=getattr(args, "min_reuse_coverage", 0.5),
+            max_interference_count=getattr(args, "max_interference_count", 0),
+            require_heldout=not getattr(args, "no_require_heldout", False),
+        )
+        runner.print_task_stream_transfer_gate_report(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
         return
 

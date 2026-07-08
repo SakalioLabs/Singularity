@@ -2090,6 +2090,56 @@ def test_task_stream_transfer_report_scores_controlled_reuse():
     print("PASS: Task stream transfer report scores controlled reuse")
 
 
+def test_task_stream_transfer_gate_controls_promotion():
+    runner = BenchmarkRunner(Config())
+    approved_payload = {
+        "stream_count": 1,
+        "ready_stream_count": 1,
+        "task_count": 3,
+        "reuse_expected_tag_count": 4,
+        "reuse_hit_tag_count": 4,
+        "reuse_coverage": 1.0,
+        "average_plasticity_gain": 0.52,
+        "average_stability_gain": 0.04,
+        "average_generalization_gain": 0.44,
+        "interference_count": 0,
+        "task_stream_feedback": {"policy_hints": []},
+        "errors": [],
+    }
+    approved = runner.build_task_stream_transfer_gate(
+        transfer_reports=[approved_payload],
+        target="skill:craft_stone_pickaxe",
+    )
+    assert approved["readiness"] == "approved"
+    assert approved["decision"] == "allow_candidate_promotion"
+    assert approved["evidence_count"] == 1
+    assert approved["regression_count"] == 0
+    assert approved["reuse_coverage"] == 1.0
+
+    review_payload = {
+        **approved_payload,
+        "reuse_hit_tag_count": 1,
+        "reuse_coverage": 0.25,
+        "average_generalization_gain": None,
+    }
+    review = runner.build_task_stream_transfer_gate(transfer_reports=[review_payload])
+    assert review["readiness"] == "review"
+    assert review["decision"] == "keep_candidate_review_only"
+    assert review["warning_count"] == 1
+    assert review["regression_count"] == 0
+
+    rejected_payload = {
+        **approved_payload,
+        "average_stability_gain": -0.12,
+        "interference_count": 1,
+    }
+    rejected = runner.build_task_stream_transfer_gate(transfer_reports=[rejected_payload])
+    assert rejected["readiness"] == "rejected"
+    assert rejected["decision"] == "do_not_promote_candidate"
+    assert rejected["regression_count"] == 1
+    print("PASS: Task stream transfer gate controls promotion")
+
+
 def test_ingest_queues_repeated_causal_summary_candidate():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_repeated.jsonl")
@@ -2605,6 +2655,7 @@ if __name__ == "__main__":
     test_continual_learning_report_aggregates_open_ended_axes()
     test_continual_learning_report_accepts_flat_session_log_fields()
     test_task_stream_transfer_report_scores_controlled_reuse()
+    test_task_stream_transfer_gate_controls_promotion()
     test_ingest_queues_repeated_causal_summary_candidate()
     test_ingest_queues_failure_correction_candidate()
     test_benchmark_results_persist_intervention_metrics()

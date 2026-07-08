@@ -283,6 +283,8 @@ python -m singularity.main continual-learning-report --session-log logs/session_
 
 # Evaluate AgentCL-style controlled task streams for transfer gain, stability, held-out generalization, and memory/skill interference
 python -m singularity.main task-stream-transfer-report --stream-file workspace/evals/minecraft_task_streams.json --output logs/benchmarks/task_stream_transfer.json
+# Gate memory or skill promotion on positive transfer, stable replay, held-out generalization, and low interference
+python -m singularity.main task-stream-transfer-gate --transfer-report logs/benchmarks/task_stream_transfer.json --target skill:craft_stone_pickaxe --output logs/benchmarks/task_stream_transfer_gate.json
 
 # Run the full offline visual review chain in one report
 python -m singularity.main visual-review-pipeline --session-log logs/session_xxx.jsonl --mode both --output logs/benchmarks/visual_review_pipeline.json

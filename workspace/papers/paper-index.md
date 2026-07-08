@@ -992,6 +992,42 @@
 
 ---
 
+## P-054: MUSE-Autoskill
+
+- **Title**: MUSE-Autoskill: Self-Evolving Agents via Skill Creation, Memory, Management, and Evaluation
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2605.27366
+- **Type**: Skill-centric self-evolving agent framework
+- **Task Type**: General long-horizon agent tasks with reusable skills and transfer
+- **Core Method**: Unifies skill creation, skill-level memory, catalog management, evaluation, and refinement
+- **Action Space**: Tool and code-backed agent actions wrapped as reusable skill packages
+- **Memory**: Short-term, long-term, and per-skill memory for reusable procedures
+- **Key Results**: Reports stronger self-created skill performance than static human-authored skills on covered tasks and effective skill transfer into Hermes-style agents
+- **Scores**: R=4, N=5, R=4, E=5
+- **Value to Project**: Supports treating Minecraft skills as long-lived assets with skill-local memory, evaluation history, and transfer gates before default reuse
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-muse-autoskill.md`
+
+---
+
+## P-055: RIZZ
+
+- **Title**: RIZZ: Routing Interactions to Near Zero-Interference Zones for Continual Adaptation of Black-Box Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2606.20638
+- **Type**: Verifier-gated routed memory for continual black-box adaptation
+- **Task Type**: Nonstationary task streams with recurring and interfering task families
+- **Core Method**: Routes interactions into memory zones, retrieves bounded branch-local/global context, and updates memory only after verifier feedback
+- **Action Space**: Black-box language-agent actions over tool and benchmark tasks
+- **Memory**: Branch-local examples, failures, procedural rules, anti-patterns, and verifier-gated updates
+- **Key Results**: Shows routed memory can improve recurring tasks while reducing cross-task interference and token cost
+- **Scores**: R=4, N=5, R=4, E=5
+- **Value to Project**: Motivates Minecraft task-family routing and rejection of memories/skills that hurt held-out or second-pass streams
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-rizz.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1049,3 +1085,5 @@
 | P-051 | AgenticSTS | 2026 | R5/N5/R4/E5 | P1 |
 | P-052 | AgentOdyssey | 2026 | R4/N5/R4/E5 | P2 |
 | P-053 | AgentCL | 2026 | R4/N5/R4/E5 | P2 |
+| P-054 | MUSE-Autoskill | 2026 | R4/N5/R4/E5 | P2 |
+| P-055 | RIZZ | 2026 | R4/N5/R4/E5 | P2 |

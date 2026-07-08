@@ -3125,6 +3125,14 @@ class BenchmarkRunner:
         except (TypeError, ValueError):
             return 0
 
+    def _gate_float_or_none(self, value) -> Optional[float]:
+        if value in (None, ""):
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
     def run_discovery_application_report_from_logs(self, session_log_paths: list[str]) -> DiscoveryApplicationTraceReport:
         """Summarize SciCrafter-style discovery-to-application evidence in session logs."""
         report = DiscoveryApplicationTraceReport()
@@ -3934,6 +3942,171 @@ class BenchmarkRunner:
             "recommendations": sorted(recommendations),
             "policy_hints": policy_hints,
         }
+
+    def build_task_stream_transfer_gate(
+        self,
+        transfer_reports: Optional[list[dict]] = None,
+        transfer_report_paths: Optional[list[str]] = None,
+        target: str = "memory_or_skill_promotion",
+        min_plasticity_gain: float = 0.01,
+        min_stability_gain: float = 0.0,
+        min_generalization_gain: float = 0.0,
+        min_reuse_coverage: float = 0.5,
+        max_interference_count: int = 0,
+        require_heldout: bool = True,
+    ) -> dict:
+        """Gate memory/skill promotion with controlled task-stream transfer evidence."""
+        report = {
+            "required": True,
+            "target": target,
+            "readiness": "review",
+            "decision": "keep_candidate_review_only",
+            "reason": "controlled task-stream transfer evidence is required",
+            "transfer_report_count": 0,
+            "stream_count": 0,
+            "ready_stream_count": 0,
+            "task_count": 0,
+            "reuse_coverage": 0.0,
+            "average_plasticity_gain": None,
+            "average_stability_gain": None,
+            "average_generalization_gain": None,
+            "interference_count": 0,
+            "thresholds": {
+                "min_plasticity_gain": float(min_plasticity_gain),
+                "min_stability_gain": float(min_stability_gain),
+                "min_generalization_gain": float(min_generalization_gain),
+                "min_reuse_coverage": float(min_reuse_coverage),
+                "max_interference_count": int(max_interference_count),
+                "require_heldout": bool(require_heldout),
+            },
+            "evidence_count": 0,
+            "warning_count": 0,
+            "regression_count": 0,
+            "missing": [],
+            "policy_hints": [],
+            "checks": [],
+            "errors": [],
+        }
+        items = self._load_gate_payloads(
+            transfer_reports or [],
+            transfer_report_paths or [],
+            report["errors"],
+            "task_stream_transfer_report",
+        )
+        report["transfer_report_count"] = len(items)
+        if not items:
+            report["missing"].append("task_stream_transfer_report")
+
+        plasticity_values = []
+        stability_values = []
+        generalization_values = []
+        policy_hints = set()
+        expected_tags = 0
+        hit_tags = 0
+        for source, payload in items:
+            check = self._task_stream_transfer_gate_check(source, payload, report["thresholds"])
+            report["checks"].append(check)
+            metrics = check.get("metrics", {})
+            report["stream_count"] += self._gate_int(metrics.get("stream_count"))
+            report["ready_stream_count"] += self._gate_int(metrics.get("ready_stream_count"))
+            report["task_count"] += self._gate_int(metrics.get("task_count"))
+            report["interference_count"] += self._gate_int(metrics.get("interference_count"))
+            expected_tags += self._gate_int(metrics.get("reuse_expected_tag_count"))
+            hit_tags += self._gate_int(metrics.get("reuse_hit_tag_count"))
+            for key, values in (
+                ("average_plasticity_gain", plasticity_values),
+                ("average_stability_gain", stability_values),
+                ("average_generalization_gain", generalization_values),
+            ):
+                value = self._gate_float_or_none(metrics.get(key))
+                if value is not None:
+                    values.append(value)
+            for hint in metrics.get("policy_hints", []):
+                if hint:
+                    policy_hints.add(str(hint))
+
+        report["reuse_coverage"] = round(hit_tags / expected_tags, 3) if expected_tags else 0.0
+        report["average_plasticity_gain"] = _average_optional(plasticity_values)
+        report["average_stability_gain"] = _average_optional(stability_values)
+        report["average_generalization_gain"] = _average_optional(generalization_values)
+        report["policy_hints"] = sorted(policy_hints)
+        report["evidence_count"] = sum(1 for check in report["checks"] if check.get("status") == "pass")
+        report["warning_count"] = sum(1 for check in report["checks"] if check.get("status") == "warn")
+        report["regression_count"] = sum(1 for check in report["checks"] if check.get("status") == "fail")
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "do_not_promote_candidate"
+            report["reason"] = "gate inputs could not be loaded"
+        elif report["regression_count"]:
+            report["readiness"] = "rejected"
+            report["decision"] = "do_not_promote_candidate"
+            report["reason"] = "controlled task streams show transfer, stability, held-out, or interference regression"
+        elif report["missing"] or report["warning_count"] or not report["evidence_count"]:
+            report["readiness"] = "review"
+            report["decision"] = "keep_candidate_review_only"
+            report["reason"] = "transfer evidence is incomplete or below promotion confidence"
+        else:
+            report["readiness"] = "approved"
+            report["decision"] = "allow_candidate_promotion"
+            report["reason"] = "controlled task streams show positive transfer without stability or held-out regressions"
+        return report
+
+    def _task_stream_transfer_gate_check(self, source: str, payload: dict, thresholds: dict) -> dict:
+        feedback = payload.get("task_stream_feedback", payload) if isinstance(payload, dict) else {}
+        if not isinstance(feedback, dict):
+            feedback = {}
+        errors = payload.get("errors", []) if isinstance(payload.get("errors", []), list) else []
+        policy_hints = []
+        for hint in feedback.get("policy_hints", []) if isinstance(feedback.get("policy_hints", []), list) else []:
+            if isinstance(hint, dict):
+                name = hint.get("task_stream_policy") or hint.get("policy")
+                if name:
+                    policy_hints.append(str(name))
+        metrics = {
+            "stream_count": self._gate_int(payload.get("stream_count", feedback.get("stream_count", 0))),
+            "ready_stream_count": self._gate_int(payload.get("ready_stream_count", feedback.get("ready_stream_count", 0))),
+            "task_count": self._gate_int(payload.get("task_count", feedback.get("task_count", 0))),
+            "reuse_expected_tag_count": self._gate_int(payload.get("reuse_expected_tag_count", feedback.get("reuse_expected_tag_count", 0))),
+            "reuse_hit_tag_count": self._gate_int(payload.get("reuse_hit_tag_count", feedback.get("reuse_hit_tag_count", 0))),
+            "reuse_coverage": self._gate_float_or_none(payload.get("reuse_coverage", feedback.get("reuse_coverage"))),
+            "average_plasticity_gain": self._gate_float_or_none(payload.get("average_plasticity_gain", feedback.get("average_plasticity_gain"))),
+            "average_stability_gain": self._gate_float_or_none(payload.get("average_stability_gain", feedback.get("average_stability_gain"))),
+            "average_generalization_gain": self._gate_float_or_none(payload.get("average_generalization_gain", feedback.get("average_generalization_gain"))),
+            "interference_count": self._gate_int(payload.get("interference_count", feedback.get("interference_count", 0))),
+            "policy_hints": self._dedupe_strings(policy_hints),
+        }
+        if errors:
+            return self._gate_check(source, "task_stream_transfer_report", "fail", "task-stream transfer report contains errors", metrics)
+        if metrics["stream_count"] <= 0 or metrics["task_count"] <= 0:
+            return self._gate_check(source, "task_stream_transfer_report", "warn", "no controlled task-stream evidence was found", metrics)
+        if metrics["ready_stream_count"] <= 0:
+            return self._gate_check(source, "task_stream_transfer_report", "warn", "no stream is ready for transfer review", metrics)
+        if metrics["interference_count"] > int(thresholds.get("max_interference_count", 0)):
+            return self._gate_check(source, "task_stream_transfer_report", "fail", "interference or regression cases exceed the allowed limit", metrics)
+
+        reuse_coverage = metrics["reuse_coverage"]
+        if reuse_coverage is None:
+            expected = metrics["reuse_expected_tag_count"]
+            reuse_coverage = round(metrics["reuse_hit_tag_count"] / expected, 3) if expected else 0.0
+            metrics["reuse_coverage"] = reuse_coverage
+        if reuse_coverage < float(thresholds.get("min_reuse_coverage", 0.5)):
+            return self._gate_check(source, "task_stream_transfer_report", "warn", "reuse evidence coverage is below the promotion threshold", metrics)
+
+        for key, threshold, label in (
+            ("average_plasticity_gain", thresholds.get("min_plasticity_gain", 0.01), "plasticity gain"),
+            ("average_stability_gain", thresholds.get("min_stability_gain", 0.0), "second-pass stability gain"),
+            ("average_generalization_gain", thresholds.get("min_generalization_gain", 0.0), "held-out generalization gain"),
+        ):
+            value = metrics.get(key)
+            if value is None:
+                if key == "average_generalization_gain" and not thresholds.get("require_heldout", True):
+                    continue
+                return self._gate_check(source, "task_stream_transfer_report", "warn", f"{label} evidence is missing", metrics)
+            if value < float(threshold):
+                return self._gate_check(source, "task_stream_transfer_report", "fail", f"{label} is below the promotion threshold", metrics)
+
+        return self._gate_check(source, "task_stream_transfer_report", "pass", "controlled transfer evidence passes promotion thresholds", metrics)
 
     def _task_stream_transfer_case(
         self,
@@ -7952,6 +8125,40 @@ class BenchmarkRunner:
                 if task.reuse_hit_tags:
                     print(f"          reuse hits: {', '.join(task.reuse_hit_tags[:8])}")
         for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_task_stream_transfer_gate_report(self, report: dict):
+        print("\nTask Stream Transfer Gate")
+        print(f"  target: {report.get('target', 'memory_or_skill_promotion')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  evidence: "
+            f"reports={report.get('transfer_report_count', 0)}, "
+            f"streams={report.get('ready_stream_count', 0)}/{report.get('stream_count', 0)}, "
+            f"tasks={report.get('task_count', 0)}, "
+            f"reuse_coverage={float(report.get('reuse_coverage') or 0.0):.2f}, "
+            f"interference={report.get('interference_count', 0)}"
+        )
+        print(
+            "  gains: "
+            f"plasticity={self._format_optional_score(report.get('average_plasticity_gain'))}, "
+            f"stability={self._format_optional_score(report.get('average_stability_gain'))}, "
+            f"generalization={self._format_optional_score(report.get('average_generalization_gain'))}"
+        )
+        print(
+            "  checks: "
+            f"pass={report.get('evidence_count', 0)}, "
+            f"warn={report.get('warning_count', 0)}, "
+            f"fail={report.get('regression_count', 0)}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for check in report.get("checks", []):
+            marker = "+" if check.get("status") == "pass" else "!" if check.get("status") == "warn" else "x"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
+        for error in report.get("errors", []):
             print(f"  error: {error}")
 
     def _format_counts(self, counts: dict, limit: int = 8) -> str:
