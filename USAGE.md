@@ -143,6 +143,7 @@ python -m singularity.main exploration-trace-report --session-log logs/session_x
 
 # Summarize canonical actions, backend mappings, and low-level control candidates
 python -m singularity.main action-abstraction-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/action_abstraction.json
+# The saved JSON includes `action_abstraction_feedback` policy hints for API-vs-visual-control selection.
 
 # M2 benchmarks (LLM planning)
 python -m singularity.main benchmark --suite m2

@@ -1174,6 +1174,28 @@ def test_action_abstraction_report_counts_backend_mapping_and_low_level_candidat
     assert case.lower_level_reasons["missing_precise_target"] == 1
     assert case.lower_level_reasons["visual_precision_action"] == 1
     assert any("lower-level control" in recommendation for recommendation in case.task_recommendations)
+
+    feedback = runner.action_abstraction_feedback(report)
+    assert feedback["lower_level_action_types"]["dig"] == 1
+    assert feedback["lower_level_action_types"]["place"] == 1
+    assert feedback["unknown_action_types"]["teleport"] == 1
+    hints = {hint["action_type"]: hint for hint in feedback["policy_hints"]}
+    assert hints["dig"]["preferred_control"] == "consider_low_level_visual_control"
+    assert hints["place"]["preferred_control"] == "consider_low_level_visual_control"
+    assert hints["move_to"]["preferred_control"] == "mineflayer_api_ok"
+    assert hints["teleport"]["preferred_control"] == "define_canonical_mapping"
+
+    class RecordingPolicy:
+        def __init__(self):
+            self.feedback = None
+
+        def record_action_abstraction_feedback(self, recorded_feedback):
+            self.feedback = recorded_feedback
+
+    policy = RecordingPolicy()
+    applied = runner.apply_action_abstraction_feedback(report, policy)
+    assert applied == feedback
+    assert policy.feedback == feedback
     print("PASS: Action abstraction report counts backend mapping and low-level candidates")
 
 

@@ -851,6 +851,7 @@ def main():
         runner = BenchmarkRunner(Config())
         report = runner.run_action_abstraction_report_from_logs(session_logs)
         runner.print_action_abstraction_report(report)
+        action_abstraction_feedback = runner.action_abstraction_feedback(report)
         if getattr(args, "output", ""):
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump({
@@ -861,6 +862,7 @@ def main():
                     "failed_mapping_count": report.failed_mapping_count,
                     "desktop_planned_count": report.desktop_planned_count,
                     "low_level_candidate_count": report.low_level_candidate_count,
+                    "action_abstraction_feedback": action_abstraction_feedback,
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)

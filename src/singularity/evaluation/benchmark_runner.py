@@ -611,6 +611,7 @@ class ActionAbstractionTraceCase:
     mineflayer_command_counts: dict = field(default_factory=dict)
     desktop_command_counts: dict = field(default_factory=dict)
     lower_level_reasons: dict = field(default_factory=dict)
+    lower_level_action_types: dict = field(default_factory=dict)
     task_recommendations: list[str] = field(default_factory=list)
 
 
@@ -1884,6 +1885,66 @@ class BenchmarkRunner:
                 report.errors.append(f"{path}: {e}")
         return report
 
+    def action_abstraction_feedback(self, report: ActionAbstractionTraceReport) -> dict:
+        """Aggregate action traces into backend/granularity policy hints."""
+        canonical_counts = {}
+        backend_command_counts = {}
+        lower_level_reasons = {}
+        lower_level_action_types = {}
+        unknown_actions = {}
+        canonical_known = ActionMapper.CANONICAL_ACTIONS
+        for case in report.cases:
+            self._merge_counts(canonical_counts, case.canonical_action_types)
+            self._merge_counts(backend_command_counts, case.result_backend_command_counts)
+            self._merge_counts(lower_level_reasons, case.lower_level_reasons)
+            self._merge_counts(lower_level_action_types, case.lower_level_action_types)
+            for action_type, count in case.canonical_action_types.items():
+                if action_type not in canonical_known:
+                    unknown_actions[action_type] = unknown_actions.get(action_type, 0) + int(count or 0)
+
+        policy_hints = []
+        for action_type, count in sorted(canonical_counts.items()):
+            low_level_count = int(lower_level_action_types.get(action_type, 0) or 0)
+            unknown_count = int(unknown_actions.get(action_type, 0) or 0)
+            if unknown_count:
+                preference = "define_canonical_mapping"
+                reason = "unknown_canonical_action"
+            elif low_level_count:
+                preference = "consider_low_level_visual_control"
+                reason = "visual_or_precision_sensitive"
+            else:
+                preference = "mineflayer_api_ok"
+                reason = "no_low_level_signal"
+            policy_hints.append({
+                "action_type": action_type,
+                "count": int(count or 0),
+                "preferred_control": preference,
+                "reason": reason,
+                "low_level_candidate_count": low_level_count,
+                "unknown_count": unknown_count,
+            })
+
+        return {
+            "action_count": report.action_count,
+            "failed_action_count": report.failed_action_count,
+            "unknown_canonical_count": report.unknown_canonical_count,
+            "failed_mapping_count": report.failed_mapping_count,
+            "low_level_candidate_count": report.low_level_candidate_count,
+            "canonical_action_types": canonical_counts,
+            "backend_command_counts": backend_command_counts,
+            "lower_level_reasons": lower_level_reasons,
+            "lower_level_action_types": lower_level_action_types,
+            "unknown_action_types": unknown_actions,
+            "policy_hints": policy_hints,
+        }
+
+    def apply_action_abstraction_feedback(self, report: ActionAbstractionTraceReport, action_policy) -> dict:
+        """Apply action-abstraction feedback to a policy-like object when supported."""
+        feedback = self.action_abstraction_feedback(report)
+        if hasattr(action_policy, "record_action_abstraction_feedback"):
+            action_policy.record_action_abstraction_feedback(feedback)
+        return feedback
+
     def run_visual_review_pipeline(
         self,
         session_log_paths: list[str],
@@ -2238,6 +2299,7 @@ class BenchmarkRunner:
         mineflayer_counts = {}
         desktop_counts = {}
         lower_level_reasons = {}
+        lower_level_action_types = {}
         recommendations = []
         failed_actions = 0
         unknown_canonical = 0
@@ -2272,6 +2334,7 @@ class BenchmarkRunner:
             if reason:
                 low_level_candidates += 1
                 lower_level_reasons[reason] = lower_level_reasons.get(reason, 0) + 1
+                lower_level_action_types[action_type] = lower_level_action_types.get(action_type, 0) + 1
                 recommendations.append(self._action_abstraction_recommendation(index, current_goal, action_type, reason))
 
         return ActionAbstractionTraceCase(
@@ -2288,6 +2351,7 @@ class BenchmarkRunner:
             mineflayer_command_counts=mineflayer_counts,
             desktop_command_counts=desktop_counts,
             lower_level_reasons=lower_level_reasons,
+            lower_level_action_types=lower_level_action_types,
             task_recommendations=recommendations[:12],
         )
 
@@ -4057,6 +4121,13 @@ class BenchmarkRunner:
         print(f"  failed mappings: {report.failed_mapping_count}")
         print(f"  desktop planned mappings: {report.desktop_planned_count}")
         print(f"  low-level control candidates: {report.low_level_candidate_count}")
+        feedback = self.action_abstraction_feedback(report)
+        if feedback["policy_hints"]:
+            hints = [
+                f"{hint['action_type']}->{hint['preferred_control']}"
+                for hint in feedback["policy_hints"][:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
         for case in report.cases:
             marker = "!" if case.failed_mapping_count else "+"
             print(f"  [{marker}] {case.source_log}")
@@ -4080,6 +4151,10 @@ class BenchmarkRunner:
     def _format_counts(self, counts: dict, limit: int = 8) -> str:
         items = sorted(counts.items(), key=lambda item: (-int(item[1]), str(item[0])))
         return ", ".join(f"{key}={value}" for key, value in items[:limit])
+
+    def _merge_counts(self, target: dict, source: dict):
+        for key, value in (source or {}).items():
+            target[str(key)] = target.get(str(key), 0) + int(value or 0)
 
     def print_review_label_validation_report(self, report: ReviewLabelValidationReport):
         print("\nReview Label Validation")
