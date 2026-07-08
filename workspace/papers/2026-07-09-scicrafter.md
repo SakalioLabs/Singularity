@@ -16,6 +16,7 @@
   - Gate new redstone/building skills on successful held-out application, not just one solved instance.
 **Singularity Adaptation**:
   - Extend `TaskSystem` with experiment subtasks that produce causal notes before construction subtasks unlock.
+  - `discovery-application-report` now audits session logs for hypothesis, experiment, causal consolidation, and held-out application evidence.
   - Reuse mixed-policy gates for experiment-derived skills: no runtime default unless discovery, consolidation, and application evidence all pass.
   - Add future M8-style redstone diagnostics once M1/M2/M7 runtime stability is stronger.
 **Next Action**: Draft a tiny redstone-light benchmark spec with hypothesis, experiment, and application phases.

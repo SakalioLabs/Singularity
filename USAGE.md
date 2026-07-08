@@ -147,6 +147,10 @@ python -m singularity.main memory-policy-report --session-log logs/session_xxx.j
 python -m singularity.main exploration-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/exploration_trace.json
 # The saved JSON includes `curriculum_feedback`, which can be applied to CurriculumManager for candidate reranking.
 
+# Summarize SciCrafter-style discovery-to-application evidence from session logs
+python -m singularity.main discovery-application-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/discovery_application.json
+# The saved JSON includes `discovery_feedback` for experiment-derived memory, task, and skill gates.
+
 # Summarize canonical actions, backend mappings, and low-level control candidates
 python -m singularity.main action-abstraction-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/action_abstraction.json
 # The saved JSON includes `action_abstraction_feedback` policy hints for API-vs-visual-control selection.

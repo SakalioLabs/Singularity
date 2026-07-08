@@ -1118,6 +1118,101 @@ def test_exploration_trace_report_counts_open_world_coverage():
     print("PASS: Exploration trace report counts open-world coverage")
 
 
+def test_discovery_application_report_tracks_hypothesis_to_application_loop():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_discovery_application.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Discover whether a lever powers redstone dust, then build a two-lamp circuit"}},
+        {
+            "type": "discovery_hypothesis",
+            "data": {
+                "knowledge_gap": "Need to know whether one lever powers adjacent dust.",
+                "hypothesis": "If a lever powers redstone dust, both connected lamps should turn on.",
+            },
+        },
+        {
+            "type": "discovery_experiment",
+            "data": {
+                "experiment": "Place lever, redstone dust, and lamp in a short line.",
+                "success": True,
+                "observation": "The lamp turns on when the lever is used.",
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "place", "parameters": {"item": "redstone_dust", "x": 1, "y": 64, "z": 1}},
+                "result": {"success": True, "backend": "mineflayer", "message": "redstone experiment trial succeeded"},
+            },
+        },
+        {
+            "type": "memory_write",
+            "data": {
+                "layer": "causal",
+                "memory_type": "causal_rule",
+                "content": "If a lever powers redstone dust, connected lamps receive power.",
+                "source": "discovery_experiment",
+            },
+        },
+        {
+            "type": "discovery_consolidation",
+            "data": {
+                "rule": "Lever power propagates through adjacent redstone dust into lamps.",
+            },
+        },
+        {
+            "type": "discovery_application",
+            "data": {
+                "goal": "Build a two-lamp circuit using the discovered lever rule.",
+                "success": True,
+            },
+        },
+        {"type": "goal_end", "data": {"goal": "Build a two-lamp circuit", "result": {"completed": True}}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_discovery_application_report_from_logs([session_path])
+    case = report.cases[0]
+
+    assert report.log_count == 1
+    assert report.ready_log_count == 1
+    assert report.hypothesis_count == 1
+    assert report.experiment_count == 1
+    assert report.experiment_action_count == 1
+    assert report.causal_memory_write_count == 1
+    assert report.application_count == 2
+    assert report.successful_application_count == 2
+    assert report.complete_loop_count >= 1
+    assert case.phase_counts["knowledge_gap_identification"] == 1
+    assert case.phase_counts["experimental_discovery"] == 2
+    assert case.phase_counts["knowledge_consolidation"] >= 2
+    assert case.phase_counts["knowledge_application"] == 2
+    assert "Need to know whether one lever powers adjacent dust." in case.knowledge_gap_candidates
+    assert any("connected lamps receive power" in rule for rule in case.causal_rule_candidates)
+    feedback = runner.discovery_application_feedback(report)
+    assert feedback["ready_for_skill_gate"] is True
+    assert feedback["complete_loop_count"] >= 1
+    assert not feedback["recommendations"]
+
+    ordinary_path = os.path.join(tmpdir, "session_ordinary_goal.jsonl")
+    ordinary_events = [
+        {"type": "goal_start", "data": {"goal": "Gather 3 oak logs"}},
+        {"type": "observation", "data": {"inventory": {"oak_log": 3}}},
+        {"type": "goal_end", "data": {"goal": "Gather 3 oak logs", "result": {"completed": True}}},
+    ]
+    with open(ordinary_path, "w", encoding="utf-8") as f:
+        for event in ordinary_events:
+            f.write(json.dumps(event) + "\n")
+    ordinary_report = runner.run_discovery_application_report_from_logs([ordinary_path])
+    assert ordinary_report.ready_log_count == 0
+    assert ordinary_report.complete_loop_count == 0
+    assert runner.discovery_application_feedback(ordinary_report)["ready_for_skill_gate"] is False
+    print("PASS: Discovery application report tracks hypothesis-to-application loop")
+
+
 def test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_action_abstraction.jsonl")
@@ -1834,6 +1929,7 @@ if __name__ == "__main__":
     test_visual_trace_report_counts_visual_coverage()
     test_visual_trace_report_validates_screenshot_files()
     test_exploration_trace_report_counts_open_world_coverage()
+    test_discovery_application_report_tracks_hypothesis_to_application_loop()
     test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates()
     test_memory_policy_report_counts_write_read_manage_gaps_and_feedback()
     test_ingest_queues_repeated_causal_summary_candidate()

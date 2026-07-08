@@ -644,6 +644,95 @@ class ExplorationTraceReport:
 
 
 @dataclass
+class DiscoveryApplicationTraceCase:
+    source_log: str
+    event_count: int = 0
+    goal_count: int = 0
+    completed_goal_count: int = 0
+    failed_goal_count: int = 0
+    hypothesis_count: int = 0
+    experiment_count: int = 0
+    consolidation_count: int = 0
+    application_count: int = 0
+    successful_application_count: int = 0
+    failed_application_count: int = 0
+    experiment_action_count: int = 0
+    failed_experiment_action_count: int = 0
+    memory_write_count: int = 0
+    causal_memory_write_count: int = 0
+    discovery_loop_count: int = 0
+    complete_loop_count: int = 0
+    phase_counts: dict = field(default_factory=dict)
+    causal_rule_candidates: list[str] = field(default_factory=list)
+    knowledge_gap_candidates: list[str] = field(default_factory=list)
+    application_goals: list[str] = field(default_factory=list)
+    recommendations: list[str] = field(default_factory=list)
+    ready_for_discovery_review: bool = False
+
+
+@dataclass
+class DiscoveryApplicationTraceReport:
+    cases: list[DiscoveryApplicationTraceCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_log_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_discovery_review)
+
+    @property
+    def goal_count(self) -> int:
+        return sum(case.goal_count for case in self.cases)
+
+    @property
+    def completed_goal_count(self) -> int:
+        return sum(case.completed_goal_count for case in self.cases)
+
+    @property
+    def hypothesis_count(self) -> int:
+        return sum(case.hypothesis_count for case in self.cases)
+
+    @property
+    def experiment_count(self) -> int:
+        return sum(case.experiment_count for case in self.cases)
+
+    @property
+    def consolidation_count(self) -> int:
+        return sum(case.consolidation_count for case in self.cases)
+
+    @property
+    def application_count(self) -> int:
+        return sum(case.application_count for case in self.cases)
+
+    @property
+    def successful_application_count(self) -> int:
+        return sum(case.successful_application_count for case in self.cases)
+
+    @property
+    def failed_application_count(self) -> int:
+        return sum(case.failed_application_count for case in self.cases)
+
+    @property
+    def experiment_action_count(self) -> int:
+        return sum(case.experiment_action_count for case in self.cases)
+
+    @property
+    def failed_experiment_action_count(self) -> int:
+        return sum(case.failed_experiment_action_count for case in self.cases)
+
+    @property
+    def causal_memory_write_count(self) -> int:
+        return sum(case.causal_memory_write_count for case in self.cases)
+
+    @property
+    def complete_loop_count(self) -> int:
+        return sum(case.complete_loop_count for case in self.cases)
+
+
+@dataclass
 class ActionAbstractionTraceCase:
     source_log: str
     action_count: int = 0
@@ -2126,6 +2215,54 @@ class BenchmarkRunner:
             curriculum_manager.record_exploration_feedback(feedback)
         return feedback
 
+    def run_discovery_application_report_from_logs(self, session_log_paths: list[str]) -> DiscoveryApplicationTraceReport:
+        """Summarize SciCrafter-style discovery-to-application evidence in session logs."""
+        report = DiscoveryApplicationTraceReport()
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                report.cases.append(self._discovery_application_trace_case(path, events))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
+    def discovery_application_feedback(self, report: DiscoveryApplicationTraceReport) -> dict:
+        """Aggregate discovery traces into task/skill promotion feedback."""
+        phase_counts = {}
+        causal_rules = set()
+        knowledge_gaps = set()
+        recommendations = []
+        for case in report.cases:
+            for phase, count in case.phase_counts.items():
+                phase_counts[phase] = phase_counts.get(phase, 0) + int(count or 0)
+            causal_rules.update(case.causal_rule_candidates)
+            knowledge_gaps.update(case.knowledge_gap_candidates)
+            recommendations.extend(case.recommendations)
+        unique_recommendations = self._dedupe_strings(recommendations)
+        return {
+            "log_count": report.log_count,
+            "ready_log_count": report.ready_log_count,
+            "phase_counts": phase_counts,
+            "complete_loop_count": report.complete_loop_count,
+            "hypothesis_count": report.hypothesis_count,
+            "experiment_count": report.experiment_count,
+            "consolidation_count": report.consolidation_count,
+            "application_count": report.application_count,
+            "successful_application_count": report.successful_application_count,
+            "failed_application_count": report.failed_application_count,
+            "experiment_action_count": report.experiment_action_count,
+            "failed_experiment_action_count": report.failed_experiment_action_count,
+            "causal_memory_write_count": report.causal_memory_write_count,
+            "causal_rule_candidates": sorted(causal_rules)[:20],
+            "knowledge_gap_candidates": sorted(knowledge_gaps)[:20],
+            "recommendations": unique_recommendations[:20],
+            "ready_for_skill_gate": bool(
+                report.complete_loop_count > 0
+                and report.successful_application_count > 0
+                and report.causal_memory_write_count > 0
+            ),
+        }
+
     def run_action_abstraction_report_from_logs(self, session_log_paths: list[str]) -> ActionAbstractionTraceReport:
         """Summarize canonical actions, backend mappings, and cross-level control needs."""
         report = ActionAbstractionTraceReport()
@@ -2625,6 +2762,231 @@ class BenchmarkRunner:
             action_failure_categories=failure_categories,
             ready_for_exploration_review=ready,
         )
+
+    def _discovery_application_trace_case(self, source_log: str, events: list[dict]) -> DiscoveryApplicationTraceCase:
+        goal_segments = self._session_goal_segments(events)
+        goal_end_events = [
+            event for event in events
+            if event.get("type") == "goal_end" and isinstance(event.get("data", {}), dict)
+        ]
+        action_events = [
+            event.get("data", {})
+            for event in events
+            if event.get("type") == "action" and isinstance(event.get("data", {}), dict)
+        ]
+        memory_write_events = [
+            event.get("data", {})
+            for event in events
+            if event.get("type") == "memory_write" and isinstance(event.get("data", {}), dict)
+        ]
+
+        hypothesis_count = 0
+        experiment_count = 0
+        consolidation_count = 0
+        application_count = 0
+        successful_applications = 0
+        failed_applications = 0
+        experiment_actions = 0
+        failed_experiment_actions = 0
+        causal_memory_writes = 0
+        causal_rules = []
+        knowledge_gaps = []
+        application_goals = []
+
+        for event in events:
+            event_type = str(event.get("type") or "").lower()
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            text = self._compact_event_text(data)
+            if event_type in {"discovery_hypothesis", "hypothesis", "knowledge_gap"}:
+                hypothesis_count += 1
+                knowledge_gaps.extend(self._discovery_text_values(data, ["knowledge_gap", "gap", "question", "hypothesis", "goal"]))
+            elif event_type in {"discovery_experiment", "experiment"}:
+                experiment_count += 1
+                if self._event_success(data) is False:
+                    failed_experiment_actions += 1
+            elif event_type in {"discovery_consolidation", "causal_rule", "knowledge_consolidation"}:
+                consolidation_count += 1
+                causal_rules.extend(self._discovery_text_values(data, ["rule", "causal_rule", "finding", "lesson", "content"]))
+            elif event_type in {"discovery_application", "knowledge_application"}:
+                application_count += 1
+                application_goals.extend(self._discovery_text_values(data, ["goal", "task", "application"]))
+                success = self._event_success(data)
+                if success is True:
+                    successful_applications += 1
+                elif success is False:
+                    failed_applications += 1
+
+            if event_type in {"plan", "reflection"} and self._looks_like_discovery_hypothesis(text):
+                hypothesis_count += 1
+                knowledge_gaps.append(self._short_text(text))
+
+        for action_data in action_events:
+            action = action_data.get("action", {}) if isinstance(action_data.get("action", {}), dict) else {}
+            result = action_data.get("result", {}) if isinstance(action_data.get("result", {}), dict) else {}
+            action_text = self._compact_event_text({"action": action, "result": result})
+            if self._looks_like_discovery_experiment(action_text):
+                experiment_actions += 1
+                if result.get("success") is False:
+                    failed_experiment_actions += 1
+
+        for memory_data in memory_write_events:
+            memory_text = self._compact_event_text(memory_data)
+            if self._looks_like_discovery_consolidation(memory_data, memory_text):
+                consolidation_count += 1
+                if self._looks_like_causal_memory_write(memory_data, memory_text):
+                    causal_memory_writes += 1
+                causal_rules.extend(self._discovery_text_values(memory_data, ["content", "summary", "rule", "causal_rule"]))
+
+        completed_goals = 0
+        failed_goals = 0
+        for event in goal_end_events:
+            data = event.get("data", {})
+            result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+            goal = str(data.get("goal") or "")
+            completed = result.get("completed", result.get("success"))
+            if completed is True:
+                completed_goals += 1
+                if self._looks_like_discovery_application(goal):
+                    application_count += 1
+                    successful_applications += 1
+                    application_goals.append(goal)
+            elif completed is False:
+                failed_goals += 1
+                if self._looks_like_discovery_application(goal):
+                    application_count += 1
+                    failed_applications += 1
+                    application_goals.append(goal)
+
+        phase_counts = {
+            "knowledge_gap_identification": hypothesis_count,
+            "experimental_discovery": experiment_count + experiment_actions,
+            "knowledge_consolidation": consolidation_count,
+            "knowledge_application": application_count,
+        }
+        complete_loop_count = min(phase_counts.values()) if phase_counts else 0
+        recommendations = self._discovery_application_recommendations(
+            phase_counts,
+            successful_applications,
+            causal_memory_writes,
+            failed_experiment_actions,
+        )
+        session_goal = self._session_goal(events)
+        ready = bool(
+            sum(phase_counts.values()) > 0
+            or causal_memory_writes
+            or self._looks_like_discovery_hypothesis(session_goal.lower())
+            or self._looks_like_discovery_application(session_goal)
+        )
+        return DiscoveryApplicationTraceCase(
+            source_log=source_log,
+            event_count=len(events),
+            goal_count=len(goal_segments),
+            completed_goal_count=completed_goals,
+            failed_goal_count=failed_goals,
+            hypothesis_count=hypothesis_count,
+            experiment_count=experiment_count,
+            consolidation_count=consolidation_count,
+            application_count=application_count,
+            successful_application_count=successful_applications,
+            failed_application_count=failed_applications,
+            experiment_action_count=experiment_actions,
+            failed_experiment_action_count=failed_experiment_actions,
+            memory_write_count=len(memory_write_events),
+            causal_memory_write_count=causal_memory_writes,
+            discovery_loop_count=sum(1 for count in phase_counts.values() if count > 0),
+            complete_loop_count=complete_loop_count,
+            phase_counts=phase_counts,
+            causal_rule_candidates=self._dedupe_strings(causal_rules)[:12],
+            knowledge_gap_candidates=self._dedupe_strings(knowledge_gaps)[:12],
+            application_goals=self._dedupe_strings(application_goals)[:12],
+            recommendations=recommendations,
+            ready_for_discovery_review=ready,
+        )
+
+    def _discovery_application_recommendations(
+        self,
+        phase_counts: dict,
+        successful_applications: int,
+        causal_memory_writes: int,
+        failed_experiment_actions: int,
+    ) -> list[str]:
+        recommendations = []
+        if phase_counts.get("knowledge_gap_identification", 0) <= 0:
+            recommendations.append("record_explicit_knowledge_gap_or_hypothesis")
+        if phase_counts.get("experimental_discovery", 0) <= 0:
+            recommendations.append("run_small_controlled_minecraft_experiment")
+        if phase_counts.get("knowledge_consolidation", 0) <= 0 or causal_memory_writes <= 0:
+            recommendations.append("write_causal_rule_with_provenance_before_skill_promotion")
+        if phase_counts.get("knowledge_application", 0) <= 0:
+            recommendations.append("test_discovered_rule_on_held_out_application_goal")
+        elif successful_applications <= 0:
+            recommendations.append("repeat_application_until_discovered_rule_succeeds")
+        if failed_experiment_actions > 0:
+            recommendations.append("review_failed_experiment_actions_before_consolidation")
+        return recommendations
+
+    def _discovery_text_values(self, record: dict, keys: list[str]) -> list[str]:
+        values = []
+        for key in keys:
+            value = record.get(key) if isinstance(record, dict) else None
+            if isinstance(value, str) and value.strip():
+                values.append(value.strip())
+        return values
+
+    def _event_success(self, record: dict):
+        if not isinstance(record, dict):
+            return None
+        for key in ("success", "completed", "passed", "ok"):
+            if isinstance(record.get(key), bool):
+                return record.get(key)
+        result = record.get("result")
+        if isinstance(result, dict):
+            return self._event_success(result)
+        return None
+
+    def _compact_event_text(self, value) -> str:
+        parts = []
+
+        def collect(item):
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                for key, nested in item.items():
+                    if isinstance(key, str):
+                        parts.append(key)
+                    collect(nested)
+            elif isinstance(item, list):
+                for nested in item:
+                    collect(nested)
+
+        collect(value)
+        return " ".join(parts).lower()
+
+    def _short_text(self, text: str, limit: int = 180) -> str:
+        compact = " ".join(str(text or "").split())
+        return compact[:limit]
+
+    def _looks_like_discovery_hypothesis(self, text: str) -> bool:
+        return any(token in text for token in ("hypothesis", "knowledge gap", "test whether", "if ", "whether", "why "))
+
+    def _looks_like_discovery_experiment(self, text: str) -> bool:
+        return any(token in text for token in ("experiment", "trial", "test", "probe", "redstone", "circuit", "lever", "lamp"))
+
+    def _looks_like_discovery_consolidation(self, record: dict, text: str) -> bool:
+        layer = str(record.get("layer", "")).lower() if isinstance(record, dict) else ""
+        memory_type = str(record.get("memory_type", "")).lower() if isinstance(record, dict) else ""
+        if layer in {"semantic", "causal"} or "causal" in memory_type or "rule" in memory_type:
+            return True
+        return any(token in text for token in ("causal rule", "lesson", "therefore", "because", "if ", "then "))
+
+    def _looks_like_causal_memory_write(self, record: dict, text: str) -> bool:
+        layer = str(record.get("layer", "")).lower() if isinstance(record, dict) else ""
+        memory_type = str(record.get("memory_type", "")).lower() if isinstance(record, dict) else ""
+        return layer == "causal" or "causal" in memory_type or any(token in text for token in ("causal rule", "because", "if ", "then "))
+
+    def _looks_like_discovery_application(self, goal: str) -> bool:
+        text = str(goal or "").lower()
+        return any(token in text for token in ("apply", "application", "build", "construct", "redstone", "circuit", "lamp"))
 
     def _action_abstraction_trace_case(
         self,
@@ -4704,6 +5066,55 @@ class BenchmarkRunner:
                     f"      multi-hop goals={case.multi_hop_goal_count}, "
                     f"multi-step plans={case.multi_step_plan_count}"
                 )
+        for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_discovery_application_report(self, report: DiscoveryApplicationTraceReport):
+        total = report.log_count
+        print("\nDiscovery-to-Application Trace")
+        print(f"  logs ready for discovery review: {report.ready_log_count}/{total}")
+        print(
+            "  phases: "
+            f"hypotheses={report.hypothesis_count}, "
+            f"experiments={report.experiment_count + report.experiment_action_count}, "
+            f"consolidations={report.consolidation_count}, "
+            f"applications={report.application_count}"
+        )
+        print(
+            "  applications: "
+            f"success={report.successful_application_count}, "
+            f"failed={report.failed_application_count}"
+        )
+        print(
+            "  experiment actions: "
+            f"total={report.experiment_action_count}, "
+            f"failed={report.failed_experiment_action_count}"
+        )
+        print(f"  causal memory writes: {report.causal_memory_write_count}")
+        print(f"  complete discovery loops: {report.complete_loop_count}")
+        feedback = self.discovery_application_feedback(report)
+        if feedback["recommendations"]:
+            print(f"  feedback: {', '.join(feedback['recommendations'][:6])}")
+        print(f"  ready for skill gate: {'yes' if feedback['ready_for_skill_gate'] else 'no'}")
+        for case in report.cases:
+            marker = "+" if case.complete_loop_count else "!"
+            print(f"  [{marker}] {case.source_log}")
+            print(
+                f"      phases={self._format_counts(case.phase_counts)}, "
+                f"complete_loops={case.complete_loop_count}"
+            )
+            print(
+                f"      goals={case.completed_goal_count}/{case.goal_count} completed, "
+                f"applications={case.successful_application_count}/{case.application_count} succeeded"
+            )
+            if case.knowledge_gap_candidates:
+                print(f"      gaps: {'; '.join(case.knowledge_gap_candidates[:3])}")
+            if case.causal_rule_candidates:
+                print(f"      causal rules: {'; '.join(case.causal_rule_candidates[:3])}")
+            if case.application_goals:
+                print(f"      applications: {'; '.join(case.application_goals[:3])}")
+            if case.recommendations:
+                print(f"      recommendations: {', '.join(case.recommendations[:4])}")
         for error in report.errors:
             print(f"  error: {error}")
 

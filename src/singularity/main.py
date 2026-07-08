@@ -287,6 +287,12 @@ def main():
     exploration_trace_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     exploration_trace_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline discovery-to-application trace report
+    discovery_parser = subparsers.add_parser("discovery-application-report", help="Report SciCrafter-style discovery-to-application evidence in session logs")
+    discovery_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    discovery_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    discovery_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline action abstraction report
     action_abstraction_parser = subparsers.add_parser("action-abstraction-report", help="Report canonical actions and backend mapping coverage in session logs")
     action_abstraction_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -1166,6 +1172,42 @@ def main():
                     "unique_entity_type_count": report.unique_entity_type_count,
                     "unique_resource_type_count": report.unique_resource_type_count,
                     "curriculum_feedback": curriculum_feedback,
+                    "errors": report.errors,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "discovery-application-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("discovery-application-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_discovery_application_report_from_logs(session_logs)
+        runner.print_discovery_application_report(report)
+        discovery_feedback = runner.discovery_application_feedback(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "log_count": report.log_count,
+                    "ready_log_count": report.ready_log_count,
+                    "goal_count": report.goal_count,
+                    "completed_goal_count": report.completed_goal_count,
+                    "hypothesis_count": report.hypothesis_count,
+                    "experiment_count": report.experiment_count,
+                    "consolidation_count": report.consolidation_count,
+                    "application_count": report.application_count,
+                    "successful_application_count": report.successful_application_count,
+                    "failed_application_count": report.failed_application_count,
+                    "experiment_action_count": report.experiment_action_count,
+                    "failed_experiment_action_count": report.failed_experiment_action_count,
+                    "causal_memory_write_count": report.causal_memory_write_count,
+                    "complete_loop_count": report.complete_loop_count,
+                    "discovery_feedback": discovery_feedback,
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
