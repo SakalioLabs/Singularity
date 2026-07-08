@@ -700,6 +700,35 @@ class CollaborationBenchmarkRunner:
             "total_elapsed_s_delta": round(collaboration.total_elapsed_s - baseline.total_elapsed_s, 3),
         }
 
+    def compare_mixed_policy_execution_reports(
+        self,
+        baseline: CollaborationExecutionReport,
+        patched: CollaborationExecutionReport,
+    ) -> dict:
+        return {
+            "type": "collaboration_mixed_policy_ablation_comparison",
+            "baseline_spec_id": baseline.spec_id,
+            "patched_spec_id": patched.spec_id,
+            "baseline_ok": baseline.ok,
+            "patched_ok": patched.ok,
+            "ok_delta": int(patched.ok) - int(baseline.ok),
+            "completed_tasks_delta": patched.completed_tasks - baseline.completed_tasks,
+            "failed_tasks_delta": patched.failed_tasks - baseline.failed_tasks,
+            "skipped_tasks_delta": patched.skipped_tasks - baseline.skipped_tasks,
+            "deadline_misses_delta": patched.deadline_misses - baseline.deadline_misses,
+            "total_elapsed_s_delta": round(patched.total_elapsed_s - baseline.total_elapsed_s, 3),
+            "shared_state_changed": baseline.shared_state != patched.shared_state,
+            "task_status_changed": [
+                {
+                    "task_id": base.source_task_id,
+                    "baseline_status": base.status,
+                    "patched_status": other.status,
+                }
+                for base, other in self._paired_task_results(baseline, patched)
+                if base.status != other.status
+            ],
+        }
+
     def compare_schedule_reports(
         self,
         collaboration: CollaborationScheduleReport,
@@ -719,6 +748,22 @@ class CollaborationBenchmarkRunner:
             "collaboration_role_busy_s": collaboration.role_busy_s,
             "baseline_role_busy_s": baseline.role_busy_s,
         }
+
+    def _paired_task_results(
+        self,
+        baseline: CollaborationExecutionReport,
+        patched: CollaborationExecutionReport,
+    ) -> list[tuple[CollaborationTaskExecution, CollaborationTaskExecution]]:
+        patched_by_task = {
+            item.source_task_id: item
+            for item in patched.task_results
+            if item.source_task_id
+        }
+        return [
+            (item, patched_by_task[item.source_task_id])
+            for item in baseline.task_results
+            if item.source_task_id in patched_by_task
+        ]
 
     def compare_schedule_to_execution(
         self,

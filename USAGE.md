@@ -307,6 +307,8 @@ python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_
 python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --execute --executor agent --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --role-bridge-port single_agent=3002 --single-agent-baseline --output logs/benchmarks/bm701_collab_report.json
 # Load approved mixed-initiative policy patches into every Agent executor role.
 python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --execute --executor agent --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --output logs/benchmarks/bm701_mixed_policy_report.json
+# Compare Agent-backed collaboration once without and once with the approved patch.
+python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --execute --executor agent --mixed-policy-ablation --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --output logs/benchmarks/bm701_mixed_policy_ablation.json
 
 # Use a custom shared-state file
 python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --state-path workspace/multiagent/bm701_state.json

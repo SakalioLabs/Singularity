@@ -195,6 +195,7 @@ def main():
     collab_parser.add_argument("--execute", action="store_true", help="Run the synchronous state-transition executor after assignment")
     collab_parser.add_argument("--executor", type=str, default="simulated", choices=["simulated", "agent"], help="Task executor for --execute")
     collab_parser.add_argument("--max-steps", type=int, default=0, help="Maximum dispatch steps for --execute")
+    collab_parser.add_argument("--mixed-policy-ablation", action="store_true", help="Run Agent-backed collaboration once without and once with approved mixed-policy patches")
     collab_parser.add_argument("--host", type=str, default="localhost")
     collab_parser.add_argument("--port", type=int, default=25565)
     collab_parser.add_argument("--username", type=str, default="Singularity")
@@ -642,8 +643,22 @@ def main():
         task_executor = None
         output_path = getattr(args, "output", "")
         run_baseline = getattr(args, "single_agent_baseline", False)
+        run_mixed_policy_ablation = getattr(args, "mixed_policy_ablation", False)
         baseline_role_id = getattr(args, "baseline_role_id", "single_agent") or "single_agent"
         baseline_state_path = getattr(args, "baseline_state_path", "") or ""
+        if run_mixed_policy_ablation:
+            if executor_mode != "agent":
+                print("collab-benchmark --mixed-policy-ablation requires --executor agent")
+                sys.exit(1)
+            if not getattr(args, "execute", False):
+                print("collab-benchmark --mixed-policy-ablation requires --execute")
+                sys.exit(1)
+            if run_baseline:
+                print("collab-benchmark --mixed-policy-ablation cannot be combined with --single-agent-baseline")
+                sys.exit(1)
+            if not (getattr(args, "mixed_policy_patch", []) or []):
+                print("collab-benchmark --mixed-policy-ablation requires at least one --mixed-policy-patch")
+                sys.exit(1)
         if run_baseline and not (getattr(args, "preflight", False) or getattr(args, "execute", False)):
             print("collab-benchmark --single-agent-baseline requires --preflight or --execute")
             sys.exit(1)
@@ -706,32 +721,122 @@ def main():
                     sys.exit(1)
                 role_bridge_ports[role_id] = port
 
-            task_executor = AgentCollaborationExecutor(Config(
-                bot=BotConfig(
-                    host=getattr(args, "host", "localhost"),
-                    port=getattr(args, "port", 25565),
-                    username=getattr(args, "username", "Singularity"),
-                    bridge_host=getattr(args, "bridge_host", "127.0.0.1"),
-                    bridge_port=getattr(args, "bridge_port", 3000),
-                ),
-                llm=LLMConfig(
-                    provider=getattr(args, "llm_provider", "openai"),
-                    model=getattr(args, "llm_model", "gpt-4o-mini"),
-                    api_key=(
-                        getattr(args, "api_key", "")
-                        or os.environ.get("SINGULARITY_LLM_API_KEY", "")
-                        or os.environ.get("OPENAI_API_KEY", "")
+            def make_agent_executor(mixed_policy_patch_paths):
+                return AgentCollaborationExecutor(Config(
+                    bot=BotConfig(
+                        host=getattr(args, "host", "localhost"),
+                        port=getattr(args, "port", 25565),
+                        username=getattr(args, "username", "Singularity"),
+                        bridge_host=getattr(args, "bridge_host", "127.0.0.1"),
+                        bridge_port=getattr(args, "bridge_port", 3000),
                     ),
-                    base_url=getattr(args, "llm_base_url", "") or os.environ.get("SINGULARITY_LLM_BASE_URL", ""),
-                ),
-                enable_goal_critic=getattr(args, "goal_critic", False),
-                enable_vision_analysis=not getattr(args, "no_vision_analysis", False),
-                enable_visual_action_grounding=not getattr(args, "no_visual_action_grounding", False),
-                enable_screenshot_capture=getattr(args, "capture_screenshots", False),
-                mixed_policy_patch_paths=getattr(args, "mixed_policy_patch", []) or [],
-                screenshot_dir=getattr(args, "screenshot_dir", "logs/screenshots"),
-                screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),
-            ), bridge_port_base=getattr(args, "bridge_port_base", 0) or None, role_bridge_ports=role_bridge_ports)
+                    llm=LLMConfig(
+                        provider=getattr(args, "llm_provider", "openai"),
+                        model=getattr(args, "llm_model", "gpt-4o-mini"),
+                        api_key=(
+                            getattr(args, "api_key", "")
+                            or os.environ.get("SINGULARITY_LLM_API_KEY", "")
+                            or os.environ.get("OPENAI_API_KEY", "")
+                        ),
+                        base_url=getattr(args, "llm_base_url", "") or os.environ.get("SINGULARITY_LLM_BASE_URL", ""),
+                    ),
+                    enable_goal_critic=getattr(args, "goal_critic", False),
+                    enable_vision_analysis=not getattr(args, "no_vision_analysis", False),
+                    enable_visual_action_grounding=not getattr(args, "no_visual_action_grounding", False),
+                    enable_screenshot_capture=getattr(args, "capture_screenshots", False),
+                    mixed_policy_patch_paths=list(mixed_policy_patch_paths or []),
+                    screenshot_dir=getattr(args, "screenshot_dir", "logs/screenshots"),
+                    screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),
+                ), bridge_port_base=getattr(args, "bridge_port_base", 0) or None, role_bridge_ports=role_bridge_ports)
+
+            if run_mixed_policy_ablation:
+                from singularity.evaluation.mixed_initiative import build_mixed_initiative_policy_ablation
+
+                patch_paths = getattr(args, "mixed_policy_patch", []) or []
+                baseline_executor = make_agent_executor([])
+                patched_executor = make_agent_executor(patch_paths)
+                bridge_launch_plan = patched_executor.bridge_launch_plan(spec)
+                patched_executor.print_bridge_launch_plan(bridge_launch_plan)
+                output_payload["type"] = "collaboration_mixed_policy_ablation"
+                output_payload["mixed_policy_patch_paths"] = list(patch_paths)
+                output_payload["policy_decision_report"] = build_mixed_initiative_policy_ablation(
+                    patch_paths=patch_paths
+                ).to_dict()
+                output_payload["agent_bridge_launch_plan"] = patched_executor.bridge_launch_plan_to_dict(bridge_launch_plan)
+                if getattr(args, "preflight", False):
+                    bridge_report = patched_executor.preflight_bridges(spec)
+                    patched_executor.print_bridge_preflight_report(bridge_report)
+                    output_payload["preflight"] = patched_executor.bridge_preflight_report_to_dict(bridge_report)
+                    if not bridge_report.ok:
+                        runner.save_json_report(output_payload, output_path)
+                        sys.exit(1)
+
+                root, ext = os.path.splitext(runner.state_path)
+                baseline_mixed_state_path = f"{root}_mixed_policy_baseline{ext or '.json'}"
+                patched_mixed_state_path = f"{root}_mixed_policy_patched{ext or '.json'}"
+                baseline_mixed_runner = CollaborationBenchmarkRunner(baseline_mixed_state_path)
+                patched_mixed_runner = CollaborationBenchmarkRunner(patched_mixed_state_path)
+                try:
+                    baseline_result = baseline_mixed_runner.execute(
+                        spec,
+                        executor=baseline_executor,
+                        reset=not getattr(args, "no_reset", False),
+                        max_steps=getattr(args, "max_steps", 0) or None,
+                    )
+                    patched_result = patched_mixed_runner.execute(
+                        spec,
+                        executor=patched_executor,
+                        reset=not getattr(args, "no_reset", False),
+                        max_steps=getattr(args, "max_steps", 0) or None,
+                    )
+                finally:
+                    baseline_executor.close()
+                    patched_executor.close()
+
+                print("\nMixed Policy Baseline")
+                baseline_mixed_runner.print_execution_report(baseline_result)
+                baseline_schedule_comparison = baseline_mixed_runner.compare_schedule_to_execution(
+                    schedule_report,
+                    baseline_result,
+                )
+                baseline_mixed_runner.print_schedule_execution_comparison(
+                    baseline_schedule_comparison,
+                    title="Baseline Schedule vs Execution",
+                )
+                print("\nMixed Policy Patched")
+                patched_mixed_runner.print_execution_report(patched_result)
+                patched_schedule_comparison = patched_mixed_runner.compare_schedule_to_execution(
+                    schedule_report,
+                    patched_result,
+                )
+                patched_mixed_runner.print_schedule_execution_comparison(
+                    patched_schedule_comparison,
+                    title="Patched Schedule vs Execution",
+                )
+                mixed_policy_comparison = runner.compare_mixed_policy_execution_reports(
+                    baseline_result,
+                    patched_result,
+                )
+                print("\nMixed Policy Execution Comparison")
+                print(f"  ok delta: {mixed_policy_comparison['ok_delta']}")
+                print(f"  completed delta: {mixed_policy_comparison['completed_tasks_delta']}")
+                print(f"  failed delta: {mixed_policy_comparison['failed_tasks_delta']}")
+                print(f"  elapsed delta: {mixed_policy_comparison['total_elapsed_s_delta']}s")
+                output_payload["baseline_execution"] = baseline_mixed_runner.execution_report_to_dict(baseline_result)
+                output_payload["patched_execution"] = patched_mixed_runner.execution_report_to_dict(patched_result)
+                output_payload["baseline_schedule_execution_comparison"] = baseline_mixed_runner.schedule_execution_comparison_to_dict(
+                    baseline_schedule_comparison
+                )
+                output_payload["patched_schedule_execution_comparison"] = patched_mixed_runner.schedule_execution_comparison_to_dict(
+                    patched_schedule_comparison
+                )
+                output_payload["mixed_policy_comparison"] = mixed_policy_comparison
+                runner.save_json_report(output_payload, output_path)
+                if not baseline_result.ok or not patched_result.ok:
+                    sys.exit(1)
+                return
+
+            task_executor = make_agent_executor(getattr(args, "mixed_policy_patch", []) or [])
             bridge_launch_plan = task_executor.bridge_launch_plan(spec)
             task_executor.print_bridge_launch_plan(bridge_launch_plan)
             output_payload["agent_bridge_launch_plan"] = task_executor.bridge_launch_plan_to_dict(bridge_launch_plan)

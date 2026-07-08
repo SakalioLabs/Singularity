@@ -12,7 +12,11 @@ from singularity.evaluation.collaboration_benchmark import (
     CollaborationBenchmarkSpec,
     CollaborationFeasibilityChecker,
 )
-from singularity.evaluation.collaboration_runner import CollaborationBenchmarkRunner
+from singularity.evaluation.collaboration_runner import (
+    CollaborationBenchmarkRunner,
+    CollaborationExecutionReport,
+    CollaborationTaskExecution,
+)
 from singularity.multiagent.protocol import SharedState
 
 
@@ -259,6 +263,83 @@ def test_collaboration_runner_compares_against_single_agent_baseline():
     assert comparison["completed_tasks_delta"] == 0
     assert "total_elapsed_s_delta" in comparison
     print("PASS: M7 runner compares collaboration against single-agent baseline")
+
+
+def test_collaboration_runner_compares_mixed_policy_executions():
+    runner = CollaborationBenchmarkRunner()
+    baseline = CollaborationExecutionReport(
+        spec_id="BM-701",
+        ok=False,
+        state_path="baseline.json",
+        completed_tasks=1,
+        failed_tasks=1,
+        skipped_tasks=1,
+        deadline_misses=1,
+        total_elapsed_s=42.0,
+        shared_state={"wood_delivered": False},
+        task_results=[
+            CollaborationTaskExecution(
+                task_id="1",
+                source_task_id="gather_logs",
+                assigned_to="resource_runner",
+                status="completed",
+                elapsed_s=10.0,
+            ),
+            CollaborationTaskExecution(
+                task_id="2",
+                source_task_id="deliver_wood",
+                assigned_to="resource_runner",
+                status="failed",
+                elapsed_s=20.0,
+            ),
+        ],
+    )
+    patched = CollaborationExecutionReport(
+        spec_id="BM-701",
+        ok=True,
+        state_path="patched.json",
+        completed_tasks=2,
+        failed_tasks=0,
+        skipped_tasks=0,
+        deadline_misses=0,
+        total_elapsed_s=38.0,
+        shared_state={"wood_delivered": True},
+        task_results=[
+            CollaborationTaskExecution(
+                task_id="1",
+                source_task_id="gather_logs",
+                assigned_to="resource_runner",
+                status="completed",
+                elapsed_s=10.0,
+            ),
+            CollaborationTaskExecution(
+                task_id="2",
+                source_task_id="deliver_wood",
+                assigned_to="resource_runner",
+                status="completed",
+                elapsed_s=20.0,
+            ),
+        ],
+    )
+
+    comparison = runner.compare_mixed_policy_execution_reports(baseline, patched)
+
+    assert comparison["type"] == "collaboration_mixed_policy_ablation_comparison"
+    assert comparison["ok_delta"] == 1
+    assert comparison["completed_tasks_delta"] == 1
+    assert comparison["failed_tasks_delta"] == -1
+    assert comparison["skipped_tasks_delta"] == -1
+    assert comparison["deadline_misses_delta"] == -1
+    assert comparison["total_elapsed_s_delta"] == -4.0
+    assert comparison["shared_state_changed"]
+    assert comparison["task_status_changed"] == [
+        {
+            "task_id": "deliver_wood",
+            "baseline_status": "failed",
+            "patched_status": "completed",
+        }
+    ]
+    print("PASS: M7 runner compares mixed-policy executions")
 
 
 def test_collaboration_runner_analyzes_parallel_schedule_against_baseline():
@@ -542,6 +623,7 @@ if __name__ == "__main__":
     test_collaboration_runner_serializes_reports_to_json()
     test_collaboration_runner_runs_single_agent_baseline()
     test_collaboration_runner_compares_against_single_agent_baseline()
+    test_collaboration_runner_compares_mixed_policy_executions()
     test_collaboration_runner_analyzes_parallel_schedule_against_baseline()
     test_collaboration_runner_compares_schedule_to_execution()
     test_collaboration_runner_reports_actual_parallel_overlap()
