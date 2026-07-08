@@ -18,5 +18,6 @@
   - `skill-memory-quality-report` measures planner-facing skill-memory hints against later actions and goal outcomes.
   - `skill-memory-quality-report` now emits `hint_quality_items` keyed by skill, task family, and hint type.
   - `SkillLibrary.record_skill_memory_quality_feedback()` performs localized retrieval-ranking maintenance: conflicted `REUSE` hints are demoted only for matching skill/family/type items, `AVOID` warnings can be made more visible, and `REVIEW_ONLY` remains gated.
+  - `skill-memory-quality-ablation` compares baseline and maintained retrieval rankings offline, exposing promoted/demoted hints before live runtime cost.
   - `--skill-memory-quality-feedback` loads this maintenance profile into runtime retrieval without rewriting skill files.
 **Next Action**: Run quality-feedback-assisted and plain skill-memory ablations on real M1/M2/autonomous logs to quantify retrieval precision and stability improvements.

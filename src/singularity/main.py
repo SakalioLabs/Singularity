@@ -39,6 +39,55 @@ def _goal_critic_from_args(args):
     return GoalVerificationCritic(LLMProvider(_llm_config_from_args(args)))
 
 
+def _merge_skill_memory_quality_feedback_paths(paths: list[str]) -> dict:
+    feedback = {
+        "quality_label_counts": {},
+        "hint_type_counts": {},
+        "task_family_counts": {},
+        "hint_quality_items": [],
+        "policy_hints": [],
+    }
+    for path in paths or []:
+        with open(path, "r", encoding="utf-8-sig") as f:
+            payload = json.load(f)
+        current = payload.get("skill_memory_quality_feedback", payload) if isinstance(payload, dict) else {}
+        if not isinstance(current, dict):
+            continue
+        for key in ("quality_label_counts", "hint_type_counts", "task_family_counts"):
+            for name, count in (current.get(key, {}) or {}).items():
+                try:
+                    amount = int(float(count or 0))
+                except (TypeError, ValueError):
+                    amount = 0
+                feedback[key][str(name)] = feedback[key].get(str(name), 0) + amount
+        for key in ("hint_quality_items", "policy_hints"):
+            values = current.get(key, [])
+            if isinstance(values, list):
+                feedback[key].extend(item for item in values if isinstance(item, dict))
+    return feedback
+
+
+def _load_skill_memory_quality_ablation_cases(args) -> list[dict]:
+    case_file = getattr(args, "case_file", "") or ""
+    if case_file:
+        with open(case_file, "r", encoding="utf-8-sig") as f:
+            if case_file.lower().endswith(".jsonl"):
+                return [json.loads(line) for line in f if line.strip()]
+            payload = json.load(f)
+        if isinstance(payload, dict) and isinstance(payload.get("cases"), list):
+            return payload["cases"]
+        if isinstance(payload, list):
+            return payload
+        if isinstance(payload, dict):
+            return [payload]
+    goals = getattr(args, "goal", []) or []
+    task_family = getattr(args, "task_family", "") or ""
+    return [
+        {"id": f"goal_{index}", "goal": goal, "task_family": task_family}
+        for index, goal in enumerate(goals, start=1)
+    ]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Singularity Minecraft LLM Agent")
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
@@ -187,6 +236,20 @@ def main():
     skill_memory_quality_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
     skill_memory_quality_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     skill_memory_quality_parser.add_argument("--log-level", type=str, default="INFO")
+
+    # Offline skill-memory quality ranking ablation
+    skill_memory_quality_ablation_parser = subparsers.add_parser(
+        "skill-memory-quality-ablation",
+        help="Compare skill-memory hint ranking before and after quality feedback",
+    )
+    skill_memory_quality_ablation_parser.add_argument("--skill-storage-path", type=str, default="workspace/skills", help="Skill storage path containing custom_skills.jsonl")
+    skill_memory_quality_ablation_parser.add_argument("--quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to apply for the adjusted ranking")
+    skill_memory_quality_ablation_parser.add_argument("--goal", action="append", default=[], help="Goal/query to compare; repeat for multiple cases")
+    skill_memory_quality_ablation_parser.add_argument("--task-family", type=str, default="", help="Optional task-family zone for all --goal cases")
+    skill_memory_quality_ablation_parser.add_argument("--case-file", type=str, default="", help="Optional JSON/JSONL case file with goal and task_family fields")
+    skill_memory_quality_ablation_parser.add_argument("--limit", type=int, default=5)
+    skill_memory_quality_ablation_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    skill_memory_quality_ablation_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Memory consolidation report
     memory_report_parser = subparsers.add_parser("memory-consolidation-report", help="Report repeatedly recalled memories worth consolidation")
@@ -812,6 +875,51 @@ def main():
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "skill-memory-quality-ablation":
+        from singularity.core.skill_library import SkillLibrary
+
+        feedback_paths = getattr(args, "quality_feedback", []) or []
+        if not feedback_paths:
+            print("skill-memory-quality-ablation requires at least one --quality-feedback")
+            sys.exit(1)
+        cases = _load_skill_memory_quality_ablation_cases(args)
+        if not cases:
+            print("skill-memory-quality-ablation requires --goal or --case-file")
+            sys.exit(1)
+        feedback = _merge_skill_memory_quality_feedback_paths(feedback_paths)
+        lib = SkillLibrary(storage_path=getattr(args, "skill_storage_path", "workspace/skills"), persist=True)
+        report = lib.skill_memory_quality_ablation(
+            feedback,
+            cases=cases,
+            limit=getattr(args, "limit", 5),
+        )
+        report["quality_feedback_paths"] = list(feedback_paths)
+
+        print("\nSkill Memory Quality Ablation")
+        print(
+            f"  cases: {report['case_count']}, changed: {report['changed_count']}, "
+            f"promoted: {report['promoted_count']}, demoted: {report['demoted_count']}, "
+            f"quality applications: {report['quality_policy_application_count']}"
+        )
+        for case in report["cases"]:
+            marker = "+" if case["changed"] else "~"
+            print(f"  [{marker}] {case['id']}: {case['goal']} ({case['task_family'] or 'any'})")
+            if case["promoted"]:
+                print("      promoted: " + ", ".join(f"{item['skill']}#{item['adjusted_rank']}" for item in case["promoted"][:4]))
+            if case["demoted"]:
+                print("      demoted: " + ", ".join(f"{item['skill']}#{item['baseline_rank']}->{item['adjusted_rank']}" for item in case["demoted"][:4]))
+            for item in case["adjusted_hints"][:min(3, getattr(args, "limit", 5))]:
+                quality = ",".join(item.get("quality_policies", [])) or "none"
+                print(f"      adjusted {item['rank']}: {item['hint_type']} {item['skill']} quality={quality}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
         return
 

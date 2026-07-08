@@ -186,18 +186,38 @@ class SkillLibrary:
 
     def get_skill_memory_hints(self, goal: str = "", task_family: str = "", limit: int = 5) -> list[str]:
         """Return concise skill-local memories that can guide planning."""
-        candidates = self._skill_memory_hint_candidates(goal=goal, task_family=task_family)
-        candidates.sort(
-            key=lambda item: (
-                item["hint_rank"],
-                item["score"],
-                item["confidence"],
-                item["timestamp"],
-            ),
-            reverse=True,
-        )
-        visible = candidates[:limit] if limit and limit > 0 else candidates
+        visible = self._ranked_skill_memory_hint_candidates(goal=goal, task_family=task_family, limit=limit)
         return [self._format_skill_memory_hint(candidate) for candidate in visible]
+
+    def skill_memory_quality_ablation(self, feedback: dict, cases: list[dict], limit: int = 5) -> dict:
+        """Compare skill-memory hint ranking before and after quality feedback."""
+        cases = self._normalize_skill_memory_ablation_cases(cases)
+        original_feedback = dict(self._skill_memory_quality_feedback)
+        original_policies = {key: dict(value) for key, value in self._skill_memory_quality_policies.items()}
+        original_items = {key: dict(value) for key, value in self._skill_memory_quality_items.items()}
+        results = []
+        try:
+            self._clear_skill_memory_quality_feedback()
+            for index, case in enumerate(cases, start=1):
+                goal = case.get("goal", "")
+                task_family = case.get("task_family", "")
+                baseline = self._skill_memory_candidate_records(goal, task_family, limit)
+                self.record_skill_memory_quality_feedback(feedback or {})
+                adjusted = self._skill_memory_candidate_records(goal, task_family, limit)
+                self._clear_skill_memory_quality_feedback()
+                results.append(self._skill_memory_ablation_case_result(index, case, baseline, adjusted))
+        finally:
+            self._skill_memory_quality_feedback = original_feedback
+            self._skill_memory_quality_policies = original_policies
+            self._skill_memory_quality_items = original_items
+        return {
+            "case_count": len(results),
+            "changed_count": sum(1 for case in results if case["changed"]),
+            "quality_policy_application_count": sum(case["quality_policy_application_count"] for case in results),
+            "promoted_count": sum(len(case["promoted"]) for case in results),
+            "demoted_count": sum(len(case["demoted"]) for case in results),
+            "cases": results,
+        }
 
     def record_skill_memory_quality_feedback(self, feedback: dict) -> int:
         """Store offline hint-quality feedback for future runtime retrieval ranking."""
@@ -227,6 +247,11 @@ class SkillLibrary:
                 continue
             self._skill_memory_quality_items[key] = dict(item)
         return stored
+
+    def _clear_skill_memory_quality_feedback(self):
+        self._skill_memory_quality_feedback = {}
+        self._skill_memory_quality_policies = {}
+        self._skill_memory_quality_items = {}
 
     def skill_memory_quality_profile(self) -> dict:
         """Return loaded skill-memory quality feedback summary."""
@@ -285,6 +310,113 @@ class SkillLibrary:
                     "memory": memory,
                 })
         return candidates
+
+    def _ranked_skill_memory_hint_candidates(self, goal: str = "", task_family: str = "", limit: int = 5) -> list[dict]:
+        candidates = self._skill_memory_hint_candidates(goal=goal, task_family=task_family)
+        candidates.sort(
+            key=lambda item: (
+                item["hint_rank"],
+                item["score"],
+                item["confidence"],
+                item["timestamp"],
+            ),
+            reverse=True,
+        )
+        return candidates[:limit] if limit and limit > 0 else candidates
+
+    def _skill_memory_candidate_records(self, goal: str, task_family: str, limit: int = 5) -> list[dict]:
+        records = []
+        for rank, candidate in enumerate(
+            self._ranked_skill_memory_hint_candidates(goal=goal, task_family=task_family, limit=limit),
+            start=1,
+        ):
+            memory = candidate.get("memory", {})
+            records.append({
+                "rank": rank,
+                "key": self._skill_memory_candidate_key(candidate),
+                "hint": self._format_skill_memory_hint(candidate),
+                "hint_type": candidate.get("hint_type", "UNKNOWN"),
+                "skill": candidate.get("skill_name", "unknown"),
+                "task_family": memory.get("task_family", ""),
+                "score": candidate.get("score", 0.0),
+                "hint_rank": candidate.get("hint_rank", 0.0),
+                "confidence": candidate.get("confidence", 0.0),
+                "quality_policies": list(candidate.get("quality_policies", [])),
+                "note": memory.get("note", ""),
+            })
+        return records
+
+    def _skill_memory_candidate_key(self, candidate: dict) -> str:
+        memory = candidate.get("memory", {})
+        return "|".join([
+            str(candidate.get("hint_type", "UNKNOWN")),
+            str(candidate.get("skill_name", "unknown")),
+            str(memory.get("task_family", "")),
+            str(memory.get("note", "")),
+        ])
+
+    def _skill_memory_ablation_case_result(
+        self,
+        index: int,
+        case: dict,
+        baseline: list[dict],
+        adjusted: list[dict],
+    ) -> dict:
+        baseline_ranks = {item["key"]: item["rank"] for item in baseline}
+        adjusted_ranks = {item["key"]: item["rank"] for item in adjusted}
+        promoted = []
+        demoted = []
+        for item in adjusted:
+            previous_rank = baseline_ranks.get(item["key"])
+            if previous_rank is None:
+                promoted.append({**item, "baseline_rank": None, "adjusted_rank": item["rank"]})
+            elif item["rank"] < previous_rank:
+                promoted.append({**item, "baseline_rank": previous_rank, "adjusted_rank": item["rank"]})
+            elif item["rank"] > previous_rank:
+                demoted.append({**item, "baseline_rank": previous_rank, "adjusted_rank": item["rank"]})
+        for item in baseline:
+            adjusted_rank = adjusted_ranks.get(item["key"])
+            if adjusted_rank is not None and adjusted_rank > item["rank"]:
+                demoted.append({**item, "baseline_rank": item["rank"], "adjusted_rank": adjusted_rank})
+        return {
+            "id": case.get("id") or f"case_{index}",
+            "goal": case.get("goal", ""),
+            "task_family": case.get("task_family", ""),
+            "changed": (
+                [item["key"] for item in baseline] != [item["key"] for item in adjusted]
+                or any(item["quality_policies"] for item in adjusted)
+            ),
+            "quality_policy_application_count": sum(1 for item in adjusted if item["quality_policies"]),
+            "baseline_hints": baseline,
+            "adjusted_hints": adjusted,
+            "promoted": self._dedupe_rank_changes(promoted),
+            "demoted": self._dedupe_rank_changes(demoted),
+        }
+
+    def _normalize_skill_memory_ablation_cases(self, cases: list[dict]) -> list[dict]:
+        normalized = []
+        for index, case in enumerate(cases or [], start=1):
+            if not isinstance(case, dict):
+                continue
+            goal = str(case.get("goal") or case.get("query") or "").strip()
+            task_family = str(case.get("task_family") or case.get("family") or "").strip().lower()
+            normalized.append({
+                "id": str(case.get("id") or f"case_{index}"),
+                "goal": goal,
+                "task_family": task_family,
+            })
+        return normalized or [{"id": "case_1", "goal": "", "task_family": ""}]
+
+    def _dedupe_rank_changes(self, items: list[dict]) -> list[dict]:
+        seen = set()
+        result = []
+        for item in items:
+            key = (item.get("key"), item.get("baseline_rank"), item.get("adjusted_rank"))
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(item)
+        return result
 
     def _skill_memory_hint_type(self, memory: dict, governance: dict) -> str:
         memory_type = str(memory.get("type") or "").strip().lower()

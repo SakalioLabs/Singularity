@@ -1626,7 +1626,7 @@ def test_skill_library_applies_quality_feedback_to_targeted_skill_only():
         confidence=0.9,
     )
 
-    skills.record_skill_memory_quality_feedback({
+    feedback = {
         "policy_hints": [
             {"skill_memory_policy": "demote_conflicting_reuse_hints", "priority": "high", "count": 1},
         ],
@@ -1639,14 +1639,24 @@ def test_skill_library_applies_quality_feedback_to_targeted_skill_only():
                 "labels": {"reuse_conflicted_with_failures": 1},
             },
         ],
-    })
+    }
+    skills.record_skill_memory_quality_feedback(feedback)
 
     hints = skills.get_skill_memory_hints("Craft torches", task_family="crafting", limit=2)
+    report = skills.skill_memory_quality_ablation(
+        feedback,
+        cases=[{"goal": "Craft torches", "task_family": "crafting"}],
+        limit=2,
+    )
 
     assert hints[0].startswith("REUSE safe_torch_skill")
     assert "quality=" not in hints[0]
     assert hints[1].startswith("REUSE risky_torch_skill")
     assert "quality=demote_conflicting_reuse_hints" in hints[1]
+    assert report["changed_count"] == 1
+    assert report["quality_policy_application_count"] == 1
+    assert report["cases"][0]["adjusted_hints"][0]["skill"] == "safe_torch_skill"
+    assert report["cases"][0]["demoted"][0]["skill"] == "risky_torch_skill"
     print("PASS: SkillLibrary applies quality feedback to targeted skill only")
 
 

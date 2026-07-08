@@ -331,6 +331,8 @@ python -m singularity.main skill-memory-quality-report --session-log logs/sessio
 # The JSON includes `hint_quality_items` keyed by skill, task family, and hint type.
 # Feed quality feedback back into runtime retrieval ranking without mutating skills:
 python -m singularity.main run --goal "Craft torches" --skill-memory-quality-feedback logs/benchmarks/skill_memory_quality.json
+# Compare baseline vs quality-feedback-adjusted skill-memory hint ranking offline:
+python -m singularity.main skill-memory-quality-ablation --skill-storage-path workspace/skills --quality-feedback logs/benchmarks/skill_memory_quality.json --goal "Craft torches" --task-family crafting --output logs/benchmarks/skill_memory_quality_ablation.json
 # Use --no-skill-memory-context on run/autonomous/benchmark/collab-benchmark for baselines.
 python -m singularity.main benchmark --suite m1 --skill-memory-ablation --output logs/benchmarks/skill_memory_ablation.json
 

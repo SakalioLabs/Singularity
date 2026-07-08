@@ -153,6 +153,7 @@
 - [x] Add `skill-memory-quality-report` to label typed skill-memory hints against later action failures and goal outcomes before promoting or demoting hint retrieval behavior.
 - [x] Feed `skill-memory-quality-report` feedback back into runtime `SkillLibrary` ranking through `--skill-memory-quality-feedback`, keeping the change advisory and non-mutating.
 - [x] Localize skill-memory quality feedback by `skill`, `task_family`, and hint type so one conflicted hint does not globally demote unrelated reusable memories.
+- [x] Add `skill-memory-quality-ablation` to compare baseline vs feedback-adjusted skill-memory hint rankings before live runs.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -172,6 +173,7 @@
 - [ ] Run `skill-memory-quality-report` on real M1/M2/autonomous logs and review `reuse_conflicted_with_failures`, `avoid_unheeded_post_hint_failures`, and `candidate_promote_reuse_hints`.
 - [ ] Run the same goals with and without `--skill-memory-quality-feedback` to confirm conflicted `REUSE` hints are demoted without suppressing useful `AVOID` warnings.
 - [ ] Compare localized `hint_quality_items` against `skill-memory-report` memories and promote only skills whose local `REUSE` items are repeatedly supported.
+- [ ] Use `skill-memory-quality-ablation` as a preflight before any quality-feedback-assisted live benchmark suite.
 - [ ] Run real `benchmark --skill-memory-ablation` cases and inspect whether typed `REUSE` hints improve completion while `AVOID`/`REVIEW_ONLY` hints reduce retries or interference.
 - [ ] Run `transfer-memory-report` on real M1/M2/autonomous memory stores and compare high-scoring transfer matches against downstream task success.
 - [ ] Run `task-memory-report` on real multi-session task traces and compare task-centric memory matches against verifier outcomes and repeated-failure reductions.
