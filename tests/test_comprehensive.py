@@ -527,6 +527,10 @@ class TestSessionLogger(unittest.TestCase):
             "operation": "retrieve",
             "query": "craft torch",
             "policy_decision": {"decision": "read_instrumented"},
+            "read_filter_report": {
+                "filtered_entries": 2,
+                "filter_reasons": {"superseded": 1, "conditional_mismatch": 1},
+            },
         })
         self.logger.log("memory_manage", {"layer": "episodic", "memory_type": "lifecycle", "operation": "save_session"})
         self.logger.log_error("error")
@@ -548,6 +552,10 @@ class TestSessionLogger(unittest.TestCase):
         self.assertEqual(memory["memory_manage_operations"]["save_session"], 1)
         self.assertEqual(memory["memory_policy_decisions"]["failure_learning_candidate"], 1)
         self.assertEqual(memory["memory_policy_decisions"]["read_instrumented"], 1)
+        self.assertEqual(memory["memory_read_filter_event_count"], 1)
+        self.assertEqual(memory["memory_read_filtered_entries"], 2)
+        self.assertEqual(memory["memory_read_filter_reasons"]["superseded"], 1)
+        self.assertEqual(memory["memory_read_filter_reasons"]["conditional_mismatch"], 1)
 
     def test_visual_action_summary_metrics(self):
         self.logger.log("visual_action_suggestion", {

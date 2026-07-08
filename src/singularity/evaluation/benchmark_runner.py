@@ -1133,6 +1133,7 @@ class BenchmarkResult:
     duration_s: float = 0.0
     inventory_snapshot: dict = field(default_factory=dict)
     intervention_metrics: dict = field(default_factory=dict)
+    memory_policy_metrics: dict = field(default_factory=dict)
     error: str = ""
     session_log_path: str = ""
 
@@ -1245,6 +1246,7 @@ class BenchmarkRunner:
                 cycles_used=result.get("cycles", 0), duration_s=round(duration, 2),
                 inventory_snapshot=inv_summary,
                 intervention_metrics=session_summary.get("intervention_metrics", {}),
+                memory_policy_metrics=session_summary.get("memory_policy_metrics", {}),
                 session_log_path=session_summary.get("log_path", ""),
             )
         except Exception as e:
@@ -4179,6 +4181,7 @@ class BenchmarkRunner:
                 "cycles": r.cycles_used, "duration_s": r.duration_s,
                 "inventory": r.inventory_snapshot, "error": r.error,
                 "intervention_metrics": r.intervention_metrics,
+                "memory_policy_metrics": r.memory_policy_metrics,
                 "log": r.session_log_path,
             })
         with open(path, "w", encoding="utf-8") as f:

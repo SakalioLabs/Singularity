@@ -94,6 +94,9 @@ class SessionLogger:
         read_types = {}
         manage_operations = {}
         policy_decisions = {}
+        read_filter_event_count = 0
+        read_filtered_entries = 0
+        read_filter_reasons = {}
 
         for event in writes + reads + manages:
             data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
@@ -113,6 +116,19 @@ class SessionLogger:
             data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
             memory_type = str(data.get("memory_type") or "unknown")
             read_types[memory_type] = read_types.get(memory_type, 0) + 1
+            filter_report = data.get("read_filter_report", {}) if isinstance(data.get("read_filter_report", {}), dict) else {}
+            if filter_report:
+                read_filter_event_count += 1
+                read_filtered_entries += int(filter_report.get("filtered_entries") or 0)
+                reasons = filter_report.get("filter_reasons", {})
+                if isinstance(reasons, dict):
+                    for reason, count in reasons.items():
+                        reason = str(reason or "unknown")
+                        try:
+                            amount = int(count)
+                        except (TypeError, ValueError):
+                            amount = 1
+                        read_filter_reasons[reason] = read_filter_reasons.get(reason, 0) + amount
 
         for event in manages:
             data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
@@ -128,6 +144,9 @@ class SessionLogger:
             "memory_read_types": read_types,
             "memory_manage_operations": manage_operations,
             "memory_policy_decisions": policy_decisions,
+            "memory_read_filter_event_count": read_filter_event_count,
+            "memory_read_filtered_entries": read_filtered_entries,
+            "memory_read_filter_reasons": read_filter_reasons,
         }
 
     def _intervention_metrics(self) -> dict:

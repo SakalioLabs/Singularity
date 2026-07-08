@@ -1412,6 +1412,11 @@ def test_benchmark_results_persist_intervention_metrics():
                     "fill_coordinates": 1,
                 },
             },
+            memory_policy_metrics={
+                "memory_read_count": 1,
+                "memory_read_filtered_entries": 2,
+                "memory_read_filter_reasons": {"superseded": 2},
+            },
             session_log_path="logs/session_test.jsonl",
         )
     ]
@@ -1424,6 +1429,8 @@ def test_benchmark_results_persist_intervention_metrics():
     assert data[0]["intervention_metrics"]["policy_intervention_success_rate"] == 1.0
     assert data[0]["intervention_metrics"]["visual_action_intervention_count"] == 2
     assert data[0]["intervention_metrics"]["visual_action_intervention_phases"]["prepend_approach"] == 1
+    assert data[0]["memory_policy_metrics"]["memory_read_filtered_entries"] == 2
+    assert data[0]["memory_policy_metrics"]["memory_read_filter_reasons"]["superseded"] == 2
     print("PASS: Benchmark results persist intervention metrics")
 
 
