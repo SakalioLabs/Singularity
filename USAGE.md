@@ -193,6 +193,8 @@ python -m singularity.main mixed-initiative-policy-patch --execution-report logs
 # Load approved patches into live runs or benchmark agents.
 python -m singularity.main run --goal "Craft 4 torches" --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json
 python -m singularity.main benchmark --suite m1 --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json
+# Compare baseline vs patched action/template policy decisions before live runs.
+python -m singularity.main mixed-initiative-policy-ablation --policy-patch logs/benchmarks/mixed_policy_patch.json --output logs/benchmarks/mixed_policy_ablation.json
 
 # Replay held-out paraphrases and optional JSON/JSONL case files before promoting
 # new mixed-initiative templates or changing auto-selection heuristics.

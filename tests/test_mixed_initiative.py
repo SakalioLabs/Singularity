@@ -12,6 +12,7 @@ from singularity.evaluation.mixed_initiative import (
     MixedInitiativeTemplateCompiler,
     apply_mixed_initiative_policy_patch,
     build_mixed_initiative_report,
+    build_mixed_initiative_policy_ablation,
     build_mixed_initiative_policy_patch,
     build_mixed_initiative_review_experiment_plan,
     build_mixed_initiative_review_label_templates,
@@ -876,6 +877,53 @@ def test_mixed_initiative_policy_patch_applies_action_feedback():
     print("PASS: Mixed-initiative policy patch applies action feedback")
 
 
+def test_mixed_initiative_policy_ablation_compares_patch_decisions():
+    patch = {
+        "action_policy_feedback": {
+            "policy_hints": [
+                {
+                    "action_type": "place",
+                    "preferred_control": "consider_low_level_visual_control",
+                    "reason": "visual_or_precision_sensitive",
+                    "low_level_candidate_count": 1,
+                }
+            ]
+        },
+        "mixed_initiative_feedback": {
+            "policy_hints": [
+                {
+                    "policy": "inspect_backend_execution",
+                    "template_id": "craft_or_process_item",
+                    "priority": "high",
+                }
+            ]
+        },
+        "template_policy_updates": [
+            {"target_id": "craft_or_process_item", "decision": "inspect_backend_execution"}
+        ],
+    }
+
+    report = build_mixed_initiative_policy_ablation(policy_patches=[patch])
+
+    assert report.ok
+    assert report.patch_count == 1
+    assert report.action_changed_count == 1
+    assert report.template_changed_count == 1
+    assert report.candidate_changed_count == 0
+    action_case = report.action_cases[0]
+    assert action_case.id == "place"
+    assert action_case.baseline["preferred_control"] == "mineflayer_api_ok"
+    assert action_case.patched["preferred_control"] == "consider_low_level_visual_control"
+    assert action_case.patched["preferred_backend"] == "desktop"
+    assert action_case.patched["backend"] == "mineflayer"
+    assert "not enabled" in action_case.patched["fallback_reason"]
+    template_case = report.template_cases[0]
+    assert template_case.baseline["decision"] == "template_ok"
+    assert template_case.patched["decision"] == "inspect_backend_execution"
+    assert report.patched_recommendations[0]["target_id"] == "craft_or_process_item"
+    print("PASS: Mixed-initiative policy ablation compares patch decisions")
+
+
 def test_mixed_initiative_variant_report_checks_heldout_templates():
     report = build_mixed_initiative_variant_report()
 
@@ -961,6 +1009,7 @@ if __name__ == "__main__":
     test_mixed_initiative_review_execution_dry_run_does_not_write_artifacts()
     test_mixed_initiative_policy_patch_applies_mixed_feedback()
     test_mixed_initiative_policy_patch_applies_action_feedback()
+    test_mixed_initiative_policy_ablation_compares_patch_decisions()
     test_mixed_initiative_variant_report_checks_heldout_templates()
     test_mixed_initiative_variant_report_flags_slot_mismatch()
     test_mixed_initiative_variant_report_loads_jsonl_case_file()

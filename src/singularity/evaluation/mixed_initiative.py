@@ -829,6 +829,102 @@ class MixedInitiativePolicyPatch:
         }
 
 
+@dataclass
+class MixedInitiativePolicyAblationActionCase:
+    id: str
+    action: dict
+    baseline: dict
+    patched: dict
+
+    @property
+    def changed(self) -> bool:
+        return self.baseline != self.patched
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "action": dict(self.action),
+            "changed": self.changed,
+            "baseline": dict(self.baseline),
+            "patched": dict(self.patched),
+        }
+
+
+@dataclass
+class MixedInitiativePolicyAblationReviewCase:
+    target_type: str
+    target_id: str
+    baseline: dict
+    patched: dict
+
+    @property
+    def changed(self) -> bool:
+        return self.baseline != self.patched
+
+    def to_dict(self) -> dict:
+        return {
+            "target_type": self.target_type,
+            "target_id": self.target_id,
+            "changed": self.changed,
+            "baseline": dict(self.baseline),
+            "patched": dict(self.patched),
+        }
+
+
+@dataclass
+class MixedInitiativePolicyAblationReport:
+    patch_paths: list[str] = field(default_factory=list)
+    patch_count: int = 0
+    applied: list[dict] = field(default_factory=list)
+    action_cases: list[MixedInitiativePolicyAblationActionCase] = field(default_factory=list)
+    template_cases: list[MixedInitiativePolicyAblationReviewCase] = field(default_factory=list)
+    candidate_cases: list[MixedInitiativePolicyAblationReviewCase] = field(default_factory=list)
+    baseline_recommendations: list[dict] = field(default_factory=list)
+    patched_recommendations: list[dict] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return not self.errors and self.patch_count > 0
+
+    @property
+    def action_changed_count(self) -> int:
+        return sum(1 for case in self.action_cases if case.changed)
+
+    @property
+    def template_changed_count(self) -> int:
+        return sum(1 for case in self.template_cases if case.changed)
+
+    @property
+    def candidate_changed_count(self) -> int:
+        return sum(1 for case in self.candidate_cases if case.changed)
+
+    @property
+    def recommendation_changed(self) -> bool:
+        return self.baseline_recommendations != self.patched_recommendations
+
+    def to_dict(self) -> dict:
+        return {
+            "ok": self.ok,
+            "patch_paths": list(self.patch_paths),
+            "patch_count": self.patch_count,
+            "applied": [dict(item) for item in self.applied],
+            "action_case_count": len(self.action_cases),
+            "action_changed_count": self.action_changed_count,
+            "template_case_count": len(self.template_cases),
+            "template_changed_count": self.template_changed_count,
+            "candidate_case_count": len(self.candidate_cases),
+            "candidate_changed_count": self.candidate_changed_count,
+            "recommendation_changed": self.recommendation_changed,
+            "baseline_recommendations": [dict(item) for item in self.baseline_recommendations],
+            "patched_recommendations": [dict(item) for item in self.patched_recommendations],
+            "action_cases": [case.to_dict() for case in self.action_cases],
+            "template_cases": [case.to_dict() for case in self.template_cases],
+            "candidate_cases": [case.to_dict() for case in self.candidate_cases],
+            "errors": list(self.errors),
+        }
+
+
 class MixedInitiativeTemplateCompiler:
     """Compile template subtasks into auditable records with slot binding."""
 
@@ -2753,6 +2849,76 @@ def apply_mixed_initiative_policy_patch(
     return result
 
 
+def build_mixed_initiative_policy_ablation(
+    policy_patches: Optional[list[Any]] = None,
+    patch_paths: Optional[list[str]] = None,
+    actions: Optional[list[dict]] = None,
+    template_ids: Optional[list[str]] = None,
+    candidate_ids: Optional[list[str]] = None,
+    allow_planned_backend: bool = False,
+) -> MixedInitiativePolicyAblationReport:
+    """Compare baseline policy decisions with decisions after approved patches."""
+    from singularity.action.mapping import ActionMapper
+    from singularity.action.policy import ActionGranularityPolicy
+
+    report = MixedInitiativePolicyAblationReport(patch_paths=list(patch_paths or []))
+    baseline_action_policy = ActionGranularityPolicy(allow_planned_backend=allow_planned_backend)
+    patched_action_policy = ActionGranularityPolicy(allow_planned_backend=allow_planned_backend)
+    baseline_mixed_policy = MixedInitiativeFeedbackPolicy()
+    patched_mixed_policy = MixedInitiativeFeedbackPolicy()
+
+    patches: list[dict] = []
+    for patch in policy_patches or []:
+        try:
+            patches.append(_policy_patch_payload_from_any(patch))
+        except Exception as exc:
+            report.errors.append(f"inline_policy_patch: {exc}")
+    for path in patch_paths or []:
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                patches.append(_policy_patch_payload_from_any(json.load(f)))
+        except Exception as exc:
+            report.errors.append(f"{path}: {exc}")
+
+    report.patch_count = len(patches)
+    for patch in patches:
+        applied = apply_mixed_initiative_policy_patch(
+            patch,
+            action_policy=patched_action_policy,
+            mixed_policy=patched_mixed_policy,
+        )
+        report.applied.append(applied)
+
+    action_cases = _mixed_policy_ablation_actions(actions or [], patches)
+    mapper = ActionMapper()
+    for index, action in enumerate(action_cases, start=1):
+        action_id = str(action.get("id") or action.get("type") or f"action_{index}")
+        clean_action = {k: v for k, v in action.items() if k != "id"}
+        baseline = baseline_action_policy.select_backend(clean_action, "mineflayer", mapper).as_dict()
+        patched = patched_action_policy.select_backend(clean_action, "mineflayer", mapper).as_dict()
+        report.action_cases.append(MixedInitiativePolicyAblationActionCase(action_id, clean_action, baseline, patched))
+
+    template_targets = _dedupe_strings(list(template_ids or []) + _mixed_policy_ablation_template_ids(patches))
+    for template_id in template_targets:
+        baseline = baseline_mixed_policy.decide_template(template_id).as_dict()
+        patched = patched_mixed_policy.decide_template(template_id).as_dict()
+        report.template_cases.append(
+            MixedInitiativePolicyAblationReviewCase("template", template_id, baseline, patched)
+        )
+
+    candidate_targets = _dedupe_strings(list(candidate_ids or []) + _mixed_policy_ablation_candidate_ids(patches))
+    for candidate_id in candidate_targets:
+        baseline = baseline_mixed_policy.decide_candidate(candidate_id).as_dict()
+        patched = patched_mixed_policy.decide_candidate(candidate_id).as_dict()
+        report.candidate_cases.append(
+            MixedInitiativePolicyAblationReviewCase("template_candidate", candidate_id, baseline, patched)
+        )
+
+    report.baseline_recommendations = baseline_mixed_policy.recommendations()
+    report.patched_recommendations = patched_mixed_policy.recommendations()
+    return report
+
+
 def _execution_report_payload_from_any(report: Any) -> dict:
     if isinstance(report, MixedInitiativeReviewExecutionReport):
         return report.to_dict()
@@ -2775,6 +2941,75 @@ def _policy_patch_payload_from_any(policy_patch: Any) -> dict:
         if isinstance(payload, dict):
             return payload
     raise ValueError("policy patch must be a dict or MixedInitiativePolicyPatch")
+
+
+def _mixed_policy_ablation_actions(actions: list[dict], patches: list[dict]) -> list[dict]:
+    cases: list[dict] = []
+    for action in actions:
+        if isinstance(action, dict) and action.get("type"):
+            cases.append(dict(action))
+    existing_types = {str(action.get("type") or "") for action in cases}
+    for patch in patches:
+        feedback = patch.get("action_policy_feedback", {}) if isinstance(patch, dict) else {}
+        for hint in feedback.get("policy_hints", []) if isinstance(feedback, dict) else []:
+            action_type = str(hint.get("action_type") or "")
+            if not action_type or action_type in existing_types:
+                continue
+            cases.append({
+                "id": action_type,
+                "type": action_type,
+                "parameters": _default_action_parameters_for_ablation(action_type),
+            })
+            existing_types.add(action_type)
+    return cases
+
+
+def _default_action_parameters_for_ablation(action_type: str) -> dict:
+    if action_type == "place":
+        return {"x": 0, "y": 64, "z": 0, "item": "torch"}
+    if action_type == "dig":
+        return {"x": 0, "y": 64, "z": 0}
+    if action_type == "craft":
+        return {"item": "torch", "count": 1}
+    if action_type == "use_item":
+        return {"item": "bread"}
+    if action_type in {"walk_to", "move_to", "look_at"}:
+        return {"x": 0, "y": 64, "z": 0}
+    if action_type == "equip":
+        return {"item": "wooden_pickaxe", "destination": "hand"}
+    if action_type == "attack":
+        return {"entity_id": "target"}
+    if action_type == "chat":
+        return {"message": "status"}
+    return {}
+
+
+def _mixed_policy_ablation_template_ids(patches: list[dict]) -> list[str]:
+    ids: list[str] = []
+    for patch in patches:
+        feedback = patch.get("mixed_initiative_feedback", {}) if isinstance(patch, dict) else {}
+        for hint in feedback.get("policy_hints", []) if isinstance(feedback, dict) else []:
+            template_id = str(hint.get("template_id") or "")
+            if template_id:
+                ids.append(template_id)
+        for update in patch.get("template_policy_updates", []) if isinstance(patch, dict) else []:
+            if not isinstance(update, dict):
+                continue
+            target_id = str(update.get("target_id") or update.get("template_id") or "")
+            if target_id:
+                ids.append(target_id)
+    return _dedupe_strings(ids)
+
+
+def _mixed_policy_ablation_candidate_ids(patches: list[dict]) -> list[str]:
+    ids: list[str] = []
+    for patch in patches:
+        feedback = patch.get("mixed_initiative_feedback", {}) if isinstance(patch, dict) else {}
+        for hint in feedback.get("policy_hints", []) if isinstance(feedback, dict) else []:
+            candidate_id = str(hint.get("candidate_id") or "")
+            if candidate_id:
+                ids.append(candidate_id)
+    return _dedupe_strings(ids)
 
 
 def _artifact_paths_from_execution_payload(payload: dict) -> list[str]:

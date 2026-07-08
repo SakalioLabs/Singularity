@@ -378,6 +378,18 @@ def main():
     mixed_policy_patch_parser.add_argument("--output", type=str, default="", help="Optional JSON policy patch path")
     mixed_policy_patch_parser.add_argument("--log-level", type=str, default="INFO")
 
+    mixed_policy_ablation_parser = subparsers.add_parser(
+        "mixed-initiative-policy-ablation",
+        help="Compare baseline vs approved mixed-initiative policy patch decisions",
+    )
+    mixed_policy_ablation_parser.add_argument("--policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON")
+    mixed_policy_ablation_parser.add_argument("--action", action="append", default=[], help="Canonical action type or JSON object to compare")
+    mixed_policy_ablation_parser.add_argument("--template-id", action="append", default=[], help="Template id to compare review decisions")
+    mixed_policy_ablation_parser.add_argument("--candidate-id", action="append", default=[], help="Template-candidate id to compare review decisions")
+    mixed_policy_ablation_parser.add_argument("--allow-planned-backend", action="store_true", help="Allow planned desktop backend decisions in the comparison")
+    mixed_policy_ablation_parser.add_argument("--output", type=str, default="", help="Optional JSON ablation report path")
+    mixed_policy_ablation_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline mixed-initiative held-out variant report
     mixed_variant_parser = subparsers.add_parser(
         "mixed-initiative-variant-report",
@@ -1402,6 +1414,77 @@ def main():
                 json.dump(patch.to_dict(), f, indent=2, ensure_ascii=False)
             print(f"\nPolicy patch saved to {args.output}")
         if not patch.ok:
+            sys.exit(1)
+        return
+
+    if args.command == "mixed-initiative-policy-ablation":
+        from singularity.evaluation.mixed_initiative import build_mixed_initiative_policy_ablation
+
+        patch_paths = getattr(args, "policy_patch", []) or []
+        if not patch_paths:
+            print("mixed-initiative-policy-ablation requires at least one --policy-patch")
+            sys.exit(1)
+        actions = []
+        for raw_action in getattr(args, "action", []) or []:
+            raw_action = str(raw_action or "").strip()
+            if not raw_action:
+                continue
+            if raw_action.startswith("{"):
+                actions.append(json.loads(raw_action))
+            else:
+                actions.append({"id": raw_action, "type": raw_action, "parameters": {}})
+        report = build_mixed_initiative_policy_ablation(
+            patch_paths=patch_paths,
+            actions=actions,
+            template_ids=getattr(args, "template_id", []) or [],
+            candidate_ids=getattr(args, "candidate_id", []) or [],
+            allow_planned_backend=getattr(args, "allow_planned_backend", False),
+        )
+        print("\nMixed-Initiative Policy Ablation")
+        print(f"  ok: {report.ok}")
+        print(f"  patches: {report.patch_count}")
+        print(f"  action decisions changed: {report.action_changed_count}/{len(report.action_cases)}")
+        print(f"  template decisions changed: {report.template_changed_count}/{len(report.template_cases)}")
+        print(f"  candidate decisions changed: {report.candidate_changed_count}/{len(report.candidate_cases)}")
+        if report.action_cases:
+            print("  action cases:")
+            for case in report.action_cases[:8]:
+                base = case.baseline
+                patched = case.patched
+                marker = "*" if case.changed else "-"
+                print(
+                    f"    {marker} {case.id}: "
+                    f"{base.get('backend')}/{base.get('preferred_control')} -> "
+                    f"{patched.get('backend')}/{patched.get('preferred_control')}"
+                )
+                if patched.get("fallback_reason"):
+                    print(f"      fallback: {patched.get('fallback_reason')}")
+        review_cases = list(report.template_cases) + list(report.candidate_cases)
+        if review_cases:
+            print("  review cases:")
+            for case in review_cases[:8]:
+                marker = "*" if case.changed else "-"
+                print(
+                    f"    {marker} {case.target_type}:{case.target_id}: "
+                    f"{case.baseline.get('decision')} -> {case.patched.get('decision')}"
+                )
+        if report.patched_recommendations:
+            print("  patched recommendations:")
+            for item in report.patched_recommendations[:8]:
+                print(
+                    f"    - {item.get('decision')}[{item.get('priority', 'normal')}] "
+                    f"{item.get('target_type')}:{item.get('target_id')}"
+                )
+        for error in report.errors:
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if not report.ok:
             sys.exit(1)
         return
 
