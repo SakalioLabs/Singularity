@@ -120,10 +120,22 @@ class FakeMemoryWriter:
 class FakeRelevantMemory:
     def __init__(self):
         self.calls = []
+        self.filter_calls = []
 
     def get_relevant_memory(self, query: str, current_state: dict = None) -> str:
         self.calls.append({"query": query, "current_state": current_state})
         return "state-aware memory"
+
+    def memory_read_filter_report(self, query: str = "", current_state: dict = None) -> dict:
+        self.filter_calls.append({"query": query, "current_state": current_state})
+        return {
+            "query": query,
+            "total_entries": 2,
+            "usable_entries": 1,
+            "filtered_entries": 1,
+            "filter_reasons": {"superseded": 1},
+            "filtered_ids": ["old-route"],
+        }
 
 
 class FakeObserver:
@@ -629,7 +641,9 @@ def test_agent_passes_observation_to_memory_retrieval():
     assert result == "state-aware memory"
     assert memory.calls[0]["query"] == "safe coal route"
     assert memory.calls[0]["current_state"]["time_of_day"] == "night"
+    assert memory.filter_calls[0]["current_state"]["inventory"]["torch"] == 0
     assert agent.session_logger.events[0]["type"] == "memory_read"
+    assert agent.session_logger.events[0]["data"]["read_filter_report"]["filtered_entries"] == 1
     print("PASS: Agent passes observation to memory retrieval")
 
 

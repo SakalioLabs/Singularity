@@ -152,6 +152,15 @@ def main():
     memory_policy_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     memory_policy_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline memory read filter report
+    memory_read_parser = subparsers.add_parser("memory-read-filter-report", help="Report stale or condition-mismatched durable memories for a query")
+    memory_read_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
+    memory_read_parser.add_argument("--query", type=str, default="", help="Optional retrieval query to filter relevant entries")
+    memory_read_parser.add_argument("--current-state-json", type=str, default="", help="Optional current state JSON object for conditional applicability checks")
+    memory_read_parser.add_argument("--current-state-file", type=str, default="", help="Optional JSON file with current state for conditional applicability checks")
+    memory_read_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    memory_read_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Skill candidate review queue
     candidates_parser = subparsers.add_parser("skill-candidates", help="Review extracted skill candidates")
     candidates_parser.add_argument("--queue", type=str, default="workspace/skills/skill_candidates.jsonl")
@@ -396,6 +405,34 @@ def main():
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "memory-read-filter-report":
+        from singularity.core.memory import MemorySystem
+
+        current_state = {}
+        if getattr(args, "current_state_file", ""):
+            with open(args.current_state_file, "r", encoding="utf-8-sig") as f:
+                current_state = json.load(f)
+        elif getattr(args, "current_state_json", ""):
+            current_state = json.loads(args.current_state_json)
+        memory = MemorySystem(memory_dir=getattr(args, "memory_dir", "workspace/memory"))
+        report = memory.memory_read_filter_report(
+            query=getattr(args, "query", ""),
+            current_state=current_state or None,
+        )
+        print("\nMemory Read Filter Report")
+        print(f"  memory dir: {getattr(args, 'memory_dir', 'workspace/memory')}")
+        print(f"  query: {report['query'] or '-'}")
+        print(f"  total entries: {report['total_entries']}")
+        print(f"  usable entries: {report['usable_entries']}")
+        print(f"  filtered entries: {report['filtered_entries']}")
+        for reason, count in sorted(report["filter_reasons"].items()):
+            print(f"    - {reason}: {count}")
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
         return
 

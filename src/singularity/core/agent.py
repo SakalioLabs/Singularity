@@ -550,8 +550,11 @@ class Agent:
     def _read_relevant_memory(self, query: str, current_state: dict = None, source: str = "planner") -> str:
         decision = self._memory_read_decision(query, "mixed", "relevant_memory", "retrieve")
         result = ""
+        read_filter_report = {}
         if decision.should_retrieve and hasattr(self, "memory") and self.memory and hasattr(self.memory, "get_relevant_memory"):
             result = self.memory.get_relevant_memory(query, current_state=current_state)
+            if hasattr(self.memory, "memory_read_filter_report"):
+                read_filter_report = self.memory.memory_read_filter_report(query, current_state=current_state)
         self._log_memory_read(
             query=query,
             layer="mixed",
@@ -560,6 +563,7 @@ class Agent:
             result=result,
             source=source,
             decision=decision,
+            read_filter_report=read_filter_report,
         )
         return result
 
@@ -664,6 +668,7 @@ class Agent:
         result,
         source: str = "",
         decision: MemoryPolicyDecision = None,
+        read_filter_report: dict = None,
     ):
         if not hasattr(self, "session_logger") or not hasattr(self.session_logger, "log"):
             return
@@ -679,6 +684,8 @@ class Agent:
         }
         if decision is not None:
             payload["policy_decision"] = decision.as_dict()
+        if read_filter_report:
+            payload["read_filter_report"] = read_filter_report
         self.session_logger.log("memory_read", payload)
 
     def _log_memory_manage(

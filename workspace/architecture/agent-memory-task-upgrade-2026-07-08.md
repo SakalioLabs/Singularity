@@ -186,6 +186,7 @@ Singularity adaptation:
 - Add GovMem-style provenance flags (`correlated_evidence`, `unsafe_scope`) before candidate facts can become durable semantic memory.
 - Add STALE-style `state_revision` and `implicit_conflict` flags when new evidence supersedes a prior shared state.
 - Filter read-time durable memories whose metadata says they are stale, superseded, invalidated, contradicted, or conditionally inapplicable to the current observation.
+- Log and report read-time filters so retrieval quality can be audited against later task outcomes.
 
 ## Proposed Singularity Delta Architecture
 
@@ -395,3 +396,4 @@ Memory should be treated as a policy-controlled subsystem:
 - Added M7 shared-memory provenance: collaboration tasks can declare `shared_state_provenance`, execution stores per-key `_shared_memory_provenance` histories, and reports summarize `_shared_memory_governance` counts including false-promotion review, correlated evidence, and unsafe scope.
 - Added STALE-style shared-state revision detection: when M7 execution changes a previously provenanced shared key, the runner records `supersedes` metadata, marks the candidate as `implicit_conflict`, and reports state revision counts.
 - Added MemConflict-style read filtering: `MemorySystem.get_relevant_memory()` accepts current state, excludes stale/superseded/invalidated/contradicted/out-of-scope or condition-mismatched durable entries, and exposes `memory_read_filter_report()` for retrieval diagnostics.
+- Wired read-filter diagnostics into Agent `memory_read` events and added `memory-read-filter-report` CLI for offline memory-directory audits.
