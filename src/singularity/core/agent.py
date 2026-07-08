@@ -463,7 +463,7 @@ class Agent:
 
     def _think_llm(self, observation: dict, goal: str) -> dict:
         # Gather memory context for planning
-        memory_context = self._read_relevant_memory(goal, source="planner_goal")
+        memory_context = self._read_relevant_memory(goal, observation, source="planner_goal")
         context_window = self._read_context_window(source="planner_context")
 
         # Get skill recommendations
@@ -547,11 +547,11 @@ class Agent:
             decision=decision,
         )
 
-    def _read_relevant_memory(self, query: str, source: str = "planner") -> str:
+    def _read_relevant_memory(self, query: str, current_state: dict = None, source: str = "planner") -> str:
         decision = self._memory_read_decision(query, "mixed", "relevant_memory", "retrieve")
         result = ""
         if decision.should_retrieve and hasattr(self, "memory") and self.memory and hasattr(self.memory, "get_relevant_memory"):
-            result = self.memory.get_relevant_memory(query)
+            result = self.memory.get_relevant_memory(query, current_state=current_state)
         self._log_memory_read(
             query=query,
             layer="mixed",

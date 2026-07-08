@@ -650,6 +650,42 @@
 
 ---
 
+## P-035: MemConflict
+
+- **Title**: MemConflict: Evaluating Long-Term Memory Systems Under Memory Conflicts
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2605.20926
+- **Type**: Paper + Diagnostic Benchmark
+- **Task Type**: Long-term memory retrieval under temporal, factual, and conditional conflicts
+- **Core Method**: Query-conditioned memory validity evaluation with white-box retrieval/ranking diagnostics
+- **Action Space**: Memory evidence selection before answer/action generation
+- **Memory**: Competing memory candidates with temporal validity, factual correctness, and contextual applicability
+- **Key Results**: Shows retrieval/ranking failures can diverge from final-answer correctness under conflicting evidence
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Blueprint for read-time stale and condition-mismatch filtering before memories enter Minecraft planning prompts
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-memconflict.md`
+
+---
+
+## P-036: ActMem
+
+- **Title**: ActMem: Bridging the Gap Between Memory Retrieval and Reasoning in LLM Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2603.00026
+- **Type**: Paper + Evaluation Dataset
+- **Task Type**: Actionable memory retrieval and reasoning under implicit constraints
+- **Core Method**: Causal-semantic memory graph with counterfactual reasoning and conflict resolution
+- **Action Space**: Memory-conditioned decisions and downstream actions
+- **Memory**: Structured causal and semantic graph extracted from long-term histories
+- **Key Results**: Reports better handling of complex memory-dependent decisions than passive retrieval baselines
+- **Scores**: R=4, N=5, R=3, E=5
+- **Value to Project**: Supports combining durable memory, causal events, and action context into one conflict-aware retrieval substrate
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-actmem.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -688,3 +724,5 @@
 | P-032 | Agentic Memory | 2026 | R5/N5/R3/E4 | P2 |
 | P-033 | GovMem | 2026 | R5/N5/R3/E5 | P2 |
 | P-034 | STALE | 2026 | R5/N5/R4/E5 | P2 |
+| P-035 | MemConflict | 2026 | R5/N5/R4/E5 | P2 |
+| P-036 | ActMem | 2026 | R4/N5/R3/E5 | P2 |

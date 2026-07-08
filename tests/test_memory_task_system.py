@@ -117,6 +117,15 @@ class FakeMemoryWriter:
         self.episodes.append({"type": event_type, "data": data})
 
 
+class FakeRelevantMemory:
+    def __init__(self):
+        self.calls = []
+
+    def get_relevant_memory(self, query: str, current_state: dict = None) -> str:
+        self.calls.append({"query": query, "current_state": current_state})
+        return "state-aware memory"
+
+
 class FakeObserver:
     def __init__(self, observation: dict):
         self.observation = observation
@@ -207,6 +216,36 @@ def test_memory_curates_and_retrieves_transfer_experience():
     assert matches
     assert matches[0].task == "Convert logs into planks and sticks"
     print("PASS: Memory retrieves transferable experience")
+
+
+def test_memory_read_filters_stale_and_conditional_entries():
+    memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
+    stale = memory.add_memory(
+        "The cave route to coal is safe.",
+        tags=["coal", "route"],
+        importance=0.9,
+        metadata={"validity": "superseded", "superseded_by": "route_blocked"},
+    )
+    active = memory.add_memory(
+        "The ridge route to coal is safe during daytime.",
+        tags=["coal", "route"],
+        importance=0.8,
+        metadata={"applies_when": {"time_of_day": "day"}},
+    )
+
+    night_result = memory.get_relevant_memory("safe coal route", current_state={"time_of_day": "night"})
+    day_result = memory.get_relevant_memory("safe coal route", current_state={"time_of_day": "day"})
+    report = memory.memory_read_filter_report("safe coal route", current_state={"time_of_day": "night"})
+
+    assert "cave route" not in night_result
+    assert "ridge route" not in night_result
+    assert "ridge route" in day_result
+    assert stale.uses == 0
+    assert active.uses == 1
+    assert report["filtered_entries"] == 2
+    assert report["filter_reasons"]["superseded"] == 1
+    assert report["filter_reasons"]["conditional_mismatch"] == 1
+    print("PASS: Memory read filters stale and conditional entries")
 
 
 def test_memory_tracks_recall_diversity_for_consolidation():
@@ -572,6 +611,26 @@ def test_agent_memory_policy_can_suppress_noisy_write_when_enforced():
     assert decision["should_persist"] is False
     assert "raw_observation_dump" in decision["quality_flags"]
     print("PASS: Agent memory policy can suppress noisy writes when enforced")
+
+
+def test_agent_passes_observation_to_memory_retrieval():
+    agent = object.__new__(Agent)
+    memory = FakeRelevantMemory()
+    agent.memory = memory
+    agent.memory_policy = MemoryLifecyclePolicy()
+    agent.session_logger = FakeSessionLogger()
+
+    result = agent._read_relevant_memory(
+        "safe coal route",
+        {"time_of_day": "night", "inventory": {"torch": 0}},
+        source="test_read",
+    )
+
+    assert result == "state-aware memory"
+    assert memory.calls[0]["query"] == "safe coal route"
+    assert memory.calls[0]["current_state"]["time_of_day"] == "night"
+    assert agent.session_logger.events[0]["type"] == "memory_read"
+    print("PASS: Agent passes observation to memory retrieval")
 
 
 def test_memory_policy_routes_correlated_evidence_to_review():
@@ -1347,6 +1406,7 @@ if __name__ == "__main__":
     test_knowledge_base_loads_recipes()
     test_knowledge_graph_plans_resources_and_tools()
     test_memory_curates_and_retrieves_transfer_experience()
+    test_memory_read_filters_stale_and_conditional_entries()
     test_memory_tracks_recall_diversity_for_consolidation()
     test_memory_persists_entries_and_experiences()
     test_memory_records_and_retrieves_causal_events()
@@ -1359,6 +1419,7 @@ if __name__ == "__main__":
     test_agent_autonomous_goal_uses_causal_memory_context()
     test_agent_logs_memory_lifecycle_events_for_policy_report()
     test_agent_memory_policy_can_suppress_noisy_write_when_enforced()
+    test_agent_passes_observation_to_memory_retrieval()
     test_memory_policy_routes_correlated_evidence_to_review()
     test_memory_policy_routes_state_revisions_to_review()
     test_planner_preserves_task_scheduling_hints()

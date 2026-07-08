@@ -161,19 +161,23 @@ Singularity adaptation:
 - Add an exploration trace report over autonomous session logs: visited position spread, new block/entity/resource types, visual evidence coverage, hazards encountered, multi-step plans, and failed action categories.
 - Feed exploration coverage back into curriculum novelty scoring once live autonomous traces are available.
 
-### AutoMem, Agentic Memory, GovMem, and STALE
+### AutoMem, Agentic Memory, GovMem, STALE, MemConflict, and ActMem
 
 Sources:
 - https://arxiv.org/abs/2607.01224
 - https://arxiv.org/abs/2601.01885
 - https://arxiv.org/abs/2607.02579
 - https://arxiv.org/abs/2605.06527
+- https://arxiv.org/abs/2605.20926
+- https://arxiv.org/abs/2603.00026
 
 Core idea:
 - Memory management should be an explicit trainable or feedback-driven skill, not an invisible side effect of planning.
 - Memory policies need separate write, read, manage, summarize, update, and discard decisions.
 - Repeated traces are not always independent evidence; shared prompts, copied sources, stale context, or narrow scope can create false memory promotion.
 - Mutable state memory needs supersession semantics, because later observations can implicitly invalidate old assumptions without explicit negation.
+- Retrieval needs query-conditioned fitness-for-use: temporally valid, factually correct, and contextually applicable memories should outrank or replace stale alternatives.
+- Actionable memory should connect retrieval to causal reasoning and downstream decisions, not just prompt stuffing.
 
 Singularity adaptation:
 - Keep `memory_write`, `memory_read`, and `memory_manage` events visible in session logs.
@@ -181,6 +185,7 @@ Singularity adaptation:
 - Let `MemoryLifecyclePolicy` consume feedback hints and tag candidate writes with reviewable decisions.
 - Add GovMem-style provenance flags (`correlated_evidence`, `unsafe_scope`) before candidate facts can become durable semantic memory.
 - Add STALE-style `state_revision` and `implicit_conflict` flags when new evidence supersedes a prior shared state.
+- Filter read-time durable memories whose metadata says they are stale, superseded, invalidated, contradicted, or conditionally inapplicable to the current observation.
 
 ## Proposed Singularity Delta Architecture
 
@@ -273,6 +278,7 @@ Memory should be treated as a policy-controlled subsystem:
 - correlated or stale evidence should be routed to review before semantic promotion
 - multi-agent shared-state writes should carry provenance, dependency, validity, scope, and confidence metadata so repeated role claims can be audited before becoming shared durable memory
 - changes to an already-provenanced shared key should preserve the previous value/source and route the revision through state-adjudication review
+- read-time retrieval should filter stale/superseded/invalidated/condition-mismatched durable entries before they can influence planner prompts
 - strict write gates should remain off until real trace audits show high precision
 
 ## Implemented in this pass
@@ -388,3 +394,4 @@ Memory should be treated as a policy-controlled subsystem:
 - Added GovMem-style write governance flags to `MemoryLifecyclePolicy`: correlated/shared evidence and stale/out-of-scope/contradicted validity metadata now route candidate writes through review or strict suppression.
 - Added M7 shared-memory provenance: collaboration tasks can declare `shared_state_provenance`, execution stores per-key `_shared_memory_provenance` histories, and reports summarize `_shared_memory_governance` counts including false-promotion review, correlated evidence, and unsafe scope.
 - Added STALE-style shared-state revision detection: when M7 execution changes a previously provenanced shared key, the runner records `supersedes` metadata, marks the candidate as `implicit_conflict`, and reports state revision counts.
+- Added MemConflict-style read filtering: `MemorySystem.get_relevant_memory()` accepts current state, excludes stale/superseded/invalidated/contradicted/out-of-scope or condition-mismatched durable entries, and exposes `memory_read_filter_report()` for retrieval diagnostics.

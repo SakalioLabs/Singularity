@@ -381,12 +381,14 @@ class MemorySystem:
             parts.append(entry.prompt_line()[:300])
         return "\n".join(parts)[:self.max_context_tokens]
 
-    def get_relevant_memory(self, query: str) -> str:
+    def get_relevant_memory(self, query: str, current_state: Optional[dict] = None) -> str:
         """Search L2+L3 and transfer records for information relevant to query."""
         parts = []
         query_words = self._keywords(query)
         recalled_entries = False
         for entry in self.entries.values():
+            if not self._entry_applicable(entry, current_state):
+                continue
             entry_words = self._keywords(entry.prompt_line())
             if query_words & entry_words:
                 self._mark_entry_recalled(entry, query)
@@ -405,6 +407,30 @@ class MemorySystem:
         for event in self.retrieve_causal_events(query, limit=3):
             parts.append(f"Causal: {event.prompt_line()}")
         return "\n".join(parts[:10])
+
+    def memory_read_filter_report(self, query: str = "", current_state: Optional[dict] = None) -> dict:
+        """Summarize durable memory entries excluded from read-time evidence."""
+        report = {
+            "query": query,
+            "total_entries": len(self.entries),
+            "usable_entries": 0,
+            "filtered_entries": 0,
+            "filter_reasons": {},
+            "filtered_ids": [],
+        }
+        query_words = self._keywords(query)
+        for entry in self.entries.values():
+            if query_words and not (query_words & self._keywords(entry.prompt_line())):
+                continue
+            reasons = self._entry_filter_reasons(entry, current_state)
+            if reasons:
+                report["filtered_entries"] += 1
+                report["filtered_ids"].append(entry.id)
+                for reason in reasons:
+                    report["filter_reasons"][reason] = report["filter_reasons"].get(reason, 0) + 1
+            else:
+                report["usable_entries"] += 1
+        return report
 
     def memory_consolidation_candidates(
         self,
@@ -567,6 +593,37 @@ class MemorySystem:
             recall_queries.append(signature)
         if len(recall_queries) > 20:
             del recall_queries[:-20]
+
+    def _entry_applicable(self, entry: MemoryEntry, current_state: Optional[dict] = None) -> bool:
+        return not self._entry_filter_reasons(entry, current_state)
+
+    def _entry_filter_reasons(self, entry: MemoryEntry, current_state: Optional[dict] = None) -> list[str]:
+        metadata = entry.metadata or {}
+        validity = str(metadata.get("validity") or metadata.get("evidence_status") or "").lower()
+        reasons = []
+        if validity in {"stale", "superseded", "contradicted", "invalidated", "out_of_scope", "adversarial"}:
+            reasons.append(validity)
+        if metadata.get("superseded_by") or metadata.get("invalidated_by"):
+            reasons.append("superseded")
+        if metadata.get("state_revision") and validity in {"implicit_conflict", "superseded"}:
+            reasons.append("state_revision_review")
+
+        applies_when = metadata.get("applies_when", {})
+        if isinstance(applies_when, dict) and applies_when and current_state is not None:
+            for key, expected in applies_when.items():
+                actual = self._nested_value(current_state, str(key))
+                if actual != expected:
+                    reasons.append("conditional_mismatch")
+                    break
+        return sorted(set(reasons))
+
+    def _nested_value(self, data: dict, dotted_key: str):
+        current = data
+        for part in dotted_key.split("."):
+            if not isinstance(current, dict) or part not in current:
+                return None
+            current = current[part]
+        return current
 
     def _query_signature(self, query: str) -> str:
         words = sorted(self._keywords(query))

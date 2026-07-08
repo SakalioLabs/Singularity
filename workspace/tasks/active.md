@@ -110,6 +110,7 @@
 - [x] Add GovMem-style correlated-evidence and unsafe-scope flags to `MemoryLifecyclePolicy` so shared, copied, stale, out-of-scope, adversarial, or contradicted memory candidates are routed through review before durable promotion.
 - [x] Add provenance/dependency metadata to M7 shared-state memory candidates and summarize GovMem-style false-promotion review counts in collaboration execution reports.
 - [x] Add STALE-style state revision detection so M7 shared-state value changes preserve previous provenance, mark implicit conflicts, and report state revision counts.
+- [x] Add MemConflict-style read filtering so stale, superseded, invalidated, contradicted, out-of-scope, and condition-mismatched durable memories are excluded before planner prompt construction.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -124,6 +125,7 @@
 - [ ] Run `memory-policy-report` on real M1/M2/autonomous session logs and compare `MemoryLifecyclePolicy` decisions against task outcomes before enabling strict write gates.
 - [ ] Run live M7 with shared-memory governance enabled and compare `false_promotion_review_count` plus provenance histories across collaboration logs.
 - [ ] Add mutable-world-state keys to live M7/autonomous traces and compare `state_revision_count` plus `implicit_conflict_count` against stale-task decisions.
+- [ ] Run `memory_read_filter_report()` on live autonomous/M7 memory stores and compare filtered stale/conditional entries against actual task outcomes.
 - [ ] Run `exploration-trace-report` on real autonomous session logs, apply `curriculum_feedback`, and compare before/after curriculum candidate rankings.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
