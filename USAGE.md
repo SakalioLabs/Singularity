@@ -287,6 +287,8 @@ python -m singularity.main skill-candidates
 # Approve or reject a candidate
 python -m singularity.main skill-candidates --approve CANDIDATE_ID
 python -m singularity.main skill-candidates --approve CANDIDATE_ID --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
+python -m singularity.main discovery-application-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/discovery_application.json
+python -m singularity.main skill-candidates --approve CANDIDATE_ID --discovery-skill-gate logs/benchmarks/discovery_application.json
 python -m singularity.main skill-candidates --reject CANDIDATE_ID --reason "too brittle"
 
 # Approved causal/correction skills are loaded from workspace/skills by the agent.

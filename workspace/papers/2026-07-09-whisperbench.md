@@ -16,5 +16,6 @@
   - Log why a write is trusted, which evidence supports it, and where it is allowed to apply.
 **Singularity Adaptation**:
   - Runtime mixed-policy patch loading now honors approved gate reports before offline patch artifacts can affect `ActionController` or mixed-initiative template policy.
+  - Experiment-derived skill promotion now honors discovery skill gates before candidates are written to the persistent skill library.
   - The same gate pattern should be reused for durable memory promotion, shared M7 state consolidation, and future generated Minecraft skills.
 **Next Action**: Add poison-resistance cases to memory write-gate tests before enabling stricter default memory enforcement.

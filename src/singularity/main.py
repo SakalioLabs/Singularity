@@ -174,6 +174,7 @@ def main():
     candidates_parser.add_argument("--storage-path", type=str, default="workspace/skills")
     candidates_parser.add_argument("--session", type=str, default="", help="Extract candidates from a session JSONL log")
     candidates_parser.add_argument("--promotion-critic", action="store_true", help="Use configured LLM as fallback critic for unknown verifier gates")
+    candidates_parser.add_argument("--discovery-skill-gate", action="append", default=[], help="Saved discovery-application-report JSON required before approving experiment-derived skills")
     candidates_parser.add_argument("--llm-provider", type=str, default="openai")
     candidates_parser.add_argument("--llm-model", type=str, default="gpt-4o-mini")
     candidates_parser.add_argument("--llm-base-url", type=str, default="")
@@ -594,7 +595,12 @@ def main():
         promotion_critic = _promotion_critic_from_args(args)
         if getattr(args, "session", ""):
             lib = SkillLibrary(storage_path=getattr(args, "storage_path", "workspace/skills"))
-            extractor = SkillExtractor(lib, auto_promote=False, promotion_critic=promotion_critic)
+            extractor = SkillExtractor(
+                lib,
+                auto_promote=False,
+                promotion_critic=promotion_critic,
+                discovery_gate_paths=getattr(args, "discovery_skill_gate", []) or [],
+            )
             candidates = extractor.extract_skill_candidates(args.session)
             if getattr(args, "causal_summaries", False):
                 candidates.extend(extractor.extract_causal_skill_candidates(
@@ -623,7 +629,12 @@ def main():
             return
         if getattr(args, "approve", ""):
             lib = SkillLibrary(storage_path=getattr(args, "storage_path", "workspace/skills"), persist=True)
-            candidate = queue.approve(args.approve, lib, promotion_critic=promotion_critic)
+            candidate = queue.approve(
+                args.approve,
+                lib,
+                promotion_critic=promotion_critic,
+                discovery_gate_paths=getattr(args, "discovery_skill_gate", []) or [],
+            )
             if not candidate:
                 print(f"candidate not found: {args.approve}")
                 sys.exit(1)
@@ -650,7 +661,13 @@ def main():
             gate_text = ""
             if isinstance(gate, dict) and gate:
                 gate_text = f" gate={gate.get('decision', 'allow')}/{gate.get('status', 'unknown')}:{gate.get('reason', '')}"
-            print(f"- {candidate.id} [{candidate.review_status}] {candidate.name} score={candidate.score}{gate_text}: {candidate.description}")
+            discovery_gate = report.get("discovery_gate", {}) if isinstance(report, dict) else {}
+            if not discovery_gate and isinstance(candidate.signals, dict):
+                discovery_gate = candidate.signals.get("discovery_skill_gate", {})
+            discovery_text = ""
+            if isinstance(discovery_gate, dict) and discovery_gate.get("required"):
+                discovery_text = f" discovery={discovery_gate.get('readiness', 'unknown')}:{discovery_gate.get('reason', '')}"
+            print(f"- {candidate.id} [{candidate.review_status}] {candidate.name} score={candidate.score}{gate_text}{discovery_text}: {candidate.description}")
         return
 
     if args.command == "collab-benchmark":

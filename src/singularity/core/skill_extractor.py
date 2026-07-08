@@ -51,6 +51,7 @@ class SkillPromotionValidationReport:
     postconditions: dict = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
     gate: dict = field(default_factory=dict)
+    discovery_gate: dict = field(default_factory=dict)
     critic: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
@@ -190,11 +191,21 @@ class SkillCandidateQueue:
     def all(self) -> list[SkillCandidate]:
         return list(self.candidates.values())
 
-    def approve(self, candidate_id: str, skill_library, promotion_critic=None) -> SkillCandidate | None:
+    def approve(
+        self,
+        candidate_id: str,
+        skill_library,
+        promotion_critic=None,
+        discovery_gate_paths: list[str] = None,
+    ) -> SkillCandidate | None:
         candidate = self.candidates.get(candidate_id)
         if not candidate:
             return None
-        skill = SkillExtractor(skill_library, promotion_critic=promotion_critic).approve_candidate(candidate)
+        skill = SkillExtractor(
+            skill_library,
+            promotion_critic=promotion_critic,
+            discovery_gate_paths=discovery_gate_paths,
+        ).approve_candidate(candidate)
         if skill is not None:
             candidate.review_status = "approved"
         self._rewrite()
@@ -234,14 +245,136 @@ class SkillCandidateQueue:
         return {k: v for k, v in data.items() if k in allowed}
 
 
+def build_discovery_skill_gate(
+    discovery_report_paths: list[str] = None,
+    feedback: dict = None,
+    source: str = "",
+) -> dict:
+    """Build an approve/review/reject gate from discovery-to-application evidence."""
+    inputs = []
+    errors = []
+    if isinstance(feedback, dict) and feedback:
+        inputs.append({"source": source or "candidate", "feedback": feedback})
+    for path in discovery_report_paths or []:
+        if not path:
+            continue
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                payload = json.load(f)
+            report_feedback = payload.get("discovery_feedback", payload)
+            if not isinstance(report_feedback, dict):
+                raise ValueError("missing discovery_feedback object")
+            inputs.append({"source": path, "feedback": report_feedback})
+        except Exception as e:
+            errors.append(f"{path}: {e}")
+
+    if not inputs and not errors:
+        return {
+            "required": False,
+            "readiness": "not_required",
+            "decision": "allow",
+            "reason": "no_discovery_gate_required",
+            "sources": [],
+            "evidence": [],
+            "missing": [],
+            "warnings": [],
+            "errors": [],
+        }
+
+    totals = {
+        "complete_loop_count": 0,
+        "successful_application_count": 0,
+        "failed_application_count": 0,
+        "causal_memory_write_count": 0,
+        "failed_experiment_action_count": 0,
+    }
+    all_ready = True
+    sources = []
+    evidence = []
+    missing = []
+    warnings = []
+    for item in inputs:
+        source_name = item["source"]
+        item_feedback = item["feedback"]
+        sources.append(source_name)
+        ready = bool(item_feedback.get("ready_for_skill_gate"))
+        all_ready = all_ready and ready
+        for key in totals:
+            totals[key] += _safe_int(item_feedback.get(key, 0))
+        if ready:
+            evidence.append(f"{source_name}: discovery loop ready for skill gate")
+        else:
+            missing.append(f"{source_name}: discovery loop incomplete")
+        recommendations = item_feedback.get("recommendations", [])
+        if isinstance(recommendations, list):
+            warnings.extend(str(item) for item in recommendations[:8] if str(item or "").strip())
+
+    if errors:
+        readiness = "error"
+        decision = "reject"
+        reason = "discovery_skill_gate_error"
+    elif all_ready and inputs:
+        readiness = "approved"
+        decision = "allow"
+        reason = "discovery_loop_and_application_evidence_approved"
+    elif totals["failed_application_count"] > 0 and totals["successful_application_count"] <= 0:
+        readiness = "rejected"
+        decision = "reject"
+        reason = "discovery_application_failed_without_success"
+    else:
+        readiness = "review"
+        decision = "reject"
+        reason = "discovery_skill_gate_requires_review"
+
+    return {
+        "required": True,
+        "readiness": readiness,
+        "decision": decision,
+        "reason": reason,
+        "sources": sources,
+        "evidence": evidence,
+        "missing": missing,
+        "warnings": _dedupe_strings(warnings),
+        "errors": errors,
+        **totals,
+    }
+
+
+def _safe_int(value) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _dedupe_strings(values: list) -> list[str]:
+    seen = set()
+    result = []
+    for value in values:
+        text = str(value or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return result
+
+
 class SkillExtractor:
     """Extracts reusable skills and transferable experience from session logs."""
 
-    def __init__(self, skill_library, memory_system=None, auto_promote: bool = True, promotion_critic=None):
+    def __init__(
+        self,
+        skill_library,
+        memory_system=None,
+        auto_promote: bool = True,
+        promotion_critic=None,
+        discovery_gate_paths: list[str] = None,
+    ):
         self.skill_library = skill_library
         self.memory_system = memory_system
         self.auto_promote = auto_promote
         self.promotion_critic = promotion_critic
+        self.discovery_gate_paths = list(discovery_gate_paths or [])
 
     def extract_from_session(self, session_log_path: str) -> list:
         """Extract skills from a successful session log."""
@@ -270,10 +403,17 @@ class SkillExtractor:
             return []
         verification_gate = self._verification_gate_from_events(events, goal)
         visual_evidence = self._visual_evidence_from_events(events, goal)
+        discovery_feedback = self._discovery_feedback_from_events(events)
         skill_name = self._generate_skill_name(goal)
         signals = {**score["signals"], "verification_gate": verification_gate}
         if visual_evidence:
             signals["visual_evidence"] = visual_evidence
+        if discovery_feedback:
+            signals["discovery_feedback"] = discovery_feedback
+            signals["discovery_skill_gate"] = build_discovery_skill_gate(
+                feedback=discovery_feedback,
+                source=session_log_path,
+            )
         return [
             SkillCandidate(
                 name=skill_name,
@@ -295,6 +435,7 @@ class SkillExtractor:
         """Create reviewable candidates from repeated high-value causal summaries."""
         events = self._load_events(session_log_path)
         goal = self._session_goal(events)
+        discovery_feedback = self._discovery_feedback_from_events(events)
         index = CausalEventIndex("", persist=False)
         causal_events = index.ingest_session_events(events, goal=goal)
         summaries = aggregate_causal_events(causal_events)
@@ -304,6 +445,12 @@ class SkillExtractor:
                 continue
             candidate = self._causal_summary_candidate(summary, goal)
             candidate.signals["verification_gate"] = self._verification_gate_from_events(events, goal)
+            if discovery_feedback:
+                candidate.signals["discovery_feedback"] = discovery_feedback
+                candidate.signals["discovery_skill_gate"] = build_discovery_skill_gate(
+                    feedback=discovery_feedback,
+                    source=session_log_path,
+                )
             visual_evidence = self._visual_evidence_from_events(events, goal)
             if visual_evidence:
                 candidate.signals["visual_evidence"] = visual_evidence
@@ -319,6 +466,7 @@ class SkillExtractor:
         """Create reviewable candidates from repeated failures followed by corrective actions."""
         events = self._load_events(session_log_path)
         goal = self._session_goal(events)
+        discovery_feedback = self._discovery_feedback_from_events(events)
         index = CausalEventIndex("", persist=False)
         causal_events = index.ingest_session_events(events, goal=goal)
         summaries = aggregate_causal_events(causal_events)
@@ -331,6 +479,12 @@ class SkillExtractor:
                 continue
             candidate = self._failure_correction_candidate(summary, correction, goal)
             candidate.signals["verification_gate"] = self._verification_gate_from_events(events, goal)
+            if discovery_feedback:
+                candidate.signals["discovery_feedback"] = discovery_feedback
+                candidate.signals["discovery_skill_gate"] = build_discovery_skill_gate(
+                    feedback=discovery_feedback,
+                    source=session_log_path,
+                )
             visual_evidence = self._visual_evidence_from_events(events, goal)
             if visual_evidence:
                 candidate.signals["visual_evidence"] = visual_evidence
@@ -348,8 +502,8 @@ class SkillExtractor:
         }
         if report.decision == "reject":
             candidate.review_status = "rejected"
-            candidate.reason = f"{candidate.reason}; verifier_gate={report.reason}"
-            logger.warning(f"Rejected skill candidate '{candidate.name}' by verifier gate: {report.reason}")
+            candidate.reason = f"{candidate.reason}; promotion_gate={report.reason}"
+            logger.warning(f"Rejected skill candidate '{candidate.name}' by promotion gate: {report.reason}")
             return None
 
         candidate.review_status = "approved"
@@ -367,11 +521,30 @@ class SkillExtractor:
     def validate_candidate_for_promotion(self, candidate: SkillCandidate) -> SkillPromotionValidationReport:
         """Explain whether a candidate is ready for promotion."""
         gate = self._candidate_verification_gate(candidate)
+        discovery_gate = self._candidate_discovery_gate(candidate)
+        if discovery_gate.get("required"):
+            gate = {
+                **gate,
+                "discovery_skill_gate": discovery_gate,
+                "matched_rules": self._merge_list(gate.get("matched_rules", []), ["discovery_skill_gate"]),
+                "evidence": self._merge_list(gate.get("evidence", []), discovery_gate.get("evidence", [])),
+                "missing": self._merge_list(gate.get("missing", []), discovery_gate.get("missing", [])),
+            }
+            if discovery_gate.get("decision") == "reject":
+                gate.update({
+                    "decision": "reject",
+                    "status": f"discovery_{discovery_gate.get('readiness', 'review')}",
+                    "reason": discovery_gate.get("reason", "discovery_skill_gate_requires_review"),
+                })
         critic = {}
         if gate.get("status") == "unknown" and self.promotion_critic:
             gate, critic = self._apply_promotion_critic(candidate, gate)
         postconditions = self._postconditions_from_verification_gate(gate)
         warnings = []
+        if discovery_gate.get("warnings"):
+            warnings.extend(discovery_gate.get("warnings", []))
+        if discovery_gate.get("errors"):
+            warnings.extend(discovery_gate.get("errors", []))
         if gate.get("status") == "unknown":
             warnings.append("no deterministic verification proof; approval relies on consolidation score and human/operator review")
         if not postconditions:
@@ -402,6 +575,7 @@ class SkillExtractor:
             postconditions=postconditions,
             warnings=warnings,
             gate=gate,
+            discovery_gate=discovery_gate,
             critic=critic,
         )
 
@@ -532,6 +706,108 @@ class SkillExtractor:
         result = data.get("result", {})
         return bool(data.get("success") or result.get("completed") or result.get("success"))
 
+    def _discovery_feedback_from_events(self, events: list[dict]) -> dict:
+        """Infer a compact discovery-to-application gate payload from session events."""
+        hypothesis_count = 0
+        experiment_count = 0
+        consolidation_count = 0
+        application_count = 0
+        successful_application_count = 0
+        failed_application_count = 0
+        causal_memory_write_count = 0
+        failed_experiment_action_count = 0
+        recommendations = []
+
+        for event in events:
+            event_type = str(event.get("type") or "").lower()
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            text = self._compact_discovery_text(data)
+            if event_type in {"discovery_hypothesis", "hypothesis", "knowledge_gap"}:
+                hypothesis_count += 1
+            elif event_type in {"discovery_experiment", "experiment"}:
+                experiment_count += 1
+                if self._event_success(data) is False:
+                    failed_experiment_action_count += 1
+            elif event_type in {"discovery_consolidation", "causal_rule", "knowledge_consolidation"}:
+                consolidation_count += 1
+            elif event_type in {"discovery_application", "knowledge_application"}:
+                application_count += 1
+                success = self._event_success(data)
+                if success is True:
+                    successful_application_count += 1
+                elif success is False:
+                    failed_application_count += 1
+            elif event_type == "memory_write" and self._looks_like_causal_discovery_memory(data, text):
+                consolidation_count += 1
+                causal_memory_write_count += 1
+            elif event_type == "action" and self._looks_like_discovery_experiment_text(text):
+                experiment_count += 1
+                result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+                if result.get("success") is False:
+                    failed_experiment_action_count += 1
+
+        for event in events:
+            if event.get("type") != "goal_end":
+                continue
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            goal = str(data.get("goal", ""))
+            if not self._looks_like_discovery_application_text(goal.lower()):
+                continue
+            application_count += 1
+            success = self._event_success(data)
+            if success is True:
+                successful_application_count += 1
+            elif success is False:
+                failed_application_count += 1
+
+        if not any((
+            hypothesis_count,
+            experiment_count,
+            consolidation_count,
+            application_count,
+            causal_memory_write_count,
+        )):
+            return {}
+
+        phase_counts = {
+            "knowledge_gap_identification": hypothesis_count,
+            "experimental_discovery": experiment_count,
+            "knowledge_consolidation": consolidation_count,
+            "knowledge_application": application_count,
+        }
+        complete_loop_count = min(phase_counts.values())
+        if hypothesis_count <= 0:
+            recommendations.append("record_explicit_knowledge_gap_or_hypothesis")
+        if experiment_count <= 0:
+            recommendations.append("run_small_controlled_minecraft_experiment")
+        if consolidation_count <= 0 or causal_memory_write_count <= 0:
+            recommendations.append("write_causal_rule_with_provenance_before_skill_promotion")
+        if application_count <= 0:
+            recommendations.append("test_discovered_rule_on_held_out_application_goal")
+        elif successful_application_count <= 0:
+            recommendations.append("repeat_application_until_discovered_rule_succeeds")
+        if failed_experiment_action_count > 0:
+            recommendations.append("review_failed_experiment_actions_before_consolidation")
+
+        return {
+            "ready_for_skill_gate": bool(
+                complete_loop_count > 0
+                and successful_application_count > 0
+                and causal_memory_write_count > 0
+            ),
+            "phase_counts": phase_counts,
+            "complete_loop_count": complete_loop_count,
+            "hypothesis_count": hypothesis_count,
+            "experiment_count": experiment_count,
+            "consolidation_count": consolidation_count,
+            "application_count": application_count,
+            "successful_application_count": successful_application_count,
+            "failed_application_count": failed_application_count,
+            "causal_memory_write_count": causal_memory_write_count,
+            "failed_experiment_action_count": failed_experiment_action_count,
+            "recommendations": recommendations,
+        }
+
     def _verification_gate_from_events(self, events: list[dict], goal: str = "") -> dict:
         """Summarize goal verification evidence that can gate skill promotion."""
         verifications = [
@@ -611,6 +887,59 @@ class SkillExtractor:
         if gate.get("status") == "failed":
             return {**gate, "decision": "reject", "reason": gate.get("reason") or "verification_failed"}
         return {**gate, "decision": gate.get("decision", "allow")}
+
+    def _candidate_discovery_gate(self, candidate: SkillCandidate) -> dict:
+        if self.discovery_gate_paths:
+            return build_discovery_skill_gate(discovery_report_paths=self.discovery_gate_paths)
+        gate = candidate.signals.get("discovery_skill_gate", {}) if isinstance(candidate.signals, dict) else {}
+        if isinstance(gate, dict) and gate:
+            return gate
+        feedback = candidate.signals.get("discovery_feedback", {}) if isinstance(candidate.signals, dict) else {}
+        if isinstance(feedback, dict) and feedback:
+            return build_discovery_skill_gate(feedback=feedback, source=f"candidate:{candidate.id}")
+        return build_discovery_skill_gate()
+
+    def _event_success(self, record: dict):
+        if not isinstance(record, dict):
+            return None
+        for key in ("success", "completed", "passed", "ok"):
+            if isinstance(record.get(key), bool):
+                return record.get(key)
+        result = record.get("result")
+        if isinstance(result, dict):
+            return self._event_success(result)
+        return None
+
+    def _compact_discovery_text(self, value) -> str:
+        parts = []
+
+        def collect(item):
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                for key, nested in item.items():
+                    if isinstance(key, str):
+                        parts.append(key)
+                    collect(nested)
+            elif isinstance(item, list):
+                for nested in item:
+                    collect(nested)
+
+        collect(value)
+        return " ".join(parts).lower()
+
+    def _looks_like_discovery_experiment_text(self, text: str) -> bool:
+        return any(token in text for token in ("experiment", "trial", "test", "probe", "redstone", "circuit", "lever", "lamp"))
+
+    def _looks_like_discovery_application_text(self, text: str) -> bool:
+        return any(token in text for token in ("apply", "application", "build", "construct", "redstone", "circuit", "lamp"))
+
+    def _looks_like_causal_discovery_memory(self, record: dict, text: str) -> bool:
+        layer = str(record.get("layer", "")).lower() if isinstance(record, dict) else ""
+        memory_type = str(record.get("memory_type", "")).lower() if isinstance(record, dict) else ""
+        if layer == "causal" or "causal" in memory_type or "rule" in memory_type:
+            return True
+        return any(token in text for token in ("causal rule", "because", "if ", "then "))
 
     def _visual_evidence_from_events(self, events: list[dict], goal: str = "") -> dict:
         observations = [

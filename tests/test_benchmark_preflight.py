@@ -10,7 +10,13 @@ from singularity.core.config import BotConfig, Config
 from singularity.core.goal_verifier import GoalVerificationCritic
 from singularity.core.memory import MemorySystem
 from singularity.core.memory_policy import MemoryLifecyclePolicy
-from singularity.core.skill_extractor import SkillCandidateQueue, SkillPromotionCritic
+from singularity.core.skill_extractor import (
+    SkillCandidate,
+    SkillCandidateQueue,
+    SkillExtractor,
+    SkillPromotionCritic,
+    build_discovery_skill_gate,
+)
 from singularity.core.skill_library import SkillLibrary
 from singularity.evaluation import benchmark_runner as benchmark_module
 from singularity.evaluation.benchmark_runner import BenchmarkResult, BenchmarkRunner, BenchmarkTask, PreflightCheck
@@ -1213,6 +1219,81 @@ def test_discovery_application_report_tracks_hypothesis_to_application_loop():
     print("PASS: Discovery application report tracks hypothesis-to-application loop")
 
 
+def test_discovery_skill_gate_controls_experiment_derived_skill_promotion():
+    tmpdir = tempfile.mkdtemp()
+    skill_library = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=True)
+    ready_feedback = {
+        "ready_for_skill_gate": True,
+        "complete_loop_count": 1,
+        "successful_application_count": 1,
+        "failed_application_count": 0,
+        "causal_memory_write_count": 1,
+        "failed_experiment_action_count": 0,
+        "recommendations": [],
+    }
+    blocked_feedback = {
+        "ready_for_skill_gate": False,
+        "complete_loop_count": 0,
+        "successful_application_count": 0,
+        "failed_application_count": 0,
+        "causal_memory_write_count": 0,
+        "failed_experiment_action_count": 0,
+        "recommendations": [
+            "write_causal_rule_with_provenance_before_skill_promotion",
+            "test_discovered_rule_on_held_out_application_goal",
+        ],
+    }
+    verification_gate = {
+        "decision": "allow",
+        "status": "achieved",
+        "reason": "deterministic_verification_achieved",
+        "target_inventory": {},
+        "inventory_delta": {},
+        "evidence": ["goal verifier accepted application output"],
+        "matched_rules": ["goal_verifier"],
+    }
+    ready_candidate = SkillCandidate(
+        name="redstone_lamp_rule_ready",
+        goal="Build a two-lamp redstone circuit",
+        description="Experiment-derived redstone circuit skill",
+        implementation=json.dumps([{"type": "place", "parameters": {"item": "redstone_dust"}}]),
+        score=0.92,
+        signals={
+            "verification_gate": verification_gate,
+            "discovery_feedback": ready_feedback,
+            "discovery_skill_gate": build_discovery_skill_gate(feedback=ready_feedback, source="ready_report"),
+        },
+    )
+    blocked_candidate = SkillCandidate(
+        name="redstone_lamp_rule_blocked",
+        goal="Build a two-lamp redstone circuit",
+        description="Incomplete experiment-derived redstone circuit skill",
+        implementation=json.dumps([{"type": "place", "parameters": {"item": "redstone_dust"}}]),
+        score=0.92,
+        signals={
+            "verification_gate": verification_gate,
+            "discovery_feedback": blocked_feedback,
+            "discovery_skill_gate": build_discovery_skill_gate(feedback=blocked_feedback, source="blocked_report"),
+        },
+    )
+
+    extractor = SkillExtractor(skill_library, auto_promote=False)
+    ready_skill = extractor.approve_candidate(ready_candidate)
+    blocked_skill = extractor.approve_candidate(blocked_candidate)
+
+    assert ready_skill is not None
+    assert ready_candidate.review_status == "approved"
+    assert ready_candidate.signals["promotion_report"]["discovery_gate"]["readiness"] == "approved"
+    assert blocked_skill is None
+    assert blocked_candidate.review_status == "rejected"
+    blocked_report = blocked_candidate.signals["promotion_report"]
+    assert blocked_report["decision"] == "reject"
+    assert blocked_report["discovery_gate"]["readiness"] == "review"
+    assert blocked_report["reason"] == "discovery_skill_gate_requires_review"
+    assert "write_causal_rule_with_provenance_before_skill_promotion" in blocked_report["warnings"]
+    print("PASS: Discovery skill gate controls experiment-derived skill promotion")
+
+
 def test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_action_abstraction.jsonl")
@@ -1930,6 +2011,7 @@ if __name__ == "__main__":
     test_visual_trace_report_validates_screenshot_files()
     test_exploration_trace_report_counts_open_world_coverage()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
+    test_discovery_skill_gate_controls_experiment_derived_skill_promotion()
     test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates()
     test_memory_policy_report_counts_write_read_manage_gaps_and_feedback()
     test_ingest_queues_repeated_causal_summary_candidate()
