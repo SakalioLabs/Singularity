@@ -374,7 +374,7 @@
 - **Memory**: Dimensioned experience atoms plus in-context analogy learning
 - **Key Results**: Reports faster object unlocking and transfer to related tasks
 - **Scores**: R=5, N=4, R=3, E=5
-- **Value to Project**: Direct match for `ExperienceRecord` and memory retrieval upgrades
+- **Value to Project**: Direct match for `ExperienceRecord`, dimension-weighted transfer retrieval, and `transfer-memory-report` audits
 - **Reproduction Priority**: P2
 - **Card**: `2026-07-08-echo.md`
 

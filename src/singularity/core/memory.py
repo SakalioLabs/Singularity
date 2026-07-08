@@ -12,6 +12,23 @@ from singularity.core.causal_index import CausalEvent, CausalEventIndex, aggrega
 logger = logging.getLogger("singularity.memory")
 
 
+TRANSFER_AXIS_WEIGHTS = {
+    "structure": 1.15,
+    "attribute": 1.25,
+    "process": 1.65,
+    "function": 1.45,
+    "interaction": 1.20,
+}
+
+TRANSFER_AXIS_ALIASES = {
+    "structure": ("structure", "struct"),
+    "attribute": ("attribute", "attr"),
+    "process": ("process", "procedure", "procedural", "proc"),
+    "function": ("function", "func"),
+    "interaction": ("interaction", "inter"),
+}
+
+
 @dataclass
 class MemoryEntry:
     """A bounded, curated memory entry that can be injected or retrieved."""
@@ -329,28 +346,69 @@ class MemorySystem:
             "causal_events": compact_events,
         }
 
-    def retrieve_relevant_experiences(self, query: str, current_state: Optional[dict] = None, limit: int = 5) -> list[ExperienceRecord]:
-        """Return experience records ranked by text overlap and context fit."""
-        query_words = self._keywords(query)
-        state_words = self._keywords(json.dumps(current_state or {}, default=str))
-        scored = []
+    def rank_transfer_experiences(
+        self,
+        query: str,
+        current_state: Optional[dict] = None,
+        limit: int = 5,
+        min_score: float = 0.1,
+        mark_recalled: bool = False,
+    ) -> list[dict]:
+        """Rank experiences with Echo-style transfer-axis evidence."""
+        query_words = self._transfer_tokens(query)
+        state_words = self._transfer_tokens(json.dumps(current_state or {}, default=str))
+        ranked = []
         for record in self.experiences.values():
-            text_words = self._keywords(record.searchable_text())
-            overlap = len(query_words & text_words) * 2 + len(state_words & text_words)
-            if record.success:
-                overlap += 1
-            overlap += min(3, int(record.metrics.get("success_delta", 0)))
-            if overlap > 0:
-                scored.append((overlap, record))
-        scored.sort(key=lambda item: item[0], reverse=True)
-        selected = [record for _, record in scored[:limit]]
-        recalled = False
-        for record in selected:
-            self._mark_experience_recalled(record, query)
-            recalled = True
-        if recalled:
+            score, axis_scores, axis_matches, base_matches = self._transfer_experience_score(
+                record,
+                query_words,
+                state_words,
+            )
+            if score < min_score:
+                continue
+            ranked.append({
+                "record": record,
+                "id": record.id,
+                "goal": record.goal,
+                "task": record.task,
+                "outcome": record.outcome,
+                "success": record.success,
+                "score": round(score, 4),
+                "matched_axes": [axis for axis, value in axis_scores.items() if value > 0],
+                "axis_scores": {axis: round(value, 4) for axis, value in axis_scores.items() if value > 0},
+                "axis_matches": axis_matches,
+                "base_matches": base_matches,
+                "tags": list(record.tags),
+                "causal": dict(record.causal),
+                "correction": record.correction,
+            })
+        ranked.sort(
+            key=lambda item: (
+                item["score"],
+                len(item["matched_axes"]),
+                1 if item["success"] else 0,
+                item["record"].created_at,
+            ),
+            reverse=True,
+        )
+        selected = ranked[:limit] if limit and limit > 0 else ranked
+        if mark_recalled and selected:
+            for item in selected:
+                self._mark_experience_recalled(item["record"], query)
             self._rewrite_experiences()
         return selected
+
+    def retrieve_relevant_experiences(self, query: str, current_state: Optional[dict] = None, limit: int = 5) -> list[ExperienceRecord]:
+        """Return experience records ranked by text overlap, context fit, and transfer axes."""
+        return [
+            item["record"]
+            for item in self.rank_transfer_experiences(
+                query,
+                current_state=current_state,
+                limit=limit,
+                mark_recalled=True,
+            )
+        ]
 
     def curate_entries(self, char_limit: Optional[int] = None) -> list[MemoryEntry]:
         """Return the highest-value memories that fit within a character budget."""
@@ -402,11 +460,48 @@ class MemorySystem:
         for ep in self.l2_episodic[-20:]:
             if any(word in json.dumps(ep, default=str).lower() for word in query.lower().split()[:3]):
                 parts.append(f"Experience: {ep['type']} - {json.dumps(ep['data'], default=str)[:100]}")
-        for record in self.retrieve_relevant_experiences(query, limit=3):
-            parts.append(f"Transfer: {record.task} -> {record.outcome}; why={record.causal.get('why', '')}")
+        for item in self.rank_transfer_experiences(query, current_state=current_state, limit=3, mark_recalled=True):
+            axes = ",".join(item["matched_axes"][:5]) or "text"
+            why = item["causal"].get("why", "")
+            parts.append(
+                f"Transfer[{axes} score={item['score']:.2f}]: "
+                f"{item['task']} -> {item['outcome']}; why={why}"
+            )
         for event in self.retrieve_causal_events(query, limit=3):
             parts.append(f"Causal: {event.prompt_line()}")
         return "\n".join(parts[:10])
+
+    def transfer_memory_report(
+        self,
+        query: str,
+        current_state: Optional[dict] = None,
+        limit: int = 10,
+        min_score: float = 0.1,
+    ) -> dict:
+        """Return an offline Echo-style audit of transferable experience retrieval."""
+        matches = self.rank_transfer_experiences(
+            query,
+            current_state=current_state,
+            limit=limit,
+            min_score=min_score,
+            mark_recalled=False,
+        )
+        axis_counts = {}
+        for item in matches:
+            for axis in item["matched_axes"]:
+                axis_counts[axis] = axis_counts.get(axis, 0) + 1
+        return {
+            "query": query,
+            "current_state": current_state or {},
+            "experience_count": len(self.experiences),
+            "match_count": len(matches),
+            "min_score": min_score,
+            "axis_counts": axis_counts,
+            "matches": [
+                {key: value for key, value in item.items() if key != "record"}
+                for item in matches
+            ],
+        }
 
     def memory_read_filter_report(self, query: str = "", current_state: Optional[dict] = None) -> dict:
         """Summarize durable memory entries excluded from read-time evidence."""
@@ -573,6 +668,93 @@ class MemorySystem:
             cleaned.append(ch if ch.isalnum() or ch == "_" else " ")
         words = set("".join(cleaned).split())
         return {w for w in words if len(w) > 2}
+
+    def _transfer_tokens(self, text: str) -> set[str]:
+        tokens = set()
+        for word in self._keywords(text):
+            tokens.add(word)
+            for part in word.split("_"):
+                if len(part) > 2:
+                    tokens.add(part)
+        tokens.update(self._transfer_family_tokens(tokens))
+        return tokens
+
+    def _transfer_family_tokens(self, tokens: set[str]) -> set[str]:
+        families = set()
+        material_groups = {
+            "mat_wood": {"wood", "wooden", "oak", "birch", "spruce", "jungle", "acacia", "dark", "mangrove", "log", "logs", "plank", "planks"},
+            "mat_stone": {"stone", "cobblestone", "deepslate", "granite", "diorite", "andesite"},
+            "mat_metal": {"iron", "gold", "copper", "ingot", "ore"},
+            "mat_fuel": {"coal", "charcoal", "fuel"},
+            "mat_light": {"torch", "torches", "lantern", "light"},
+        }
+        tool_groups = {
+            "tool_pickaxe": {"pickaxe", "pick"},
+            "tool_axe": {"axe"},
+            "tool_sword": {"sword"},
+            "tool_shovel": {"shovel"},
+            "tool_hoe": {"hoe"},
+        }
+        process_groups = {
+            "proc_craft": {"craft", "crafted", "crafting", "recipe", "recipes"},
+            "proc_mine": {"mine", "mined", "mining", "dig", "dug"},
+            "proc_smelt": {"smelt", "smelting", "furnace"},
+            "proc_build": {"build", "building", "place", "placed"},
+            "proc_combat": {"attack", "combat", "defend", "hostile"},
+        }
+        for family, words in {**material_groups, **tool_groups, **process_groups}.items():
+            if tokens & words:
+                families.add(family)
+        return families
+
+    def _transfer_experience_score(
+        self,
+        record: ExperienceRecord,
+        query_words: set[str],
+        state_words: set[str],
+    ) -> tuple[float, dict, dict, list[str]]:
+        core_text = " ".join([
+            record.goal,
+            record.task,
+            record.outcome,
+            record.correction,
+            " ".join(record.tags),
+            json.dumps(record.causal, default=str),
+        ])
+        core_words = self._transfer_tokens(core_text)
+        base_matches = sorted((query_words & core_words) | (state_words & core_words))
+        score = len(query_words & core_words) * 1.6 + len(state_words & core_words) * 0.8
+        if record.success:
+            score += 0.8
+        if record.correction:
+            score += 0.4
+        score += min(2.0, float(record.metrics.get("success_delta", 0) or 0) * 0.5)
+
+        axis_scores = {}
+        axis_matches = {}
+        for axis in TRANSFER_AXIS_WEIGHTS:
+            axis_words = self._transfer_tokens(json.dumps(self._dimension_axis_value(record.dimensions, axis), default=str))
+            if not axis_words:
+                axis_scores[axis] = 0.0
+                axis_matches[axis] = []
+                continue
+            query_matches = query_words & axis_words
+            state_matches = state_words & axis_words
+            axis_score = TRANSFER_AXIS_WEIGHTS[axis] * (len(query_matches) * 2.0 + len(state_matches))
+            if axis_score and axis in {"process", "function"} and record.success:
+                axis_score += 0.3
+            axis_scores[axis] = axis_score
+            axis_matches[axis] = sorted(query_matches | state_matches)[:12]
+            score += axis_score
+        return score, axis_scores, axis_matches, base_matches[:16]
+
+    def _dimension_axis_value(self, dimensions: dict, axis: str):
+        if not isinstance(dimensions, dict):
+            return ""
+        for key in TRANSFER_AXIS_ALIASES.get(axis, (axis,)):
+            if key in dimensions:
+                return dimensions.get(key)
+        return ""
 
     def _mark_entry_recalled(self, entry: MemoryEntry, query: str):
         entry.uses += 1

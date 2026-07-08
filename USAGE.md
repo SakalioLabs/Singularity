@@ -136,6 +136,8 @@ python -m singularity.main skill-candidates --session logs/session_xxx.jsonl --f
 
 # Report repeatedly recalled memories/experiences that are worth consolidation review
 python -m singularity.main memory-consolidation-report --memory-dir workspace/memory --min-recall-count 2 --min-unique-queries 2
+# Audit Echo-style transfer-axis matches from stored experience records
+python -m singularity.main transfer-memory-report --memory-dir workspace/memory --query "Craft a stone pickaxe from cobblestone and sticks"
 
 # Audit session logs for memory write/read/manage policy gaps
 python -m singularity.main memory-policy-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/memory_policy.json

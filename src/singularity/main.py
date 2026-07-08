@@ -162,6 +162,17 @@ def main():
     memory_report_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     memory_report_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Echo-style transfer memory report
+    transfer_memory_parser = subparsers.add_parser("transfer-memory-report", help="Report transfer-axis experience matches for a query")
+    transfer_memory_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
+    transfer_memory_parser.add_argument("--query", type=str, required=True, help="Goal or task query to retrieve transferable experiences for")
+    transfer_memory_parser.add_argument("--current-state-json", type=str, default="", help="Optional current state JSON object")
+    transfer_memory_parser.add_argument("--current-state-file", type=str, default="", help="Optional current state JSON file")
+    transfer_memory_parser.add_argument("--min-score", type=float, default=0.1)
+    transfer_memory_parser.add_argument("--limit", type=int, default=10)
+    transfer_memory_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    transfer_memory_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline memory policy trace report
     memory_policy_parser = subparsers.add_parser("memory-policy-report", help="Report memory write/read/manage policy gaps in session logs")
     memory_policy_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -576,6 +587,44 @@ def main():
                 f"score={candidate['score']:.2f} "
                 f"recalls={candidate['recall_count']} "
                 f"queries={candidate['unique_query_count']}: {label[:120]}"
+            )
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"  saved: {args.output}")
+        return
+
+    if args.command == "transfer-memory-report":
+        from singularity.core.memory import MemorySystem
+
+        current_state = {}
+        if getattr(args, "current_state_file", ""):
+            with open(args.current_state_file, "r", encoding="utf-8-sig") as f:
+                current_state = json.load(f)
+        elif getattr(args, "current_state_json", ""):
+            current_state = json.loads(args.current_state_json)
+        if not isinstance(current_state, dict):
+            print("transfer-memory-report current state must be a JSON object")
+            sys.exit(1)
+
+        memory = MemorySystem(memory_dir=getattr(args, "memory_dir", "workspace/memory"))
+        report = memory.transfer_memory_report(
+            getattr(args, "query", ""),
+            current_state=current_state,
+            limit=getattr(args, "limit", 10),
+            min_score=getattr(args, "min_score", 0.1),
+        )
+        print("\nTransfer Memory Report")
+        print(f"  query: {report['query']}")
+        print(f"  experiences: {report['experience_count']}, matches: {report['match_count']}")
+        if report["axis_counts"]:
+            parts = [f"{axis}={count}" for axis, count in sorted(report["axis_counts"].items())]
+            print(f"  axes: {', '.join(parts)}")
+        for match in report["matches"]:
+            axes = ",".join(match.get("matched_axes", [])) or "text"
+            print(
+                f"  - {match['id']} score={match['score']:.2f} "
+                f"axes={axes}: {match['task']} -> {match['outcome']}"
             )
         if getattr(args, "output", ""):
             with open(args.output, "w", encoding="utf-8") as f:

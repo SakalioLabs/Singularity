@@ -230,6 +230,65 @@ def test_memory_curates_and_retrieves_transfer_experience():
     print("PASS: Memory retrieves transferable experience")
 
 
+def test_memory_ranks_experiences_by_transfer_axes():
+    memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
+    pickaxe = memory.record_experience(
+        goal="Craft a wooden pickaxe",
+        task="Convert logs into planks, sticks, and a pickaxe",
+        outcome="wooden_pickaxe crafted for early mining",
+        actions=[{"type": "craft", "parameters": {"item": "wooden_pickaxe"}}],
+        dimensions={
+            "structure": "log -> planks -> sticks -> wooden_pickaxe",
+            "attribute": {"materials": ["oak_planks", "stick"], "tool_family": "pickaxe"},
+            "process": "craft intermediate materials at a crafting table before the tool",
+            "function": "craft a basic pickaxe tool for mining stone",
+            "interaction": "use crafting_table recipe slots",
+        },
+        causal={"which": "craft", "why": "planks and sticks unlock the pickaxe recipe"},
+        tags=["wooden_pickaxe", "crafting", "tool"],
+        success=True,
+    )
+    memory.record_experience(
+        goal="Build a shelter wall",
+        task="Place oak planks around the player",
+        outcome="shelter frame placed",
+        dimensions={
+            "structure": "move -> place -> place",
+            "attribute": {"materials": ["oak_planks"]},
+            "process": "place blocks to form walls",
+            "function": "build shelter",
+            "interaction": "avoid hostile entities while placing blocks",
+        },
+        tags=["building", "shelter"],
+        success=True,
+    )
+
+    ranked = memory.rank_transfer_experiences(
+        "Craft a stone pickaxe from cobblestone and sticks",
+        current_state={"inventory": {"cobblestone": 3, "stick": 2, "crafting_table": 1}},
+        limit=2,
+    )
+    report = memory.transfer_memory_report(
+        "Craft a stone pickaxe from cobblestone and sticks",
+        current_state={"inventory": {"cobblestone": 3, "stick": 2, "crafting_table": 1}},
+        limit=2,
+    )
+    context = memory.get_relevant_memory(
+        "Craft a stone pickaxe from cobblestone and sticks",
+        current_state={"inventory": {"cobblestone": 3, "stick": 2, "crafting_table": 1}},
+    )
+
+    assert ranked
+    assert ranked[0]["id"] == pickaxe.id
+    assert {"attribute", "process", "function"} & set(ranked[0]["matched_axes"])
+    assert ranked[0]["axis_scores"]["function"] > 0
+    assert report["axis_counts"]
+    assert report["matches"][0]["id"] == pickaxe.id
+    assert "Transfer[" in context
+    assert "score=" in context
+    print("PASS: Memory ranks experiences by transfer axes")
+
+
 def test_memory_read_filters_stale_and_conditional_entries():
     memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
     stale = memory.add_memory(
@@ -1516,6 +1575,7 @@ if __name__ == "__main__":
     test_knowledge_base_loads_recipes()
     test_knowledge_graph_plans_resources_and_tools()
     test_memory_curates_and_retrieves_transfer_experience()
+    test_memory_ranks_experiences_by_transfer_axes()
     test_memory_read_filters_stale_and_conditional_entries()
     test_memory_tracks_recall_diversity_for_consolidation()
     test_memory_persists_entries_and_experiences()

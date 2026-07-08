@@ -314,6 +314,7 @@ User-authored Minecraft requests need a benchmark layer between free-form chat a
 - Added `MemoryEntry` for bounded, curated durable memory.
 - Added `ExperienceRecord` for Echo-style transferable experience and WISE-style causal fields.
 - Added retrieval and curation methods to `MemorySystem`.
+- Added Echo-style transfer-axis scoring to `MemorySystem.rank_transfer_experiences()`, so structure, attribute, process, function, and interaction matches can be surfaced in planner context and audited with `transfer-memory-report`.
 - Added task dependencies, preconditions, opportunity triggers, deadlines, and dynamic scoring to `TaskSystem`.
 - Added unit coverage for knowledge loading, experience retrieval, and opportunity scheduling.
 - Added first conservative visual action grounding from structured visual observations into executable actions.
