@@ -333,6 +333,28 @@ def main():
     mixed_review_plan_parser.add_argument("--output", type=str, default="", help="Optional JSON experiment plan path")
     mixed_review_plan_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline mixed-initiative review approval labels
+    mixed_review_label_parser = subparsers.add_parser(
+        "mixed-initiative-review-label-template",
+        help="Generate JSONL operator approval labels from mixed-initiative review plans",
+    )
+    mixed_review_label_parser.add_argument("--review-plan", action="append", default=[], help="Saved mixed-initiative review plan JSON")
+    mixed_review_label_parser.add_argument("--review-queue", action="append", default=[], help="Saved mixed-initiative review queue JSON")
+    mixed_review_label_parser.add_argument("--trace-report", action="append", default=[], help="Saved mixed-initiative trace JSON report")
+    mixed_review_label_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect directly")
+    mixed_review_label_parser.add_argument("--template", type=str, default="auto", choices=mixed_template_choices, help="Template to force for session-log inputs")
+    mixed_review_label_parser.add_argument("--output", type=str, default="", help="Optional JSONL label template path")
+    mixed_review_label_parser.add_argument("--log-level", type=str, default="INFO")
+
+    mixed_review_label_validate_parser = subparsers.add_parser(
+        "mixed-initiative-review-label-validate",
+        help="Validate filled mixed-initiative review approval labels",
+    )
+    mixed_review_label_validate_parser.add_argument("--label-file", type=str, default="", help="Filled mixed-initiative review labels JSON/JSONL")
+    mixed_review_label_validate_parser.add_argument("--review-plan", action="append", default=[], help="Saved mixed-initiative review plan JSON for case matching")
+    mixed_review_label_validate_parser.add_argument("--output", type=str, default="", help="Optional JSON validation report path")
+    mixed_review_label_validate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline mixed-initiative held-out variant report
     mixed_variant_parser = subparsers.add_parser(
         "mixed-initiative-variant-report",
@@ -1195,6 +1217,76 @@ def main():
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
             print(f"\nExperiment plan saved to {args.output}")
+        return
+
+    if args.command == "mixed-initiative-review-label-template":
+        from singularity.evaluation.mixed_initiative import build_mixed_initiative_review_label_templates
+
+        review_plans = getattr(args, "review_plan", []) or []
+        review_queues = getattr(args, "review_queue", []) or []
+        trace_reports = getattr(args, "trace_report", []) or []
+        session_logs = getattr(args, "session_log", []) or []
+        if not review_plans and not review_queues and not trace_reports and not session_logs:
+            print("mixed-initiative-review-label-template requires --review-plan, --review-queue, --trace-report, or --session-log")
+            sys.exit(1)
+        templates = build_mixed_initiative_review_label_templates(
+            review_plan_paths=review_plans,
+            review_queue_paths=review_queues,
+            trace_report_paths=trace_reports,
+            session_log_paths=session_logs,
+            template_id=getattr(args, "template", "auto"),
+        )
+        lines = [json.dumps(template, ensure_ascii=False, default=str) for template in templates]
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                for line in lines:
+                    f.write(line + "\n")
+            print(f"Mixed-initiative review label template saved to {args.output} ({len(lines)} records)")
+        else:
+            for line in lines:
+                print(line)
+        return
+
+    if args.command == "mixed-initiative-review-label-validate":
+        from singularity.evaluation.mixed_initiative import validate_mixed_initiative_review_labels
+
+        label_file = getattr(args, "label_file", "")
+        if not label_file:
+            print("mixed-initiative-review-label-validate requires --label-file")
+            sys.exit(1)
+        report = validate_mixed_initiative_review_labels(
+            label_file,
+            review_plan_paths=getattr(args, "review_plan", []) or [],
+        )
+        print("\nMixed-Initiative Review Label Validation")
+        print(f"  labels: {report.ok_count}/{report.label_count} ok")
+        print(f"  approved: {report.approved_count}")
+        print(f"  rejected: {report.rejected_count}")
+        print(f"  unknown: {report.unknown_count}")
+        print(f"  executable approved cases: {report.executable_count}")
+        if report.approved_route_counts:
+            parts = [f"{key}={value}" for key, value in sorted(report.approved_route_counts.items())]
+            print(f"  approved routes: {', '.join(parts)}")
+        for case in report.cases:
+            marker = "+" if case.ok else "x"
+            label = case.case_id or case.queue_item_id or case.target_id or f"record-{case.index}"
+            print(f"  [{marker}] {case.index} {case.route or 'unknown_route'}: {label}")
+            print(f"      readiness={case.readiness or 'invalid'}, commands={len(case.recommended_commands)}")
+            if case.errors:
+                print(f"      errors: {', '.join(case.errors)}")
+            if case.warnings:
+                print(f"      warnings: {', '.join(case.warnings)}")
+        for error in report.errors:
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if not report.ok:
+            sys.exit(1)
         return
 
     if args.command == "mixed-initiative-trace-report":

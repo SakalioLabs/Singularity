@@ -608,6 +608,101 @@ class MixedInitiativeReviewExperimentPlan:
         }
 
 
+@dataclass
+class MixedInitiativeReviewApprovalCase:
+    index: int
+    ok: bool = False
+    key: str = ""
+    case_id: str = ""
+    queue_item_id: str = ""
+    route: str = ""
+    target_type: str = ""
+    target_id: str = ""
+    decision: str = ""
+    raw_readiness: str = ""
+    readiness: str = ""
+    reviewer: str = ""
+    notes: str = ""
+    source_logs: list[str] = field(default_factory=list)
+    source_goals: list[str] = field(default_factory=list)
+    recommended_commands: list[str] = field(default_factory=list)
+    success_metrics: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+    @property
+    def approved(self) -> bool:
+        return self.ok and self.readiness == "approved"
+
+    @property
+    def executable(self) -> bool:
+        return self.approved and bool(self.recommended_commands)
+
+    def to_dict(self) -> dict:
+        data = asdict(self)
+        data["approved"] = self.approved
+        data["executable"] = self.executable
+        return data
+
+
+@dataclass
+class MixedInitiativeReviewApprovalReport:
+    label_path: str = ""
+    cases: list[MixedInitiativeReviewApprovalCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def label_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ok_count(self) -> int:
+        return sum(1 for case in self.cases if case.ok)
+
+    @property
+    def approved_count(self) -> int:
+        return sum(1 for case in self.cases if case.readiness == "approved")
+
+    @property
+    def rejected_count(self) -> int:
+        return sum(1 for case in self.cases if case.readiness == "rejected")
+
+    @property
+    def unknown_count(self) -> int:
+        return sum(1 for case in self.cases if case.readiness == "unknown")
+
+    @property
+    def executable_count(self) -> int:
+        return sum(1 for case in self.cases if case.executable)
+
+    @property
+    def approved_route_counts(self) -> dict:
+        counts = {}
+        for case in self.cases:
+            if case.approved:
+                counts[case.route] = counts.get(case.route, 0) + 1
+        return dict(sorted(counts.items()))
+
+    @property
+    def ok(self) -> bool:
+        return not self.errors and all(case.ok for case in self.cases)
+
+    def to_dict(self) -> dict:
+        return {
+            "label_path": self.label_path,
+            "ok": self.ok,
+            "label_count": self.label_count,
+            "ok_count": self.ok_count,
+            "approved_count": self.approved_count,
+            "rejected_count": self.rejected_count,
+            "unknown_count": self.unknown_count,
+            "executable_count": self.executable_count,
+            "approved_route_counts": self.approved_route_counts,
+            "errors": list(self.errors),
+            "cases": [case.to_dict() for case in self.cases],
+        }
+
+
 class MixedInitiativeTemplateCompiler:
     """Compile template subtasks into auditable records with slot binding."""
 
@@ -2326,6 +2421,296 @@ def build_mixed_initiative_review_experiment_plan(
     return plan
 
 
+def build_mixed_initiative_review_label_templates(
+    review_plan: Optional[Any] = None,
+    review_plan_paths: Optional[list[str]] = None,
+    review_queue: Optional[Any] = None,
+    review_queue_paths: Optional[list[str]] = None,
+    trace_reports: Optional[list[Any]] = None,
+    trace_report_paths: Optional[list[str]] = None,
+    session_log_paths: Optional[list[str]] = None,
+    template_id: str = "auto",
+) -> list[dict]:
+    """Create JSONL-ready operator labels for mixed-initiative review cases."""
+    plan = _review_experiment_plan_from_inputs(
+        review_plan=review_plan,
+        review_plan_paths=review_plan_paths,
+        review_queue=review_queue,
+        review_queue_paths=review_queue_paths,
+        trace_reports=trace_reports,
+        trace_report_paths=trace_report_paths,
+        session_log_paths=session_log_paths,
+        template_id=template_id,
+    )
+    templates = []
+    for case in plan.cases:
+        templates.append({
+            "type": "mixed_initiative_review",
+            "key": case.id,
+            "case_id": case.id,
+            "queue_item_id": case.queue_item_id,
+            "route": case.route,
+            "priority": case.priority,
+            "target_type": case.target_type,
+            "target_id": case.target_id,
+            "decision": case.decision,
+            "readiness": "unknown",
+            "reviewer": "",
+            "notes": "",
+            "source_logs": list(case.source_logs),
+            "source_goals": list(case.source_goals),
+            "hypothesis": case.hypothesis,
+            "action_items": list(case.action_items),
+            "recommended_commands": list(case.recommended_commands),
+            "success_metrics": list(case.success_metrics),
+        })
+    return templates
+
+
+def validate_mixed_initiative_review_labels(
+    label_path: str,
+    review_plan: Optional[Any] = None,
+    review_plan_paths: Optional[list[str]] = None,
+) -> MixedInitiativeReviewApprovalReport:
+    """Validate filled operator labels before review cases are executable."""
+    report = MixedInitiativeReviewApprovalReport(label_path=label_path)
+    try:
+        records = _load_json_records(label_path)
+    except Exception as exc:
+        report.errors.append(str(exc))
+        return report
+
+    plan_index = {}
+    if review_plan is not None or review_plan_paths:
+        try:
+            plan = _review_experiment_plan_from_inputs(
+                review_plan=review_plan,
+                review_plan_paths=review_plan_paths,
+            )
+            plan_index = _review_plan_case_index(plan)
+        except Exception as exc:
+            report.errors.append(f"review_plan: {exc}")
+
+    for index, record in enumerate(records, start=1):
+        if not isinstance(record, dict):
+            report.cases.append(MixedInitiativeReviewApprovalCase(
+                index=index,
+                errors=["record_not_object"],
+            ))
+            continue
+        report.cases.append(_validate_mixed_review_label_record(record, index, plan_index))
+    return report
+
+
+def _review_experiment_plan_from_inputs(
+    review_plan: Optional[Any] = None,
+    review_plan_paths: Optional[list[str]] = None,
+    review_queue: Optional[Any] = None,
+    review_queue_paths: Optional[list[str]] = None,
+    trace_reports: Optional[list[Any]] = None,
+    trace_report_paths: Optional[list[str]] = None,
+    session_log_paths: Optional[list[str]] = None,
+    template_id: str = "auto",
+) -> MixedInitiativeReviewExperimentPlan:
+    plan = MixedInitiativeReviewExperimentPlan()
+    for source, payload in _review_plan_payloads(review_plan, review_plan_paths):
+        cases = payload.get("cases", [])
+        if not isinstance(cases, list):
+            plan.errors.append(f"{source}: cases is not a list")
+            continue
+        for case in cases:
+            if isinstance(case, dict):
+                plan.cases.append(_experiment_case_from_plan_payload(case))
+        for error in _string_list(payload.get("errors", [])):
+            plan.errors.append(f"{source}: {error}")
+    if plan.cases or plan.errors:
+        return plan
+    return build_mixed_initiative_review_experiment_plan(
+        review_queue=review_queue,
+        review_queue_paths=review_queue_paths,
+        trace_reports=trace_reports,
+        trace_report_paths=trace_report_paths,
+        session_log_paths=session_log_paths,
+        template_id=template_id,
+    )
+
+
+def _review_plan_payloads(review_plan: Optional[Any], review_plan_paths: Optional[list[str]]) -> list[tuple[str, dict]]:
+    payloads = []
+    if review_plan is not None:
+        payloads.append(("inline_review_plan", _review_plan_payload_from_any(review_plan)))
+    for path in review_plan_paths or []:
+        with open(path, "r", encoding="utf-8-sig") as f:
+            payloads.append((path, json.load(f)))
+    return payloads
+
+
+def _review_plan_payload_from_any(plan: Any) -> dict:
+    if isinstance(plan, MixedInitiativeReviewExperimentPlan):
+        return plan.to_dict()
+    if isinstance(plan, dict):
+        return plan
+    if hasattr(plan, "to_dict"):
+        payload = plan.to_dict()
+        if isinstance(payload, dict):
+            return payload
+    raise ValueError("review plan must be a dict or MixedInitiativeReviewExperimentPlan")
+
+
+def _experiment_case_from_plan_payload(payload: dict) -> MixedInitiativeReviewExperimentCase:
+    case_id = str(payload.get("id") or payload.get("case_id") or payload.get("key") or "")
+    queue_item_id = str(payload.get("queue_item_id") or "")
+    if not case_id:
+        case_id = "mixexp-" + _slugify_id(queue_item_id or payload.get("target_id") or "unknown")
+    route = str(payload.get("route") or _review_experiment_route(
+        str(payload.get("decision") or ""),
+        str(payload.get("target_type") or ""),
+    ))
+    missing_inputs = _review_experiment_missing_inputs(
+        route,
+        _string_list(payload.get("source_logs", [])),
+        _string_list(payload.get("source_goals", [])),
+    )
+    return MixedInitiativeReviewExperimentCase(
+        id=case_id,
+        queue_item_id=queue_item_id,
+        route=route,
+        priority=str(payload.get("priority") or "normal"),
+        target_type=str(payload.get("target_type") or ""),
+        target_id=str(payload.get("target_id") or ""),
+        decision=str(payload.get("decision") or ""),
+        ready=not missing_inputs,
+        status="ready" if not missing_inputs else "needs_input",
+        missing_inputs=missing_inputs,
+        hypothesis=str(payload.get("hypothesis") or ""),
+        source_reports=_string_list(payload.get("source_reports", [])),
+        source_logs=_string_list(payload.get("source_logs", [])),
+        source_goals=_string_list(payload.get("source_goals", [])),
+        action_items=_string_list(payload.get("action_items", [])),
+        recommended_commands=_string_list(payload.get("recommended_commands", [])),
+        success_metrics=_string_list(payload.get("success_metrics", [])),
+    )
+
+
+def _review_plan_case_index(plan: MixedInitiativeReviewExperimentPlan) -> dict[str, MixedInitiativeReviewExperimentCase]:
+    index = {}
+    for case in plan.cases:
+        for key in _review_approval_match_keys(
+            case.id,
+            case.queue_item_id,
+            case.target_id,
+            case.route,
+        ):
+            index[_label_key(key)] = case
+    return index
+
+
+def _review_approval_match_keys(case_id: str = "", queue_item_id: str = "", target_id: str = "", route: str = "") -> list[str]:
+    values = [case_id, queue_item_id, target_id]
+    if route and target_id:
+        values.append(f"{route}:{target_id}")
+    return [str(value) for value in values if value]
+
+
+def _validate_mixed_review_label_record(
+    record: dict,
+    index: int,
+    plan_index: dict[str, MixedInitiativeReviewExperimentCase],
+) -> MixedInitiativeReviewApprovalCase:
+    raw_readiness = str(record.get("readiness", record.get("label", record.get("status", record.get("decision", "")))) or "")
+    readiness = _normalize_review_readiness(raw_readiness)
+    case_id = str(record.get("case_id") or record.get("id") or record.get("key") or "")
+    queue_item_id = str(record.get("queue_item_id") or "")
+    route = str(record.get("route") or "")
+    target_id = str(record.get("target_id") or "")
+    matched = _matched_review_plan_case(plan_index, case_id, queue_item_id, target_id, route)
+
+    source = matched if matched is not None else None
+    case = MixedInitiativeReviewApprovalCase(
+        index=index,
+        key=str(record.get("key") or case_id or queue_item_id or ""),
+        case_id=case_id or (source.id if source else ""),
+        queue_item_id=queue_item_id or (source.queue_item_id if source else ""),
+        route=route or (source.route if source else ""),
+        target_type=str(record.get("target_type") or (source.target_type if source else "")),
+        target_id=target_id or (source.target_id if source else ""),
+        decision=str(record.get("review_decision") or record.get("recommendation_decision") or (source.decision if source else "")),
+        raw_readiness=raw_readiness,
+        readiness=readiness,
+        reviewer=str(record.get("reviewer") or record.get("source") or "manual"),
+        notes=str(record.get("notes") or record.get("reason") or ""),
+        source_logs=_string_list(record.get("source_logs", [])) or (list(source.source_logs) if source else []),
+        source_goals=_string_list(record.get("source_goals", [])) or (list(source.source_goals) if source else []),
+        recommended_commands=_string_list(record.get("recommended_commands", [])) or (list(source.recommended_commands) if source else []),
+        success_metrics=_string_list(record.get("success_metrics", [])) or (list(source.success_metrics) if source else []),
+    )
+
+    record_type = str(record.get("type") or "").strip().lower()
+    if record_type and record_type not in {"mixed_initiative_review", "mixed_review", "mixed_initiative"}:
+        case.errors.append("unexpected_label_type")
+    if not (case.case_id or case.queue_item_id or case.target_id):
+        case.errors.append("missing_match_key")
+    if plan_index and matched is None:
+        case.errors.append("review_case_not_found")
+    if not readiness:
+        case.errors.append("invalid_readiness")
+    elif readiness == "unknown":
+        case.warnings.append("readiness_still_unknown")
+    if readiness == "approved" and not case.notes:
+        case.warnings.append("approved_without_notes")
+    if readiness == "approved" and case.route in {"backend_inspection", "validator_audit", "action_policy_ablation"} and not case.source_logs:
+        case.errors.append("approved_case_missing_source_logs")
+    if readiness == "approved" and not case.recommended_commands:
+        case.warnings.append("approved_case_has_no_command")
+
+    case.ok = not case.errors
+    return case
+
+
+def _matched_review_plan_case(
+    plan_index: dict[str, MixedInitiativeReviewExperimentCase],
+    case_id: str = "",
+    queue_item_id: str = "",
+    target_id: str = "",
+    route: str = "",
+) -> Optional[MixedInitiativeReviewExperimentCase]:
+    for key in _review_approval_match_keys(case_id, queue_item_id, target_id, route):
+        matched = plan_index.get(_label_key(key))
+        if matched:
+            return matched
+    return None
+
+
+def _normalize_review_readiness(value: Any) -> str:
+    text = str(value or "").strip().lower()
+    if text in {"approved", "approve", "accepted", "accept", "ready", "yes", "true", "pass", "passed"}:
+        return "approved"
+    if text in {"rejected", "reject", "declined", "no", "false", "fail", "failed"}:
+        return "rejected"
+    if text in {"unknown", "pending", "needs_review", "review", ""}:
+        return "unknown" if text else ""
+    return ""
+
+
+def _load_json_records(path: str) -> list[dict]:
+    with open(path, "r", encoding="utf-8-sig") as f:
+        if path.lower().endswith(".jsonl"):
+            return [json.loads(line) for line in f if line.strip()]
+        payload = json.load(f)
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict) and isinstance(payload.get("labels"), list):
+        return payload["labels"]
+    if isinstance(payload, dict) and isinstance(payload.get("cases"), list):
+        return payload["cases"]
+    if isinstance(payload, dict):
+        return [
+            {**(value if isinstance(value, dict) else {"readiness": value}), "key": key}
+            for key, value in payload.items()
+        ]
+    return []
+
+
 def _experiment_case_from_review_queue_item(item: dict) -> MixedInitiativeReviewExperimentCase:
     queue_item_id = str(item.get("id") or _review_queue_id(
         str(item.get("target_type") or "trace"),
@@ -2460,6 +2845,10 @@ def _string_list(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item) for item in value if item is not None and str(item)]
+
+
+def _label_key(value: str) -> str:
+    return str(value or "").strip().lower()
 
 
 def build_mixed_initiative_trace_report(

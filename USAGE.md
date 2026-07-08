@@ -180,6 +180,10 @@ python -m singularity.main mixed-initiative-review-queue --session-log logs/sess
 python -m singularity.main mixed-initiative-review-plan --review-queue logs/benchmarks/mixed_review_queue.json --output logs/benchmarks/mixed_review_plan.json
 python -m singularity.main mixed-initiative-review-plan --session-log logs/session_xxx.jsonl
 
+# Generate and validate operator approval labels before executing review-plan commands.
+python -m singularity.main mixed-initiative-review-label-template --review-plan logs/benchmarks/mixed_review_plan.json --output workspace/reviews/mixed_review_labels.jsonl
+python -m singularity.main mixed-initiative-review-label-validate --label-file workspace/reviews/mixed_review_labels.jsonl --review-plan logs/benchmarks/mixed_review_plan.json --output logs/benchmarks/mixed_review_label_validation.json
+
 # Replay held-out paraphrases and optional JSON/JSONL case files before promoting
 # new mixed-initiative templates or changing auto-selection heuristics.
 python -m singularity.main mixed-initiative-variant-report --output logs/benchmarks/mixed_initiative_variants.json

@@ -12,9 +12,11 @@ from singularity.evaluation.mixed_initiative import (
     MixedInitiativeTemplateCompiler,
     build_mixed_initiative_report,
     build_mixed_initiative_review_experiment_plan,
+    build_mixed_initiative_review_label_templates,
     build_mixed_initiative_review_queue,
     build_mixed_initiative_trace_report,
     build_mixed_initiative_variant_report,
+    validate_mixed_initiative_review_labels,
 )
 
 
@@ -611,6 +613,71 @@ def test_mixed_initiative_review_plan_loads_saved_queue():
     print("PASS: Mixed-initiative review plan loads saved queues")
 
 
+def test_mixed_initiative_review_label_template_exports_approval_records():
+    unsupported_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Organize inventory"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {"type": "goal_end", "data": {"goal": "Organize inventory", "result": {"completed": False}}},
+    ])
+    queue = build_mixed_initiative_review_queue(
+        trace_reports=[build_mixed_initiative_trace_report([unsupported_path])]
+    )
+    plan = build_mixed_initiative_review_experiment_plan(review_queue=queue)
+
+    labels = build_mixed_initiative_review_label_templates(review_plan=plan)
+
+    assert len(labels) == 1
+    assert labels[0]["type"] == "mixed_initiative_review"
+    assert labels[0]["readiness"] == "unknown"
+    assert labels[0]["route"] == "template_approval"
+    assert labels[0]["case_id"] == plan.cases[0].id
+    assert "mixed-initiative-variant-report" in labels[0]["recommended_commands"][0]
+    print("PASS: Mixed-initiative review label template exports approval records")
+
+
+def test_mixed_initiative_review_label_validation_approves_executable_cases():
+    craft_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Craft 4 torches"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch"}},
+                "result": {"success": False, "error": "Missing coal"},
+            },
+        },
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {"type": "goal_end", "data": {"goal": "Craft 4 torches", "result": {"completed": False}}},
+    ])
+    queue = build_mixed_initiative_review_queue(
+        trace_reports=[build_mixed_initiative_trace_report([craft_path])]
+    )
+    plan = build_mixed_initiative_review_experiment_plan(review_queue=queue)
+    plan_path = os.path.join(tempfile.mkdtemp(), "mixed_review_plan.json")
+    with open(plan_path, "w", encoding="utf-8") as f:
+        json.dump(plan.to_dict(), f)
+    label_path = os.path.join(tempfile.mkdtemp(), "mixed_review_labels.jsonl")
+    with open(label_path, "w", encoding="utf-8") as f:
+        f.write(json.dumps({
+            "type": "mixed_initiative_review",
+            "case_id": plan.cases[0].id,
+            "readiness": "approved",
+            "reviewer": "manual_fixture",
+            "notes": "backend failure is reproducible and should be inspected",
+        }) + "\n")
+
+    report = validate_mixed_initiative_review_labels(label_path, review_plan_paths=[plan_path])
+
+    assert report.ok
+    assert report.label_count == 1
+    assert report.approved_count == 1
+    assert report.executable_count == 1
+    assert report.approved_route_counts == {"backend_inspection": 1}
+    assert report.cases[0].source_logs == [craft_path]
+    assert "mixed-initiative-trace-report" in report.cases[0].recommended_commands[0]
+    print("PASS: Mixed-initiative review label validation approves executable cases")
+
+
 def test_mixed_initiative_variant_report_checks_heldout_templates():
     report = build_mixed_initiative_variant_report()
 
@@ -690,6 +757,8 @@ if __name__ == "__main__":
     test_mixed_initiative_review_queue_loads_saved_trace_report()
     test_mixed_initiative_review_plan_routes_queue_items_to_experiments()
     test_mixed_initiative_review_plan_loads_saved_queue()
+    test_mixed_initiative_review_label_template_exports_approval_records()
+    test_mixed_initiative_review_label_validation_approves_executable_cases()
     test_mixed_initiative_variant_report_checks_heldout_templates()
     test_mixed_initiative_variant_report_flags_slot_mismatch()
     test_mixed_initiative_variant_report_loads_jsonl_case_file()
