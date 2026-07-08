@@ -201,6 +201,7 @@ class Agent:
             path for path in (getattr(self.config, "skill_memory_quality_feedback_paths", []) or [])
             if path
         ]
+        gate_report = self._evaluate_skill_memory_quality_gate()
         report = {
             "paths": list(paths),
             "loaded_count": 0,
@@ -208,7 +209,18 @@ class Agent:
             "policy_hints_applied": 0,
             "advisory_only": True,
             "errors": [],
+            **gate_report,
         }
+        if report["gate_required"] and not report["gate_approved"]:
+            report["skipped_count"] = len(paths)
+            if paths:
+                logger.warning(
+                    "Skill-memory quality feedback loading skipped: "
+                    f"gate_readiness={report['gate_readiness']}, "
+                    f"gate_paths={len(report['gate_paths'])}, "
+                    f"feedback_paths={len(paths)}"
+                )
+            return report
         if not getattr(self.config, "enable_skill_memory_context", True):
             report["skipped_count"] = len(paths)
             return report
@@ -232,6 +244,68 @@ class Agent:
                 f"errors={len(report['errors'])}"
             )
         return report
+
+    def _evaluate_skill_memory_quality_gate(self) -> dict:
+        """Return whether runtime skill-memory quality feedback may be loaded."""
+        gate_paths = [
+            path for path in (getattr(self.config, "skill_memory_quality_gate_paths", []) or [])
+            if path
+        ]
+        report = {
+            "gate_paths": list(gate_paths),
+            "gate_required": bool(gate_paths),
+            "gate_approved": True,
+            "gate_readiness": "not_required",
+            "gate_reports": [],
+        }
+        if not gate_paths:
+            return report
+
+        report["gate_approved"] = False
+        readinesses = []
+        for path in gate_paths:
+            gate_summary = {
+                "path": path,
+                "readiness": "error",
+                "decision": "",
+                "reason": "",
+            }
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    gate = json.load(f)
+                readiness = str(gate.get("readiness", "")).strip().lower() or "unknown"
+                gate_summary.update({
+                    "readiness": readiness,
+                    "decision": str(gate.get("decision", "")).strip(),
+                    "reason": str(gate.get("reason", "")).strip()[:300],
+                    "approved_count": self._small_int(gate.get("approved_count", 0)),
+                    "rejected_count": self._small_int(gate.get("rejected_count", 0)),
+                })
+            except Exception as e:
+                readiness = "error"
+                gate_summary["error"] = str(e)
+                logger.warning(f"Failed to load skill-memory quality gate {path}: {e}")
+            readinesses.append(readiness)
+            report["gate_reports"].append(gate_summary)
+
+        if any(readiness == "error" for readiness in readinesses):
+            report["gate_readiness"] = "error"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report["gate_readiness"] = "approved"
+            report["gate_approved"] = True
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report["gate_readiness"] = "rejected"
+        elif any(readiness == "review" for readiness in readinesses):
+            report["gate_readiness"] = "review"
+        else:
+            report["gate_readiness"] = "unknown"
+        return report
+
+    def _small_int(self, value) -> int:
+        try:
+            return int(float(value or 0))
+        except (TypeError, ValueError):
+            return 0
 
     def _evaluate_mixed_policy_patch_gate(self) -> dict:
         """Return whether runtime policy patches may be loaded under configured gates."""

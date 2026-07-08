@@ -144,6 +144,21 @@ def _write_skill_memory_quality_feedback(tmpdir):
     return feedback_path
 
 
+def _write_skill_memory_quality_gate(tmpdir, readiness):
+    gate_path = os.path.join(tmpdir, f"skill_memory_quality_gate_{readiness}.json")
+    with open(gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "readiness": readiness,
+            "decision": "allow_supported_reuse_skill_memory_promotion"
+            if readiness == "approved"
+            else "keep_skill_memory_review_only",
+            "reason": "test skill-memory quality gate",
+            "approved_count": 1 if readiness == "approved" else 0,
+            "rejected_count": 1 if readiness == "rejected" else 0,
+        }, f)
+    return gate_path
+
+
 def test_self_evolution_policy_formats_advisory_context():
     policy = SelfEvolutionPolicy()
     applied = policy.record_self_evolution_feedback({
@@ -374,6 +389,58 @@ def test_agent_loads_skill_memory_quality_feedback_into_library():
     print("PASS: Agent loads skill-memory quality feedback into library")
 
 
+def test_agent_loads_skill_memory_quality_feedback_when_gate_is_approved():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = _write_skill_memory_quality_feedback(tmpdir)
+    gate_path = _write_skill_memory_quality_gate(tmpdir, "approved")
+    config = Config(
+        log_dir=os.path.join(tmpdir, "logs"),
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        skill_memory_quality_feedback_paths=[feedback_path],
+        skill_memory_quality_gate_paths=[gate_path],
+    )
+
+    agent = Agent(config)
+    report = agent.skill_memory_quality_feedback_report
+    profile = agent.skill_library.skill_memory_quality_profile()
+
+    assert report["gate_required"] is True
+    assert report["gate_approved"] is True
+    assert report["gate_readiness"] == "approved"
+    assert report["loaded_count"] == 1
+    assert report["skipped_count"] == 0
+    assert "demote_conflicting_reuse_hints" in profile["policy_hints"]
+    print("PASS: Agent loads skill-memory quality feedback when gate is approved")
+
+
+def test_agent_skips_skill_memory_quality_feedback_when_gate_is_not_approved():
+    for readiness in ("review", "rejected"):
+        tmpdir = tempfile.mkdtemp()
+        feedback_path = _write_skill_memory_quality_feedback(tmpdir)
+        gate_path = _write_skill_memory_quality_gate(tmpdir, readiness)
+        config = Config(
+            log_dir=os.path.join(tmpdir, "logs"),
+            memory_dir=os.path.join(tmpdir, "memory"),
+            skill_dir=os.path.join(tmpdir, "skills"),
+            skill_memory_quality_feedback_paths=[feedback_path],
+            skill_memory_quality_gate_paths=[gate_path],
+        )
+
+        agent = Agent(config)
+        report = agent.skill_memory_quality_feedback_report
+        profile = agent.skill_library.skill_memory_quality_profile()
+
+        assert report["gate_required"] is True
+        assert report["gate_approved"] is False
+        assert report["gate_readiness"] == readiness
+        assert report["loaded_count"] == 0
+        assert report["skipped_count"] == 1
+        assert profile["policy_hints"] == []
+        assert profile["hint_quality_items"] == []
+    print("PASS: Agent skips skill-memory quality feedback when gate is not approved")
+
+
 def test_agent_skips_mixed_policy_patch_when_gate_is_not_approved():
     for readiness in ("review", "rejected"):
         tmpdir = tempfile.mkdtemp()
@@ -411,5 +478,7 @@ if __name__ == "__main__":
     test_agent_loads_mixed_policy_patch_when_gate_is_approved()
     test_agent_loads_self_evolution_feedback_into_planner_policy()
     test_agent_loads_skill_memory_quality_feedback_into_library()
+    test_agent_loads_skill_memory_quality_feedback_when_gate_is_approved()
+    test_agent_skips_skill_memory_quality_feedback_when_gate_is_not_approved()
     test_agent_skips_mixed_policy_patch_when_gate_is_not_approved()
     print("\nAction controller tests PASSED")

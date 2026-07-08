@@ -155,6 +155,7 @@
 - [x] Localize skill-memory quality feedback by `skill`, `task_family`, and hint type so one conflicted hint does not globally demote unrelated reusable memories.
 - [x] Add `skill-memory-quality-ablation` to compare baseline vs feedback-adjusted skill-memory hint rankings before live runs.
 - [x] Add `skill-memory-quality-gate` to compare localized `hint_quality_items` against `skill-memory-report` memories and promote only repeatedly supported local `REUSE` evidence.
+- [x] Gate runtime `--skill-memory-quality-feedback` loading with approved `--skill-memory-quality-gate` reports across run/autonomous/benchmark/collab-benchmark.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -173,7 +174,7 @@
 - [ ] Feed real approved `task-stream-transfer-gate` reports from autonomous/M7 stream specs into queued skill approvals and memory-lifecycle profiles before enabling transfer-tested defaults.
 - [ ] Run `skill-memory-quality-report` on real M1/M2/autonomous logs and review `reuse_conflicted_with_failures`, `avoid_unheeded_post_hint_failures`, and `candidate_promote_reuse_hints`.
 - [ ] Run the same goals with and without `--skill-memory-quality-feedback` to confirm conflicted `REUSE` hints are demoted without suppressing useful `AVOID` warnings.
-- [ ] Run `skill-memory-quality-gate` on real `skill-memory-report` plus `skill-memory-quality-report` artifacts before making any skill-memory REUSE path a default runtime profile.
+- [ ] Run `skill-memory-quality-gate` on real `skill-memory-report` plus `skill-memory-quality-report` artifacts, then pass approved gates into runtime `--skill-memory-quality-gate` profiles.
 - [ ] Use `skill-memory-quality-ablation` as a preflight before any quality-feedback-assisted live benchmark suite.
 - [ ] Run real `benchmark --skill-memory-ablation` cases and inspect whether typed `REUSE` hints improve completion while `AVOID`/`REVIEW_ONLY` hints reduce retries or interference.
 - [ ] Run `transfer-memory-report` on real M1/M2/autonomous memory stores and compare high-scoring transfer matches against downstream task success.

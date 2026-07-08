@@ -1064,6 +1064,24 @@
 
 ---
 
+## P-058: MemTier
+
+- **Title**: MemTier: Tiered Memory Architecture and the Retrieval Bottleneck in Long-Running LLM Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2605.03675
+- **Type**: OpenClaw runtime memory architecture
+- **Task Type**: Long-running agent memory retrieval, attribution, and consolidation
+- **Core Method**: Structured episodic store, weighted retrieval, outcome attribution, and asynchronous consolidation into semantic tiers
+- **Action Space**: Persistent agent tasks with tool calls and evolving external memory
+- **Memory**: Tiered episodic/semantic stores, retrieval weighting, attribution-based weight updates, and consolidation
+- **Key Results**: Reports large retrieval gains over no-retrieval baselines and diagnoses when raw BM25 dominance blocks weight learning
+- **Scores**: R=5, N=4, R=4, E=4
+- **Value to Project**: Supports outcome-attributed skill-memory feedback and runtime gates before retrieval weights affect Minecraft planning
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-memtier.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1125,3 +1143,4 @@
 | P-055 | RIZZ | 2026 | R4/N5/R4/E5 | P2 |
 | P-056 | Memory Management and Experience-Following | 2026 | R5/N4/R4/E5 | P1 |
 | P-057 | Agent-Native Memory System | 2026 | R5/N4/R4/E5 | P1 |
+| P-058 | MemTier | 2026 | R5/N4/R4/E4 | P2 |

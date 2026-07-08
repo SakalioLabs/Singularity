@@ -329,12 +329,14 @@ python -m singularity.main skill-memory-report --skill-storage-path workspace/sk
 # Audit typed hint quality against later actions and goal outcomes in session logs:
 python -m singularity.main skill-memory-quality-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/skill_memory_quality.json
 # The JSON includes `hint_quality_items` keyed by skill, task family, and hint type.
-# Feed quality feedback back into runtime retrieval ranking without mutating skills:
-python -m singularity.main run --goal "Craft torches" --skill-memory-quality-feedback logs/benchmarks/skill_memory_quality.json
 # Compare baseline vs quality-feedback-adjusted skill-memory hint ranking offline:
 python -m singularity.main skill-memory-quality-ablation --skill-storage-path workspace/skills --quality-feedback logs/benchmarks/skill_memory_quality.json --goal "Craft torches" --task-family crafting --output logs/benchmarks/skill_memory_quality_ablation.json
 # Gate REUSE promotion by matching localized `hint_quality_items` against skill-local memories:
 python -m singularity.main skill-memory-quality-gate --skill-memory-report logs/benchmarks/skill_memory.json --quality-feedback logs/benchmarks/skill_memory_quality.json --output logs/benchmarks/skill_memory_quality_gate.json
+# Feed approved quality feedback back into runtime retrieval ranking without mutating skills:
+python -m singularity.main run --goal "Craft torches" --skill-memory-quality-feedback logs/benchmarks/skill_memory_quality.json --skill-memory-quality-gate logs/benchmarks/skill_memory_quality_gate.json
+# When `--skill-memory-quality-gate` is supplied to run/autonomous/benchmark/collab-benchmark,
+# feedback is loaded only if every gate report is `approved`.
 # Use --no-skill-memory-context on run/autonomous/benchmark/collab-benchmark for baselines.
 python -m singularity.main benchmark --suite m1 --skill-memory-ablation --output logs/benchmarks/skill_memory_ablation.json
 
