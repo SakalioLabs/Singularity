@@ -1117,6 +1117,66 @@ def test_exploration_trace_report_counts_open_world_coverage():
     print("PASS: Exploration trace report counts open-world coverage")
 
 
+def test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_action_abstraction.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Mine visible coal and place torch"}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "move_to", "parameters": {"x": 3, "z": 4}},
+                "result": {"success": True, "backend": "mineflayer", "backend_command": "move_to"},
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "dig", "parameters": {"block": "coal_ore"}},
+                "result": {"success": False, "error": "no target visible"},
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "place", "parameters": {"x": 3, "y": 64, "z": 4, "item": "torch"}},
+                "result": {"success": True},
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "teleport", "parameters": {"x": 100, "z": 100}},
+                "result": {"success": False, "error": "unknown canonical action"},
+            },
+        },
+        {"type": "goal_end", "data": {"goal": "Mine visible coal and place torch", "result": {"completed": False}}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_action_abstraction_report_from_logs([session_path])
+    case = report.cases[0]
+
+    assert report.log_count == 1
+    assert report.action_count == 4
+    assert report.failed_action_count == 2
+    assert report.unknown_canonical_count == 1
+    assert report.failed_mapping_count == 1
+    assert report.low_level_candidate_count == 2
+    assert case.canonical_action_types["dig"] == 1
+    assert case.canonical_action_types["teleport"] == 1
+    assert case.mineflayer_command_counts["teleport"] == 1
+    assert case.desktop_command_counts["mouse_hold_attack"] == 1
+    assert case.desktop_command_counts["mouse_place_block"] == 1
+    assert case.lower_level_reasons["missing_precise_target"] == 1
+    assert case.lower_level_reasons["visual_precision_action"] == 1
+    assert any("lower-level control" in recommendation for recommendation in case.task_recommendations)
+    print("PASS: Action abstraction report counts backend mapping and low-level candidates")
+
+
 def test_ingest_queues_repeated_causal_summary_candidate():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_repeated.jsonl")
@@ -1520,6 +1580,7 @@ if __name__ == "__main__":
     test_visual_trace_report_counts_visual_coverage()
     test_visual_trace_report_validates_screenshot_files()
     test_exploration_trace_report_counts_open_world_coverage()
+    test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates()
     test_ingest_queues_repeated_causal_summary_candidate()
     test_ingest_queues_failure_correction_candidate()
     test_benchmark_results_persist_intervention_metrics()

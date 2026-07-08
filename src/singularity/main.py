@@ -262,6 +262,12 @@ def main():
     exploration_trace_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     exploration_trace_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline action abstraction report
+    action_abstraction_parser = subparsers.add_parser("action-abstraction-report", help="Report canonical actions and backend mapping coverage in session logs")
+    action_abstraction_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    action_abstraction_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    action_abstraction_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline visual review pipeline
     visual_pipeline_parser = subparsers.add_parser("visual-review-pipeline", help="Run visual trace audit, review templates, label validation, and optional ablations")
     visual_pipeline_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -828,6 +834,33 @@ def main():
                     "unique_entity_type_count": report.unique_entity_type_count,
                     "unique_resource_type_count": report.unique_resource_type_count,
                     "curriculum_feedback": curriculum_feedback,
+                    "errors": report.errors,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "action-abstraction-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("action-abstraction-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_action_abstraction_report_from_logs(session_logs)
+        runner.print_action_abstraction_report(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "log_count": report.log_count,
+                    "action_count": report.action_count,
+                    "failed_action_count": report.failed_action_count,
+                    "unknown_canonical_count": report.unknown_canonical_count,
+                    "failed_mapping_count": report.failed_mapping_count,
+                    "desktop_planned_count": report.desktop_planned_count,
+                    "low_level_candidate_count": report.low_level_candidate_count,
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)

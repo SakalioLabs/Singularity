@@ -42,4 +42,4 @@ Recent VLA/game-agent work such as JARVIS-VLA, Game-TARS, OpenHA, and CrossAgent
 - Add a desktop backend executor behind the same `BackendCommand` interface.
 - Record backend command traces in benchmark logs.
 - Compare Mineflayer API and desktop-control task performance in M6/M7.
-- Add an action-abstraction report that counts canonical action types, backend command types, failed backend mappings, and tasks that may need lower-level visual control.
+- Run `action-abstraction-report` on real benchmark/session logs to count canonical action types, backend command types, failed backend mappings, and tasks that may need lower-level visual control.

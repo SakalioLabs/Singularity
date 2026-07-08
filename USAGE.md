@@ -141,6 +141,9 @@ python -m singularity.main memory-consolidation-report --memory-dir workspace/me
 python -m singularity.main exploration-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/exploration_trace.json
 # The saved JSON includes `curriculum_feedback`, which can be applied to CurriculumManager for candidate reranking.
 
+# Summarize canonical actions, backend mappings, and low-level control candidates
+python -m singularity.main action-abstraction-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/action_abstraction.json
+
 # M2 benchmarks (LLM planning)
 python -m singularity.main benchmark --suite m2
 

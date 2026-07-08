@@ -100,6 +100,7 @@
 - [x] Add offline `exploration-trace-report` for MineExplorer-style autonomous/open-world coverage: visited position spread, newly observed blocks/entities/resources, visual evidence, hazards, multi-step plans, and action failure categories.
 - [x] Add a curriculum feedback bridge from `exploration-trace-report`: reports now emit `curriculum_feedback`, and `CurriculumManager.record_exploration_feedback()` uses discovered resources, low-movement logs, and failure categories to adjust future exploration candidates.
 - [x] Add OpenHA/CrossAgent to the paper index and map Chain-of-Action ideas onto Singularity's action abstraction layer.
+- [x] Add offline `action-abstraction-report` for OpenHA/CrossAgent-style analysis of canonical actions, backend commands, failed mappings, and actions that may need lower-level visual control.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -112,7 +113,7 @@
 - [ ] Keep all live M7 role ports unique with `--bridge-port-base` or repeated `--role-bridge-port ROLE=PORT`.
 - [ ] Run autonomous mode with the new curriculum enabled and inspect `curriculum.last_decision` plus `auto_goal_complete/failed` episodes for goal-loop quality.
 - [ ] Run `exploration-trace-report` on real autonomous session logs, apply `curriculum_feedback`, and compare before/after curriculum candidate rankings.
-- [ ] Add an action-abstraction report for OpenHA/CrossAgent-style analysis of canonical actions, backend commands, failed mappings, and tasks that may need lower-level visual control.
+- [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs and compare backend-control needs by task family.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
 - [ ] Run an unknown visual/environment goal with `--goal-critic` and inspect `goal_verification_metrics` plus critic evidence in the session log.
 - [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces and compare completion judgments against manual review.

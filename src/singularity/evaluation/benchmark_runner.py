@@ -21,6 +21,7 @@ from singularity.core.causal_index import (
 )
 from singularity.core.task_system import TaskStatus, TaskSystem
 from singularity.bot.bridge import BotBridge
+from singularity.action.mapping import ActionMapper
 
 logger = logging.getLogger("singularity.benchmark")
 
@@ -593,6 +594,58 @@ class ExplorationTraceReport:
     @property
     def unique_resource_type_count(self) -> int:
         return len({name for case in self.cases for name in case.unique_resource_types})
+
+
+@dataclass
+class ActionAbstractionTraceCase:
+    source_log: str
+    action_count: int = 0
+    failed_action_count: int = 0
+    unknown_canonical_count: int = 0
+    failed_mapping_count: int = 0
+    desktop_planned_count: int = 0
+    low_level_candidate_count: int = 0
+    canonical_action_types: dict = field(default_factory=dict)
+    result_backend_counts: dict = field(default_factory=dict)
+    result_backend_command_counts: dict = field(default_factory=dict)
+    mineflayer_command_counts: dict = field(default_factory=dict)
+    desktop_command_counts: dict = field(default_factory=dict)
+    lower_level_reasons: dict = field(default_factory=dict)
+    task_recommendations: list[str] = field(default_factory=list)
+
+
+@dataclass
+class ActionAbstractionTraceReport:
+    cases: list[ActionAbstractionTraceCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def action_count(self) -> int:
+        return sum(case.action_count for case in self.cases)
+
+    @property
+    def failed_action_count(self) -> int:
+        return sum(case.failed_action_count for case in self.cases)
+
+    @property
+    def unknown_canonical_count(self) -> int:
+        return sum(case.unknown_canonical_count for case in self.cases)
+
+    @property
+    def failed_mapping_count(self) -> int:
+        return sum(case.failed_mapping_count for case in self.cases)
+
+    @property
+    def desktop_planned_count(self) -> int:
+        return sum(case.desktop_planned_count for case in self.cases)
+
+    @property
+    def low_level_candidate_count(self) -> int:
+        return sum(case.low_level_candidate_count for case in self.cases)
 
 
 @dataclass
@@ -1819,6 +1872,18 @@ class BenchmarkRunner:
             curriculum_manager.record_exploration_feedback(feedback)
         return feedback
 
+    def run_action_abstraction_report_from_logs(self, session_log_paths: list[str]) -> ActionAbstractionTraceReport:
+        """Summarize canonical actions, backend mappings, and cross-level control needs."""
+        report = ActionAbstractionTraceReport()
+        mapper = ActionMapper()
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                report.cases.append(self._action_abstraction_trace_case(path, events, mapper))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
     def run_visual_review_pipeline(
         self,
         session_log_paths: list[str],
@@ -2156,6 +2221,76 @@ class BenchmarkRunner:
             ready_for_exploration_review=ready,
         )
 
+    def _action_abstraction_trace_case(
+        self,
+        source_log: str,
+        events: list[dict],
+        mapper: ActionMapper,
+    ) -> ActionAbstractionTraceCase:
+        action_events = [
+            event.get("data", {})
+            for event in events
+            if event.get("type") == "action" and isinstance(event.get("data", {}), dict)
+        ]
+        canonical_counts = {}
+        result_backend_counts = {}
+        result_backend_command_counts = {}
+        mineflayer_counts = {}
+        desktop_counts = {}
+        lower_level_reasons = {}
+        recommendations = []
+        failed_actions = 0
+        unknown_canonical = 0
+        failed_mappings = 0
+        desktop_planned = 0
+        low_level_candidates = 0
+
+        current_goal = self._session_goal(events)
+        for index, action_data in enumerate(action_events, start=1):
+            action = action_data.get("action", {}) if isinstance(action_data.get("action", {}), dict) else {}
+            result = action_data.get("result", {}) if isinstance(action_data.get("result", {}), dict) else {}
+            action_type = str(action.get("type") or result.get("action_type") or "unknown")
+            canonical_counts[action_type] = canonical_counts.get(action_type, 0) + 1
+
+            if result.get("success") is False:
+                failed_actions += 1
+            backend = str(result.get("backend") or "unknown")
+            backend_command = str(result.get("backend_command") or result.get("action_type") or action_type)
+            result_backend_counts[backend] = result_backend_counts.get(backend, 0) + 1
+            result_backend_command_counts[backend_command] = result_backend_command_counts.get(backend_command, 0) + 1
+
+            mineflayer = mapper.map(action, "mineflayer")
+            desktop = mapper.map(action, "desktop")
+            mineflayer_counts[mineflayer.command] = mineflayer_counts.get(mineflayer.command, 0) + 1
+            desktop_counts[desktop.command] = desktop_counts.get(desktop.command, 0) + 1
+            if not mineflayer.executable:
+                unknown_canonical += 1
+                failed_mappings += 1
+            if not desktop.executable:
+                desktop_planned += 1
+            reason = self._lower_level_control_reason(action, result, desktop)
+            if reason:
+                low_level_candidates += 1
+                lower_level_reasons[reason] = lower_level_reasons.get(reason, 0) + 1
+                recommendations.append(self._action_abstraction_recommendation(index, current_goal, action_type, reason))
+
+        return ActionAbstractionTraceCase(
+            source_log=source_log,
+            action_count=len(action_events),
+            failed_action_count=failed_actions,
+            unknown_canonical_count=unknown_canonical,
+            failed_mapping_count=failed_mappings,
+            desktop_planned_count=desktop_planned,
+            low_level_candidate_count=low_level_candidates,
+            canonical_action_types=canonical_counts,
+            result_backend_counts=result_backend_counts,
+            result_backend_command_counts=result_backend_command_counts,
+            mineflayer_command_counts=mineflayer_counts,
+            desktop_command_counts=desktop_counts,
+            lower_level_reasons=lower_level_reasons,
+            task_recommendations=recommendations[:12],
+        )
+
     def _segment_has_visual_evidence(self, events: list[dict], source_log: str = "") -> bool:
         for event in events:
             if event.get("type") not in {"observation", "vision", "visual_analysis"}:
@@ -2270,6 +2405,32 @@ class BenchmarkRunner:
     def _looks_like_multihop_goal(self, goal: str) -> bool:
         text = str(goal or "").lower()
         return any(marker in text for marker in (" and ", " then ", " before ", " after ", " while ", "prepare", "multi-hop"))
+
+    def _lower_level_control_reason(self, action: dict, result: dict, desktop_command) -> str:
+        action_type = str(action.get("type") or result.get("action_type") or "").lower()
+        if action_type in {"dig", "place", "look_at", "attack"} and self._missing_precise_target(action):
+            return "missing_precise_target"
+        text = " ".join(
+            str(value or "").lower()
+            for value in (result.get("error"), result.get("reason"), result.get("message"))
+        )
+        if any(token in text for token in ("not visible", "no target", "cannot find", "not found", "unknown block")):
+            return "visual_target_uncertain"
+        if any(token in text for token in ("reach", "distance", "blocked", "path", "collision")):
+            return "navigation_precision"
+        if action_type in {"dig", "place", "look_at", "attack"} and getattr(desktop_command, "command", ""):
+            return "visual_precision_action"
+        return ""
+
+    def _missing_precise_target(self, action: dict) -> bool:
+        params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
+        return not all(params.get(axis) is not None for axis in ("x", "y", "z"))
+
+    def _action_abstraction_recommendation(self, index: int, goal: str, action_type: str, reason: str) -> str:
+        prefix = f"action#{index} {action_type}"
+        if goal:
+            prefix = f"{goal}: {prefix}"
+        return f"{prefix} may need lower-level control ({reason})"
 
     def _visual_paths_from_record(self, record: dict) -> list[str]:
         if not isinstance(record, dict):
@@ -3885,6 +4046,40 @@ class BenchmarkRunner:
                 )
         for error in report.errors:
             print(f"  error: {error}")
+
+    def print_action_abstraction_report(self, report: ActionAbstractionTraceReport):
+        total = report.log_count
+        print("\nAction Abstraction Trace")
+        print(f"  logs: {total}")
+        print(f"  actions: {report.action_count}")
+        print(f"  failed actions: {report.failed_action_count}")
+        print(f"  unknown canonical actions: {report.unknown_canonical_count}")
+        print(f"  failed mappings: {report.failed_mapping_count}")
+        print(f"  desktop planned mappings: {report.desktop_planned_count}")
+        print(f"  low-level control candidates: {report.low_level_candidate_count}")
+        for case in report.cases:
+            marker = "!" if case.failed_mapping_count else "+"
+            print(f"  [{marker}] {case.source_log}")
+            print(
+                f"      actions={case.action_count}, failed={case.failed_action_count}, "
+                f"unknown={case.unknown_canonical_count}, low_level={case.low_level_candidate_count}"
+            )
+            if case.canonical_action_types:
+                print(f"      canonical: {self._format_counts(case.canonical_action_types)}")
+            if case.result_backend_command_counts:
+                print(f"      observed backend commands: {self._format_counts(case.result_backend_command_counts)}")
+            if case.desktop_command_counts:
+                print(f"      desktop plan: {self._format_counts(case.desktop_command_counts)}")
+            if case.lower_level_reasons:
+                print(f"      lower-level reasons: {self._format_counts(case.lower_level_reasons)}")
+            for recommendation in case.task_recommendations[:4]:
+                print(f"      recommendation: {recommendation}")
+        for error in report.errors:
+            print(f"  error: {error}")
+
+    def _format_counts(self, counts: dict, limit: int = 8) -> str:
+        items = sorted(counts.items(), key=lambda item: (-int(item[1]), str(item[0])))
+        return ", ".join(f"{key}={value}" for key, value in items[:limit])
 
     def print_review_label_validation_report(self, report: ReviewLabelValidationReport):
         print("\nReview Label Validation")
