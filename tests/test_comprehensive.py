@@ -515,8 +515,19 @@ class TestSessionLogger(unittest.TestCase):
         self.logger.log("policy_intervention", {"phase": "selected", "skill": "correct_craft_torch"})
         self.logger.log("policy_intervention", {"phase": "action", "skill": "correct_craft_torch"})
         self.logger.log("policy_intervention", {"phase": "completed", "skill": "correct_craft_torch"})
-        self.logger.log("memory_write", {"layer": "episodic", "memory_type": "action", "operation": "write_episode"})
-        self.logger.log("memory_read", {"layer": "mixed", "memory_type": "relevant_memory", "operation": "retrieve", "query": "craft torch"})
+        self.logger.log("memory_write", {
+            "layer": "episodic",
+            "memory_type": "action",
+            "operation": "write_episode",
+            "policy_decision": {"decision": "failure_learning_candidate"},
+        })
+        self.logger.log("memory_read", {
+            "layer": "mixed",
+            "memory_type": "relevant_memory",
+            "operation": "retrieve",
+            "query": "craft torch",
+            "policy_decision": {"decision": "read_instrumented"},
+        })
         self.logger.log("memory_manage", {"layer": "episodic", "memory_type": "lifecycle", "operation": "save_session"})
         self.logger.log_error("error")
         summary = self.logger.get_summary()
@@ -535,6 +546,8 @@ class TestSessionLogger(unittest.TestCase):
         self.assertEqual(memory["memory_write_layers"]["episodic"], 1)
         self.assertEqual(memory["memory_read_types"]["relevant_memory"], 1)
         self.assertEqual(memory["memory_manage_operations"]["save_session"], 1)
+        self.assertEqual(memory["memory_policy_decisions"]["failure_learning_candidate"], 1)
+        self.assertEqual(memory["memory_policy_decisions"]["read_instrumented"], 1)
 
     def test_visual_action_summary_metrics(self):
         self.logger.log("visual_action_suggestion", {

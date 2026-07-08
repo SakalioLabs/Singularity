@@ -93,6 +93,14 @@ class SessionLogger:
         write_types = {}
         read_types = {}
         manage_operations = {}
+        policy_decisions = {}
+
+        for event in writes + reads + manages:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            decision = data.get("policy_decision", {}) if isinstance(data.get("policy_decision", {}), dict) else {}
+            decision_name = str(decision.get("decision") or "")
+            if decision_name:
+                policy_decisions[decision_name] = policy_decisions.get(decision_name, 0) + 1
 
         for event in writes:
             data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
@@ -119,6 +127,7 @@ class SessionLogger:
             "memory_write_types": write_types,
             "memory_read_types": read_types,
             "memory_manage_operations": manage_operations,
+            "memory_policy_decisions": policy_decisions,
         }
 
     def _intervention_metrics(self) -> dict:

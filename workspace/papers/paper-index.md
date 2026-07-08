@@ -596,6 +596,24 @@
 
 ---
 
+## P-032: Agentic Memory
+
+- **Title**: Agentic Memory: Learning Unified Long-Term and Short-Term Memory Management for Large Language Model Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2601.01885
+- **Type**: Paper
+- **Task Type**: Unified long-horizon memory policy
+- **Core Method**: Exposes store, retrieve, update, summarize, and discard as tool-like memory actions trained by progressive reinforcement learning
+- **Action Space**: Task actions plus memory operations
+- **Memory**: Unified short-term and long-term memory management policy
+- **Key Results**: Reports improved task performance, memory quality, and context efficiency on long-horizon benchmarks
+- **Scores**: R=5, N=5, R=3, E=4
+- **Value to Project**: Blueprint for turning Singularity memory lifecycle instrumentation into a policy that can eventually enforce write gates
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-agentic-memory.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -631,3 +649,4 @@
 | P-029 | OpenHA / CrossAgent | 2025-2026 | R4/N5/R4/E4 | P2 |
 | P-030 | AutoMem | 2026 | R5/N5/R4/E4 | P2 |
 | P-031 | Memory for Autonomous LLM Agents | 2026 | R5/N4/R4/E5 | P1 |
+| P-032 | Agentic Memory | 2026 | R5/N5/R3/E4 | P2 |

@@ -8,6 +8,7 @@ import time
 sys.path.insert(0, "src")
 
 from singularity.core.memory import MemorySystem
+from singularity.core.memory_policy import MemoryLifecyclePolicy
 from singularity.core.config import Config
 from singularity.core.planner import Planner
 from singularity.core.agent import Agent
@@ -514,6 +515,7 @@ def test_agent_logs_memory_lifecycle_events_for_policy_report():
     tmpdir = tempfile.mkdtemp()
     agent = object.__new__(Agent)
     agent.memory = MemorySystem(memory_dir=os.path.join(tmpdir, "memory"))
+    agent.memory_policy = MemoryLifecyclePolicy()
     agent.session_logger = FakeSessionLogger()
 
     agent._write_memory_context({"cycle": 1, "observation_summary": {"hp": 20}}, source="test_context")
@@ -526,6 +528,15 @@ def test_agent_logs_memory_lifecycle_events_for_policy_report():
     assert event_types.count("memory_write") == 2
     assert event_types.count("memory_read") == 2
     assert event_types.count("memory_manage") == 1
+    decisions = [
+        event["data"]["policy_decision"]["decision"]
+        for event in agent.session_logger.events
+        if event["type"].startswith("memory_")
+    ]
+    assert "write_allowed" in decisions
+    assert "semantic_promotion_candidate" in decisions
+    assert decisions.count("read_instrumented") == 2
+    assert "manage_allowed" in decisions
 
     session_path = os.path.join(tmpdir, "memory_events.jsonl")
     with open(session_path, "w", encoding="utf-8") as f:
@@ -543,6 +554,24 @@ def test_agent_logs_memory_lifecycle_events_for_policy_report():
     assert "Craft torches" in case.read_queries
     assert report.missing_read_trace_count == 0
     print("PASS: Agent logs memory lifecycle events for policy report")
+
+
+def test_agent_memory_policy_can_suppress_noisy_write_when_enforced():
+    agent = object.__new__(Agent)
+    agent.memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
+    agent.memory_policy = MemoryLifecyclePolicy(enforce_write_gate=True)
+    agent.session_logger = FakeSessionLogger()
+
+    agent._write_memory_context({"raw": "x" * 600}, source="observation")
+
+    assert agent.memory.l0_context == []
+    event = agent.session_logger.events[0]
+    assert event["type"] == "memory_write"
+    decision = event["data"]["policy_decision"]
+    assert decision["decision"] == "write_suppressed"
+    assert decision["should_persist"] is False
+    assert "raw_observation_dump" in decision["quality_flags"]
+    print("PASS: Agent memory policy can suppress noisy writes when enforced")
 
 
 def test_planner_preserves_task_scheduling_hints():
@@ -1268,6 +1297,7 @@ if __name__ == "__main__":
     test_agent_autonomous_goal_selects_ready_opportunity_task()
     test_agent_autonomous_goal_uses_causal_memory_context()
     test_agent_logs_memory_lifecycle_events_for_policy_report()
+    test_agent_memory_policy_can_suppress_noisy_write_when_enforced()
     test_planner_preserves_task_scheduling_hints()
     test_planner_prompt_includes_knowledge_graph_summary()
     test_skill_extractor_creates_experience_atom_and_skill()

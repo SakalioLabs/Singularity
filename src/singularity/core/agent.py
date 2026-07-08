@@ -13,6 +13,7 @@ from typing import Optional
 from singularity.core.config import Config
 from singularity.core.runtime import RuntimeSupervisor
 from singularity.core.memory import MemorySystem
+from singularity.core.memory_policy import MemoryLifecyclePolicy, MemoryPolicyDecision
 from singularity.core.skill_library import SkillLibrary
 from singularity.core.task_system import TaskSystem, TaskStatus
 from singularity.core.goal_generator import GoalGenerator
@@ -50,6 +51,11 @@ class Agent:
 
         # Integrated modules
         self.memory = MemorySystem(memory_dir=config.memory_dir)
+        self.memory_policy = (
+            MemoryLifecyclePolicy(enforce_write_gate=getattr(config, "enforce_memory_write_gate", False))
+            if getattr(config, "enable_memory_policy", True)
+            else None
+        )
         self.skill_library = SkillLibrary(storage_path=config.skill_dir, persist=True)
         self.task_system = TaskSystem()
         self.goal_generator = GoalGenerator()
@@ -493,7 +499,15 @@ class Agent:
         return plan
 
     def _write_memory_context(self, entry: dict, source: str = "agent_context"):
-        if hasattr(self, "memory") and self.memory and hasattr(self.memory, "write_context"):
+        decision = self._memory_write_decision(
+            layer="context",
+            memory_type="context",
+            operation="write_context",
+            content=entry,
+            source=source,
+            confidence=0.7,
+        )
+        if decision.should_persist and hasattr(self, "memory") and self.memory and hasattr(self.memory, "write_context"):
             self.memory.write_context(entry)
         self._log_memory_write(
             layer="context",
@@ -502,11 +516,10 @@ class Agent:
             content=entry,
             source=source,
             confidence=0.7,
+            decision=decision,
         )
 
     def _write_memory_episode(self, event_type: str, data: dict, source: str = "agent_episode"):
-        if hasattr(self, "memory") and self.memory and hasattr(self.memory, "write_episode"):
-            self.memory.write_episode(event_type, data)
         confidence = 0.85 if event_type in {
             "goal_end",
             "goal_verification",
@@ -514,7 +527,7 @@ class Agent:
             "failure_correction_completed",
             "auto_goal_complete",
         } else 0.65
-        self._log_memory_write(
+        decision = self._memory_write_decision(
             layer="episodic",
             memory_type=event_type,
             operation="write_episode",
@@ -522,10 +535,22 @@ class Agent:
             source=source or event_type,
             confidence=confidence,
         )
+        if decision.should_persist and hasattr(self, "memory") and self.memory and hasattr(self.memory, "write_episode"):
+            self.memory.write_episode(event_type, data)
+        self._log_memory_write(
+            layer="episodic",
+            memory_type=event_type,
+            operation="write_episode",
+            content=data,
+            source=source or event_type,
+            confidence=confidence,
+            decision=decision,
+        )
 
     def _read_relevant_memory(self, query: str, source: str = "planner") -> str:
+        decision = self._memory_read_decision(query, "mixed", "relevant_memory", "retrieve")
         result = ""
-        if hasattr(self, "memory") and self.memory and hasattr(self.memory, "get_relevant_memory"):
+        if decision.should_retrieve and hasattr(self, "memory") and self.memory and hasattr(self.memory, "get_relevant_memory"):
             result = self.memory.get_relevant_memory(query)
         self._log_memory_read(
             query=query,
@@ -534,12 +559,14 @@ class Agent:
             operation="retrieve",
             result=result,
             source=source,
+            decision=decision,
         )
         return result
 
     def _read_context_window(self, source: str = "planner") -> str:
+        decision = self._memory_read_decision("context_window", "context", "context_window", "read")
         result = ""
-        if hasattr(self, "memory") and self.memory and hasattr(self.memory, "get_context_window"):
+        if decision.should_retrieve and hasattr(self, "memory") and self.memory and hasattr(self.memory, "get_context_window"):
             result = self.memory.get_context_window()
         self._log_memory_read(
             query="context_window",
@@ -548,14 +575,60 @@ class Agent:
             operation="read",
             result=result,
             source=source,
+            decision=decision,
         )
         return result
 
     def _manage_memory_save_session(self):
         session_id = str(getattr(getattr(self, "session_logger", None), "session_id", "session"))
+        decision = self._memory_manage_decision("save_session", layer="episodic", memory_type="lifecycle")
         if hasattr(self, "memory") and self.memory and hasattr(self.memory, "save_session"):
             self.memory.save_session(session_id)
-        self._log_memory_manage("save_session", {"session_id": session_id}, layer="episodic")
+        self._log_memory_manage("save_session", {"session_id": session_id}, layer="episodic", decision=decision)
+
+    def _memory_write_decision(
+        self,
+        layer: str,
+        memory_type: str,
+        operation: str,
+        content,
+        source: str,
+        confidence: float,
+    ) -> MemoryPolicyDecision:
+        if hasattr(self, "memory_policy") and self.memory_policy:
+            return self.memory_policy.decide_write(layer, memory_type, operation, content, source, confidence)
+        return MemoryPolicyDecision(
+            operation=operation,
+            layer=layer,
+            memory_type=memory_type,
+            decision="write_allowed",
+            reason="memory policy disabled",
+        )
+
+    def _memory_read_decision(self, query: str, layer: str, memory_type: str, operation: str) -> MemoryPolicyDecision:
+        if hasattr(self, "memory_policy") and self.memory_policy:
+            return self.memory_policy.decide_read(query, layer, memory_type, operation)
+        return MemoryPolicyDecision(
+            operation=operation,
+            layer=layer,
+            memory_type=memory_type,
+            decision="read_allowed",
+            reason="memory policy disabled",
+            should_persist=False,
+            should_retrieve=True,
+        )
+
+    def _memory_manage_decision(self, operation: str, layer: str = "memory", memory_type: str = "lifecycle") -> MemoryPolicyDecision:
+        if hasattr(self, "memory_policy") and self.memory_policy:
+            return self.memory_policy.decide_manage(operation, layer, memory_type)
+        return MemoryPolicyDecision(
+            operation=operation,
+            layer=layer,
+            memory_type=memory_type,
+            decision="manage_allowed",
+            reason="memory policy disabled",
+            should_persist=False,
+        )
 
     def _log_memory_write(
         self,
@@ -565,6 +638,7 @@ class Agent:
         content,
         source: str = "",
         confidence: float = 0.7,
+        decision: MemoryPolicyDecision = None,
     ):
         if not hasattr(self, "session_logger") or not hasattr(self.session_logger, "log"):
             return
@@ -577,6 +651,8 @@ class Agent:
             "keys": sorted(content.keys()) if isinstance(content, dict) else [],
             "confidence": confidence,
         }
+        if decision is not None:
+            payload["policy_decision"] = decision.as_dict()
         self.session_logger.log("memory_write", payload)
 
     def _log_memory_read(
@@ -587,11 +663,12 @@ class Agent:
         operation: str,
         result,
         source: str = "",
+        decision: MemoryPolicyDecision = None,
     ):
         if not hasattr(self, "session_logger") or not hasattr(self.session_logger, "log"):
             return
         text = str(result or "")
-        self.session_logger.log("memory_read", {
+        payload = {
             "operation": operation,
             "layer": layer,
             "memory_type": memory_type,
@@ -599,19 +676,31 @@ class Agent:
             "query": str(query or "")[:160],
             "result_chars": len(text),
             "has_result": bool(text.strip()),
-        })
+        }
+        if decision is not None:
+            payload["policy_decision"] = decision.as_dict()
+        self.session_logger.log("memory_read", payload)
 
-    def _log_memory_manage(self, operation: str, data: dict = None, layer: str = "memory"):
+    def _log_memory_manage(
+        self,
+        operation: str,
+        data: dict = None,
+        layer: str = "memory",
+        decision: MemoryPolicyDecision = None,
+    ):
         if not hasattr(self, "session_logger") or not hasattr(self.session_logger, "log"):
             return
-        self.session_logger.log("memory_manage", {
+        payload = {
             "operation": operation,
             "layer": layer,
             "memory_type": "lifecycle",
             "source": "agent_runtime",
             "content": self._memory_preview(data or {}),
             "confidence": 0.8,
-        })
+        }
+        if decision is not None:
+            payload["policy_decision"] = decision.as_dict()
+        self.session_logger.log("memory_manage", payload)
 
     def _memory_preview(self, value, limit: int = 240) -> str:
         try:
@@ -1031,7 +1120,10 @@ class Agent:
         if not hasattr(self, "memory") or not hasattr(self.memory, "get_causal_opportunity_context"):
             return observation
         query = self._causal_scheduling_query(goal)
-        context = self.memory.get_causal_opportunity_context(query, observation)
+        decision = self._memory_read_decision(query, "causal", "opportunity_context", "retrieve")
+        context = {}
+        if decision.should_retrieve:
+            context = self.memory.get_causal_opportunity_context(query, observation)
         self._log_memory_read(
             query=query,
             layer="causal",
@@ -1039,6 +1131,7 @@ class Agent:
             operation="retrieve",
             result=context,
             source="causal_scheduler",
+            decision=decision,
         )
         if not context.get("causal_tags") and not context.get("causal_events"):
             return observation

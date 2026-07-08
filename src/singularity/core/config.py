@@ -32,6 +32,8 @@ class Config:
     skill_dir: str = "workspace/skills"
     enable_policy_skills: bool = True
     enable_autocurriculum: bool = True
+    enable_memory_policy: bool = True
+    enforce_memory_write_gate: bool = False
     enable_vision_analysis: bool = True
     enable_visual_action_grounding: bool = True
     enable_screenshot_capture: bool = False

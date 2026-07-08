@@ -141,6 +141,7 @@ python -m singularity.main memory-consolidation-report --memory-dir workspace/me
 python -m singularity.main memory-policy-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/memory_policy.json
 # The saved JSON includes `memory_policy_feedback` for future memory-write and retrieval policy tuning.
 # New Agent runs log `memory_write`, `memory_read`, and `memory_manage` events plus summary metrics.
+# `MemoryLifecyclePolicy` is advisory by default; set `Config(enforce_memory_write_gate=True)` to suppress noisy writes.
 
 # Summarize open-world exploration coverage from autonomous/session logs
 python -m singularity.main exploration-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/exploration_trace.json
