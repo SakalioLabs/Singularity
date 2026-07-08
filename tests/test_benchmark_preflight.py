@@ -1854,6 +1854,174 @@ def test_bounded_context_report_audits_typed_planner_context():
     print("PASS: Bounded context report audits typed planner context")
 
 
+def test_continual_learning_report_aggregates_open_ended_axes():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_continual_learning.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Explore, collect coal, and craft torches"}},
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "mixed",
+                "memory_type": "relevant_memory",
+                "source": "planner_goal",
+                "query": "craft torches",
+                "result_chars": 180,
+                "has_result": True,
+            },
+        },
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "task",
+                "memory_type": "task_memory",
+                "source": "planner_task_memory",
+                "query": "craft torches",
+                "result_chars": 100,
+                "has_result": True,
+            },
+        },
+        {"type": "plan", "data": {"status": "in_progress", "actions": [
+            {"type": "move_to", "parameters": {"x": 8, "z": 0}},
+            {"type": "dig", "parameters": {"block": "coal_ore"}},
+            {"type": "craft", "parameters": {"item": "torch"}},
+        ]}},
+        {"type": "observation", "data": {
+            "position": {"x": 0, "y": 64, "z": 0},
+            "inventory": {"stick": 2},
+            "nearby_blocks": [{"name": "oak_log"}],
+            "nearby_entities": [],
+        }},
+        {"type": "action", "data": {"action": {"type": "move_to", "parameters": {"x": 8, "z": 0}}, "result": {"success": True}}},
+        {"type": "observation", "data": {
+            "position": {"x": 8, "y": 63, "z": 0},
+            "inventory": {"stick": 2},
+            "nearby_blocks": [{"name": "coal_ore"}],
+            "grounded_resources": [{"name": "coal_ore"}],
+            "nearby_entities": [{"type": "sheep", "hostile": False}],
+        }},
+        {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "coal_ore"}}, "result": {"success": True, "block": "coal_ore"}}},
+        {"type": "observation", "data": {
+            "position": {"x": 8, "y": 63, "z": 0},
+            "inventory": {"stick": 2, "coal": 1},
+            "nearby_blocks": [{"name": "coal_ore"}],
+            "grounded_resources": [{"name": "coal_ore"}],
+        }},
+        {"type": "action", "data": {"action": {"type": "craft", "parameters": {"item": "torch"}}, "result": {"success": True, "item": "torch"}}},
+        {"type": "observation", "data": {
+            "position": {"x": 8, "y": 63, "z": 0},
+            "inventory": {"torch": 4},
+            "nearby_blocks": [{"name": "coal_ore"}],
+        }},
+        {
+            "type": "memory_write",
+            "data": {
+                "layer": "semantic",
+                "memory_type": "fact",
+                "source": "goal_verification",
+                "content": "Coal plus sticks produced torches after moving to a coal_ore vein.",
+                "confidence": 0.9,
+            },
+        },
+        {
+            "type": "memory_write",
+            "data": {
+                "layer": "episodic",
+                "memory_type": "experience",
+                "source": "goal_end",
+                "content": "Moved to coal_ore, mined coal, then crafted torch.",
+                "confidence": 0.85,
+            },
+        },
+        {"type": "goal_verification", "data": {"achieved": True, "status": "achieved"}},
+        {"type": "goal_end", "data": {"goal": "Explore, collect coal, and craft torches", "result": {"completed": True}}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_continual_learning_report_from_logs([session_path], cell_size=8)
+    case = report.cases[0]
+
+    assert report.log_count == 1
+    assert report.ready_log_count == 1
+    assert report.completed_goal_count == 1
+    assert report.failed_action_count == 0
+    assert case.unique_action_type_count == 3
+    assert case.action_entropy > 0.9
+    assert case.memory_read_count == 2
+    assert case.memory_write_count == 2
+    assert case.semantic_write_count == 1
+    assert case.episodic_write_count == 1
+    assert case.bounded_cycle_count == 1
+    assert case.unbounded_context_cycle_count == 0
+    assert case.unique_cell_count >= 2
+    assert case.object_exploration_count >= 5
+    assert case.axis_scores["continual_learning"] > 0.45
+    assert "weak_memory_learning_loop" not in case.issues
+
+    feedback = runner.continual_learning_feedback(report)
+    assert feedback["average_axis_scores"]["action_diversity"] > 0.9
+    assert not any(hint["continual_learning_policy"] == "enforce_bounded_context_contract" for hint in feedback["policy_hints"])
+    print("PASS: Continual learning report aggregates open-ended axes")
+
+
+def test_continual_learning_report_accepts_flat_session_log_fields():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_continual_learning_flat.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "gather oak and craft planks"}},
+        {"type": "memory_read", "data": {"memory_type": "semantic", "content": "oak trees provide logs for planks"}},
+        {"type": "memory_read", "data": {"memory_type": "episodic", "content": "last run found oak near x=8 z=0"}},
+        {"type": "plan", "data": {"goal": "gather oak and craft planks", "steps": ["move to oak", "dig oak", "craft planks"]}},
+        {
+            "type": "observation",
+            "data": {
+                "position": {"x": 0, "y": 64, "z": 0},
+                "nearby_blocks": [{"type": "grass_block"}],
+                "nearby_resources": [{"type": "oak_log"}],
+                "nearby_entities": [{"type": "cow"}],
+            },
+        },
+        {"type": "action", "data": {"action": "move_to", "result": {"success": True, "target": "oak_tree"}}},
+        {
+            "type": "observation",
+            "data": {
+                "position": {"x": 9, "y": 64, "z": 1},
+                "inventory": {"oak_log": 1},
+                "nearby_blocks": [{"type": "oak_log"}, {"type": "oak_leaves"}],
+                "nearby_resources": [{"type": "oak_log"}],
+            },
+        },
+        {"type": "action", "data": {"action": "dig", "result": {"success": True, "target": "oak_log"}}},
+        {"type": "memory_write", "data": {"memory_type": "episodic", "content": "oak was reachable near x=9 z=1"}},
+        {"type": "action", "data": {"action": "craft", "result": {"success": True, "target": "oak_planks"}}},
+        {"type": "memory_write", "data": {"memory_type": "semantic", "content": "one oak log can be converted into planks after harvesting"}},
+        {"type": "goal_verification", "data": {"achieved": True}},
+        {"type": "goal_end", "data": {"status": "completed"}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_continual_learning_report_from_logs([session_path], cell_size=8)
+    case = report.cases[0]
+    feedback = runner.continual_learning_feedback(report)
+
+    assert report.completed_goal_count == 1
+    assert case.goal_count == 1
+    assert case.unique_action_type_count == 3
+    assert case.action_entropy > 0.9
+    assert case.semantic_write_count == 1
+    assert case.episodic_write_count == 1
+    assert "no_goal_progress" not in case.issues
+    assert feedback["completed_goal_count"] == 1
+    assert feedback["average_axis_scores"]["action_diversity"] > 0.9
+    print("PASS: Continual learning report accepts flat session log fields")
+
+
 def test_ingest_queues_repeated_causal_summary_candidate():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_repeated.jsonl")
@@ -2366,6 +2534,8 @@ if __name__ == "__main__":
     test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates()
     test_memory_policy_report_counts_write_read_manage_gaps_and_feedback()
     test_bounded_context_report_audits_typed_planner_context()
+    test_continual_learning_report_aggregates_open_ended_axes()
+    test_continual_learning_report_accepts_flat_session_log_fields()
     test_ingest_queues_repeated_causal_summary_candidate()
     test_ingest_queues_failure_correction_candidate()
     test_benchmark_results_persist_intervention_metrics()

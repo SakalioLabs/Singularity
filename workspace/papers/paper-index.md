@@ -974,6 +974,24 @@
 
 ---
 
+## P-053: AgentCL
+
+- **Title**: AgentCL: Toward Rigorous Evaluation of Continual Learning in Language Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2606.02461
+- **Type**: Continual-learning evaluation framework for language agents
+- **Task Type**: Controlled task streams with reusable sub-solutions, evidence, and workflows
+- **Core Method**: Constructs compositional streams and measures transfer gains while probing memory designs that store interactions, insights, and skills
+- **Action Space**: Language-agent task actions across coding, research, and reasoning domains
+- **Memory**: Non-parametric memory with consolidation filters for unreliable experiences
+- **Key Results**: Shows controlled reusable streams distinguish memory designs better than naive streams and exposes memory-induced degradation in some settings
+- **Scores**: R=4, N=5, R=4, E=5
+- **Value to Project**: Motivates controlled Minecraft task streams to measure whether transfer memories and approved skills improve later held-out goals without causing interference
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-agentcl.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1030,3 +1048,4 @@
 | P-050 | COS-PLAY | 2026 | R5/N5/R4/E5 | P1 |
 | P-051 | AgenticSTS | 2026 | R5/N5/R4/E5 | P1 |
 | P-052 | AgentOdyssey | 2026 | R4/N5/R4/E5 | P2 |
+| P-053 | AgentCL | 2026 | R4/N5/R4/E5 | P2 |

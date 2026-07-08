@@ -142,6 +142,7 @@
 - [x] Add `mixed-initiative-policy-patch` to convert approved execution artifacts into reusable action/template policy feedback.
 - [x] Add COS-PLAY-style skill contract reporting and contract-aware skill recommendation so reusable Minecraft skills are retrieved by goal, world-state fit, prerequisites, postconditions, and governance gates.
 - [x] Add AgenticSTS-style `bounded-context-report` so planner cycles can be audited for typed retrieval coverage, context budget violations, raw transcript risks, and ablation-friendly memory layer diversity.
+- [x] Add AgentOdyssey/AgentCL-style `continual-learning-report` to aggregate progress, world-knowledge acquisition, episodic/semantic memory use, object/action exploration, action diversity, bounded-context quality, and meaningful-horizon signals from session logs.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -155,6 +156,7 @@
 - [ ] Run autonomous mode with the new curriculum enabled and inspect `curriculum.last_decision` plus `auto_goal_complete/failed` episodes for goal-loop quality.
 - [ ] Run `memory-policy-report` on real M1/M2/autonomous session logs and compare `MemoryLifecyclePolicy` decisions against task outcomes before enabling strict write gates.
 - [ ] Run `bounded-context-report` on real M1/M2/autonomous session logs and tighten planner context budgets if raw transcript or oversized memory-read cycles appear.
+- [ ] Run `continual-learning-report` on real autonomous/M7 session logs and compare axis scores against later task success, transfer-memory matches, and skill-candidate reuse.
 - [ ] Run `transfer-memory-report` on real M1/M2/autonomous memory stores and compare high-scoring transfer matches against downstream task success.
 - [ ] Run `task-memory-report` on real multi-session task traces and compare task-centric memory matches against verifier outcomes and repeated-failure reductions.
 - [ ] Run `memory-promptware-report` on live autonomous/M7 memory stores and inspect any flagged entries before enabling stricter default memory enforcement.

@@ -16,5 +16,6 @@
   - Procedural or replayed tasks should include hidden prerequisites and state dynamics.
 **Singularity Adaptation**:
   - Existing `exploration-trace-report`, `world-model-report`, `memory-policy-report`, and `bounded-context-report` cover parts of AgentOdyssey's diagnostic surface.
-  - A future `continual-learning-report` should combine these axes into a single per-session horizon diagnostic for Minecraft autonomous runs.
-**Next Action**: Add an aggregate continual-learning diagnostic that joins exploration, world-model, memory, action-diversity, and cost signals from the same session logs.
+  - `continual-learning-report` now combines progress, world knowledge, episodic/semantic memory use, object/action exploration, action diversity, bounded-context quality, and meaningful-horizon signals from the same session logs.
+  - The report emits reviewable `continual_learning_policy` hints for weak memory loops, low action diversity, short horizons, and unbounded context cycles.
+**Next Action**: Run `continual-learning-report` on real autonomous/M7 session logs and compare axis scores against later task success, transfer-memory matches, and skill-candidate reuse.

@@ -1122,6 +1122,113 @@ class BoundedPlanningContextReport:
 
 
 @dataclass
+class ContinualLearningTraceCase:
+    source_log: str
+    event_count: int = 0
+    observation_count: int = 0
+    goal_count: int = 0
+    completed_goal_count: int = 0
+    failed_goal_count: int = 0
+    plan_count: int = 0
+    action_count: int = 0
+    successful_action_count: int = 0
+    failed_action_count: int = 0
+    unique_action_type_count: int = 0
+    unique_action_target_count: int = 0
+    action_entropy: float = 0.0
+    memory_read_count: int = 0
+    memory_write_count: int = 0
+    episodic_write_count: int = 0
+    semantic_write_count: int = 0
+    consolidation_signal_count: int = 0
+    bounded_cycle_count: int = 0
+    unbounded_context_cycle_count: int = 0
+    unique_position_count: int = 0
+    path_distance: float = 0.0
+    unique_cell_count: int = 0
+    frontier_count: int = 0
+    resource_hotspot_count: int = 0
+    unique_block_type_count: int = 0
+    unique_resource_type_count: int = 0
+    unique_entity_type_count: int = 0
+    unique_inventory_item_count: int = 0
+    object_exploration_count: int = 0
+    progress_event_count: int = 0
+    meaningful_horizon_events: int = 0
+    stagnation_tail_events: int = 0
+    axis_scores: dict = field(default_factory=dict)
+    issues: list[str] = field(default_factory=list)
+    recommendations: list[str] = field(default_factory=list)
+    ready_for_continual_learning_review: bool = False
+
+
+@dataclass
+class ContinualLearningTraceReport:
+    cases: list[ContinualLearningTraceCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_log_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_continual_learning_review)
+
+    @property
+    def event_count(self) -> int:
+        return sum(case.event_count for case in self.cases)
+
+    @property
+    def observation_count(self) -> int:
+        return sum(case.observation_count for case in self.cases)
+
+    @property
+    def action_count(self) -> int:
+        return sum(case.action_count for case in self.cases)
+
+    @property
+    def failed_action_count(self) -> int:
+        return sum(case.failed_action_count for case in self.cases)
+
+    @property
+    def completed_goal_count(self) -> int:
+        return sum(case.completed_goal_count for case in self.cases)
+
+    @property
+    def failed_goal_count(self) -> int:
+        return sum(case.failed_goal_count for case in self.cases)
+
+    @property
+    def progress_event_count(self) -> int:
+        return sum(case.progress_event_count for case in self.cases)
+
+    @property
+    def object_exploration_count(self) -> int:
+        return sum(case.object_exploration_count for case in self.cases)
+
+    @property
+    def memory_read_count(self) -> int:
+        return sum(case.memory_read_count for case in self.cases)
+
+    @property
+    def memory_write_count(self) -> int:
+        return sum(case.memory_write_count for case in self.cases)
+
+    @property
+    def unbounded_context_cycle_count(self) -> int:
+        return sum(case.unbounded_context_cycle_count for case in self.cases)
+
+    @property
+    def average_axis_scores(self) -> dict:
+        keys = sorted({key for case in self.cases for key in case.axis_scores})
+        return {
+            key: round(sum(case.axis_scores.get(key, 0.0) for case in self.cases) / len(self.cases), 3)
+            for key in keys
+        } if self.cases else {}
+
+
+@dataclass
 class ReviewLabelValidationCase:
     index: int
     label_type: str = "unknown"
@@ -3333,6 +3440,296 @@ class BenchmarkRunner:
             bounded_ok=not any(issue in hard_issues for issue in issues),
         )
 
+    def run_continual_learning_report_from_logs(
+        self,
+        session_log_paths: list[str],
+        cell_size: float = 8.0,
+        max_read_chars: int = 1200,
+        max_cycle_chars: int = 2400,
+    ) -> ContinualLearningTraceReport:
+        """Build AgentOdyssey-style diagnostics for test-time continual learning traces."""
+        report = ContinualLearningTraceReport()
+        safe_cell_size = float(cell_size or 8.0)
+        if safe_cell_size <= 0:
+            safe_cell_size = 8.0
+        safe_max_read = max(1, int(max_read_chars or 1200))
+        safe_max_cycle = max(1, int(max_cycle_chars or 2400))
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                report.cases.append(self._continual_learning_trace_case(
+                    path,
+                    events,
+                    safe_cell_size,
+                    safe_max_read,
+                    safe_max_cycle,
+                ))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
+    def continual_learning_feedback(self, report: ContinualLearningTraceReport) -> dict:
+        """Aggregate continual-learning diagnostics into reviewable policy hints."""
+        issue_counts = {}
+        recommendations = set()
+        for case in report.cases:
+            for issue in case.issues:
+                issue_counts[issue] = issue_counts.get(issue, 0) + 1
+            recommendations.update(case.recommendations)
+
+        policy_hints = []
+        if issue_counts.get("low_world_knowledge_acquisition", 0):
+            policy_hints.append({
+                "continual_learning_policy": "increase_world_knowledge_acquisition",
+                "priority": "high",
+                "reason": "session traces show little new world-state or object knowledge",
+                "count": issue_counts["low_world_knowledge_acquisition"],
+            })
+        if issue_counts.get("low_action_diversity", 0) or issue_counts.get("low_object_exploration", 0):
+            policy_hints.append({
+                "continual_learning_policy": "expand_object_action_exploration",
+                "priority": "medium",
+                "reason": "agent repeats too few action types or touches too few object targets",
+                "count": issue_counts.get("low_action_diversity", 0) + issue_counts.get("low_object_exploration", 0),
+            })
+        if issue_counts.get("weak_memory_learning_loop", 0):
+            policy_hints.append({
+                "continual_learning_policy": "strengthen_memory_learning_loop",
+                "priority": "high",
+                "reason": "planning traces lack enough read/write evidence for test-time learning",
+                "count": issue_counts["weak_memory_learning_loop"],
+            })
+        if issue_counts.get("unbounded_context_cycles", 0):
+            policy_hints.append({
+                "continual_learning_policy": "enforce_bounded_context_contract",
+                "priority": "high",
+                "reason": "planner cycles contain missing, oversized, or raw-context memory contracts",
+                "count": issue_counts["unbounded_context_cycles"],
+            })
+        if issue_counts.get("short_meaningful_horizon", 0) or issue_counts.get("no_goal_progress", 0):
+            policy_hints.append({
+                "continual_learning_policy": "extend_meaningful_horizon",
+                "priority": "high",
+                "reason": "progress signals end too early or goals do not complete",
+                "count": issue_counts.get("short_meaningful_horizon", 0) + issue_counts.get("no_goal_progress", 0),
+            })
+        if issue_counts.get("transfer_experience_not_captured", 0):
+            policy_hints.append({
+                "continual_learning_policy": "capture_reusable_transfer_experience",
+                "priority": "medium",
+                "reason": "successful progress appears without semantic/episodic consolidation for reuse",
+                "count": issue_counts["transfer_experience_not_captured"],
+            })
+
+        return {
+            "log_count": report.log_count,
+            "ready_log_count": report.ready_log_count,
+            "event_count": report.event_count,
+            "observation_count": report.observation_count,
+            "action_count": report.action_count,
+            "failed_action_count": report.failed_action_count,
+            "completed_goal_count": report.completed_goal_count,
+            "failed_goal_count": report.failed_goal_count,
+            "progress_event_count": report.progress_event_count,
+            "object_exploration_count": report.object_exploration_count,
+            "memory_read_count": report.memory_read_count,
+            "memory_write_count": report.memory_write_count,
+            "unbounded_context_cycle_count": report.unbounded_context_cycle_count,
+            "average_axis_scores": report.average_axis_scores,
+            "issue_counts": dict(sorted(issue_counts.items())),
+            "recommendations": sorted(recommendations),
+            "policy_hints": policy_hints,
+        }
+
+    def _continual_learning_trace_case(
+        self,
+        source_log: str,
+        events: list[dict],
+        cell_size: float,
+        max_read_chars: int,
+        max_cycle_chars: int,
+    ) -> ContinualLearningTraceCase:
+        exploration = self._exploration_trace_case(source_log, events)
+        world_model = self._world_model_trace_case(source_log, events, cell_size, limit=12)
+        memory_policy = self._memory_policy_trace_case(source_log, events)
+        bounded = self._bounded_context_trace_case(source_log, events, max_read_chars, max_cycle_chars)
+
+        observations = [
+            event.get("data", {})
+            for event in events
+            if event.get("type") == "observation" and isinstance(event.get("data", {}), dict)
+        ]
+        action_events = [
+            event.get("data", {})
+            for event in events
+            if event.get("type") == "action" and isinstance(event.get("data", {}), dict)
+        ]
+        plan_count = sum(1 for event in events if event.get("type") == "plan")
+        memory_write_events = [
+            event.get("data", {})
+            for event in events
+            if event.get("type") == "memory_write" and isinstance(event.get("data", {}), dict)
+        ]
+        memory_read_events = [
+            event.get("data", {})
+            for event in events
+            if event.get("type") == "memory_read" and isinstance(event.get("data", {}), dict)
+        ]
+
+        action_type_counts = {}
+        action_targets = set()
+        successful_actions = 0
+        failed_actions = 0
+        for action_data in action_events:
+            action, result, action_type = self._normalized_action_record(action_data)
+            self._increment(action_type_counts, action_type)
+            target = self._action_target_name(action, result)
+            if target:
+                action_targets.add(target)
+            if result.get("success") is False:
+                failed_actions += 1
+            elif result.get("success") is True:
+                successful_actions += 1
+
+        inventory_items = set()
+        seen_observation_objects = set()
+        progress_indices = []
+        seen_positions = set()
+        for index, event in enumerate(events):
+            event_type = event.get("type")
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event_type == "observation":
+                before_count = len(seen_observation_objects) + len(inventory_items) + len(seen_positions)
+                inventory = data.get("inventory", {}) if isinstance(data.get("inventory", {}), dict) else {}
+                for item, count in inventory.items():
+                    if self._safe_int(count, default=1) > 0:
+                        inventory_items.add(str(item))
+                seen_observation_objects.update(self._named_items_from_record(data, ["nearby_blocks", "blocks", "visible_blocks"]))
+                seen_observation_objects.update(self._named_items_from_record(data, ["grounded_resources", "visual_resources", "resources"]))
+                seen_observation_objects.update(
+                    self._item_name(entity, default_key="type")
+                    for entity in self._entity_items_from_record(data)
+                    if self._item_name(entity, default_key="type")
+                )
+                position = self._position_tuple(data.get("position"))
+                if position is not None:
+                    seen_positions.add(position)
+                after_count = len(seen_observation_objects) + len(inventory_items) + len(seen_positions)
+                if after_count > before_count:
+                    progress_indices.append(index)
+            elif event_type == "action":
+                result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+                if result.get("success") is True:
+                    progress_indices.append(index)
+            elif event_type == "goal_end":
+                if self._event_success(data) is True:
+                    progress_indices.append(index)
+            elif event_type == "goal_verification":
+                if data.get("achieved") is True or data.get("accepted") is True:
+                    progress_indices.append(index)
+            elif event_type in {"memory_write", "memory_consolidation", "failure_correction_completed"}:
+                progress_indices.append(index)
+
+        progress_event_count = len(set(progress_indices))
+        meaningful_horizon_events = (max(progress_indices) + 1) if progress_indices else 0
+        stagnation_tail_events = max(0, len(events) - meaningful_horizon_events)
+        object_exploration = set(exploration.unique_block_types)
+        object_exploration.update(exploration.unique_resource_types)
+        object_exploration.update(exploration.unique_entity_types)
+        object_exploration.update(inventory_items)
+        object_exploration.update(action_targets)
+
+        completion_rate = exploration.completed_goal_count / exploration.goal_count if exploration.goal_count else 0.0
+        action_success_rate = successful_actions / len(action_events) if action_events else 0.0
+        progress_score = round(min(1.0, (completion_rate * 0.6) + (action_success_rate * 0.4)), 3)
+        exploration_score = round(min(1.0, (exploration.unique_position_count / 8.0) + (len(object_exploration) / 24.0)), 3)
+        world_knowledge_score = round(min(1.0, (world_model.unique_cell_count / 8.0) + (world_model.resource_hotspot_count / 6.0)), 3)
+        memory_score = round(min(1.0, (len(memory_read_events) + len(memory_write_events) + memory_policy.consolidation_signal_count) / max(1, plan_count + exploration.goal_count + 2)), 3)
+        action_diversity_score = round(self._normalized_entropy(action_type_counts), 3)
+        horizon_score = round((meaningful_horizon_events / len(events)) if events else 0.0, 3)
+        axis_scores = {
+            "progress": progress_score,
+            "exploration": exploration_score,
+            "world_knowledge": world_knowledge_score,
+            "memory": memory_score,
+            "action_diversity": action_diversity_score,
+            "meaningful_horizon": horizon_score,
+            "continual_learning": round(
+                (progress_score + exploration_score + world_knowledge_score + memory_score + action_diversity_score + horizon_score) / 6.0,
+                3,
+            ),
+        }
+
+        issues = []
+        recommendations = []
+        if exploration.goal_count and exploration.completed_goal_count == 0:
+            issues.append("no_goal_progress")
+            recommendations.append("Use verifier-backed subgoals and curriculum fallback when no goal completes.")
+        if len(object_exploration) < 3 and observations:
+            issues.append("low_object_exploration")
+            recommendations.append("Bias curriculum toward nearby unseen blocks/resources/entities.")
+        if world_knowledge_score < 0.25 and observations:
+            issues.append("low_world_knowledge_acquisition")
+            recommendations.append("Record explicit world-model cells, resources, and frontiers during autonomous runs.")
+        if len(action_events) >= 3 and len(action_type_counts) <= 1:
+            issues.append("low_action_diversity")
+            recommendations.append("Add action-diversity checks before repeating the same primitive action family.")
+        if len(memory_read_events) == 0 or len(memory_write_events) == 0:
+            issues.append("weak_memory_learning_loop")
+            recommendations.append("Ensure each long-horizon run logs typed memory reads and reusable memory writes.")
+        if bounded.unbounded_cycle_count:
+            issues.append("unbounded_context_cycles")
+            recommendations.append("Run bounded-context-report and replace oversized/raw planner context with typed retrieval.")
+        if events and meaningful_horizon_events and meaningful_horizon_events < len(events) * 0.5:
+            issues.append("short_meaningful_horizon")
+            recommendations.append("Trigger self-evolution or curriculum repair when progress disappears in the back half of a run.")
+        if progress_event_count and memory_policy.semantic_write_candidate_count and memory_policy.missed_semantic_write_count:
+            issues.append("transfer_experience_not_captured")
+            recommendations.append("Promote successful repeated outcomes into semantic memory or skill candidates for later tasks.")
+        if len(action_events) and failed_actions / len(action_events) >= 0.4:
+            issues.append("high_action_failure_rate")
+            recommendations.append("Route repeated failed action patterns through action-abstraction and self-evolution reports.")
+
+        return ContinualLearningTraceCase(
+            source_log=source_log,
+            event_count=len(events),
+            observation_count=len(observations),
+            goal_count=exploration.goal_count,
+            completed_goal_count=exploration.completed_goal_count,
+            failed_goal_count=exploration.failed_goal_count,
+            plan_count=plan_count,
+            action_count=len(action_events),
+            successful_action_count=successful_actions,
+            failed_action_count=failed_actions,
+            unique_action_type_count=len(action_type_counts),
+            unique_action_target_count=len(action_targets),
+            action_entropy=round(self._normalized_entropy(action_type_counts), 3),
+            memory_read_count=len(memory_read_events),
+            memory_write_count=len(memory_write_events),
+            episodic_write_count=sum(1 for item in memory_write_events if self._memory_write_is_episodic(item)),
+            semantic_write_count=sum(1 for item in memory_write_events if self._memory_write_is_semantic(item)),
+            consolidation_signal_count=memory_policy.consolidation_signal_count,
+            bounded_cycle_count=bounded.bounded_cycle_count,
+            unbounded_context_cycle_count=bounded.unbounded_cycle_count,
+            unique_position_count=exploration.unique_position_count,
+            path_distance=exploration.path_distance,
+            unique_cell_count=world_model.unique_cell_count,
+            frontier_count=world_model.frontier_count,
+            resource_hotspot_count=world_model.resource_hotspot_count,
+            unique_block_type_count=len(exploration.unique_block_types),
+            unique_resource_type_count=len(exploration.unique_resource_types),
+            unique_entity_type_count=len(exploration.unique_entity_types),
+            unique_inventory_item_count=len(inventory_items),
+            object_exploration_count=len(object_exploration),
+            progress_event_count=progress_event_count,
+            meaningful_horizon_events=meaningful_horizon_events,
+            stagnation_tail_events=stagnation_tail_events,
+            axis_scores=axis_scores,
+            issues=sorted(set(issues)),
+            recommendations=self._dedupe_strings(recommendations)[:8],
+            ready_for_continual_learning_review=bool(observations or action_events or plan_count),
+        )
+
     def run_visual_review_pipeline(
         self,
         session_log_paths: list[str],
@@ -3613,10 +4010,7 @@ class BenchmarkRunner:
         completed_goals = 0
         failed_goals = 0
         for event in goal_end_events:
-            result = event.get("data", {}).get("result", {})
-            if not isinstance(result, dict):
-                continue
-            completed = result.get("completed", result.get("success"))
+            completed = self._event_success(event.get("data", {}))
             if completed is True:
                 completed_goals += 1
             elif completed is False:
@@ -4101,6 +4495,11 @@ class BenchmarkRunner:
         for key in ("success", "completed", "passed", "ok"):
             if isinstance(record.get(key), bool):
                 return record.get(key)
+        status = str(record.get("status") or record.get("state") or record.get("outcome") or "").strip().lower()
+        if status in {"achieved", "complete", "completed", "done", "ok", "pass", "passed", "success", "succeeded"}:
+            return True
+        if status in {"aborted", "blocked", "error", "fail", "failed", "failure", "incomplete", "rejected"}:
+            return False
         result = record.get("result")
         if isinstance(result, dict):
             return self._event_success(result)
@@ -4395,6 +4794,11 @@ class BenchmarkRunner:
         memory_type = str(data.get("memory_type") or data.get("type") or "").lower()
         operation = str(data.get("operation") or data.get("op") or "").lower()
         return layer in {"semantic", "l3", "long_term"} or memory_type in {"fact", "semantic"} or operation == "promote"
+
+    def _memory_write_is_episodic(self, data: dict) -> bool:
+        layer = str(data.get("layer") or data.get("memory_layer") or "").lower()
+        memory_type = str(data.get("memory_type") or data.get("type") or "").lower()
+        return layer in {"episodic", "episode"} or memory_type in {"episodic", "episode", "experience"}
 
     def _memory_write_is_noisy(self, data: dict) -> bool:
         content = str(data.get("content") or data.get("value") or data.get("text") or data.get("memory") or "")
@@ -4784,6 +5188,54 @@ class BenchmarkRunner:
         if goal:
             prefix = f"{goal}: {prefix}"
         return f"{prefix} may need lower-level control ({reason})"
+
+    def _normalized_action_record(self, action_data: dict) -> tuple[dict, dict, str]:
+        if not isinstance(action_data, dict):
+            return {}, {}, "unknown"
+        raw_action = action_data.get("action")
+        if isinstance(raw_action, dict):
+            action = dict(raw_action)
+        elif raw_action not in (None, "", [], {}):
+            action = {"type": str(raw_action)}
+        else:
+            action = {}
+        result = action_data.get("result", {}) if isinstance(action_data.get("result", {}), dict) else {}
+        action_type = str(
+            action.get("type")
+            or action.get("action_type")
+            or action_data.get("action_type")
+            or action_data.get("type")
+            or result.get("action_type")
+            or "unknown"
+        ).strip()
+        if not action_type:
+            action_type = "unknown"
+        return action, result, action_type
+
+    def _action_target_name(self, action: dict, result: dict = None) -> str:
+        action = action if isinstance(action, dict) else {}
+        params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
+        result = result if isinstance(result, dict) else {}
+        for key in ("item", "block", "entity", "target", "resource"):
+            value = params.get(key)
+            if value not in (None, "", [], {}):
+                return str(value)
+        for key in ("item", "block", "entity", "target", "resource", "action_type"):
+            value = result.get(key)
+            if value not in (None, "", [], {}):
+                return str(value)
+        return ""
+
+    def _normalized_entropy(self, counts: dict) -> float:
+        values = [float(value) for value in (counts or {}).values() if value]
+        total = sum(values)
+        if total <= 0 or len(values) <= 1:
+            return 0.0
+        entropy = 0.0
+        for value in values:
+            probability = value / total
+            entropy -= probability * math.log(probability)
+        return entropy / math.log(len(values))
 
     def _visual_paths_from_record(self, record: dict) -> list[str]:
         if not isinstance(record, dict):
@@ -6770,6 +7222,63 @@ class BenchmarkRunner:
                 )
                 if cycle.issues:
                     print(f"          issues: {', '.join(cycle.issues)}")
+        for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_continual_learning_report(self, report: ContinualLearningTraceReport):
+        print("\nContinual Learning Trace")
+        print(f"  logs: {report.log_count}")
+        print(f"  ready logs: {report.ready_log_count}")
+        print(
+            "  progress: "
+            f"goals={report.completed_goal_count}/{report.completed_goal_count + report.failed_goal_count}, "
+            f"progress_events={report.progress_event_count}, "
+            f"actions={report.action_count}, failed_actions={report.failed_action_count}"
+        )
+        print(
+            "  learning signals: "
+            f"objects={report.object_exploration_count}, "
+            f"memory_reads={report.memory_read_count}, "
+            f"memory_writes={report.memory_write_count}, "
+            f"unbounded_context_cycles={report.unbounded_context_cycle_count}"
+        )
+        if report.average_axis_scores:
+            scores = ", ".join(f"{key}={value:.2f}" for key, value in sorted(report.average_axis_scores.items()))
+            print(f"  axis scores: {scores}")
+        feedback = self.continual_learning_feedback(report)
+        if feedback["policy_hints"]:
+            hints = [
+                f"{hint['continual_learning_policy']}({hint['priority']})"
+                for hint in feedback["policy_hints"][:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for case in report.cases:
+            marker = "+" if case.ready_for_continual_learning_review and not case.issues else "!"
+            if not case.ready_for_continual_learning_review:
+                marker = "~"
+            print(f"  [{marker}] {case.source_log}")
+            print(
+                f"      goals={case.completed_goal_count}/{case.goal_count}, "
+                f"actions={case.action_count}, failed={case.failed_action_count}, "
+                f"action_types={case.unique_action_type_count}, action_entropy={case.action_entropy:.2f}"
+            )
+            print(
+                f"      world: positions={case.unique_position_count}, cells={case.unique_cell_count}, "
+                f"frontiers={case.frontier_count}, objects={case.object_exploration_count}, "
+                f"path={case.path_distance:.2f}"
+            )
+            print(
+                f"      memory: reads={case.memory_read_count}, writes={case.memory_write_count}, "
+                f"semantic={case.semantic_write_count}, episodic={case.episodic_write_count}, "
+                f"bounded={case.bounded_cycle_count}, unbounded={case.unbounded_context_cycle_count}"
+            )
+            if case.axis_scores:
+                scores = ", ".join(f"{key}={value:.2f}" for key, value in sorted(case.axis_scores.items()))
+                print(f"      scores: {scores}")
+            if case.issues:
+                print(f"      issues: {', '.join(case.issues)}")
+            for recommendation in case.recommendations[:4]:
+                print(f"      recommendation: {recommendation}")
         for error in report.errors:
             print(f"  error: {error}")
 

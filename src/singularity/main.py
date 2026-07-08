@@ -209,6 +209,15 @@ def main():
     bounded_context_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     bounded_context_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline continual-learning trace report
+    continual_parser = subparsers.add_parser("continual-learning-report", help="Report open-ended continual-learning diagnostics in session logs")
+    continual_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    continual_parser.add_argument("--cell-size", type=float, default=8.0, help="XZ block span per world-model cell")
+    continual_parser.add_argument("--max-read-chars", type=int, default=1200, help="Maximum characters allowed from any single memory read")
+    continual_parser.add_argument("--max-cycle-chars", type=int, default=2400, help="Maximum total memory-read characters allowed before each plan")
+    continual_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    continual_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline memory read filter report
     memory_read_parser = subparsers.add_parser("memory-read-filter-report", help="Report stale or condition-mismatched durable memories for a query")
     memory_read_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
@@ -858,6 +867,47 @@ def main():
                     "read_layers": report.read_layers,
                     "read_types": report.read_types,
                     "bounded_context_feedback": bounded_context_feedback,
+                    "errors": report.errors,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "continual-learning-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("continual-learning-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_continual_learning_report_from_logs(
+            session_logs,
+            cell_size=getattr(args, "cell_size", 8.0),
+            max_read_chars=getattr(args, "max_read_chars", 1200),
+            max_cycle_chars=getattr(args, "max_cycle_chars", 2400),
+        )
+        runner.print_continual_learning_report(report)
+        continual_learning_feedback = runner.continual_learning_feedback(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "log_count": report.log_count,
+                    "ready_log_count": report.ready_log_count,
+                    "event_count": report.event_count,
+                    "observation_count": report.observation_count,
+                    "action_count": report.action_count,
+                    "failed_action_count": report.failed_action_count,
+                    "completed_goal_count": report.completed_goal_count,
+                    "failed_goal_count": report.failed_goal_count,
+                    "progress_event_count": report.progress_event_count,
+                    "object_exploration_count": report.object_exploration_count,
+                    "memory_read_count": report.memory_read_count,
+                    "memory_write_count": report.memory_write_count,
+                    "unbounded_context_cycle_count": report.unbounded_context_cycle_count,
+                    "average_axis_scores": report.average_axis_scores,
+                    "continual_learning_feedback": continual_learning_feedback,
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
