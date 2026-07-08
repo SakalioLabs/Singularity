@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import math
 import json
+import os
 import re
 from dataclasses import asdict, dataclass, field
 from typing import Any, Optional
@@ -699,6 +700,88 @@ class MixedInitiativeReviewApprovalReport:
             "executable_count": self.executable_count,
             "approved_route_counts": self.approved_route_counts,
             "errors": list(self.errors),
+            "cases": [case.to_dict() for case in self.cases],
+        }
+
+
+@dataclass
+class MixedInitiativeReviewExecutionCase:
+    case_id: str
+    route: str
+    target_id: str
+    readiness: str
+    status: str = "skipped"
+    approved: bool = False
+    executable: bool = False
+    dry_run: bool = False
+    source_logs: list[str] = field(default_factory=list)
+    recommended_commands: list[str] = field(default_factory=list)
+    artifact_paths: list[str] = field(default_factory=list)
+    artifact_summaries: dict = field(default_factory=dict)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def executed(self) -> bool:
+        return self.status == "executed"
+
+    def to_dict(self) -> dict:
+        data = asdict(self)
+        data["executed"] = self.executed
+        return data
+
+
+@dataclass
+class MixedInitiativeReviewExecutionReport:
+    approval: MixedInitiativeReviewApprovalReport
+    dry_run: bool = False
+    output_dir: str = ""
+    cases: list[MixedInitiativeReviewExecutionCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def case_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def executed_count(self) -> int:
+        return sum(1 for case in self.cases if case.status == "executed")
+
+    @property
+    def skipped_count(self) -> int:
+        return sum(1 for case in self.cases if case.status == "skipped")
+
+    @property
+    def failed_count(self) -> int:
+        return sum(1 for case in self.cases if case.status == "failed")
+
+    @property
+    def dry_run_count(self) -> int:
+        return sum(1 for case in self.cases if case.status == "dry_run")
+
+    @property
+    def route_counts(self) -> dict:
+        counts = {}
+        for case in self.cases:
+            counts[case.route] = counts.get(case.route, 0) + 1
+        return dict(sorted(counts.items()))
+
+    @property
+    def ok(self) -> bool:
+        return not self.errors and self.failed_count == 0 and self.approval.ok
+
+    def to_dict(self) -> dict:
+        return {
+            "ok": self.ok,
+            "dry_run": self.dry_run,
+            "output_dir": self.output_dir,
+            "case_count": self.case_count,
+            "executed_count": self.executed_count,
+            "skipped_count": self.skipped_count,
+            "failed_count": self.failed_count,
+            "dry_run_count": self.dry_run_count,
+            "route_counts": self.route_counts,
+            "errors": list(self.errors),
+            "approval": self.approval.to_dict(),
             "cases": [case.to_dict() for case in self.cases],
         }
 
@@ -2500,6 +2583,202 @@ def validate_mixed_initiative_review_labels(
             continue
         report.cases.append(_validate_mixed_review_label_record(record, index, plan_index))
     return report
+
+
+def execute_mixed_initiative_review_labels(
+    label_path: str,
+    review_plan: Optional[Any] = None,
+    review_plan_paths: Optional[list[str]] = None,
+    output_dir: str = "",
+    dry_run: bool = False,
+) -> MixedInitiativeReviewExecutionReport:
+    """Execute approved mixed-initiative review labels through whitelisted report builders."""
+    approval = validate_mixed_initiative_review_labels(
+        label_path,
+        review_plan=review_plan,
+        review_plan_paths=review_plan_paths,
+    )
+    report = MixedInitiativeReviewExecutionReport(
+        approval=approval,
+        dry_run=dry_run,
+        output_dir=output_dir,
+    )
+    if not approval.ok:
+        report.errors.append("approval labels failed validation")
+        return report
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
+    for approved_case in approval.cases:
+        execution = MixedInitiativeReviewExecutionCase(
+            case_id=approved_case.case_id,
+            route=approved_case.route,
+            target_id=approved_case.target_id,
+            readiness=approved_case.readiness,
+            approved=approved_case.approved,
+            executable=approved_case.executable,
+            dry_run=dry_run,
+            source_logs=list(approved_case.source_logs),
+            recommended_commands=list(approved_case.recommended_commands),
+        )
+        report.cases.append(execution)
+        if not approved_case.approved:
+            execution.status = "skipped"
+            continue
+        if not approved_case.executable:
+            execution.status = "failed"
+            execution.errors.append("approved case is not executable")
+            continue
+        if dry_run:
+            execution.status = "dry_run"
+            execution.artifact_summaries = _review_execution_dry_run_summary(approved_case)
+            continue
+        try:
+            artifact = _execute_mixed_review_case(approved_case)
+            execution.status = "executed"
+            execution.artifact_summaries = _review_execution_summary(approved_case.route, artifact)
+            if output_dir:
+                artifact_path = os.path.join(
+                    output_dir,
+                    f"{_slugify_id(approved_case.case_id or approved_case.target_id or approved_case.route)}.json",
+                )
+                _write_json_artifact(artifact_path, artifact)
+                execution.artifact_paths.append(artifact_path)
+        except Exception as exc:
+            execution.status = "failed"
+            execution.errors.append(str(exc))
+    return report
+
+
+def _execute_mixed_review_case(case: MixedInitiativeReviewApprovalCase) -> dict:
+    route = case.route
+    if route == "template_approval":
+        return {
+            "route": route,
+            "target_id": case.target_id,
+            "variant_report": build_mixed_initiative_variant_report().to_dict(),
+        }
+    if route == "backend_inspection":
+        _require_source_logs(case)
+        return {
+            "route": route,
+            "target_id": case.target_id,
+            "trace_report": build_mixed_initiative_trace_report(case.source_logs).to_dict(),
+        }
+    if route == "validator_audit":
+        _require_source_logs(case)
+        return {
+            "route": route,
+            "target_id": case.target_id,
+            "trace_report": build_mixed_initiative_trace_report(case.source_logs).to_dict(),
+            "variant_report": build_mixed_initiative_variant_report().to_dict(),
+        }
+    if route == "action_policy_ablation":
+        _require_source_logs(case)
+        return _execute_action_policy_review(case)
+    if route == "mixed_trace_review":
+        _require_source_logs(case)
+        return {
+            "route": route,
+            "target_id": case.target_id,
+            "trace_report": build_mixed_initiative_trace_report(case.source_logs).to_dict(),
+        }
+    raise ValueError(f"unsupported review execution route: {route}")
+
+
+def _execute_action_policy_review(case: MixedInitiativeReviewApprovalCase) -> dict:
+    from singularity.core.config import Config
+    from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+    runner = BenchmarkRunner(Config())
+    action_report = runner.run_action_abstraction_report_from_logs(case.source_logs)
+    action_feedback = runner.action_abstraction_feedback(action_report)
+    visual_report = runner.run_visual_action_ablation_from_logs(case.source_logs)
+    return {
+        "route": case.route,
+        "target_id": case.target_id,
+        "action_abstraction": {
+            "log_count": action_report.log_count,
+            "action_count": action_report.action_count,
+            "failed_action_count": action_report.failed_action_count,
+            "unknown_canonical_count": action_report.unknown_canonical_count,
+            "failed_mapping_count": action_report.failed_mapping_count,
+            "desktop_planned_count": action_report.desktop_planned_count,
+            "low_level_candidate_count": action_report.low_level_candidate_count,
+            "action_abstraction_feedback": action_feedback,
+            "errors": list(action_report.errors),
+            "cases": [asdict(item) for item in action_report.cases],
+        },
+        "visual_action_ablation": {
+            "case_count": len(visual_report.cases),
+            "passed_count": visual_report.passed_count,
+            "changed_count": visual_report.changed_count,
+            "helped_count": visual_report.helped_count,
+            "cases": [asdict(item) for item in visual_report.cases],
+        },
+    }
+
+
+def _require_source_logs(case: MixedInitiativeReviewApprovalCase):
+    if not case.source_logs:
+        raise ValueError("approved case requires source session logs")
+
+
+def _review_execution_dry_run_summary(case: MixedInitiativeReviewApprovalCase) -> dict:
+    return {
+        "route": case.route,
+        "target_id": case.target_id,
+        "source_log_count": len(case.source_logs),
+        "recommended_command_count": len(case.recommended_commands),
+        "success_metrics": list(case.success_metrics),
+    }
+
+
+def _review_execution_summary(route: str, artifact: dict) -> dict:
+    if route == "template_approval":
+        variant = artifact.get("variant_report", {})
+        return {
+            "variant_case_count": variant.get("case_count", 0),
+            "fully_passed_count": variant.get("fully_passed_count", 0),
+            "slot_mismatch_count": variant.get("slot_mismatch_count", 0),
+        }
+    if route == "backend_inspection":
+        trace = artifact.get("trace_report", {})
+        return {
+            "goal_count": trace.get("goal_count", 0),
+            "failed_action_count": trace.get("failed_action_count", 0),
+            "valid_successful_action_count": trace.get("valid_successful_action_count", 0),
+            "recommendation_count": len(trace.get("mixed_initiative_recommendations", []) or []),
+        }
+    if route == "validator_audit":
+        trace = artifact.get("trace_report", {})
+        variant = artifact.get("variant_report", {})
+        return {
+            "agreement_counts": trace.get("agreement_counts", {}),
+            "policy_violation_count": trace.get("policy_violation_count", 0),
+            "variant_validation_success_count": variant.get("validation_success_count", 0),
+        }
+    if route == "action_policy_ablation":
+        action = artifact.get("action_abstraction", {})
+        visual = artifact.get("visual_action_ablation", {})
+        return {
+            "action_count": action.get("action_count", 0),
+            "low_level_candidate_count": action.get("low_level_candidate_count", 0),
+            "visual_action_helped_count": visual.get("helped_count", 0),
+        }
+    trace = artifact.get("trace_report", {})
+    return {
+        "goal_count": trace.get("goal_count", 0),
+        "recommendation_count": len(trace.get("mixed_initiative_recommendations", []) or []),
+    }
+
+
+def _write_json_artifact(path: str, payload: dict):
+    output_dir = os.path.dirname(path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
 
 
 def _review_experiment_plan_from_inputs(

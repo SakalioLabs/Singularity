@@ -184,6 +184,10 @@ python -m singularity.main mixed-initiative-review-plan --session-log logs/sessi
 python -m singularity.main mixed-initiative-review-label-template --review-plan logs/benchmarks/mixed_review_plan.json --output workspace/reviews/mixed_review_labels.jsonl
 python -m singularity.main mixed-initiative-review-label-validate --label-file workspace/reviews/mixed_review_labels.jsonl --review-plan logs/benchmarks/mixed_review_plan.json --output logs/benchmarks/mixed_review_label_validation.json
 
+# Execute approved review labels through whitelisted internal report builders.
+python -m singularity.main mixed-initiative-review-execute --label-file workspace/reviews/mixed_review_labels.jsonl --review-plan logs/benchmarks/mixed_review_plan.json --output-dir logs/benchmarks/mixed_review_artifacts --output logs/benchmarks/mixed_review_execution.json
+python -m singularity.main mixed-initiative-review-execute --label-file workspace/reviews/mixed_review_labels.jsonl --review-plan logs/benchmarks/mixed_review_plan.json --dry-run
+
 # Replay held-out paraphrases and optional JSON/JSONL case files before promoting
 # new mixed-initiative templates or changing auto-selection heuristics.
 python -m singularity.main mixed-initiative-variant-report --output logs/benchmarks/mixed_initiative_variants.json

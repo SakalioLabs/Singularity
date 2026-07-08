@@ -16,6 +16,7 @@ from singularity.evaluation.mixed_initiative import (
     build_mixed_initiative_review_queue,
     build_mixed_initiative_trace_report,
     build_mixed_initiative_variant_report,
+    execute_mixed_initiative_review_labels,
     validate_mixed_initiative_review_labels,
 )
 
@@ -678,6 +679,103 @@ def test_mixed_initiative_review_label_validation_approves_executable_cases():
     print("PASS: Mixed-initiative review label validation approves executable cases")
 
 
+def test_mixed_initiative_review_execution_runs_approved_backend_inspection():
+    craft_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Craft 4 torches"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch"}},
+                "result": {"success": False, "error": "Missing coal"},
+            },
+        },
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {"type": "goal_end", "data": {"goal": "Craft 4 torches", "result": {"completed": False}}},
+    ])
+    queue = build_mixed_initiative_review_queue(
+        trace_reports=[build_mixed_initiative_trace_report([craft_path])]
+    )
+    plan = build_mixed_initiative_review_experiment_plan(review_queue=queue)
+    tmpdir = tempfile.mkdtemp()
+    plan_path = os.path.join(tmpdir, "mixed_review_plan.json")
+    label_path = os.path.join(tmpdir, "mixed_review_labels.jsonl")
+    output_dir = os.path.join(tmpdir, "artifacts")
+    with open(plan_path, "w", encoding="utf-8") as f:
+        json.dump(plan.to_dict(), f)
+    with open(label_path, "w", encoding="utf-8") as f:
+        f.write(json.dumps({
+            "type": "mixed_initiative_review",
+            "case_id": plan.cases[0].id,
+            "readiness": "approved",
+            "reviewer": "manual_fixture",
+            "notes": "run whitelisted backend inspection",
+        }) + "\n")
+
+    report = execute_mixed_initiative_review_labels(
+        label_path,
+        review_plan_paths=[plan_path],
+        output_dir=output_dir,
+    )
+
+    assert report.ok
+    assert report.executed_count == 1
+    assert report.failed_count == 0
+    assert report.cases[0].status == "executed"
+    assert report.cases[0].artifact_paths
+    assert os.path.exists(report.cases[0].artifact_paths[0])
+    with open(report.cases[0].artifact_paths[0], "r", encoding="utf-8") as f:
+        artifact = json.load(f)
+    assert artifact["route"] == "backend_inspection"
+    assert artifact["trace_report"]["failed_action_count"] == 1
+    assert report.cases[0].artifact_summaries["failed_action_count"] == 1
+    print("PASS: Mixed-initiative review execution runs approved backend inspection")
+
+
+def test_mixed_initiative_review_execution_dry_run_does_not_write_artifacts():
+    craft_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Craft 4 torches"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch"}},
+                "result": {"success": False, "error": "Missing coal"},
+            },
+        },
+        {"type": "goal_end", "data": {"goal": "Craft 4 torches", "result": {"completed": False}}},
+    ])
+    queue = build_mixed_initiative_review_queue(
+        trace_reports=[build_mixed_initiative_trace_report([craft_path])]
+    )
+    plan = build_mixed_initiative_review_experiment_plan(review_queue=queue)
+    tmpdir = tempfile.mkdtemp()
+    label_path = os.path.join(tmpdir, "mixed_review_labels.jsonl")
+    with open(label_path, "w", encoding="utf-8") as f:
+        f.write(json.dumps({
+            "type": "mixed_initiative_review",
+            "case_id": plan.cases[0].id,
+            "readiness": "approved",
+            "reviewer": "manual_fixture",
+            "notes": "dry run only",
+        }) + "\n")
+
+    report = execute_mixed_initiative_review_labels(
+        label_path,
+        review_plan=plan,
+        output_dir=os.path.join(tmpdir, "artifacts"),
+        dry_run=True,
+    )
+
+    assert report.ok
+    assert report.executed_count == 0
+    assert report.dry_run_count == 1
+    assert report.cases[0].status == "dry_run"
+    assert report.cases[0].artifact_paths == []
+    assert report.cases[0].artifact_summaries["source_log_count"] == 1
+    print("PASS: Mixed-initiative review execution dry-run avoids artifacts")
+
+
 def test_mixed_initiative_variant_report_checks_heldout_templates():
     report = build_mixed_initiative_variant_report()
 
@@ -759,6 +857,8 @@ if __name__ == "__main__":
     test_mixed_initiative_review_plan_loads_saved_queue()
     test_mixed_initiative_review_label_template_exports_approval_records()
     test_mixed_initiative_review_label_validation_approves_executable_cases()
+    test_mixed_initiative_review_execution_runs_approved_backend_inspection()
+    test_mixed_initiative_review_execution_dry_run_does_not_write_artifacts()
     test_mixed_initiative_variant_report_checks_heldout_templates()
     test_mixed_initiative_variant_report_flags_slot_mismatch()
     test_mixed_initiative_variant_report_loads_jsonl_case_file()

@@ -355,6 +355,17 @@ def main():
     mixed_review_label_validate_parser.add_argument("--output", type=str, default="", help="Optional JSON validation report path")
     mixed_review_label_validate_parser.add_argument("--log-level", type=str, default="INFO")
 
+    mixed_review_execute_parser = subparsers.add_parser(
+        "mixed-initiative-review-execute",
+        help="Execute approved mixed-initiative review labels through whitelisted report builders",
+    )
+    mixed_review_execute_parser.add_argument("--label-file", type=str, default="", help="Filled approved mixed-initiative review labels JSON/JSONL")
+    mixed_review_execute_parser.add_argument("--review-plan", action="append", default=[], help="Saved mixed-initiative review plan JSON for case matching")
+    mixed_review_execute_parser.add_argument("--output-dir", type=str, default="", help="Optional directory for per-case artifact JSON")
+    mixed_review_execute_parser.add_argument("--dry-run", action="store_true", help="Validate approvals and show executable cases without running reports")
+    mixed_review_execute_parser.add_argument("--output", type=str, default="", help="Optional JSON execution report path")
+    mixed_review_execute_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline mixed-initiative held-out variant report
     mixed_variant_parser = subparsers.add_parser(
         "mixed-initiative-variant-report",
@@ -1282,6 +1293,52 @@ def main():
         for error in report.errors:
             print(f"  error: {error}")
         if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if not report.ok:
+            sys.exit(1)
+        return
+
+    if args.command == "mixed-initiative-review-execute":
+        from singularity.evaluation.mixed_initiative import execute_mixed_initiative_review_labels
+
+        label_file = getattr(args, "label_file", "")
+        if not label_file:
+            print("mixed-initiative-review-execute requires --label-file")
+            sys.exit(1)
+        report = execute_mixed_initiative_review_labels(
+            label_file,
+            review_plan_paths=getattr(args, "review_plan", []) or [],
+            output_dir=getattr(args, "output_dir", "") or "",
+            dry_run=getattr(args, "dry_run", False),
+        )
+        print("\nMixed-Initiative Review Execution")
+        print(f"  dry run: {report.dry_run}")
+        print(f"  cases: {report.case_count}")
+        print(f"  executed: {report.executed_count}")
+        print(f"  dry-run cases: {report.dry_run_count}")
+        print(f"  skipped: {report.skipped_count}")
+        print(f"  failed: {report.failed_count}")
+        if report.route_counts:
+            parts = [f"{key}={value}" for key, value in sorted(report.route_counts.items())]
+            print(f"  routes: {', '.join(parts)}")
+        for case in report.cases:
+            marker = "+" if case.status in {"executed", "dry_run"} else ("-" if case.status == "skipped" else "x")
+            print(f"  [{marker}] {case.status} {case.route}: {case.case_id or case.target_id}")
+            if case.artifact_summaries:
+                summary = ", ".join(f"{key}={value}" for key, value in sorted(case.artifact_summaries.items())[:6])
+                print(f"      summary: {summary}")
+            for artifact_path in case.artifact_paths:
+                print(f"      artifact: {artifact_path}")
+            if case.errors:
+                print(f"      errors: {', '.join(case.errors)}")
+        for error in report.errors:
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
