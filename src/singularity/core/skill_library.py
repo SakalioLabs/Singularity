@@ -27,6 +27,9 @@ class Skill:
     last_used: Optional[str] = None
     layer: str = "composite"  # primitive, composite, strategic, social, meta
     notes: str = ""
+    dependencies: list[str] = field(default_factory=list)
+    provenance: dict = field(default_factory=dict)
+    gate: dict = field(default_factory=dict)
 
 
 class SkillLibrary:
@@ -143,6 +146,81 @@ class SkillLibrary:
         _, skill, payload = matches[0]
         return skill, payload
 
+    def skill_graph_report(self) -> dict:
+        """Return a typed, governance-oriented graph over known skills."""
+        nodes = []
+        edges = []
+        skill_names = set(self.skills)
+        builtin_names = self._builtin_skill_names()
+        for skill in self.skills.values():
+            dependencies = self._skill_dependencies(skill)
+            missing_dependencies = [dep for dep in dependencies if dep not in skill_names]
+            for dep in dependencies:
+                edges.append({
+                    "from": skill.name,
+                    "to": dep,
+                    "type": "depends_on" if dep in skill_names else "missing_dependency",
+                })
+
+            action_types = self._skill_action_types(skill)
+            for action_type in action_types:
+                edges.append({
+                    "from": skill.name,
+                    "to": f"action:{action_type}",
+                    "type": "uses_action",
+                })
+
+            postcondition_keys = self._postcondition_keys(skill.postconditions)
+            for key in postcondition_keys:
+                edges.append({
+                    "from": skill.name,
+                    "to": f"postcondition:{key}",
+                    "type": "has_postcondition",
+                })
+
+            built_in = skill.name in builtin_names
+            governance = self._skill_governance(skill, built_in=built_in)
+            issues = []
+            if missing_dependencies:
+                issues.append("missing_dependency")
+            if not built_in and not governance["governed"]:
+                issues.append("ungoverned_custom_skill")
+            if not built_in and not postcondition_keys and governance["gate_readiness"] in {"unknown", "not_required"}:
+                issues.append("missing_postconditions")
+            if governance["gate_readiness"] in {"review", "rejected", "error"}:
+                issues.append(f"gate_{governance['gate_readiness']}")
+
+            nodes.append({
+                "name": skill.name,
+                "layer": skill.layer,
+                "built_in": built_in,
+                "dependencies": dependencies,
+                "missing_dependencies": missing_dependencies,
+                "action_types": action_types,
+                "postcondition_keys": postcondition_keys,
+                "governance": governance,
+                "issues": issues,
+            })
+
+        cycles = self._skill_dependency_cycles(nodes)
+        issue_counts = {}
+        for node in nodes:
+            for issue in node["issues"]:
+                issue_counts[issue] = issue_counts.get(issue, 0) + 1
+        return {
+            "skill_count": len(nodes),
+            "custom_skill_count": sum(1 for node in nodes if not node["built_in"]),
+            "edge_count": len(edges),
+            "missing_dependency_count": sum(len(node["missing_dependencies"]) for node in nodes),
+            "ungoverned_custom_skill_count": issue_counts.get("ungoverned_custom_skill", 0),
+            "missing_postcondition_count": issue_counts.get("missing_postconditions", 0),
+            "cycle_count": len(cycles),
+            "issue_counts": issue_counts,
+            "cycles": cycles,
+            "nodes": sorted(nodes, key=lambda node: (node["layer"], node["name"])),
+            "edges": sorted(edges, key=lambda edge: (edge["from"], edge["type"], edge["to"])),
+        }
+
     def _load_custom_skills(self):
         if not os.path.exists(self.custom_path):
             return
@@ -218,6 +296,139 @@ class SkillLibrary:
         except (TypeError, ValueError):
             return {}
         return payload if isinstance(payload, dict) else {}
+
+    def _implementation_actions(self, skill: Skill) -> list[dict]:
+        try:
+            payload = json.loads(skill.implementation)
+        except (TypeError, ValueError):
+            return []
+        if isinstance(payload, list):
+            return [item for item in payload if isinstance(item, dict)]
+        if isinstance(payload, dict):
+            return self._payload_actions(payload)
+        return []
+
+    def _skill_action_types(self, skill: Skill) -> list[str]:
+        action_types = []
+        for action in self._implementation_actions(skill):
+            action_type = str(action.get("type", "")).strip()
+            if action_type and action_type not in action_types:
+                action_types.append(action_type)
+        return action_types
+
+    def _skill_dependencies(self, skill: Skill) -> list[str]:
+        dependencies = []
+        raw_dependencies = skill.dependencies if isinstance(skill.dependencies, list) else [skill.dependencies]
+        for dep in raw_dependencies:
+            text = str(dep or "").strip()
+            if text and text not in dependencies:
+                dependencies.append(text)
+        action_to_skill = {
+            "move_to": "move_to",
+            "look_at": "look_at",
+            "dig": "dig_block",
+            "dig_block": "dig_block",
+            "place": "place_block",
+            "place_block": "place_block",
+            "craft": "craft_item",
+            "craft_item": "craft_item",
+            "attack": "attack_entity",
+            "attack_entity": "attack_entity",
+            "eat": "eat_food",
+            "eat_food": "eat_food",
+        }
+        for action_type in self._skill_action_types(skill):
+            dep = action_to_skill.get(action_type)
+            if dep and dep != skill.name and dep not in dependencies:
+                dependencies.append(dep)
+        return dependencies
+
+    def _postcondition_keys(self, postconditions: dict) -> list[str]:
+        if not isinstance(postconditions, dict):
+            return []
+        keys = []
+        inventory = postconditions.get("inventory", {}) if isinstance(postconditions.get("inventory", {}), dict) else {}
+        for item in sorted(inventory):
+            keys.append(f"inventory:{item}")
+        for key, value in sorted(postconditions.items()):
+            if key == "inventory":
+                continue
+            if isinstance(value, dict):
+                for subkey in sorted(value):
+                    keys.append(f"{key}:{subkey}")
+            elif value not in (None, "", [], {}):
+                keys.append(str(key))
+        return keys
+
+    def _skill_governance(self, skill: Skill, built_in: bool = False) -> dict:
+        gate = skill.gate if isinstance(skill.gate, dict) else {}
+        provenance = skill.provenance if isinstance(skill.provenance, dict) else {}
+        notes = str(skill.notes or "")
+        verification_gate = gate.get("verification", {}) if isinstance(gate.get("verification", {}), dict) else {}
+        discovery_gate = gate.get("discovery", {}) if isinstance(gate.get("discovery", {}), dict) else {}
+        gate_readiness = self._gate_readiness(gate, verification_gate, discovery_gate)
+        governed = bool(
+            built_in
+            or gate
+            or provenance
+            or "promotion_report" in notes
+            or "review=approved" in notes
+            or self._postcondition_keys(skill.postconditions)
+        )
+        return {
+            "governed": governed,
+            "gate_readiness": gate_readiness,
+            "decision": gate.get("decision", "builtin" if built_in else "unknown"),
+            "verification_status": verification_gate.get("status", ""),
+            "discovery_readiness": discovery_gate.get("readiness", ""),
+            "provenance_sources": self._provenance_sources(provenance),
+        }
+
+    def _gate_readiness(self, gate: dict, verification_gate: dict, discovery_gate: dict) -> str:
+        if not gate:
+            return "not_required"
+        if discovery_gate.get("readiness") in {"review", "rejected", "error"}:
+            return str(discovery_gate.get("readiness"))
+        if gate.get("decision") == "reject" or verification_gate.get("decision") == "reject":
+            return "rejected"
+        if discovery_gate.get("readiness") == "approved":
+            return "approved"
+        if verification_gate.get("status") in {"achieved", "critic_approved"} or gate.get("decision") == "approve":
+            return "approved"
+        return "unknown"
+
+    def _provenance_sources(self, provenance: dict) -> list[str]:
+        sources = []
+        for key in ("source_log", "candidate_id", "goal", "reviewer"):
+            value = provenance.get(key)
+            if value not in (None, "", [], {}):
+                sources.append(f"{key}:{value}")
+        return sources
+
+    def _skill_dependency_cycles(self, nodes: list[dict]) -> list[list[str]]:
+        graph = {
+            node["name"]: [dep for dep in node["dependencies"] if dep in self.skills]
+            for node in nodes
+        }
+        cycles = []
+        seen_cycles = set()
+
+        def visit(node: str, path: list[str]):
+            if node in path:
+                cycle = path[path.index(node):] + [node]
+                body = cycle[:-1]
+                rotations = [tuple(body[index:] + body[:index]) for index in range(len(body))]
+                key = min(rotations)
+                if key not in seen_cycles:
+                    seen_cycles.add(key)
+                    cycles.append(list(key) + [key[0]])
+                return
+            for dep in graph.get(node, []):
+                visit(dep, path + [node])
+
+        for node in graph:
+            visit(node, [])
+        return cycles
 
     def _action_matches_template(self, action: dict, template: dict) -> bool:
         if not action or not template:

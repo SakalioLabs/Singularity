@@ -1106,6 +1106,102 @@ def test_skill_library_recommends_policy_skills_and_corrections():
     print("PASS: SkillLibrary recommends policy skills and corrections")
 
 
+def test_skill_library_reports_skill_graph_governance():
+    tmpdir = tempfile.mkdtemp()
+    skills = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=True)
+    skills.create_skill(
+        "build_redstone_lamp_circuit",
+        "Build a redstone lamp circuit from an approved discovery loop",
+        json.dumps([
+            {"type": "place", "parameters": {"item": "redstone_dust"}},
+            {"type": "craft", "parameters": {"item": "redstone_lamp"}},
+        ]),
+        postconditions={"inventory": {"redstone_lamp": 2}},
+        dependencies=["place_block", "craft_item"],
+        provenance={"candidate_id": "cand123", "goal": "Build a two-lamp redstone circuit"},
+        gate={
+            "decision": "approve",
+            "verification": {"status": "achieved"},
+            "discovery": {"readiness": "approved"},
+        },
+    )
+    skills.create_skill(
+        "orphan_visual_macro",
+        "Ungoverned macro with a missing dependency",
+        json.dumps([{"type": "dance", "parameters": {}}]),
+        dependencies=["missing_skill"],
+    )
+
+    reloaded = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=True)
+    report = reloaded.skill_graph_report()
+    nodes = {node["name"]: node for node in report["nodes"]}
+
+    governed = nodes["build_redstone_lamp_circuit"]
+    orphan = nodes["orphan_visual_macro"]
+    assert report["custom_skill_count"] == 2
+    assert report["missing_dependency_count"] == 1
+    assert report["ungoverned_custom_skill_count"] == 1
+    assert report["missing_postcondition_count"] == 1
+    assert governed["governance"]["governed"] is True
+    assert governed["governance"]["gate_readiness"] == "approved"
+    assert "place_block" in governed["dependencies"]
+    assert "craft_item" in governed["dependencies"]
+    assert "inventory:redstone_lamp" in governed["postcondition_keys"]
+    assert "candidate_id:cand123" in governed["governance"]["provenance_sources"]
+    assert orphan["missing_dependencies"] == ["missing_skill"]
+    assert "missing_dependency" in orphan["issues"]
+    assert "ungoverned_custom_skill" in orphan["issues"]
+    assert "missing_postconditions" in orphan["issues"]
+    assert any(edge["type"] == "depends_on" and edge["to"] == "place_block" for edge in report["edges"])
+    assert any(edge["type"] == "missing_dependency" and edge["to"] == "missing_skill" for edge in report["edges"])
+    print("PASS: SkillLibrary reports skill graph governance")
+
+
+def test_skill_library_reports_canonical_dependency_cycles():
+    tmpdir = tempfile.mkdtemp()
+    skills = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=True)
+    skills.create_skill(
+        "cycle_b",
+        "Second cycle node",
+        json.dumps([]),
+        dependencies=["cycle_a"],
+        postconditions={"state": {"cycle_b_ready": True}},
+    )
+    skills.create_skill(
+        "cycle_a",
+        "First cycle node",
+        json.dumps([]),
+        dependencies=["cycle_b"],
+        postconditions={"state": {"cycle_a_ready": True}},
+    )
+
+    report = skills.skill_graph_report()
+
+    assert report["cycle_count"] == 1
+    assert report["cycles"] == [["cycle_a", "cycle_b", "cycle_a"]]
+    print("PASS: SkillLibrary reports canonical dependency cycles")
+
+
+def test_skill_library_handles_legacy_dependency_string():
+    tmpdir = tempfile.mkdtemp()
+    skills = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=True)
+    skills.create_skill(
+        "legacy_skill_record",
+        "Skill loaded from an older single-dependency shape",
+        json.dumps([]),
+        dependencies="move_to",
+        postconditions={"state": {"legacy_ready": True}},
+    )
+
+    report = skills.skill_graph_report()
+    node = next(node for node in report["nodes"] if node["name"] == "legacy_skill_record")
+
+    assert node["dependencies"] == ["move_to"]
+    assert node["missing_dependencies"] == []
+    assert any(edge["type"] == "depends_on" and edge["to"] == "move_to" for edge in report["edges"])
+    print("PASS: SkillLibrary handles legacy dependency string")
+
+
 def test_agent_runs_approved_failure_correction_sequence():
     tmpdir = tempfile.mkdtemp()
     agent = object.__new__(Agent)
@@ -1448,6 +1544,9 @@ if __name__ == "__main__":
     test_skill_extractor_promotes_repeated_causal_summary_candidate()
     test_skill_extractor_promotes_failure_correction_candidate()
     test_skill_library_recommends_policy_skills_and_corrections()
+    test_skill_library_reports_skill_graph_governance()
+    test_skill_library_reports_canonical_dependency_cycles()
+    test_skill_library_handles_legacy_dependency_string()
     test_agent_runs_approved_failure_correction_sequence()
     test_agent_loads_reviewed_policy_skills_from_configured_storage()
     test_agent_observe_enriches_and_logs_structured_vision()

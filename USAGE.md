@@ -284,6 +284,9 @@ python -m singularity.main benchmark --suite m1 --ingest
 # List pending candidates
 python -m singularity.main skill-candidates
 
+# Audit approved/custom skills as a typed graph with gates and provenance
+python -m singularity.main skill-graph-report --skill-storage-path workspace/skills --output logs/benchmarks/skill_graph.json
+
 # Approve or reject a candidate
 python -m singularity.main skill-candidates --approve CANDIDATE_ID
 python -m singularity.main skill-candidates --approve CANDIDATE_ID --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL

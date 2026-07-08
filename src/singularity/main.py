@@ -143,6 +143,12 @@ def main():
     # Skills info command
     skills_parser = subparsers.add_parser("skills", help="List available skills")
 
+    # Skill graph governance report
+    skill_graph_parser = subparsers.add_parser("skill-graph-report", help="Report skill dependencies, provenance, and promotion gates")
+    skill_graph_parser.add_argument("--skill-storage-path", type=str, default="workspace/skills", help="Skill storage path containing custom_skills.jsonl")
+    skill_graph_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    skill_graph_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Memory consolidation report
     memory_report_parser = subparsers.add_parser("memory-consolidation-report", help="Report repeatedly recalled memories worth consolidation")
     memory_report_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
@@ -486,6 +492,43 @@ def main():
                 for s in skills:
                     uses = f" ({s.total_uses} uses, {s.success_rate:.0%} success)" if s.total_uses > 0 else ""
                     print(f"    - {s.name}: {s.description}{uses}")
+        return
+
+    if args.command == "skill-graph-report":
+        from singularity.core.skill_library import SkillLibrary
+
+        lib = SkillLibrary(storage_path=getattr(args, "skill_storage_path", "workspace/skills"), persist=True)
+        report = lib.skill_graph_report()
+        print("\nSkill Graph Governance")
+        print(f"  skills: {report['skill_count']} ({report['custom_skill_count']} custom)")
+        print(f"  edges: {report['edge_count']}")
+        print(f"  missing dependencies: {report['missing_dependency_count']}")
+        print(f"  ungoverned custom skills: {report['ungoverned_custom_skill_count']}")
+        print(f"  missing postconditions: {report['missing_postcondition_count']}")
+        print(f"  cycles: {report['cycle_count']}")
+        if report["issue_counts"]:
+            parts = [f"{key}={value}" for key, value in sorted(report["issue_counts"].items())]
+            print(f"  issues: {', '.join(parts)}")
+        for node in report["nodes"]:
+            if node["built_in"] and not node["issues"]:
+                continue
+            marker = "!" if node["issues"] else "+"
+            governance = node["governance"]
+            print(
+                f"  [{marker}] {node['name']} layer={node['layer']} "
+                f"gate={governance['gate_readiness']} deps={len(node['dependencies'])}"
+            )
+            if node["issues"]:
+                print(f"      issues: {', '.join(node['issues'])}")
+            if node["missing_dependencies"]:
+                print(f"      missing deps: {', '.join(node['missing_dependencies'])}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
         return
 
     if args.command == "memory-consolidation-report":

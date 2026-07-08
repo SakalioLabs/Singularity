@@ -1,6 +1,6 @@
 ﻿# Paper Index — Minecraft Agent Research
 
-> Last updated: 2026-07-08
+> Last updated: 2026-07-09
 > Scoring: Relevance / Novelty / Reproducibility / Engineering Value (1-5 each)
 
 ---
@@ -794,6 +794,24 @@
 
 ---
 
+## P-043: SkillDAG
+
+- **Title**: SkillDAG: Self-Evolving Typed Skill Graphs for LLM Skill Selection at Scale
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2606.03056
+- **Type**: Skill retrieval / skill graph framework
+- **Task Type**: Large-scale agent skill selection and graph evolution
+- **Core Method**: Typed directed skill graph with vector matches, graph neighbors, conflict signals, and execution-backed propose-then-commit edge updates
+- **Action Space**: General agent skills and typed inter-skill relationships
+- **Memory**: Skill graph edges, provenance, conflicts, and execution-backed updates
+- **Key Results**: Reports stronger ALFWorld/SkillsBench success, reward, and Ret@K than Graph-of-Skills baselines as skill pools scale
+- **Scores**: R=4, N=5, R=4, E=5
+- **Value to Project**: Blueprint for turning Singularity's reviewed custom skills into a typed, gate-aware graph rather than a flat list
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-skilldag.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -840,3 +858,4 @@
 | P-040 | OmniGameArena | 2026 | R3/N5/R3/E4 | P3 |
 | P-041 | SciCrafter | 2026 | R5/N5/R3/E5 | P2 |
 | P-042 | WhisperBench / MemGhost | 2026 | R5/N5/R3/E5 | P1 |
+| P-043 | SkillDAG | 2026 | R4/N5/R4/E5 | P2 |

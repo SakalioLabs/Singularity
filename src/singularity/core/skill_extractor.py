@@ -513,6 +513,23 @@ class SkillExtractor:
             implementation=candidate.implementation,
             layer=candidate.layer,
             postconditions=report.postconditions,
+            dependencies=self._skill_dependencies_from_candidate(candidate),
+            provenance={
+                "candidate_id": candidate.id,
+                "goal": candidate.goal,
+                "reason": report.reason,
+                "created_at": candidate.created_at,
+                "score": candidate.score,
+            },
+            gate={
+                "decision": report.decision,
+                "status": report.status,
+                "reason": report.reason,
+                "verification": report.gate,
+                "discovery": report.discovery_gate,
+                "matched_rules": report.matched_rules,
+                "warnings": report.warnings,
+            },
             notes=f"consolidation_score={candidate.score:.2f}; signals={candidate.signals}; review={candidate.review_status}",
         )
         logger.info(f"Approved skill '{candidate.name}' from goal: {candidate.goal}")
@@ -898,6 +915,42 @@ class SkillExtractor:
         if isinstance(feedback, dict) and feedback:
             return build_discovery_skill_gate(feedback=feedback, source=f"candidate:{candidate.id}")
         return build_discovery_skill_gate()
+
+    def _skill_dependencies_from_candidate(self, candidate: SkillCandidate) -> list[str]:
+        try:
+            implementation = json.loads(candidate.implementation)
+        except (TypeError, ValueError):
+            return []
+        actions = []
+        if isinstance(implementation, list):
+            actions = [action for action in implementation if isinstance(action, dict)]
+        elif isinstance(implementation, dict):
+            for key in ("action_template", "avoid_action_template", "primary_correction"):
+                if isinstance(implementation.get(key), dict):
+                    actions.append(implementation[key])
+            for action in implementation.get("correction_sequence", []):
+                if isinstance(action, dict):
+                    actions.append(action)
+        action_to_skill = {
+            "move_to": "move_to",
+            "look_at": "look_at",
+            "dig": "dig_block",
+            "dig_block": "dig_block",
+            "place": "place_block",
+            "place_block": "place_block",
+            "craft": "craft_item",
+            "craft_item": "craft_item",
+            "attack": "attack_entity",
+            "attack_entity": "attack_entity",
+            "eat": "eat_food",
+            "eat_food": "eat_food",
+        }
+        dependencies = []
+        for action in actions:
+            dep = action_to_skill.get(str(action.get("type", "")).strip())
+            if dep and dep not in dependencies:
+                dependencies.append(dep)
+        return dependencies
 
     def _event_success(self, record: dict):
         if not isinstance(record, dict):
