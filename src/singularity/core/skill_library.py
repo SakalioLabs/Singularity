@@ -112,6 +112,8 @@ class SkillLibrary:
         skill = self.skills.get(name)
         if not skill:
             return None
+        if not task_family:
+            task_family = self.infer_task_family(" ".join([name, skill.description, note]))
         record = self._normalize_skill_memory_record({
             "note": note,
             "type": memory_type,
@@ -201,6 +203,43 @@ class SkillLibrary:
                 if len(hints) >= limit:
                     return hints
         return hints
+
+    def infer_task_family(self, text: str = "", action: Optional[dict] = None) -> str:
+        """Infer a coarse Minecraft task-family zone for routing skill memories."""
+        action = action if isinstance(action, dict) else {}
+        action_type = str(action.get("type", "")).lower()
+        params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
+        payload = " ".join([
+            str(text or ""),
+            action_type,
+            " ".join(str(value) for value in params.values() if value not in (None, "", [], {})),
+        ]).lower()
+        if action_type in {"craft", "craft_item", "smelt"}:
+            return "crafting"
+        if action_type in {"dig", "dig_block", "mine"}:
+            return "mining"
+        if action_type in {"move_to", "navigate", "pathfind"}:
+            return "navigation"
+        if action_type in {"attack", "attack_entity", "retreat"}:
+            return "combat"
+        if action_type in {"place", "place_block"}:
+            if any(term in payload for term in ("redstone", "lamp", "lever", "repeater", "circuit")):
+                return "redstone"
+            return "building"
+        family_terms = [
+            ("redstone", ("redstone", "circuit", "lever", "repeater", "comparator", "lamp")),
+            ("crafting", ("craft", "recipe", "smelt", "furnace", "torch", "pickaxe", "plank", "stick")),
+            ("mining", ("mine", "dig", "ore", "coal", "iron", "diamond", "stone", "cobblestone")),
+            ("building", ("build", "place", "shelter", "wall", "roof", "door", "base")),
+            ("navigation", ("navigate", "move", "path", "route", "travel", "frontier", "explore")),
+            ("combat", ("attack", "hostile", "zombie", "skeleton", "creeper", "danger", "retreat")),
+            ("survival", ("food", "eat", "health", "night", "safe", "survive")),
+            ("collaboration", ("role", "shared", "collaboration", "teammate", "multi-agent")),
+        ]
+        for family, terms in family_terms:
+            if any(term in payload for term in terms):
+                return family
+        return "general"
 
     def find_failure_correction(self, action: dict, result: dict = None, world_state: dict = None) -> Optional[tuple[Skill, dict]]:
         """Find an approved failure-correction skill for a failed action."""

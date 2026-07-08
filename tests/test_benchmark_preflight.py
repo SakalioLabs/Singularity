@@ -1628,6 +1628,12 @@ def test_task_stream_transfer_gate_controls_skill_promotion_path():
     governance = skill_library.skill_graph_report()
     ready_node = next(node for node in governance["nodes"] if node["name"] == ready_skill.name)
     assert ready_node["governance"]["transfer_readiness"] == "approved"
+    memory_report = skill_library.skill_memory_report("Craft a stone pickaxe", task_family="crafting", limit=0)
+    memory_summary = next(summary for summary in memory_report["skills"] if summary["name"] == ready_skill.name)
+    assert memory_report["approved_transfer_memory_count"] == 1
+    assert memory_summary["memories"][0]["type"] == "promotion_transfer"
+    assert memory_summary["memories"][0]["transfer_readiness"] == "approved"
+    assert memory_summary["memories"][0]["evidence"]["candidate_id"] == ready_candidate.id
 
     assert blocked_skill is None
     assert blocked_candidate.review_status == "rejected"

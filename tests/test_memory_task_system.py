@@ -93,6 +93,20 @@ class FakeActionController:
         return result
 
 
+class FakeFailingCorrectionController(FakeActionController):
+    def execute(self, action: dict, observation: dict) -> dict:
+        self.actions.append(action)
+        params = action.get("parameters", {})
+        if action.get("type") == "craft":
+            return {"success": False, "action_type": "craft", "item": params.get("item"), "error": "Still missing coal"}
+        result = {"success": True, "action_type": action.get("type")}
+        if params.get("block"):
+            result["block"] = params["block"]
+        if params.get("item"):
+            result["item"] = params["item"]
+        return result
+
+
 class FakeSessionLogger:
     def __init__(self):
         self.actions = []
@@ -1092,6 +1106,10 @@ def test_skill_candidate_approval_writes_verified_postconditions():
     assert report["decision"] == "approve"
     assert report["reason"] == "verified_postconditions_satisfied"
     assert report["postconditions"]["inventory"]["torch"] == 4
+    assert skill.skill_memory
+    assert skill.skill_memory[0]["type"] == "promotion"
+    assert skill.skill_memory[0]["task_family"] == "crafting"
+    assert skill.skill_memory[0]["evidence"]["candidate_id"] == candidate.id
     print("PASS: Skill candidate approval writes verifier-backed postconditions")
 
 
@@ -1595,12 +1613,72 @@ def test_agent_runs_approved_failure_correction_sequence():
     assert observation["inventory"]["coal"] == 1
     assert skill.total_uses == 1
     assert skill.success_rate == 1.0
+    assert skill.skill_memory
+    memory = skill.skill_memory[-1]
+    assert memory["type"] == "failure_correction"
+    assert memory["outcome"] == "success"
+    assert memory["task_family"] == "crafting"
+    assert memory["source"] == "runtime_failure_correction"
+    assert memory["evidence"]["failed_error"] == "Missing coal"
     phases = [
         event["data"]["phase"] for event in agent.session_logger.events
         if event["type"] == "policy_intervention"
     ]
     assert phases == ["selected", "action", "action", "completed"]
     print("PASS: Agent runs approved failure correction sequence")
+
+
+def test_agent_records_failed_failure_correction_skill_memory():
+    tmpdir = tempfile.mkdtemp()
+    agent = object.__new__(Agent)
+    agent.skill_library = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"))
+    implementation = {
+        "type": "failure_correction_skill",
+        "avoid_action_template": {"type": "craft", "parameters": {"item": "torch"}},
+        "primary_correction": {"type": "dig", "parameters": {"block": "coal_ore"}},
+        "correction_sequence": [
+            {"type": "dig", "parameters": {"block": "coal_ore"}},
+            {"type": "craft", "parameters": {"item": "torch"}},
+        ],
+        "evidence": {"failure_why": "Missing coal"},
+    }
+    agent.skill_library.create_skill(
+        "correct_craft_torch_failure_memory",
+        "Correct missing coal before crafting torches",
+        json.dumps(implementation),
+    )
+    agent.memory = MemorySystem(memory_dir=os.path.join(tmpdir, "memory"))
+    agent.task_system = TaskSystem()
+    agent.action_controller = FakeFailingCorrectionController()
+    agent.session_logger = FakeSessionLogger()
+    agent.observer = FakeObserver({
+        "inventory": {"stick": 1},
+        "nearby_blocks": [{"name": "coal_ore"}],
+        "nearby_entities": [],
+        "position": {},
+    })
+    agent.explorer = FakeExplorer()
+    agent.runtime = FakeRuntime()
+
+    corrected, _ = agent._attempt_failure_correction(
+        {"type": "craft", "parameters": {"item": "torch"}},
+        {"success": False, "error": "Missing coal"},
+        {"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}], "nearby_entities": []},
+        "Craft torches",
+        {"cycle": 1},
+    )
+
+    skill = agent.skill_library.get_skill("correct_craft_torch_failure_memory")
+    assert not corrected
+    assert skill.total_uses == 1
+    assert skill.success_rate == 0.0
+    memory = skill.skill_memory[-1]
+    assert memory["type"] == "anti_pattern"
+    assert memory["outcome"] == "failure"
+    assert memory["task_family"] == "crafting"
+    assert memory["evidence"]["correction_error"] == "Still missing coal"
+    assert "Correction failed" in memory["note"]
+    print("PASS: Agent records failed failure-correction skill memory")
 
 
 def test_agent_loads_reviewed_policy_skills_from_configured_storage():
@@ -1902,6 +1980,7 @@ if __name__ == "__main__":
     test_skill_library_reports_canonical_dependency_cycles()
     test_skill_library_handles_legacy_dependency_string()
     test_agent_runs_approved_failure_correction_sequence()
+    test_agent_records_failed_failure_correction_skill_memory()
     test_agent_loads_reviewed_policy_skills_from_configured_storage()
     test_agent_observe_enriches_and_logs_structured_vision()
     test_agent_visual_memory_context_summarizes_recent_evidence()

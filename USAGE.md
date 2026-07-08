@@ -322,6 +322,8 @@ python -m singularity.main skill-contract-report --skill-storage-path workspace/
 
 # Audit MUSE-style per-skill replay, failure, and transfer memories
 python -m singularity.main skill-memory-report --skill-storage-path workspace/skills --goal "Craft torches" --task-family crafting --output logs/benchmarks/skill_memory.json
+# Approved skill candidates seed promotion/transfer memories automatically, and
+# live failure-correction skills append success/failure memories during Agent runs.
 
 # Approve or reject a candidate
 python -m singularity.main skill-candidates --approve CANDIDATE_ID

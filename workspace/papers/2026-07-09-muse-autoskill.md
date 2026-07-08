@@ -19,4 +19,5 @@
   - `task-stream-transfer-gate` now adds cross-task transfer evidence before memory or skill promotion.
   - Skill candidate approval now stores task-stream gate readiness in promotion reports and skill governance metadata.
   - `Skill.skill_memory` and `skill-memory-report` now store and audit skill-local replay notes, failure/anti-pattern notes, task-family zones, and approved/review transfer memories instead of relying only on global episodic memory.
-**Next Action**: Feed real runtime `record_use`/failure-correction events and approved task-stream gate reports into `record_skill_memory()` automatically.
+  - Approved skill candidates now seed promotion/transfer memories automatically, and runtime failure-correction skills append success or anti-pattern memories as they execute.
+**Next Action**: Retrieve `get_skill_memory_hints()` into planner context and compare skill-memory-assisted runs against policy-skill-only baselines.

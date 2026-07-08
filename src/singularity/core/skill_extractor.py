@@ -668,8 +668,53 @@ class SkillExtractor:
             },
             notes=f"consolidation_score={candidate.score:.2f}; signals={candidate.signals}; review={candidate.review_status}",
         )
+        self._record_promotion_skill_memory(skill, candidate, report)
         logger.info(f"Approved skill '{candidate.name}' from goal: {candidate.goal}")
         return skill
+
+    def _record_promotion_skill_memory(self, skill, candidate: SkillCandidate, report: SkillPromotionValidationReport):
+        """Seed a newly approved skill with its promotion and transfer evidence."""
+        if not skill or not hasattr(self.skill_library, "record_skill_memory"):
+            return
+        transfer_gate = report.transfer_gate if isinstance(report.transfer_gate, dict) else {}
+        readiness = str(transfer_gate.get("readiness") or "").lower()
+        memory_type = "promotion_transfer" if readiness == "approved" else "promotion"
+        task_family = self.skill_library.infer_task_family(
+            " ".join([candidate.goal, candidate.name, candidate.description]),
+            self._candidate_first_action(candidate),
+        )
+        status = report.status or "unknown"
+        note = f"Approved from candidate {candidate.id} with verifier status {status}."
+        if readiness == "approved":
+            note += " Controlled task-stream transfer gate approved reuse."
+        elif transfer_gate.get("required"):
+            note += f" Transfer gate readiness is {readiness or 'unknown'}."
+        evidence = {
+            "candidate_id": candidate.id,
+            "goal": candidate.goal,
+            "score": candidate.score,
+            "promotion_reason": report.reason,
+            "verification_status": report.status,
+            "matched_rules": report.matched_rules,
+            "postconditions": report.postconditions,
+            "transfer_gate": transfer_gate,
+        }
+        tags = self._candidate_memory_tags(candidate, report, task_family)
+        try:
+            self.skill_library.record_skill_memory(
+                skill.name,
+                note=note,
+                memory_type=memory_type,
+                outcome="success",
+                task_family=task_family,
+                source="skill_promotion",
+                confidence=min(1.0, max(0.55, float(candidate.score or 0.0))),
+                tags=tags,
+                transfer_gate=transfer_gate,
+                evidence=evidence,
+            )
+        except Exception as exc:
+            logger.warning(f"Could not seed skill memory for '{skill.name}': {type(exc).__name__}")
 
     def validate_candidate_for_promotion(self, candidate: SkillCandidate) -> SkillPromotionValidationReport:
         """Explain whether a candidate is ready for promotion."""
@@ -1083,6 +1128,36 @@ class SkillExtractor:
         if isinstance(transfer_gate, dict) and transfer_gate:
             return build_task_stream_transfer_skill_gate(gate=transfer_gate, source=f"candidate:{candidate.id}")
         return build_task_stream_transfer_skill_gate()
+
+    def _candidate_first_action(self, candidate: SkillCandidate) -> dict:
+        try:
+            implementation = json.loads(candidate.implementation)
+        except (TypeError, ValueError):
+            return {}
+        if isinstance(implementation, list):
+            return next((item for item in implementation if isinstance(item, dict)), {})
+        if isinstance(implementation, dict):
+            for key in ("action_template", "primary_correction", "avoid_action_template"):
+                action = implementation.get(key)
+                if isinstance(action, dict):
+                    return action
+            sequence = implementation.get("correction_sequence", [])
+            if isinstance(sequence, list):
+                return next((item for item in sequence if isinstance(item, dict)), {})
+        return {}
+
+    def _candidate_memory_tags(
+        self,
+        candidate: SkillCandidate,
+        report: SkillPromotionValidationReport,
+        task_family: str,
+    ) -> list[str]:
+        tags = [task_family] if task_family else []
+        tags.extend(str(rule) for rule in report.matched_rules if rule)
+        for text in (candidate.goal, candidate.name, candidate.description):
+            for token in self._keywords(text):
+                tags.append(token)
+        return self._merge_list([], tags)[:12]
 
     def _skill_dependencies_from_candidate(self, candidate: SkillCandidate) -> list[str]:
         try:

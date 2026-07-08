@@ -1242,6 +1242,16 @@ class Agent:
             )
             if interrupted:
                 self.skill_library.record_use(skill.name, False)
+                self._record_failure_correction_skill_memory(
+                    skill,
+                    goal,
+                    failed_action,
+                    failed_result,
+                    outcome="failure",
+                    note=f"Correction interrupted before step {idx} while handling {self._action_label(failed_action)}.",
+                    step=idx,
+                    context=context,
+                )
                 self._log_policy_intervention("failed", {
                     "kind": "failure_correction",
                     "skill": skill.name,
@@ -1274,6 +1284,21 @@ class Agent:
             self._record_skill_usage(correction_action, bool(result.get("success")))
             if not result.get("success"):
                 self.skill_library.record_use(skill.name, False)
+                self._record_failure_correction_skill_memory(
+                    skill,
+                    goal,
+                    failed_action,
+                    failed_result,
+                    outcome="failure",
+                    note=(
+                        f"Correction failed at step {idx} on {self._action_label(correction_action)} "
+                        f"after {self._action_label(failed_action)} failed."
+                    ),
+                    step=idx,
+                    correction_action=correction_action,
+                    correction_result=result,
+                    context=context,
+                )
                 self._write_memory_episode("failure_correction_failed", {
                     "skill": skill.name,
                     "failed_step": idx,
@@ -1288,6 +1313,21 @@ class Agent:
                 return False, current_observation
 
         self.skill_library.record_use(skill.name, True)
+        self._record_failure_correction_skill_memory(
+            skill,
+            goal,
+            failed_action,
+            failed_result,
+            outcome="success",
+            note=(
+                f"Correction completed {len(sequence)} steps after "
+                f"{self._action_label(failed_action)} failed."
+            ),
+            step=len(sequence),
+            correction_action=sequence[-1] if sequence else {},
+            correction_result={"success": True},
+            context=context,
+        )
         self._write_memory_episode("failure_correction_completed", {
             "skill": skill.name,
             "steps": len(sequence),
@@ -1300,6 +1340,79 @@ class Agent:
             "goal": goal,
         })
         return True, current_observation
+
+    def _record_failure_correction_skill_memory(
+        self,
+        skill,
+        goal: str,
+        failed_action: dict,
+        failed_result: dict,
+        outcome: str,
+        note: str,
+        step: int = 0,
+        correction_action: dict = None,
+        correction_result: dict = None,
+        context: dict = None,
+    ):
+        """Attach runtime feedback to the correction skill that was actually used."""
+        if not hasattr(self, "skill_library") or not hasattr(self.skill_library, "record_skill_memory"):
+            return
+        gate = getattr(skill, "gate", {}) if skill else {}
+        transfer_gate = gate.get("transfer", {}) if isinstance(gate, dict) and isinstance(gate.get("transfer", {}), dict) else {}
+        failed_result = failed_result if isinstance(failed_result, dict) else {}
+        correction_result = correction_result if isinstance(correction_result, dict) else {}
+        correction_action = correction_action if isinstance(correction_action, dict) else {}
+        task_family = self.skill_library.infer_task_family(goal, failed_action)
+        memory_type = "failure_correction" if outcome == "success" else "anti_pattern"
+        confidence = 0.85 if outcome == "success" else 0.7
+        evidence = {
+            "goal": goal,
+            "failed_action": failed_action,
+            "failed_error": failed_result.get("error"),
+            "correction_action": correction_action,
+            "correction_error": correction_result.get("error"),
+            "step": step,
+            "context": context or {},
+        }
+        try:
+            self.skill_library.record_skill_memory(
+                skill.name,
+                note=note,
+                memory_type=memory_type,
+                outcome=outcome,
+                task_family=task_family,
+                source="runtime_failure_correction",
+                confidence=confidence,
+                tags=self._skill_memory_tags(goal, failed_action, correction_action),
+                transfer_gate=transfer_gate,
+                evidence=evidence,
+            )
+        except Exception as exc:
+            logger.warning(f"Could not record skill memory for {getattr(skill, 'name', 'unknown')}: {type(exc).__name__}")
+
+    def _skill_memory_tags(self, goal: str, *actions: dict) -> list[str]:
+        tags = []
+        for token in str(goal or "").lower().replace("_", " ").split():
+            cleaned = "".join(ch for ch in token if ch.isalnum())
+            if len(cleaned) > 2 and cleaned not in tags:
+                tags.append(cleaned)
+        for action in actions:
+            action = action if isinstance(action, dict) else {}
+            action_type = str(action.get("type", "")).strip()
+            if action_type and action_type not in tags:
+                tags.append(action_type)
+            params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
+            for key in ("item", "block", "entity", "target"):
+                value = str(params.get(key, "")).strip()
+                if value and value not in tags:
+                    tags.append(value)
+        return tags[:12]
+
+    def _action_label(self, action: dict) -> str:
+        action = action if isinstance(action, dict) else {}
+        params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
+        subject = params.get("item") or params.get("block") or params.get("entity") or params.get("target")
+        return f"{action.get('type', 'action')}:{subject}" if subject else str(action.get("type", "action"))
 
     def _log_policy_intervention(self, phase: str, payload: dict):
         """Record online use of reviewed causal/correction skills for benchmark metrics."""
