@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
 from typing import Callable, Optional
 
+from singularity.core.memory_policy import MemoryLifecyclePolicy
 from singularity.evaluation.collaboration_benchmark import (
     CollaborationBenchmarkSpec,
     CollaborationRole,
@@ -43,6 +44,8 @@ class CollaborationTaskExecution:
     duration_s: float = 0.0
     deadline_missed: bool = False
     shared_updates: dict = field(default_factory=dict)
+    shared_update_provenance: dict = field(default_factory=dict)
+    shared_memory_decisions: dict = field(default_factory=dict)
     result: dict = field(default_factory=dict)
     error: str = ""
 
@@ -62,6 +65,7 @@ class CollaborationExecutionReport:
     success_keys_satisfied: bool = False
     total_elapsed_s: float = 0.0
     shared_state: dict = field(default_factory=dict)
+    shared_memory_governance: dict = field(default_factory=dict)
     task_results: list[CollaborationTaskExecution] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
@@ -151,8 +155,13 @@ class CollaborationScheduleExecutionComparison:
 class CollaborationBenchmarkRunner:
     """Prepares and optionally executes an M7 collaboration spec."""
 
-    def __init__(self, state_path: str = "workspace/multiagent/collab_benchmark_state.json"):
+    def __init__(
+        self,
+        state_path: str = "workspace/multiagent/collab_benchmark_state.json",
+        memory_policy: Optional[MemoryLifecyclePolicy] = None,
+    ):
         self.state_path = state_path
+        self.memory_policy = memory_policy or MemoryLifecyclePolicy()
 
     def prepare(self, spec: CollaborationBenchmarkSpec, reset: bool = True) -> CollaborationRunResult:
         report = CollaborationFeasibilityChecker().check(spec)
@@ -471,6 +480,7 @@ class CollaborationBenchmarkRunner:
         report.skipped_tasks = sum(1 for task in tasks.values() if task.get("status") == "assigned")
         report.deadline_misses = sum(1 for item in report.task_results if item.deadline_missed)
         report.shared_state = raw.get("shared", {})
+        report.shared_memory_governance = report.shared_state.get("_shared_memory_governance", {})
         report.success_keys_satisfied = self._success_keys_satisfied(spec, report.shared_state)
         report.errors.extend(self._execution_errors(spec, raw, time.time() - start_time))
         report.ok = (
@@ -524,6 +534,9 @@ class CollaborationBenchmarkRunner:
         print(f"  skipped tasks: {report.skipped_tasks}")
         print(f"  deadline misses: {report.deadline_misses}")
         print(f"  success keys satisfied: {'yes' if report.success_keys_satisfied else 'no'}")
+        if report.shared_memory_governance:
+            print(f"  shared memory candidates: {report.shared_memory_governance.get('candidate_count', 0)}")
+            print(f"  false-promotion reviews: {report.shared_memory_governance.get('false_promotion_review_count', 0)}")
         for item in report.task_results:
             suffix = " deadline_missed" if item.deadline_missed else ""
             print(f"    - {item.source_task_id} -> {item.status}{suffix}")
@@ -601,6 +614,7 @@ class CollaborationBenchmarkRunner:
             "success_keys_satisfied": report.success_keys_satisfied,
             "total_elapsed_s": report.total_elapsed_s,
             "shared_state": report.shared_state,
+            "shared_memory_governance": report.shared_memory_governance,
             "task_results": [asdict(item) for item in report.task_results],
             "errors": report.errors,
         }
@@ -981,11 +995,27 @@ class CollaborationBenchmarkRunner:
         success = bool(payload.get("success"))
         result = payload.get("result", {})
         error = payload.get("error", "")
-        updates = dict(result.get("shared_state", {})) if isinstance(result, dict) else {}
+        raw_updates = dict(result.get("shared_state", {})) if isinstance(result, dict) else {}
+        updates = dict(raw_updates)
+        shared_update_provenance = {}
+        shared_memory_decisions = {}
         if success:
             updates = self._normalize_shared_updates(task, updates)
         if updates:
-            state.update_shared(updates)
+            shared_update_provenance = self._shared_update_provenance(
+                task,
+                result if isinstance(result, dict) else {},
+                updates,
+                raw_updates,
+            )
+            shared_memory_decisions = self._shared_memory_decisions(updates, shared_update_provenance)
+            shared_metadata = self._shared_memory_metadata_updates(
+                state.get_shared(),
+                updates,
+                shared_update_provenance,
+                shared_memory_decisions,
+            )
+            state.update_shared({**updates, **shared_metadata})
         if success:
             state.complete_task(task_id, result)
             status = "completed"
@@ -1008,6 +1038,8 @@ class CollaborationBenchmarkRunner:
             duration_s=payload.get("duration_s", 0.0),
             deadline_missed=deadline is not None and finished_at_s > deadline,
             shared_updates=updates,
+            shared_update_provenance=shared_update_provenance,
+            shared_memory_decisions=shared_memory_decisions,
             result=result,
             error="" if success else error,
         )
@@ -1046,6 +1078,180 @@ class CollaborationBenchmarkRunner:
         for key in task.get("shared_state_updates", []):
             normalized.setdefault(key, criteria_updates.get(key, True))
         return normalized
+
+    def _shared_update_provenance(
+        self,
+        task: dict,
+        result: dict,
+        updates: dict,
+        raw_updates: dict,
+    ) -> dict:
+        provenance_by_key = {}
+        task_provenance = task.get("shared_state_provenance", {}) if isinstance(task, dict) else {}
+        result_provenance = result.get("shared_state_provenance", {}) if isinstance(result, dict) else {}
+        criteria_updates = task.get("success_criteria", {}).get("shared_state", {})
+        declared_updates = set(task.get("shared_state_updates", []))
+
+        for key, value in updates.items():
+            if str(key).startswith("_"):
+                continue
+            declared = task_provenance.get(key, {}) if isinstance(task_provenance, dict) else {}
+            provided = result_provenance.get(key, {}) if isinstance(result_provenance, dict) else {}
+            dependency = (
+                provided.get("dependency")
+                or provided.get("dependency_type")
+                or provided.get("evidence_dependency")
+                or declared.get("dependency")
+                or declared.get("dependency_type")
+                or declared.get("evidence_dependency")
+                or self._default_shared_dependency(key, raw_updates, criteria_updates, declared_updates)
+            )
+            validity = (
+                provided.get("validity")
+                or provided.get("evidence_status")
+                or declared.get("validity")
+                or declared.get("evidence_status")
+                or "current"
+            )
+            confidence = provided.get("confidence", declared.get("confidence", 0.85))
+            entry = {
+                "key": key,
+                "value": value,
+                "source_task_id": task.get("source_task_id", task.get("id", "")),
+                "task_id": task.get("task_id", ""),
+                "assigned_to": task.get("assigned_to", task.get("assigned_role", "")),
+                "dependency": str(dependency or "task_result"),
+                "validity": str(validity or "current"),
+                "confidence": confidence,
+                "scope": str(provided.get("scope") or declared.get("scope") or "benchmark_shared_state"),
+                "depends_on": list(task.get("depends_on", [])),
+                "evidence": {
+                    "task_title": task.get("title", ""),
+                    "declared_shared_state_update": key in declared_updates,
+                    "matches_success_criteria": key in criteria_updates,
+                    "executor_reported_update": key in raw_updates,
+                },
+            }
+            if provided.get("note") or declared.get("note"):
+                entry["note"] = str(provided.get("note") or declared.get("note"))
+            provenance_by_key[key] = entry
+        return provenance_by_key
+
+    def _default_shared_dependency(
+        self,
+        key: str,
+        raw_updates: dict,
+        criteria_updates: dict,
+        declared_updates: set,
+    ) -> str:
+        if key in criteria_updates:
+            return "task_success_criteria"
+        if key in raw_updates:
+            return "direct_task_result"
+        if key in declared_updates:
+            return "declared_shared_state_update"
+        return "task_result"
+
+    def _shared_memory_decisions(self, updates: dict, provenance_by_key: dict) -> dict:
+        decisions = {}
+        for key, value in updates.items():
+            if str(key).startswith("_"):
+                continue
+            provenance = provenance_by_key.get(key, {})
+            confidence = self._safe_confidence(provenance.get("confidence"), default=0.85)
+            content = {
+                "key": key,
+                "value": value,
+                "source_task_id": provenance.get("source_task_id", ""),
+                "assigned_to": provenance.get("assigned_to", ""),
+                "dependency": provenance.get("dependency", "task_result"),
+                "validity": provenance.get("validity", "current"),
+                "scope": provenance.get("scope", "benchmark_shared_state"),
+                "depends_on": provenance.get("depends_on", []),
+            }
+            decisions[key] = self.memory_policy.decide_write(
+                "shared",
+                "fact",
+                "write_shared_state",
+                content,
+                source="collaboration_shared_state",
+                confidence=confidence,
+            ).as_dict()
+        return decisions
+
+    def _shared_memory_metadata_updates(
+        self,
+        shared_state: dict,
+        updates: dict,
+        provenance_by_key: dict,
+        decisions_by_key: dict,
+    ) -> dict:
+        provenance_log = dict(shared_state.get("_shared_memory_provenance", {}))
+        for key, provenance in provenance_by_key.items():
+            entry = dict(provenance)
+            entry["policy_decision"] = decisions_by_key.get(key, {})
+            previous = provenance_log.get(key, {})
+            history = list(previous.get("history", [])) if isinstance(previous, dict) else []
+            history.append(entry)
+            provenance_log[key] = {
+                "latest": entry,
+                "history": history[-20:],
+            }
+
+        return {
+            "_shared_memory_provenance": provenance_log,
+            "_shared_memory_governance": self._shared_memory_governance_summary(
+                shared_state.get("_shared_memory_governance", {}),
+                decisions_by_key,
+            ),
+        }
+
+    def _shared_memory_governance_summary(self, existing: dict, decisions_by_key: dict) -> dict:
+        summary = dict(existing) if isinstance(existing, dict) else {}
+        by_decision = dict(summary.get("by_decision", {}))
+        by_key = dict(summary.get("by_key", {}))
+        candidate_count = int(summary.get("candidate_count", 0))
+        review_routed_count = int(summary.get("review_routed_count", 0))
+        false_promotion_review_count = int(summary.get("false_promotion_review_count", 0))
+        correlated_evidence_count = int(summary.get("correlated_evidence_count", 0))
+        unsafe_scope_count = int(summary.get("unsafe_scope_count", 0))
+
+        for key, decision in decisions_by_key.items():
+            decision_name = str(decision.get("decision") or "unknown")
+            flags = list(decision.get("quality_flags", []))
+            flagged_for_false_promotion = bool({"correlated_evidence", "unsafe_scope"} & set(flags))
+            candidate_count += 1
+            by_decision[decision_name] = by_decision.get(decision_name, 0) + 1
+            if decision_name in {"write_review_needed", "write_suppressed"} or flags:
+                review_routed_count += 1
+            if flagged_for_false_promotion:
+                false_promotion_review_count += 1
+            if "correlated_evidence" in flags:
+                correlated_evidence_count += 1
+            if "unsafe_scope" in flags:
+                unsafe_scope_count += 1
+            by_key[key] = {
+                "decision": decision_name,
+                "priority": decision.get("priority", "normal"),
+                "quality_flags": flags,
+            }
+
+        summary.update({
+            "candidate_count": candidate_count,
+            "review_routed_count": review_routed_count,
+            "false_promotion_review_count": false_promotion_review_count,
+            "correlated_evidence_count": correlated_evidence_count,
+            "unsafe_scope_count": unsafe_scope_count,
+            "by_decision": by_decision,
+            "by_key": by_key,
+        })
+        return summary
+
+    def _safe_confidence(self, value, default: float = 0.85) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
 
     def _dependencies_complete(self, task: dict, all_tasks: list[dict]) -> bool:
         for dependency in task.get("depends_on", []):

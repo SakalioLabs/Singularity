@@ -31,6 +31,8 @@ def test_load_m7_sample_and_assignment_plan():
     assert "resource_runner" in plan
     assert any(task["id"] == "verify_shelter" for task in plan["leader_builder"])
     assert any(task["id"] == "gather_logs" for task in plan["resource_runner"])
+    deliver = next(task for task in plan["resource_runner"] if task["id"] == "deliver_wood")
+    assert deliver["shared_state_provenance"]["wood_delivered"]["dependency"] == "role_handoff"
     print("PASS: M7 sample loads and produces role assignment plan")
 
 
@@ -131,6 +133,16 @@ def test_collaboration_runner_executes_state_transition_loop():
     assert raw["shared"]["wood_delivered"] is True
     assert raw["shared"]["shelter_frame_done"] is True
     assert raw["shared"]["torch_ready"] is True
+    provenance = raw["shared"]["_shared_memory_provenance"]
+    governance = raw["shared"]["_shared_memory_governance"]
+    assert provenance["wood_delivered"]["latest"]["source_task_id"] == "deliver_wood"
+    assert provenance["wood_delivered"]["latest"]["dependency"] == "role_handoff"
+    assert provenance["wood_delivered"]["latest"]["policy_decision"]["decision"] == "semantic_promotion_candidate"
+    assert len(provenance["shelter_frame_done"]["history"]) == 2
+    assert len(provenance["torch_ready"]["history"]) == 2
+    assert governance["candidate_count"] == 5
+    assert governance["false_promotion_review_count"] == 0
+    assert report.shared_memory_governance["candidate_count"] == 5
     assert set(task_statuses.values()) == {"completed"}
     execution_order = [item.source_task_id for item in report.task_results]
     assert execution_order.index("gather_logs") < execution_order.index("deliver_wood")
@@ -201,6 +213,7 @@ def test_collaboration_runner_serializes_reports_to_json():
     assert saved["execution"]["completed_tasks"] == 5
     assert saved["execution"]["dispatch_mode"] == "role_parallel"
     assert saved["execution"]["max_parallel_tasks"] == 2
+    assert saved["execution"]["shared_memory_governance"]["candidate_count"] == 5
     assert saved["execution"]["task_results"][0]["started_at_s"] >= 0.0
     assert saved["execution"]["task_results"]
     assert saved["execution_schedule_comparison"]["type"] == "collaboration_schedule_vs_execution"
@@ -323,6 +336,45 @@ def test_collaboration_runner_reports_actual_parallel_overlap():
     print("PASS: M7 runner reports actual parallel overlap")
 
 
+def test_collaboration_runner_flags_correlated_shared_memory_updates():
+    tmpdir = tempfile.mkdtemp()
+    state_path = os.path.join(tmpdir, "collab_govmem_state.json")
+    spec = CollaborationBenchmarkSpec.load_json(SAMPLE)
+    runner = CollaborationBenchmarkRunner(state_path)
+
+    def correlated_executor(task, agent_state, shared_state):
+        if task.get("source_task_id") == "deliver_wood":
+            return {
+                "success": True,
+                "shared_state": {"wood_delivered": True},
+                "shared_state_provenance": {
+                    "wood_delivered": {
+                        "dependency": "shared_prompt",
+                        "validity": "out_of_scope",
+                        "scope": "copied claim from another role",
+                        "confidence": 0.9,
+                    }
+                },
+            }
+        return runner.simulated_task_executor(task, agent_state, shared_state)
+
+    report = runner.execute(spec, executor=correlated_executor)
+    state = SharedState(state_path)
+    raw = state._read_state()
+    governance = report.shared_memory_governance
+    decision = raw["shared"]["_shared_memory_provenance"]["wood_delivered"]["latest"]["policy_decision"]
+
+    assert report.ok
+    assert decision["decision"] == "write_review_needed"
+    assert "correlated_evidence" in decision["quality_flags"]
+    assert "unsafe_scope" in decision["quality_flags"]
+    assert governance["false_promotion_review_count"] == 1
+    assert governance["correlated_evidence_count"] == 1
+    assert governance["unsafe_scope_count"] == 1
+    assert governance["by_key"]["wood_delivered"]["decision"] == "write_review_needed"
+    print("PASS: M7 runner flags correlated shared-memory updates")
+
+
 def test_collaboration_runner_schedule_execution_comparison_reports_missing_tasks():
     tmpdir = tempfile.mkdtemp()
     state_path = os.path.join(tmpdir, "collab_failed_state.json")
@@ -423,6 +475,7 @@ if __name__ == "__main__":
     test_collaboration_runner_analyzes_parallel_schedule_against_baseline()
     test_collaboration_runner_compares_schedule_to_execution()
     test_collaboration_runner_reports_actual_parallel_overlap()
+    test_collaboration_runner_flags_correlated_shared_memory_updates()
     test_collaboration_runner_schedule_execution_comparison_reports_missing_tasks()
     test_collaboration_runner_schedule_detects_blocked_dependencies()
     test_collaboration_runner_blocks_dependents_after_executor_failure()

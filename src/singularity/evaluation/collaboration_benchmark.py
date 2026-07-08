@@ -27,6 +27,7 @@ class CollaborationTask:
     preconditions: dict = field(default_factory=dict)
     success_criteria: dict = field(default_factory=dict)
     shared_state_updates: list[str] = field(default_factory=list)
+    shared_state_provenance: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -92,6 +93,7 @@ class CollaborationBenchmarkSpec:
                 "preconditions": task.preconditions,
                 "success_criteria": task.success_criteria,
                 "shared_state_updates": task.shared_state_updates,
+                "shared_state_provenance": task.shared_state_provenance,
             })
         return plan
 

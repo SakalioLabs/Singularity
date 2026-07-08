@@ -268,6 +268,7 @@ Memory should be treated as a policy-controlled subsystem:
 - every write/read/manage operation receives an explicit decision
 - offline reports should produce feedback hints for missed semantic writes, failure-learning traces, noisy writes, retrieval instrumentation, and consolidation review
 - correlated or stale evidence should be routed to review before semantic promotion
+- multi-agent shared-state writes should carry provenance, dependency, validity, scope, and confidence metadata so repeated role claims can be audited before becoming shared durable memory
 - strict write gates should remain off until real trace audits show high precision
 
 ## Implemented in this pass
@@ -381,3 +382,4 @@ Memory should be treated as a policy-controlled subsystem:
 - Added `MemoryLifecyclePolicy`, an advisory consumer of `memory_policy_feedback` that labels writes, reads, and management operations with decisions such as `semantic_promotion_candidate`, `failure_learning_candidate`, and `write_review_needed`; `enforce_memory_write_gate` can suppress noisy writes when enough trace evidence exists.
 - Closed the first feedback loop from `memory_policy_feedback` back into `MemoryLifecyclePolicy`, so missed semantic writes, failure-learning traces, noisy writes, retrieval instrumentation, and consolidation review hints alter future policy priorities and reasons.
 - Added GovMem-style write governance flags to `MemoryLifecyclePolicy`: correlated/shared evidence and stale/out-of-scope/contradicted validity metadata now route candidate writes through review or strict suppression.
+- Added M7 shared-memory provenance: collaboration tasks can declare `shared_state_provenance`, execution stores per-key `_shared_memory_provenance` histories, and reports summarize `_shared_memory_governance` counts including false-promotion review, correlated evidence, and unsafe scope.

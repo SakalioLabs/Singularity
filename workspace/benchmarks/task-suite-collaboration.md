@@ -16,6 +16,7 @@ Required top-level fields:
 - `shared_state`: required keys, initial values, success keys
 - `dynamic_events`: timed risks or environment changes
 - `success_criteria`: global benchmark success gate
+- optional `tasks[].shared_state_provenance`: per-key dependency, validity, scope, and confidence metadata for shared-memory governance
 
 Static feasibility checks:
 - at least two unique roles
@@ -37,6 +38,7 @@ Execution dispatch:
 - each dispatch wave selects at most one runnable task per role
 - different roles run concurrently through the selected executor, allowing separate live bot bridges to progress in parallel
 - shared-state writes and task status transitions are committed serially by the runner after each role task finishes, keeping the file-backed shared state deterministic
+- shared-state writes are also recorded as memory candidates under `_shared_memory_provenance`, with `MemoryLifecyclePolicy` decisions summarized in `_shared_memory_governance`
 - the live `AgentCollaborationExecutor` protects its agent and connection caches with locks: different roles can run concurrently, while duplicate same-role calls reuse one agent and serialize that role's `run_goal()` calls
 - `--executor agent` prints and saves bridge launch plans with exact role usernames, bridge ports, launch commands, and duplicate-port conflicts before preflight or execution
 - Agent bridge preflight fails fast when multiple roles share one bridge port; pass `--bridge-port-base` or unique `--role-bridge-port ROLE=PORT` values for live collaboration
@@ -93,4 +95,4 @@ python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_
 python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --execute --executor agent --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --role-bridge-port single_agent=3002 --single-agent-baseline --output logs/benchmarks/bm701_collab_report.json
 ```
 
-The saved JSON report includes static schedule analysis, Agent bridge launch plans, dispatch mode/batches/max parallel task counts, schedule-vs-execution comparison with actual overlap metrics, optional single-agent schedule comparison, collaboration execution, optional single-agent baseline execution, and compact comparisons over predicted makespan, measured elapsed time, success, completed tasks, failures, skipped tasks, and deadline misses.
+The saved JSON report includes static schedule analysis, Agent bridge launch plans, dispatch mode/batches/max parallel task counts, schedule-vs-execution comparison with actual overlap metrics, optional single-agent schedule comparison, collaboration execution, shared-memory provenance/governance counts, optional single-agent baseline execution, and compact comparisons over predicted makespan, measured elapsed time, success, completed tasks, failures, skipped tasks, and deadline misses.

@@ -52,7 +52,15 @@
       "deadline_s": 210,
       "estimated_duration_s": 45,
       "success_criteria": {"shared_state": {"wood_delivered": true}},
-      "shared_state_updates": ["wood_delivered"]
+      "shared_state_updates": ["wood_delivered"],
+      "shared_state_provenance": {
+        "wood_delivered": {
+          "dependency": "role_handoff",
+          "validity": "current",
+          "scope": "BM-701 shared shelter run",
+          "confidence": 0.9
+        }
+      }
     },
     {
       "id": "build_frame",
@@ -66,7 +74,15 @@
       "estimated_duration_s": 90,
       "preconditions": {"shared_state": {"wood_delivered": true}},
       "success_criteria": {"shared_state": {"shelter_frame_done": true}},
-      "shared_state_updates": ["shelter_frame_done"]
+      "shared_state_updates": ["shelter_frame_done"],
+      "shared_state_provenance": {
+        "shelter_frame_done": {
+          "dependency": "dependent_task_result",
+          "validity": "current",
+          "scope": "BM-701 shared shelter run",
+          "confidence": 0.9
+        }
+      }
     },
     {
       "id": "prepare_torch",
@@ -78,7 +94,15 @@
       "deadline_s": 360,
       "estimated_duration_s": 120,
       "success_criteria": {"shared_state": {"torch_ready": true}},
-      "shared_state_updates": ["torch_ready"]
+      "shared_state_updates": ["torch_ready"],
+      "shared_state_provenance": {
+        "torch_ready": {
+          "dependency": "direct_task_result",
+          "validity": "current",
+          "scope": "BM-701 shared shelter run",
+          "confidence": 0.85
+        }
+      }
     },
     {
       "id": "verify_shelter",
