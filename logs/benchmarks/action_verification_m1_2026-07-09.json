@@ -1,0 +1,225 @@
+{
+  "log_count": 5,
+  "ready_log_count": 1,
+  "action_count": 200,
+  "verified_action_count": 200,
+  "accepted_action_count": 195,
+  "review_action_count": 5,
+  "rejected_action_count": 0,
+  "rejected_success_count": 0,
+  "failed_without_reject_count": 0,
+  "reject_rate": 0.0,
+  "review_rate": 0.025,
+  "action_verification_feedback": {
+    "log_count": 5,
+    "ready_log_count": 1,
+    "action_count": 200,
+    "verified_action_count": 200,
+    "accepted_action_count": 195,
+    "review_action_count": 5,
+    "rejected_action_count": 0,
+    "rejected_success_count": 0,
+    "failed_without_reject_count": 0,
+    "reject_rate": 0.0,
+    "review_rate": 0.025,
+    "policy_hints": []
+  },
+  "errors": [],
+  "cases": [
+    {
+      "source_log": "logs\\session_2818ff2a-612.jsonl",
+      "event_count": 403,
+      "observation_count": 100,
+      "action_count": 200,
+      "verified_action_count": 200,
+      "accepted_action_count": 195,
+      "review_action_count": 5,
+      "rejected_action_count": 0,
+      "rejected_success_count": 0,
+      "failed_without_reject_count": 0,
+      "status_counts": {
+        "accept": 195,
+        "review": 5
+      },
+      "action_type_counts": {
+        "move_to": 100,
+        "dig": 5,
+        "wait": 95
+      },
+      "rejection_reasons": {},
+      "review_reasons": {
+        "dig coordinates present but target block is unknown": 5
+      },
+      "examples": [
+        {
+          "event_index": 5,
+          "goal": "Gather 3 oak logs",
+          "action": {
+            "type": "dig",
+            "parameters": {
+              "x": -12,
+              "y": 66,
+              "z": 0
+            }
+          },
+          "result_success": true,
+          "verification": {
+            "action_type": "dig",
+            "status": "review",
+            "score": 0.6,
+            "reason": "dig coordinates present but target block is unknown"
+          }
+        },
+        {
+          "event_index": 9,
+          "goal": "Gather 3 oak logs",
+          "action": {
+            "type": "dig",
+            "parameters": {
+              "x": -12,
+              "y": 67,
+              "z": 0
+            }
+          },
+          "result_success": true,
+          "verification": {
+            "action_type": "dig",
+            "status": "review",
+            "score": 0.6,
+            "reason": "dig coordinates present but target block is unknown"
+          }
+        },
+        {
+          "event_index": 13,
+          "goal": "Gather 3 oak logs",
+          "action": {
+            "type": "dig",
+            "parameters": {
+              "x": -12,
+              "y": 68,
+              "z": 0
+            }
+          },
+          "result_success": true,
+          "verification": {
+            "action_type": "dig",
+            "status": "review",
+            "score": 0.6,
+            "reason": "dig coordinates present but target block is unknown"
+          }
+        },
+        {
+          "event_index": 21,
+          "goal": "Gather 3 oak logs",
+          "action": {
+            "type": "dig",
+            "parameters": {
+              "x": 22,
+              "y": 68,
+              "z": 20
+            }
+          },
+          "result_success": true,
+          "verification": {
+            "action_type": "dig",
+            "status": "review",
+            "score": 0.6,
+            "reason": "dig coordinates present but target block is unknown"
+          }
+        },
+        {
+          "event_index": 25,
+          "goal": "Gather 3 oak logs",
+          "action": {
+            "type": "dig",
+            "parameters": {
+              "x": 22,
+              "y": 69,
+              "z": 20
+            }
+          },
+          "result_success": true,
+          "verification": {
+            "action_type": "dig",
+            "status": "review",
+            "score": 0.6,
+            "reason": "dig coordinates present but target block is unknown"
+          }
+        }
+      ],
+      "ready_for_action_verification_review": true
+    },
+    {
+      "source_log": "logs\\session_bcd06511-00a.jsonl",
+      "event_count": 203,
+      "observation_count": 100,
+      "action_count": 0,
+      "verified_action_count": 0,
+      "accepted_action_count": 0,
+      "review_action_count": 0,
+      "rejected_action_count": 0,
+      "rejected_success_count": 0,
+      "failed_without_reject_count": 0,
+      "status_counts": {},
+      "action_type_counts": {},
+      "rejection_reasons": {},
+      "review_reasons": {},
+      "examples": [],
+      "ready_for_action_verification_review": false
+    },
+    {
+      "source_log": "logs\\session_dc8fff18-00b.jsonl",
+      "event_count": 203,
+      "observation_count": 100,
+      "action_count": 0,
+      "verified_action_count": 0,
+      "accepted_action_count": 0,
+      "review_action_count": 0,
+      "rejected_action_count": 0,
+      "rejected_success_count": 0,
+      "failed_without_reject_count": 0,
+      "status_counts": {},
+      "action_type_counts": {},
+      "rejection_reasons": {},
+      "review_reasons": {},
+      "examples": [],
+      "ready_for_action_verification_review": false
+    },
+    {
+      "source_log": "logs\\session_4138b270-949.jsonl",
+      "event_count": 203,
+      "observation_count": 100,
+      "action_count": 0,
+      "verified_action_count": 0,
+      "accepted_action_count": 0,
+      "review_action_count": 0,
+      "rejected_action_count": 0,
+      "rejected_success_count": 0,
+      "failed_without_reject_count": 0,
+      "status_counts": {},
+      "action_type_counts": {},
+      "rejection_reasons": {},
+      "review_reasons": {},
+      "examples": [],
+      "ready_for_action_verification_review": false
+    },
+    {
+      "source_log": "logs\\session_67ba45ce-2e1.jsonl",
+      "event_count": 203,
+      "observation_count": 100,
+      "action_count": 0,
+      "verified_action_count": 0,
+      "accepted_action_count": 0,
+      "review_action_count": 0,
+      "rejected_action_count": 0,
+      "rejected_success_count": 0,
+      "failed_without_reject_count": 0,
+      "status_counts": {},
+      "action_type_counts": {},
+      "rejection_reasons": {},
+      "review_reasons": {},
+      "examples": [],
+      "ready_for_action_verification_review": false
+    }
+  ]
+}

@@ -50,5 +50,7 @@ class Config:
     enable_goal_verification: bool = True
     enable_goal_critic: bool = False
     enable_blocked_plan_rule_fallback: bool = True
+    enable_action_verification: bool = True
+    enforce_action_verification: bool = True
     max_action_timeout: int = 30000  # ms
     health_critical_threshold: float = 4.0  # hearts

@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from singularity.action.controller import ActionController
 from singularity.action.mapping import ActionMapper
 from singularity.action.policy import ActionGranularityPolicy
+from singularity.action.verifier import ActionVerifier
 from singularity.core.agent import Agent
 from singularity.core.config import Config
 from singularity.core.self_evolution_policy import SelfEvolutionPolicy
@@ -466,6 +467,37 @@ def test_agent_skips_mixed_policy_patch_when_gate_is_not_approved():
     print("PASS: Agent skips mixed policy patch when gate is not approved")
 
 
+def test_action_verifier_rejects_missing_craft_materials_and_tools():
+    verifier = ActionVerifier()
+
+    torch = verifier.verify(
+        {"type": "craft", "parameters": {"item": "torch", "count": 4}},
+        {"inventory": {"stick": 1}},
+    )
+    assert torch.status == "reject"
+    assert "coal" in " ".join(torch.missing)
+
+    planks = verifier.verify(
+        {"type": "craft", "parameters": {"item": "oak_planks", "count": 4}},
+        {"inventory": {"oak_log": 1}},
+    )
+    assert planks.status == "accept"
+
+    stone = verifier.verify(
+        {"type": "dig", "parameters": {"block": "stone"}},
+        {"inventory": {}, "nearby_blocks": [{"name": "stone"}]},
+    )
+    assert stone.status == "reject"
+    assert "wooden_pickaxe" in stone.missing
+
+    log = verifier.verify(
+        {"type": "dig", "parameters": {"block": "oak_log"}},
+        {"inventory": {}, "nearby_blocks": [{"name": "oak_log"}]},
+    )
+    assert log.status == "accept"
+    print("PASS: ActionVerifier rejects impossible craft/mine actions before execution")
+
+
 if __name__ == "__main__":
     test_self_evolution_policy_formats_advisory_context()
     test_use_item_equips_requested_item_first()
@@ -481,4 +513,5 @@ if __name__ == "__main__":
     test_agent_loads_skill_memory_quality_feedback_when_gate_is_approved()
     test_agent_skips_skill_memory_quality_feedback_when_gate_is_not_approved()
     test_agent_skips_mixed_policy_patch_when_gate_is_not_approved()
+    test_action_verifier_rejects_missing_craft_materials_and_tools()
     print("\nAction controller tests PASSED")

@@ -532,6 +532,12 @@ def main():
     terminal_commitment_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     terminal_commitment_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline action verification replay report
+    action_verification_parser = subparsers.add_parser("action-verification-report", help="Replay logged actions through deterministic action verification")
+    action_verification_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    action_verification_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    action_verification_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline self-evolution automatic repair gate
     self_evolution_gate_parser = subparsers.add_parser("self-evolution-gate", help="Gate automatic self-evolution plan repair with verifier and counterexample evidence")
     self_evolution_gate_parser.add_argument("--self-evolution-report", action="append", default=[], help="Saved self-evolution-report JSON")
@@ -2166,6 +2172,39 @@ def main():
                     "unsupported_commitment_rate": report.unsupported_commitment_rate,
                     "post_attainment_drift_rate": report.post_attainment_drift_rate,
                     "terminal_commitment_feedback": terminal_commitment_feedback,
+                    "errors": report.errors,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "action-verification-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("action-verification-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_action_verification_report_from_logs(session_logs)
+        runner.print_action_verification_report(report)
+        action_verification_feedback = runner.action_verification_feedback(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "log_count": report.log_count,
+                    "ready_log_count": report.ready_log_count,
+                    "action_count": report.action_count,
+                    "verified_action_count": report.verified_action_count,
+                    "accepted_action_count": report.accepted_action_count,
+                    "review_action_count": report.review_action_count,
+                    "rejected_action_count": report.rejected_action_count,
+                    "rejected_success_count": report.rejected_success_count,
+                    "failed_without_reject_count": report.failed_without_reject_count,
+                    "reject_rate": report.reject_rate,
+                    "review_rate": report.review_rate,
+                    "action_verification_feedback": action_verification_feedback,
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)

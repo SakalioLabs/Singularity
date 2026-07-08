@@ -25,6 +25,7 @@ from singularity.core.self_evolution_policy import SelfEvolutionPolicy
 from singularity.observation.observer import Observer
 from singularity.action.controller import ActionController
 from singularity.action.policy import ActionGranularityPolicy
+from singularity.action.verifier import ActionVerifier
 from singularity.bot.bridge import BotBridge
 from singularity.evaluation.mixed_initiative import (
     MixedInitiativeFeedbackPolicy,
@@ -51,6 +52,7 @@ class Agent:
         self.bot = BotBridge(config.bot)
         self.observer = Observer(self.bot)
         self.action_policy = ActionGranularityPolicy()
+        self.action_verifier = ActionVerifier()
         self.mixed_initiative_policy = MixedInitiativeFeedbackPolicy()
         self.mixed_policy_patch_report = self._load_mixed_policy_patches()
         self.self_evolution_policy = SelfEvolutionPolicy()
@@ -486,7 +488,18 @@ class Agent:
                     if interrupted:
                         break
                     before_action_observation = observation
-                    result = self.action_controller.execute(action, observation)
+                    action_verification, rejected_result = self._verify_action_for_execution(
+                        action,
+                        observation,
+                        goal,
+                        {"cycle": cycle, "mode": "goal"},
+                    )
+                    if rejected_result:
+                        result = rejected_result
+                    else:
+                        result = self.action_controller.execute(action, observation)
+                        if action_verification:
+                            result["action_verification"] = action_verification
                     self.session_logger.log_action(action, result)
                     self._write_memory_episode("action", {"action": action, "result": result}, source="goal_action")
                     observation = self._apply_action_feedback(action, result, observation, {"cycle": cycle, "goal": goal})
@@ -677,7 +690,18 @@ class Agent:
                         if interrupted:
                             break
                         before_action_observation = observation
-                        result = self.action_controller.execute(action, observation)
+                        action_verification, rejected_result = self._verify_action_for_execution(
+                            action,
+                            observation,
+                            goal,
+                            {"cycle": total_cycles, "mode": "autonomous"},
+                        )
+                        if rejected_result:
+                            result = rejected_result
+                        else:
+                            result = self.action_controller.execute(action, observation)
+                            if action_verification:
+                                result["action_verification"] = action_verification
                         self.session_logger.log_action(action, result)
                         self._write_memory_episode(
                             "action",
@@ -905,6 +929,48 @@ class Agent:
             self._write_memory_episode("planner_fallback", payload, source="blocked_plan_rule_fallback")
             return merged
         return plan
+
+    def _verify_action_for_execution(
+        self,
+        action: dict,
+        observation: dict,
+        goal: str,
+        context: dict = None,
+    ) -> tuple[Optional[dict], Optional[dict]]:
+        """Verify a candidate action before spending a live bot command on it."""
+        if not getattr(getattr(self, "config", None), "enable_action_verification", True):
+            return None, None
+        verifier = getattr(self, "action_verifier", None)
+        if verifier is None:
+            return None, None
+        try:
+            decision = verifier.verify(action, observation or {}, goal=goal)
+        except Exception as e:
+            logger.warning(f"Action verification failed: {e}")
+            return None, None
+
+        verification = decision.as_dict() if hasattr(decision, "as_dict") else dict(decision)
+        payload = {
+            "goal": goal,
+            "context": context or {},
+            "action": action,
+            "verification": verification,
+        }
+        if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("action_verification", payload)
+        self._write_memory_episode("action_verification", payload, source="action_verifier")
+
+        if verification.get("status") == "reject" and getattr(getattr(self, "config", None), "enforce_action_verification", True):
+            result = {
+                "success": False,
+                "error": f"Action verification rejected: {verification.get('reason', '')}",
+                "action_type": action.get("type", verification.get("action_type", "unknown")) if isinstance(action, dict) else "unknown",
+                "duration_ms": 0,
+                "action_verification": verification,
+                "verification_blocked": True,
+            }
+            return verification, result
+        return verification, None
 
     def _task_memory_context(self, goal: str, current_state: dict = None) -> str:
         if not getattr(getattr(self, "config", None), "enable_task_memory_context", True):

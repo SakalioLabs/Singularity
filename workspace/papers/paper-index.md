@@ -1154,6 +1154,42 @@
 
 ---
 
+## P-063: VeGAS Action Verification
+
+- **Title**: Think Twice, Act Once: Verifier-Guided Action Selection For Embodied Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2605.12620
+- **Type**: Embodied-agent verifier-guided action selection
+- **Task Type**: Long-horizon embodied action selection with candidate verification
+- **Core Method**: Samples candidate actions at test time and uses a trained verifier to select the most reliable action without changing the base policy
+- **Action Space**: High-level embodied actions; adapted here to structured Minecraft action dictionaries
+- **Memory**: Failure-case and verifier-decision traces that can train or calibrate action-selection policies
+- **Key Results**: Reports improved generalization over CoT baselines on Habitat and ALFRED, especially for challenging multi-object long-horizon tasks
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Motivates `ActionVerifier` and `action-verification-report`, which block obvious infeasible Minecraft actions before execution and expose verifier gaps for later learned ranking
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-vegas-action-verification.md`
+
+---
+
+## P-064: SVA Action Evaluation
+
+- **Title**: Look Before You Leap: Distilling Tree Search into Action Evaluation for Frozen VLA Models
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2607.03751
+- **Type**: Test-time action evaluation for frozen VLA policies
+- **Task Type**: Embodied candidate-action selection under frozen policy generalization limits
+- **Core Method**: Distills MCTS return labels into a lightweight Q-value evaluator, then selects among multiple generated actions at deployment
+- **Action Space**: VLA low-level/action-token candidates; adapted here as future Minecraft candidate-action scoring
+- **Memory**: Return-labeled trajectories and evaluator decisions that can feed a reusable action-value model
+- **Key Results**: Shows pass@k exposes latent good actions and that a smaller VLA plus evaluator can outperform a larger VLA with lower latency
+- **Scores**: R=4, N=5, R=3, E=5
+- **Value to Project**: Points beyond deterministic rejection toward multi-candidate Minecraft action ranking using verifier scores, logged outcomes, and uncertainty-aware progress estimates
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-sva-action-evaluation.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1220,3 +1256,5 @@
 | P-060 | Solaris | 2026 | R4/N5/R3/E4 | P2 |
 | P-061 | From Plan to Action | 2026 | R5/N4/R4/E5 | P1 |
 | P-062 | VIGIL Terminal Commitment | 2026 | R5/N5/R4/E5 | P1 |
+| P-063 | VeGAS Action Verification | 2026 | R5/N5/R4/E5 | P1 |
+| P-064 | SVA Action Evaluation | 2026 | R4/N5/R3/E5 | P1 |

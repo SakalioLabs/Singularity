@@ -72,6 +72,8 @@ class SessionLogger:
         intervention_metrics.update(visual_action_metrics)
         skill_memory_metrics = self._skill_memory_metrics()
         intervention_metrics.update(skill_memory_metrics)
+        action_verification_metrics = self._action_verification_metrics()
+        intervention_metrics.update(action_verification_metrics)
         goal_verification_metrics = self._goal_verification_metrics()
         memory_policy_metrics = self._memory_policy_metrics()
         return {
@@ -83,6 +85,7 @@ class SessionLogger:
             "intervention_metrics": intervention_metrics,
             "visual_action_metrics": visual_action_metrics,
             "skill_memory_metrics": skill_memory_metrics,
+            "action_verification_metrics": action_verification_metrics,
             "goal_verification_metrics": goal_verification_metrics,
             "memory_policy_metrics": memory_policy_metrics,
             "log_path": self._log_path,
@@ -214,6 +217,28 @@ class SessionLogger:
             "skill_memory_hint_event_count": len(events),
             "skill_memory_hint_count": total_hints,
             "skill_memory_task_families": task_families,
+        }
+
+    def _action_verification_metrics(self) -> dict:
+        events = [event for event in self.events if event.get("type") == "action_verification"]
+        statuses = {}
+        action_types = {}
+        blocked = 0
+        for event in events:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            verification = data.get("verification", {}) if isinstance(data.get("verification", {}), dict) else {}
+            action = data.get("action", {}) if isinstance(data.get("action", {}), dict) else {}
+            status = str(verification.get("status") or "unknown")
+            statuses[status] = statuses.get(status, 0) + 1
+            action_type = str(verification.get("action_type") or action.get("type") or "unknown")
+            action_types[action_type] = action_types.get(action_type, 0) + 1
+            if status == "reject":
+                blocked += 1
+        return {
+            "action_verification_event_count": len(events),
+            "action_verification_status_counts": statuses,
+            "action_verification_action_types": action_types,
+            "action_verification_blocked_count": blocked,
         }
 
     def _visual_action_metrics(self) -> dict:

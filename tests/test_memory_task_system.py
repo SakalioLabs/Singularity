@@ -22,6 +22,7 @@ from singularity.core.skill_extractor import (
 )
 from singularity.core.skill_library import SkillLibrary
 from singularity.core.task_system import TaskStatus, TaskSystem
+from singularity.action.verifier import ActionVerifier
 from singularity.data.knowledge_base import KnowledgeBase
 from singularity.evaluation.benchmark_runner import BenchmarkRunner
 from singularity.vision.action_advisor import VisualActionAdvisor
@@ -2108,6 +2109,28 @@ def test_agent_visual_action_grounding_fills_missing_dig_coordinates():
     print("PASS: Agent visual action grounding fills missing dig coordinates")
 
 
+def test_agent_action_verification_blocks_rejected_actions():
+    agent = object.__new__(Agent)
+    agent.config = Config(enable_action_verification=True, enforce_action_verification=True)
+    agent.action_verifier = ActionVerifier()
+    agent.session_logger = FakeSessionLogger()
+    agent._write_memory_episode = lambda *args, **kwargs: None
+
+    verification, result = agent._verify_action_for_execution(
+        {"type": "craft", "parameters": {"item": "torch", "count": 4}},
+        {"inventory": {"stick": 1}},
+        "Craft torches",
+        {"cycle": 1, "mode": "goal"},
+    )
+
+    assert verification["status"] == "reject"
+    assert result["success"] is False
+    assert result["verification_blocked"] is True
+    assert "missing ingredients" in result["error"]
+    assert any(event["type"] == "action_verification" for event in agent.session_logger.events)
+    print("PASS: Agent blocks verifier-rejected actions before live execution")
+
+
 def test_agent_visual_action_grounding_prepends_danger_retreat():
     agent = object.__new__(Agent)
     agent.config = Config(enable_visual_action_grounding=True)
@@ -2262,6 +2285,7 @@ if __name__ == "__main__":
     test_agent_visual_memory_context_summarizes_recent_evidence()
     test_agent_observe_captures_screenshot_for_visual_pipeline()
     test_agent_visual_action_grounding_fills_missing_dig_coordinates()
+    test_agent_action_verification_blocks_rejected_actions()
     test_agent_visual_action_grounding_prepends_danger_retreat()
     test_agent_visual_action_grounding_prepends_resource_approach()
     test_agent_visual_action_grounding_prepends_resource_focus()

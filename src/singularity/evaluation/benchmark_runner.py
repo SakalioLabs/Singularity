@@ -1166,6 +1166,79 @@ class TerminalCommitmentReport:
 
 
 @dataclass
+class ActionVerificationTraceCase:
+    source_log: str
+    event_count: int = 0
+    observation_count: int = 0
+    action_count: int = 0
+    verified_action_count: int = 0
+    accepted_action_count: int = 0
+    review_action_count: int = 0
+    rejected_action_count: int = 0
+    rejected_success_count: int = 0
+    failed_without_reject_count: int = 0
+    status_counts: dict = field(default_factory=dict)
+    action_type_counts: dict = field(default_factory=dict)
+    rejection_reasons: dict = field(default_factory=dict)
+    review_reasons: dict = field(default_factory=dict)
+    examples: list[dict] = field(default_factory=list)
+    ready_for_action_verification_review: bool = False
+
+
+@dataclass
+class ActionVerificationTraceReport:
+    cases: list[ActionVerificationTraceCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_log_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_action_verification_review)
+
+    @property
+    def action_count(self) -> int:
+        return sum(case.action_count for case in self.cases)
+
+    @property
+    def verified_action_count(self) -> int:
+        return sum(case.verified_action_count for case in self.cases)
+
+    @property
+    def accepted_action_count(self) -> int:
+        return sum(case.accepted_action_count for case in self.cases)
+
+    @property
+    def review_action_count(self) -> int:
+        return sum(case.review_action_count for case in self.cases)
+
+    @property
+    def rejected_action_count(self) -> int:
+        return sum(case.rejected_action_count for case in self.cases)
+
+    @property
+    def rejected_success_count(self) -> int:
+        return sum(case.rejected_success_count for case in self.cases)
+
+    @property
+    def failed_without_reject_count(self) -> int:
+        return sum(case.failed_without_reject_count for case in self.cases)
+
+    @property
+    def reject_rate(self) -> float:
+        return self._ratio(self.rejected_action_count, self.verified_action_count)
+
+    @property
+    def review_rate(self) -> float:
+        return self._ratio(self.review_action_count, self.verified_action_count)
+
+    def _ratio(self, numerator: int, denominator: int) -> float:
+        return round(numerator / denominator, 3) if denominator else 0.0
+
+
+@dataclass
 class DiscoveryApplicationTraceCase:
     source_log: str
     event_count: int = 0
@@ -3566,6 +3639,56 @@ class BenchmarkRunner:
             "terminal_commitment_score": report.terminal_commitment_score,
             "unsupported_commitment_rate": report.unsupported_commitment_rate,
             "post_attainment_drift_rate": report.post_attainment_drift_rate,
+            "policy_hints": policy_hints,
+        }
+
+    def run_action_verification_report_from_logs(self, session_log_paths: list[str]) -> ActionVerificationTraceReport:
+        """Replay logged actions through the deterministic action verifier."""
+        report = ActionVerificationTraceReport()
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                report.cases.append(self._action_verification_trace_case(path, events))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
+    def action_verification_feedback(self, report: ActionVerificationTraceReport) -> dict:
+        """Convert verifier replay outcomes into advisory action-selection hints."""
+        policy_hints = []
+        if report.rejected_action_count:
+            policy_hints.append({
+                "action_verification_policy": "block_rejected_actions_before_execution",
+                "priority": "high",
+                "reason": "deterministic action verifier found actions with missing materials, tools, or targets",
+                "count": report.rejected_action_count,
+            })
+        if report.failed_without_reject_count:
+            policy_hints.append({
+                "action_verification_policy": "expand_verifier_coverage_for_failed_actions",
+                "priority": "medium",
+                "reason": "some failed actions were not rejected by deterministic verification",
+                "count": report.failed_without_reject_count,
+            })
+        if report.rejected_success_count:
+            policy_hints.append({
+                "action_verification_policy": "audit_overconservative_rejections",
+                "priority": "medium",
+                "reason": "some verifier-rejected actions later appeared successful in logs",
+                "count": report.rejected_success_count,
+            })
+        return {
+            "log_count": report.log_count,
+            "ready_log_count": report.ready_log_count,
+            "action_count": report.action_count,
+            "verified_action_count": report.verified_action_count,
+            "accepted_action_count": report.accepted_action_count,
+            "review_action_count": report.review_action_count,
+            "rejected_action_count": report.rejected_action_count,
+            "rejected_success_count": report.rejected_success_count,
+            "failed_without_reject_count": report.failed_without_reject_count,
+            "reject_rate": report.reject_rate,
+            "review_rate": report.review_rate,
             "policy_hints": policy_hints,
         }
 
@@ -6180,6 +6303,92 @@ class BenchmarkRunner:
         if world_complete is False and not terminal_reported_complete:
             return "missed_execution"
         return "unknown"
+
+    def _action_verification_trace_case(
+        self,
+        source_log: str,
+        events: list[dict],
+        limit: int = 12,
+    ) -> ActionVerificationTraceCase:
+        from singularity.action.verifier import ActionVerifier
+
+        verifier = ActionVerifier()
+        latest_observation = {}
+        current_goal = ""
+        status_counts = {}
+        action_type_counts = {}
+        rejection_reasons = {}
+        review_reasons = {}
+        examples = []
+        action_count = 0
+        verified = 0
+        accepted = 0
+        review = 0
+        rejected = 0
+        rejected_success = 0
+        failed_without_reject = 0
+        observation_count = 0
+
+        def inc(counts: dict, key: str, amount: int = 1):
+            counts[key] = counts.get(key, 0) + amount
+
+        for index, event in enumerate(events):
+            event_type = str(event.get("type") or "")
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event_type == "goal_start":
+                current_goal = str(data.get("goal") or current_goal)
+            elif event_type == "observation":
+                latest_observation = data
+                observation_count += 1
+            elif event_type == "action":
+                action_count += 1
+                action = data.get("action", {}) if isinstance(data.get("action", {}), dict) else {}
+                result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+                decision = verifier.verify(action, latest_observation, goal=current_goal).as_dict()
+                verified += 1
+                status = str(decision.get("status") or "unknown")
+                action_type = str(decision.get("action_type") or action.get("type") or "unknown")
+                inc(status_counts, status)
+                inc(action_type_counts, action_type)
+                if status == "accept":
+                    accepted += 1
+                elif status == "review":
+                    review += 1
+                    inc(review_reasons, str(decision.get("reason") or "review"))
+                elif status == "reject":
+                    rejected += 1
+                    inc(rejection_reasons, str(decision.get("reason") or "reject"))
+                    if self._event_success(result) is True:
+                        rejected_success += 1
+                if self._event_success(result) is False and status != "reject":
+                    failed_without_reject += 1
+                if len(examples) < limit and (status != "accept" or self._event_success(result) is False):
+                    examples.append({
+                        "event_index": index,
+                        "goal": current_goal,
+                        "action": action,
+                        "result_success": self._event_success(result),
+                        "verification": decision,
+                    })
+
+        return ActionVerificationTraceCase(
+            source_log=source_log,
+            event_count=len(events),
+            observation_count=observation_count,
+            action_count=action_count,
+            verified_action_count=verified,
+            accepted_action_count=accepted,
+            review_action_count=review,
+            rejected_action_count=rejected,
+            rejected_success_count=rejected_success,
+            failed_without_reject_count=failed_without_reject,
+            status_counts=status_counts,
+            action_type_counts=action_type_counts,
+            rejection_reasons=rejection_reasons,
+            review_reasons=review_reasons,
+            examples=examples,
+            ready_for_action_verification_review=bool(verified),
+        )
 
     def _self_evolution_trace_case(self, source_log: str, events: list[dict]) -> SelfEvolutionTraceCase:
         observations = [
@@ -9846,6 +10055,51 @@ class BenchmarkRunner:
                 print(f"      missing: {'; '.join(str(item) for item in case.missing[:3])}")
             if case.reason:
                 print(f"      reason: {case.reason[:180]}")
+        for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_action_verification_report(self, report: ActionVerificationTraceReport):
+        print("\nAction Verification Trace")
+        print(f"  logs ready for action verification review: {report.ready_log_count}/{report.log_count}")
+        print(
+            "  counts: "
+            f"actions={report.action_count}, verified={report.verified_action_count}, "
+            f"accepted={report.accepted_action_count}, review={report.review_action_count}, "
+            f"rejected={report.rejected_action_count}"
+        )
+        print(
+            "  gaps: "
+            f"failed_without_reject={report.failed_without_reject_count}, "
+            f"rejected_successes={report.rejected_success_count}, "
+            f"reject_rate={report.reject_rate:.3f}, review_rate={report.review_rate:.3f}"
+        )
+        feedback = self.action_verification_feedback(report)
+        if feedback["policy_hints"]:
+            hints = [
+                f"{hint['action_verification_policy']}({hint['priority']})"
+                for hint in feedback["policy_hints"][:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for case in report.cases:
+            marker = "+" if case.ready_for_action_verification_review else "~"
+            print(f"  [{marker}] {case.source_log}")
+            print(
+                f"      actions={case.action_count}, accepted={case.accepted_action_count}, "
+                f"review={case.review_action_count}, rejected={case.rejected_action_count}, "
+                f"failed_without_reject={case.failed_without_reject_count}"
+            )
+            if case.status_counts:
+                print(f"      statuses: {self._format_counts(case.status_counts)}")
+            if case.rejection_reasons:
+                print(f"      reject reasons: {self._format_counts(case.rejection_reasons)}")
+            if case.review_reasons:
+                print(f"      review reasons: {self._format_counts(case.review_reasons)}")
+            for example in case.examples[:3]:
+                verification = example.get("verification", {})
+                print(
+                    f"      example event#{example.get('event_index')}: "
+                    f"{verification.get('status')} {verification.get('action_type')} - {verification.get('reason')}"
+                )
         for error in report.errors:
             print(f"  error: {error}")
 
