@@ -15,6 +15,7 @@ from singularity.core.skill_extractor import SkillCandidateQueue, SkillExtractor
 from singularity.core.skill_library import SkillLibrary
 from singularity.core.task_system import TaskStatus, TaskSystem
 from singularity.data.knowledge_base import KnowledgeBase
+from singularity.evaluation.benchmark_runner import BenchmarkRunner
 from singularity.vision.action_advisor import VisualActionAdvisor
 
 
@@ -507,6 +508,41 @@ def test_agent_autonomous_goal_uses_causal_memory_context():
     assert goal == "Craft torches from causal memory"
     assert "coal" in memory.queries[-1]
     print("PASS: Agent autonomous selector uses causal memory context")
+
+
+def test_agent_logs_memory_lifecycle_events_for_policy_report():
+    tmpdir = tempfile.mkdtemp()
+    agent = object.__new__(Agent)
+    agent.memory = MemorySystem(memory_dir=os.path.join(tmpdir, "memory"))
+    agent.session_logger = FakeSessionLogger()
+
+    agent._write_memory_context({"cycle": 1, "observation_summary": {"hp": 20}}, source="test_context")
+    agent._write_memory_episode("goal_end", {"goal": "Craft torches", "success": True, "cycles": 2}, source="test_goal")
+    agent._read_relevant_memory("Craft torches", source="test_read")
+    agent._read_context_window(source="test_context_window")
+    agent._manage_memory_save_session()
+
+    event_types = [event["type"] for event in agent.session_logger.events]
+    assert event_types.count("memory_write") == 2
+    assert event_types.count("memory_read") == 2
+    assert event_types.count("memory_manage") == 1
+
+    session_path = os.path.join(tmpdir, "memory_events.jsonl")
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in agent.session_logger.events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "report_memory")))
+    report = runner.run_memory_policy_report_from_logs([session_path])
+    case = report.cases[0]
+    assert case.explicit_memory_write_count == 2
+    assert case.explicit_memory_read_count == 2
+    assert case.explicit_memory_manage_count == 1
+    assert case.write_operations["write_context:context:context"] == 1
+    assert case.write_operations["write_episode:episodic:goal_end"] == 1
+    assert "Craft torches" in case.read_queries
+    assert report.missing_read_trace_count == 0
+    print("PASS: Agent logs memory lifecycle events for policy report")
 
 
 def test_planner_preserves_task_scheduling_hints():
@@ -1231,6 +1267,7 @@ if __name__ == "__main__":
     test_task_system_updates_state_from_action_failure()
     test_agent_autonomous_goal_selects_ready_opportunity_task()
     test_agent_autonomous_goal_uses_causal_memory_context()
+    test_agent_logs_memory_lifecycle_events_for_policy_report()
     test_planner_preserves_task_scheduling_hints()
     test_planner_prompt_includes_knowledge_graph_summary()
     test_skill_extractor_creates_experience_atom_and_skill()

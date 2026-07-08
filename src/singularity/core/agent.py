@@ -100,7 +100,7 @@ class Agent:
 
     def disconnect(self):
         self.running = False
-        self.memory.save_session(self.session_logger.session_id)
+        self._manage_memory_save_session()
         self.bot.disconnect()
         self.session_logger.close()
 
@@ -112,7 +112,7 @@ class Agent:
         self.running = True
         logger.info(f"Starting goal: {goal}")
         self.session_logger.log_goal_start(goal)
-        self.memory.write_episode("goal_start", {"goal": goal})
+        self._write_memory_episode("goal_start", {"goal": goal}, source="run_goal")
 
         max_cycles = 100
         cycle = 0
@@ -123,12 +123,18 @@ class Agent:
             try:
                 observation = self._observe()
                 self.session_logger.log_observation(observation)
-                self.memory.write_context({"cycle": cycle, "observation_summary": self._obs_summary(observation)})
+                self._write_memory_context(
+                    {"cycle": cycle, "observation_summary": self._obs_summary(observation)},
+                    source="goal_observation",
+                )
                 self.explorer.record_position(observation.get("position", {}))
 
                 plan = self._think(observation)
                 self.session_logger.log_plan(plan)
-                self.memory.write_context({"plan_status": plan.get("status"), "reasoning": plan.get("reasoning", "")[:200]})
+                self._write_memory_context(
+                    {"plan_status": plan.get("status"), "reasoning": plan.get("reasoning", "")[:200]},
+                    source="goal_plan",
+                )
                 self._accept_planned_tasks()
                 scheduling_state = self._state_with_causal_context(observation, goal)
 
@@ -175,7 +181,7 @@ class Agent:
                     before_action_observation = observation
                     result = self.action_controller.execute(action, observation)
                     self.session_logger.log_action(action, result)
-                    self.memory.write_episode("action", {"action": action, "result": result})
+                    self._write_memory_episode("action", {"action": action, "result": result}, source="goal_action")
                     observation = self._apply_action_feedback(action, result, observation, {"cycle": cycle, "goal": goal})
 
                     if result.get("success"):
@@ -207,7 +213,11 @@ class Agent:
                             continue
                         reflection = self._reflect(observation, action, result, goal)
                         self.session_logger.log_reflection(reflection)
-                        self.memory.write_episode("failure", {"action": action, "error": result.get("error"), "reflection": reflection})
+                        self._write_memory_episode(
+                            "failure",
+                            {"action": action, "error": result.get("error"), "reflection": reflection},
+                            source="goal_failure",
+                        )
                         break
 
                 if success:
@@ -229,7 +239,7 @@ class Agent:
             "summary": self.session_logger.get_summary(),
         }
         self.session_logger.log_goal_end(goal, result)
-        self.memory.write_episode("goal_end", {"goal": goal, "success": success, "cycles": cycle})
+        self._write_memory_episode("goal_end", {"goal": goal, "success": success, "cycles": cycle}, source="run_goal")
         return result
 
     # ── Autonomous mode (M4 + M5) ──────────────────────────────────────
@@ -246,7 +256,7 @@ class Agent:
 
         logger.info("Starting autonomous survival mode")
         self.session_logger.log_goal_start("AUTONOMOUS_MODE")
-        self.memory.write_episode("autonomous_start", {"max_goals": max_goals})
+        self._write_memory_episode("autonomous_start", {"max_goals": max_goals}, source="autonomous")
 
         # Set base on first observation
         observation = self._observe()
@@ -258,7 +268,7 @@ class Agent:
             goal = self.goal_generator.next_goal(observation)
             goal = self._select_autonomous_goal(observation, goal)
             logger.info(f"[Autonomous] Goal {goals_completed + goals_failed + 1}/{max_goals}: {goal}")
-            self.memory.write_episode("auto_goal", {"goal": goal})
+            self._write_memory_episode("auto_goal", {"goal": goal}, source="autonomous_goal")
 
             # Check if we should return to base (M5)
             should_ret, reason = self.explorer.should_return(
@@ -282,7 +292,10 @@ class Agent:
                 try:
                     observation = self._observe()
                     self.explorer.record_position(observation.get("position", {}))
-                    self.memory.write_context({"auto_cycle": total_cycles, "goal": goal[:80]})
+                    self._write_memory_context(
+                        {"auto_cycle": total_cycles, "goal": goal[:80]},
+                        source="autonomous_observation",
+                    )
 
                     plan = self._think(observation, override_goal=goal)
                     self._accept_planned_tasks()
@@ -290,7 +303,11 @@ class Agent:
                     next_task = self.task_system.get_next_task(scheduling_state)
                     if next_task and next_task.title != goal:
                         logger.info(f"[Autonomous] Opportunistic task selected: {next_task.title}")
-                        self.memory.write_episode("opportunity_task", {"from_goal": goal, "task": next_task.title})
+                        self._write_memory_episode(
+                            "opportunity_task",
+                            {"from_goal": goal, "task": next_task.title},
+                            source="autonomous_scheduler",
+                        )
                         goal = next_task.title
 
                     verified, verification = self._goal_is_verified(
@@ -340,7 +357,11 @@ class Agent:
                         before_action_observation = observation
                         result = self.action_controller.execute(action, observation)
                         self.session_logger.log_action(action, result)
-                        self.memory.write_episode("action", {"action": action, "result": result})
+                        self._write_memory_episode(
+                            "action",
+                            {"action": action, "result": result},
+                            source="autonomous_action",
+                        )
                         observation = self._apply_action_feedback(
                             action,
                             result,
@@ -380,7 +401,11 @@ class Agent:
                                 reflection = self.reflector.analyze_failure(
                                     goal, action, result, observation
                                 )
-                                self.memory.write_episode("failure_reflection", reflection)
+                                self._write_memory_episode(
+                                    "failure_reflection",
+                                    reflection,
+                                    source="autonomous_failure",
+                                )
                             break
 
                     if goal_success:
@@ -398,12 +423,12 @@ class Agent:
             if goal_success:
                 goals_completed += 1
                 logger.info(f"[Autonomous] Goal completed: {goal}")
-                self.memory.write_episode("auto_goal_complete", {"goal": goal, "cycles": cycle})
+                self._write_memory_episode("auto_goal_complete", {"goal": goal, "cycles": cycle}, source="autonomous")
                 self.curriculum.record_goal_outcome(goal, True, cycle)
             else:
                 goals_failed += 1
                 logger.info(f"[Autonomous] Goal failed/blocked: {goal}")
-                self.memory.write_episode("auto_goal_failed", {"goal": goal, "cycles": cycle})
+                self._write_memory_episode("auto_goal_failed", {"goal": goal, "cycles": cycle}, source="autonomous")
                 self.curriculum.record_goal_outcome(goal, False, cycle)
 
         result = {
@@ -416,7 +441,7 @@ class Agent:
             "summary": self.session_logger.get_summary(),
         }
         self.session_logger.log_goal_end("AUTONOMOUS_MODE", result)
-        self.memory.write_episode("autonomous_end", result)
+        self._write_memory_episode("autonomous_end", result, source="autonomous")
         logger.info(f"Autonomous mode ended: {goals_completed} completed, {goals_failed} failed, {total_cycles} total cycles")
         return result
 
@@ -432,8 +457,8 @@ class Agent:
 
     def _think_llm(self, observation: dict, goal: str) -> dict:
         # Gather memory context for planning
-        memory_context = self.memory.get_relevant_memory(goal)
-        context_window = self.memory.get_context_window()
+        memory_context = self._read_relevant_memory(goal, source="planner_goal")
+        context_window = self._read_context_window(source="planner_context")
 
         # Get skill recommendations
         recommended = self.skill_library.get_recommended_skills(goal, observation)
@@ -466,6 +491,134 @@ class Agent:
     def _think_rule(self, observation: dict, goal: str) -> dict:
         plan = self.rule_planner.plan_from_goal(goal, observation)
         return plan
+
+    def _write_memory_context(self, entry: dict, source: str = "agent_context"):
+        if hasattr(self, "memory") and self.memory and hasattr(self.memory, "write_context"):
+            self.memory.write_context(entry)
+        self._log_memory_write(
+            layer="context",
+            memory_type="context",
+            operation="write_context",
+            content=entry,
+            source=source,
+            confidence=0.7,
+        )
+
+    def _write_memory_episode(self, event_type: str, data: dict, source: str = "agent_episode"):
+        if hasattr(self, "memory") and self.memory and hasattr(self.memory, "write_episode"):
+            self.memory.write_episode(event_type, data)
+        confidence = 0.85 if event_type in {
+            "goal_end",
+            "goal_verification",
+            "task_state_update",
+            "failure_correction_completed",
+            "auto_goal_complete",
+        } else 0.65
+        self._log_memory_write(
+            layer="episodic",
+            memory_type=event_type,
+            operation="write_episode",
+            content=data,
+            source=source or event_type,
+            confidence=confidence,
+        )
+
+    def _read_relevant_memory(self, query: str, source: str = "planner") -> str:
+        result = ""
+        if hasattr(self, "memory") and self.memory and hasattr(self.memory, "get_relevant_memory"):
+            result = self.memory.get_relevant_memory(query)
+        self._log_memory_read(
+            query=query,
+            layer="mixed",
+            memory_type="relevant_memory",
+            operation="retrieve",
+            result=result,
+            source=source,
+        )
+        return result
+
+    def _read_context_window(self, source: str = "planner") -> str:
+        result = ""
+        if hasattr(self, "memory") and self.memory and hasattr(self.memory, "get_context_window"):
+            result = self.memory.get_context_window()
+        self._log_memory_read(
+            query="context_window",
+            layer="context",
+            memory_type="context_window",
+            operation="read",
+            result=result,
+            source=source,
+        )
+        return result
+
+    def _manage_memory_save_session(self):
+        session_id = str(getattr(getattr(self, "session_logger", None), "session_id", "session"))
+        if hasattr(self, "memory") and self.memory and hasattr(self.memory, "save_session"):
+            self.memory.save_session(session_id)
+        self._log_memory_manage("save_session", {"session_id": session_id}, layer="episodic")
+
+    def _log_memory_write(
+        self,
+        layer: str,
+        memory_type: str,
+        operation: str,
+        content,
+        source: str = "",
+        confidence: float = 0.7,
+    ):
+        if not hasattr(self, "session_logger") or not hasattr(self.session_logger, "log"):
+            return
+        payload = {
+            "operation": operation,
+            "layer": layer,
+            "memory_type": memory_type,
+            "source": source,
+            "content": self._memory_preview(content),
+            "keys": sorted(content.keys()) if isinstance(content, dict) else [],
+            "confidence": confidence,
+        }
+        self.session_logger.log("memory_write", payload)
+
+    def _log_memory_read(
+        self,
+        query: str,
+        layer: str,
+        memory_type: str,
+        operation: str,
+        result,
+        source: str = "",
+    ):
+        if not hasattr(self, "session_logger") or not hasattr(self.session_logger, "log"):
+            return
+        text = str(result or "")
+        self.session_logger.log("memory_read", {
+            "operation": operation,
+            "layer": layer,
+            "memory_type": memory_type,
+            "source": source,
+            "query": str(query or "")[:160],
+            "result_chars": len(text),
+            "has_result": bool(text.strip()),
+        })
+
+    def _log_memory_manage(self, operation: str, data: dict = None, layer: str = "memory"):
+        if not hasattr(self, "session_logger") or not hasattr(self.session_logger, "log"):
+            return
+        self.session_logger.log("memory_manage", {
+            "operation": operation,
+            "layer": layer,
+            "memory_type": "lifecycle",
+            "source": "agent_runtime",
+            "content": self._memory_preview(data or {}),
+            "confidence": 0.8,
+        })
+
+    def _memory_preview(self, value, limit: int = 240) -> str:
+        try:
+            text = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+        except Exception:
+            text = str(value)
+        return text[:limit]
 
     def _visual_action_context(self, goal: str, observation: dict, limit: int = 3) -> str:
         suggestions = self._visual_action_suggestions(goal, observation, limit=limit)
@@ -639,15 +792,13 @@ class Agent:
         payload = {"goal": goal, "suggestions": suggestions[:4]}
         if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
             self.session_logger.log("visual_action_suggestion", payload)
-        if hasattr(self, "memory") and self.memory and hasattr(self.memory, "write_episode"):
-            self.memory.write_episode("visual_action_suggestion", payload)
+        self._write_memory_episode("visual_action_suggestion", payload, source="visual_action")
 
     def _log_visual_action_intervention(self, goal: str, suggestion: dict, phase: str):
         payload = {"goal": goal, "phase": phase, "suggestion": suggestion}
         if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
             self.session_logger.log("visual_action_intervention", payload)
-        if hasattr(self, "memory") and self.memory and hasattr(self.memory, "write_episode"):
-            self.memory.write_episode("visual_action_intervention", payload)
+        self._write_memory_episode("visual_action_intervention", payload, source="visual_action")
 
     def _reflect(self, observation: dict, action: dict, result: dict, goal: str) -> dict:
         if not self._use_llm or not self.reflector:
@@ -710,8 +861,7 @@ class Agent:
         payload["context"] = context or {}
         if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
             self.session_logger.log("goal_verification", payload)
-        if hasattr(self, "memory") and hasattr(self.memory, "write_episode"):
-            self.memory.write_episode("goal_verification", payload)
+        self._write_memory_episode("goal_verification", payload, source="goal_verifier")
 
     def _record_skill_usage(self, action: dict, success: bool):
         """Record skill usage for actions that map to known skills."""
@@ -752,12 +902,12 @@ class Agent:
         if not sequence:
             return False, observation
 
-        self.memory.write_episode("failure_correction_selected", {
+        self._write_memory_episode("failure_correction_selected", {
             "skill": skill.name,
             "failed_action": failed_action,
             "failed_error": failed_result.get("error"),
             "goal": goal,
-        })
+        }, source="failure_correction")
         self._log_policy_intervention("selected", {
             "kind": "failure_correction",
             "skill": skill.name,
@@ -787,11 +937,11 @@ class Agent:
 
             result = self.action_controller.execute(correction_action, current_observation)
             self.session_logger.log_action(correction_action, result)
-            self.memory.write_episode("failure_correction_action", {
+            self._write_memory_episode("failure_correction_action", {
                 "skill": skill.name,
                 "action": correction_action,
                 "result": result,
-            })
+            }, source="failure_correction")
             self._log_policy_intervention("action", {
                 "kind": "failure_correction",
                 "skill": skill.name,
@@ -809,11 +959,11 @@ class Agent:
             self._record_skill_usage(correction_action, bool(result.get("success")))
             if not result.get("success"):
                 self.skill_library.record_use(skill.name, False)
-                self.memory.write_episode("failure_correction_failed", {
+                self._write_memory_episode("failure_correction_failed", {
                     "skill": skill.name,
                     "failed_step": idx,
                     "error": result.get("error"),
-                })
+                }, source="failure_correction")
                 self._log_policy_intervention("failed", {
                     "kind": "failure_correction",
                     "skill": skill.name,
@@ -823,11 +973,11 @@ class Agent:
                 return False, current_observation
 
         self.skill_library.record_use(skill.name, True)
-        self.memory.write_episode("failure_correction_completed", {
+        self._write_memory_episode("failure_correction_completed", {
             "skill": skill.name,
             "steps": len(sequence),
             "goal": goal,
-        })
+        }, source="failure_correction")
         self._log_policy_intervention("completed", {
             "kind": "failure_correction",
             "skill": skill.name,
@@ -868,11 +1018,11 @@ class Agent:
                 getattr(self, "skill_library", None),
             )
             if hasattr(self, "memory") and goal != fallback_goal:
-                self.memory.write_episode("curriculum_goal", {
+                self._write_memory_episode("curriculum_goal", {
                     "fallback": fallback_goal,
                     "selected": goal,
                     "decision": getattr(self.curriculum, "last_decision", {}),
-                })
+                }, source="curriculum")
             return goal
         return fallback_goal
 
@@ -880,7 +1030,16 @@ class Agent:
         """Augment world state with compact causal event tags for scheduling."""
         if not hasattr(self, "memory") or not hasattr(self.memory, "get_causal_opportunity_context"):
             return observation
-        context = self.memory.get_causal_opportunity_context(self._causal_scheduling_query(goal), observation)
+        query = self._causal_scheduling_query(goal)
+        context = self.memory.get_causal_opportunity_context(query, observation)
+        self._log_memory_read(
+            query=query,
+            layer="causal",
+            memory_type="opportunity_context",
+            operation="retrieve",
+            result=context,
+            source="causal_scheduler",
+        )
         if not context.get("causal_tags") and not context.get("causal_events"):
             return observation
 
@@ -1047,23 +1206,23 @@ class Agent:
         try:
             observation = self._observe()
             self.session_logger.log_observation(observation)
-            self.memory.write_context({
+            self._write_memory_context({
                 "post_action": context or {},
                 "observation_summary": self._obs_summary(observation),
-            })
+            }, source="post_action_observation")
             self.explorer.record_position(observation.get("position", {}))
         except Exception as e:
             logger.warning(f"Post-action observation failed: {e}")
 
         task = self.task_system.apply_action_result(action, result, observation)
         if task:
-            self.memory.write_episode("task_state_update", {
+            self._write_memory_episode("task_state_update", {
                 "task_id": task.id,
                 "task": task.title,
                 "status": task.status.value,
                 "action": action.get("type"),
                 "success": bool(result.get("success")),
-            })
+            }, source="task_system")
         if hasattr(self.memory, "record_causal_transition"):
             causal_context = dict(context or {})
             if task:
@@ -1091,12 +1250,16 @@ class Agent:
         payload["context"] = context or {}
         logger.warning(f"Runtime interrupt: {decision.reason}")
         self.session_logger.log("runtime_interrupt", payload, level="WARNING")
-        self.memory.write_episode("runtime_interrupt", payload)
+        self._write_memory_episode("runtime_interrupt", payload, source="runtime")
 
         if decision.emergency_action:
             result = self.action_controller.execute(decision.emergency_action, observation)
             self.session_logger.log_action(decision.emergency_action, result)
-            self.memory.write_episode("runtime_emergency_action", {"action": decision.emergency_action, "result": result})
+            self._write_memory_episode(
+                "runtime_emergency_action",
+                {"action": decision.emergency_action, "result": result},
+                source="runtime",
+            )
             observation = self._apply_action_feedback(decision.emergency_action, result, observation, context or {})
 
         return True, observation

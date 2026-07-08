@@ -16,4 +16,5 @@
 **Singularity Adaptation**:
   - `memory-policy-report` uses the write/manage/read framing for offline session audits.
   - Future memory policy can consume `memory_policy_feedback` to tune write gates, consolidation review, and retrieval instrumentation.
-**Next Action**: Add online `memory_read`, `memory_write`, and `memory_manage` session events around `MemorySystem` and compare reports across real benchmark logs.
+  - Agent runtime now records online `memory_read`, `memory_write`, and `memory_manage` evidence around planning, context writes, episodic writes, causal scheduling reads, and session save.
+**Next Action**: Compare `memory_policy_feedback` across real M1/M2/autonomous logs and promote stable rules into a memory write-gate policy.

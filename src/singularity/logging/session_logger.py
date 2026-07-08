@@ -71,6 +71,7 @@ class SessionLogger:
         visual_action_metrics = self._visual_action_metrics()
         intervention_metrics.update(visual_action_metrics)
         goal_verification_metrics = self._goal_verification_metrics()
+        memory_policy_metrics = self._memory_policy_metrics()
         return {
             "session_id": self.session_id,
             "duration_s": round(elapsed, 2),
@@ -80,7 +81,44 @@ class SessionLogger:
             "intervention_metrics": intervention_metrics,
             "visual_action_metrics": visual_action_metrics,
             "goal_verification_metrics": goal_verification_metrics,
+            "memory_policy_metrics": memory_policy_metrics,
             "log_path": self._log_path,
+        }
+
+    def _memory_policy_metrics(self) -> dict:
+        writes = [event for event in self.events if event.get("type") == "memory_write"]
+        reads = [event for event in self.events if event.get("type") == "memory_read"]
+        manages = [event for event in self.events if event.get("type") in {"memory_manage", "memory_consolidation"}]
+        write_layers = {}
+        write_types = {}
+        read_types = {}
+        manage_operations = {}
+
+        for event in writes:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            layer = str(data.get("layer") or "unknown")
+            memory_type = str(data.get("memory_type") or "unknown")
+            write_layers[layer] = write_layers.get(layer, 0) + 1
+            write_types[memory_type] = write_types.get(memory_type, 0) + 1
+
+        for event in reads:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            memory_type = str(data.get("memory_type") or "unknown")
+            read_types[memory_type] = read_types.get(memory_type, 0) + 1
+
+        for event in manages:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            operation = str(data.get("operation") or event.get("type") or "unknown")
+            manage_operations[operation] = manage_operations.get(operation, 0) + 1
+
+        return {
+            "memory_write_count": len(writes),
+            "memory_read_count": len(reads),
+            "memory_manage_count": len(manages),
+            "memory_write_layers": write_layers,
+            "memory_write_types": write_types,
+            "memory_read_types": read_types,
+            "memory_manage_operations": manage_operations,
         }
 
     def _intervention_metrics(self) -> dict:

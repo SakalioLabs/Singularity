@@ -104,6 +104,7 @@
 - [x] Add `action_abstraction_feedback` policy hints and an application hook so action-policy experiments can consume API-vs-visual-control recommendations.
 - [x] Add `ActionGranularityPolicy` and wire `ActionController` results with `control_policy` decisions for safe Mineflayer fallback plus future visual/desktop control switching.
 - [x] Add offline `memory-policy-report` for AutoMem-style auditing of memory writes, reads, management events, missed semantic writes, failure-learning candidates, noisy writes, and consolidation signals.
+- [x] Instrument Agent memory lifecycle calls with `memory_write`, `memory_read`, and `memory_manage` session events plus summary metrics.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
