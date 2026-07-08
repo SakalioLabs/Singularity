@@ -366,6 +366,15 @@ def main():
     mixed_review_execute_parser.add_argument("--output", type=str, default="", help="Optional JSON execution report path")
     mixed_review_execute_parser.add_argument("--log-level", type=str, default="INFO")
 
+    mixed_policy_patch_parser = subparsers.add_parser(
+        "mixed-initiative-policy-patch",
+        help="Build reusable action/template policy feedback from approved review execution artifacts",
+    )
+    mixed_policy_patch_parser.add_argument("--execution-report", action="append", default=[], help="Saved mixed-initiative review execution JSON")
+    mixed_policy_patch_parser.add_argument("--artifact", action="append", default=[], help="Per-case artifact JSON emitted by mixed-initiative-review-execute")
+    mixed_policy_patch_parser.add_argument("--output", type=str, default="", help="Optional JSON policy patch path")
+    mixed_policy_patch_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline mixed-initiative held-out variant report
     mixed_variant_parser = subparsers.add_parser(
         "mixed-initiative-variant-report",
@@ -1343,6 +1352,53 @@ def main():
                 json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
         if not report.ok:
+            sys.exit(1)
+        return
+
+    if args.command == "mixed-initiative-policy-patch":
+        from singularity.evaluation.mixed_initiative import build_mixed_initiative_policy_patch
+
+        execution_reports = getattr(args, "execution_report", []) or []
+        artifacts = getattr(args, "artifact", []) or []
+        if not execution_reports and not artifacts:
+            print("mixed-initiative-policy-patch requires --execution-report or --artifact")
+            sys.exit(1)
+        patch = build_mixed_initiative_policy_patch(
+            execution_report_paths=execution_reports,
+            artifact_paths=artifacts,
+        )
+        print("\nMixed-Initiative Policy Patch")
+        print(f"  ok: {patch.ok}")
+        print(f"  artifacts: {patch.artifact_count}")
+        print(f"  action policy hints: {patch.action_policy_hint_count}")
+        print(f"  mixed policy hints: {patch.mixed_policy_hint_count}")
+        print(f"  template updates: {patch.template_update_count}")
+        action_hints = patch.action_policy_feedback.get("policy_hints", [])
+        if action_hints:
+            hints = [
+                f"{item.get('action_type')}->{item.get('preferred_control')}"
+                for item in action_hints[:6]
+                if isinstance(item, dict)
+            ]
+            print(f"  action hint sample: {', '.join(hints)}")
+        mixed_hints = patch.mixed_initiative_feedback.get("policy_hints", [])
+        if mixed_hints:
+            hints = [
+                f"{item.get('policy')}:{item.get('template_id') or item.get('candidate_id') or 'trace'}"
+                for item in mixed_hints[:6]
+                if isinstance(item, dict)
+            ]
+            print(f"  mixed hint sample: {', '.join(hints)}")
+        for error in patch.errors:
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(patch.to_dict(), f, indent=2, ensure_ascii=False)
+            print(f"\nPolicy patch saved to {args.output}")
+        if not patch.ok:
             sys.exit(1)
         return
 

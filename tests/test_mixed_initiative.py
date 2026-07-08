@@ -10,7 +10,9 @@ from singularity.evaluation.mixed_initiative import (
     BoundedEvidenceValidator,
     MixedInitiativeFeedbackPolicy,
     MixedInitiativeTemplateCompiler,
+    apply_mixed_initiative_policy_patch,
     build_mixed_initiative_report,
+    build_mixed_initiative_policy_patch,
     build_mixed_initiative_review_experiment_plan,
     build_mixed_initiative_review_label_templates,
     build_mixed_initiative_review_queue,
@@ -776,6 +778,104 @@ def test_mixed_initiative_review_execution_dry_run_does_not_write_artifacts():
     print("PASS: Mixed-initiative review execution dry-run avoids artifacts")
 
 
+def test_mixed_initiative_policy_patch_applies_mixed_feedback():
+    craft_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Craft 4 torches"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch"}},
+                "result": {"success": False, "error": "Missing coal"},
+            },
+        },
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {"type": "goal_end", "data": {"goal": "Craft 4 torches", "result": {"completed": False}}},
+    ])
+    queue = build_mixed_initiative_review_queue(
+        trace_reports=[build_mixed_initiative_trace_report([craft_path])]
+    )
+    plan = build_mixed_initiative_review_experiment_plan(review_queue=queue)
+    tmpdir = tempfile.mkdtemp()
+    label_path = os.path.join(tmpdir, "mixed_review_labels.jsonl")
+    with open(label_path, "w", encoding="utf-8") as f:
+        f.write(json.dumps({
+            "type": "mixed_initiative_review",
+            "case_id": plan.cases[0].id,
+            "readiness": "approved",
+            "reviewer": "manual_fixture",
+            "notes": "apply feedback patch",
+        }) + "\n")
+    execution = execute_mixed_initiative_review_labels(
+        label_path,
+        review_plan=plan,
+        output_dir=os.path.join(tmpdir, "artifacts"),
+    )
+
+    patch = build_mixed_initiative_policy_patch(execution_report=execution)
+    policy = MixedInitiativeFeedbackPolicy()
+    applied = apply_mixed_initiative_policy_patch(patch, mixed_policy=policy)
+
+    assert patch.ok
+    assert patch.mixed_policy_hint_count >= 1
+    assert patch.template_update_count >= 1
+    assert applied["mixed_policy_hints_applied"] >= 1
+    decision = policy.decide_template("craft_or_process_item")
+    assert decision.should_inspect_backend
+    assert decision.decision == "inspect_backend_execution"
+    print("PASS: Mixed-initiative policy patch applies mixed feedback")
+
+
+def test_mixed_initiative_policy_patch_applies_action_feedback():
+    from singularity.action.policy import ActionGranularityPolicy
+
+    tmpdir = tempfile.mkdtemp()
+    artifact_path = os.path.join(tmpdir, "action_policy_artifact.json")
+    execution_path = os.path.join(tmpdir, "execution.json")
+    with open(artifact_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "route": "action_policy_ablation",
+            "target_id": "build_or_place_structure",
+            "action_abstraction": {
+                "action_abstraction_feedback": {
+                    "action_count": 2,
+                    "low_level_candidate_count": 1,
+                    "canonical_action_types": {"place": 2},
+                    "lower_level_action_types": {"place": 1},
+                    "policy_hints": [
+                        {
+                            "action_type": "place",
+                            "count": 2,
+                            "preferred_control": "consider_low_level_visual_control",
+                            "reason": "visual_or_precision_sensitive",
+                            "low_level_candidate_count": 1,
+                        }
+                    ],
+                }
+            },
+        }, f)
+    with open(execution_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "cases": [
+                {
+                    "status": "executed",
+                    "artifact_paths": [artifact_path],
+                }
+            ]
+        }, f)
+
+    patch = build_mixed_initiative_policy_patch(execution_report_paths=[execution_path])
+    policy = ActionGranularityPolicy()
+    applied = apply_mixed_initiative_policy_patch(patch, action_policy=policy)
+
+    assert patch.ok
+    assert patch.action_policy_hint_count == 1
+    assert applied["action_policy_hints_applied"] == 1
+    assert policy.hints()["place"]["preferred_control"] == "consider_low_level_visual_control"
+    assert policy.hints()["place"]["low_level_candidate_count"] == 1
+    print("PASS: Mixed-initiative policy patch applies action feedback")
+
+
 def test_mixed_initiative_variant_report_checks_heldout_templates():
     report = build_mixed_initiative_variant_report()
 
@@ -859,6 +959,8 @@ if __name__ == "__main__":
     test_mixed_initiative_review_label_validation_approves_executable_cases()
     test_mixed_initiative_review_execution_runs_approved_backend_inspection()
     test_mixed_initiative_review_execution_dry_run_does_not_write_artifacts()
+    test_mixed_initiative_policy_patch_applies_mixed_feedback()
+    test_mixed_initiative_policy_patch_applies_action_feedback()
     test_mixed_initiative_variant_report_checks_heldout_templates()
     test_mixed_initiative_variant_report_flags_slot_mismatch()
     test_mixed_initiative_variant_report_loads_jsonl_case_file()

@@ -786,6 +786,49 @@ class MixedInitiativeReviewExecutionReport:
         }
 
 
+@dataclass
+class MixedInitiativePolicyPatch:
+    source_artifacts: list[str] = field(default_factory=list)
+    action_policy_feedback: dict = field(default_factory=dict)
+    mixed_initiative_feedback: dict = field(default_factory=dict)
+    template_policy_updates: list[dict] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def artifact_count(self) -> int:
+        return len(self.source_artifacts)
+
+    @property
+    def action_policy_hint_count(self) -> int:
+        return len(self.action_policy_feedback.get("policy_hints", []))
+
+    @property
+    def mixed_policy_hint_count(self) -> int:
+        return len(self.mixed_initiative_feedback.get("policy_hints", []))
+
+    @property
+    def template_update_count(self) -> int:
+        return len(self.template_policy_updates)
+
+    @property
+    def ok(self) -> bool:
+        return not self.errors
+
+    def to_dict(self) -> dict:
+        return {
+            "ok": self.ok,
+            "artifact_count": self.artifact_count,
+            "action_policy_hint_count": self.action_policy_hint_count,
+            "mixed_policy_hint_count": self.mixed_policy_hint_count,
+            "template_update_count": self.template_update_count,
+            "source_artifacts": list(self.source_artifacts),
+            "action_policy_feedback": dict(self.action_policy_feedback),
+            "mixed_initiative_feedback": dict(self.mixed_initiative_feedback),
+            "template_policy_updates": [dict(item) for item in self.template_policy_updates],
+            "errors": list(self.errors),
+        }
+
+
 class MixedInitiativeTemplateCompiler:
     """Compile template subtasks into auditable records with slot binding."""
 
@@ -2648,6 +2691,255 @@ def execute_mixed_initiative_review_labels(
             execution.status = "failed"
             execution.errors.append(str(exc))
     return report
+
+
+def build_mixed_initiative_policy_patch(
+    execution_report: Optional[Any] = None,
+    execution_report_paths: Optional[list[str]] = None,
+    artifact_paths: Optional[list[str]] = None,
+) -> MixedInitiativePolicyPatch:
+    """Convert approved review execution artifacts into reusable policy feedback."""
+    patch = MixedInitiativePolicyPatch()
+    paths = list(artifact_paths or [])
+    if execution_report is not None:
+        try:
+            paths.extend(_artifact_paths_from_execution_payload(_execution_report_payload_from_any(execution_report)))
+        except Exception as exc:
+            patch.errors.append(f"inline_execution_report: {exc}")
+    for report_path in execution_report_paths or []:
+        try:
+            with open(report_path, "r", encoding="utf-8-sig") as f:
+                paths.extend(_artifact_paths_from_execution_payload(json.load(f)))
+        except Exception as exc:
+            patch.errors.append(f"{report_path}: {exc}")
+
+    for path in _dedupe_strings(paths):
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                artifact = json.load(f)
+            patch.source_artifacts.append(path)
+            _merge_review_artifact_into_policy_patch(patch, artifact, path)
+        except Exception as exc:
+            patch.errors.append(f"{path}: {exc}")
+
+    _finalize_policy_patch(patch)
+    return patch
+
+
+def apply_mixed_initiative_policy_patch(
+    policy_patch: Any,
+    action_policy: Optional[Any] = None,
+    mixed_policy: Optional[Any] = None,
+) -> dict:
+    """Apply a policy patch to online policy objects when they expose record methods."""
+    payload = _policy_patch_payload_from_any(policy_patch)
+    result = {
+        "action_policy_hints_applied": 0,
+        "mixed_policy_hints_applied": 0,
+        "template_policy_update_count": len(payload.get("template_policy_updates", []) or []),
+        "action_policy_profile": {},
+        "mixed_policy_profile": {},
+    }
+    action_feedback = payload.get("action_policy_feedback", {})
+    if action_policy is not None and action_feedback and hasattr(action_policy, "record_action_abstraction_feedback"):
+        result["action_policy_hints_applied"] = action_policy.record_action_abstraction_feedback(action_feedback)
+        if hasattr(action_policy, "hints"):
+            result["action_policy_profile"] = action_policy.hints()
+    mixed_feedback = payload.get("mixed_initiative_feedback", {})
+    if mixed_policy is not None and mixed_feedback and hasattr(mixed_policy, "record_mixed_initiative_feedback"):
+        result["mixed_policy_hints_applied"] = mixed_policy.record_mixed_initiative_feedback(mixed_feedback)
+        if hasattr(mixed_policy, "feedback_profile"):
+            result["mixed_policy_profile"] = mixed_policy.feedback_profile()
+    return result
+
+
+def _execution_report_payload_from_any(report: Any) -> dict:
+    if isinstance(report, MixedInitiativeReviewExecutionReport):
+        return report.to_dict()
+    if isinstance(report, dict):
+        return report
+    if hasattr(report, "to_dict"):
+        payload = report.to_dict()
+        if isinstance(payload, dict):
+            return payload
+    raise ValueError("execution report must be a dict or MixedInitiativeReviewExecutionReport")
+
+
+def _policy_patch_payload_from_any(policy_patch: Any) -> dict:
+    if isinstance(policy_patch, MixedInitiativePolicyPatch):
+        return policy_patch.to_dict()
+    if isinstance(policy_patch, dict):
+        return policy_patch
+    if hasattr(policy_patch, "to_dict"):
+        payload = policy_patch.to_dict()
+        if isinstance(payload, dict):
+            return payload
+    raise ValueError("policy patch must be a dict or MixedInitiativePolicyPatch")
+
+
+def _artifact_paths_from_execution_payload(payload: dict) -> list[str]:
+    paths = []
+    for case in payload.get("cases", []) if isinstance(payload, dict) else []:
+        if not isinstance(case, dict):
+            continue
+        paths.extend(_string_list(case.get("artifact_paths", [])))
+    return paths
+
+
+def _merge_review_artifact_into_policy_patch(patch: MixedInitiativePolicyPatch, artifact: dict, source: str):
+    route = str(artifact.get("route") or "")
+    if route == "action_policy_ablation":
+        action_feedback = (
+            artifact.get("action_abstraction", {})
+            .get("action_abstraction_feedback", {})
+        )
+        _merge_action_policy_feedback(patch.action_policy_feedback, action_feedback)
+    for key in ("trace_report",):
+        trace_report = artifact.get(key, {})
+        if isinstance(trace_report, dict) and trace_report:
+            _merge_mixed_feedback(patch.mixed_initiative_feedback, trace_report.get("mixed_initiative_feedback", {}))
+            _append_trace_template_updates(patch.template_policy_updates, trace_report, source)
+    variant_report = artifact.get("variant_report", {})
+    if isinstance(variant_report, dict) and variant_report:
+        patch.template_policy_updates.append({
+            "source_artifact": source,
+            "route": route or "template_approval",
+            "target_id": str(artifact.get("target_id") or ""),
+            "status": "variant_regression_ok" if int(variant_report.get("fully_passed_count", 0) or 0) == int(variant_report.get("case_count", 0) or 0) else "variant_regression_review",
+            "case_count": int(variant_report.get("case_count", 0) or 0),
+            "fully_passed_count": int(variant_report.get("fully_passed_count", 0) or 0),
+            "slot_mismatch_count": int(variant_report.get("slot_mismatch_count", 0) or 0),
+            "validation_failure_count": int(variant_report.get("validation_failure_count", 0) or 0),
+        })
+
+
+def _merge_action_policy_feedback(target: dict, source: dict):
+    if not isinstance(source, dict):
+        return
+    for key in (
+        "action_count",
+        "failed_action_count",
+        "unknown_canonical_count",
+        "failed_mapping_count",
+        "low_level_candidate_count",
+    ):
+        target[key] = int(target.get(key, 0) or 0) + int(source.get(key, 0) or 0)
+    for key in (
+        "canonical_action_types",
+        "backend_command_counts",
+        "lower_level_reasons",
+        "lower_level_action_types",
+        "unknown_action_types",
+    ):
+        _merge_number_counts(target.setdefault(key, {}), source.get(key, {}))
+    hints_by_action = {str(item.get("action_type") or ""): dict(item) for item in target.get("policy_hints", []) if isinstance(item, dict)}
+    for hint in source.get("policy_hints", []) if isinstance(source.get("policy_hints", []), list) else []:
+        if not isinstance(hint, dict):
+            continue
+        action_type = str(hint.get("action_type") or "")
+        if not action_type:
+            continue
+        existing = hints_by_action.get(action_type, {})
+        merged = dict(existing)
+        merged.update(hint)
+        for count_key in ("count", "low_level_candidate_count", "unknown_count"):
+            merged[count_key] = int(existing.get(count_key, 0) or 0) + int(hint.get(count_key, 0) or 0)
+        hints_by_action[action_type] = merged
+    target["policy_hints"] = sorted(hints_by_action.values(), key=lambda item: str(item.get("action_type", "")))
+
+
+def _merge_mixed_feedback(target: dict, source: dict):
+    if not isinstance(source, dict):
+        return
+    for key in (
+        "goal_count",
+        "unsupported_goal_count",
+        "validator_success_count",
+        "action_count",
+        "invalid_action_count",
+        "failed_action_count",
+    ):
+        target[key] = int(target.get(key, 0) or 0) + int(source.get(key, 0) or 0)
+    _merge_number_counts(target.setdefault("agreement_counts", {}), source.get("agreement_counts", {}))
+    for hint_key in ("template_hints", "template_candidate_hints", "agreement_hints", "policy_hints"):
+        target[hint_key] = _merge_mixed_hint_lists(target.get(hint_key, []), source.get(hint_key, []))
+
+
+def _merge_mixed_hint_lists(existing: list[dict], incoming: list[dict]) -> list[dict]:
+    hints_by_key = {}
+    for hint in list(existing or []) + list(incoming or []):
+        if not isinstance(hint, dict):
+            continue
+        key = (
+            str(hint.get("policy") or ""),
+            str(hint.get("template_id") or ""),
+            str(hint.get("candidate_id") or ""),
+        )
+        previous = hints_by_key.get(key, {})
+        merged = dict(previous)
+        merged.update(hint)
+        for count_key in ("count", "case_count", "invalid_action_count", "failed_action_count", "valid_action_count", "valid_successful_action_count"):
+            if count_key in previous or count_key in hint:
+                merged[count_key] = int(previous.get(count_key, 0) or 0) + int(hint.get(count_key, 0) or 0)
+        hints_by_key[key] = merged
+    return _sort_mixed_initiative_hints(list(hints_by_key.values()))
+
+
+def _append_trace_template_updates(updates: list[dict], trace_report: dict, source: str):
+    for recommendation in trace_report.get("mixed_initiative_recommendations", []) or []:
+        if not isinstance(recommendation, dict):
+            continue
+        updates.append({
+            "source_artifact": source,
+            "route": "mixed_trace_feedback",
+            "target_type": str(recommendation.get("target_type") or ""),
+            "target_id": str(recommendation.get("target_id") or ""),
+            "decision": str(recommendation.get("decision") or ""),
+            "priority": str(recommendation.get("priority") or "normal"),
+            "active_policies": list(recommendation.get("active_policies", []) or []),
+        })
+
+
+def _finalize_policy_patch(patch: MixedInitiativePolicyPatch):
+    patch.action_policy_feedback.setdefault("policy_hints", [])
+    patch.mixed_initiative_feedback.setdefault("policy_hints", [])
+    patch.template_policy_updates = _dedupe_template_updates(patch.template_policy_updates)
+
+
+def _dedupe_template_updates(updates: list[dict]) -> list[dict]:
+    seen = set()
+    deduped = []
+    for update in updates:
+        key = (
+            update.get("route"),
+            update.get("target_type"),
+            update.get("target_id"),
+            update.get("decision"),
+            update.get("status"),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(update)
+    return deduped
+
+
+def _merge_number_counts(target: dict, source: dict):
+    if not isinstance(source, dict):
+        return
+    for key, value in source.items():
+        target[str(key)] = int(target.get(str(key), 0) or 0) + int(value or 0)
+
+
+def _dedupe_strings(values: list[str]) -> list[str]:
+    seen = set()
+    result = []
+    for value in values:
+        text = str(value or "")
+        if text and text not in seen:
+            seen.add(text)
+            result.append(text)
+    return result
 
 
 def _execute_mixed_review_case(case: MixedInitiativeReviewApprovalCase) -> dict:

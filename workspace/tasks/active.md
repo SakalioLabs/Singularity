@@ -127,6 +127,7 @@
 - [x] Add `mixed-initiative-review-plan` to route review queue items into template approval, backend inspection, validator audit, or action-policy ablation experiment cases.
 - [x] Add mixed-initiative review approval label templates and validation so review-plan commands require explicit operator approval before execution.
 - [x] Add `mixed-initiative-review-execute` to run approved review labels through whitelisted internal report builders and emit per-case artifacts.
+- [x] Add `mixed-initiative-policy-patch` to convert approved execution artifacts into reusable action/template policy feedback.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -153,7 +154,8 @@
 - [x] Route mixed-initiative review queue items into offline follow-up experiment cases with source logs, commands, and success metrics.
 - [x] Feed mixed-initiative review queue items into an operator approval flow for template-review/action-policy experiment cases.
 - [x] Execute approved mixed-initiative review labels through a whitelisted template-review/action-policy report runner.
-- [ ] Feed approved mixed-initiative execution artifacts back into online template/action policy configuration.
+- [x] Feed approved mixed-initiative execution artifacts back into action/template policy patch objects.
+- [ ] Load approved mixed-initiative policy patches into live Agent/ActionController startup configuration.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
 - [ ] Run an unknown visual/environment goal with `--goal-critic` and inspect `goal_verification_metrics` plus critic evidence in the session log.
 - [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces and compare completion judgments against manual review.
