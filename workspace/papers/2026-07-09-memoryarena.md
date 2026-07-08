@@ -17,4 +17,5 @@
 **Singularity Adaptation**:
   - `MemorySystem.task_memory_profile()` now combines goal, active task metadata, scoped memory matches, transfer-axis experience matches, and read-filter diagnostics.
   - `Agent._task_memory_context()` injects task-centric memory into planner context and logs a `memory_read` event for later policy reports.
-**Next Action**: Run `task-memory-report` on real multi-session M1/M2/autonomous traces and compare task-memory matches against verifier outcomes.
+  - `skill-memory-quality-report` now adds a skill-memory version of memory-to-action evaluation by comparing typed retrieved hints with later actions and goal outcomes in session logs.
+**Next Action**: Run `task-memory-report` and `skill-memory-quality-report` on real multi-session M1/M2/autonomous traces and compare memory matches against verifier outcomes.

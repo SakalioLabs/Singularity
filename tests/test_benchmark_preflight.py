@@ -2625,6 +2625,105 @@ def test_skill_memory_benchmark_ablation_compares_policy_only_baseline():
     print("PASS: Skill memory benchmark ablation compares policy-only baseline")
 
 
+def test_skill_memory_quality_report_labels_typed_hint_outcomes():
+    tmpdir = tempfile.mkdtemp()
+    conflict_path = os.path.join(tmpdir, "session_skill_memory_conflict.jsonl")
+    supported_path = os.path.join(tmpdir, "session_skill_memory_supported.jsonl")
+    no_hint_path = os.path.join(tmpdir, "session_skill_memory_missing.jsonl")
+    conflict_events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {
+            "type": "skill_memory_hint",
+            "data": {
+                "goal": "Craft torches",
+                "task_family": "crafting",
+                "hints": [
+                    "REUSE craft_torch_memory_skill: mine coal first",
+                    "AVOID craft_torch_memory_skill: do not craft torches without coal",
+                    "REVIEW_ONLY desert_torch_route: unverified exposed-spawn route",
+                ],
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch"}},
+                "result": {"success": False, "error": "Missing coal"},
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch"}},
+                "result": {"success": False, "error": "Missing coal"},
+            },
+        },
+        {"type": "goal_verification", "data": {"achieved": False, "reason": "No torch in inventory"}},
+    ]
+    supported_events = [
+        {"type": "goal_start", "data": {"goal": "Mine coal for torches"}},
+        {
+            "type": "skill_memory_hint",
+            "data": {
+                "goal": "Mine coal for torches",
+                "task_family": "mining",
+                "hints": ["REUSE mine_coal_for_torch: coal_ore first, craft later"],
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "dig", "parameters": {"block": "coal_ore"}},
+                "result": {"success": True, "item": "coal"},
+            },
+        },
+        {"type": "goal_end", "data": {"goal": "Mine coal for torches", "result": {"completed": True}}},
+    ]
+    no_hint_events = [
+        {"type": "goal_start", "data": {"goal": "Gather wood"}},
+        {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "oak_log"}}, "result": {"success": True}}},
+        {"type": "goal_end", "data": {"goal": "Gather wood", "result": {"completed": True}}},
+    ]
+    for path, events in (
+        (conflict_path, conflict_events),
+        (supported_path, supported_events),
+        (no_hint_path, no_hint_events),
+    ):
+        with open(path, "w", encoding="utf-8") as f:
+            for event in events:
+                f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config())
+    report = runner.run_skill_memory_quality_report_from_logs([conflict_path, supported_path, no_hint_path])
+    conflict = report.cases[0]
+    supported = report.cases[1]
+    missing = report.cases[2]
+
+    assert report.log_count == 3
+    assert report.ready_log_count == 2
+    assert report.hint_count == 4
+    assert report.hint_type_counts["REUSE"] == 2
+    assert report.hint_type_counts["AVOID"] == 1
+    assert report.hint_type_counts["REVIEW_ONLY"] == 1
+    assert report.post_hint_goal_success_count == 1
+    assert report.post_hint_goal_failure_count == 1
+    assert report.repeated_post_hint_failure_count == 1
+    assert "reuse_conflicted_with_failures" in conflict.quality_labels
+    assert "avoid_unheeded_post_hint_failures" in conflict.quality_labels
+    assert "review_only_present_keep_gated" in conflict.quality_labels
+    assert "reuse_supported_by_goal_success" in supported.quality_labels
+    assert "no_skill_memory_hints" in missing.quality_labels
+
+    feedback = runner.skill_memory_quality_feedback(report)
+    policies = {hint["skill_memory_policy"]: hint for hint in feedback["policy_hints"]}
+    assert policies["demote_conflicting_reuse_hints"]["priority"] == "high"
+    assert policies["tighten_avoid_hint_prompting"]["count"] == 1
+    assert policies["keep_review_only_skill_memory_gated"]["count"] == 1
+    assert policies["candidate_promote_reuse_hints"]["priority"] == "low"
+    assert policies["instrument_skill_memory_hints"]["count"] == 1
+    print("PASS: Skill memory quality report labels typed hint outcomes")
+
+
 def test_visual_action_benchmark_ablation_compares_live_suite_modes():
     class FakeVisualActionBenchmarkRunner(BenchmarkRunner):
         def _run_task_with_config(self, task, config):
@@ -2869,6 +2968,7 @@ if __name__ == "__main__":
     test_policy_skill_ablation_loads_cases_from_skill_library()
     test_policy_skill_benchmark_ablation_compares_live_suite_modes()
     test_skill_memory_benchmark_ablation_compares_policy_only_baseline()
+    test_skill_memory_quality_report_labels_typed_hint_outcomes()
     test_visual_action_benchmark_ablation_compares_live_suite_modes()
     test_mixed_policy_benchmark_ablation_compares_live_patch_modes()
     test_scheduling_ablation_report_compares_causal_switch()

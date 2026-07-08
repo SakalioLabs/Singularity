@@ -194,6 +194,111 @@ class SkillMemoryBenchmarkAblationReport:
 
 
 @dataclass
+class SkillMemoryQualityCase:
+    source_log: str
+    event_count: int = 0
+    hint_event_count: int = 0
+    hint_count: int = 0
+    reuse_hint_count: int = 0
+    avoid_hint_count: int = 0
+    review_only_hint_count: int = 0
+    unknown_hint_count: int = 0
+    action_count: int = 0
+    failed_action_count: int = 0
+    post_hint_action_count: int = 0
+    post_hint_failed_action_count: int = 0
+    repeated_post_hint_failure_count: int = 0
+    goal_count: int = 0
+    completed_goal_count: int = 0
+    failed_goal_count: int = 0
+    post_hint_goal_success_count: int = 0
+    post_hint_goal_failure_count: int = 0
+    task_family_counts: dict = field(default_factory=dict)
+    hint_type_counts: dict = field(default_factory=dict)
+    quality_labels: list[str] = field(default_factory=list)
+    recommendations: list[str] = field(default_factory=list)
+    ready_for_skill_memory_quality_review: bool = False
+
+
+@dataclass
+class SkillMemoryQualityReport:
+    cases: list[SkillMemoryQualityCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_log_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_skill_memory_quality_review)
+
+    @property
+    def hint_event_count(self) -> int:
+        return sum(case.hint_event_count for case in self.cases)
+
+    @property
+    def hint_count(self) -> int:
+        return sum(case.hint_count for case in self.cases)
+
+    @property
+    def reuse_hint_count(self) -> int:
+        return sum(case.reuse_hint_count for case in self.cases)
+
+    @property
+    def avoid_hint_count(self) -> int:
+        return sum(case.avoid_hint_count for case in self.cases)
+
+    @property
+    def review_only_hint_count(self) -> int:
+        return sum(case.review_only_hint_count for case in self.cases)
+
+    @property
+    def unknown_hint_count(self) -> int:
+        return sum(case.unknown_hint_count for case in self.cases)
+
+    @property
+    def post_hint_failed_action_count(self) -> int:
+        return sum(case.post_hint_failed_action_count for case in self.cases)
+
+    @property
+    def post_hint_goal_success_count(self) -> int:
+        return sum(case.post_hint_goal_success_count for case in self.cases)
+
+    @property
+    def post_hint_goal_failure_count(self) -> int:
+        return sum(case.post_hint_goal_failure_count for case in self.cases)
+
+    @property
+    def repeated_post_hint_failure_count(self) -> int:
+        return sum(case.repeated_post_hint_failure_count for case in self.cases)
+
+    @property
+    def task_family_counts(self) -> dict:
+        counts = {}
+        for case in self.cases:
+            for family, count in case.task_family_counts.items():
+                counts[family] = counts.get(family, 0) + count
+        return counts
+
+    @property
+    def hint_type_counts(self) -> dict:
+        counts = {}
+        for case in self.cases:
+            for hint_type, count in case.hint_type_counts.items():
+                counts[hint_type] = counts.get(hint_type, 0) + count
+        return counts
+
+    @property
+    def quality_label_counts(self) -> dict:
+        counts = {}
+        for case in self.cases:
+            for label in case.quality_labels:
+                counts[label] = counts.get(label, 0) + 1
+        return counts
+
+
+@dataclass
 class VisualActionBenchmarkAblationResult:
     task_id: str
     task_name: str
@@ -3340,6 +3445,79 @@ class BenchmarkRunner:
             action_policy.record_action_abstraction_feedback(feedback)
         return feedback
 
+    def run_skill_memory_quality_report_from_logs(self, session_log_paths: list[str]) -> SkillMemoryQualityReport:
+        """Audit typed skill-memory hints against later trace outcomes."""
+        report = SkillMemoryQualityReport()
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                report.cases.append(self._skill_memory_quality_trace_case(path, events))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
+    def skill_memory_quality_feedback(self, report: SkillMemoryQualityReport) -> dict:
+        """Aggregate skill-memory quality traces into retrieval and promotion hints."""
+        label_counts = report.quality_label_counts
+        policy_hints = []
+        if label_counts.get("no_skill_memory_hints", 0):
+            policy_hints.append({
+                "skill_memory_policy": "instrument_skill_memory_hints",
+                "priority": "medium",
+                "reason": "session logs have no planner-facing skill-memory hint events",
+                "count": label_counts["no_skill_memory_hints"],
+            })
+        if label_counts.get("missing_goal_outcome_after_hint", 0):
+            policy_hints.append({
+                "skill_memory_policy": "log_goal_outcomes_after_skill_memory_hints",
+                "priority": "high",
+                "reason": "typed skill-memory hints lack later goal outcome evidence",
+                "count": label_counts["missing_goal_outcome_after_hint"],
+            })
+        if label_counts.get("reuse_conflicted_with_failures", 0):
+            policy_hints.append({
+                "skill_memory_policy": "demote_conflicting_reuse_hints",
+                "priority": "high",
+                "reason": "REUSE hints were followed by goal failure or repeated failed actions",
+                "count": label_counts["reuse_conflicted_with_failures"],
+            })
+        if label_counts.get("avoid_unheeded_post_hint_failures", 0):
+            policy_hints.append({
+                "skill_memory_policy": "tighten_avoid_hint_prompting",
+                "priority": "medium",
+                "reason": "AVOID hints were followed by failed actions, suggesting the warning was not operationalized",
+                "count": label_counts["avoid_unheeded_post_hint_failures"],
+            })
+        if label_counts.get("review_only_present_keep_gated", 0):
+            policy_hints.append({
+                "skill_memory_policy": "keep_review_only_skill_memory_gated",
+                "priority": "medium",
+                "reason": "REVIEW_ONLY hints appeared in planner context and should remain audit-only until transfer evidence improves",
+                "count": label_counts["review_only_present_keep_gated"],
+            })
+        if label_counts.get("reuse_supported_by_goal_success", 0):
+            policy_hints.append({
+                "skill_memory_policy": "candidate_promote_reuse_hints",
+                "priority": "low",
+                "reason": "REUSE hints were followed by successful goal outcomes; confirm with ablation before default promotion",
+                "count": label_counts["reuse_supported_by_goal_success"],
+            })
+
+        return {
+            "log_count": report.log_count,
+            "ready_log_count": report.ready_log_count,
+            "hint_event_count": report.hint_event_count,
+            "hint_count": report.hint_count,
+            "hint_type_counts": report.hint_type_counts,
+            "task_family_counts": report.task_family_counts,
+            "post_hint_failed_action_count": report.post_hint_failed_action_count,
+            "post_hint_goal_success_count": report.post_hint_goal_success_count,
+            "post_hint_goal_failure_count": report.post_hint_goal_failure_count,
+            "repeated_post_hint_failure_count": report.repeated_post_hint_failure_count,
+            "quality_label_counts": label_counts,
+            "policy_hints": policy_hints,
+        }
+
     def run_memory_policy_report_from_logs(self, session_log_paths: list[str]) -> MemoryPolicyTraceReport:
         """Summarize memory write/read/manage evidence and policy gaps in session logs."""
         report = MemoryPolicyTraceReport()
@@ -5150,7 +5328,7 @@ class BenchmarkRunner:
     def _event_success(self, record: dict):
         if not isinstance(record, dict):
             return None
-        for key in ("success", "completed", "passed", "ok"):
+        for key in ("success", "completed", "passed", "ok", "achieved"):
             if isinstance(record.get(key), bool):
                 return record.get(key)
         status = str(record.get("status") or record.get("state") or record.get("outcome") or "").strip().lower()
@@ -5162,6 +5340,61 @@ class BenchmarkRunner:
         if isinstance(result, dict):
             return self._event_success(result)
         return None
+
+    def _skill_memory_hint_type_from_text(self, hint) -> str:
+        text = str(hint or "").strip()
+        if not text:
+            return "UNKNOWN"
+        first = text.split(maxsplit=1)[0].strip().upper().rstrip(":")
+        if first in {"REUSE", "AVOID", "REVIEW_ONLY"}:
+            return first
+        return "UNKNOWN"
+
+    def _skill_memory_quality_labels(
+        self,
+        hint_type_counts: dict,
+        post_hint_failed_actions: int,
+        repeated_post_hint_failures: int,
+        post_hint_goal_successes: int,
+        post_hint_goal_failures: int,
+    ) -> list[str]:
+        labels = []
+        if not hint_type_counts:
+            labels.append("no_skill_memory_hints")
+            return labels
+        if post_hint_goal_successes <= 0 and post_hint_goal_failures <= 0:
+            labels.append("missing_goal_outcome_after_hint")
+        if hint_type_counts.get("REUSE", 0):
+            if post_hint_goal_successes > 0 and repeated_post_hint_failures == 0:
+                labels.append("reuse_supported_by_goal_success")
+            if post_hint_goal_failures > 0 or repeated_post_hint_failures > 0:
+                labels.append("reuse_conflicted_with_failures")
+        if hint_type_counts.get("AVOID", 0):
+            if post_hint_failed_actions <= 0 and post_hint_goal_successes > 0:
+                labels.append("avoid_supported_no_post_hint_failures")
+            if post_hint_failed_actions > 0:
+                labels.append("avoid_unheeded_post_hint_failures")
+        if hint_type_counts.get("REVIEW_ONLY", 0):
+            labels.append("review_only_present_keep_gated")
+        if hint_type_counts.get("UNKNOWN", 0):
+            labels.append("unknown_skill_memory_hint_format")
+        if post_hint_failed_actions > 0:
+            labels.append("action_failures_after_hints")
+        return labels
+
+    def _skill_memory_quality_recommendations(self, labels: list[str]) -> list[str]:
+        mapping = {
+            "no_skill_memory_hints": "run_with_skill_memory_context_or_seed_skill_memories",
+            "missing_goal_outcome_after_hint": "log_goal_verification_after_skill_memory_hints",
+            "reuse_supported_by_goal_success": "confirm_reuse_hint_with_controlled_ablation",
+            "reuse_conflicted_with_failures": "demote_or_review_reuse_hint_before_default_retrieval",
+            "avoid_supported_no_post_hint_failures": "retain_avoid_hint_and_track_heldout_runs",
+            "avoid_unheeded_post_hint_failures": "rewrite_avoid_hint_as_operational_constraint",
+            "review_only_present_keep_gated": "keep_review_only_hint_out_of_default_promotion",
+            "unknown_skill_memory_hint_format": "migrate_legacy_skill_memory_hints_to_typed_format",
+            "action_failures_after_hints": "inspect_post_hint_failed_actions_for_interference",
+        }
+        return [mapping[label] for label in labels if label in mapping]
 
     def _compact_event_text(self, value) -> str:
         parts = []
@@ -5278,6 +5511,109 @@ class BenchmarkRunner:
             lower_level_reasons=lower_level_reasons,
             lower_level_action_types=lower_level_action_types,
             task_recommendations=recommendations[:12],
+        )
+
+    def _skill_memory_quality_trace_case(self, source_log: str, events: list[dict]) -> SkillMemoryQualityCase:
+        hint_events = 0
+        hint_count = 0
+        hint_type_counts = {}
+        task_family_counts = {}
+        action_count = 0
+        failed_action_count = 0
+        post_hint_action_count = 0
+        post_hint_failed_action_count = 0
+        repeated_post_hint_failures = 0
+        goal_count = 0
+        completed_goal_count = 0
+        failed_goal_count = 0
+        post_hint_goal_success_count = 0
+        post_hint_goal_failure_count = 0
+        hint_seen = False
+        last_post_hint_failure = ""
+
+        for event in events:
+            event_type = str(event.get("type") or "")
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event_type == "skill_memory_hint":
+                hint_events += 1
+                hint_seen = True
+                family = str(data.get("task_family") or "unspecified").strip().lower() or "unspecified"
+                task_family_counts[family] = task_family_counts.get(family, 0) + 1
+                raw_hints = data.get("hints", [])
+                raw_hints = raw_hints if isinstance(raw_hints, list) else []
+                if not raw_hints and data.get("hint"):
+                    raw_hints = [data.get("hint")]
+                for hint in raw_hints:
+                    hint_type = self._skill_memory_hint_type_from_text(hint)
+                    hint_type_counts[hint_type] = hint_type_counts.get(hint_type, 0) + 1
+                    hint_count += 1
+                continue
+
+            if event_type in {"goal_start", "auto_goal", "curriculum_goal"}:
+                goal_count += 1
+            if event_type in {"goal_end", "auto_goal_complete", "auto_goal_failed", "goal_verification"}:
+                success = self._event_success(data)
+                if success is True:
+                    completed_goal_count += 1
+                    if hint_seen:
+                        post_hint_goal_success_count += 1
+                elif success is False:
+                    failed_goal_count += 1
+                    if hint_seen:
+                        post_hint_goal_failure_count += 1
+
+            if event_type != "action":
+                continue
+            action_count += 1
+            action = data.get("action", {}) if isinstance(data.get("action", {}), dict) else {}
+            result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+            success = self._event_success(result)
+            if success is False:
+                failed_action_count += 1
+            if hint_seen:
+                post_hint_action_count += 1
+                if success is False:
+                    post_hint_failed_action_count += 1
+                    category = self._action_failure_category(action, result)
+                    signature = self._action_failure_signature(action, category)
+                    if signature and signature == last_post_hint_failure:
+                        repeated_post_hint_failures += 1
+                    last_post_hint_failure = signature
+                elif success is True:
+                    last_post_hint_failure = ""
+
+        labels = self._skill_memory_quality_labels(
+            hint_type_counts,
+            post_hint_failed_action_count,
+            repeated_post_hint_failures,
+            post_hint_goal_success_count,
+            post_hint_goal_failure_count,
+        )
+        recommendations = self._skill_memory_quality_recommendations(labels)
+        return SkillMemoryQualityCase(
+            source_log=source_log,
+            event_count=len(events),
+            hint_event_count=hint_events,
+            hint_count=hint_count,
+            reuse_hint_count=hint_type_counts.get("REUSE", 0),
+            avoid_hint_count=hint_type_counts.get("AVOID", 0),
+            review_only_hint_count=hint_type_counts.get("REVIEW_ONLY", 0),
+            unknown_hint_count=hint_type_counts.get("UNKNOWN", 0),
+            action_count=action_count,
+            failed_action_count=failed_action_count,
+            post_hint_action_count=post_hint_action_count,
+            post_hint_failed_action_count=post_hint_failed_action_count,
+            repeated_post_hint_failure_count=repeated_post_hint_failures,
+            goal_count=goal_count,
+            completed_goal_count=completed_goal_count,
+            failed_goal_count=failed_goal_count,
+            post_hint_goal_success_count=post_hint_goal_success_count,
+            post_hint_goal_failure_count=post_hint_goal_failure_count,
+            task_family_counts=task_family_counts,
+            hint_type_counts=hint_type_counts,
+            quality_labels=labels,
+            recommendations=recommendations,
+            ready_for_skill_memory_quality_review=bool(hint_events and (post_hint_action_count or post_hint_goal_success_count or post_hint_goal_failure_count)),
         )
 
     def _memory_policy_trace_case(self, source_log: str, events: list[dict]) -> MemoryPolicyTraceCase:
@@ -8075,6 +8411,51 @@ class BenchmarkRunner:
                 )
             if case.policy_hints:
                 print(f"      hints: {', '.join(case.policy_hints)}")
+        for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_skill_memory_quality_report(self, report: SkillMemoryQualityReport):
+        print("\nSkill Memory Quality Trace")
+        print(f"  logs: {report.log_count}")
+        print(f"  ready logs: {report.ready_log_count}")
+        print(
+            "  hints: "
+            f"events={report.hint_event_count}, total={report.hint_count}, "
+            f"types={self._format_counts(report.hint_type_counts)}"
+        )
+        print(
+            "  post-hint outcomes: "
+            f"goal_success={report.post_hint_goal_success_count}, "
+            f"goal_failure={report.post_hint_goal_failure_count}, "
+            f"failed_actions={report.post_hint_failed_action_count}, "
+            f"repeated_failures={report.repeated_post_hint_failure_count}"
+        )
+        if report.task_family_counts:
+            print(f"  task families: {self._format_counts(report.task_family_counts)}")
+        feedback = self.skill_memory_quality_feedback(report)
+        if feedback["policy_hints"]:
+            hints = [
+                f"{hint['skill_memory_policy']}({hint['priority']})"
+                for hint in feedback["policy_hints"][:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for case in report.cases:
+            marker = "+" if case.ready_for_skill_memory_quality_review and "reuse_conflicted_with_failures" not in case.quality_labels else "!"
+            if not case.hint_event_count:
+                marker = "~"
+            print(f"  [{marker}] {case.source_log}")
+            print(
+                f"      hints={case.hint_count}, types={self._format_counts(case.hint_type_counts)}, "
+                f"actions={case.action_count}, post_hint_failed={case.post_hint_failed_action_count}"
+            )
+            print(
+                f"      goals={case.completed_goal_count}/{case.goal_count}, "
+                f"post_hint_goals={case.post_hint_goal_success_count}/{case.post_hint_goal_success_count + case.post_hint_goal_failure_count}"
+            )
+            if case.quality_labels:
+                print(f"      labels: {', '.join(case.quality_labels)}")
+            if case.recommendations:
+                print(f"      recommendations: {', '.join(case.recommendations[:4])}")
         for error in report.errors:
             print(f"  error: {error}")
 

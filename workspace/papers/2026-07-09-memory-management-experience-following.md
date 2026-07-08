@@ -18,4 +18,5 @@
   - `SkillLibrary.get_skill_memory_hints()` now marks planner-facing memories as `REUSE`, `AVOID`, or `REVIEW_ONLY`.
   - Failure and anti-pattern memories become explicit cautions instead of hidden negative examples.
   - Review/rejected/error transfer gates keep memories visible for audit while preventing default reuse.
-**Next Action**: Compare typed skill-memory ablations on controlled Minecraft task streams and demote hints that correlate with retries, regressions, or held-out failures.
+  - `skill-memory-quality-report` now labels typed hint traces against later action failures, repeated failures, and goal outcomes so future-task evidence can promote, review, or demote retrieved skill memories.
+**Next Action**: Run quality reports on real autonomous/M7 logs, then compare typed skill-memory ablations on controlled Minecraft task streams and demote hints that correlate with retries, regressions, or held-out failures.

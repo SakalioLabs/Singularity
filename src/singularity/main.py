@@ -176,6 +176,15 @@ def main():
     skill_memory_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     skill_memory_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline skill-memory quality report
+    skill_memory_quality_parser = subparsers.add_parser(
+        "skill-memory-quality-report",
+        help="Audit typed skill-memory hints against later session outcomes",
+    )
+    skill_memory_quality_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    skill_memory_quality_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    skill_memory_quality_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Memory consolidation report
     memory_report_parser = subparsers.add_parser("memory-consolidation-report", help="Report repeatedly recalled memories worth consolidation")
     memory_report_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
@@ -762,6 +771,42 @@ def main():
                 os.makedirs(output_dir, exist_ok=True)
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "skill-memory-quality-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("skill-memory-quality-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_skill_memory_quality_report_from_logs(session_logs)
+        runner.print_skill_memory_quality_report(report)
+        quality_feedback = runner.skill_memory_quality_feedback(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "log_count": report.log_count,
+                    "ready_log_count": report.ready_log_count,
+                    "hint_event_count": report.hint_event_count,
+                    "hint_count": report.hint_count,
+                    "hint_type_counts": report.hint_type_counts,
+                    "task_family_counts": report.task_family_counts,
+                    "post_hint_failed_action_count": report.post_hint_failed_action_count,
+                    "post_hint_goal_success_count": report.post_hint_goal_success_count,
+                    "post_hint_goal_failure_count": report.post_hint_goal_failure_count,
+                    "repeated_post_hint_failure_count": report.repeated_post_hint_failure_count,
+                    "quality_label_counts": report.quality_label_counts,
+                    "skill_memory_quality_feedback": quality_feedback,
+                    "errors": report.errors,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
         return
 
