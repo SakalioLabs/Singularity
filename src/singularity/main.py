@@ -390,6 +390,20 @@ def main():
     candidates_parser.add_argument("--reason", type=str, default="", help="Reason for rejection")
     candidates_parser.add_argument("--all", action="store_true", help="List all candidates, not just pending")
 
+    skill_edit_parser = subparsers.add_parser(
+        "skill-edit-proposal-report",
+        help="Review queued skill candidates as create/update/retain/reject proposals",
+    )
+    skill_edit_parser.add_argument("--queue", type=str, default="workspace/skills/skill_candidates.jsonl")
+    skill_edit_parser.add_argument("--skill-storage-path", type=str, default="workspace/skills")
+    skill_edit_parser.add_argument("--discovery-skill-gate", action="append", default=[], help="Saved discovery-application-report JSON to include in candidate validation")
+    skill_edit_parser.add_argument("--task-stream-transfer-gate", action="append", default=[], help="Saved task-stream-transfer-gate JSON used as counterfactual probe evidence")
+    skill_edit_parser.add_argument("--include-all", action="store_true", help="Include approved/rejected candidates as retain/review records")
+    skill_edit_parser.add_argument("--no-require-transfer-gate", action="store_true", help="Allow create/update proposals without approved transfer probe evidence")
+    skill_edit_parser.add_argument("--min-score", type=float, default=0.55, help="Minimum candidate score for create/update proposals")
+    skill_edit_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    skill_edit_parser.add_argument("--log-level", type=str, default="INFO")
+
     # M7 collaboration benchmark dry-run/assignment
     collab_parser = subparsers.add_parser("collab-benchmark", help="Prepare an M7 collaboration benchmark")
     collab_parser.add_argument("--spec", type=str, default="workspace/benchmarks/m7_time_sensitive_shelter.json")
@@ -1333,6 +1347,48 @@ def main():
             print(f"  - memory {entry['id']} flags={','.join(entry['flags'])} tags={','.join(entry['tags'])}")
         for experience in report["flagged_experiences"]:
             print(f"  - experience {experience['id']} flags={','.join(experience['flags'])} tags={','.join(experience['tags'])}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "skill-edit-proposal-report":
+        from singularity.core.skill_extractor import build_skill_edit_proposal_report
+
+        report = build_skill_edit_proposal_report(
+            queue_path=getattr(args, "queue", "workspace/skills/skill_candidates.jsonl"),
+            skill_storage_path=getattr(args, "skill_storage_path", "workspace/skills"),
+            discovery_gate_paths=getattr(args, "discovery_skill_gate", []) or [],
+            transfer_gate_paths=getattr(args, "task_stream_transfer_gate", []) or [],
+            include_all=getattr(args, "include_all", False),
+            require_transfer_gate=not getattr(args, "no_require_transfer_gate", False),
+            min_score=getattr(args, "min_score", 0.55),
+        )
+        print("\nSkill Edit Proposal Report")
+        print(f"  candidates: {report['candidate_count']}")
+        print(
+            "  proposals: "
+            + ", ".join(f"{key}={value}" for key, value in sorted(report["proposal_counts"].items()))
+            if report["proposal_counts"]
+            else "  proposals: none"
+        )
+        print(
+            f"  readiness: approved={report['ready_count']}, "
+            f"review={report['review_count']}, rejected={report['reject_count']}"
+        )
+        print(f"  transfer probe required: {report['require_transfer_gate']}")
+        for proposal in report["proposals"][:12]:
+            marker = "+" if proposal["readiness"] == "approved" else "x" if proposal["readiness"] == "rejected" else "!"
+            target = f" -> {proposal['target_skill']}" if proposal.get("target_skill") else ""
+            print(
+                f"  [{marker}] {proposal['candidate_id']} {proposal['proposal']}{target}: "
+                f"{proposal['candidate_name']} score={proposal['score']:.2f}"
+            )
+            print(f"      {proposal['reason']}")
         if getattr(args, "output", ""):
             output_dir = os.path.dirname(args.output)
             if output_dir:

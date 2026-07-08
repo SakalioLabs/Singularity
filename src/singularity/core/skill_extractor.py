@@ -456,6 +456,193 @@ def build_task_stream_transfer_skill_gate(
     }
 
 
+def build_skill_edit_proposal_report(
+    queue_path: str = "workspace/skills/skill_candidates.jsonl",
+    skill_storage_path: str = "workspace/skills",
+    discovery_gate_paths: list[str] = None,
+    transfer_gate_paths: list[str] = None,
+    include_all: bool = False,
+    require_transfer_gate: bool = True,
+    min_score: float = 0.55,
+) -> dict:
+    """Review queued skill candidates as create/update/retain/reject proposals.
+
+    The report is advisory and non-mutating: it never rewrites the skill library.
+    """
+    from singularity.core.skill_library import SkillLibrary
+
+    queue = SkillCandidateQueue(queue_path)
+    skill_library = SkillLibrary(storage_path=skill_storage_path, persist=True)
+    extractor = SkillExtractor(
+        skill_library,
+        auto_promote=False,
+        discovery_gate_paths=discovery_gate_paths or [],
+        transfer_gate_paths=transfer_gate_paths or [],
+    )
+    candidates = queue.all() if include_all else queue.pending()
+    report = {
+        "queue_path": queue_path,
+        "skill_storage_path": skill_storage_path,
+        "candidate_count": len(candidates),
+        "include_all": bool(include_all),
+        "require_transfer_gate": bool(require_transfer_gate),
+        "min_score": float(min_score),
+        "proposal_counts": {},
+        "ready_count": 0,
+        "review_count": 0,
+        "reject_count": 0,
+        "proposals": [],
+    }
+    for candidate in candidates:
+        validation = extractor.validate_candidate_for_promotion(candidate)
+        match = _skill_edit_matching_skill(skill_library, candidate)
+        proposal = _skill_edit_candidate_proposal(
+            candidate,
+            validation,
+            match,
+            require_transfer_gate=bool(require_transfer_gate),
+            min_score=float(min_score),
+        )
+        report["proposals"].append(proposal)
+        proposal_type = proposal["proposal"]
+        report["proposal_counts"][proposal_type] = report["proposal_counts"].get(proposal_type, 0) + 1
+        if proposal["readiness"] == "approved":
+            report["ready_count"] += 1
+        elif proposal["readiness"] == "rejected":
+            report["reject_count"] += 1
+        else:
+            report["review_count"] += 1
+    return report
+
+
+def _skill_edit_candidate_proposal(
+    candidate: SkillCandidate,
+    validation: SkillPromotionValidationReport,
+    match: dict,
+    require_transfer_gate: bool,
+    min_score: float,
+) -> dict:
+    transfer_gate = validation.transfer_gate if isinstance(validation.transfer_gate, dict) else {}
+    reasons = []
+    readiness = "review"
+    proposal = "review"
+    if candidate.review_status != "pending":
+        proposal = "retain"
+        readiness = "review"
+        reasons.append(f"candidate_status_{candidate.review_status}")
+    elif validation.decision == "reject":
+        proposal = "reject"
+        readiness = "rejected"
+        reasons.append(validation.reason or "promotion_validation_rejected")
+    elif candidate.score < min_score:
+        proposal = "review"
+        readiness = "review"
+        reasons.append("candidate_score_below_skill_edit_threshold")
+    elif require_transfer_gate and transfer_gate.get("readiness") != "approved":
+        proposal = "review"
+        readiness = "review"
+        reasons.append(transfer_gate.get("reason") or "task_stream_probe_required")
+    elif validation.status in {"achieved", "critic_approved"} or validation.decision == "approve":
+        if match.get("match_type") == "exact":
+            proposal = "update"
+            readiness = "approved"
+            reasons.append("existing_skill_exact_match")
+        elif match.get("match_type") == "explicit":
+            proposal = "update"
+            readiness = "approved"
+            reasons.append("candidate_targets_existing_skill")
+        elif match.get("match_type") == "similar":
+            proposal = "review"
+            readiness = "review"
+            reasons.append("similar_skill_requires_operator_merge_review")
+        else:
+            proposal = "create"
+            readiness = "approved"
+            reasons.append("no_matching_skill_found")
+    else:
+        reasons.append("promotion_validation_requires_review")
+
+    if require_transfer_gate and transfer_gate.get("required") and transfer_gate.get("readiness") == "approved":
+        reasons.append("task_stream_probe_approved")
+    elif require_transfer_gate:
+        reasons.append("task_stream_probe_not_approved")
+
+    return {
+        "candidate_id": candidate.id,
+        "candidate_name": candidate.name,
+        "goal": candidate.goal,
+        "score": candidate.score,
+        "review_status": candidate.review_status,
+        "proposal": proposal,
+        "readiness": readiness,
+        "target_skill": match.get("skill", ""),
+        "match_type": match.get("match_type", "none"),
+        "similarity": match.get("similarity", 0.0),
+        "reason": "; ".join(_dedupe_strings(reasons)),
+        "validation": validation.to_dict(),
+        "transfer_gate": transfer_gate,
+        "postconditions": validation.postconditions,
+        "warnings": validation.warnings,
+    }
+
+
+def _skill_edit_matching_skill(skill_library, candidate: SkillCandidate) -> dict:
+    explicit_target = ""
+    if isinstance(candidate.signals, dict):
+        explicit_target = str(
+            candidate.signals.get("target_skill")
+            or candidate.signals.get("skill_name")
+            or candidate.signals.get("existing_skill")
+            or ""
+        ).strip()
+    by_name = {skill.name: skill for skill in skill_library.list_skills()}
+    normalized = {_normalize_skill_edit_key(name): skill for name, skill in by_name.items()}
+    if explicit_target and explicit_target in by_name:
+        return {"skill": explicit_target, "match_type": "explicit", "similarity": 1.0}
+    if explicit_target and _normalize_skill_edit_key(explicit_target) in normalized:
+        skill = normalized[_normalize_skill_edit_key(explicit_target)]
+        return {"skill": skill.name, "match_type": "explicit", "similarity": 1.0}
+    if candidate.name in by_name:
+        return {"skill": candidate.name, "match_type": "exact", "similarity": 1.0}
+    candidate_key = _normalize_skill_edit_key(candidate.name)
+    if candidate_key in normalized:
+        skill = normalized[candidate_key]
+        return {"skill": skill.name, "match_type": "exact", "similarity": 1.0}
+
+    candidate_text = " ".join([candidate.name, candidate.goal, candidate.description])
+    candidate_tokens = _skill_edit_tokens(candidate_text)
+    best = {"skill": "", "match_type": "none", "similarity": 0.0}
+    for skill in skill_library.list_skills():
+        skill_tokens = _skill_edit_tokens(" ".join([skill.name, skill.description, skill.notes]))
+        if not candidate_tokens or not skill_tokens:
+            continue
+        overlap = len(candidate_tokens & skill_tokens)
+        union = len(candidate_tokens | skill_tokens)
+        similarity = round(overlap / union, 3) if union else 0.0
+        if similarity > best["similarity"]:
+            best = {"skill": skill.name, "match_type": "similar", "similarity": similarity}
+    if best["similarity"] < 0.62:
+        best["match_type"] = "none"
+        best["skill"] = ""
+    return best
+
+
+def _normalize_skill_edit_key(value: str) -> str:
+    return "_".join(str(value or "").strip().lower().replace("-", "_").split())
+
+
+def _skill_edit_tokens(value: str) -> set[str]:
+    cleaned = []
+    for char in str(value or "").lower().replace("_", " ").replace("-", " "):
+        cleaned.append(char if char.isalnum() else " ")
+    stop = {"a", "an", "and", "for", "from", "of", "the", "to", "with", "skill"}
+    return {
+        token
+        for token in "".join(cleaned).split()
+        if len(token) > 2 and token not in stop
+    }
+
+
 def _safe_int(value) -> int:
     try:
         return int(value or 0)

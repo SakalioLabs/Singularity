@@ -260,6 +260,10 @@ python -m singularity.main skill-candidates --session logs/session_xxx.jsonl --p
 # landmarks, structures, or nearby entity/block observations, the critic receives
 # a compact visual_evidence summary automatically.
 
+# Review queued candidate skills as SkillMaster-style create/update/retain/reject proposals.
+# By default this requires approved task-stream transfer gate evidence before create/update proposals.
+python -m singularity.main skill-edit-proposal-report --queue workspace/skills/skill_candidates.jsonl --skill-storage-path workspace/skills --task-stream-transfer-gate logs/benchmarks/task_stream_transfer_gate.json --output logs/benchmarks/skill_edit_proposals.json
+
 # Check whether a session already has enough screenshot/VLM/API visual coverage
 python -m singularity.main visual-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/visual_trace_report.json
 python -m singularity.main visual-trace-report --session-log logs/session_xxx.jsonl --causal-summaries --failure-corrections

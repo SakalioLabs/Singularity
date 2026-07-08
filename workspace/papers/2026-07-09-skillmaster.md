@@ -17,5 +17,6 @@
 **Singularity Adaptation**:
   - Existing `skill-candidates`, verifier gates, `skill-memory-report`, and `task-stream-transfer-gate` already form the review boundary SkillMaster would require.
   - The new `workspace/evals/minecraft_task_streams.json` seed streams act as counterfactual utility probes for related Minecraft tasks before skill or transfer memories become defaults.
-  - Future work should add a skill-edit proposal report that compares keep/update/reject decisions against task-stream gates and skill-memory quality gates.
-**Next Action**: Add an offline skill-edit proposal report that routes candidate updates through task-stream probes before approved custom skills are rewritten.
+  - `skill-edit-proposal-report` now compares queued candidates against the current skill bank, reuses verifier/discovery/transfer gates, and emits create/update/retain/reject proposals without mutating custom skills.
+  - Future work should compare proposal decisions against real autonomous/M7 task-stream probes and skill-memory quality gates before allowing automatic skill rewrites.
+**Next Action**: Run `skill-edit-proposal-report` on real queued candidates with approved transfer gates, then inspect create/update proposals before rewriting approved custom skills.

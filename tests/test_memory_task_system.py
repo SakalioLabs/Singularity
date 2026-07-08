@@ -12,7 +12,13 @@ from singularity.core.memory_policy import MemoryLifecyclePolicy, promptware_thr
 from singularity.core.config import Config
 from singularity.core.planner import Planner
 from singularity.core.agent import Agent
-from singularity.core.skill_extractor import SkillCandidateQueue, SkillExtractor, SkillPromotionCritic
+from singularity.core.skill_extractor import (
+    SkillCandidate,
+    SkillCandidateQueue,
+    SkillExtractor,
+    SkillPromotionCritic,
+    build_skill_edit_proposal_report,
+)
 from singularity.core.skill_library import SkillLibrary
 from singularity.core.task_system import TaskStatus, TaskSystem
 from singularity.data.knowledge_base import KnowledgeBase
@@ -1105,6 +1111,108 @@ def test_skill_candidate_queue_persists_and_approves_custom_skill():
     print("PASS: Skill candidate queue persists and approves custom skill")
 
 
+def test_skill_edit_proposal_report_routes_candidates_through_transfer_probe():
+    tmpdir = tempfile.mkdtemp()
+    queue_path = os.path.join(tmpdir, "skill_candidates.jsonl")
+    skill_dir = os.path.join(tmpdir, "skills")
+    gate_path = os.path.join(tmpdir, "task_stream_transfer_gate.json")
+    durable_skills = SkillLibrary(storage_path=skill_dir, persist=True)
+    durable_skills.create_skill(
+        "craft_torch_route",
+        "Craft torches from coal and sticks",
+        json.dumps([{"type": "craft", "parameters": {"item": "torch", "count": 4}}]),
+    )
+    with open(gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "readiness": "approved",
+            "decision": "allow_candidate_promotion",
+            "reason": "controlled task streams show positive transfer",
+            "stream_count": 5,
+            "ready_stream_count": 5,
+            "task_count": 15,
+            "reuse_coverage": 1.0,
+            "average_plasticity_gain": 0.4,
+            "average_stability_gain": 0.05,
+            "average_generalization_gain": 0.35,
+            "interference_count": 0,
+            "evidence_count": 1,
+        }, f)
+
+    queue = SkillCandidateQueue(queue_path)
+    achieved_gate = {
+        "decision": "allow",
+        "status": "achieved",
+        "reason": "verified",
+        "target_inventory": {"torch": 4},
+        "inventory_delta": {"torch": 4},
+        "evidence": ["torch inventory increased"],
+    }
+    glass_gate = {
+        **achieved_gate,
+        "target_inventory": {"glass": 1},
+        "inventory_delta": {"glass": 1},
+        "evidence": ["glass inventory increased"],
+    }
+    queue.enqueue(SkillCandidate(
+        id="create01",
+        name="smelt_glass_route",
+        goal="Smelt sand into glass",
+        description="Reusable furnace route for sand to glass",
+        implementation=json.dumps([{"type": "smelt", "parameters": {"item": "glass", "count": 1}}]),
+        score=0.82,
+        signals={"verification_gate": glass_gate},
+    ))
+    queue.enqueue(SkillCandidate(
+        id="update01",
+        name="torch_route_patch",
+        goal="Improve torch crafting route",
+        description="Patch the existing torch route with coal-before-craft ordering",
+        implementation=json.dumps([{"type": "craft", "parameters": {"item": "torch", "count": 4}}]),
+        score=0.86,
+        signals={"verification_gate": achieved_gate, "target_skill": "craft_torch_route"},
+    ))
+    queue.enqueue(SkillCandidate(
+        id="reject01",
+        name="unsafe_torch_route",
+        goal="Craft torches without coal",
+        description="Invalid route that failed verification",
+        implementation=json.dumps([{"type": "craft", "parameters": {"item": "torch", "count": 4}}]),
+        score=0.9,
+        signals={
+            "verification_gate": {
+                "decision": "reject",
+                "status": "failed",
+                "reason": "missing_coal",
+                "evidence": [],
+            }
+        },
+    ))
+
+    approved_report = build_skill_edit_proposal_report(
+        queue_path=queue_path,
+        skill_storage_path=skill_dir,
+        transfer_gate_paths=[gate_path],
+    )
+    proposals = {item["candidate_id"]: item for item in approved_report["proposals"]}
+    assert approved_report["proposal_counts"] == {"create": 1, "update": 1, "reject": 1}
+    assert approved_report["ready_count"] == 2
+    assert proposals["create01"]["proposal"] == "create"
+    assert proposals["update01"]["proposal"] == "update"
+    assert proposals["update01"]["target_skill"] == "craft_torch_route"
+    assert proposals["reject01"]["readiness"] == "rejected"
+
+    ungated_report = build_skill_edit_proposal_report(
+        queue_path=queue_path,
+        skill_storage_path=skill_dir,
+        transfer_gate_paths=[],
+    )
+    ungated = {item["candidate_id"]: item for item in ungated_report["proposals"]}
+    assert ungated["create01"]["proposal"] == "review"
+    assert ungated["update01"]["proposal"] == "review"
+    assert "task_stream_probe_not_approved" in ungated["create01"]["reason"]
+    print("PASS: Skill edit proposal report routes candidates through transfer probes")
+
+
 def test_skill_candidate_approval_writes_verified_postconditions():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "verified_session.jsonl")
@@ -2106,6 +2214,7 @@ if __name__ == "__main__":
     test_skill_extractor_creates_experience_atom_and_skill()
     test_skill_extractor_review_gate()
     test_skill_candidate_queue_persists_and_approves_custom_skill()
+    test_skill_edit_proposal_report_routes_candidates_through_transfer_probe()
     test_skill_candidate_approval_writes_verified_postconditions()
     test_skill_candidate_approval_rejects_failed_verification()
     test_skill_candidate_validation_report_explains_unknown_gate()
