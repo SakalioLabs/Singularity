@@ -1723,6 +1723,7 @@ def test_action_value_report_aggregates_outcome_profiles():
     assert report.success_count == 4
     assert report.failure_count == 2
     assert report.failure_correction_pair_count == 2
+    assert feedback["failure_correction_pairs"][0]["source_log"] == session_path
     assert items["dig:coal_ore"]["attempts"] == 4
     assert items["dig:coal_ore"]["value_score"] >= 0.7
     assert items["craft:torch"]["failures"] == 2

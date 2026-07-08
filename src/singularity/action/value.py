@@ -1,4 +1,5 @@
 """Action outcome value profiles for verifier-guided selection."""
+from copy import deepcopy
 from dataclasses import dataclass, field
 
 
@@ -115,6 +116,7 @@ class ActionValueProfile:
 
     def __init__(self):
         self.stats: dict[str, ActionValueStats] = {}
+        self.repair_pairs: dict[str, list[dict]] = {}
 
     def record(self, action: dict, result: dict = None, goal: str = "", verification: dict = None):
         signature = action_signature(action)
@@ -147,7 +149,7 @@ class ActionValueProfile:
             return 0
         items = feedback.get("action_value_items", feedback.get("items", []))
         if not isinstance(items, list):
-            return 0
+            items = []
         loaded = 0
         for item in items:
             if not isinstance(item, dict):
@@ -169,17 +171,68 @@ class ActionValueProfile:
             )
             self.stats[signature] = stats
             loaded += 1
+        loaded += self.merge_repair_pairs(feedback.get("failure_correction_pairs", []))
         return loaded
+
+    def merge_repair_pairs(self, pairs: list[dict]) -> int:
+        """Load failed-action to recovery-action examples from feedback."""
+        if not isinstance(pairs, list):
+            return 0
+        loaded = 0
+        for pair in pairs:
+            if not isinstance(pair, dict):
+                continue
+            failed_signature = str(pair.get("failed_signature") or "")
+            recovery_action = pair.get("recovery_action", {})
+            if not failed_signature or not isinstance(recovery_action, dict):
+                continue
+            item = {
+                "failed_signature": failed_signature,
+                "recovery_signature": str(pair.get("recovery_signature") or action_signature(recovery_action)),
+                "recovery_action": deepcopy(recovery_action),
+                "goal": str(pair.get("goal") or ""),
+                "source_log": str(pair.get("source_log") or ""),
+                "failed_error": str(pair.get("failed_error") or ""),
+            }
+            bucket = self.repair_pairs.setdefault(failed_signature, [])
+            key = repr(item["recovery_action"])
+            if any(repr(existing.get("recovery_action", {})) == key for existing in bucket):
+                continue
+            bucket.append(item)
+            loaded += 1
+        return loaded
+
+    def repair_candidates(self, action: dict, limit: int = 5) -> list[dict]:
+        """Return recovery actions previously observed after this action failed."""
+        signature = action_signature(action)
+        candidates = []
+        for pair in self.repair_pairs.get(signature, [])[:limit]:
+            recovery_action = pair.get("recovery_action", {})
+            if isinstance(recovery_action, dict):
+                candidates.append({
+                    "action": deepcopy(recovery_action),
+                    "source": "value_repair",
+                    "reason": f"action-value repair {signature}->{pair.get('recovery_signature', 'unknown')}",
+                    "pair": dict(pair),
+                })
+        return candidates
 
     def as_feedback(self, limit: int = 40) -> dict:
         items = sorted(
             [stats.as_dict() for stats in self.stats.values()],
             key=lambda item: (-item["attempts"], item["signature"]),
         )
+        pairs = [
+            dict(pair)
+            for signature in sorted(self.repair_pairs)
+            for pair in self.repair_pairs.get(signature, [])
+        ]
         return {
             "action_value_items": items[:limit],
+            "failure_correction_pairs": pairs[:limit],
             "signature_count": len(items),
             "attempt_count": sum(item["attempts"] for item in items),
+            "repair_pair_count": len(pairs),
         }
 
     def high_value_items(self, min_attempts: int = 2, min_score: float = 0.7) -> list[dict]:

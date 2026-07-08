@@ -1190,6 +1190,24 @@
 
 ---
 
+## P-065: Agent Step Value
+
+- **Title**: Agent Step Value: State-Transition Measurement with State-Grounded LLM Evaluators
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2607.04419
+- **Type**: Agent trace state-transition evaluation
+- **Task Type**: Per-step credit assignment for black-box agent trajectories
+- **Core Method**: Compares evaluator beliefs over candidate outcomes before and after an action to score the state transition induced by that action
+- **Action Space**: Generic agent actions; adapted here to Minecraft session-log actions and bounded before/after observations
+- **Memory**: Step-value traces that can feed action-value memory, repair candidate ranking, and future state-delta skill promotion
+- **Key Results**: Argues final-answer scores hide helpful and harmful intermediate transitions, and introduces ASV as a replayable measurement framework
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Motivates extending `action-value-report` from result success rates to bounded Minecraft before/after state-transition value labels
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-agent-step-value.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1258,3 +1276,4 @@
 | P-062 | VIGIL Terminal Commitment | 2026 | R5/N5/R4/E5 | P1 |
 | P-063 | VeGAS Action Verification | 2026 | R5/N5/R4/E5 | P1 |
 | P-064 | SVA Action Evaluation | 2026 | R4/N5/R3/E5 | P1 |
+| P-065 | Agent Step Value | 2026 | R5/N5/R4/E5 | P1 |

@@ -91,6 +91,8 @@ class ActionCandidateSelector:
         if original_decision.get("status") == "reject":
             for repair in self._repair_candidates(action, original_decision, state, goal=goal):
                 candidate_specs.append(repair)
+            for repair in self._value_repair_candidates(action, state):
+                candidate_specs.append(repair)
 
         candidate_specs = self._dedupe_candidates(candidate_specs)
         scores = []
@@ -103,7 +105,13 @@ class ActionCandidateSelector:
                 source=str(spec.get("source") or "candidate"),
                 source_index=index,
                 verification=verification,
-                score=self._candidate_score(candidate_action, verification, value, spec.get("source") == "repair", goal),
+                score=self._candidate_score(
+                    candidate_action,
+                    verification,
+                    value,
+                    spec.get("source") in {"repair", "value_repair"},
+                    goal,
+                ),
                 reason=str(spec.get("reason") or ""),
                 value=value,
             ))
@@ -171,6 +179,26 @@ class ActionCandidateSelector:
             item = str(params.get("item") or "")
             repairs.extend(self._material_repair_candidates(item, 1, state))
         return repairs
+
+    def _value_repair_candidates(self, action: dict, state: dict) -> list[dict]:
+        repairs = []
+        for candidate in self.value_profile.repair_candidates(action):
+            candidate_action = candidate.get("action", {}) if isinstance(candidate, dict) else {}
+            if self._repair_action_context_allows(candidate_action, state):
+                repairs.append(candidate)
+        return repairs
+
+    def _repair_action_context_allows(self, action: dict, state: dict) -> bool:
+        if not isinstance(action, dict):
+            return False
+        action_type = str(action.get("type") or "")
+        params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
+        if action_type == "dig":
+            block = str(params.get("block") or params.get("name") or "")
+            if not block:
+                return all(key in params for key in ("x", "y", "z"))
+            return block in {item["name"] for item in self._visible_blocks(state)}
+        return True
 
     def _material_repair_candidates(self, material: str, amount: int, state: dict) -> list[dict]:
         material = str(material or "").strip()

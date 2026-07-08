@@ -168,6 +168,7 @@
 - [x] Add VeGAS/SVA-style `ActionVerifier` pre-execution checks, block deterministic rejects before live action execution, add `action-verification-report`, and save `logs/benchmarks/action_verification_m1_2026-07-09.json` as the current M1 action-feasibility baseline.
 - [x] Add conservative SVA-style `ActionCandidateSelector`, repair verifier-rejected planner actions with feasible prerequisite candidates, add `action-candidate-report`, and save `logs/benchmarks/action_candidate_m1_2026-07-09.json` as the current M1 candidate-selection baseline.
 - [x] Add PEAM/SVA-style `ActionValueProfile`, load `--action-value-feedback` into candidate scoring, add `action-value-report`, and save `logs/benchmarks/action_value_m1_2026-07-09.json` as the current M1 action-outcome baseline.
+- [x] Feed `action-value-report.failure_correction_pairs` back into `ActionCandidateSelector` as provenance-preserving repair candidates, and add ASV as the next step-value reference for state-transition scoring.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -213,6 +214,7 @@
 - [ ] Re-run `action-verification-report` on live M1/M2 retries and compare reject/review rates plus `failed_without_reject` against `logs/benchmarks/action_verification_m1_2026-07-09.json`.
 - [ ] Re-run `action-candidate-report` on live M1/M2 retries and compare original rejects, repaired rejects, unchanged rejects, and changed selections against `logs/benchmarks/action_candidate_m1_2026-07-09.json`.
 - [ ] Re-run `action-value-report` on live M1/M2 retries and compare high-value signatures plus failure-correction pairs against `logs/benchmarks/action_value_m1_2026-07-09.json`, then pass approved feedback with `--action-value-feedback`.
+- [ ] Extend `action-value-report` from result success rates to ASV-style before/after state-transition value once live logs contain richer pre/post observations.
 - [ ] Run `self-evolution-gate` on real self-evolution, verifier, and counterexample reports; only then design a guarded runtime plan-suffix repair path.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
 - [ ] Mine real player/session requests into `mixed-initiative-variant-report --case-file` suites and track held-out template coverage before changing auto-selection heuristics.

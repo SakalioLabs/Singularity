@@ -601,6 +601,36 @@ def test_action_candidate_selector_surfaces_action_value_evidence():
     print("PASS: ActionCandidateSelector surfaces action-value evidence")
 
 
+def test_action_candidate_selector_uses_failure_correction_pairs():
+    profile = ActionValueProfile()
+    loaded = profile.merge_feedback({
+        "failure_correction_pairs": [
+            {
+                "failed_signature": "attack:untargeted",
+                "recovery_signature": "look_at:low_impact",
+                "recovery_action": {"type": "look_at", "parameters": {"x": 2, "y": 64, "z": 3}},
+                "goal": "Defend from hostile mob",
+            }
+        ]
+    })
+    selector = ActionCandidateSelector(value_profile=profile)
+
+    selection = selector.select(
+        {"type": "attack", "parameters": {}},
+        {"nearby_entities": []},
+        goal="Defend from hostile mob",
+    ).as_dict()
+
+    selected = selection["candidates"][selection["selected_index"]]
+    assert loaded == 1
+    assert selection["changed"] is True
+    assert selection["original_verification"]["status"] == "reject"
+    assert selected["source"] == "value_repair"
+    assert selected["action"]["type"] == "look_at"
+    assert selected["verification"]["status"] == "accept"
+    print("PASS: ActionCandidateSelector uses action-value failure-correction pairs")
+
+
 if __name__ == "__main__":
     test_self_evolution_policy_formats_advisory_context()
     test_use_item_equips_requested_item_first()
@@ -620,4 +650,5 @@ if __name__ == "__main__":
     test_action_verifier_rejects_missing_craft_materials_and_tools()
     test_action_candidate_selector_repairs_rejected_craft_action()
     test_action_candidate_selector_surfaces_action_value_evidence()
+    test_action_candidate_selector_uses_failure_correction_pairs()
     print("\nAction controller tests PASSED")

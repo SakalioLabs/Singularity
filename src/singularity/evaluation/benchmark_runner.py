@@ -6766,6 +6766,7 @@ class BenchmarkRunner:
                         failure_pairs.append({
                             "failed_event_index": pending_failure["event_index"],
                             "recovery_event_index": index,
+                            "source_log": source_log,
                             "goal": current_goal,
                             "failed_signature": pending_failure["signature"],
                             "recovery_signature": action_signature(action),
