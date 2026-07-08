@@ -162,6 +162,16 @@ def main():
     skill_contract_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     skill_contract_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Skill-local memory report
+    skill_memory_parser = subparsers.add_parser("skill-memory-report", help="Report per-skill replay, failure, and transfer memories")
+    skill_memory_parser.add_argument("--skill-storage-path", type=str, default="workspace/skills", help="Skill storage path containing custom_skills.jsonl")
+    skill_memory_parser.add_argument("--goal", type=str, default="", help="Optional goal query to score skill contracts alongside memory")
+    skill_memory_parser.add_argument("--task-family", type=str, default="", help="Optional task-family zone such as crafting, mining, shelter, or navigation")
+    skill_memory_parser.add_argument("--include-builtins", action="store_true", help="Include built-in skills even when they have no skill memory")
+    skill_memory_parser.add_argument("--limit", type=int, default=20)
+    skill_memory_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    skill_memory_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Memory consolidation report
     memory_report_parser = subparsers.add_parser("memory-consolidation-report", help="Report repeatedly recalled memories worth consolidation")
     memory_report_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
@@ -688,6 +698,59 @@ def main():
             if match["missing_preconditions"] or match["missing_required_items"] or match["missing_dependencies"]:
                 missing = match["missing_preconditions"] + match["missing_required_items"] + match["missing_dependencies"]
                 print(f"      missing: {', '.join(str(item) for item in missing[:8])}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "skill-memory-report":
+        from singularity.core.skill_library import SkillLibrary
+
+        lib = SkillLibrary(storage_path=getattr(args, "skill_storage_path", "workspace/skills"), persist=True)
+        report = lib.skill_memory_report(
+            goal=getattr(args, "goal", ""),
+            task_family=getattr(args, "task_family", ""),
+            include_builtins=getattr(args, "include_builtins", False),
+            limit=getattr(args, "limit", 20),
+        )
+        print("\nSkill Memory Report")
+        if report["goal"]:
+            print(f"  goal: {report['goal']}")
+        if report["task_family"]:
+            print(f"  task family: {report['task_family']}")
+        print(
+            f"  skills: {report['skill_count']}, with memory: {report['skills_with_memory_count']}, "
+            f"memories: {report['memory_count']}"
+        )
+        print(
+            f"  success/failure memories: {report['success_memory_count']}/{report['failure_memory_count']}, "
+            f"approved/review transfer memories: "
+            f"{report['approved_transfer_memory_count']}/{report['review_transfer_memory_count']}"
+        )
+        if report["issue_counts"]:
+            parts = [f"{key}={value}" for key, value in sorted(report["issue_counts"].items())]
+            print(f"  issues: {', '.join(parts)}")
+        if report["task_family_counts"]:
+            parts = [f"{key}={value}" for key, value in sorted(report["task_family_counts"].items())]
+            print(f"  task families: {', '.join(parts)}")
+        for skill in report["skills"][:getattr(args, "limit", 20)]:
+            if skill["built_in"] and not skill["memory_count"] and not getattr(args, "include_builtins", False):
+                continue
+            issues = f" issues={','.join(skill['issues'])}" if skill["issues"] else ""
+            print(
+                f"  - {skill['name']} memories={skill['memory_count']} "
+                f"success/failure={skill['success_memory_count']}/{skill['failure_memory_count']} "
+                f"gate={skill['gate_readiness']} contract={skill['contract_readiness']}{issues}"
+            )
+            for memory in skill["memories"][-2:]:
+                label = memory.get("task_family") or memory.get("type") or "memory"
+                note = memory.get("note", "")
+                if note:
+                    print(f"      {label}: {note[:120]}")
         if getattr(args, "output", ""):
             output_dir = os.path.dirname(args.output)
             if output_dir:

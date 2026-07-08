@@ -30,6 +30,7 @@ class Skill:
     dependencies: list[str] = field(default_factory=list)
     provenance: dict = field(default_factory=dict)
     gate: dict = field(default_factory=dict)
+    skill_memory: list[dict] = field(default_factory=list)
 
 
 class SkillLibrary:
@@ -93,6 +94,43 @@ class SkillLibrary:
             skill.success_rate = skill.successful_uses / skill.total_uses if skill.total_uses > 0 else 0
             skill.last_used = time.strftime("%Y-%m-%d")
 
+    def record_skill_memory(
+        self,
+        name: str,
+        note: str,
+        memory_type: str = "experience",
+        outcome: str = "",
+        task_family: str = "",
+        source: str = "",
+        confidence: float = 0.7,
+        tags: Optional[list[str]] = None,
+        transfer_gate: Optional[dict] = None,
+        evidence: Optional[dict] = None,
+        persist: Optional[bool] = None,
+    ) -> Optional[dict]:
+        """Attach a compact MUSE-style experience record to a reusable skill."""
+        skill = self.skills.get(name)
+        if not skill:
+            return None
+        record = self._normalize_skill_memory_record({
+            "note": note,
+            "type": memory_type,
+            "outcome": outcome,
+            "task_family": task_family,
+            "source": source,
+            "confidence": confidence,
+            "tags": tags or [],
+            "transfer_gate": transfer_gate or {},
+            "evidence": evidence or {},
+        })
+        memory = self._normalized_skill_memory(skill)
+        memory.append(record)
+        skill.skill_memory = memory[-50:]
+        should_persist = self.persist if persist is None else persist
+        if should_persist and skill.name not in self._builtin_skill_names():
+            self._rewrite_custom_skills()
+        return record
+
     def get_recommended_skills(self, goal: str, world_state: dict) -> list[Skill]:
         """Return skills that match the current context, sorted by success rate and policy relevance."""
         scored: dict[str, tuple[float, Skill]] = {}
@@ -139,6 +177,29 @@ class SkillLibrary:
                 )
             if len(hints) >= limit:
                 break
+        return hints
+
+    def get_skill_memory_hints(self, goal: str = "", task_family: str = "", limit: int = 5) -> list[str]:
+        """Return concise skill-local memories that can guide planning."""
+        report = self.skill_memory_report(
+            goal=goal,
+            task_family=task_family,
+            include_builtins=True,
+            limit=0,
+        )
+        hints = []
+        for skill in report["skills"]:
+            for memory in skill["memories"]:
+                note = memory.get("note", "")
+                if not note:
+                    continue
+                prefix = f"{skill['name']}[{memory.get('type', 'experience')}]"
+                outcome = memory.get("outcome", "")
+                if outcome:
+                    prefix += f"/{outcome}"
+                hints.append(f"{prefix}: {note}")
+                if len(hints) >= limit:
+                    return hints
         return hints
 
     def find_failure_correction(self, action: dict, result: dict = None, world_state: dict = None) -> Optional[tuple[Skill, dict]]:
@@ -238,6 +299,76 @@ class SkillLibrary:
             "edges": sorted(edges, key=lambda edge: (edge["from"], edge["type"], edge["to"])),
         }
 
+    def skill_memory_report(
+        self,
+        goal: str = "",
+        task_family: str = "",
+        include_builtins: bool = False,
+        limit: int = 20,
+    ) -> dict:
+        """Return per-skill memory, transfer, and interference diagnostics."""
+        builtin_names = self._builtin_skill_names()
+        family_filter = str(task_family or "").strip().lower()
+        summaries = []
+        issue_counts = {}
+        task_family_counts = {}
+        recommendation_items = []
+
+        for skill in self.skills.values():
+            built_in = skill.name in builtin_names
+            memories = self._normalized_skill_memory(skill)
+            if family_filter:
+                memories = [
+                    memory for memory in memories
+                    if str(memory.get("task_family", "")).strip().lower() == family_filter
+                ]
+            if built_in and not include_builtins and not memories:
+                continue
+            if family_filter and not memories:
+                continue
+
+            summary = self._skill_memory_summary(skill, memories, goal, built_in)
+            summaries.append(summary)
+            for issue in summary["issues"]:
+                issue_counts[issue] = issue_counts.get(issue, 0) + 1
+            for family, count in summary["task_family_counts"].items():
+                task_family_counts[family] = task_family_counts.get(family, 0) + count
+            for recommendation in summary["recommendations"]:
+                recommendation_items.append({
+                    "skill": skill.name,
+                    "recommendation": recommendation,
+                    "reason": self._skill_memory_recommendation_reason(recommendation),
+                })
+
+        summaries.sort(
+            key=lambda item: (
+                item["memory_count"],
+                item["approved_transfer_memory_count"],
+                item["contract_score"],
+                item["success_rate"],
+                item["total_uses"],
+            ),
+            reverse=True,
+        )
+        visible = summaries[:limit] if limit and limit > 0 else summaries
+        return {
+            "goal": goal,
+            "task_family": task_family,
+            "skill_count": len(summaries),
+            "skills_with_memory_count": sum(1 for item in summaries if item["memory_count"] > 0),
+            "memory_count": sum(item["memory_count"] for item in summaries),
+            "success_memory_count": sum(item["success_memory_count"] for item in summaries),
+            "failure_memory_count": sum(item["failure_memory_count"] for item in summaries),
+            "approved_transfer_memory_count": sum(
+                item["approved_transfer_memory_count"] for item in summaries
+            ),
+            "review_transfer_memory_count": sum(item["review_transfer_memory_count"] for item in summaries),
+            "issue_counts": issue_counts,
+            "task_family_counts": task_family_counts,
+            "recommendations": recommendation_items[:limit] if limit and limit > 0 else recommendation_items,
+            "skills": visible,
+        }
+
     def skill_contract_report(self, goal: str = "", world_state: Optional[dict] = None, limit: int = 20) -> dict:
         """Return COS-PLAY-style skill contract readiness and retrieval evidence."""
         all_profiles = self._skill_contract_profiles(goal, world_state or {}, limit=0)
@@ -268,6 +399,7 @@ class SkillLibrary:
                         continue
                     data = json.loads(line)
                     skill = Skill(**self._filter_skill_fields(data))
+                    skill.skill_memory = self._normalized_skill_memory(skill)
                     self.skills[skill.name] = skill
         except Exception as e:
             logger.warning(f"Could not load custom skills: {e}")
@@ -281,6 +413,129 @@ class SkillLibrary:
     def _filter_skill_fields(self, data: dict) -> dict:
         allowed = set(Skill.__dataclass_fields__.keys())
         return {k: v for k, v in data.items() if k in allowed}
+
+    def _normalized_skill_memory(self, skill: Skill) -> list[dict]:
+        raw_memory = skill.skill_memory if isinstance(skill.skill_memory, list) else []
+        return [
+            self._normalize_skill_memory_record(record)
+            for record in raw_memory
+            if isinstance(record, (dict, str))
+        ]
+
+    def _normalize_skill_memory_record(self, record) -> dict:
+        if isinstance(record, str):
+            record = {"note": record}
+        record = record if isinstance(record, dict) else {}
+        transfer_gate = record.get("transfer_gate", {})
+        transfer_gate = transfer_gate if isinstance(transfer_gate, dict) else {}
+        evidence = record.get("evidence", {})
+        evidence = evidence if isinstance(evidence, dict) else {}
+        confidence = record.get("confidence", 0.7)
+        try:
+            confidence = float(confidence)
+        except (TypeError, ValueError):
+            confidence = 0.7
+        confidence = round(min(1.0, max(0.0, confidence)), 4)
+        tags = []
+        raw_tags = record.get("tags", [])
+        raw_tags = raw_tags if isinstance(raw_tags, list) else []
+        for tag in raw_tags:
+            text = str(tag or "").strip()
+            if text and text not in tags:
+                tags.append(text)
+        transfer_readiness = (
+            record.get("transfer_readiness")
+            or transfer_gate.get("readiness")
+            or transfer_gate.get("decision")
+            or ""
+        )
+        return {
+            "timestamp": str(record.get("timestamp") or time.strftime("%Y-%m-%d")),
+            "type": str(record.get("type") or record.get("memory_type") or "experience").strip() or "experience",
+            "outcome": str(record.get("outcome") or "").strip().lower(),
+            "task_family": str(record.get("task_family") or "").strip().lower(),
+            "note": str(record.get("note") or "").strip(),
+            "source": str(record.get("source") or "").strip(),
+            "confidence": confidence,
+            "tags": tags,
+            "transfer_readiness": str(transfer_readiness or "").strip().lower(),
+            "transfer_gate": transfer_gate,
+            "evidence": evidence,
+        }
+
+    def _skill_memory_summary(self, skill: Skill, memories: list[dict], goal: str, built_in: bool) -> dict:
+        governance = self._skill_governance(skill, built_in=built_in)
+        contract = self._skill_contract_profile(skill, goal, {}) if goal else {
+            "score": 0.0,
+            "readiness": "ready" if governance["gate_readiness"] not in {"review", "rejected", "error"} else "review",
+            "issues": [],
+        }
+        task_family_counts = {}
+        for memory in memories:
+            family = memory.get("task_family") or "unspecified"
+            task_family_counts[family] = task_family_counts.get(family, 0) + 1
+        success_count = sum(1 for memory in memories if memory.get("outcome") in {
+            "success", "succeeded", "achieved", "approved", "positive",
+        })
+        failure_count = sum(1 for memory in memories if memory.get("outcome") in {
+            "failure", "failed", "rejected", "blocked", "regression", "negative",
+        })
+        approved_transfer_count = sum(
+            1 for memory in memories if memory.get("transfer_readiness") == "approved"
+        )
+        review_transfer_count = sum(
+            1 for memory in memories if memory.get("transfer_readiness") in {"review", "rejected", "error"}
+        )
+        issues = []
+        if not built_in and not memories:
+            issues.append("missing_skill_memory")
+        if failure_count > success_count and failure_count > 0:
+            issues.append("failure_heavy_memory")
+        if review_transfer_count:
+            issues.append("transfer_review_or_rejected")
+        if governance["gate_readiness"] in {"review", "rejected", "error"}:
+            issues.append(f"gate_{governance['gate_readiness']}")
+
+        recommendations = []
+        if "missing_skill_memory" in issues:
+            recommendations.append("record_replay_or_failure_memory")
+        if "failure_heavy_memory" in issues:
+            recommendations.append("refine_skill_or_add_failure_correction")
+        if "transfer_review_or_rejected" in issues or governance["gate_readiness"] in {"review", "rejected", "error"}:
+            recommendations.append("keep_task_family_route_gated")
+        if approved_transfer_count and contract.get("readiness") == "ready":
+            recommendations.append("candidate_runtime_default_for_matching_family")
+
+        return {
+            "name": skill.name,
+            "layer": skill.layer,
+            "built_in": built_in,
+            "description": skill.description,
+            "total_uses": skill.total_uses,
+            "success_rate": round(skill.success_rate, 4),
+            "gate_readiness": governance["gate_readiness"],
+            "contract_score": round(float(contract.get("score", 0.0)), 4),
+            "contract_readiness": contract.get("readiness", "ready"),
+            "memory_count": len(memories),
+            "success_memory_count": success_count,
+            "failure_memory_count": failure_count,
+            "approved_transfer_memory_count": approved_transfer_count,
+            "review_transfer_memory_count": review_transfer_count,
+            "task_family_counts": task_family_counts,
+            "last_memory_at": memories[-1]["timestamp"] if memories else "",
+            "issues": sorted(set(issues + contract.get("issues", []))),
+            "recommendations": sorted(set(recommendations)),
+            "memories": memories[-5:],
+        }
+
+    def _skill_memory_recommendation_reason(self, recommendation: str) -> str:
+        reasons = {
+            "record_replay_or_failure_memory": "custom skill has no skill-local replay or failure notes",
+            "refine_skill_or_add_failure_correction": "failure memories outnumber successful memories",
+            "keep_task_family_route_gated": "transfer or promotion gate is not approved",
+            "candidate_runtime_default_for_matching_family": "approved transfer memory and ready contract",
+        }
+        return reasons.get(recommendation, "")
 
     def _policy_skills(self, goal: str, world_state: dict) -> list[Skill]:
         scored = []

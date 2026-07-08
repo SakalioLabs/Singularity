@@ -1436,6 +1436,74 @@ def test_skill_library_reports_contract_readiness_and_recommends_matches():
     print("PASS: SkillLibrary reports contract readiness and recommends matches")
 
 
+def test_skill_library_records_skill_level_memory_and_transfer_report():
+    tmpdir = tempfile.mkdtemp()
+    skill_dir = os.path.join(tmpdir, "skills")
+    skills = SkillLibrary(storage_path=skill_dir, persist=True)
+    skills.create_skill(
+        "craft_torch_memory_skill",
+        "Craft torches after securing coal and sticks",
+        json.dumps([{"type": "craft", "parameters": {"item": "torch", "count": 4}}]),
+        postconditions={"inventory": {"torch": 4}},
+        dependencies=["craft_item"],
+        gate={"decision": "approve", "verification": {"status": "achieved"}},
+    )
+    skills.create_skill(
+        "empty_custom_memory_skill",
+        "Custom skill that still needs replay evidence",
+        json.dumps([]),
+        postconditions={"state": {"ready": True}},
+    )
+
+    approved = skills.record_skill_memory(
+        "craft_torch_memory_skill",
+        "When coal_ore is visible, mine coal before crafting torches to avoid missing-material retries.",
+        memory_type="replay",
+        outcome="success",
+        task_family="crafting",
+        source="task_stream:wood_to_tools",
+        confidence=0.9,
+        tags=["torch", "coal"],
+        transfer_gate={"readiness": "approved", "target": "skill:craft_torch_memory_skill"},
+        evidence={"stream": "wood_to_tools", "reuse_tag": "torch_recipe"},
+    )
+    review = skills.record_skill_memory(
+        "craft_torch_memory_skill",
+        "Do not reuse the same torch macro in underwater routes until air-pocket recovery is tested.",
+        memory_type="anti_pattern",
+        outcome="failure",
+        task_family="crafting",
+        confidence=0.8,
+        transfer_gate={"readiness": "review", "target": "skill:craft_torch_memory_skill"},
+    )
+
+    assert approved and approved["transfer_readiness"] == "approved"
+    assert review and review["type"] == "anti_pattern"
+
+    reloaded = SkillLibrary(storage_path=skill_dir, persist=True)
+    report = reloaded.skill_memory_report("Craft torches", task_family="crafting", limit=0)
+    summaries = {summary["name"]: summary for summary in report["skills"]}
+    torch = summaries["craft_torch_memory_skill"]
+
+    assert report["memory_count"] == 2
+    assert report["approved_transfer_memory_count"] == 1
+    assert report["review_transfer_memory_count"] == 1
+    assert report["failure_memory_count"] == 1
+    assert report["task_family_counts"]["crafting"] == 2
+    assert torch["success_memory_count"] == 1
+    assert torch["failure_memory_count"] == 1
+    assert "transfer_review_or_rejected" in torch["issues"]
+    assert torch["memories"][0]["evidence"]["reuse_tag"] == "torch_recipe"
+
+    unfiltered = reloaded.skill_memory_report("Craft torches", limit=0)
+    empty = {summary["name"]: summary for summary in unfiltered["skills"]}["empty_custom_memory_skill"]
+    assert "missing_skill_memory" in empty["issues"]
+
+    hints = reloaded.get_skill_memory_hints("Craft torches", task_family="crafting", limit=2)
+    assert hints and "mine coal before crafting torches" in hints[0]
+    print("PASS: SkillLibrary records skill-level memory and transfer report")
+
+
 def test_skill_library_reports_canonical_dependency_cycles():
     tmpdir = tempfile.mkdtemp()
     skills = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=True)
@@ -1830,6 +1898,7 @@ if __name__ == "__main__":
     test_skill_library_recommends_policy_skills_and_corrections()
     test_skill_library_reports_skill_graph_governance()
     test_skill_library_reports_contract_readiness_and_recommends_matches()
+    test_skill_library_records_skill_level_memory_and_transfer_report()
     test_skill_library_reports_canonical_dependency_cycles()
     test_skill_library_handles_legacy_dependency_string()
     test_agent_runs_approved_failure_correction_sequence()

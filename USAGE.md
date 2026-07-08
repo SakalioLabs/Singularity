@@ -320,6 +320,9 @@ python -m singularity.main skill-graph-report --skill-storage-path workspace/ski
 # Score approved/custom skill contracts against a goal and current world state
 python -m singularity.main skill-contract-report --skill-storage-path workspace/skills --goal "Craft torches" --world-state-json '{"inventory":{"coal":1,"stick":2},"nearby_blocks":[{"name":"coal_ore"}]}' --output logs/benchmarks/skill_contracts.json
 
+# Audit MUSE-style per-skill replay, failure, and transfer memories
+python -m singularity.main skill-memory-report --skill-storage-path workspace/skills --goal "Craft torches" --task-family crafting --output logs/benchmarks/skill_memory.json
+
 # Approve or reject a candidate
 python -m singularity.main skill-candidates --approve CANDIDATE_ID
 python -m singularity.main skill-candidates --approve CANDIDATE_ID --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
