@@ -167,10 +167,9 @@ python -m singularity.main mixed-initiative-report --goal "Build a cobblestone w
 python -m singularity.main mixed-initiative-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/mixed_initiative_trace.json
 # Built-in templates cover oak-log collection, pickaxe retrieval, generic craft/process,
 # generic collect/mine, and build/place requests. The saved JSON still includes
-# `template_candidates` and `mixed_initiative_feedback` for remaining unsupported
-# player requests, action-policy issues, and validator/GoalVerifier disagreements.
-# `MixedInitiativeFeedbackPolicy` can consume the saved feedback to produce
-# per-template review decisions and candidate-promotion recommendations.
+# `template_candidates`, `mixed_initiative_feedback`, and
+# `mixed_initiative_recommendations` for unsupported requests, action-policy issues,
+# validator/GoalVerifier disagreements, template reviews, and candidate promotion.
 
 # Replay held-out paraphrases and optional JSON/JSONL case files before promoting
 # new mixed-initiative templates or changing auto-selection heuristics.

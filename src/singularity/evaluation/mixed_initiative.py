@@ -349,6 +349,10 @@ class MixedInitiativeTraceReport:
     def mixed_initiative_feedback(self) -> dict:
         return _mixed_initiative_feedback(self)
 
+    @property
+    def mixed_initiative_recommendations(self) -> list[dict]:
+        return MixedInitiativeFeedbackPolicy(self.mixed_initiative_feedback).recommendations()
+
     def to_dict(self) -> dict:
         return {
             "log_count": self.log_count,
@@ -371,6 +375,7 @@ class MixedInitiativeTraceReport:
             "action_type_counts": self.action_type_counts,
             "template_action_metrics": self.template_action_metrics,
             "mixed_initiative_feedback": self.mixed_initiative_feedback,
+            "mixed_initiative_recommendations": self.mixed_initiative_recommendations,
             "errors": list(self.errors),
             "cases": [case.to_dict() for case in self.cases],
         }

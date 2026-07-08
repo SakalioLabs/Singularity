@@ -1149,6 +1149,13 @@ def main():
                     f"    - {hint['policy']}[{hint.get('priority', 'low')}] "
                     f"{target}: {hint.get('reason', '')}"
                 )
+        if report.mixed_initiative_recommendations:
+            print("  recommendations:")
+            for item in report.mixed_initiative_recommendations[:6]:
+                print(
+                    f"    - {item['decision']}[{item.get('priority', 'normal')}] "
+                    f"{item['target_type']}:{item['target_id']}"
+                )
         if report.template_candidates:
             print("  template candidates:")
             for candidate in report.template_candidates[:6]:

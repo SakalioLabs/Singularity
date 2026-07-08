@@ -374,6 +374,10 @@ def test_mixed_initiative_trace_report_feedback_flags_failed_actions():
     policies = {hint["policy"]: hint for hint in feedback["policy_hints"]}
     assert policies["inspect_backend_execution"]["template_id"] == "craft_or_process_item"
     assert policies["improve_action_policy"]["valid_action_success_rate"] == 0.0
+    recommendations = report.mixed_initiative_recommendations
+    assert recommendations[0]["decision"] == "inspect_backend_execution"
+    assert recommendations[0]["target_id"] == "craft_or_process_item"
+    assert report.to_dict()["mixed_initiative_recommendations"][0]["target_id"] == "craft_or_process_item"
     print("PASS: Mixed-initiative feedback flags failed backend actions")
 
 
@@ -432,6 +436,9 @@ def test_mixed_initiative_trace_report_groups_template_candidates():
     assert candidate_hint["policy"] == "promote_template_candidate"
     assert candidate_hint["candidate_id"] == "general_player_request"
     assert candidate_hint["priority"] == "medium"
+    recommendation = report.mixed_initiative_recommendations[0]
+    assert recommendation["decision"] == "promote_template_candidate"
+    assert recommendation["target_id"] == "general_player_request"
     print("PASS: Mixed-initiative trace report groups unsupported goals into template candidates")
 
 

@@ -122,6 +122,7 @@
 - [x] Add GameWorld-style action-validity metrics to `mixed-initiative-trace-report`, separating raw action success from bounded-policy-valid success and aggregating by template.
 - [x] Add `mixed_initiative_feedback` hints to trace JSON so action-validity, validator disagreement, and unsupported-template signals can feed later policy/template updates.
 - [x] Add `MixedInitiativeFeedbackPolicy` to consume trace feedback into per-template review decisions and unsupported-template promotion recommendations.
+- [x] Expose `MixedInitiativeFeedbackPolicy.recommendations()` from `mixed-initiative-trace-report` JSON/CLI as `mixed_initiative_recommendations`.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -143,7 +144,8 @@
 - [ ] Mine real player/session requests into `mixed-initiative-variant-report --case-file` suites and track held-out template coverage before changing auto-selection heuristics.
 - [ ] Run `mixed-initiative-trace-report` on live M1/M2/M7 logs and compare `template_action_metrics` for invalid actions, failed backend actions, and valid-success rates by task family.
 - [ ] Feed `mixed_initiative_feedback.policy_hints` from live traces into action/template policy experiments and compare before/after held-out variant coverage.
-- [ ] Connect `MixedInitiativeFeedbackPolicy.recommendations()` to the next template-review or action-policy ablation runner.
+- [x] Connect `MixedInitiativeFeedbackPolicy.recommendations()` to the next template-review or action-policy ablation runner.
+- [ ] Use `mixed_initiative_recommendations` as input to a future live-template review queue or action-policy ablation runner.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
 - [ ] Run an unknown visual/environment goal with `--goal-critic` and inspect `goal_verification_metrics` plus critic evidence in the session log.
 - [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces and compare completion judgments against manual review.
