@@ -97,6 +97,7 @@
 - [x] Add live benchmark `--visual-action-ablation` so M1/M2 suites can compare visual action grounding disabled versus enabled, including visual action intervention counts and phases.
 - [x] Add OpenClaw-style recall diversity tracking for memory entries and transferable experiences, plus `memory-consolidation-report` to identify reviewable consolidation candidates.
 - [x] Add MineExplorer to the paper index as the next open-world autonomous exploration evaluation reference.
+- [x] Add SciCrafter and WhisperBench to the paper index for discovery-to-application tasks and persistent-memory/patch gate hardening.
 - [x] Add offline `exploration-trace-report` for MineExplorer-style autonomous/open-world coverage: visited position spread, newly observed blocks/entities/resources, visual evidence, hazards, multi-step plans, and action failure categories.
 - [x] Add a curriculum feedback bridge from `exploration-trace-report`: reports now emit `curriculum_feedback`, and `CurriculumManager.record_exploration_feedback()` uses discovered resources, low-movement logs, and failure categories to adjust future exploration candidates.
 - [x] Add OpenHA/CrossAgent to the paper index and map Chain-of-Action ideas onto Singularity's action abstraction layer.
@@ -162,12 +163,14 @@
 - [x] Add M7 Agent-backed mixed-policy ablation mode that runs collaboration once without and once with approved patches.
 - [x] Add M7 mixed-policy role-log control-policy summaries for baseline vs patched collaboration runs.
 - [x] Add mixed-policy promotion gate that approves, rejects, or routes patches to review from offline, benchmark, and collaboration ablation evidence.
+- [x] Gate runtime mixed-policy patch loading with approved policy-gate reports when `mixed_policy_gate_paths` is configured.
 - [ ] Run live M1/M2/M7 with an approved mixed-policy patch and compare control-policy decisions plus mixed-policy review decisions against baseline.
 - [ ] Use `mixed-initiative-policy-ablation` on approved live-trace patches before running the corresponding patched benchmark suite.
 - [ ] Run `benchmark --mixed-policy-ablation --mixed-policy-patch ...` on M1/M2 once the bridge and Minecraft server are live.
 - [ ] Run Agent-backed `collab-benchmark --mixed-policy-patch ...` on BM-701 and compare role session logs against an unpatched run.
 - [ ] Run Agent-backed `collab-benchmark --mixed-policy-ablation --mixed-policy-patch ...` on BM-701 with live role bridges.
 - [ ] Use `mixed-initiative-policy-gate` on real approved patch reports before making a patch part of default runtime configuration.
+- [ ] Promote real approved gate reports into repeatable runtime profiles for M1/M2/M7.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
 - [ ] Run an unknown visual/environment goal with `--goal-critic` and inspect `goal_verification_metrics` plus critic evidence in the session log.
 - [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces and compare completion judgments against manual review.

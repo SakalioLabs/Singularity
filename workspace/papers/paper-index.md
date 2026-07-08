@@ -758,6 +758,42 @@
 
 ---
 
+## P-041: SciCrafter
+
+- **Title**: Can Current Agents Close the Discovery-to-Application Gap? A Case Study in Minecraft
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2604.24697
+- **Type**: Benchmark / diagnostic evaluation
+- **Task Type**: Minecraft redstone discovery-to-application tasks
+- **Core Method**: Parameterized redstone circuits that require knowledge-gap identification, experimental discovery, consolidation, and final construction
+- **Action Space**: Minecraft construction and experiment actions
+- **Memory**: Experiment hypotheses, causal observations, and consolidated rules
+- **Key Results**: Reports a large gap between discovering causal rules and applying them reliably in scaled Minecraft build tasks
+- **Scores**: R=5, N=5, R=3, E=5
+- **Value to Project**: Blueprint for adding experiment-before-build task phases and gating generated redstone/building skills on held-out application evidence
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-scicrafter.md`
+
+---
+
+## P-042: WhisperBench / MemGhost
+
+- **Title**: When Claws Remember but Do Not Tell: Stealthy Memory Injection in Persistent Personal Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2607.05189
+- **Type**: Security benchmark / attack study
+- **Task Type**: Persistent-agent memory injection across real workflow surfaces
+- **Core Method**: End-to-end benchmark and one-shot payload generator for poisoning durable memories without visible user warning
+- **Action Space**: External-content processing, memory writes, and later agent actions
+- **Memory**: Persistent fact and preference memories with provenance-sensitive trust boundaries
+- **Key Results**: Shows memory poisoning can persist and transfer across persistent-agent architectures and memory backends
+- **Scores**: R=5, N=5, R=3, E=5
+- **Value to Project**: Direct support for gate-first promotion of memory, skills, shared-state consolidations, and mixed-policy patches before runtime use
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-whisperbench.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -802,3 +838,5 @@
 | P-038 | NitroGen | 2026 | R3/N5/R4/E4 | P3 |
 | P-039 | GameWorld | 2026 | R4/N5/R4/E5 | P2 |
 | P-040 | OmniGameArena | 2026 | R3/N5/R3/E4 | P3 |
+| P-041 | SciCrafter | 2026 | R5/N5/R3/E5 | P2 |
+| P-042 | WhisperBench / MemGhost | 2026 | R5/N5/R3/E5 | P1 |

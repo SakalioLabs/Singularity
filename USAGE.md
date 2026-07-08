@@ -199,6 +199,9 @@ python -m singularity.main mixed-initiative-policy-ablation --policy-patch logs/
 python -m singularity.main benchmark --suite m1 --mixed-policy-ablation --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --output mixed_policy_benchmark_ablation.json
 # Gate patch promotion from offline, benchmark, and collaboration ablation evidence.
 python -m singularity.main mixed-initiative-policy-gate --policy-ablation logs/benchmarks/mixed_policy_ablation.json --benchmark-ablation logs/benchmarks/mixed_policy_benchmark_ablation.json --collab-ablation logs/benchmarks/bm701_mixed_policy_ablation.json --output logs/benchmarks/mixed_policy_gate.json
+# Require an approved gate report before a runtime Agent loads a mixed-policy patch.
+python -m singularity.main run --goal "Craft 4 torches" --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json
+python -m singularity.main benchmark --suite m1 --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json
 
 # Replay held-out paraphrases and optional JSON/JSONL case files before promoting
 # new mixed-initiative templates or changing auto-selection heuristics.
@@ -308,9 +311,9 @@ node src/bot/bot_server.js --username Singularity_single_agent --bridge-port 300
 python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --preflight --executor agent --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --role-bridge-port single_agent=3002 --single-agent-baseline
 python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --execute --executor agent --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --role-bridge-port single_agent=3002 --single-agent-baseline --output logs/benchmarks/bm701_collab_report.json
 # Load approved mixed-initiative policy patches into every Agent executor role.
-python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --execute --executor agent --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --output logs/benchmarks/bm701_mixed_policy_report.json
+python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --execute --executor agent --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json --output logs/benchmarks/bm701_mixed_policy_report.json
 # Compare Agent-backed collaboration once without and once with the approved patch.
-python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --execute --executor agent --mixed-policy-ablation --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --output logs/benchmarks/bm701_mixed_policy_ablation.json
+python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --execute --executor agent --mixed-policy-ablation --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json --output logs/benchmarks/bm701_mixed_policy_ablation.json
 
 # Use a custom shared-state file
 python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --state-path workspace/multiagent/bm701_state.json

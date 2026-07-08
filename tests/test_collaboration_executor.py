@@ -192,7 +192,10 @@ def test_agent_collaboration_executor_uses_explicit_role_bridge_ports():
 
 def test_agent_collaboration_executor_preserves_mixed_policy_patch_paths():
     created = {}
-    config = Config(mixed_policy_patch_paths=["logs/benchmarks/mixed_policy_patch.json"])
+    config = Config(
+        mixed_policy_patch_paths=["logs/benchmarks/mixed_policy_patch.json"],
+        mixed_policy_gate_paths=["logs/benchmarks/mixed_policy_gate.json"],
+    )
 
     def factory(role_config):
         agent = FakeAgent(role_config)
@@ -205,6 +208,7 @@ def test_agent_collaboration_executor_preserves_mixed_policy_patch_paths():
     agent = created["Singularity_resource_runner"]
     assert agent.config.bot.bridge_port == 4100
     assert agent.config.mixed_policy_patch_paths == ["logs/benchmarks/mixed_policy_patch.json"]
+    assert agent.config.mixed_policy_gate_paths == ["logs/benchmarks/mixed_policy_gate.json"]
     print("PASS: AgentCollaborationExecutor preserves mixed policy patch paths")
 
 

@@ -100,18 +100,33 @@ class Agent:
 
     def _load_mixed_policy_patches(self) -> dict:
         """Load approved mixed-initiative policy patches into runtime policy objects."""
+        patch_paths = [
+            path for path in (getattr(self.config, "mixed_policy_patch_paths", []) or [])
+            if path
+        ]
+        gate_report = self._evaluate_mixed_policy_patch_gate()
         report = {
-            "paths": [],
+            "paths": list(patch_paths),
             "loaded_count": 0,
+            "skipped_count": 0,
             "action_policy_hints_applied": 0,
             "mixed_policy_hints_applied": 0,
             "template_policy_update_count": 0,
             "errors": [],
+            **gate_report,
         }
-        for path in getattr(self.config, "mixed_policy_patch_paths", []) or []:
-            if not path:
-                continue
-            report["paths"].append(path)
+        if report["gate_required"] and not report["gate_approved"]:
+            report["skipped_count"] = len(patch_paths)
+            if patch_paths:
+                logger.warning(
+                    "Mixed policy patch loading skipped: "
+                    f"gate_readiness={report['gate_readiness']}, "
+                    f"gate_paths={len(report['gate_paths'])}, "
+                    f"patch_paths={len(patch_paths)}"
+                )
+            return report
+
+        for path in patch_paths:
             try:
                 with open(path, "r", encoding="utf-8-sig") as f:
                     patch = json.load(f)
@@ -136,6 +151,60 @@ class Agent:
                 f"mixed_hints={report['mixed_policy_hints_applied']}, "
                 f"errors={len(report['errors'])}"
             )
+        return report
+
+    def _evaluate_mixed_policy_patch_gate(self) -> dict:
+        """Return whether runtime policy patches may be loaded under configured gates."""
+        gate_paths = [
+            path for path in (getattr(self.config, "mixed_policy_gate_paths", []) or [])
+            if path
+        ]
+        report = {
+            "gate_paths": list(gate_paths),
+            "gate_required": bool(gate_paths),
+            "gate_approved": True,
+            "gate_readiness": "not_required",
+            "gate_reports": [],
+        }
+        if not gate_paths:
+            return report
+
+        report["gate_approved"] = False
+        readinesses = []
+        for path in gate_paths:
+            gate_summary = {
+                "path": path,
+                "readiness": "error",
+                "decision": "",
+                "reason": "",
+            }
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    gate = json.load(f)
+                readiness = str(gate.get("readiness", "")).strip().lower() or "unknown"
+                gate_summary.update({
+                    "readiness": readiness,
+                    "decision": str(gate.get("decision", "")).strip(),
+                    "reason": str(gate.get("reason", "")).strip()[:300],
+                })
+            except Exception as e:
+                readiness = "error"
+                gate_summary["error"] = str(e)
+                logger.warning(f"Failed to load mixed policy gate {path}: {e}")
+            readinesses.append(readiness)
+            report["gate_reports"].append(gate_summary)
+
+        if any(readiness == "error" for readiness in readinesses):
+            report["gate_readiness"] = "error"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report["gate_readiness"] = "approved"
+            report["gate_approved"] = True
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report["gate_readiness"] = "rejected"
+        elif any(readiness == "review" for readiness in readinesses):
+            report["gate_readiness"] = "review"
+        else:
+            report["gate_readiness"] = "unknown"
         return report
 
     def connect(self) -> bool:

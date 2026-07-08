@@ -26,6 +26,47 @@ class FakeBot:
         return {"success": True}
 
 
+def _write_mixed_policy_patch(tmpdir):
+    patch_path = os.path.join(tmpdir, "mixed_policy_patch.json")
+    with open(patch_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "action_policy_feedback": {
+                "policy_hints": [
+                    {
+                        "action_type": "place",
+                        "preferred_control": "consider_low_level_visual_control",
+                        "reason": "visual_or_precision_sensitive",
+                        "low_level_candidate_count": 1,
+                    }
+                ]
+            },
+            "mixed_initiative_feedback": {
+                "policy_hints": [
+                    {
+                        "policy": "inspect_backend_execution",
+                        "template_id": "craft_or_process_item",
+                        "priority": "high",
+                    }
+                ]
+            },
+            "template_policy_updates": [
+                {"target_id": "craft_or_process_item", "decision": "inspect_backend_execution"}
+            ],
+        }, f)
+    return patch_path
+
+
+def _write_mixed_policy_gate(tmpdir, readiness):
+    gate_path = os.path.join(tmpdir, f"mixed_policy_gate_{readiness}.json")
+    with open(gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "readiness": readiness,
+            "decision": "allow_patch_auto_load" if readiness == "approved" else "manual_review_required",
+            "reason": "test gate",
+        }, f)
+    return gate_path
+
+
 def test_use_item_equips_requested_item_first():
     bot = FakeBot()
     controller = ActionController(bot, Config())
@@ -139,32 +180,7 @@ def test_action_granularity_policy_can_emit_planned_desktop_mapping():
 
 def test_agent_loads_mixed_policy_patch_into_runtime_policies():
     tmpdir = tempfile.mkdtemp()
-    patch_path = os.path.join(tmpdir, "mixed_policy_patch.json")
-    with open(patch_path, "w", encoding="utf-8") as f:
-        json.dump({
-            "action_policy_feedback": {
-                "policy_hints": [
-                    {
-                        "action_type": "place",
-                        "preferred_control": "consider_low_level_visual_control",
-                        "reason": "visual_or_precision_sensitive",
-                        "low_level_candidate_count": 1,
-                    }
-                ]
-            },
-            "mixed_initiative_feedback": {
-                "policy_hints": [
-                    {
-                        "policy": "inspect_backend_execution",
-                        "template_id": "craft_or_process_item",
-                        "priority": "high",
-                    }
-                ]
-            },
-            "template_policy_updates": [
-                {"target_id": "craft_or_process_item", "decision": "inspect_backend_execution"}
-            ],
-        }, f)
+    patch_path = _write_mixed_policy_patch(tmpdir)
     config = Config(
         log_dir=os.path.join(tmpdir, "logs"),
         memory_dir=os.path.join(tmpdir, "memory"),
@@ -186,6 +202,55 @@ def test_agent_loads_mixed_policy_patch_into_runtime_policies():
     print("PASS: Agent loads mixed policy patch into runtime policies")
 
 
+def test_agent_loads_mixed_policy_patch_when_gate_is_approved():
+    tmpdir = tempfile.mkdtemp()
+    patch_path = _write_mixed_policy_patch(tmpdir)
+    gate_path = _write_mixed_policy_gate(tmpdir, "approved")
+    config = Config(
+        log_dir=os.path.join(tmpdir, "logs"),
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        mixed_policy_patch_paths=[patch_path],
+        mixed_policy_gate_paths=[gate_path],
+    )
+
+    agent = Agent(config)
+
+    report = agent.mixed_policy_patch_report
+    assert report["gate_required"] is True
+    assert report["gate_approved"] is True
+    assert report["gate_readiness"] == "approved"
+    assert report["loaded_count"] == 1
+    assert report["skipped_count"] == 0
+    assert agent.action_policy.hints()["place"]["preferred_control"] == "consider_low_level_visual_control"
+    print("PASS: Agent loads mixed policy patch when gate is approved")
+
+
+def test_agent_skips_mixed_policy_patch_when_gate_is_not_approved():
+    for readiness in ("review", "rejected"):
+        tmpdir = tempfile.mkdtemp()
+        patch_path = _write_mixed_policy_patch(tmpdir)
+        gate_path = _write_mixed_policy_gate(tmpdir, readiness)
+        config = Config(
+            log_dir=os.path.join(tmpdir, "logs"),
+            memory_dir=os.path.join(tmpdir, "memory"),
+            skill_dir=os.path.join(tmpdir, "skills"),
+            mixed_policy_patch_paths=[patch_path],
+            mixed_policy_gate_paths=[gate_path],
+        )
+
+        agent = Agent(config)
+
+        report = agent.mixed_policy_patch_report
+        assert report["gate_required"] is True
+        assert report["gate_approved"] is False
+        assert report["gate_readiness"] == readiness
+        assert report["loaded_count"] == 0
+        assert report["skipped_count"] == 1
+        assert "place" not in agent.action_policy.hints()
+    print("PASS: Agent skips mixed policy patch when gate is not approved")
+
+
 if __name__ == "__main__":
     test_use_item_equips_requested_item_first()
     test_action_mapper_desktop_backend_is_planned_not_executable()
@@ -194,4 +259,6 @@ if __name__ == "__main__":
     test_action_granularity_policy_records_visual_preference_without_breaking_mineflayer()
     test_action_granularity_policy_can_emit_planned_desktop_mapping()
     test_agent_loads_mixed_policy_patch_into_runtime_policies()
+    test_agent_loads_mixed_policy_patch_when_gate_is_approved()
+    test_agent_skips_mixed_policy_patch_when_gate_is_not_approved()
     print("\nAction controller tests PASSED")
