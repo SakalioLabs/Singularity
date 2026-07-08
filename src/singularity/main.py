@@ -218,6 +218,16 @@ def main():
     continual_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     continual_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline controlled task-stream transfer report
+    task_stream_parser = subparsers.add_parser(
+        "task-stream-transfer-report",
+        help="Report AgentCL-style transfer gains, stability, and interference in controlled task streams",
+    )
+    task_stream_parser.add_argument("--stream-file", action="append", default=[], help="JSON/JSONL controlled task stream spec")
+    task_stream_parser.add_argument("--cell-size", type=float, default=8.0, help="XZ block span per world-model cell when deriving scores from session logs")
+    task_stream_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    task_stream_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline memory read filter report
     memory_read_parser = subparsers.add_parser("memory-read-filter-report", help="Report stale or condition-mismatched durable memories for a query")
     memory_read_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
@@ -908,6 +918,42 @@ def main():
                     "unbounded_context_cycle_count": report.unbounded_context_cycle_count,
                     "average_axis_scores": report.average_axis_scores,
                     "continual_learning_feedback": continual_learning_feedback,
+                    "errors": report.errors,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "task-stream-transfer-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        stream_files = getattr(args, "stream_file", []) or []
+        if not stream_files:
+            print("task-stream-transfer-report requires at least one --stream-file")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_task_stream_transfer_report_from_files(
+            stream_files,
+            cell_size=getattr(args, "cell_size", 8.0),
+        )
+        runner.print_task_stream_transfer_report(report)
+        task_stream_feedback = runner.task_stream_transfer_feedback(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "stream_count": report.stream_count,
+                    "ready_stream_count": report.ready_stream_count,
+                    "task_count": report.task_count,
+                    "reusable_relation_count": report.reusable_relation_count,
+                    "reuse_expected_tag_count": report.reuse_expected_tag_count,
+                    "reuse_hit_tag_count": report.reuse_hit_tag_count,
+                    "reuse_coverage": report.reuse_coverage,
+                    "interference_count": report.interference_count,
+                    "average_plasticity_gain": report.average_plasticity_gain,
+                    "average_stability_gain": report.average_stability_gain,
+                    "average_generalization_gain": report.average_generalization_gain,
+                    "task_stream_feedback": task_stream_feedback,
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)

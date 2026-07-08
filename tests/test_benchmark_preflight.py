@@ -2022,6 +2022,74 @@ def test_continual_learning_report_accepts_flat_session_log_fields():
     print("PASS: Continual learning report accepts flat session log fields")
 
 
+def test_task_stream_transfer_report_scores_controlled_reuse():
+    tmpdir = tempfile.mkdtemp()
+    stream_path = os.path.join(tmpdir, "controlled_stream.json")
+    stream = {
+        "id": "wood_to_pickaxe_transfer",
+        "description": "Reusable wood and crafting-table sub-solutions should help later tool goals.",
+        "tasks": [
+            {
+                "id": "collect_oak",
+                "goal": "Collect oak logs",
+                "produced_tags": ["oak_log", "planks"],
+                "baseline_score": 0.30,
+                "first_pass_score": 0.80,
+                "second_pass_score": 0.86,
+                "heldout_score": 0.78,
+                "reuse_evidence": "agent writes oak_log and planks lesson for later crafting",
+            },
+            {
+                "id": "craft_table",
+                "goal": "Craft a crafting table from planks",
+                "depends_on": ["collect_oak"],
+                "expected_reuse_tags": ["oak_log", "planks"],
+                "produced_tags": ["crafting_table"],
+                "baseline_score": 0.20,
+                "first_pass_score": 0.76,
+                "second_pass_score": 0.82,
+                "heldout_score": 0.72,
+                "reuse_evidence": "memory_read reused oak_log to planks workflow before crafting_table",
+            },
+            {
+                "id": "craft_stone_pickaxe",
+                "goal": "Craft a stone pickaxe after collecting cobblestone",
+                "depends_on": ["craft_table"],
+                "expected_reuse_tags": ["crafting_table", "planks"],
+                "baseline_score": 0.18,
+                "first_pass_score": 0.70,
+                "second_pass_score": 0.76,
+                "heldout_score": 0.68,
+                "reuse_evidence": "skill match used crafting_table and planks prerequisites for pickaxe workflow",
+            },
+        ],
+    }
+    with open(stream_path, "w", encoding="utf-8") as f:
+        json.dump(stream, f, indent=2)
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_task_stream_transfer_report_from_files([stream_path])
+    case = report.cases[0]
+    feedback = runner.task_stream_transfer_feedback(report)
+
+    assert report.stream_count == 1
+    assert report.ready_stream_count == 1
+    assert report.task_count == 3
+    assert report.reusable_relation_count == 2
+    assert report.reuse_coverage == 1.0
+    assert report.average_plasticity_gain > 0.45
+    assert report.average_stability_gain > 0.0
+    assert report.average_generalization_gain > 0.4
+    assert report.interference_count == 0
+    assert case.ready_for_transfer_review
+    assert case.plasticity_gain > 0.45
+    assert not case.issues
+    assert case.tasks[1].reuse_hit_tags
+    assert "missing_reuse_evidence" not in case.tasks[1].issues
+    assert not any(hint["task_stream_policy"] == "quarantine_interfering_memories_or_skills" for hint in feedback["policy_hints"])
+    print("PASS: Task stream transfer report scores controlled reuse")
+
+
 def test_ingest_queues_repeated_causal_summary_candidate():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_repeated.jsonl")
@@ -2536,6 +2604,7 @@ if __name__ == "__main__":
     test_bounded_context_report_audits_typed_planner_context()
     test_continual_learning_report_aggregates_open_ended_axes()
     test_continual_learning_report_accepts_flat_session_log_fields()
+    test_task_stream_transfer_report_scores_controlled_reuse()
     test_ingest_queues_repeated_causal_summary_candidate()
     test_ingest_queues_failure_correction_candidate()
     test_benchmark_results_persist_intervention_metrics()

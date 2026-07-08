@@ -27,6 +27,13 @@ from singularity.action.mapping import ActionMapper
 logger = logging.getLogger("singularity.benchmark")
 
 
+def _average_optional(values) -> Optional[float]:
+    present = [float(value) for value in values if value is not None]
+    if not present:
+        return None
+    return round(sum(present) / len(present), 3)
+
+
 @dataclass
 class BenchmarkTask:
     id: str
@@ -1226,6 +1233,116 @@ class ContinualLearningTraceReport:
             key: round(sum(case.axis_scores.get(key, 0.0) for case in self.cases) / len(self.cases), 3)
             for key in keys
         } if self.cases else {}
+
+
+@dataclass
+class TaskStreamTransferTask:
+    stream_id: str
+    task_id: str
+    goal: str = ""
+    stage: str = "task"
+    source_file: str = ""
+    source_log: str = ""
+    depends_on: list[str] = field(default_factory=list)
+    expected_reuse_tags: list[str] = field(default_factory=list)
+    produced_tags: list[str] = field(default_factory=list)
+    reuse_hit_tags: list[str] = field(default_factory=list)
+    reuse_missing_tags: list[str] = field(default_factory=list)
+    baseline_score: Optional[float] = None
+    first_pass_score: Optional[float] = None
+    second_pass_score: Optional[float] = None
+    heldout_score: Optional[float] = None
+    transfer_gain: Optional[float] = None
+    stability_gain: Optional[float] = None
+    generalization_gain: Optional[float] = None
+    memory_read_count: int = 0
+    memory_write_count: int = 0
+    completed_goal_count: int = 0
+    failed_goal_count: int = 0
+    action_count: int = 0
+    failed_action_count: int = 0
+    issues: list[str] = field(default_factory=list)
+    ready_for_transfer_review: bool = False
+
+
+@dataclass
+class TaskStreamTransferCase:
+    stream_id: str
+    source_file: str
+    description: str = ""
+    task_count: int = 0
+    ready_task_count: int = 0
+    reusable_relation_count: int = 0
+    reuse_expected_tag_count: int = 0
+    reuse_hit_tag_count: int = 0
+    reuse_coverage: float = 0.0
+    average_baseline_score: Optional[float] = None
+    average_first_pass_score: Optional[float] = None
+    average_second_pass_score: Optional[float] = None
+    average_heldout_score: Optional[float] = None
+    plasticity_gain: Optional[float] = None
+    stability_gain: Optional[float] = None
+    generalization_gain: Optional[float] = None
+    interference_count: int = 0
+    missing_baseline_count: int = 0
+    missing_second_pass_count: int = 0
+    missing_heldout_count: int = 0
+    issues: list[str] = field(default_factory=list)
+    recommendations: list[str] = field(default_factory=list)
+    tasks: list[TaskStreamTransferTask] = field(default_factory=list)
+    ready_for_transfer_review: bool = False
+
+
+@dataclass
+class TaskStreamTransferReport:
+    cases: list[TaskStreamTransferCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def stream_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_stream_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_transfer_review)
+
+    @property
+    def task_count(self) -> int:
+        return sum(case.task_count for case in self.cases)
+
+    @property
+    def reusable_relation_count(self) -> int:
+        return sum(case.reusable_relation_count for case in self.cases)
+
+    @property
+    def reuse_expected_tag_count(self) -> int:
+        return sum(case.reuse_expected_tag_count for case in self.cases)
+
+    @property
+    def reuse_hit_tag_count(self) -> int:
+        return sum(case.reuse_hit_tag_count for case in self.cases)
+
+    @property
+    def reuse_coverage(self) -> float:
+        if self.reuse_expected_tag_count <= 0:
+            return 0.0
+        return round(self.reuse_hit_tag_count / self.reuse_expected_tag_count, 3)
+
+    @property
+    def interference_count(self) -> int:
+        return sum(case.interference_count for case in self.cases)
+
+    @property
+    def average_plasticity_gain(self) -> Optional[float]:
+        return _average_optional(case.plasticity_gain for case in self.cases)
+
+    @property
+    def average_stability_gain(self) -> Optional[float]:
+        return _average_optional(case.stability_gain for case in self.cases)
+
+    @property
+    def average_generalization_gain(self) -> Optional[float]:
+        return _average_optional(case.generalization_gain for case in self.cases)
 
 
 @dataclass
@@ -3728,6 +3845,287 @@ class BenchmarkRunner:
             issues=sorted(set(issues)),
             recommendations=self._dedupe_strings(recommendations)[:8],
             ready_for_continual_learning_review=bool(observations or action_events or plan_count),
+        )
+
+    def run_task_stream_transfer_report_from_files(
+        self,
+        stream_files: list[str],
+        cell_size: float = 8.0,
+    ) -> TaskStreamTransferReport:
+        """Evaluate controlled Minecraft task streams for reusable transfer and interference."""
+        report = TaskStreamTransferReport()
+        safe_cell_size = float(cell_size or 8.0)
+        if safe_cell_size <= 0:
+            safe_cell_size = 8.0
+        for path in stream_files:
+            try:
+                for spec in self._load_task_stream_specs(path):
+                    report.cases.append(self._task_stream_transfer_case(path, spec, safe_cell_size))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
+    def task_stream_transfer_feedback(self, report: TaskStreamTransferReport) -> dict:
+        """Summarize AgentCL-style stream diagnostics into policy hints."""
+        issue_counts = {}
+        recommendations = set()
+        for case in report.cases:
+            for issue in case.issues:
+                issue_counts[issue] = issue_counts.get(issue, 0) + 1
+            recommendations.update(case.recommendations)
+            for task in case.tasks:
+                for issue in task.issues:
+                    issue_counts[issue] = issue_counts.get(issue, 0) + 1
+
+        policy_hints = []
+        if issue_counts.get("missing_controlled_scores", 0) or issue_counts.get("missing_baseline_score", 0):
+            policy_hints.append({
+                "task_stream_policy": "add_controlled_baseline_and_replay_scores",
+                "priority": "high",
+                "reason": "streams need baseline and replay scores before transfer claims are trusted",
+                "count": issue_counts.get("missing_controlled_scores", 0) + issue_counts.get("missing_baseline_score", 0),
+            })
+        if issue_counts.get("low_reuse_coverage", 0) or issue_counts.get("missing_reuse_evidence", 0):
+            policy_hints.append({
+                "task_stream_policy": "instrument_reuse_evidence",
+                "priority": "high",
+                "reason": "expected reusable sub-solutions are not visible in memory, skill, or trace evidence",
+                "count": issue_counts.get("low_reuse_coverage", 0) + issue_counts.get("missing_reuse_evidence", 0),
+            })
+        if issue_counts.get("stability_regression", 0) or issue_counts.get("heldout_regression", 0) or issue_counts.get("transfer_regression", 0):
+            policy_hints.append({
+                "task_stream_policy": "quarantine_interfering_memories_or_skills",
+                "priority": "high",
+                "reason": "later replay or held-out variants regress after memory/skill reuse",
+                "count": (
+                    issue_counts.get("stability_regression", 0)
+                    + issue_counts.get("heldout_regression", 0)
+                    + issue_counts.get("transfer_regression", 0)
+                ),
+            })
+        if issue_counts.get("missing_second_pass_probe", 0):
+            policy_hints.append({
+                "task_stream_policy": "add_second_pass_stability_probe",
+                "priority": "medium",
+                "reason": "streams cannot separate one-shot plasticity from stable retained behavior",
+                "count": issue_counts["missing_second_pass_probe"],
+            })
+        if issue_counts.get("missing_heldout_probe", 0):
+            policy_hints.append({
+                "task_stream_policy": "add_heldout_generalization_probe",
+                "priority": "medium",
+                "reason": "streams need held-out variants to distinguish memorization from reusable transfer",
+                "count": issue_counts["missing_heldout_probe"],
+            })
+
+        return {
+            "stream_count": report.stream_count,
+            "ready_stream_count": report.ready_stream_count,
+            "task_count": report.task_count,
+            "reusable_relation_count": report.reusable_relation_count,
+            "reuse_expected_tag_count": report.reuse_expected_tag_count,
+            "reuse_hit_tag_count": report.reuse_hit_tag_count,
+            "reuse_coverage": report.reuse_coverage,
+            "interference_count": report.interference_count,
+            "average_plasticity_gain": report.average_plasticity_gain,
+            "average_stability_gain": report.average_stability_gain,
+            "average_generalization_gain": report.average_generalization_gain,
+            "issue_counts": dict(sorted(issue_counts.items())),
+            "recommendations": sorted(recommendations),
+            "policy_hints": policy_hints,
+        }
+
+    def _task_stream_transfer_case(
+        self,
+        source_file: str,
+        spec: dict,
+        cell_size: float,
+    ) -> TaskStreamTransferCase:
+        stream_id = str(spec.get("id") or spec.get("stream_id") or os.path.splitext(os.path.basename(source_file))[0])
+        description = str(spec.get("description") or spec.get("name") or "")
+        task_records = []
+        for index, task in enumerate(spec.get("tasks", []) if isinstance(spec.get("tasks", []), list) else [], start=1):
+            if isinstance(task, dict):
+                task_records.append((index, "task", task))
+        for index, task in enumerate(spec.get("heldout_tasks", []) if isinstance(spec.get("heldout_tasks", []), list) else [], start=1):
+            if isinstance(task, dict):
+                merged = {**task}
+                if "heldout_score" not in merged and "score" in merged:
+                    merged["heldout_score"] = merged["score"]
+                task_records.append((len(task_records) + index, "heldout", merged))
+
+        seen_task_ids = set()
+        tasks = []
+        for index, stage, task_data in task_records:
+            task = self._task_stream_transfer_task(source_file, stream_id, index, stage, task_data, cell_size)
+            missing_deps = [dependency for dependency in task.depends_on if dependency not in seen_task_ids]
+            if missing_deps:
+                task.issues.append("missing_dependency")
+            tasks.append(task)
+            seen_task_ids.add(task.task_id)
+
+        reuse_expected = sum(len(task.expected_reuse_tags) for task in tasks)
+        reuse_hits = sum(len(task.reuse_hit_tags) for task in tasks)
+        transfer_gains = [task.transfer_gain for task in tasks if task.transfer_gain is not None]
+        stability_gains = [task.stability_gain for task in tasks if task.stability_gain is not None]
+        generalization_gains = [task.generalization_gain for task in tasks if task.generalization_gain is not None]
+        missing_baseline = sum(1 for task in tasks if task.baseline_score is None)
+        missing_second = sum(1 for task in tasks if task.second_pass_score is None)
+        missing_heldout = sum(1 for task in tasks if task.heldout_score is None)
+        interference = sum(
+            1 for task in tasks
+            if "transfer_regression" in task.issues
+            or "stability_regression" in task.issues
+            or "heldout_regression" in task.issues
+        )
+
+        issues = []
+        recommendations = []
+        if not tasks:
+            issues.append("no_tasks")
+            recommendations.append("Add ordered Minecraft task records with baseline and replay scores.")
+        if not transfer_gains:
+            issues.append("missing_controlled_scores")
+            recommendations.append("Record baseline_score and first_pass_score, or attach session logs for both stages.")
+        if not any(task.depends_on or task.expected_reuse_tags for task in tasks):
+            issues.append("missing_reuse_relationships")
+            recommendations.append("Declare depends_on and expected_reuse_tags so transfer is testable, not inferred.")
+        reuse_coverage = round(reuse_hits / reuse_expected, 3) if reuse_expected else 0.0
+        if reuse_expected and reuse_coverage < 0.5:
+            issues.append("low_reuse_coverage")
+            recommendations.append("Log memory reads, skill matches, or sub-solution tags when later tasks reuse earlier work.")
+        plasticity_gain = _average_optional(transfer_gains)
+        stability_gain = _average_optional(stability_gains)
+        generalization_gain = _average_optional(generalization_gains)
+        if plasticity_gain is not None and plasticity_gain < -0.01:
+            issues.append("negative_plasticity_gain")
+            recommendations.append("Compare retrieved memories against baseline to isolate which reuse source harmed first-pass performance.")
+        if stability_gain is not None and stability_gain < -0.01:
+            issues.append("stability_regression")
+            recommendations.append("Add stale/contradicted memory filtering before second-pass replay.")
+        if generalization_gain is not None and generalization_gain < -0.01:
+            issues.append("heldout_regression")
+            recommendations.append("Gate reusable skills on held-out Minecraft variants before promoting them to runtime defaults.")
+        if missing_second == len(tasks) and tasks:
+            issues.append("missing_second_pass_probe")
+            recommendations.append("Add second_pass_score or second_pass_session_log to test retention after reuse.")
+        if missing_heldout == len(tasks) and tasks:
+            issues.append("missing_heldout_probe")
+            recommendations.append("Add heldout_score or heldout_session_log for compositional variants with shared sub-solutions.")
+
+        return TaskStreamTransferCase(
+            stream_id=stream_id,
+            source_file=source_file,
+            description=description,
+            task_count=len(tasks),
+            ready_task_count=sum(1 for task in tasks if task.ready_for_transfer_review),
+            reusable_relation_count=sum(1 for task in tasks if task.depends_on or task.expected_reuse_tags),
+            reuse_expected_tag_count=reuse_expected,
+            reuse_hit_tag_count=reuse_hits,
+            reuse_coverage=reuse_coverage,
+            average_baseline_score=_average_optional(task.baseline_score for task in tasks),
+            average_first_pass_score=_average_optional(task.first_pass_score for task in tasks),
+            average_second_pass_score=_average_optional(task.second_pass_score for task in tasks),
+            average_heldout_score=_average_optional(task.heldout_score for task in tasks),
+            plasticity_gain=plasticity_gain,
+            stability_gain=stability_gain,
+            generalization_gain=generalization_gain,
+            interference_count=interference,
+            missing_baseline_count=missing_baseline,
+            missing_second_pass_count=missing_second,
+            missing_heldout_count=missing_heldout,
+            issues=sorted(set(issues)),
+            recommendations=self._dedupe_strings(recommendations)[:8],
+            tasks=tasks,
+            ready_for_transfer_review=bool(tasks and transfer_gains and not any(issue in {"missing_controlled_scores", "missing_reuse_relationships"} for issue in issues)),
+        )
+
+    def _task_stream_transfer_task(
+        self,
+        source_file: str,
+        stream_id: str,
+        index: int,
+        stage: str,
+        task_data: dict,
+        cell_size: float,
+    ) -> TaskStreamTransferTask:
+        task_id = str(task_data.get("id") or task_data.get("task_id") or f"task_{index}")
+        goal = str(task_data.get("goal") or task_data.get("task") or task_data.get("objective") or "")
+        depends_on = self._string_list(task_data.get("depends_on") or task_data.get("dependencies") or task_data.get("requires"))
+        expected_tags = self._normalized_tag_list(
+            task_data.get("expected_reuse_tags")
+            or task_data.get("reuse_tags")
+            or task_data.get("transfer_tags")
+            or []
+        )
+        produced_tags = self._normalized_tag_list(
+            task_data.get("produced_tags")
+            or task_data.get("memory_tags")
+            or task_data.get("skill_tags")
+            or []
+        )
+        session_logs = self._task_stream_session_logs(task_data, source_file)
+        session_summary = self._task_stream_session_summary(session_logs, cell_size)
+
+        baseline_score = self._task_stream_score(task_data, "baseline", source_file, cell_size)
+        first_score = self._task_stream_score(task_data, "first_pass", source_file, cell_size)
+        if first_score is None:
+            first_score = self._task_stream_score(task_data, "observed", source_file, cell_size)
+        if first_score is None:
+            first_score = self._task_stream_score(task_data, "score", source_file, cell_size)
+        second_score = self._task_stream_score(task_data, "second_pass", source_file, cell_size)
+        heldout_score = self._task_stream_score(task_data, "heldout", source_file, cell_size)
+        if stage == "heldout" and heldout_score is None:
+            heldout_score = first_score
+
+        transfer_gain = self._score_delta(first_score, baseline_score)
+        stability_gain = self._score_delta(second_score, first_score)
+        generalization_gain = self._score_delta(heldout_score, baseline_score)
+        evidence_text = self._task_stream_evidence_text(task_data, session_summary)
+        hit_tags = [tag for tag in expected_tags if self._tag_in_text(tag, evidence_text)]
+        missing_tags = [tag for tag in expected_tags if tag not in hit_tags]
+
+        issues = []
+        if baseline_score is None:
+            issues.append("missing_baseline_score")
+        if first_score is None:
+            issues.append("missing_first_pass_score")
+        if expected_tags and not hit_tags:
+            issues.append("missing_reuse_evidence")
+        if transfer_gain is not None and transfer_gain < -0.05:
+            issues.append("transfer_regression")
+        if stability_gain is not None and stability_gain < -0.05:
+            issues.append("stability_regression")
+        if generalization_gain is not None and generalization_gain < -0.05:
+            issues.append("heldout_regression")
+
+        return TaskStreamTransferTask(
+            stream_id=stream_id,
+            task_id=task_id,
+            goal=goal,
+            stage=str(task_data.get("stage") or stage or "task"),
+            source_file=source_file,
+            source_log=session_logs[0] if session_logs else "",
+            depends_on=depends_on,
+            expected_reuse_tags=expected_tags,
+            produced_tags=produced_tags,
+            reuse_hit_tags=hit_tags,
+            reuse_missing_tags=missing_tags,
+            baseline_score=baseline_score,
+            first_pass_score=first_score,
+            second_pass_score=second_score,
+            heldout_score=heldout_score,
+            transfer_gain=transfer_gain,
+            stability_gain=stability_gain,
+            generalization_gain=generalization_gain,
+            memory_read_count=session_summary.get("memory_read_count", 0),
+            memory_write_count=session_summary.get("memory_write_count", 0),
+            completed_goal_count=session_summary.get("completed_goal_count", 0),
+            failed_goal_count=session_summary.get("failed_goal_count", 0),
+            action_count=session_summary.get("action_count", 0),
+            failed_action_count=session_summary.get("failed_action_count", 0),
+            issues=sorted(set(issues)),
+            ready_for_transfer_review=bool(first_score is not None and (baseline_score is not None or session_logs)),
         )
 
     def run_visual_review_pipeline(
@@ -6244,6 +6642,222 @@ class BenchmarkRunner:
                     events.append(json.loads(line))
         return events
 
+    def _load_task_stream_specs(self, stream_file: str) -> list[dict]:
+        with open(stream_file, "r", encoding="utf-8-sig") as f:
+            if stream_file.lower().endswith(".jsonl"):
+                records = [json.loads(line) for line in f if line.strip()]
+                if all(isinstance(record, dict) and "tasks" not in record for record in records):
+                    return [{"id": os.path.splitext(os.path.basename(stream_file))[0], "tasks": records}]
+                return [record for record in records if isinstance(record, dict)]
+            payload = json.load(f)
+        if isinstance(payload, dict) and isinstance(payload.get("streams"), list):
+            return [stream for stream in payload["streams"] if isinstance(stream, dict)]
+        if isinstance(payload, dict) and isinstance(payload.get("tasks"), list):
+            return [payload]
+        if isinstance(payload, list):
+            if all(isinstance(record, dict) and "tasks" not in record for record in payload):
+                return [{"id": os.path.splitext(os.path.basename(stream_file))[0], "tasks": payload}]
+            return [record for record in payload if isinstance(record, dict)]
+        return []
+
+    def _task_stream_score(
+        self,
+        task_data: dict,
+        stage: str,
+        source_file: str,
+        cell_size: float,
+    ) -> Optional[float]:
+        for key in self._task_stream_score_keys(stage):
+            if key in task_data:
+                score = self._score_from_value(task_data.get(key))
+                if score is not None:
+                    return score
+        for payload in self._task_stream_stage_payloads(task_data, stage):
+            for key in ("score", "success", "completed", "passed", "status", "result", "outcome"):
+                if key in payload:
+                    score = self._score_from_value(payload.get(key))
+                    if score is not None:
+                        return score
+            log_path = self._task_stream_payload_log_path(payload, source_file)
+            if log_path:
+                score = self._score_from_session_log(log_path, cell_size)
+                if score is not None:
+                    return score
+        log_path = task_data.get(f"{stage}_session_log") or task_data.get(f"{stage}_log")
+        if stage in {"observed", "score"}:
+            log_path = log_path or task_data.get("session_log") or task_data.get("log") or task_data.get("path")
+        if log_path:
+            return self._score_from_session_log(self._resolve_stream_path(str(log_path), source_file), cell_size)
+        return None
+
+    def _task_stream_score_keys(self, stage: str) -> list[str]:
+        if stage == "score":
+            return ["score", "success", "completed", "passed", "status", "result", "outcome"]
+        aliases = {
+            "baseline": ["baseline", "base", "without_memory", "direct"],
+            "first_pass": ["first_pass", "first", "learned", "with_memory"],
+            "second_pass": ["second_pass", "second", "replay", "retention"],
+            "heldout": ["heldout", "held_out", "generalization"],
+            "observed": ["observed", "actual", "run"],
+        }.get(stage, [stage])
+        keys = []
+        for alias in aliases:
+            keys.extend([f"{alias}_score", f"{alias}_success", f"{alias}_completed", f"{alias}_status", f"{alias}_result"])
+        return keys
+
+    def _task_stream_stage_payloads(self, task_data: dict, stage: str) -> list[dict]:
+        aliases = {
+            "baseline": ["baseline", "base", "without_memory", "direct"],
+            "first_pass": ["first_pass", "first", "learned", "with_memory"],
+            "second_pass": ["second_pass", "second", "replay", "retention"],
+            "heldout": ["heldout", "held_out", "generalization"],
+            "observed": ["observed", "actual", "run"],
+            "score": ["score"],
+        }.get(stage, [stage])
+        payloads = []
+        for alias in aliases:
+            payload = task_data.get(alias)
+            if isinstance(payload, dict):
+                payloads.append(payload)
+        return payloads
+
+    def _score_from_value(self, value) -> Optional[float]:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return 1.0 if value else 0.0
+        if isinstance(value, (int, float)):
+            return self._clamp_score(float(value))
+        if isinstance(value, str):
+            text = value.strip().lower()
+            if text in {"achieved", "complete", "completed", "done", "ok", "pass", "passed", "success", "succeeded"}:
+                return 1.0
+            if text in {"aborted", "blocked", "error", "fail", "failed", "failure", "incomplete", "rejected"}:
+                return 0.0
+            try:
+                return self._clamp_score(float(text))
+            except ValueError:
+                return None
+        if isinstance(value, dict):
+            success = self._event_success(value)
+            if success is not None:
+                return 1.0 if success else 0.0
+            if "score" in value:
+                return self._score_from_value(value.get("score"))
+        return None
+
+    def _score_from_session_log(self, session_log_path: str, cell_size: float) -> Optional[float]:
+        try:
+            events = self._load_session_events(session_log_path)
+            case = self._continual_learning_trace_case(session_log_path, events, cell_size, 1200, 2400)
+        except Exception:
+            return None
+        if case.goal_count:
+            return round(case.completed_goal_count / max(1, case.goal_count), 3)
+        if case.action_count:
+            return round(case.successful_action_count / max(1, case.action_count), 3)
+        return None
+
+    def _task_stream_session_logs(self, task_data: dict, source_file: str) -> list[str]:
+        raw_paths = []
+        for key in ("session_log", "log", "path"):
+            if task_data.get(key):
+                raw_paths.append(task_data.get(key))
+        for stage in ("baseline", "first_pass", "second_pass", "heldout", "observed"):
+            for key in (f"{stage}_session_log", f"{stage}_log"):
+                if task_data.get(key):
+                    raw_paths.append(task_data.get(key))
+            for payload in self._task_stream_stage_payloads(task_data, stage):
+                log_path = self._task_stream_payload_log_path(payload, source_file)
+                if log_path:
+                    raw_paths.append(log_path)
+        return self._dedupe_strings(
+            self._resolve_stream_path(str(path), source_file)
+            for path in raw_paths
+            if path not in (None, "", [], {})
+        )
+
+    def _task_stream_payload_log_path(self, payload: dict, source_file: str) -> str:
+        for key in ("session_log", "log", "path"):
+            value = payload.get(key)
+            if value not in (None, "", [], {}):
+                return self._resolve_stream_path(str(value), source_file)
+        return ""
+
+    def _task_stream_session_summary(self, session_logs: list[str], cell_size: float) -> dict:
+        summary = {
+            "memory_read_count": 0,
+            "memory_write_count": 0,
+            "completed_goal_count": 0,
+            "failed_goal_count": 0,
+            "action_count": 0,
+            "failed_action_count": 0,
+            "evidence_text": "",
+        }
+        text_parts = []
+        for path in session_logs:
+            try:
+                events = self._load_session_events(path)
+                case = self._continual_learning_trace_case(path, events, cell_size, 1200, 2400)
+            except Exception:
+                continue
+            summary["memory_read_count"] += case.memory_read_count
+            summary["memory_write_count"] += case.memory_write_count
+            summary["completed_goal_count"] += case.completed_goal_count
+            summary["failed_goal_count"] += case.failed_goal_count
+            summary["action_count"] += case.action_count
+            summary["failed_action_count"] += case.failed_action_count
+            for event in events:
+                if event.get("type") in {"memory_read", "memory_write", "plan", "action", "goal_start", "goal_end"}:
+                    text_parts.append(self._compact_event_text(event))
+        evidence = " ".join(text_parts).lower()
+        summary["evidence_text"] = f"{evidence} {evidence.replace('_', ' ')}"
+        return summary
+
+    def _task_stream_evidence_text(self, task_data: dict, session_summary: dict) -> str:
+        evidence = f"{self._compact_event_text(task_data)} {session_summary.get('evidence_text', '')}".lower()
+        return f"{evidence} {evidence.replace('_', ' ')}"
+
+    def _resolve_stream_path(self, path: str, source_file: str) -> str:
+        if os.path.isabs(path):
+            return path
+        source_dir = os.path.dirname(os.path.abspath(source_file))
+        candidate = os.path.join(source_dir, path)
+        if os.path.exists(candidate):
+            return candidate
+        return path
+
+    def _string_list(self, value) -> list[str]:
+        if value in (None, "", [], {}):
+            return []
+        if isinstance(value, list):
+            return [str(item) for item in value if item not in (None, "", [], {})]
+        return [str(value)]
+
+    def _normalized_tag_list(self, value) -> list[str]:
+        tags = []
+        for item in self._string_list(value):
+            tag = " ".join(str(item).strip().lower().split())
+            if tag:
+                tags.append(tag)
+        return self._dedupe_strings(tags)
+
+    def _tag_in_text(self, tag: str, text: str) -> bool:
+        normalized = str(tag or "").strip().lower()
+        if not normalized:
+            return False
+        haystack = str(text or "").lower()
+        variants = {normalized, normalized.replace("_", " "), normalized.replace(" ", "_")}
+        return any(variant and variant in haystack for variant in variants)
+
+    def _score_delta(self, left: Optional[float], right: Optional[float]) -> Optional[float]:
+        if left is None or right is None:
+            return None
+        return round(float(left) - float(right), 3)
+
+    def _clamp_score(self, value: float) -> float:
+        return round(max(0.0, min(1.0, float(value))), 3)
+
     def _session_goal(self, events: list[dict]) -> str:
         for event in events:
             if event.get("type") == "goal_start":
@@ -7282,9 +7896,72 @@ class BenchmarkRunner:
         for error in report.errors:
             print(f"  error: {error}")
 
+    def print_task_stream_transfer_report(self, report: TaskStreamTransferReport):
+        print("\nTask Stream Transfer Report")
+        print(f"  streams: {report.ready_stream_count}/{report.stream_count} ready")
+        print(
+            "  tasks: "
+            f"{report.task_count}, reusable_relations={report.reusable_relation_count}, "
+            f"reuse_coverage={report.reuse_coverage:.2f}"
+        )
+        print(
+            "  gains: "
+            f"plasticity={self._format_optional_score(report.average_plasticity_gain)}, "
+            f"stability={self._format_optional_score(report.average_stability_gain)}, "
+            f"generalization={self._format_optional_score(report.average_generalization_gain)}, "
+            f"interference={report.interference_count}"
+        )
+        feedback = self.task_stream_transfer_feedback(report)
+        if feedback["policy_hints"]:
+            hints = [
+                f"{hint['task_stream_policy']}({hint['priority']})"
+                for hint in feedback["policy_hints"][:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for case in report.cases:
+            marker = "+" if case.ready_for_transfer_review and not case.issues else "!"
+            if not case.ready_for_transfer_review:
+                marker = "~"
+            print(f"  [{marker}] {case.stream_id} ({case.source_file})")
+            print(
+                f"      tasks={case.ready_task_count}/{case.task_count}, "
+                f"reuse={case.reuse_hit_tag_count}/{case.reuse_expected_tag_count}, "
+                f"plasticity={self._format_optional_score(case.plasticity_gain)}, "
+                f"stability={self._format_optional_score(case.stability_gain)}, "
+                f"generalization={self._format_optional_score(case.generalization_gain)}, "
+                f"interference={case.interference_count}"
+            )
+            if case.issues:
+                print(f"      issues: {', '.join(case.issues)}")
+            for recommendation in case.recommendations[:4]:
+                print(f"      recommendation: {recommendation}")
+            for task in case.tasks[:6]:
+                task_marker = "+" if task.ready_for_transfer_review and not task.issues else "!"
+                if not task.ready_for_transfer_review:
+                    task_marker = "~"
+                print(
+                    f"      [{task_marker}] {task.task_id}: "
+                    f"base={self._format_optional_score(task.baseline_score)}, "
+                    f"first={self._format_optional_score(task.first_pass_score)}, "
+                    f"second={self._format_optional_score(task.second_pass_score)}, "
+                    f"heldout={self._format_optional_score(task.heldout_score)}, "
+                    f"reuse={len(task.reuse_hit_tags)}/{len(task.expected_reuse_tags)}"
+                )
+                if task.issues:
+                    print(f"          issues: {', '.join(task.issues)}")
+                if task.reuse_hit_tags:
+                    print(f"          reuse hits: {', '.join(task.reuse_hit_tags[:8])}")
+        for error in report.errors:
+            print(f"  error: {error}")
+
     def _format_counts(self, counts: dict, limit: int = 8) -> str:
         items = sorted(counts.items(), key=lambda item: (-int(item[1]), str(item[0])))
         return ", ".join(f"{key}={value}" for key, value in items[:limit])
+
+    def _format_optional_score(self, value: Optional[float]) -> str:
+        if value is None:
+            return "n/a"
+        return f"{float(value):.2f}"
 
     def _merge_counts(self, target: dict, source: dict):
         for key, value in (source or {}).items():

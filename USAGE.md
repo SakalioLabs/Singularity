@@ -281,6 +281,9 @@ python -m singularity.main bounded-context-report --session-log logs/session_xxx
 # Aggregate open-ended continual-learning diagnostics across progress, world knowledge, memory, action diversity, and horizon
 python -m singularity.main continual-learning-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/continual_learning.json
 
+# Evaluate AgentCL-style controlled task streams for transfer gain, stability, held-out generalization, and memory/skill interference
+python -m singularity.main task-stream-transfer-report --stream-file workspace/evals/minecraft_task_streams.json --output logs/benchmarks/task_stream_transfer.json
+
 # Run the full offline visual review chain in one report
 python -m singularity.main visual-review-pipeline --session-log logs/session_xxx.jsonl --mode both --output logs/benchmarks/visual_review_pipeline.json
 python -m singularity.main visual-review-pipeline --session-log logs/session_xxx.jsonl --mode both --label-file workspace/reviews/session_xxx_labels.jsonl --run-ablations --promotion-critic --goal-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL --output logs/benchmarks/visual_review_pipeline.json
