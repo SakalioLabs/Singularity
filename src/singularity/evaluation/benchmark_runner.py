@@ -157,6 +157,43 @@ class PolicySkillBenchmarkAblationReport:
 
 
 @dataclass
+class SkillMemoryBenchmarkAblationResult:
+    task_id: str
+    task_name: str
+    baseline_status: str
+    enabled_status: str
+    baseline_duration_s: float = 0.0
+    enabled_duration_s: float = 0.0
+    baseline_skill_memory_hints: int = 0
+    enabled_skill_memory_hints: int = 0
+    enabled_changed: bool = False
+    enabled_helped: bool = False
+    baseline_log: str = ""
+    enabled_log: str = ""
+
+
+@dataclass
+class SkillMemoryBenchmarkAblationReport:
+    cases: list[SkillMemoryBenchmarkAblationResult] = field(default_factory=list)
+
+    @property
+    def baseline_passed_count(self) -> int:
+        return sum(1 for case in self.cases if case.baseline_status == "pass")
+
+    @property
+    def enabled_passed_count(self) -> int:
+        return sum(1 for case in self.cases if case.enabled_status == "pass")
+
+    @property
+    def changed_count(self) -> int:
+        return sum(1 for case in self.cases if case.enabled_changed)
+
+    @property
+    def helped_count(self) -> int:
+        return sum(1 for case in self.cases if case.enabled_helped)
+
+
+@dataclass
 class VisualActionBenchmarkAblationResult:
     task_id: str
     task_name: str
@@ -1925,6 +1962,53 @@ class BenchmarkRunner:
             ))
         return report
 
+    def run_skill_memory_benchmark_ablation(
+        self,
+        tasks: Optional[list[BenchmarkTask]] = None,
+        suite: str = "m1",
+    ) -> SkillMemoryBenchmarkAblationReport:
+        """Run policy-skill-enabled tasks with skill-memory context disabled versus enabled."""
+        report = SkillMemoryBenchmarkAblationReport()
+        source_tasks = tasks if tasks is not None else self.tasks_for_suite(suite)
+        for task in source_tasks:
+            baseline = self._run_task_with_config(task, replace(
+                self.config,
+                enable_policy_skills=True,
+                enable_skill_memory_context=False,
+            ))
+            enabled = self._run_task_with_config(task, replace(
+                self.config,
+                enable_policy_skills=True,
+                enable_skill_memory_context=True,
+            ))
+            baseline_hints = self._skill_memory_hint_count(baseline)
+            enabled_hints = self._skill_memory_hint_count(enabled)
+            enabled_changed = (
+                baseline.status != enabled.status
+                or baseline_hints != enabled_hints
+                or baseline.inventory_snapshot != enabled.inventory_snapshot
+            )
+            enabled_helped = (
+                baseline.status != "pass" and enabled.status == "pass"
+            ) or (
+                enabled_hints > baseline_hints and enabled.status == baseline.status
+            )
+            report.cases.append(SkillMemoryBenchmarkAblationResult(
+                task_id=task.id,
+                task_name=task.name,
+                baseline_status=baseline.status,
+                enabled_status=enabled.status,
+                baseline_duration_s=baseline.duration_s,
+                enabled_duration_s=enabled.duration_s,
+                baseline_skill_memory_hints=baseline_hints,
+                enabled_skill_memory_hints=enabled_hints,
+                enabled_changed=enabled_changed,
+                enabled_helped=enabled_helped,
+                baseline_log=baseline.session_log_path,
+                enabled_log=enabled.session_log_path,
+            ))
+        return report
+
     def run_visual_action_benchmark_ablation(
         self,
         tasks: Optional[list[BenchmarkTask]] = None,
@@ -2014,6 +2098,9 @@ class BenchmarkRunner:
 
     def _policy_intervention_count(self, result: BenchmarkResult) -> int:
         return result.intervention_metrics.get("policy_intervention_count", 0) if result.intervention_metrics else 0
+
+    def _skill_memory_hint_count(self, result: BenchmarkResult) -> int:
+        return result.intervention_metrics.get("skill_memory_hint_count", 0) if result.intervention_metrics else 0
 
     def _visual_action_intervention_count(self, result: BenchmarkResult) -> int:
         return result.intervention_metrics.get("visual_action_intervention_count", 0) if result.intervention_metrics else 0
@@ -7384,6 +7471,24 @@ class BenchmarkRunner:
             json.dump(data, f, indent=2, ensure_ascii=False)
         logger.info(f"Policy-skill benchmark ablation saved to {path}")
 
+    def save_skill_memory_benchmark_ablation_report(
+        self,
+        report: SkillMemoryBenchmarkAblationReport,
+        filename: str = "skill_memory_benchmark_ablation.json",
+    ):
+        os.makedirs(self.output_dir, exist_ok=True)
+        path = os.path.join(self.output_dir, filename)
+        data = {
+            "baseline_passed_count": report.baseline_passed_count,
+            "enabled_passed_count": report.enabled_passed_count,
+            "changed_count": report.changed_count,
+            "helped_count": report.helped_count,
+            "cases": [asdict(case) for case in report.cases],
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        logger.info(f"Skill-memory benchmark ablation saved to {path}")
+
     def save_visual_action_benchmark_ablation_report(
         self,
         report: VisualActionBenchmarkAblationReport,
@@ -7454,6 +7559,25 @@ class BenchmarkRunner:
             print(
                 f"      enabled:  {case.enabled_status} ({case.enabled_duration_s}s), "
                 f"interventions={case.enabled_interventions}, success_rate={case.enabled_success_rate:.2f}"
+            )
+
+    def print_skill_memory_benchmark_ablation_report(self, report: SkillMemoryBenchmarkAblationReport):
+        total = len(report.cases)
+        print("\nSkill Memory Benchmark Ablation")
+        print(f"  baseline passed: {report.baseline_passed_count}/{total}")
+        print(f"  enabled passed:  {report.enabled_passed_count}/{total}")
+        print(f"  changed:         {report.changed_count}/{total}")
+        print(f"  enabled helped:  {report.helped_count}/{total}")
+        for case in report.cases:
+            marker = "+" if case.enabled_helped else "~" if case.enabled_changed else "="
+            print(f"  [{marker}] {case.task_id} {case.task_name}")
+            print(
+                f"      baseline: {case.baseline_status} ({case.baseline_duration_s}s), "
+                f"skill_memory_hints={case.baseline_skill_memory_hints}"
+            )
+            print(
+                f"      enabled:  {case.enabled_status} ({case.enabled_duration_s}s), "
+                f"skill_memory_hints={case.enabled_skill_memory_hints}"
             )
 
     def print_visual_action_benchmark_ablation_report(self, report: VisualActionBenchmarkAblationReport):

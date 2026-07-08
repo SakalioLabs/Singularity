@@ -56,6 +56,7 @@ def main():
     run_parser.add_argument("--llm-base-url", type=str, default="")
     run_parser.add_argument("--api-key", type=str, default="")
     run_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
+    run_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     run_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     run_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
     run_parser.add_argument("--capture-screenshots", action="store_true", help="Ask the bridge renderer to capture screenshots for visual analysis")
@@ -80,6 +81,7 @@ def main():
     auto_parser.add_argument("--llm-base-url", type=str, default="")
     auto_parser.add_argument("--api-key", type=str, default="")
     auto_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
+    auto_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     auto_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     auto_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
     auto_parser.add_argument("--capture-screenshots", action="store_true", help="Ask the bridge renderer to capture screenshots for visual analysis")
@@ -103,6 +105,7 @@ def main():
     bench_parser.add_argument("--llm-base-url", type=str, default="")
     bench_parser.add_argument("--api-key", type=str, default="")
     bench_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
+    bench_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     bench_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     bench_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
     bench_parser.add_argument("--capture-screenshots", action="store_true", help="Ask the bridge renderer to capture screenshots for visual analysis")
@@ -117,6 +120,7 @@ def main():
     bench_parser.add_argument("--ingest", action="store_true", help="Ingest passing benchmark traces into memory and skill candidate queue")
     bench_parser.add_argument("--promotion-critic", action="store_true", help="Use configured LLM as fallback critic for unknown skill-candidate verifier gates during ingestion")
     bench_parser.add_argument("--policy-skill-ablation", action="store_true", help="Run suite twice with reviewed policy skills disabled and enabled")
+    bench_parser.add_argument("--skill-memory-ablation", action="store_true", help="Run suite twice with policy skills enabled but skill-memory context disabled vs enabled")
     bench_parser.add_argument("--visual-action-ablation", action="store_true", help="Run suite twice with visual action grounding disabled and enabled")
     bench_parser.add_argument("--mixed-policy-ablation", action="store_true", help="Run suite twice without and with approved mixed-policy patches")
 
@@ -319,6 +323,7 @@ def main():
     collab_parser.add_argument("--llm-base-url", type=str, default="")
     collab_parser.add_argument("--api-key", type=str, default="")
     collab_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
+    collab_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     collab_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     collab_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
     collab_parser.add_argument("--capture-screenshots", action="store_true", help="Ask each Agent bridge renderer to capture screenshots for visual analysis")
@@ -1331,6 +1336,7 @@ def main():
                         base_url=getattr(args, "llm_base_url", "") or os.environ.get("SINGULARITY_LLM_BASE_URL", ""),
                     ),
                     enable_goal_critic=getattr(args, "goal_critic", False),
+                    enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
                     enable_vision_analysis=not getattr(args, "no_vision_analysis", False),
                     enable_visual_action_grounding=not getattr(args, "no_visual_action_grounding", False),
                     enable_screenshot_capture=getattr(args, "capture_screenshots", False),
@@ -2535,6 +2541,7 @@ def main():
         bot=BotConfig(host=host, port=port, username=username, bridge_host=bridge_host, bridge_port=bridge_port),
         llm=_llm_config_from_args(args),
         enable_goal_critic=getattr(args, "goal_critic", False),
+        enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
         enable_vision_analysis=not getattr(args, "no_vision_analysis", False),
         enable_visual_action_grounding=not getattr(args, "no_visual_action_grounding", False),
         mixed_policy_patch_paths=getattr(args, "mixed_policy_patch", []) or [],
@@ -2587,6 +2594,11 @@ def main():
             report = runner.run_policy_skill_benchmark_ablation(suite=args.suite)
             runner.print_policy_skill_benchmark_ablation_report(report)
             runner.save_policy_skill_benchmark_ablation_report(report, args.output)
+            return
+        if getattr(args, "skill_memory_ablation", False):
+            report = runner.run_skill_memory_benchmark_ablation(suite=args.suite)
+            runner.print_skill_memory_benchmark_ablation_report(report)
+            runner.save_skill_memory_benchmark_ablation_report(report, args.output)
             return
         if getattr(args, "visual_action_ablation", False):
             report = runner.run_visual_action_benchmark_ablation(suite=args.suite)

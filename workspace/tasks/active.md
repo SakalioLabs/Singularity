@@ -148,6 +148,7 @@
 - [x] Feed `task-stream-transfer-gate` into skill-candidate approval metadata and `MemoryLifecyclePolicy` so transfer-approved evidence can unlock promotion while review/rejected transfer gates block default promotion.
 - [x] Add MUSE-style skill-level memory records and `skill-memory-report` for replay, failure, anti-pattern, task-family, and transfer-gate evidence attached to individual skills.
 - [x] Feed approved skill-candidate promotion evidence and live failure-correction success/failure outcomes into `record_skill_memory()` automatically.
+- [x] Retrieve task-family skill-memory hints into LLM planner context and add `benchmark --skill-memory-ablation` for policy-skill-only versus skill-memory-assisted comparison.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -178,7 +179,7 @@
 - [ ] Compare approved vs review-blocked discovery skill candidates on held-out redstone/building variants before enabling defaults.
 - [ ] Run `skill-graph-report` after real skill approvals and resolve missing dependencies, ungoverned custom skills, or graph cycles before runtime defaults.
 - [ ] Run `skill-contract-report` after real skill approvals and compare ready/review/blocked skill retrieval against planner choices on held-out crafting, mining, and building goals.
-- [ ] Retrieve `get_skill_memory_hints()` into planner context by inferred task family and compare against policy-skill-only baselines before making skills runtime defaults.
+- [ ] Run `benchmark --skill-memory-ablation` on live M1/M2/autonomous-ready tasks and compare skill-memory hint counts, pass rates, and regressions before making skills runtime defaults.
 - [ ] Run `self-evolution-report` on real M1/M2/autonomous logs and compare adaptor recommendations against retry outcomes before enabling automatic plan-suffix repair.
 - [ ] Run `self-evolution-gate` on real self-evolution, verifier, and counterexample reports; only then design a guarded runtime plan-suffix repair path.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.

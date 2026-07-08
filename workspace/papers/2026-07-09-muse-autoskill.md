@@ -20,4 +20,5 @@
   - Skill candidate approval now stores task-stream gate readiness in promotion reports and skill governance metadata.
   - `Skill.skill_memory` and `skill-memory-report` now store and audit skill-local replay notes, failure/anti-pattern notes, task-family zones, and approved/review transfer memories instead of relying only on global episodic memory.
   - Approved skill candidates now seed promotion/transfer memories automatically, and runtime failure-correction skills append success or anti-pattern memories as they execute.
-**Next Action**: Retrieve `get_skill_memory_hints()` into planner context and compare skill-memory-assisted runs against policy-skill-only baselines.
+  - `Agent._think_llm()` now retrieves skill-memory hints into planner context, while `benchmark --skill-memory-ablation` compares policy-skill-only baselines against policy plus skill-memory context.
+**Next Action**: Run real M1/M2/autonomous skill-memory ablations after live bridge readiness, then promote only task-family hints that improve or stabilize held-out goals.

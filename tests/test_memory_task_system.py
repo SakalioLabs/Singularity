@@ -893,6 +893,41 @@ def test_agent_injects_task_memory_context_for_planner():
     print("PASS: Agent injects task memory context for planner")
 
 
+def test_agent_injects_skill_memory_context_for_planner():
+    tmpdir = tempfile.mkdtemp()
+    agent = object.__new__(Agent)
+    agent.config = Config(enable_skill_memory_context=True)
+    agent.skill_library = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=False)
+    agent.session_logger = FakeSessionLogger()
+    agent.skill_library.create_skill(
+        "craft_torch_memory_skill",
+        "Craft torches after securing coal",
+        json.dumps([{"type": "craft", "parameters": {"item": "torch"}}]),
+        postconditions={"inventory": {"torch": 4}},
+    )
+    agent.skill_library.record_skill_memory(
+        "craft_torch_memory_skill",
+        "Mine coal_ore before crafting torches when coal is missing.",
+        memory_type="failure_correction",
+        outcome="success",
+        task_family="crafting",
+        source="test",
+    )
+
+    context = agent._skill_memory_context("Craft torches", {"inventory": {"stick": 1}}, limit=3)
+
+    assert "Skill-level memory (crafting)" in context
+    assert "Mine coal_ore before crafting torches" in context
+    event = agent.session_logger.events[-1]
+    assert event["type"] == "skill_memory_hint"
+    assert event["data"]["task_family"] == "crafting"
+    assert event["data"]["hint_count"] == 1
+
+    agent.config = Config(enable_skill_memory_context=False)
+    assert agent._skill_memory_context("Craft torches", {}) == ""
+    print("PASS: Agent injects skill memory context for planner")
+
+
 def test_memory_policy_routes_correlated_evidence_to_review():
     content = {
         "claim": "Coal near spawn is always safe.",
@@ -1960,6 +1995,7 @@ if __name__ == "__main__":
     test_agent_memory_policy_can_suppress_noisy_write_when_enforced()
     test_agent_passes_observation_to_memory_retrieval()
     test_agent_injects_task_memory_context_for_planner()
+    test_agent_injects_skill_memory_context_for_planner()
     test_memory_policy_routes_correlated_evidence_to_review()
     test_memory_policy_routes_state_revisions_to_review()
     test_planner_preserves_task_scheduling_hints()

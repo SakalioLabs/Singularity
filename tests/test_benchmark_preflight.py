@@ -2578,6 +2578,53 @@ def test_policy_skill_benchmark_ablation_compares_live_suite_modes():
     print("PASS: Policy skill benchmark ablation compares live suite modes")
 
 
+def test_skill_memory_benchmark_ablation_compares_policy_only_baseline():
+    class FakeSkillMemoryBenchmarkRunner(BenchmarkRunner):
+        def _run_task_with_config(self, task, config):
+            assert config.enable_policy_skills is True
+            if config.enable_skill_memory_context:
+                return BenchmarkResult(
+                    task.task_id if hasattr(task, "task_id") else task.id,
+                    task.name,
+                    "pass",
+                    duration_s=3.0,
+                    intervention_metrics={
+                        "policy_hint_count": 1,
+                        "skill_memory_hint_count": 2,
+                    },
+                    session_log_path="skill_memory_enabled.jsonl",
+                )
+            return BenchmarkResult(
+                task.task_id if hasattr(task, "task_id") else task.id,
+                task.name,
+                "fail",
+                duration_s=4.0,
+                intervention_metrics={
+                    "policy_hint_count": 1,
+                    "skill_memory_hint_count": 0,
+                },
+                session_log_path="policy_only_baseline.jsonl",
+            )
+
+    tmpdir = tempfile.mkdtemp()
+    runner = FakeSkillMemoryBenchmarkRunner(Config(), output_dir=tmpdir)
+    task = BenchmarkTask("BM-SM", "Skill memory task", "Craft torches", "M1")
+    report = runner.run_skill_memory_benchmark_ablation(tasks=[task])
+    runner.save_skill_memory_benchmark_ablation_report(report, "skill_memory_report.json")
+
+    with open(os.path.join(tmpdir, "skill_memory_report.json"), "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    assert report.baseline_passed_count == 0
+    assert report.enabled_passed_count == 1
+    assert report.changed_count == 1
+    assert report.helped_count == 1
+    assert report.cases[0].baseline_skill_memory_hints == 0
+    assert report.cases[0].enabled_skill_memory_hints == 2
+    assert data["helped_count"] == 1
+    print("PASS: Skill memory benchmark ablation compares policy-only baseline")
+
+
 def test_visual_action_benchmark_ablation_compares_live_suite_modes():
     class FakeVisualActionBenchmarkRunner(BenchmarkRunner):
         def _run_task_with_config(self, task, config):
@@ -2821,6 +2868,7 @@ if __name__ == "__main__":
     test_policy_skill_ablation_compares_enabled_and_disabled_modes()
     test_policy_skill_ablation_loads_cases_from_skill_library()
     test_policy_skill_benchmark_ablation_compares_live_suite_modes()
+    test_skill_memory_benchmark_ablation_compares_policy_only_baseline()
     test_visual_action_benchmark_ablation_compares_live_suite_modes()
     test_mixed_policy_benchmark_ablation_compares_live_patch_modes()
     test_scheduling_ablation_report_compares_causal_switch()

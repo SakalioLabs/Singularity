@@ -34,6 +34,7 @@ class Config:
     enable_autocurriculum: bool = True
     enable_memory_policy: bool = True
     enable_task_memory_context: bool = True
+    enable_skill_memory_context: bool = True
     enforce_memory_write_gate: bool = False
     enable_vision_analysis: bool = True
     enable_visual_action_grounding: bool = True

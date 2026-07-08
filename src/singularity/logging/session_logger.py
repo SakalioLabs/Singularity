@@ -70,6 +70,8 @@ class SessionLogger:
         intervention_metrics = self._intervention_metrics()
         visual_action_metrics = self._visual_action_metrics()
         intervention_metrics.update(visual_action_metrics)
+        skill_memory_metrics = self._skill_memory_metrics()
+        intervention_metrics.update(skill_memory_metrics)
         goal_verification_metrics = self._goal_verification_metrics()
         memory_policy_metrics = self._memory_policy_metrics()
         return {
@@ -80,6 +82,7 @@ class SessionLogger:
             "error_count": error_count,
             "intervention_metrics": intervention_metrics,
             "visual_action_metrics": visual_action_metrics,
+            "skill_memory_metrics": skill_memory_metrics,
             "goal_verification_metrics": goal_verification_metrics,
             "memory_policy_metrics": memory_policy_metrics,
             "log_path": self._log_path,
@@ -189,6 +192,28 @@ class SessionLogger:
             "policy_intervention_failures": failed,
             "policy_intervention_success_rate": round(completed / denominator, 3) if denominator else 0.0,
             "policy_intervention_skills": sorted(skills),
+        }
+
+    def _skill_memory_metrics(self) -> dict:
+        events = [
+            event for event in self.events
+            if event.get("type") == "skill_memory_hint"
+        ]
+        task_families = {}
+        total_hints = 0
+        for event in events:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            family = str(data.get("task_family") or "unknown")
+            task_families[family] = task_families.get(family, 0) + 1
+            try:
+                total_hints += int(data.get("hint_count") or 0)
+            except (TypeError, ValueError):
+                hints = data.get("hints", [])
+                total_hints += len(hints) if isinstance(hints, list) else 0
+        return {
+            "skill_memory_hint_event_count": len(events),
+            "skill_memory_hint_count": total_hints,
+            "skill_memory_task_families": task_families,
         }
 
     def _visual_action_metrics(self) -> dict:

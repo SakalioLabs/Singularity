@@ -515,6 +515,12 @@ class TestSessionLogger(unittest.TestCase):
         self.logger.log("policy_intervention", {"phase": "selected", "skill": "correct_craft_torch"})
         self.logger.log("policy_intervention", {"phase": "action", "skill": "correct_craft_torch"})
         self.logger.log("policy_intervention", {"phase": "completed", "skill": "correct_craft_torch"})
+        self.logger.log("skill_memory_hint", {
+            "goal": "Craft torches",
+            "task_family": "crafting",
+            "hint_count": 2,
+            "hints": ["craft_torch_memory_skill[failure_correction]/success: mine coal first"],
+        })
         self.logger.log("memory_write", {
             "layer": "episodic",
             "memory_type": "action",
@@ -543,6 +549,10 @@ class TestSessionLogger(unittest.TestCase):
         self.assertEqual(metrics["policy_intervention_actions"], 1)
         self.assertEqual(metrics["policy_intervention_successes"], 1)
         self.assertEqual(metrics["policy_intervention_success_rate"], 1.0)
+        self.assertEqual(metrics["skill_memory_hint_event_count"], 1)
+        self.assertEqual(metrics["skill_memory_hint_count"], 2)
+        self.assertEqual(metrics["skill_memory_task_families"]["crafting"], 1)
+        self.assertEqual(summary["skill_memory_metrics"]["skill_memory_hint_count"], 2)
         memory = summary["memory_policy_metrics"]
         self.assertEqual(memory["memory_write_count"], 1)
         self.assertEqual(memory["memory_read_count"], 1)

@@ -646,6 +646,7 @@ class Agent:
             visual_context = self._visual_memory_context(goal)
             visual_action_context = self._visual_action_context(goal, observation)
             self_evolution_context = self._self_evolution_context(goal, observation)
+            skill_memory_context = self._skill_memory_context(goal, observation)
             combined_memory = "\n".join(part for part in (
                 memory_context,
                 task_memory_context,
@@ -653,6 +654,7 @@ class Agent:
                 visual_context,
                 visual_action_context,
                 self_evolution_context,
+                skill_memory_context,
                 skill_hint,
             ) if part)
             plan = self.planner.plan_from_goal(goal, observation, combined_memory)
@@ -661,6 +663,33 @@ class Agent:
             self.session_logger.log_error(f"LLM call failed: {e}")
             plan = {"status": "error", "actions": [], "reasoning": str(e)}
         return plan
+
+    def _skill_memory_context(self, goal: str, current_state: dict = None, limit: int = 5) -> str:
+        """Retrieve skill-local replay/failure notes for the current task family."""
+        if not getattr(getattr(self, "config", None), "enable_skill_memory_context", True):
+            return ""
+        if not hasattr(self, "skill_library") or not hasattr(self.skill_library, "get_skill_memory_hints"):
+            return ""
+        task_family = self.skill_library.infer_task_family(goal, {})
+        try:
+            hints = self.skill_library.get_skill_memory_hints(goal, task_family=task_family, limit=limit)
+        except Exception as e:
+            logger.warning(f"Skill memory hint lookup failed: {e}")
+            return ""
+        if not hints:
+            return ""
+        payload = {
+            "goal": goal,
+            "task_family": task_family,
+            "hint_count": len(hints),
+            "hints": hints[:limit],
+        }
+        if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("skill_memory_hint", payload)
+        return "Skill-level memory ({family}):\n- {hints}".format(
+            family=task_family,
+            hints="\n- ".join(hints[:limit]),
+        )
 
     def _think_rule(self, observation: dict, goal: str) -> dict:
         plan = self.rule_planner.plan_from_goal(goal, observation)
