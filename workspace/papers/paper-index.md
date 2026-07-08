@@ -902,6 +902,24 @@
 
 ---
 
+## P-049: AGI Maze
+
+- **Title**: AGI Maze as a Benchmark Framework for World-Modeling Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2607.00627
+- **Type**: World-modeling benchmark / partially observable grid environments
+- **Task Type**: Stateful maze exploration and hidden-map reasoning
+- **Core Method**: Lightweight maze environments that require agents to build and manipulate persistent world-state representations from local observations
+- **Action Space**: Navigation and observation actions under step budgets
+- **Memory**: Explicit world-state map beyond message-history working memory
+- **Key Results**: Shows vanilla LLMs struggle to represent even simple mazes internally; message-history working memory helps but remains insufficient
+- **Scores**: R=4, N=5, R=3, E=5
+- **Value to Project**: Supports explicit Minecraft world-model reports with visited cells, transitions, frontier candidates, resources, and dangers for autonomous exploration
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-agimaze.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -954,3 +972,4 @@
 | P-046 | EmbodiSkill | 2026 | R4/N5/R3/E5 | P2 |
 | P-047 | VASO | 2026 | R3/N5/R3/E5 | P2 |
 | P-048 | MemoryArena | 2026 | R5/N4/R3/E5 | P2 |
+| P-049 | AGI Maze | 2026 | R4/N5/R3/E5 | P2 |

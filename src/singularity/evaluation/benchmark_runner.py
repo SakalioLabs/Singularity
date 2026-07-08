@@ -1,6 +1,7 @@
 ﻿"""Benchmark runner for Singularity M1-M2 validation."""
 import importlib.util
 import json
+import math
 import os
 import shutil
 import socket
@@ -641,6 +642,59 @@ class ExplorationTraceReport:
     @property
     def unique_resource_type_count(self) -> int:
         return len({name for case in self.cases for name in case.unique_resource_types})
+
+
+@dataclass
+class WorldModelTraceCase:
+    source_log: str
+    cell_size: float = 8.0
+    observation_count: int = 0
+    position_count: int = 0
+    unique_cell_count: int = 0
+    transition_count: int = 0
+    frontier_count: int = 0
+    resource_hotspot_count: int = 0
+    danger_cell_count: int = 0
+    ready_for_world_model_review: bool = False
+    cells: list[dict] = field(default_factory=list)
+    transitions: list[dict] = field(default_factory=list)
+    frontiers: list[dict] = field(default_factory=list)
+    resource_hotspots: list[dict] = field(default_factory=list)
+    suggested_exploration_goals: list[str] = field(default_factory=list)
+
+
+@dataclass
+class WorldModelTraceReport:
+    cases: list[WorldModelTraceCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_log_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_world_model_review)
+
+    @property
+    def observation_count(self) -> int:
+        return sum(case.observation_count for case in self.cases)
+
+    @property
+    def unique_cell_count(self) -> int:
+        return sum(case.unique_cell_count for case in self.cases)
+
+    @property
+    def frontier_count(self) -> int:
+        return sum(case.frontier_count for case in self.cases)
+
+    @property
+    def resource_hotspot_count(self) -> int:
+        return sum(case.resource_hotspot_count for case in self.cases)
+
+    @property
+    def danger_cell_count(self) -> int:
+        return sum(case.danger_cell_count for case in self.cases)
 
 
 @dataclass
@@ -2255,6 +2309,24 @@ class BenchmarkRunner:
                 report.errors.append(f"{path}: {e}")
         return report
 
+    def run_world_model_report_from_logs(
+        self,
+        session_log_paths: list[str],
+        cell_size: float = 8.0,
+        limit: int = 12,
+    ) -> WorldModelTraceReport:
+        """Build AGI-Maze-style world-state summaries from session observations."""
+        report = WorldModelTraceReport()
+        safe_cell_size = max(1.0, float(cell_size or 8.0))
+        safe_limit = max(1, int(limit or 12))
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                report.cases.append(self._world_model_trace_case(path, events, safe_cell_size, safe_limit))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
     def exploration_curriculum_feedback(self, report: ExplorationTraceReport) -> dict:
         """Aggregate exploration traces into a CurriculumManager-friendly feedback payload."""
         blocks = set()
@@ -3212,6 +3284,69 @@ class BenchmarkRunner:
             ready_for_exploration_review=ready,
         )
 
+    def _world_model_trace_case(
+        self,
+        source_log: str,
+        events: list[dict],
+        cell_size: float,
+        limit: int,
+    ) -> WorldModelTraceCase:
+        observations = [
+            event.get("data", {})
+            for event in events
+            if event.get("type") == "observation" and isinstance(event.get("data", {}), dict)
+        ]
+        cell_states = {}
+        position_cells = []
+
+        for index, observation in enumerate(observations):
+            position = self._position_tuple(observation.get("position"))
+            if position is None:
+                continue
+            cell = self._world_model_cell(position, cell_size)
+            position_cells.append(cell)
+            state = self._world_model_cell_state(cell_states, cell)
+            state["visit_count"] += 1
+            state["first_seen_index"] = min(state["first_seen_index"], index)
+            state["last_seen_index"] = max(state["last_seen_index"], index)
+
+            for item in self._world_model_items(observation, ["nearby_blocks", "blocks", "visible_blocks"]):
+                self._world_model_add_item(cell_states, item, cell, cell_size, "blocks")
+            for item in self._world_model_items(observation, ["grounded_resources", "visual_resources", "resources"]):
+                self._world_model_add_item(cell_states, item, cell, cell_size, "resources")
+            for item in self._entity_items_from_record(observation):
+                self._world_model_add_item(cell_states, item, cell, cell_size, "entities", default_key="type")
+                if self._is_hostile_entity(item):
+                    self._world_model_cell_state(cell_states, self._world_model_item_cell(item, cell, cell_size))["danger_count"] += 1
+            for item in observation.get("dangers", []) if isinstance(observation.get("dangers", []), list) else []:
+                self._world_model_add_item(cell_states, item, cell, cell_size, "entities", default_key="type")
+                self._world_model_cell_state(cell_states, self._world_model_item_cell(item, cell, cell_size))["danger_count"] += 1
+
+        transitions = self._world_model_transitions(position_cells)
+        cells = self._world_model_serialized_cells(cell_states, cell_size, limit)
+        frontier_candidates = self._world_model_frontiers(cell_states, position_cells[-1] if position_cells else None, cell_size)
+        resource_hotspots = self._world_model_resource_hotspots(cell_states, cell_size)
+        suggestions = self._world_model_suggested_goals(frontier_candidates, resource_hotspots, limit)
+        ready = bool(position_cells and (len(set(position_cells)) > 1 or frontier_candidates or resource_hotspots))
+
+        return WorldModelTraceCase(
+            source_log=source_log,
+            cell_size=cell_size,
+            observation_count=len(observations),
+            position_count=len(position_cells),
+            unique_cell_count=len(cell_states),
+            transition_count=len(transitions),
+            frontier_count=len(frontier_candidates),
+            resource_hotspot_count=len(resource_hotspots),
+            danger_cell_count=sum(1 for state in cell_states.values() if state["danger_count"] > 0),
+            ready_for_world_model_review=ready,
+            cells=cells,
+            transitions=transitions[:limit],
+            frontiers=frontier_candidates[:limit],
+            resource_hotspots=resource_hotspots[:limit],
+            suggested_exploration_goals=suggestions[:limit],
+        )
+
     def _self_evolution_trace_case(self, source_log: str, events: list[dict]) -> SelfEvolutionTraceCase:
         observations = [
             event.get("data", {})
@@ -3953,6 +4088,179 @@ class BenchmarkRunner:
             dz = current[2] - previous[2]
             distance += (dx * dx + dy * dy + dz * dz) ** 0.5
         return distance
+
+    def _world_model_cell(self, position: tuple[float, float, float], cell_size: float) -> tuple[int, int]:
+        return (math.floor(position[0] / cell_size), math.floor(position[2] / cell_size))
+
+    def _world_model_cell_dict(self, cell: tuple[int, int]) -> dict:
+        return {"x": int(cell[0]), "z": int(cell[1])}
+
+    def _world_model_cell_center(self, cell: tuple[int, int], cell_size: float) -> dict:
+        return {
+            "x": round((cell[0] + 0.5) * cell_size, 2),
+            "z": round((cell[1] + 0.5) * cell_size, 2),
+        }
+
+    def _world_model_cell_state(self, cell_states: dict, cell: tuple[int, int]) -> dict:
+        if cell not in cell_states:
+            cell_states[cell] = {
+                "cell": cell,
+                "visit_count": 0,
+                "first_seen_index": 10**9,
+                "last_seen_index": -1,
+                "blocks": set(),
+                "resources": set(),
+                "entities": set(),
+                "danger_count": 0,
+            }
+        return cell_states[cell]
+
+    def _world_model_items(self, record: dict, keys: list[str]) -> list:
+        items = []
+        for key in keys:
+            value = record.get(key)
+            if isinstance(value, dict):
+                items.extend(value.values())
+            elif isinstance(value, list):
+                items.extend(value)
+        return items
+
+    def _world_model_item_cell(self, item, fallback_cell: tuple[int, int], cell_size: float) -> tuple[int, int]:
+        if isinstance(item, dict):
+            position = self._position_tuple(item.get("position"))
+            if position is not None:
+                return self._world_model_cell(position, cell_size)
+        return fallback_cell
+
+    def _world_model_add_item(
+        self,
+        cell_states: dict,
+        item,
+        fallback_cell: tuple[int, int],
+        cell_size: float,
+        field: str,
+        default_key: str = "name",
+    ):
+        name = self._item_name(item, default_key=default_key)
+        if not name:
+            return
+        cell = self._world_model_item_cell(item, fallback_cell, cell_size)
+        self._world_model_cell_state(cell_states, cell)[field].add(name)
+
+    def _world_model_transitions(self, position_cells: list[tuple[int, int]]) -> list[dict]:
+        counts = {}
+        for source, target in zip(position_cells, position_cells[1:]):
+            if source == target:
+                continue
+            key = (source, target)
+            counts[key] = counts.get(key, 0) + 1
+        transitions = [
+            {
+                "from_cell": self._world_model_cell_dict(source),
+                "to_cell": self._world_model_cell_dict(target),
+                "count": count,
+            }
+            for (source, target), count in counts.items()
+        ]
+        transitions.sort(key=lambda item: (-item["count"], item["from_cell"]["x"], item["from_cell"]["z"]))
+        return transitions
+
+    def _world_model_serialized_cells(self, cell_states: dict, cell_size: float, limit: int) -> list[dict]:
+        cells = []
+        for cell, state in cell_states.items():
+            cells.append({
+                "cell": self._world_model_cell_dict(cell),
+                "center": self._world_model_cell_center(cell, cell_size),
+                "visit_count": state["visit_count"],
+                "first_seen_index": state["first_seen_index"],
+                "last_seen_index": state["last_seen_index"],
+                "blocks": sorted(state["blocks"])[:12],
+                "resources": sorted(state["resources"])[:12],
+                "entities": sorted(state["entities"])[:12],
+                "danger_count": state["danger_count"],
+            })
+        cells.sort(key=lambda item: (item["first_seen_index"], item["cell"]["x"], item["cell"]["z"]))
+        return cells[:limit]
+
+    def _world_model_frontiers(
+        self,
+        cell_states: dict,
+        last_cell: Optional[tuple[int, int]],
+        cell_size: float,
+    ) -> list[dict]:
+        known = set(cell_states)
+        candidates = {}
+        for cell, state in cell_states.items():
+            for direction, neighbor in self._world_model_neighbors(cell):
+                if neighbor in known:
+                    continue
+                score = 1.0 + len(state["resources"]) * 1.5 + len(state["blocks"]) * 0.15 - min(2, state["danger_count"])
+                if last_cell is not None:
+                    score -= 0.05 * (abs(neighbor[0] - last_cell[0]) + abs(neighbor[1] - last_cell[1]))
+                existing = candidates.get(neighbor)
+                if existing and existing["score"] >= score:
+                    continue
+                candidates[neighbor] = {
+                    "cell": self._world_model_cell_dict(neighbor),
+                    "center": self._world_model_cell_center(neighbor, cell_size),
+                    "from_cell": self._world_model_cell_dict(cell),
+                    "direction": direction,
+                    "nearby_resources": sorted(state["resources"])[:8],
+                    "nearby_blocks": sorted(state["blocks"])[:8],
+                    "nearby_danger_count": state["danger_count"],
+                    "score": round(score, 3),
+                }
+        frontiers = list(candidates.values())
+        frontiers.sort(key=lambda item: (-item["score"], item["cell"]["x"], item["cell"]["z"]))
+        return frontiers
+
+    def _world_model_neighbors(self, cell: tuple[int, int]) -> list[tuple[str, tuple[int, int]]]:
+        x, z = cell
+        return [
+            ("east", (x + 1, z)),
+            ("west", (x - 1, z)),
+            ("south", (x, z + 1)),
+            ("north", (x, z - 1)),
+        ]
+
+    def _world_model_resource_hotspots(self, cell_states: dict, cell_size: float) -> list[dict]:
+        hotspots = []
+        for cell, state in cell_states.items():
+            for resource in sorted(state["resources"]):
+                hotspots.append({
+                    "resource": resource,
+                    "cell": self._world_model_cell_dict(cell),
+                    "center": self._world_model_cell_center(cell, cell_size),
+                    "visit_count": state["visit_count"],
+                    "danger_count": state["danger_count"],
+                })
+        hotspots.sort(key=lambda item: (item["danger_count"], -item["visit_count"], item["resource"]))
+        return hotspots
+
+    def _world_model_suggested_goals(
+        self,
+        frontiers: list[dict],
+        resource_hotspots: list[dict],
+        limit: int,
+    ) -> list[str]:
+        goals = []
+        for frontier in frontiers[: max(1, min(4, limit))]:
+            cell = frontier["cell"]
+            center = frontier["center"]
+            nearby = ", ".join(frontier.get("nearby_resources", [])[:3])
+            suffix = f" near {nearby}" if nearby else ""
+            goals.append(
+                f"Explore {frontier['direction']} frontier cell ({cell['x']},{cell['z']}) "
+                f"around x={center['x']}, z={center['z']}{suffix}"
+            )
+        for hotspot in resource_hotspots[: max(1, min(3, limit - len(goals)))]:
+            cell = hotspot["cell"]
+            center = hotspot["center"]
+            goals.append(
+                f"Revisit {hotspot['resource']} hotspot cell ({cell['x']},{cell['z']}) "
+                f"around x={center['x']}, z={center['z']}"
+            )
+        return goals[:limit]
 
     def _inventory_counts(self, inventory) -> dict:
         if not isinstance(inventory, dict):
@@ -5757,6 +6065,40 @@ class BenchmarkRunner:
                     f"      multi-hop goals={case.multi_hop_goal_count}, "
                     f"multi-step plans={case.multi_step_plan_count}"
                 )
+        for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_world_model_report(self, report: WorldModelTraceReport):
+        total = report.log_count
+        print("\nWorld Model Trace")
+        print(f"  logs ready for world-model review: {report.ready_log_count}/{total}")
+        print(
+            "  cells/frontiers/resources/dangers: "
+            f"{report.unique_cell_count}/{report.frontier_count}/"
+            f"{report.resource_hotspot_count}/{report.danger_cell_count}"
+        )
+        for case in report.cases:
+            marker = "+" if case.ready_for_world_model_review else "!"
+            print(f"  [{marker}] {case.source_log}")
+            print(
+                f"      observations={case.observation_count}, positions={case.position_count}, "
+                f"cells={case.unique_cell_count}, transitions={case.transition_count}, "
+                f"frontiers={case.frontier_count}"
+            )
+            if case.resource_hotspots:
+                preview = [
+                    f"{item['resource']}@({item['cell']['x']},{item['cell']['z']})"
+                    for item in case.resource_hotspots[:5]
+                ]
+                print(f"      resources: {', '.join(preview)}")
+            if case.frontiers:
+                preview = [
+                    f"{item['direction']}->({item['cell']['x']},{item['cell']['z']})"
+                    for item in case.frontiers[:5]
+                ]
+                print(f"      frontiers: {', '.join(preview)}")
+            for goal in case.suggested_exploration_goals[:3]:
+                print(f"      next: {goal}")
         for error in report.errors:
             print(f"  error: {error}")
 

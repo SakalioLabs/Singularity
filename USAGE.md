@@ -154,6 +154,8 @@ python -m singularity.main memory-promptware-report --memory-dir workspace/memor
 # Summarize open-world exploration coverage from autonomous/session logs
 python -m singularity.main exploration-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/exploration_trace.json
 # The saved JSON includes `curriculum_feedback`, which can be applied to CurriculumManager for candidate reranking.
+# Build a lightweight world-state map with visited cells, frontiers, resource hotspots, and next exploration goals.
+python -m singularity.main world-model-report --session-log logs/session_xxx.jsonl --cell-size 8 --output logs/benchmarks/world_model.json
 
 # Summarize MineEvolve-style execution progress, stagnation, and adaptor hints
 python -m singularity.main self-evolution-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/self_evolution.json

@@ -17,5 +17,6 @@
 **Singularity Adaptation**:
   - `CurriculumManager` already proposes exploration goals from novelty and readiness signals.
   - `exploration-trace-report` now summarizes visited position spread, path distance, newly observed block/entity/resource types, visual evidence coverage, hazard encounters, multi-step plans, and failed action categories from session logs.
+  - `world-model-report` complements coverage metrics by reconstructing visited cells, transitions, resource hotspots, danger cells, and frontier candidates from the same logs.
   - Long-term: use exploration coverage as a benchmark dimension alongside M1/M2 completion, M6 visual evidence quality, and M7 collaboration overlap.
-**Next Action**: Run the report on real autonomous logs and connect coverage metrics back into curriculum novelty scoring.
+**Next Action**: Run the reports on real autonomous logs and connect coverage plus frontier metrics back into curriculum novelty scoring.

@@ -330,6 +330,14 @@ def main():
     exploration_trace_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     exploration_trace_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline world-model trace report
+    world_model_parser = subparsers.add_parser("world-model-report", help="Build AGI-Maze-style world-state cells and exploration frontiers from session logs")
+    world_model_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    world_model_parser.add_argument("--cell-size", type=float, default=8.0, help="XZ block span per world-model cell")
+    world_model_parser.add_argument("--limit", type=int, default=12, help="Maximum cells/frontiers/hotspots to include per case")
+    world_model_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    world_model_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline self-evolution trace report
     self_evolution_parser = subparsers.add_parser("self-evolution-report", help="Report execution progress, stagnation, and adaptor hints in session logs")
     self_evolution_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -1414,6 +1422,37 @@ def main():
                     "unique_entity_type_count": report.unique_entity_type_count,
                     "unique_resource_type_count": report.unique_resource_type_count,
                     "curriculum_feedback": curriculum_feedback,
+                    "errors": report.errors,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "world-model-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("world-model-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_world_model_report_from_logs(
+            session_logs,
+            cell_size=getattr(args, "cell_size", 8.0),
+            limit=getattr(args, "limit", 12),
+        )
+        runner.print_world_model_report(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "log_count": report.log_count,
+                    "ready_log_count": report.ready_log_count,
+                    "observation_count": report.observation_count,
+                    "unique_cell_count": report.unique_cell_count,
+                    "frontier_count": report.frontier_count,
+                    "resource_hotspot_count": report.resource_hotspot_count,
+                    "danger_cell_count": report.danger_cell_count,
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)

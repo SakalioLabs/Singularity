@@ -1124,6 +1124,64 @@ def test_exploration_trace_report_counts_open_world_coverage():
     print("PASS: Exploration trace report counts open-world coverage")
 
 
+def test_world_model_report_builds_cells_frontiers_and_hotspots():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_world_model.jsonl")
+    events = [
+        {
+            "type": "observation",
+            "data": {
+                "position": {"x": 0, "y": 64, "z": 0},
+                "nearby_blocks": [{"name": "oak_log"}, {"name": "stone"}],
+                "grounded_resources": [{"name": "oak_log", "position": {"x": 1, "y": 64, "z": 0}}],
+                "nearby_entities": [{"type": "sheep", "hostile": False}],
+            },
+        },
+        {
+            "type": "observation",
+            "data": {
+                "position": {"x": 9, "y": 64, "z": 0},
+                "nearby_blocks": [{"name": "coal_ore", "position": {"x": 9, "y": 63, "z": 1}}],
+                "grounded_resources": [{"name": "coal_ore", "position": {"x": 9, "y": 63, "z": 1}}],
+                "nearby_entities": [{"type": "zombie", "hostile": True, "position": {"x": 10, "y": 64, "z": 1}}],
+            },
+        },
+        {
+            "type": "observation",
+            "data": {
+                "position": {"x": 9, "y": 64, "z": 8},
+                "visual_resources": [{"name": "cave_entrance"}],
+                "dangers": [{"type": "creeper", "position": {"x": 9, "y": 64, "z": 8}}],
+            },
+        },
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_world_model_report_from_logs([session_path], cell_size=8, limit=10)
+    case = report.cases[0]
+
+    assert report.log_count == 1
+    assert report.ready_log_count == 1
+    assert report.unique_cell_count == 3
+    assert report.frontier_count >= 6
+    assert report.resource_hotspot_count == 3
+    assert report.danger_cell_count == 2
+    assert case.ready_for_world_model_review
+    assert case.position_count == 3
+    assert case.transition_count == 2
+    assert any(item["resource"] == "coal_ore" for item in case.resource_hotspots)
+    assert any(item["resource"] == "cave_entrance" for item in case.resource_hotspots)
+    assert any(frontier["direction"] in {"east", "west", "north", "south"} for frontier in case.frontiers)
+    assert any(goal.startswith("Explore ") for goal in case.suggested_exploration_goals)
+    coal_cell = next(cell for cell in case.cells if "coal_ore" in cell["resources"])
+    assert coal_cell["cell"] == {"x": 1, "z": 0}
+    assert coal_cell["danger_count"] == 1
+    print("PASS: World model report builds cells, frontiers, and hotspots")
+
+
 def test_self_evolution_report_tracks_progress_and_stagnation():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_self_evolution.jsonl")
@@ -2178,6 +2236,7 @@ if __name__ == "__main__":
     test_visual_trace_report_counts_visual_coverage()
     test_visual_trace_report_validates_screenshot_files()
     test_exploration_trace_report_counts_open_world_coverage()
+    test_world_model_report_builds_cells_frontiers_and_hotspots()
     test_self_evolution_report_tracks_progress_and_stagnation()
     test_self_evolution_gate_requires_verifier_and_counterexamples()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
