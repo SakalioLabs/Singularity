@@ -187,6 +187,53 @@ class VisualActionBenchmarkAblationReport:
 
 
 @dataclass
+class MixedPolicyBenchmarkAblationResult:
+    task_id: str
+    task_name: str
+    baseline_status: str
+    patched_status: str
+    baseline_duration_s: float = 0.0
+    patched_duration_s: float = 0.0
+    baseline_control_policy: dict = field(default_factory=dict)
+    patched_control_policy: dict = field(default_factory=dict)
+    patched_changed: bool = False
+    patched_helped: bool = False
+    baseline_log: str = ""
+    patched_log: str = ""
+
+
+@dataclass
+class MixedPolicyBenchmarkAblationReport:
+    patch_paths: list[str] = field(default_factory=list)
+    policy_decision_report: dict = field(default_factory=dict)
+    cases: list[MixedPolicyBenchmarkAblationResult] = field(default_factory=list)
+
+    @property
+    def baseline_passed_count(self) -> int:
+        return sum(1 for case in self.cases if case.baseline_status == "pass")
+
+    @property
+    def patched_passed_count(self) -> int:
+        return sum(1 for case in self.cases if case.patched_status == "pass")
+
+    @property
+    def changed_count(self) -> int:
+        return sum(1 for case in self.cases if case.patched_changed)
+
+    @property
+    def helped_count(self) -> int:
+        return sum(1 for case in self.cases if case.patched_helped)
+
+    @property
+    def control_changed_count(self) -> int:
+        return sum(
+            1
+            for case in self.cases
+            if case.baseline_control_policy != case.patched_control_policy
+        )
+
+
+@dataclass
 class VisualActionAblationCase:
     id: str
     name: str
@@ -1369,6 +1416,49 @@ class BenchmarkRunner:
             ))
         return report
 
+    def run_mixed_policy_benchmark_ablation(
+        self,
+        patch_paths: list[str],
+        tasks: Optional[list[BenchmarkTask]] = None,
+        suite: str = "m1",
+    ) -> MixedPolicyBenchmarkAblationReport:
+        """Run live benchmark tasks without and with approved mixed-policy patches."""
+        from singularity.evaluation.mixed_initiative import build_mixed_initiative_policy_ablation
+
+        clean_paths = [path for path in patch_paths if path]
+        policy_report = build_mixed_initiative_policy_ablation(patch_paths=clean_paths)
+        report = MixedPolicyBenchmarkAblationReport(
+            patch_paths=clean_paths,
+            policy_decision_report=policy_report.to_dict(),
+        )
+        source_tasks = tasks if tasks is not None else self.tasks_for_suite(suite)
+        for task in source_tasks:
+            baseline = self._run_task_with_config(task, replace(self.config, mixed_policy_patch_paths=[]))
+            patched = self._run_task_with_config(task, replace(self.config, mixed_policy_patch_paths=clean_paths))
+            baseline_control = self._control_policy_summary_from_log(baseline.session_log_path)
+            patched_control = self._control_policy_summary_from_log(patched.session_log_path)
+            patched_changed = (
+                baseline.status != patched.status
+                or baseline.inventory_snapshot != patched.inventory_snapshot
+                or baseline_control != patched_control
+            )
+            patched_helped = baseline.status != "pass" and patched.status == "pass"
+            report.cases.append(MixedPolicyBenchmarkAblationResult(
+                task_id=task.id,
+                task_name=task.name,
+                baseline_status=baseline.status,
+                patched_status=patched.status,
+                baseline_duration_s=baseline.duration_s,
+                patched_duration_s=patched.duration_s,
+                baseline_control_policy=baseline_control,
+                patched_control_policy=patched_control,
+                patched_changed=patched_changed,
+                patched_helped=patched_helped,
+                baseline_log=baseline.session_log_path,
+                patched_log=patched.session_log_path,
+            ))
+        return report
+
     def _run_task_with_config(self, task: BenchmarkTask, config: Config) -> BenchmarkResult:
         runner = BenchmarkRunner(config, output_dir=self.output_dir, bridge_factory=self.bridge_factory)
         return runner.run_task(task)
@@ -1378,6 +1468,67 @@ class BenchmarkRunner:
 
     def _visual_action_intervention_count(self, result: BenchmarkResult) -> int:
         return result.intervention_metrics.get("visual_action_intervention_count", 0) if result.intervention_metrics else 0
+
+    def _control_policy_summary_from_log(self, session_log_path: str) -> dict:
+        summary = {
+            "log_path": session_log_path or "",
+            "log_available": bool(session_log_path and os.path.exists(session_log_path)),
+            "action_event_count": 0,
+            "control_policy_event_count": 0,
+            "backend_counts": {},
+            "preferred_backend_counts": {},
+            "preferred_control_counts": {},
+            "fallback_count": 0,
+            "fallback_reasons": {},
+            "action_backend_counts": {},
+        }
+        if not summary["log_available"]:
+            return summary
+        try:
+            with open(session_log_path, "r", encoding="utf-8-sig") as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    try:
+                        event = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if event.get("type") != "action":
+                        continue
+                    data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+                    action = data.get("action", {}) if isinstance(data.get("action", {}), dict) else {}
+                    result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+                    summary["action_event_count"] += 1
+                    policy = result.get("control_policy", {}) if isinstance(result.get("control_policy", {}), dict) else {}
+                    if not policy:
+                        continue
+                    summary["control_policy_event_count"] += 1
+                    action_type = str(policy.get("action_type") or result.get("action_type") or action.get("type") or "unknown")
+                    backend = str(policy.get("backend") or result.get("backend") or "unknown")
+                    preferred_backend = str(policy.get("preferred_backend") or "unknown")
+                    preferred_control = str(policy.get("preferred_control") or "unknown")
+                    self._increment(summary["backend_counts"], backend)
+                    self._increment(summary["preferred_backend_counts"], preferred_backend)
+                    self._increment(summary["preferred_control_counts"], preferred_control)
+                    self._increment(summary["action_backend_counts"], f"{action_type}:{backend}")
+                    fallback = str(policy.get("fallback_reason") or "")
+                    if fallback:
+                        summary["fallback_count"] += 1
+                        self._increment(summary["fallback_reasons"], fallback)
+        except Exception as exc:
+            summary["error"] = str(exc)
+        for key in (
+            "backend_counts",
+            "preferred_backend_counts",
+            "preferred_control_counts",
+            "fallback_reasons",
+            "action_backend_counts",
+        ):
+            summary[key] = dict(sorted(summary[key].items()))
+        return summary
+
+    def _increment(self, counts: dict, key: str, amount: int = 1):
+        counts[key] = counts.get(key, 0) + amount
 
     def run_promotion_review_ablation_from_logs(
         self,
@@ -4265,6 +4416,27 @@ class BenchmarkRunner:
             json.dump(data, f, indent=2, ensure_ascii=False)
         logger.info(f"Visual-action benchmark ablation saved to {path}")
 
+    def save_mixed_policy_benchmark_ablation_report(
+        self,
+        report: MixedPolicyBenchmarkAblationReport,
+        filename: str = "mixed_policy_benchmark_ablation.json",
+    ):
+        os.makedirs(self.output_dir, exist_ok=True)
+        path = os.path.join(self.output_dir, filename)
+        data = {
+            "patch_paths": list(report.patch_paths),
+            "baseline_passed_count": report.baseline_passed_count,
+            "patched_passed_count": report.patched_passed_count,
+            "changed_count": report.changed_count,
+            "helped_count": report.helped_count,
+            "control_changed_count": report.control_changed_count,
+            "policy_decision_report": dict(report.policy_decision_report),
+            "cases": [asdict(case) for case in report.cases],
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        logger.info(f"Mixed-policy benchmark ablation saved to {path}")
+
     def print_summary(self):
         total = len(self.results)
         passed = sum(1 for r in self.results if r.status == "pass")
@@ -4316,6 +4488,38 @@ class BenchmarkRunner:
             print(
                 f"      enabled:  {case.enabled_status} ({case.enabled_duration_s}s), "
                 f"visual_actions={case.enabled_visual_actions}{phase_text}"
+            )
+
+    def print_mixed_policy_benchmark_ablation_report(self, report: MixedPolicyBenchmarkAblationReport):
+        total = len(report.cases)
+        decision_report = report.policy_decision_report or {}
+        print("\nMixed Policy Benchmark Ablation")
+        print(f"  baseline passed: {report.baseline_passed_count}/{total}")
+        print(f"  patched passed:  {report.patched_passed_count}/{total}")
+        print(f"  changed:         {report.changed_count}/{total}")
+        print(f"  control changed: {report.control_changed_count}/{total}")
+        print(f"  patched helped:  {report.helped_count}/{total}")
+        print(
+            "  patch decision preview: "
+            f"actions={decision_report.get('action_changed_count', 0)}/"
+            f"{decision_report.get('action_case_count', 0)}, "
+            f"templates={decision_report.get('template_changed_count', 0)}/"
+            f"{decision_report.get('template_case_count', 0)}, "
+            f"candidates={decision_report.get('candidate_changed_count', 0)}/"
+            f"{decision_report.get('candidate_case_count', 0)}"
+        )
+        for case in report.cases:
+            marker = "+" if case.patched_helped else "~" if case.patched_changed else "="
+            baseline_control = case.baseline_control_policy or {}
+            patched_control = case.patched_control_policy or {}
+            baseline_preferred = baseline_control.get("preferred_control_counts", {})
+            patched_preferred = patched_control.get("preferred_control_counts", {})
+            fallback_count = patched_control.get("fallback_count", 0)
+            print(f"  [{marker}] {case.task_id} {case.task_name}")
+            print(f"      baseline: {case.baseline_status} ({case.baseline_duration_s}s), control={baseline_preferred}")
+            print(
+                f"      patched:  {case.patched_status} ({case.patched_duration_s}s), "
+                f"control={patched_preferred}, fallbacks={fallback_count}"
             )
 
     def print_visual_action_ablation_report(self, report: VisualActionAblationReport):

@@ -1664,6 +1664,100 @@ def test_visual_action_benchmark_ablation_compares_live_suite_modes():
     print("PASS: Visual action benchmark ablation compares live suite modes")
 
 
+def test_mixed_policy_benchmark_ablation_compares_live_patch_modes():
+    tmpdir = tempfile.mkdtemp()
+    patch_path = os.path.join(tmpdir, "mixed_policy_patch.json")
+    with open(patch_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "action_policy_feedback": {
+                "policy_hints": [
+                    {
+                        "action_type": "place",
+                        "preferred_control": "consider_low_level_visual_control",
+                        "reason": "visual_or_precision_sensitive",
+                    }
+                ]
+            },
+            "mixed_initiative_feedback": {
+                "policy_hints": [
+                    {
+                        "policy": "inspect_backend_execution",
+                        "template_id": "craft_or_process_item",
+                        "priority": "high",
+                    }
+                ]
+            },
+            "template_policy_updates": [
+                {"target_id": "craft_or_process_item", "decision": "inspect_backend_execution"}
+            ],
+        }, f)
+
+    def write_action_log(name, preferred_control, fallback_reason=""):
+        path = os.path.join(tmpdir, name)
+        control_policy = {
+            "action_type": "place",
+            "backend": "mineflayer",
+            "preferred_backend": "desktop" if preferred_control == "consider_low_level_visual_control" else "mineflayer",
+            "preferred_control": preferred_control,
+            "reason": "visual_or_precision_sensitive" if preferred_control == "consider_low_level_visual_control" else "default_backend",
+        }
+        if fallback_reason:
+            control_policy["fallback_reason"] = fallback_reason
+        event = {
+            "type": "action",
+            "data": {
+                "action": {"type": "place", "parameters": {"item": "torch"}},
+                "result": {
+                    "success": True,
+                    "action_type": "place",
+                    "backend": "mineflayer",
+                    "control_policy": control_policy,
+                },
+            },
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(json.dumps(event) + "\n")
+        return path
+
+    class FakeMixedPolicyBenchmarkRunner(BenchmarkRunner):
+        def _run_task_with_config(self, task, config):
+            patched = bool(config.mixed_policy_patch_paths)
+            log_path = write_action_log(
+                "patched.jsonl" if patched else "baseline.jsonl",
+                "consider_low_level_visual_control" if patched else "mineflayer_api_ok",
+                "preferred backend desktop is not enabled" if patched else "",
+            )
+            return BenchmarkResult(
+                task.id,
+                task.name,
+                "pass",
+                duration_s=3.0 if patched else 4.0,
+                inventory_snapshot={"torch": 1},
+                session_log_path=log_path,
+            )
+
+    runner = FakeMixedPolicyBenchmarkRunner(Config(), output_dir=tmpdir)
+    task = BenchmarkTask("BM-MIX", "Mixed policy task", "Place a torch", "M1")
+    report = runner.run_mixed_policy_benchmark_ablation(patch_paths=[patch_path], tasks=[task])
+    runner.save_mixed_policy_benchmark_ablation_report(report, "mixed_policy_report.json")
+
+    with open(os.path.join(tmpdir, "mixed_policy_report.json"), "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    assert report.baseline_passed_count == 1
+    assert report.patched_passed_count == 1
+    assert report.changed_count == 1
+    assert report.control_changed_count == 1
+    assert report.policy_decision_report["action_changed_count"] == 1
+    assert report.policy_decision_report["template_changed_count"] == 1
+    case = report.cases[0]
+    assert case.patched_control_policy["preferred_control_counts"]["consider_low_level_visual_control"] == 1
+    assert case.patched_control_policy["fallback_count"] == 1
+    assert data["control_changed_count"] == 1
+    assert data["cases"][0]["patched_control_policy"]["fallback_count"] == 1
+    print("PASS: Mixed policy benchmark ablation compares live patch modes")
+
+
 def test_scheduling_ablation_report_compares_causal_switch():
     runner = BenchmarkRunner(Config())
     report = runner.run_scheduling_ablation()
@@ -1751,6 +1845,7 @@ if __name__ == "__main__":
     test_policy_skill_ablation_loads_cases_from_skill_library()
     test_policy_skill_benchmark_ablation_compares_live_suite_modes()
     test_visual_action_benchmark_ablation_compares_live_suite_modes()
+    test_mixed_policy_benchmark_ablation_compares_live_patch_modes()
     test_scheduling_ablation_report_compares_causal_switch()
     test_scheduling_ablation_replays_session_logs()
     print("\nBenchmark preflight tests PASSED")

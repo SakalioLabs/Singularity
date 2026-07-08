@@ -112,6 +112,7 @@ def main():
     bench_parser.add_argument("--promotion-critic", action="store_true", help="Use configured LLM as fallback critic for unknown skill-candidate verifier gates during ingestion")
     bench_parser.add_argument("--policy-skill-ablation", action="store_true", help="Run suite twice with reviewed policy skills disabled and enabled")
     bench_parser.add_argument("--visual-action-ablation", action="store_true", help="Run suite twice with visual action grounding disabled and enabled")
+    bench_parser.add_argument("--mixed-policy-ablation", action="store_true", help="Run suite twice without and with approved mixed-policy patches")
 
     # Benchmark preflight command
     preflight_parser = subparsers.add_parser("preflight", help="Check benchmark readiness without running tasks")
@@ -1722,6 +1723,18 @@ def main():
             report = runner.run_visual_action_benchmark_ablation(suite=args.suite)
             runner.print_visual_action_benchmark_ablation_report(report)
             runner.save_visual_action_benchmark_ablation_report(report, args.output)
+            return
+        if getattr(args, "mixed_policy_ablation", False):
+            patch_paths = getattr(args, "mixed_policy_patch", []) or []
+            if not patch_paths:
+                print("benchmark --mixed-policy-ablation requires at least one --mixed-policy-patch")
+                sys.exit(1)
+            report = runner.run_mixed_policy_benchmark_ablation(
+                patch_paths=patch_paths,
+                suite=args.suite,
+            )
+            runner.print_mixed_policy_benchmark_ablation_report(report)
+            runner.save_mixed_policy_benchmark_ablation_report(report, args.output)
             return
         if args.suite == "m1":
             runner.run_m1_suite()
