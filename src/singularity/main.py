@@ -538,6 +538,12 @@ def main():
     action_verification_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     action_verification_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline verifier-guided candidate action selection report
+    action_candidate_parser = subparsers.add_parser("action-candidate-report", help="Replay logged actions through verifier-guided candidate selection")
+    action_candidate_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    action_candidate_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    action_candidate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline self-evolution automatic repair gate
     self_evolution_gate_parser = subparsers.add_parser("self-evolution-gate", help="Gate automatic self-evolution plan repair with verifier and counterexample evidence")
     self_evolution_gate_parser.add_argument("--self-evolution-report", action="append", default=[], help="Saved self-evolution-report JSON")
@@ -2205,6 +2211,37 @@ def main():
                     "reject_rate": report.reject_rate,
                     "review_rate": report.review_rate,
                     "action_verification_feedback": action_verification_feedback,
+                    "errors": report.errors,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "action-candidate-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("action-candidate-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_action_candidate_report_from_logs(session_logs)
+        runner.print_action_candidate_report(report)
+        action_candidate_feedback = runner.action_candidate_feedback(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "log_count": report.log_count,
+                    "ready_log_count": report.ready_log_count,
+                    "action_count": report.action_count,
+                    "original_reject_count": report.original_reject_count,
+                    "changed_selection_count": report.changed_selection_count,
+                    "repaired_reject_count": report.repaired_reject_count,
+                    "unchanged_reject_count": report.unchanged_reject_count,
+                    "selection_change_rate": report.selection_change_rate,
+                    "repaired_reject_rate": report.repaired_reject_rate,
+                    "action_candidate_feedback": action_candidate_feedback,
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)

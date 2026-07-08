@@ -18,4 +18,5 @@
   - Added `ActionVerifier` for structured Minecraft actions.
   - Agent now logs `action_verification` events and blocks deterministic rejects before live Mineflayer execution when enforcement is enabled.
   - Added `action-verification-report` and saved `logs/benchmarks/action_verification_m1_2026-07-09.json`; current M1 replay has 200 verified actions, 195 accepts, 5 reviews, 0 rejects, and 0 failed-without-reject gaps.
-**Next Action**: Re-run on live M1/M2 retries and add candidate-generation/ranking once repeated review or failed-without-reject categories appear.
+  - Added `ActionCandidateSelector` as the first candidate-generation layer for rejected actions, with offline `action-candidate-report` baselines.
+**Next Action**: Re-run on live M1/M2 retries and audit candidate replacements against observed goal progress before broadening from deterministic prerequisite repairs to learned ranking.

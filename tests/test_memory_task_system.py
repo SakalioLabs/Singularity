@@ -22,6 +22,7 @@ from singularity.core.skill_extractor import (
 )
 from singularity.core.skill_library import SkillLibrary
 from singularity.core.task_system import TaskStatus, TaskSystem
+from singularity.action.selection import ActionCandidateSelector
 from singularity.action.verifier import ActionVerifier
 from singularity.data.knowledge_base import KnowledgeBase
 from singularity.evaluation.benchmark_runner import BenchmarkRunner
@@ -2131,6 +2132,33 @@ def test_agent_action_verification_blocks_rejected_actions():
     print("PASS: Agent blocks verifier-rejected actions before live execution")
 
 
+def test_agent_action_candidate_selection_repairs_rejected_action():
+    agent = object.__new__(Agent)
+    agent.config = Config(enable_action_candidate_selection=True)
+    verifier = ActionVerifier()
+    agent.action_candidate_selector = ActionCandidateSelector(verifier)
+    agent.session_logger = FakeSessionLogger()
+    agent._write_memory_episode = lambda *args, **kwargs: None
+
+    selected, selection = agent._select_action_for_execution(
+        {"type": "craft", "parameters": {"item": "torch", "count": 4}},
+        {
+            "inventory": {"stick": 1, "wooden_pickaxe": 1},
+            "nearby_blocks": [{"name": "coal_ore"}],
+        },
+        "Craft torches",
+        {"cycle": 1, "mode": "goal"},
+    )
+
+    assert selected["type"] == "dig"
+    assert selected["parameters"]["block"] == "coal_ore"
+    assert selection["changed"] is True
+    assert selection["original_verification"]["status"] == "reject"
+    assert selection["selected_verification"]["status"] == "accept"
+    assert any(event["type"] == "action_candidate_selection" for event in agent.session_logger.events)
+    print("PASS: Agent action candidate selection repairs verifier-rejected actions")
+
+
 def test_agent_visual_action_grounding_prepends_danger_retreat():
     agent = object.__new__(Agent)
     agent.config = Config(enable_visual_action_grounding=True)
@@ -2286,6 +2314,7 @@ if __name__ == "__main__":
     test_agent_observe_captures_screenshot_for_visual_pipeline()
     test_agent_visual_action_grounding_fills_missing_dig_coordinates()
     test_agent_action_verification_blocks_rejected_actions()
+    test_agent_action_candidate_selection_repairs_rejected_action()
     test_agent_visual_action_grounding_prepends_danger_retreat()
     test_agent_visual_action_grounding_prepends_resource_approach()
     test_agent_visual_action_grounding_prepends_resource_focus()

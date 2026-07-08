@@ -74,6 +74,8 @@ class SessionLogger:
         intervention_metrics.update(skill_memory_metrics)
         action_verification_metrics = self._action_verification_metrics()
         intervention_metrics.update(action_verification_metrics)
+        action_candidate_metrics = self._action_candidate_selection_metrics()
+        intervention_metrics.update(action_candidate_metrics)
         goal_verification_metrics = self._goal_verification_metrics()
         memory_policy_metrics = self._memory_policy_metrics()
         return {
@@ -86,6 +88,7 @@ class SessionLogger:
             "visual_action_metrics": visual_action_metrics,
             "skill_memory_metrics": skill_memory_metrics,
             "action_verification_metrics": action_verification_metrics,
+            "action_candidate_selection_metrics": action_candidate_metrics,
             "goal_verification_metrics": goal_verification_metrics,
             "memory_policy_metrics": memory_policy_metrics,
             "log_path": self._log_path,
@@ -239,6 +242,28 @@ class SessionLogger:
             "action_verification_status_counts": statuses,
             "action_verification_action_types": action_types,
             "action_verification_blocked_count": blocked,
+        }
+
+    def _action_candidate_selection_metrics(self) -> dict:
+        events = [event for event in self.events if event.get("type") == "action_candidate_selection"]
+        selected_types = {}
+        repaired_rejects = 0
+        for event in events:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            selection = data.get("selection", {}) if isinstance(data.get("selection", {}), dict) else {}
+            selected = selection.get("selected_action", {}) if isinstance(selection.get("selected_action", {}), dict) else {}
+            selected_type = str(selected.get("type") or "unknown")
+            selected_types[selected_type] = selected_types.get(selected_type, 0) + 1
+            original_verification = selection.get("original_verification", {}) if isinstance(selection.get("original_verification", {}), dict) else {}
+            selected_verification = selection.get("selected_verification", {}) if isinstance(selection.get("selected_verification", {}), dict) else {}
+            original_status = str(original_verification.get("status") or "")
+            selected_status = str(selected_verification.get("status") or "")
+            if original_status == "reject" and selected_status != "reject":
+                repaired_rejects += 1
+        return {
+            "action_candidate_selection_event_count": len(events),
+            "action_candidate_selection_repaired_reject_count": repaired_rejects,
+            "action_candidate_selection_selected_types": selected_types,
         }
 
     def _visual_action_metrics(self) -> dict:

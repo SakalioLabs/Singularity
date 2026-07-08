@@ -52,5 +52,6 @@ class Config:
     enable_blocked_plan_rule_fallback: bool = True
     enable_action_verification: bool = True
     enforce_action_verification: bool = True
+    enable_action_candidate_selection: bool = True
     max_action_timeout: int = 30000  # ms
     health_critical_threshold: float = 4.0  # hearts

@@ -1166,7 +1166,7 @@
 - **Memory**: Failure-case and verifier-decision traces that can train or calibrate action-selection policies
 - **Key Results**: Reports improved generalization over CoT baselines on Habitat and ALFRED, especially for challenging multi-object long-horizon tasks
 - **Scores**: R=5, N=5, R=4, E=5
-- **Value to Project**: Motivates `ActionVerifier` and `action-verification-report`, which block obvious infeasible Minecraft actions before execution and expose verifier gaps for later learned ranking
+- **Value to Project**: Motivates `ActionVerifier`, `ActionCandidateSelector`, `action-verification-report`, and `action-candidate-report`, which block infeasible Minecraft actions, repair rejected actions with feasible prerequisites, and expose verifier gaps for later learned ranking
 - **Reproduction Priority**: P1
 - **Card**: `2026-07-09-vegas-action-verification.md`
 
@@ -1184,7 +1184,7 @@
 - **Memory**: Return-labeled trajectories and evaluator decisions that can feed a reusable action-value model
 - **Key Results**: Shows pass@k exposes latent good actions and that a smaller VLA plus evaluator can outperform a larger VLA with lower latency
 - **Scores**: R=4, N=5, R=3, E=5
-- **Value to Project**: Points beyond deterministic rejection toward multi-candidate Minecraft action ranking using verifier scores, logged outcomes, and uncertainty-aware progress estimates
+- **Value to Project**: Motivates the conservative `ActionCandidateSelector` now used for rejected-action repairs and points toward broader pass@k-style Minecraft action ranking using verifier scores, logged outcomes, and uncertainty-aware progress estimates
 - **Reproduction Priority**: P1
 - **Card**: `2026-07-09-sva-action-evaluation.md`
 

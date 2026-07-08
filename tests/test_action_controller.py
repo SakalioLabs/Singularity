@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from singularity.action.controller import ActionController
 from singularity.action.mapping import ActionMapper
 from singularity.action.policy import ActionGranularityPolicy
+from singularity.action.selection import ActionCandidateSelector
 from singularity.action.verifier import ActionVerifier
 from singularity.core.agent import Agent
 from singularity.core.config import Config
@@ -498,6 +499,34 @@ def test_action_verifier_rejects_missing_craft_materials_and_tools():
     print("PASS: ActionVerifier rejects impossible craft/mine actions before execution")
 
 
+def test_action_candidate_selector_repairs_rejected_craft_action():
+    selector = ActionCandidateSelector()
+
+    selection = selector.select(
+        {"type": "craft", "parameters": {"item": "torch", "count": 4}},
+        {
+            "inventory": {"stick": 1, "wooden_pickaxe": 1},
+            "nearby_blocks": [{"name": "coal_ore", "position": {"x": 4, "y": 64, "z": 7}}],
+        },
+        goal="Craft torches",
+    )
+    data = selection.as_dict()
+    assert data["changed"] is True
+    assert data["original_verification"]["status"] == "reject"
+    assert data["selected_verification"]["status"] == "accept"
+    assert data["selected_action"]["type"] == "dig"
+    assert data["selected_action"]["parameters"]["block"] == "coal_ore"
+
+    retained = selector.select(
+        {"type": "craft", "parameters": {"item": "oak_planks", "count": 4}},
+        {"inventory": {"oak_log": 1}},
+        goal="Craft oak planks",
+    ).as_dict()
+    assert retained["changed"] is False
+    assert retained["selected_action"]["parameters"]["item"] == "oak_planks"
+    print("PASS: ActionCandidateSelector repairs rejected craft actions conservatively")
+
+
 if __name__ == "__main__":
     test_self_evolution_policy_formats_advisory_context()
     test_use_item_equips_requested_item_first()
@@ -514,4 +543,5 @@ if __name__ == "__main__":
     test_agent_skips_skill_memory_quality_feedback_when_gate_is_not_approved()
     test_agent_skips_mixed_policy_patch_when_gate_is_not_approved()
     test_action_verifier_rejects_missing_craft_materials_and_tools()
+    test_action_candidate_selector_repairs_rejected_craft_action()
     print("\nAction controller tests PASSED")

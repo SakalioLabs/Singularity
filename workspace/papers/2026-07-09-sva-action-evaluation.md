@@ -16,6 +16,6 @@
   - Track pass@k-style evidence: whether good Minecraft actions exist among alternatives even when the first executed action fails.
 **Singularity Adaptation**:
   - Current implementation starts with deterministic `ActionVerifier` status and score rather than learned Q-values.
-  - `action-verification-report` exposes the review/reject/failure buckets needed to collect future value-model labels.
-  - The next natural step is a candidate action selector that scores several planner or rule-planner proposals before execution.
-**Next Action**: Add a small candidate-action evaluation harness that compares planner top-1 against verifier-ranked alternatives on logged Minecraft goals.
+  - Added `ActionCandidateSelector`, a conservative candidate selector that only replaces a planner action when the original is verifier-rejected and a feasible prerequisite repair is available.
+  - Added `action-candidate-report` and saved `logs/benchmarks/action_candidate_m1_2026-07-09.json`; the current M1 replay has 200 actions, 0 original rejects, 0 replacements, and 0 unchanged rejects.
+**Next Action**: Re-run on live M1/M2 retries where missing-material failures are likely, then add pass@k-style planner alternatives once replacement examples can be audited against later goal progress.

@@ -25,6 +25,7 @@ from singularity.core.self_evolution_policy import SelfEvolutionPolicy
 from singularity.observation.observer import Observer
 from singularity.action.controller import ActionController
 from singularity.action.policy import ActionGranularityPolicy
+from singularity.action.selection import ActionCandidateSelector
 from singularity.action.verifier import ActionVerifier
 from singularity.bot.bridge import BotBridge
 from singularity.evaluation.mixed_initiative import (
@@ -53,6 +54,7 @@ class Agent:
         self.observer = Observer(self.bot)
         self.action_policy = ActionGranularityPolicy()
         self.action_verifier = ActionVerifier()
+        self.action_candidate_selector = ActionCandidateSelector(self.action_verifier)
         self.mixed_initiative_policy = MixedInitiativeFeedbackPolicy()
         self.mixed_policy_patch_report = self._load_mixed_policy_patches()
         self.self_evolution_policy = SelfEvolutionPolicy()
@@ -488,6 +490,12 @@ class Agent:
                     if interrupted:
                         break
                     before_action_observation = observation
+                    action, action_selection = self._select_action_for_execution(
+                        action,
+                        observation,
+                        goal,
+                        {"cycle": cycle, "mode": "goal"},
+                    )
                     action_verification, rejected_result = self._verify_action_for_execution(
                         action,
                         observation,
@@ -500,6 +508,8 @@ class Agent:
                         result = self.action_controller.execute(action, observation)
                         if action_verification:
                             result["action_verification"] = action_verification
+                    if action_selection:
+                        result["action_candidate_selection"] = action_selection
                     self.session_logger.log_action(action, result)
                     self._write_memory_episode("action", {"action": action, "result": result}, source="goal_action")
                     observation = self._apply_action_feedback(action, result, observation, {"cycle": cycle, "goal": goal})
@@ -690,6 +700,12 @@ class Agent:
                         if interrupted:
                             break
                         before_action_observation = observation
+                        action, action_selection = self._select_action_for_execution(
+                            action,
+                            observation,
+                            goal,
+                            {"cycle": total_cycles, "mode": "autonomous"},
+                        )
                         action_verification, rejected_result = self._verify_action_for_execution(
                             action,
                             observation,
@@ -702,6 +718,8 @@ class Agent:
                             result = self.action_controller.execute(action, observation)
                             if action_verification:
                                 result["action_verification"] = action_verification
+                        if action_selection:
+                            result["action_candidate_selection"] = action_selection
                         self.session_logger.log_action(action, result)
                         self._write_memory_episode(
                             "action",
@@ -971,6 +989,40 @@ class Agent:
             }
             return verification, result
         return verification, None
+
+    def _select_action_for_execution(
+        self,
+        action: dict,
+        observation: dict,
+        goal: str,
+        context: dict = None,
+    ) -> tuple[dict, Optional[dict]]:
+        """Use verifier-guided repair candidates for rejected planner actions."""
+        if not getattr(getattr(self, "config", None), "enable_action_candidate_selection", True):
+            return action, None
+        selector = getattr(self, "action_candidate_selector", None)
+        if selector is None:
+            return action, None
+        try:
+            selection = selector.select(action, observation or {}, goal=goal)
+        except Exception as e:
+            logger.warning(f"Action candidate selection failed: {e}")
+            return action, None
+
+        selection_data = selection.as_dict() if hasattr(selection, "as_dict") else dict(selection)
+        if not selection_data.get("changed"):
+            return action, None
+
+        payload = {
+            "goal": goal,
+            "context": context or {},
+            "selection": selection_data,
+        }
+        if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("action_candidate_selection", payload)
+        self._write_memory_episode("action_candidate_selection", payload, source="action_candidate_selector")
+        selected_action = selection_data.get("selected_action", action)
+        return selected_action if isinstance(selected_action, dict) else action, selection_data
 
     def _task_memory_context(self, goal: str, current_state: dict = None) -> str:
         if not getattr(getattr(self, "config", None), "enable_task_memory_context", True):

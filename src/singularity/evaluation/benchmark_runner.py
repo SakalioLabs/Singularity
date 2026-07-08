@@ -1239,6 +1239,71 @@ class ActionVerificationTraceReport:
 
 
 @dataclass
+class ActionCandidateSelectionTraceCase:
+    source_log: str
+    event_count: int = 0
+    observation_count: int = 0
+    action_count: int = 0
+    candidate_action_count: int = 0
+    original_reject_count: int = 0
+    changed_selection_count: int = 0
+    repaired_reject_count: int = 0
+    unchanged_reject_count: int = 0
+    selected_accept_count: int = 0
+    selected_review_count: int = 0
+    selected_reject_count: int = 0
+    selected_action_type_counts: dict = field(default_factory=dict)
+    repair_reasons: dict = field(default_factory=dict)
+    examples: list[dict] = field(default_factory=list)
+    ready_for_action_candidate_review: bool = False
+
+
+@dataclass
+class ActionCandidateSelectionTraceReport:
+    cases: list[ActionCandidateSelectionTraceCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_log_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_action_candidate_review)
+
+    @property
+    def action_count(self) -> int:
+        return sum(case.action_count for case in self.cases)
+
+    @property
+    def original_reject_count(self) -> int:
+        return sum(case.original_reject_count for case in self.cases)
+
+    @property
+    def changed_selection_count(self) -> int:
+        return sum(case.changed_selection_count for case in self.cases)
+
+    @property
+    def repaired_reject_count(self) -> int:
+        return sum(case.repaired_reject_count for case in self.cases)
+
+    @property
+    def unchanged_reject_count(self) -> int:
+        return sum(case.unchanged_reject_count for case in self.cases)
+
+    @property
+    def selection_change_rate(self) -> float:
+        return self._ratio(self.changed_selection_count, self.action_count)
+
+    @property
+    def repaired_reject_rate(self) -> float:
+        return self._ratio(self.repaired_reject_count, self.original_reject_count)
+
+    def _ratio(self, numerator: int, denominator: int) -> float:
+        return round(numerator / denominator, 3) if denominator else 0.0
+
+
+@dataclass
 class DiscoveryApplicationTraceCase:
     source_log: str
     event_count: int = 0
@@ -3689,6 +3754,54 @@ class BenchmarkRunner:
             "failed_without_reject_count": report.failed_without_reject_count,
             "reject_rate": report.reject_rate,
             "review_rate": report.review_rate,
+            "policy_hints": policy_hints,
+        }
+
+    def run_action_candidate_report_from_logs(self, session_log_paths: list[str]) -> ActionCandidateSelectionTraceReport:
+        """Replay logged actions through verifier-guided candidate selection."""
+        report = ActionCandidateSelectionTraceReport()
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                report.cases.append(self._action_candidate_selection_trace_case(path, events))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
+    def action_candidate_feedback(self, report: ActionCandidateSelectionTraceReport) -> dict:
+        """Convert candidate-selection replay outcomes into runtime policy hints."""
+        policy_hints = []
+        if report.repaired_reject_count:
+            policy_hints.append({
+                "action_candidate_policy": "enable_repair_candidate_selection_for_rejected_actions",
+                "priority": "high",
+                "reason": "selector found verifier-feasible alternatives for rejected planner actions",
+                "count": report.repaired_reject_count,
+            })
+        if report.unchanged_reject_count:
+            policy_hints.append({
+                "action_candidate_policy": "expand_repair_candidate_generation",
+                "priority": "medium",
+                "reason": "some rejected planner actions still had no feasible repair candidate",
+                "count": report.unchanged_reject_count,
+            })
+        if report.changed_selection_count:
+            policy_hints.append({
+                "action_candidate_policy": "audit_candidate_replacements_against_goal_progress",
+                "priority": "medium",
+                "reason": "changed selections should be checked against later observations before broadening replacement rules",
+                "count": report.changed_selection_count,
+            })
+        return {
+            "log_count": report.log_count,
+            "ready_log_count": report.ready_log_count,
+            "action_count": report.action_count,
+            "original_reject_count": report.original_reject_count,
+            "changed_selection_count": report.changed_selection_count,
+            "repaired_reject_count": report.repaired_reject_count,
+            "unchanged_reject_count": report.unchanged_reject_count,
+            "selection_change_rate": report.selection_change_rate,
+            "repaired_reject_rate": report.repaired_reject_rate,
             "policy_hints": policy_hints,
         }
 
@@ -6388,6 +6501,106 @@ class BenchmarkRunner:
             review_reasons=review_reasons,
             examples=examples,
             ready_for_action_verification_review=bool(verified),
+        )
+
+    def _action_candidate_selection_trace_case(
+        self,
+        source_log: str,
+        events: list[dict],
+        limit: int = 12,
+    ) -> ActionCandidateSelectionTraceCase:
+        from singularity.action.selection import ActionCandidateSelector
+
+        selector = ActionCandidateSelector()
+        latest_observation = {}
+        current_goal = ""
+        observation_count = 0
+        action_count = 0
+        candidate_action_count = 0
+        original_reject = 0
+        changed = 0
+        repaired_reject = 0
+        unchanged_reject = 0
+        selected_accept = 0
+        selected_review = 0
+        selected_reject = 0
+        selected_types = {}
+        repair_reasons = {}
+        examples = []
+
+        def inc(counts: dict, key: str, amount: int = 1):
+            counts[key] = counts.get(key, 0) + amount
+
+        for index, event in enumerate(events):
+            event_type = str(event.get("type") or "")
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event_type == "goal_start":
+                current_goal = str(data.get("goal") or current_goal)
+            elif event_type == "observation":
+                latest_observation = data
+                observation_count += 1
+            elif event_type == "action":
+                action = data.get("action", {}) if isinstance(data.get("action", {}), dict) else {}
+                selection = selector.select(action, latest_observation, goal=current_goal).as_dict()
+                action_count += 1
+                candidate_action_count += int(selection.get("candidate_count") or 0)
+
+                original_verification = selection.get("original_verification", {}) if isinstance(selection.get("original_verification", {}), dict) else {}
+                selected_verification = selection.get("selected_verification", {}) if isinstance(selection.get("selected_verification", {}), dict) else {}
+                original_status = str(original_verification.get("status") or "unknown")
+                selected_status = str(selected_verification.get("status") or "unknown")
+                selected_action = selection.get("selected_action", {}) if isinstance(selection.get("selected_action", {}), dict) else {}
+                selected_type = str(selected_action.get("type") or selected_verification.get("action_type") or "unknown")
+                inc(selected_types, selected_type)
+
+                if original_status == "reject":
+                    original_reject += 1
+                    if selection.get("changed") and selected_status != "reject":
+                        repaired_reject += 1
+                    else:
+                        unchanged_reject += 1
+                if selection.get("changed"):
+                    changed += 1
+                    candidates = selection.get("candidates", []) if isinstance(selection.get("candidates", []), list) else []
+                    selected_index = int(selection.get("selected_index") or 0)
+                    candidate = candidates[selected_index] if 0 <= selected_index < len(candidates) else {}
+                    if isinstance(candidate, dict):
+                        inc(repair_reasons, str(candidate.get("reason") or selection.get("reason") or "changed"))
+                if selected_status == "accept":
+                    selected_accept += 1
+                elif selected_status == "review":
+                    selected_review += 1
+                elif selected_status == "reject":
+                    selected_reject += 1
+                if len(examples) < limit and (selection.get("changed") or original_status == "reject"):
+                    examples.append({
+                        "event_index": index,
+                        "goal": current_goal,
+                        "original_action": selection.get("original_action", action),
+                        "selected_action": selected_action,
+                        "original_status": original_status,
+                        "selected_status": selected_status,
+                        "reason": selection.get("reason", ""),
+                        "candidates": selection.get("candidates", []),
+                    })
+
+        return ActionCandidateSelectionTraceCase(
+            source_log=source_log,
+            event_count=len(events),
+            observation_count=observation_count,
+            action_count=action_count,
+            candidate_action_count=candidate_action_count,
+            original_reject_count=original_reject,
+            changed_selection_count=changed,
+            repaired_reject_count=repaired_reject,
+            unchanged_reject_count=unchanged_reject,
+            selected_accept_count=selected_accept,
+            selected_review_count=selected_review,
+            selected_reject_count=selected_reject,
+            selected_action_type_counts=selected_types,
+            repair_reasons=repair_reasons,
+            examples=examples,
+            ready_for_action_candidate_review=bool(action_count),
         )
 
     def _self_evolution_trace_case(self, source_log: str, events: list[dict]) -> SelfEvolutionTraceCase:
@@ -10099,6 +10312,48 @@ class BenchmarkRunner:
                 print(
                     f"      example event#{example.get('event_index')}: "
                     f"{verification.get('status')} {verification.get('action_type')} - {verification.get('reason')}"
+                )
+        for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_action_candidate_report(self, report: ActionCandidateSelectionTraceReport):
+        print("\nAction Candidate Selection Trace")
+        print(f"  logs ready for action candidate review: {report.ready_log_count}/{report.log_count}")
+        print(
+            "  counts: "
+            f"actions={report.action_count}, original_rejects={report.original_reject_count}, "
+            f"changed={report.changed_selection_count}, repaired_rejects={report.repaired_reject_count}, "
+            f"unchanged_rejects={report.unchanged_reject_count}"
+        )
+        print(
+            "  rates: "
+            f"selection_change_rate={report.selection_change_rate:.3f}, "
+            f"repaired_reject_rate={report.repaired_reject_rate:.3f}"
+        )
+        feedback = self.action_candidate_feedback(report)
+        if feedback["policy_hints"]:
+            hints = [
+                f"{hint['action_candidate_policy']}({hint['priority']})"
+                for hint in feedback["policy_hints"][:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for case in report.cases:
+            marker = "+" if case.ready_for_action_candidate_review else "~"
+            print(f"  [{marker}] {case.source_log}")
+            print(
+                f"      actions={case.action_count}, original_rejects={case.original_reject_count}, "
+                f"changed={case.changed_selection_count}, repaired={case.repaired_reject_count}, "
+                f"unchanged_rejects={case.unchanged_reject_count}"
+            )
+            if case.selected_action_type_counts:
+                print(f"      selected action types: {self._format_counts(case.selected_action_type_counts)}")
+            if case.repair_reasons:
+                print(f"      repair reasons: {self._format_counts(case.repair_reasons)}")
+            for example in case.examples[:3]:
+                print(
+                    f"      example event#{example.get('event_index')}: "
+                    f"{example.get('original_status')} -> {example.get('selected_status')} "
+                    f"{example.get('reason')}"
                 )
         for error in report.errors:
             print(f"  error: {error}")

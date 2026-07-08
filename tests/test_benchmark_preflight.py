@@ -1639,6 +1639,63 @@ def test_action_verification_report_replays_logged_actions():
     print("PASS: Action verification report replays logged action feasibility gaps")
 
 
+def test_action_candidate_report_replays_repairable_rejected_actions():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "action_candidate_session.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {
+            "type": "observation",
+            "data": {
+                "inventory": {"stick": 1, "wooden_pickaxe": 1},
+                "nearby_blocks": [{"name": "coal_ore"}],
+                "nearby_entities": [],
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch", "count": 4}},
+                "result": {"success": False, "error": "Missing coal"},
+            },
+        },
+        {
+            "type": "observation",
+            "data": {
+                "inventory": {"oak_log": 1},
+                "nearby_blocks": [{"name": "oak_log"}],
+                "nearby_entities": [],
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "oak_planks", "count": 4}},
+                "result": {"success": True, "item": "oak_planks"},
+            },
+        },
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config())
+    report = runner.run_action_candidate_report_from_logs([session_path])
+    case = report.cases[0]
+    feedback = runner.action_candidate_feedback(report)
+    policies = {hint["action_candidate_policy"] for hint in feedback["policy_hints"]}
+
+    assert report.ready_log_count == 1
+    assert case.action_count == 2
+    assert case.original_reject_count == 1
+    assert case.changed_selection_count == 1
+    assert case.repaired_reject_count == 1
+    assert case.unchanged_reject_count == 0
+    assert case.examples[0]["selected_action"]["type"] == "dig"
+    assert "enable_repair_candidate_selection_for_rejected_actions" in policies
+    print("PASS: Action candidate report replays repairable rejected actions")
+
+
 def test_self_evolution_gate_requires_verifier_and_counterexamples():
     runner = BenchmarkRunner(Config())
     self_evolution_report = {
@@ -3509,6 +3566,7 @@ if __name__ == "__main__":
     test_plan_action_compliance_report_tracks_plan_following_gaps()
     test_terminal_commitment_report_separates_world_completion_from_reporting()
     test_action_verification_report_replays_logged_actions()
+    test_action_candidate_report_replays_repairable_rejected_actions()
     test_self_evolution_gate_requires_verifier_and_counterexamples()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
     test_discovery_skill_gate_controls_experiment_derived_skill_promotion()
