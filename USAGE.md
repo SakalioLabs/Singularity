@@ -165,6 +165,8 @@ python -m singularity.main self-evolution-report --session-log logs/session_xxx.
 # The saved JSON includes `self_evolution_feedback` for repair/adaptor and skill-curation experiments.
 # Use it as advisory planner context in later runs without auto-mutating skills or bypassing verification.
 python -m singularity.main run --goal "Craft torches" --self-evolution-feedback logs/benchmarks/self_evolution.json
+# Audit whether executed actions follow the preceding planner action list.
+python -m singularity.main plan-action-compliance-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/plan_action_compliance.json
 # Gate any future automatic plan-suffix repair with explicit verifier and counterexample evidence.
 python -m singularity.main self-evolution-gate --self-evolution-report logs/benchmarks/self_evolution.json --verifier-report logs/benchmarks/goal_verification_ablation.json --counterexample-report logs/benchmarks/self_evolution_counterexamples.json --output logs/benchmarks/self_evolution_gate.json
 

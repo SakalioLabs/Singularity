@@ -1396,6 +1396,96 @@ def test_self_evolution_report_flags_zero_action_blocked_plan_failure():
     print("PASS: Self-evolution report flags zero-action blocked plan failures")
 
 
+def test_plan_action_compliance_report_tracks_plan_following_gaps():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_plan_action_compliance.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Craft a table and collect logs"}},
+        {
+            "type": "plan",
+            "data": {
+                "status": "in_progress",
+                "reasoning": "Craft materials in order",
+                "actions": [
+                    {"type": "craft", "parameters": {"item": "oak_planks"}},
+                    {"type": "craft", "parameters": {"item": "crafting_table"}},
+                ],
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "crafting_table"}},
+                "result": {"success": True},
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "oak_planks"}},
+                "result": {"success": True},
+            },
+        },
+        {
+            "type": "plan",
+            "data": {
+                "status": "in_progress",
+                "reasoning": "Gather logs and then make sticks",
+                "actions": [
+                    {"type": "dig", "parameters": {"block": "oak_log"}},
+                    {"type": "craft", "parameters": {"item": "stick"}},
+                ],
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "dig", "parameters": {"block": "oak_log"}},
+                "result": {"success": True},
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "wait", "parameters": {"ms": 200}},
+                "result": {"success": True},
+            },
+        },
+        {"type": "plan", "data": {"status": "blocked", "reasoning": "Need materials", "actions": []}},
+        {"type": "goal_end", "data": {"goal": "Craft a table and collect logs", "result": {"completed": False}}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_plan_action_compliance_report_from_logs([session_path])
+    case = report.cases[0]
+    feedback = runner.plan_action_compliance_feedback(report)
+
+    assert report.ready_log_count == 1
+    assert case.plan_count == 3
+    assert case.action_count == 4
+    assert case.planned_action_count == 4
+    assert case.unordered_match_count == 3
+    assert case.ordered_match_count == 2
+    assert case.order_violation_count == 1
+    assert case.missing_planned_action_count == 1
+    assert case.unplanned_action_count == 1
+    assert case.empty_plan_count == 1
+    assert case.blocked_plan_count == 1
+    assert case.plan_follow_score == 0.5
+    assert case.action_precision == 0.75
+    assert case.compliance_score == 0.286
+    assert case.mismatch_examples
+    policies = {hint["plan_action_policy"] for hint in feedback["policy_hints"]}
+    assert "repair_or_remind_unexecuted_plan_steps" in policies
+    assert "preserve_plan_order_or_replan_explicitly" in policies
+    assert "explain_unplanned_runtime_actions" in policies
+    assert "avoid_empty_executable_plans" in policies
+    print("PASS: Plan-action compliance report tracks plan-following gaps")
+
+
 def test_self_evolution_gate_requires_verifier_and_counterexamples():
     runner = BenchmarkRunner(Config())
     self_evolution_report = {
@@ -3263,6 +3353,7 @@ if __name__ == "__main__":
     test_world_model_report_builds_cells_frontiers_and_hotspots()
     test_self_evolution_report_tracks_progress_and_stagnation()
     test_self_evolution_report_flags_zero_action_blocked_plan_failure()
+    test_plan_action_compliance_report_tracks_plan_following_gaps()
     test_self_evolution_gate_requires_verifier_and_counterexamples()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
     test_discovery_skill_gate_controls_experiment_derived_skill_promotion()

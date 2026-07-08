@@ -162,6 +162,8 @@
 - [x] Add Solaris to the paper index and tighten `self-evolution-report` so successful actions without observed state, inventory, or verifier deltas become no-progress success/stagnation signals instead of inflated progress.
 - [x] Run the tightened `self-evolution-report` on the current tracked M1 benchmark logs and save `logs/benchmarks/self_evolution_m1_2026-07-09.json` as the baseline for no-progress-success/adaptor analysis.
 - [x] Diagnose current M1 0-action failures as repeated blocked/empty plans, add blocked-plan rule fallback plus no-action loop logging, and regenerate `logs/benchmarks/self_evolution_m1_2026-07-09.json` with blocked/empty/zero-action counters.
+- [x] Add Plan-to-Action-style `plan-action-compliance-report`, save `logs/benchmarks/plan_action_compliance_m1_2026-07-09.json`, and use it to separate real plan-following from blocked empty-plan failure.
+- [x] Review fresh 2026 plan/execution papers for next implementation routes: Plan-to-Action for compliance metrics, VIGIL for terminal commitment, VeGAS for verifier-guided action selection, and Coachable Agents for runtime style control.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -202,6 +204,7 @@
 - [ ] Run `self-evolution-report` on real M1/M2/autonomous logs and compare adaptor recommendations against retry outcomes before enabling automatic plan-suffix repair.
 - [x] Inspect `logs/benchmarks/self_evolution_m1_2026-07-09.json` for 0-action failed logs and decide whether the next fix belongs in benchmark execution, bridge action logging, or runtime adaptor routing.
 - [ ] Re-run live M1/M2 after the blocked-plan fallback and compare zero-action failures, planner fallback events, and cobblestone prerequisite recovery against the saved 2026-07-09 baseline.
+- [ ] Re-run `plan-action-compliance-report` on the same live M1/M2 retries and compare follow/precision/compliance scores against `logs/benchmarks/plan_action_compliance_m1_2026-07-09.json`.
 - [ ] Run `self-evolution-gate` on real self-evolution, verifier, and counterexample reports; only then design a guarded runtime plan-suffix repair path.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
 - [ ] Mine real player/session requests into `mixed-initiative-variant-report --case-file` suites and track held-out template coverage before changing auto-selection heuristics.

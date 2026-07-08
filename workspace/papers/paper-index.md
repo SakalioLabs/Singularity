@@ -1118,6 +1118,24 @@
 
 ---
 
+## P-061: From Plan to Action
+
+- **Title**: From Plan to Action: How Well Do Agents Follow the Plan?
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2604.12147
+- **Type**: Agent plan-compliance evaluation
+- **Task Type**: Long-horizon agent trajectories with explicit plan-following expectations
+- **Core Method**: Measures plan phase compliance, plan order compliance, and phase fidelity to distinguish successful task completion from genuine plan following
+- **Action Space**: Generic agent actions; adapted here to Minecraft JSONL `plan` and `action` windows
+- **Memory**: Trajectory-level evidence of missing plan steps, order drift, and unplanned actions that can feed planner reminders or repair policies
+- **Key Results**: Shows that plan quality and reminders affect agent outcomes, while bad or misaligned plans can degrade performance
+- **Scores**: R=5, N=4, R=4, E=5
+- **Value to Project**: Motivates `plan-action-compliance-report`, which audits whether Singularity executes planned Minecraft actions before trusting benchmark completion, self-evolution feedback, or skill promotion traces
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-plan-to-action.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1182,3 +1200,4 @@
 | P-058 | MemTier | 2026 | R5/N4/R4/E4 | P2 |
 | P-059 | SkillMaster | 2026 | R4/N5/R4/E4 | P2 |
 | P-060 | Solaris | 2026 | R4/N5/R3/E4 | P2 |
+| P-061 | From Plan to Action | 2026 | R5/N4/R4/E5 | P1 |

@@ -982,6 +982,104 @@ class SelfEvolutionTraceReport:
 
 
 @dataclass
+class PlanActionComplianceCase:
+    source_log: str
+    event_count: int = 0
+    plan_count: int = 0
+    action_count: int = 0
+    planned_action_count: int = 0
+    ordered_match_count: int = 0
+    unordered_match_count: int = 0
+    missing_planned_action_count: int = 0
+    unplanned_action_count: int = 0
+    order_violation_count: int = 0
+    empty_plan_count: int = 0
+    blocked_plan_count: int = 0
+    plan_follow_score: float = 0.0
+    action_precision: float = 0.0
+    compliance_score: float = 0.0
+    planned_action_type_counts: dict = field(default_factory=dict)
+    executed_action_type_counts: dict = field(default_factory=dict)
+    mismatch_examples: list[dict] = field(default_factory=list)
+    ready_for_plan_action_review: bool = False
+
+
+@dataclass
+class PlanActionComplianceReport:
+    cases: list[PlanActionComplianceCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_log_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_plan_action_review)
+
+    @property
+    def plan_count(self) -> int:
+        return sum(case.plan_count for case in self.cases)
+
+    @property
+    def action_count(self) -> int:
+        return sum(case.action_count for case in self.cases)
+
+    @property
+    def planned_action_count(self) -> int:
+        return sum(case.planned_action_count for case in self.cases)
+
+    @property
+    def ordered_match_count(self) -> int:
+        return sum(case.ordered_match_count for case in self.cases)
+
+    @property
+    def unordered_match_count(self) -> int:
+        return sum(case.unordered_match_count for case in self.cases)
+
+    @property
+    def missing_planned_action_count(self) -> int:
+        return sum(case.missing_planned_action_count for case in self.cases)
+
+    @property
+    def unplanned_action_count(self) -> int:
+        return sum(case.unplanned_action_count for case in self.cases)
+
+    @property
+    def order_violation_count(self) -> int:
+        return sum(case.order_violation_count for case in self.cases)
+
+    @property
+    def empty_plan_count(self) -> int:
+        return sum(case.empty_plan_count for case in self.cases)
+
+    @property
+    def blocked_plan_count(self) -> int:
+        return sum(case.blocked_plan_count for case in self.cases)
+
+    @property
+    def plan_follow_score(self) -> float:
+        return self._ratio(self.ordered_match_count, self.planned_action_count)
+
+    @property
+    def action_precision(self) -> float:
+        return self._ratio(self.unordered_match_count, self.action_count)
+
+    @property
+    def compliance_score(self) -> float:
+        denominator = (
+            self.planned_action_count
+            + self.unplanned_action_count
+            + self.order_violation_count
+            + self.empty_plan_count
+        )
+        return self._ratio(self.ordered_match_count, denominator)
+
+    def _ratio(self, numerator: int, denominator: int) -> float:
+        return round(numerator / denominator, 3) if denominator else 0.0
+
+
+@dataclass
 class DiscoveryApplicationTraceCase:
     source_log: str
     event_count: int = 0
@@ -3259,6 +3357,67 @@ class BenchmarkRunner:
             except Exception as e:
                 report.errors.append(f"{path}: {e}")
         return report
+
+    def run_plan_action_compliance_report_from_logs(self, session_log_paths: list[str]) -> PlanActionComplianceReport:
+        """Summarize whether executable actions follow the preceding planner output."""
+        report = PlanActionComplianceReport()
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                report.cases.append(self._plan_action_compliance_case(path, events))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
+    def plan_action_compliance_feedback(self, report: PlanActionComplianceReport) -> dict:
+        """Convert plan-action gaps into advisory planner/runtime policy hints."""
+        policy_hints = []
+        if report.missing_planned_action_count:
+            policy_hints.append({
+                "plan_action_policy": "repair_or_remind_unexecuted_plan_steps",
+                "priority": "high",
+                "reason": "planned actions were not observed before the next plan window",
+                "count": report.missing_planned_action_count,
+            })
+        if report.order_violation_count:
+            policy_hints.append({
+                "plan_action_policy": "preserve_plan_order_or_replan_explicitly",
+                "priority": "medium",
+                "reason": "planned actions appeared in the window but not in planner order",
+                "count": report.order_violation_count,
+            })
+        if report.unplanned_action_count:
+            policy_hints.append({
+                "plan_action_policy": "explain_unplanned_runtime_actions",
+                "priority": "medium",
+                "reason": "executed actions were not present in the preceding plan window",
+                "count": report.unplanned_action_count,
+            })
+        if report.empty_plan_count:
+            policy_hints.append({
+                "plan_action_policy": "avoid_empty_executable_plans",
+                "priority": "high",
+                "reason": "planner emitted empty action lists that cannot drive execution",
+                "count": report.empty_plan_count,
+            })
+        return {
+            "log_count": report.log_count,
+            "ready_log_count": report.ready_log_count,
+            "plan_count": report.plan_count,
+            "action_count": report.action_count,
+            "planned_action_count": report.planned_action_count,
+            "ordered_match_count": report.ordered_match_count,
+            "unordered_match_count": report.unordered_match_count,
+            "missing_planned_action_count": report.missing_planned_action_count,
+            "unplanned_action_count": report.unplanned_action_count,
+            "order_violation_count": report.order_violation_count,
+            "empty_plan_count": report.empty_plan_count,
+            "blocked_plan_count": report.blocked_plan_count,
+            "plan_follow_score": report.plan_follow_score,
+            "action_precision": report.action_precision,
+            "compliance_score": report.compliance_score,
+            "policy_hints": policy_hints,
+        }
 
     def self_evolution_feedback(self, report: SelfEvolutionTraceReport) -> dict:
         """Aggregate execution feedback into reusable self-evolution policy hints."""
@@ -5574,6 +5733,170 @@ class BenchmarkRunner:
             resource_hotspots=resource_hotspots[:limit],
             suggested_exploration_goals=suggestions[:limit],
         )
+
+    def _plan_action_compliance_case(
+        self,
+        source_log: str,
+        events: list[dict],
+        limit: int = 12,
+    ) -> PlanActionComplianceCase:
+        plan_indices = [
+            index
+            for index, event in enumerate(events)
+            if event.get("type") == "plan" and isinstance(event.get("data", {}), dict)
+        ]
+        action_events = [
+            event
+            for event in events
+            if event.get("type") == "action" and isinstance(event.get("data", {}), dict)
+        ]
+
+        planned_action_types = {}
+        executed_action_types = {}
+        mismatch_examples = []
+        planned_action_count = 0
+        ordered_match_count = 0
+        unordered_match_count = 0
+        missing_planned_action_count = 0
+        unplanned_action_count = 0
+        order_violation_count = 0
+        empty_plan_count = 0
+        blocked_plan_count = 0
+
+        def inc(counts: dict, key: str, amount: int = 1):
+            counts[key] = counts.get(key, 0) + amount
+
+        for plan_number, plan_index in enumerate(plan_indices):
+            plan = events[plan_index].get("data", {})
+            next_plan_index = plan_indices[plan_number + 1] if plan_number + 1 < len(plan_indices) else len(events)
+            window_actions = [
+                self._action_from_action_event(event)
+                for event in events[plan_index + 1:next_plan_index]
+                if event.get("type") == "action" and isinstance(event.get("data", {}), dict)
+            ]
+            window_actions = [action for action in window_actions if isinstance(action, dict) and action]
+
+            plan_actions = plan.get("actions", [])
+            if not isinstance(plan_actions, list):
+                plan_actions = []
+            plan_actions = [action for action in plan_actions if isinstance(action, dict)]
+            status = str(plan.get("status") or "").lower()
+            if status == "blocked":
+                blocked_plan_count += 1
+            if not plan_actions:
+                empty_plan_count += 1
+
+            planned_signatures = [self._plan_action_signature(action) for action in plan_actions]
+            actual_signatures = [self._plan_action_signature(action) for action in window_actions]
+            for signature in planned_signatures:
+                inc(planned_action_types, self._plan_action_type(signature))
+            for signature in actual_signatures:
+                inc(executed_action_types, self._plan_action_type(signature))
+
+            planned_action_count += len(planned_signatures)
+            ordered_matches = self._ordered_signature_match_count(planned_signatures, actual_signatures)
+            unordered_matches = self._unordered_signature_match_count(planned_signatures, actual_signatures)
+            missing = self._signature_multiset_difference(planned_signatures, actual_signatures)
+            unplanned = self._signature_multiset_difference(actual_signatures, planned_signatures)
+            order_violations = max(0, unordered_matches - ordered_matches)
+
+            ordered_match_count += ordered_matches
+            unordered_match_count += unordered_matches
+            missing_planned_action_count += len(missing)
+            unplanned_action_count += len(unplanned)
+            order_violation_count += order_violations
+
+            if len(mismatch_examples) < limit and (missing or unplanned or order_violations or not plan_actions):
+                mismatch_examples.append({
+                    "plan_index": plan_number + 1,
+                    "event_index": plan_index,
+                    "status": plan.get("status", ""),
+                    "reasoning": str(plan.get("reasoning", ""))[:180],
+                    "planned": planned_signatures[:8],
+                    "actual": actual_signatures[:8],
+                    "missing": missing[:8],
+                    "unplanned": unplanned[:8],
+                    "ordered_matches": ordered_matches,
+                    "order_violations": order_violations,
+                })
+
+        denominator = planned_action_count + unplanned_action_count + order_violation_count + empty_plan_count
+        ready = bool(plan_indices and (planned_action_count or action_events or empty_plan_count or blocked_plan_count))
+        return PlanActionComplianceCase(
+            source_log=source_log,
+            event_count=len(events),
+            plan_count=len(plan_indices),
+            action_count=len(action_events),
+            planned_action_count=planned_action_count,
+            ordered_match_count=ordered_match_count,
+            unordered_match_count=unordered_match_count,
+            missing_planned_action_count=missing_planned_action_count,
+            unplanned_action_count=unplanned_action_count,
+            order_violation_count=order_violation_count,
+            empty_plan_count=empty_plan_count,
+            blocked_plan_count=blocked_plan_count,
+            plan_follow_score=round(ordered_match_count / planned_action_count, 3) if planned_action_count else 0.0,
+            action_precision=round(unordered_match_count / len(action_events), 3) if action_events else 0.0,
+            compliance_score=round(ordered_match_count / denominator, 3) if denominator else 0.0,
+            planned_action_type_counts=planned_action_types,
+            executed_action_type_counts=executed_action_types,
+            mismatch_examples=mismatch_examples,
+            ready_for_plan_action_review=ready,
+        )
+
+    def _action_from_action_event(self, event: dict) -> dict:
+        data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+        action = data.get("action", {}) if isinstance(data.get("action", {}), dict) else {}
+        if action:
+            return action
+        if data.get("type"):
+            return data
+        return {}
+
+    def _plan_action_signature(self, action: dict) -> str:
+        action_type = str(action.get("type") or action.get("action_type") or "unknown").strip() or "unknown"
+        params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
+        semantic_keys = ("item", "block", "entity", "target", "name")
+        for key in semantic_keys:
+            value = params.get(key, action.get(key))
+            if value not in (None, ""):
+                return f"{action_type}:{value}"
+        return action_type
+
+    def _plan_action_type(self, signature: str) -> str:
+        return str(signature).split(":", 1)[0] or "unknown"
+
+    def _ordered_signature_match_count(self, planned: list[str], actual: list[str]) -> int:
+        matches = 0
+        cursor = 0
+        for signature in planned:
+            for index in range(cursor, len(actual)):
+                if actual[index] == signature:
+                    matches += 1
+                    cursor = index + 1
+                    break
+        return matches
+
+    def _unordered_signature_match_count(self, planned: list[str], actual: list[str]) -> int:
+        planned_counts = {}
+        actual_counts = {}
+        for signature in planned:
+            planned_counts[signature] = planned_counts.get(signature, 0) + 1
+        for signature in actual:
+            actual_counts[signature] = actual_counts.get(signature, 0) + 1
+        return sum(min(planned_counts.get(signature, 0), actual_counts.get(signature, 0)) for signature in planned_counts)
+
+    def _signature_multiset_difference(self, left: list[str], right: list[str]) -> list[str]:
+        right_counts = {}
+        for signature in right:
+            right_counts[signature] = right_counts.get(signature, 0) + 1
+        difference = []
+        for signature in left:
+            if right_counts.get(signature, 0):
+                right_counts[signature] -= 1
+            else:
+                difference.append(signature)
+        return difference
 
     def _self_evolution_trace_case(self, source_log: str, events: list[dict]) -> SelfEvolutionTraceCase:
         observations = [
@@ -9136,6 +9459,63 @@ class BenchmarkRunner:
                 print(f"      progress markers: {'; '.join(case.progress_markers[:4])}")
             for recommendation in case.adaptor_recommendations[:4]:
                 print(f"      adaptor: {recommendation}")
+        for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_plan_action_compliance_report(self, report: PlanActionComplianceReport):
+        total = report.log_count
+        print("\nPlan-Action Compliance Trace")
+        print(f"  logs ready for plan-action review: {report.ready_log_count}/{total}")
+        print(
+            "  counts: "
+            f"plans={report.plan_count}, actions={report.action_count}, "
+            f"planned_actions={report.planned_action_count}, ordered_matches={report.ordered_match_count}"
+        )
+        print(
+            "  gaps: "
+            f"missing={report.missing_planned_action_count}, "
+            f"unplanned={report.unplanned_action_count}, "
+            f"order_violations={report.order_violation_count}, "
+            f"empty_plans={report.empty_plan_count}, blocked_plans={report.blocked_plan_count}"
+        )
+        print(
+            "  scores: "
+            f"follow={report.plan_follow_score:.3f}, "
+            f"precision={report.action_precision:.3f}, "
+            f"compliance={report.compliance_score:.3f}"
+        )
+        feedback = self.plan_action_compliance_feedback(report)
+        if feedback["policy_hints"]:
+            hints = [
+                f"{hint['plan_action_policy']}({hint['priority']})"
+                for hint in feedback["policy_hints"][:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for case in report.cases:
+            marker = "+" if case.ready_for_plan_action_review else "~"
+            print(f"  [{marker}] {case.source_log}")
+            print(
+                f"      plans={case.plan_count}, actions={case.action_count}, "
+                f"planned_actions={case.planned_action_count}, ordered_matches={case.ordered_match_count}"
+            )
+            print(
+                f"      gaps: missing={case.missing_planned_action_count}, unplanned={case.unplanned_action_count}, "
+                f"order_violations={case.order_violation_count}, empty={case.empty_plan_count}, blocked={case.blocked_plan_count}"
+            )
+            print(
+                f"      scores: follow={case.plan_follow_score:.3f}, "
+                f"precision={case.action_precision:.3f}, compliance={case.compliance_score:.3f}"
+            )
+            if case.planned_action_type_counts:
+                print(f"      planned types: {self._format_counts(case.planned_action_type_counts)}")
+            if case.executed_action_type_counts:
+                print(f"      executed types: {self._format_counts(case.executed_action_type_counts)}")
+            for example in case.mismatch_examples[:3]:
+                print(
+                    f"      mismatch plan#{example['plan_index']}: "
+                    f"missing={example['missing']}, unplanned={example['unplanned']}, "
+                    f"order_violations={example['order_violations']}"
+                )
         for error in report.errors:
             print(f"  error: {error}")
 
