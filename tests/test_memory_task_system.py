@@ -611,6 +611,30 @@ def test_memory_policy_routes_correlated_evidence_to_review():
     print("PASS: Memory policy routes correlated evidence to review")
 
 
+def test_memory_policy_routes_state_revisions_to_review():
+    policy = MemoryLifecyclePolicy()
+    decision = policy.decide_write(
+        "shared",
+        "fact",
+        "write_shared_state",
+        {
+            "key": "route_clear",
+            "value": False,
+            "previous_value": True,
+            "validity": "implicit_conflict",
+            "supersedes": {"previous_source_task_id": "scout_route"},
+        },
+        source="collaboration_shared_state",
+        confidence=0.9,
+    )
+
+    assert decision.decision == "write_review_needed"
+    assert decision.should_review is True
+    assert "state_revision" in decision.quality_flags
+    assert "implicit_conflict" in decision.quality_flags
+    print("PASS: Memory policy routes state revisions to review")
+
+
 def test_planner_preserves_task_scheduling_hints():
     tasks = TaskSystem()
     planner = Planner(MockPlannerLLM(), tasks)
@@ -1336,6 +1360,7 @@ if __name__ == "__main__":
     test_agent_logs_memory_lifecycle_events_for_policy_report()
     test_agent_memory_policy_can_suppress_noisy_write_when_enforced()
     test_memory_policy_routes_correlated_evidence_to_review()
+    test_memory_policy_routes_state_revisions_to_review()
     test_planner_preserves_task_scheduling_hints()
     test_planner_prompt_includes_knowledge_graph_summary()
     test_skill_extractor_creates_experience_atom_and_skill()

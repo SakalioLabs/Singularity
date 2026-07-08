@@ -375,6 +375,76 @@ def test_collaboration_runner_flags_correlated_shared_memory_updates():
     print("PASS: M7 runner flags correlated shared-memory updates")
 
 
+def test_collaboration_runner_tracks_shared_memory_state_revision():
+    tmpdir = tempfile.mkdtemp()
+    state_path = os.path.join(tmpdir, "collab_stale_state.json")
+    spec = CollaborationBenchmarkSpec.from_dict({
+        "id": "STALE-M7",
+        "name": "Route state revision",
+        "max_duration_s": 120,
+        "roles": [
+            {"id": "scout", "capabilities": ["observe"], "required": True},
+            {"id": "leader", "capabilities": ["verify"], "required": True},
+        ],
+        "shared_state": {
+            "required_keys": ["route_clear"],
+            "initial": {"route_clear": False},
+            "success_keys": [],
+        },
+        "tasks": [
+            {
+                "id": "scout_route",
+                "title": "Scout route",
+                "assigned_role": "scout",
+                "required_capabilities": ["observe"],
+                "success_criteria": {"shared_state": {"route_clear": True}},
+                "shared_state_updates": ["route_clear"],
+                "shared_state_provenance": {
+                    "route_clear": {
+                        "dependency": "direct_task_result",
+                        "validity": "current",
+                        "scope": "route safety",
+                    }
+                },
+            },
+            {
+                "id": "verify_route",
+                "title": "Verify route after nightfall",
+                "assigned_role": "leader",
+                "depends_on": ["scout_route"],
+                "required_capabilities": ["verify"],
+                "success_criteria": {"shared_state": {"route_clear": False}},
+                "shared_state_updates": ["route_clear"],
+            },
+        ],
+        "success_criteria": {
+            "all_required_tasks_completed": True,
+            "shared_state": {"route_clear": False},
+        },
+    })
+    runner = CollaborationBenchmarkRunner(state_path)
+
+    report = runner.execute(spec)
+    state = SharedState(state_path)
+    raw = state._read_state()
+    route_provenance = raw["shared"]["_shared_memory_provenance"]["route_clear"]
+    latest = route_provenance["latest"]
+    decision = latest["policy_decision"]
+
+    assert report.ok
+    assert raw["shared"]["route_clear"] is False
+    assert len(route_provenance["history"]) == 2
+    assert latest["previous_value"] is True
+    assert latest["previous_source_task_id"] == "scout_route"
+    assert latest["validity"] == "implicit_conflict"
+    assert decision["decision"] == "write_review_needed"
+    assert "state_revision" in decision["quality_flags"]
+    assert "implicit_conflict" in decision["quality_flags"]
+    assert report.shared_memory_governance["state_revision_count"] == 1
+    assert report.shared_memory_governance["implicit_conflict_count"] == 1
+    print("PASS: M7 runner tracks shared-memory state revisions")
+
+
 def test_collaboration_runner_schedule_execution_comparison_reports_missing_tasks():
     tmpdir = tempfile.mkdtemp()
     state_path = os.path.join(tmpdir, "collab_failed_state.json")
@@ -476,6 +546,7 @@ if __name__ == "__main__":
     test_collaboration_runner_compares_schedule_to_execution()
     test_collaboration_runner_reports_actual_parallel_overlap()
     test_collaboration_runner_flags_correlated_shared_memory_updates()
+    test_collaboration_runner_tracks_shared_memory_state_revision()
     test_collaboration_runner_schedule_execution_comparison_reports_missing_tasks()
     test_collaboration_runner_schedule_detects_blocked_dependencies()
     test_collaboration_runner_blocks_dependents_after_executor_failure()

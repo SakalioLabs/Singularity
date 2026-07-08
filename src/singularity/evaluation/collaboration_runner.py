@@ -537,6 +537,7 @@ class CollaborationBenchmarkRunner:
         if report.shared_memory_governance:
             print(f"  shared memory candidates: {report.shared_memory_governance.get('candidate_count', 0)}")
             print(f"  false-promotion reviews: {report.shared_memory_governance.get('false_promotion_review_count', 0)}")
+            print(f"  state revisions: {report.shared_memory_governance.get('state_revision_count', 0)}")
         for item in report.task_results:
             suffix = " deadline_missed" if item.deadline_missed else ""
             print(f"    - {item.source_task_id} -> {item.status}{suffix}")
@@ -1002,15 +1003,17 @@ class CollaborationBenchmarkRunner:
         if success:
             updates = self._normalize_shared_updates(task, updates)
         if updates:
+            current_shared = state.get_shared()
             shared_update_provenance = self._shared_update_provenance(
                 task,
                 result if isinstance(result, dict) else {},
                 updates,
                 raw_updates,
+                current_shared,
             )
             shared_memory_decisions = self._shared_memory_decisions(updates, shared_update_provenance)
             shared_metadata = self._shared_memory_metadata_updates(
-                state.get_shared(),
+                current_shared,
                 updates,
                 shared_update_provenance,
                 shared_memory_decisions,
@@ -1085,6 +1088,7 @@ class CollaborationBenchmarkRunner:
         result: dict,
         updates: dict,
         raw_updates: dict,
+        shared_state: dict,
     ) -> dict:
         provenance_by_key = {}
         task_provenance = task.get("shared_state_provenance", {}) if isinstance(task, dict) else {}
@@ -1134,8 +1138,37 @@ class CollaborationBenchmarkRunner:
             }
             if provided.get("note") or declared.get("note"):
                 entry["note"] = str(provided.get("note") or declared.get("note"))
+            self._annotate_shared_supersession(entry, shared_state)
             provenance_by_key[key] = entry
         return provenance_by_key
+
+    def _annotate_shared_supersession(self, entry: dict, shared_state: dict):
+        previous = self._latest_shared_memory_entry(entry.get("key", ""), shared_state)
+        if not previous:
+            return
+        previous_value = previous.get("value")
+        if previous_value == entry.get("value"):
+            return
+
+        entry["state_revision"] = True
+        entry["previous_value"] = previous_value
+        entry["previous_source_task_id"] = previous.get("source_task_id", "")
+        entry["supersedes"] = {
+            "previous_value": previous_value,
+            "previous_source_task_id": previous.get("source_task_id", ""),
+            "previous_assigned_to": previous.get("assigned_to", ""),
+            "previous_validity": previous.get("validity", ""),
+        }
+        if str(entry.get("validity") or "").lower() in {"", "current"}:
+            entry["validity"] = "implicit_conflict"
+        if str(entry.get("dependency") or "").lower() in {"", "task_result", "direct_task_result"}:
+            entry["dependency"] = "state_revision"
+
+    def _latest_shared_memory_entry(self, key: str, shared_state: dict) -> dict:
+        provenance = shared_state.get("_shared_memory_provenance", {}) if isinstance(shared_state, dict) else {}
+        record = provenance.get(key, {}) if isinstance(provenance, dict) else {}
+        latest = record.get("latest", {}) if isinstance(record, dict) else {}
+        return latest if isinstance(latest, dict) else {}
 
     def _default_shared_dependency(
         self,
@@ -1168,6 +1201,9 @@ class CollaborationBenchmarkRunner:
                 "validity": provenance.get("validity", "current"),
                 "scope": provenance.get("scope", "benchmark_shared_state"),
                 "depends_on": provenance.get("depends_on", []),
+                "state_revision": provenance.get("state_revision", False),
+                "previous_value": provenance.get("previous_value"),
+                "supersedes": provenance.get("supersedes", {}),
             }
             decisions[key] = self.memory_policy.decide_write(
                 "shared",
@@ -1215,6 +1251,8 @@ class CollaborationBenchmarkRunner:
         false_promotion_review_count = int(summary.get("false_promotion_review_count", 0))
         correlated_evidence_count = int(summary.get("correlated_evidence_count", 0))
         unsafe_scope_count = int(summary.get("unsafe_scope_count", 0))
+        state_revision_count = int(summary.get("state_revision_count", 0))
+        implicit_conflict_count = int(summary.get("implicit_conflict_count", 0))
 
         for key, decision in decisions_by_key.items():
             decision_name = str(decision.get("decision") or "unknown")
@@ -1230,6 +1268,10 @@ class CollaborationBenchmarkRunner:
                 correlated_evidence_count += 1
             if "unsafe_scope" in flags:
                 unsafe_scope_count += 1
+            if "state_revision" in flags:
+                state_revision_count += 1
+            if "implicit_conflict" in flags:
+                implicit_conflict_count += 1
             by_key[key] = {
                 "decision": decision_name,
                 "priority": decision.get("priority", "normal"),
@@ -1242,6 +1284,8 @@ class CollaborationBenchmarkRunner:
             "false_promotion_review_count": false_promotion_review_count,
             "correlated_evidence_count": correlated_evidence_count,
             "unsafe_scope_count": unsafe_scope_count,
+            "state_revision_count": state_revision_count,
+            "implicit_conflict_count": implicit_conflict_count,
             "by_decision": by_decision,
             "by_key": by_key,
         })

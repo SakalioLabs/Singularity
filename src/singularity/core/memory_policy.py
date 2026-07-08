@@ -236,6 +236,12 @@ class MemoryLifecyclePolicy:
             or ""
         ).lower()
         validity = str(metadata.get("validity") or metadata.get("evidence_status") or "").lower()
+        has_supersession = bool(
+            metadata.get("supersedes")
+            or metadata.get("invalidates")
+            or metadata.get("previous_value") is not None
+            or metadata.get("state_revision")
+        )
         if text and len(text.strip()) < 12:
             flags.append("too_short")
         try:
@@ -248,10 +254,22 @@ class MemoryLifecyclePolicy:
             flags.append("raw_observation")
         if str(source or "").lower() in {"raw_observation", "observation"} and len(text) > 500:
             flags.append("raw_observation_dump")
-        if dependency in {"copied", "copied_source", "shared_prompt", "shared_tool", "same_agent_echo", "low_trust", "unknown"}:
+        if dependency in {
+            "copied",
+            "copied_source",
+            "shared_prompt",
+            "shared_tool",
+            "same_agent_echo",
+            "low_trust",
+            "unknown",
+        }:
             flags.append("correlated_evidence")
         if validity in {"stale", "out_of_scope", "adversarial", "contradicted"}:
             flags.append("unsafe_scope")
+        if has_supersession or validity in {"implicit_conflict", "state_revision", "superseded", "supersedes_previous"}:
+            flags.append("state_revision")
+        if validity == "implicit_conflict":
+            flags.append("implicit_conflict")
         return flags
 
     def _is_verified_outcome(self, memory_type: str, content) -> bool:

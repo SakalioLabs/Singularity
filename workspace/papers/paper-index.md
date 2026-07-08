@@ -632,6 +632,24 @@
 
 ---
 
+## P-034: STALE
+
+- **Title**: STALE: Can LLM Agents Know When Their Memories Are No Longer Valid?
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2605.06527
+- **Type**: Paper + Benchmark
+- **Task Type**: Long-term memory validity, implicit conflict, and stale-state evaluation
+- **Core Method**: Probes state resolution, premise resistance, and implicit policy adaptation under changing user/world state
+- **Action Space**: Memory write/read/use decisions linked to downstream behavior
+- **Memory**: Mutable state memories with supersession and propagation-aware revision
+- **Key Results**: Shows a gap between retrieving updated evidence and acting on it under implicit conflicts
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Blueprint for M7 shared-memory supersession and stale-world-state review before stale facts influence task scheduling
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-stale.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -669,3 +687,4 @@
 | P-031 | Memory for Autonomous LLM Agents | 2026 | R5/N4/R4/E5 | P1 |
 | P-032 | Agentic Memory | 2026 | R5/N5/R3/E4 | P2 |
 | P-033 | GovMem | 2026 | R5/N5/R3/E5 | P2 |
+| P-034 | STALE | 2026 | R5/N5/R4/E5 | P2 |

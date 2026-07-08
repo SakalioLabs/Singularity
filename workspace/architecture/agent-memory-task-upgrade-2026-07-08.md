@@ -161,23 +161,26 @@ Singularity adaptation:
 - Add an exploration trace report over autonomous session logs: visited position spread, new block/entity/resource types, visual evidence coverage, hazards encountered, multi-step plans, and failed action categories.
 - Feed exploration coverage back into curriculum novelty scoring once live autonomous traces are available.
 
-### AutoMem, Agentic Memory, and GovMem
+### AutoMem, Agentic Memory, GovMem, and STALE
 
 Sources:
 - https://arxiv.org/abs/2607.01224
 - https://arxiv.org/abs/2601.01885
 - https://arxiv.org/abs/2607.02579
+- https://arxiv.org/abs/2605.06527
 
 Core idea:
 - Memory management should be an explicit trainable or feedback-driven skill, not an invisible side effect of planning.
 - Memory policies need separate write, read, manage, summarize, update, and discard decisions.
 - Repeated traces are not always independent evidence; shared prompts, copied sources, stale context, or narrow scope can create false memory promotion.
+- Mutable state memory needs supersession semantics, because later observations can implicitly invalidate old assumptions without explicit negation.
 
 Singularity adaptation:
 - Keep `memory_write`, `memory_read`, and `memory_manage` events visible in session logs.
 - Use `memory-policy-report` to convert trace gaps into `memory_policy_feedback`.
 - Let `MemoryLifecyclePolicy` consume feedback hints and tag candidate writes with reviewable decisions.
 - Add GovMem-style provenance flags (`correlated_evidence`, `unsafe_scope`) before candidate facts can become durable semantic memory.
+- Add STALE-style `state_revision` and `implicit_conflict` flags when new evidence supersedes a prior shared state.
 
 ## Proposed Singularity Delta Architecture
 
@@ -269,6 +272,7 @@ Memory should be treated as a policy-controlled subsystem:
 - offline reports should produce feedback hints for missed semantic writes, failure-learning traces, noisy writes, retrieval instrumentation, and consolidation review
 - correlated or stale evidence should be routed to review before semantic promotion
 - multi-agent shared-state writes should carry provenance, dependency, validity, scope, and confidence metadata so repeated role claims can be audited before becoming shared durable memory
+- changes to an already-provenanced shared key should preserve the previous value/source and route the revision through state-adjudication review
 - strict write gates should remain off until real trace audits show high precision
 
 ## Implemented in this pass
@@ -383,3 +387,4 @@ Memory should be treated as a policy-controlled subsystem:
 - Closed the first feedback loop from `memory_policy_feedback` back into `MemoryLifecyclePolicy`, so missed semantic writes, failure-learning traces, noisy writes, retrieval instrumentation, and consolidation review hints alter future policy priorities and reasons.
 - Added GovMem-style write governance flags to `MemoryLifecyclePolicy`: correlated/shared evidence and stale/out-of-scope/contradicted validity metadata now route candidate writes through review or strict suppression.
 - Added M7 shared-memory provenance: collaboration tasks can declare `shared_state_provenance`, execution stores per-key `_shared_memory_provenance` histories, and reports summarize `_shared_memory_governance` counts including false-promotion review, correlated evidence, and unsafe scope.
+- Added STALE-style shared-state revision detection: when M7 execution changes a previously provenanced shared key, the runner records `supersedes` metadata, marks the candidate as `implicit_conflict`, and reports state revision counts.
