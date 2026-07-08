@@ -190,6 +190,9 @@ python -m singularity.main mixed-initiative-review-execute --label-file workspac
 
 # Convert approved execution artifacts into reusable action/template policy feedback.
 python -m singularity.main mixed-initiative-policy-patch --execution-report logs/benchmarks/mixed_review_execution.json --output logs/benchmarks/mixed_policy_patch.json
+# Load approved patches into live runs or benchmark agents.
+python -m singularity.main run --goal "Craft 4 torches" --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json
+python -m singularity.main benchmark --suite m1 --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json
 
 # Replay held-out paraphrases and optional JSON/JSONL case files before promoting
 # new mixed-initiative templates or changing auto-selection heuristics.

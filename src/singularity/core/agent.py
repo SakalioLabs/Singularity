@@ -22,7 +22,12 @@ from singularity.core.goal_verifier import GoalVerifier
 from singularity.core.explorer import Explorer
 from singularity.observation.observer import Observer
 from singularity.action.controller import ActionController
+from singularity.action.policy import ActionGranularityPolicy
 from singularity.bot.bridge import BotBridge
+from singularity.evaluation.mixed_initiative import (
+    MixedInitiativeFeedbackPolicy,
+    apply_mixed_initiative_policy_patch,
+)
 from singularity.logging.session_logger import SessionLogger
 from singularity.vision.analyzer import VisionAnalyzer
 from singularity.vision.action_advisor import VisualActionAdvisor
@@ -43,7 +48,10 @@ class Agent:
         self.config = config
         self.bot = BotBridge(config.bot)
         self.observer = Observer(self.bot)
-        self.action_controller = ActionController(self.bot, config)
+        self.action_policy = ActionGranularityPolicy()
+        self.mixed_initiative_policy = MixedInitiativeFeedbackPolicy()
+        self.mixed_policy_patch_report = self._load_mixed_policy_patches()
+        self.action_controller = ActionController(self.bot, config, action_policy=self.action_policy)
         self.running = False
         self.session_log: list[dict] = []
         self.current_goal: Optional[str] = None
@@ -89,6 +97,46 @@ class Agent:
             self.rule_planner = RuleBasedPlanner()
             self.reflector = None
             logger.info("No API key - using rule-based planner")
+
+    def _load_mixed_policy_patches(self) -> dict:
+        """Load approved mixed-initiative policy patches into runtime policy objects."""
+        report = {
+            "paths": [],
+            "loaded_count": 0,
+            "action_policy_hints_applied": 0,
+            "mixed_policy_hints_applied": 0,
+            "template_policy_update_count": 0,
+            "errors": [],
+        }
+        for path in getattr(self.config, "mixed_policy_patch_paths", []) or []:
+            if not path:
+                continue
+            report["paths"].append(path)
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    patch = json.load(f)
+                applied = apply_mixed_initiative_policy_patch(
+                    patch,
+                    action_policy=self.action_policy,
+                    mixed_policy=self.mixed_initiative_policy,
+                )
+                report["loaded_count"] += 1
+                report["action_policy_hints_applied"] += int(applied.get("action_policy_hints_applied", 0) or 0)
+                report["mixed_policy_hints_applied"] += int(applied.get("mixed_policy_hints_applied", 0) or 0)
+                report["template_policy_update_count"] += int(applied.get("template_policy_update_count", 0) or 0)
+            except Exception as e:
+                message = f"{path}: {e}"
+                report["errors"].append(message)
+                logger.warning(f"Failed to load mixed policy patch {message}")
+        if report["loaded_count"] or report["errors"]:
+            logger.info(
+                "Mixed policy patches loaded: "
+                f"{report['loaded_count']} files, "
+                f"action_hints={report['action_policy_hints_applied']}, "
+                f"mixed_hints={report['mixed_policy_hints_applied']}, "
+                f"errors={len(report['errors'])}"
+            )
+        return report
 
     def connect(self) -> bool:
         logger.info(f"Connecting to {self.config.bot.host}:{self.config.bot.port}")

@@ -61,6 +61,7 @@ def main():
     run_parser.add_argument("--capture-screenshots", action="store_true", help="Ask the bridge renderer to capture screenshots for visual analysis")
     run_parser.add_argument("--screenshot-dir", type=str, default="logs/screenshots", help="Directory for captured screenshot files")
     run_parser.add_argument("--screenshot-min-interval", type=float, default=2.0, help="Minimum seconds between screenshot capture attempts")
+    run_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load at runtime")
     run_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Autonomous mode (M4 + M5)
@@ -82,6 +83,7 @@ def main():
     auto_parser.add_argument("--capture-screenshots", action="store_true", help="Ask the bridge renderer to capture screenshots for visual analysis")
     auto_parser.add_argument("--screenshot-dir", type=str, default="logs/screenshots", help="Directory for captured screenshot files")
     auto_parser.add_argument("--screenshot-min-interval", type=float, default=2.0, help="Minimum seconds between screenshot capture attempts")
+    auto_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load at runtime")
     auto_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Benchmark command
@@ -102,6 +104,7 @@ def main():
     bench_parser.add_argument("--capture-screenshots", action="store_true", help="Ask the bridge renderer to capture screenshots for visual analysis")
     bench_parser.add_argument("--screenshot-dir", type=str, default="logs/screenshots", help="Directory for captured screenshot files")
     bench_parser.add_argument("--screenshot-min-interval", type=float, default=2.0, help="Minimum seconds between screenshot capture attempts")
+    bench_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load in benchmark agents")
     bench_parser.add_argument("--log-level", type=str, default="INFO")
     bench_parser.add_argument("--output", type=str, default="benchmark_results.json")
     bench_parser.add_argument("--preflight", action="store_true", help="Run readiness checks before benchmarks")
@@ -1583,6 +1586,7 @@ def main():
         enable_goal_critic=getattr(args, "goal_critic", False),
         enable_vision_analysis=not getattr(args, "no_vision_analysis", False),
         enable_visual_action_grounding=not getattr(args, "no_visual_action_grounding", False),
+        mixed_policy_patch_paths=getattr(args, "mixed_policy_patch", []) or [],
         enable_screenshot_capture=getattr(args, "capture_screenshots", False),
         screenshot_dir=getattr(args, "screenshot_dir", "logs/screenshots"),
         screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),

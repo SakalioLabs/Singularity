@@ -1,12 +1,15 @@
 """Unit tests for action controller safety helpers."""
+import json
 import os
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from singularity.action.controller import ActionController
 from singularity.action.mapping import ActionMapper
 from singularity.action.policy import ActionGranularityPolicy
+from singularity.core.agent import Agent
 from singularity.core.config import Config
 
 
@@ -134,6 +137,55 @@ def test_action_granularity_policy_can_emit_planned_desktop_mapping():
     print("PASS: ActionGranularityPolicy can choose planned desktop mapping")
 
 
+def test_agent_loads_mixed_policy_patch_into_runtime_policies():
+    tmpdir = tempfile.mkdtemp()
+    patch_path = os.path.join(tmpdir, "mixed_policy_patch.json")
+    with open(patch_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "action_policy_feedback": {
+                "policy_hints": [
+                    {
+                        "action_type": "place",
+                        "preferred_control": "consider_low_level_visual_control",
+                        "reason": "visual_or_precision_sensitive",
+                        "low_level_candidate_count": 1,
+                    }
+                ]
+            },
+            "mixed_initiative_feedback": {
+                "policy_hints": [
+                    {
+                        "policy": "inspect_backend_execution",
+                        "template_id": "craft_or_process_item",
+                        "priority": "high",
+                    }
+                ]
+            },
+            "template_policy_updates": [
+                {"target_id": "craft_or_process_item", "decision": "inspect_backend_execution"}
+            ],
+        }, f)
+    config = Config(
+        log_dir=os.path.join(tmpdir, "logs"),
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        mixed_policy_patch_paths=[patch_path],
+    )
+
+    agent = Agent(config)
+
+    assert agent.mixed_policy_patch_report["loaded_count"] == 1
+    assert agent.mixed_policy_patch_report["action_policy_hints_applied"] == 1
+    assert agent.mixed_policy_patch_report["mixed_policy_hints_applied"] == 1
+    assert agent.mixed_policy_patch_report["template_policy_update_count"] == 1
+    assert agent.action_controller.action_policy is agent.action_policy
+    assert agent.action_policy.hints()["place"]["preferred_control"] == "consider_low_level_visual_control"
+    decision = agent.mixed_initiative_policy.decide_template("craft_or_process_item")
+    assert decision.decision == "inspect_backend_execution"
+    assert decision.should_inspect_backend
+    print("PASS: Agent loads mixed policy patch into runtime policies")
+
+
 if __name__ == "__main__":
     test_use_item_equips_requested_item_first()
     test_action_mapper_desktop_backend_is_planned_not_executable()
@@ -141,4 +193,5 @@ if __name__ == "__main__":
     test_action_controller_rejects_unknown_canonical_action()
     test_action_granularity_policy_records_visual_preference_without_breaking_mineflayer()
     test_action_granularity_policy_can_emit_planned_desktop_mapping()
+    test_agent_loads_mixed_policy_patch_into_runtime_policies()
     print("\nAction controller tests PASSED")

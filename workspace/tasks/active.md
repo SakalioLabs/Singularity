@@ -155,7 +155,8 @@
 - [x] Feed mixed-initiative review queue items into an operator approval flow for template-review/action-policy experiment cases.
 - [x] Execute approved mixed-initiative review labels through a whitelisted template-review/action-policy report runner.
 - [x] Feed approved mixed-initiative execution artifacts back into action/template policy patch objects.
-- [ ] Load approved mixed-initiative policy patches into live Agent/ActionController startup configuration.
+- [x] Load approved mixed-initiative policy patches into live Agent/ActionController startup configuration.
+- [ ] Run live M1/M2/M7 with an approved mixed-policy patch and compare control-policy decisions plus mixed-policy review decisions against baseline.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
 - [ ] Run an unknown visual/environment goal with `--goal-critic` and inspect `goal_verification_metrics` plus critic evidence in the session log.
 - [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces and compare completion judgments against manual review.
