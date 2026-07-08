@@ -2245,6 +2245,56 @@ def test_task_stream_transfer_report_scores_controlled_reuse():
     print("PASS: Task stream transfer report scores controlled reuse")
 
 
+def test_seed_minecraft_task_stream_specs_are_gate_ready():
+    stream_path = os.path.abspath(os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "workspace",
+        "evals",
+        "minecraft_task_streams.json",
+    ))
+    runner = BenchmarkRunner(Config())
+    report = runner.run_task_stream_transfer_report_from_files([stream_path])
+    feedback = runner.task_stream_transfer_feedback(report)
+    gate = runner.build_task_stream_transfer_gate(transfer_reports=[{
+        "stream_count": report.stream_count,
+        "ready_stream_count": report.ready_stream_count,
+        "task_count": report.task_count,
+        "reusable_relation_count": report.reusable_relation_count,
+        "reuse_expected_tag_count": report.reuse_expected_tag_count,
+        "reuse_hit_tag_count": report.reuse_hit_tag_count,
+        "reuse_coverage": report.reuse_coverage,
+        "interference_count": report.interference_count,
+        "average_plasticity_gain": report.average_plasticity_gain,
+        "average_stability_gain": report.average_stability_gain,
+        "average_generalization_gain": report.average_generalization_gain,
+        "task_stream_feedback": feedback,
+        "errors": report.errors,
+    }])
+    stream_ids = {case.stream_id for case in report.cases}
+
+    assert report.errors == []
+    assert stream_ids == {
+        "wood_to_tools",
+        "shelter_escalation",
+        "mining_progression",
+        "navigation_return_loop",
+        "redstone_variant",
+    }
+    assert report.stream_count == 5
+    assert report.ready_stream_count == 5
+    assert report.task_count == 15
+    assert report.reuse_coverage == 1.0
+    assert report.interference_count == 0
+    assert report.average_plasticity_gain > 0.3
+    assert report.average_stability_gain > 0.0
+    assert report.average_generalization_gain > 0.25
+    assert all(case.ready_for_transfer_review for case in report.cases)
+    assert all(not case.issues for case in report.cases)
+    assert gate["readiness"] == "approved"
+    print("PASS: Seed Minecraft task streams are ready for transfer gates")
+
+
 def test_task_stream_transfer_gate_controls_promotion():
     runner = BenchmarkRunner(Config())
     approved_payload = {
@@ -3136,6 +3186,7 @@ if __name__ == "__main__":
     test_continual_learning_report_aggregates_open_ended_axes()
     test_continual_learning_report_accepts_flat_session_log_fields()
     test_task_stream_transfer_report_scores_controlled_reuse()
+    test_seed_minecraft_task_stream_specs_are_gate_ready()
     test_task_stream_transfer_gate_controls_promotion()
     test_ingest_queues_repeated_causal_summary_candidate()
     test_ingest_queues_failure_correction_candidate()

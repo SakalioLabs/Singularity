@@ -157,6 +157,7 @@
 - [x] Add `skill-memory-quality-gate` to compare localized `hint_quality_items` against `skill-memory-report` memories and promote only repeatedly supported local `REUSE` evidence.
 - [x] Gate runtime `--skill-memory-quality-feedback` loading with approved `--skill-memory-quality-gate` reports across run/autonomous/benchmark/collab-benchmark.
 - [x] Add benchmark-level `--skill-memory-quality-preflight` so quality-feedback-assisted benchmark suites require approved gates and offline ranking-effect evidence before live execution.
+- [x] Add seed controlled Minecraft task-stream specs for wood-to-tools, shelter, mining, navigation, and redstone variants, and validate them through `task-stream-transfer-report` plus `task-stream-transfer-gate`.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -171,7 +172,7 @@
 - [ ] Run `memory-policy-report` on real M1/M2/autonomous session logs and compare `MemoryLifecyclePolicy` decisions against task outcomes before enabling strict write gates.
 - [ ] Run `bounded-context-report` on real M1/M2/autonomous session logs and tighten planner context budgets if raw transcript or oversized memory-read cycles appear.
 - [ ] Run `continual-learning-report` on real autonomous/M7 session logs and compare axis scores against later task success, transfer-memory matches, and skill-candidate reuse.
-- [ ] Build controlled Minecraft task-stream specs for wood-to-tools, shelter, mining, navigation, and redstone variants; run `task-stream-transfer-report` before promoting transfer memories or approved skills to defaults.
+- [x] Build controlled Minecraft task-stream specs for wood-to-tools, shelter, mining, navigation, and redstone variants; run `task-stream-transfer-report` before promoting transfer memories or approved skills to defaults.
 - [ ] Feed real approved `task-stream-transfer-gate` reports from autonomous/M7 stream specs into queued skill approvals and memory-lifecycle profiles before enabling transfer-tested defaults.
 - [ ] Run `skill-memory-quality-report` on real M1/M2/autonomous logs and review `reuse_conflicted_with_failures`, `avoid_unheeded_post_hint_failures`, and `candidate_promote_reuse_hints`.
 - [ ] Run the same goals with and without `--skill-memory-quality-feedback` to confirm conflicted `REUSE` hints are demoted without suppressing useful `AVOID` warnings.

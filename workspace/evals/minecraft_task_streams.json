@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "purpose": "Controlled Minecraft task streams for transfer-memory and reusable-skill promotion gates before runtime defaults.",
+  "streams": [
+    {
+      "id": "wood_to_tools",
+      "description": "Wood gathering should transfer into table and pickaxe crafting without turning raw episode recall into an unverified default.",
+      "tasks": [
+        {
+          "id": "collect_oak_logs",
+          "goal": "Collect 6 oak logs from nearby trees.",
+          "produced_tags": ["oak_log", "planks", "wood_source"],
+          "baseline_score": 0.32,
+          "first_pass_score": 0.76,
+          "second_pass_score": 0.82,
+          "heldout_score": 0.72,
+          "reuse_evidence": "memory_write oak_log planks wood_source lesson for later crafting"
+        },
+        {
+          "id": "craft_crafting_table",
+          "goal": "Craft a crafting table from collected oak logs.",
+          "depends_on": ["collect_oak_logs"],
+          "expected_reuse_tags": ["oak_log", "planks"],
+          "produced_tags": ["crafting_table", "workbench"],
+          "baseline_score": 0.24,
+          "first_pass_score": 0.78,
+          "second_pass_score": 0.84,
+          "heldout_score": 0.74,
+          "reuse_evidence": "memory_read reused oak_log planks conversion before crafting_table"
+        },
+        {
+          "id": "craft_stone_pickaxe",
+          "goal": "Craft a stone pickaxe after collecting cobblestone.",
+          "depends_on": ["craft_crafting_table"],
+          "expected_reuse_tags": ["crafting_table", "planks", "workbench"],
+          "produced_tags": ["stone_pickaxe", "tool_crafting"],
+          "baseline_score": 0.20,
+          "first_pass_score": 0.72,
+          "second_pass_score": 0.78,
+          "heldout_score": 0.70,
+          "reuse_evidence": "skill_match used crafting_table planks workbench prerequisite for stone_pickaxe"
+        }
+      ]
+    },
+    {
+      "id": "shelter_escalation",
+      "description": "Basic shelter construction should transfer into safer night preparation while preserving verifier-facing postconditions.",
+      "tasks": [
+        {
+          "id": "mark_safe_site",
+          "goal": "Find and mark a flat safe shelter site near spawn.",
+          "produced_tags": ["safe_site", "spawn_anchor", "flat_ground"],
+          "baseline_score": 0.36,
+          "first_pass_score": 0.68,
+          "second_pass_score": 0.74,
+          "heldout_score": 0.66,
+          "reuse_evidence": "memory_write safe_site spawn_anchor flat_ground shelter location"
+        },
+        {
+          "id": "build_basic_shelter",
+          "goal": "Build a simple enclosed shelter before night.",
+          "depends_on": ["mark_safe_site"],
+          "expected_reuse_tags": ["safe_site", "flat_ground"],
+          "produced_tags": ["enclosed_shelter", "doorway", "wall_loop"],
+          "baseline_score": 0.22,
+          "first_pass_score": 0.70,
+          "second_pass_score": 0.76,
+          "heldout_score": 0.68,
+          "reuse_evidence": "plan reused safe_site flat_ground notes to place wall_loop and doorway"
+        },
+        {
+          "id": "upgrade_shelter_lighting",
+          "goal": "Add lighting and a safe entrance to the shelter.",
+          "depends_on": ["build_basic_shelter"],
+          "expected_reuse_tags": ["enclosed_shelter", "doorway", "safe_site"],
+          "produced_tags": ["lit_shelter", "safe_entrance"],
+          "baseline_score": 0.18,
+          "first_pass_score": 0.64,
+          "second_pass_score": 0.70,
+          "heldout_score": 0.62,
+          "reuse_evidence": "memory_read enclosed_shelter doorway safe_site before torch and entrance placement"
+        }
+      ]
+    },
+    {
+      "id": "mining_progression",
+      "description": "Tool and route memories should transfer from surface stone to coal and iron without causing unsafe mining regressions.",
+      "tasks": [
+        {
+          "id": "mine_surface_stone",
+          "goal": "Mine surface stone for 12 cobblestone.",
+          "produced_tags": ["cobblestone", "stone_tool_material", "surface_mine"],
+          "baseline_score": 0.34,
+          "first_pass_score": 0.72,
+          "second_pass_score": 0.78,
+          "heldout_score": 0.70,
+          "reuse_evidence": "memory_write cobblestone stone_tool_material surface_mine safe route"
+        },
+        {
+          "id": "mine_coal_for_torches",
+          "goal": "Mine coal and craft torches for a cave run.",
+          "depends_on": ["mine_surface_stone"],
+          "expected_reuse_tags": ["cobblestone", "stone_tool_material"],
+          "produced_tags": ["coal", "torch", "mining_light"],
+          "baseline_score": 0.26,
+          "first_pass_score": 0.70,
+          "second_pass_score": 0.76,
+          "heldout_score": 0.68,
+          "reuse_evidence": "skill_match used cobblestone stone_tool_material pickaxe path before coal torch crafting"
+        },
+        {
+          "id": "mine_iron_safely",
+          "goal": "Mine iron ore while maintaining a safe lit route.",
+          "depends_on": ["mine_coal_for_torches"],
+          "expected_reuse_tags": ["torch", "mining_light", "surface_mine"],
+          "produced_tags": ["raw_iron", "lit_mine_route", "ore_safety"],
+          "baseline_score": 0.16,
+          "first_pass_score": 0.60,
+          "second_pass_score": 0.66,
+          "heldout_score": 0.58,
+          "reuse_evidence": "memory_read torch mining_light surface_mine route before raw_iron extraction"
+        }
+      ]
+    },
+    {
+      "id": "navigation_return_loop",
+      "description": "Exploration route memory should transfer into return-to-base and resource revisit tasks under distance pressure.",
+      "tasks": [
+        {
+          "id": "record_base_landmark",
+          "goal": "Record a base landmark and nearby resource direction.",
+          "produced_tags": ["base_landmark", "resource_direction", "spawn_route"],
+          "baseline_score": 0.38,
+          "first_pass_score": 0.74,
+          "second_pass_score": 0.80,
+          "heldout_score": 0.72,
+          "reuse_evidence": "memory_write base_landmark resource_direction spawn_route navigation note"
+        },
+        {
+          "id": "visit_resource_and_return",
+          "goal": "Travel to the marked resource and return to base.",
+          "depends_on": ["record_base_landmark"],
+          "expected_reuse_tags": ["base_landmark", "resource_direction", "spawn_route"],
+          "produced_tags": ["round_trip_route", "return_to_base"],
+          "baseline_score": 0.20,
+          "first_pass_score": 0.68,
+          "second_pass_score": 0.74,
+          "heldout_score": 0.66,
+          "reuse_evidence": "memory_read base_landmark resource_direction spawn_route before round_trip_route return_to_base"
+        },
+        {
+          "id": "reroute_around_hazard",
+          "goal": "Return to base after a hazard blocks the direct path.",
+          "depends_on": ["visit_resource_and_return"],
+          "expected_reuse_tags": ["round_trip_route", "return_to_base", "base_landmark"],
+          "produced_tags": ["hazard_detour", "safe_return"],
+          "baseline_score": 0.14,
+          "first_pass_score": 0.56,
+          "second_pass_score": 0.62,
+          "heldout_score": 0.54,
+          "reuse_evidence": "plan reused round_trip_route return_to_base base_landmark while adding hazard_detour"
+        }
+      ]
+    },
+    {
+      "id": "redstone_variant",
+      "description": "Small redstone experiments should only transfer when controlled application and held-out variants stay stable.",
+      "tasks": [
+        {
+          "id": "observe_redstone_switch",
+          "goal": "Place a lever and observe a redstone-powered block change.",
+          "produced_tags": ["lever", "redstone_signal", "powered_block"],
+          "baseline_score": 0.18,
+          "first_pass_score": 0.56,
+          "second_pass_score": 0.62,
+          "heldout_score": 0.54,
+          "reuse_evidence": "memory_write lever redstone_signal powered_block cause effect"
+        },
+        {
+          "id": "build_lamp_toggle",
+          "goal": "Build a redstone lamp toggle using a lever.",
+          "depends_on": ["observe_redstone_switch"],
+          "expected_reuse_tags": ["lever", "redstone_signal", "powered_block"],
+          "produced_tags": ["lamp_toggle", "redstone_lamp_rule"],
+          "baseline_score": 0.12,
+          "first_pass_score": 0.50,
+          "second_pass_score": 0.56,
+          "heldout_score": 0.48,
+          "reuse_evidence": "skill_match reused lever redstone_signal powered_block to make lamp_toggle"
+        },
+        {
+          "id": "apply_toggle_to_door",
+          "goal": "Apply the same lever signal pattern to a door or trapdoor variant.",
+          "depends_on": ["build_lamp_toggle"],
+          "expected_reuse_tags": ["lamp_toggle", "redstone_signal", "lever"],
+          "produced_tags": ["door_toggle_variant", "redstone_generalization"],
+          "baseline_score": 0.10,
+          "first_pass_score": 0.44,
+          "second_pass_score": 0.50,
+          "heldout_score": 0.42,
+          "reuse_evidence": "memory_read lamp_toggle redstone_signal lever before door_toggle_variant generalization"
+        }
+      ]
+    }
+  ]
+}

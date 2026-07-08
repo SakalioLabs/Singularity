@@ -1082,6 +1082,24 @@
 
 ---
 
+## P-059: SkillMaster
+
+- **Title**: SkillMaster: Toward Autonomous Skill Mastery in LLM Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2605.08693
+- **Type**: Autonomous skill-bank creation, refinement, selection, and training framework
+- **Task Type**: Long-horizon agent tasks with trajectory-informed skill review and related-task probes
+- **Core Method**: Trains agents to create, update, retain, and select skills, crediting edits by counterfactual utility on probe tasks
+- **Action Space**: LLM-agent tool actions plus explicit skill-management actions
+- **Memory**: Skill bank maintenance, procedural memory edits, trajectory evidence, and future-task utility attribution
+- **Key Results**: Reports higher success than standard RL and externally managed skill-library baselines, with gains from both utility reward and decoupled optimization
+- **Scores**: R=4, N=5, R=4, E=4
+- **Value to Project**: Supports using controlled Minecraft task streams as counterfactual utility probes before approved skills or transfer memories become runtime defaults
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-skillmaster.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1144,3 +1162,4 @@
 | P-056 | Memory Management and Experience-Following | 2026 | R5/N4/R4/E5 | P1 |
 | P-057 | Agent-Native Memory System | 2026 | R5/N4/R4/E5 | P1 |
 | P-058 | MemTier | 2026 | R5/N4/R4/E4 | P2 |
+| P-059 | SkillMaster | 2026 | R4/N5/R4/E4 | P2 |

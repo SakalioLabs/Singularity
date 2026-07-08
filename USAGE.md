@@ -282,6 +282,7 @@ python -m singularity.main bounded-context-report --session-log logs/session_xxx
 python -m singularity.main continual-learning-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/continual_learning.json
 
 # Evaluate AgentCL-style controlled task streams for transfer gain, stability, held-out generalization, and memory/skill interference
+# The repository includes seed streams for wood-to-tools, shelter, mining, navigation, and redstone transfer probes.
 python -m singularity.main task-stream-transfer-report --stream-file workspace/evals/minecraft_task_streams.json --output logs/benchmarks/task_stream_transfer.json
 # Gate memory or skill promotion on positive transfer, stable replay, held-out generalization, and low interference
 python -m singularity.main task-stream-transfer-gate --transfer-report logs/benchmarks/task_stream_transfer.json --target skill:craft_stone_pickaxe --output logs/benchmarks/task_stream_transfer_gate.json
