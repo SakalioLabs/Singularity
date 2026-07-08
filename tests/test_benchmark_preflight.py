@@ -1346,6 +1346,56 @@ def test_self_evolution_report_tracks_progress_and_stagnation():
     print("PASS: Self-evolution report tracks progress and stagnation")
 
 
+def test_self_evolution_report_flags_zero_action_blocked_plan_failure():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_zero_action_blocked.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Mine cobblestone"}},
+        {
+            "type": "observation",
+            "data": {
+                "position": {"x": 0, "y": 64, "z": 0},
+                "inventory": {},
+                "health": 20,
+            },
+        },
+        {"type": "plan", "data": {"status": "blocked", "reasoning": "Need pickaxe", "actions": []}},
+        {
+            "type": "observation",
+            "data": {
+                "position": {"x": 0, "y": 64, "z": 0},
+                "inventory": {},
+                "health": 20,
+            },
+        },
+        {"type": "plan", "data": {"status": "blocked", "reasoning": "Need materials", "actions": []}},
+        {"type": "blocked_plan", "data": {"goal": "Mine cobblestone", "cycle": 2, "reasoning": "Need materials"}},
+        {"type": "goal_end", "data": {"goal": "Mine cobblestone", "result": {"completed": False}}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_self_evolution_report_from_logs([session_path])
+    case = report.cases[0]
+    feedback = runner.self_evolution_feedback(report)
+
+    assert report.ready_log_count == 1
+    assert case.action_count == 0
+    assert case.blocked_plan_count == 2
+    assert case.empty_plan_count == 2
+    assert case.zero_action_failure_count == 1
+    assert case.typed_feedback_counts["monitor_blocked_plan_loop"] == 2
+    assert any("prerequisite fallback" in recommendation for recommendation in case.adaptor_recommendations)
+    assert feedback["blocked_plan_count"] == 2
+    assert feedback["empty_plan_count"] == 2
+    assert feedback["zero_action_failure_count"] == 1
+    policies = {hint["self_evolution_policy"] for hint in feedback["policy_hints"]}
+    assert "repair_blocked_plan_or_prerequisite_fallback" in policies
+    print("PASS: Self-evolution report flags zero-action blocked plan failures")
+
+
 def test_self_evolution_gate_requires_verifier_and_counterexamples():
     runner = BenchmarkRunner(Config())
     self_evolution_report = {
@@ -3212,6 +3262,7 @@ if __name__ == "__main__":
     test_exploration_trace_report_counts_open_world_coverage()
     test_world_model_report_builds_cells_frontiers_and_hotspots()
     test_self_evolution_report_tracks_progress_and_stagnation()
+    test_self_evolution_report_flags_zero_action_blocked_plan_failure()
     test_self_evolution_gate_requires_verifier_and_counterexamples()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
     test_discovery_skill_gate_controls_experiment_derived_skill_promotion()

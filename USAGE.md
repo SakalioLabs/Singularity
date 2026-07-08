@@ -160,6 +160,7 @@ python -m singularity.main world-model-report --session-log logs/session_xxx.jso
 
 # Summarize MineEvolve-style execution progress, stagnation, and adaptor hints
 # Successful action returns are discounted unless later observations show state, inventory, or verifier progress.
+# Blocked or empty plans that reach goal failure before any action are reported as zero-action failures.
 python -m singularity.main self-evolution-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/self_evolution.json
 # The saved JSON includes `self_evolution_feedback` for repair/adaptor and skill-curation experiments.
 # Use it as advisory planner context in later runs without auto-mutating skills or bypassing verification.

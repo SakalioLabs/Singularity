@@ -10,6 +10,9 @@
   "repeated_failure_count": 0,
   "no_progress_success_count": 116,
   "repeated_success_loop_count": 112,
+  "blocked_plan_count": 400,
+  "empty_plan_count": 400,
+  "zero_action_failure_count": 4,
   "relative_reward_delta": 18.385,
   "self_evolution_feedback": {
     "log_count": 5,
@@ -23,6 +26,9 @@
     "repeated_failure_count": 0,
     "no_progress_success_count": 116,
     "repeated_success_loop_count": 112,
+    "blocked_plan_count": 400,
+    "empty_plan_count": 400,
+    "zero_action_failure_count": 4,
     "relative_reward_delta": 18.385,
     "typed_feedback_counts": {
       "monitor_state_change": 3,
@@ -30,7 +36,8 @@
       "monitor_action_success": 200,
       "monitor_no_progress_success": 116,
       "monitor_repeated_success_loop": 112,
-      "monitor_goal_failure": 5
+      "monitor_goal_failure": 5,
+      "monitor_blocked_plan_loop": 400
     },
     "action_failure_categories": {},
     "action_type_counts": {
@@ -42,6 +49,7 @@
     "adaptor_recommendations": [
       "Require a state, inventory, or verifier delta before treating successful actions as progress.",
       "Use accumulated typed feedback to rewrite only the unfinished plan suffix.",
+      "Use rule/prerequisite fallback or curriculum subgoal when a blocked plan has no executable actions.",
       "Route the next retry through a conservative adaptor before adding new goals."
     ],
     "policy_hints": [
@@ -56,6 +64,12 @@
         "priority": "high",
         "reason": "successful action returns did not produce observed state, inventory, or verifier progress",
         "count": 116
+      },
+      {
+        "self_evolution_policy": "repair_blocked_plan_or_prerequisite_fallback",
+        "priority": "high",
+        "reason": "failed logs contain repeated blocked or empty plans before any executable action",
+        "count": 4
       }
     ]
   },
@@ -79,6 +93,9 @@
       "repeated_failure_count": 0,
       "no_progress_success_count": 116,
       "repeated_success_loop_count": 112,
+      "blocked_plan_count": 0,
+      "empty_plan_count": 0,
+      "zero_action_failure_count": 0,
       "consecutive_no_movement_count": 94,
       "relative_reward_delta": 24.385,
       "absolute_reward_mean": 0.0,
@@ -132,18 +149,23 @@
       "repeated_failure_count": 0,
       "no_progress_success_count": 0,
       "repeated_success_loop_count": 0,
+      "blocked_plan_count": 100,
+      "empty_plan_count": 100,
+      "zero_action_failure_count": 1,
       "consecutive_no_movement_count": 98,
       "relative_reward_delta": -1.5,
       "absolute_reward_mean": 0.0,
       "typed_feedback_counts": {
         "monitor_stagnation": 98,
-        "monitor_goal_failure": 1
+        "monitor_goal_failure": 1,
+        "monitor_blocked_plan_loop": 100
       },
       "action_type_counts": {},
       "action_failure_categories": {},
       "progress_markers": [],
       "remedy_candidates": [],
       "adaptor_recommendations": [
+        "Use rule/prerequisite fallback or curriculum subgoal when a blocked plan has no executable actions.",
         "Use accumulated typed feedback to rewrite only the unfinished plan suffix.",
         "Route the next retry through a conservative adaptor before adding new goals."
       ],
@@ -167,18 +189,23 @@
       "repeated_failure_count": 0,
       "no_progress_success_count": 0,
       "repeated_success_loop_count": 0,
+      "blocked_plan_count": 100,
+      "empty_plan_count": 100,
+      "zero_action_failure_count": 1,
       "consecutive_no_movement_count": 98,
       "relative_reward_delta": -1.5,
       "absolute_reward_mean": 0.0,
       "typed_feedback_counts": {
         "monitor_stagnation": 98,
-        "monitor_goal_failure": 1
+        "monitor_goal_failure": 1,
+        "monitor_blocked_plan_loop": 100
       },
       "action_type_counts": {},
       "action_failure_categories": {},
       "progress_markers": [],
       "remedy_candidates": [],
       "adaptor_recommendations": [
+        "Use rule/prerequisite fallback or curriculum subgoal when a blocked plan has no executable actions.",
         "Use accumulated typed feedback to rewrite only the unfinished plan suffix.",
         "Route the next retry through a conservative adaptor before adding new goals."
       ],
@@ -202,18 +229,23 @@
       "repeated_failure_count": 0,
       "no_progress_success_count": 0,
       "repeated_success_loop_count": 0,
+      "blocked_plan_count": 100,
+      "empty_plan_count": 100,
+      "zero_action_failure_count": 1,
       "consecutive_no_movement_count": 98,
       "relative_reward_delta": -1.5,
       "absolute_reward_mean": 0.0,
       "typed_feedback_counts": {
         "monitor_stagnation": 98,
-        "monitor_goal_failure": 1
+        "monitor_goal_failure": 1,
+        "monitor_blocked_plan_loop": 100
       },
       "action_type_counts": {},
       "action_failure_categories": {},
       "progress_markers": [],
       "remedy_candidates": [],
       "adaptor_recommendations": [
+        "Use rule/prerequisite fallback or curriculum subgoal when a blocked plan has no executable actions.",
         "Use accumulated typed feedback to rewrite only the unfinished plan suffix.",
         "Route the next retry through a conservative adaptor before adding new goals."
       ],
@@ -237,18 +269,23 @@
       "repeated_failure_count": 0,
       "no_progress_success_count": 0,
       "repeated_success_loop_count": 0,
+      "blocked_plan_count": 100,
+      "empty_plan_count": 100,
+      "zero_action_failure_count": 1,
       "consecutive_no_movement_count": 98,
       "relative_reward_delta": -1.5,
       "absolute_reward_mean": 0.0,
       "typed_feedback_counts": {
         "monitor_stagnation": 98,
-        "monitor_goal_failure": 1
+        "monitor_goal_failure": 1,
+        "monitor_blocked_plan_loop": 100
       },
       "action_type_counts": {},
       "action_failure_categories": {},
       "progress_markers": [],
       "remedy_candidates": [],
       "adaptor_recommendations": [
+        "Use rule/prerequisite fallback or curriculum subgoal when a blocked plan has no executable actions.",
         "Use accumulated typed feedback to rewrite only the unfinished plan suffix.",
         "Route the next retry through a conservative adaptor before adding new goals."
       ],

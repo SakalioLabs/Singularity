@@ -29,7 +29,7 @@ class RuleBasedPlanner:
         elif ("gather" in goal_lower or "chop" in goal_lower) and ("oak" in goal_lower or "log" in goal_lower or "wood" in goal_lower):
             return self._plan_gather_wood(inv, trees, pos)
         elif "cobblestone" in goal_lower or ("mine" in goal_lower and "stone" in goal_lower):
-            return self._plan_mine_cobblestone(inv)
+            return self._plan_mine_cobblestone(inv, trees, pos)
         return {"status": "blocked", "reasoning": f"No rule for goal: {goal}", "actions": []}
 
     def _plan_gather_wood(self, inv: dict, trees: list, pos: dict) -> dict:
@@ -103,13 +103,21 @@ class RuleBasedPlanner:
         # No wood - gather some
         return self._plan_gather_wood(inv, trees, pos)
 
-    def _plan_mine_cobblestone(self, inv: dict) -> dict:
+    def _plan_mine_cobblestone(self, inv: dict, trees: list = None, pos: dict = None) -> dict:
         if inv.get("cobblestone", 0) >= 3:
             return {"status": "complete", "reasoning": f"Have {inv.get('cobblestone', 0)} cobblestone", "actions": []}
         if inv.get("wooden_pickaxe", 0) >= 1 or inv.get("stone_pickaxe", 0) >= 1:
             return {"status": "in_progress", "reasoning": "Mining cobblestone",
                     "actions": [{"type": "dig", "parameters": {"x": -9, "y": 63, "z": 3}}]}
-        return {"status": "blocked", "reasoning": "Need pickaxe to mine cobblestone", "actions": []}
+        fallback = self._plan_craft_wooden_pickaxe(inv, trees or [], pos or {})
+        fallback = dict(fallback)
+        reasoning = fallback.get("reasoning", "")
+        fallback["reasoning"] = (
+            f"Need pickaxe before mining cobblestone; {reasoning}"
+            if reasoning
+            else "Need pickaxe before mining cobblestone"
+        )
+        return fallback
 
     def _plan_craft_stone_pickaxe(self, inv: dict, trees: list, pos: dict) -> dict:
         if inv.get("stone_pickaxe", 0) >= 1:
@@ -119,7 +127,7 @@ class RuleBasedPlanner:
                     "actions": [{"type": "craft", "parameters": {"item": "stone_pickaxe"}}]}
         # Need cobblestone - mine some
         if inv.get("wooden_pickaxe", 0) >= 1 or inv.get("stone_pickaxe", 0) >= 1:
-            return self._plan_mine_cobblestone(inv)
+            return self._plan_mine_cobblestone(inv, trees, pos)
         # Need wooden pickaxe first
         if inv.get("wooden_pickaxe", 0) < 1:
             return self._plan_craft_wooden_pickaxe(inv, trees, pos)

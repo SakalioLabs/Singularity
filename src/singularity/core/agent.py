@@ -20,6 +20,7 @@ from singularity.core.goal_generator import GoalGenerator
 from singularity.core.curriculum import CurriculumManager
 from singularity.core.goal_verifier import GoalVerifier
 from singularity.core.explorer import Explorer
+from singularity.core.rule_planner import RuleBasedPlanner
 from singularity.core.self_evolution_policy import SelfEvolutionPolicy
 from singularity.observation.observer import Observer
 from singularity.action.controller import ActionController
@@ -74,6 +75,7 @@ class Agent:
         self.curriculum = CurriculumManager()
         self.goal_verifier = GoalVerifier(skill_library=self.skill_library)
         self.explorer = Explorer()
+        self.rule_planner = RuleBasedPlanner()
         self.runtime = RuntimeSupervisor(config, self.explorer)
         self.vision_analyzer = VisionAnalyzer(
             api_key=config.llm.api_key,
@@ -97,8 +99,6 @@ class Agent:
                 self.goal_verifier.goal_critic = GoalVerificationCritic(self.llm)
             logger.info("Using LLM planner with full module integration")
         else:
-            from singularity.core.rule_planner import RuleBasedPlanner
-            self.rule_planner = RuleBasedPlanner()
             self.reflector = None
             logger.info("No API key - using rule-based planner")
 
@@ -448,7 +448,37 @@ class Agent:
                     logger.info("Planner reported complete, but goal verifier needs more evidence")
                     continue
 
+                if plan.get("status") == "blocked":
+                    reasoning = plan.get("reasoning", "")
+                    logger.info(f"Goal blocked: {reasoning}")
+                    payload = {
+                        "goal": goal,
+                        "cycle": cycle,
+                        "reasoning": reasoning,
+                        "action_count": len(plan.get("actions", []) or []),
+                    }
+                    if hasattr(self.session_logger, "log"):
+                        self.session_logger.log("blocked_plan", payload)
+                    self._write_memory_episode("blocked_plan", payload, source="run_goal")
+                    break
+
                 actions = plan.get("actions", [])
+                if not isinstance(actions, list):
+                    actions = []
+                if not actions:
+                    reasoning = plan.get("reasoning", "")
+                    logger.info(f"Goal produced no executable actions: {reasoning}")
+                    payload = {
+                        "goal": goal,
+                        "cycle": cycle,
+                        "status": plan.get("status", ""),
+                        "reasoning": reasoning,
+                    }
+                    if hasattr(self.session_logger, "log"):
+                        self.session_logger.log("empty_plan", payload)
+                    self._write_memory_episode("empty_plan", payload, source="run_goal")
+                    break
+
                 for action in actions:
                     if not self.running:
                         break
@@ -621,6 +651,21 @@ class Agent:
                         break
 
                     actions = plan.get("actions", [])
+                    if not isinstance(actions, list):
+                        actions = []
+                    if not actions:
+                        logger.info(f"[Autonomous] Goal produced no executable actions: {plan.get('reasoning', '')}")
+                        payload = {
+                            "goal": goal,
+                            "cycle": total_cycles,
+                            "status": plan.get("status", ""),
+                            "reasoning": plan.get("reasoning", ""),
+                        }
+                        if hasattr(self.session_logger, "log"):
+                            self.session_logger.log("empty_plan", payload)
+                        self._write_memory_episode("empty_plan", payload, source="autonomous")
+                        break
+
                     for action in actions:
                         if not self.running:
                             break
@@ -728,6 +773,7 @@ class Agent:
         goal = override_goal or self.current_goal or "explore"
         if self._use_llm:
             plan = self._think_llm(observation, goal)
+            plan = self._blocked_plan_rule_fallback(plan, goal, observation)
         else:
             plan = self._think_rule(observation, goal)
         return self._apply_visual_action_grounding(plan, observation, goal)
@@ -806,6 +852,58 @@ class Agent:
 
     def _think_rule(self, observation: dict, goal: str) -> dict:
         plan = self.rule_planner.plan_from_goal(goal, observation)
+        return plan
+
+    def _blocked_plan_rule_fallback(self, plan: dict, goal: str, observation: dict) -> dict:
+        """Use deterministic Minecraft rules when an LLM plan stalls before any action."""
+        if not getattr(getattr(self, "config", None), "enable_blocked_plan_rule_fallback", True):
+            return plan
+        if not isinstance(plan, dict):
+            return plan
+
+        actions = plan.get("actions", [])
+        if not isinstance(actions, list):
+            actions = []
+        status = str(plan.get("status") or "").lower()
+        if status == "complete":
+            return plan
+        if status not in {"blocked", "error"} and actions:
+            return plan
+        if not hasattr(self, "rule_planner") or self.rule_planner is None:
+            return plan
+
+        try:
+            fallback = self.rule_planner.plan_from_goal(goal, observation or {})
+        except Exception as e:
+            logger.warning(f"Rule fallback failed for blocked plan: {e}")
+            return plan
+        if not isinstance(fallback, dict):
+            return plan
+
+        fallback_actions = fallback.get("actions", [])
+        if not isinstance(fallback_actions, list):
+            fallback_actions = []
+        fallback_status = str(fallback.get("status") or "").lower()
+        if fallback_status == "complete" or fallback_actions:
+            merged = dict(fallback)
+            if fallback_actions:
+                merged["status"] = "in_progress"
+            merged["reasoning"] = self._append_reasoning(
+                merged.get("reasoning", ""),
+                f"Rule fallback replaced stalled planner output: {plan.get('reasoning', '')}",
+            )
+            payload = {
+                "goal": goal,
+                "original_status": plan.get("status", ""),
+                "original_reasoning": str(plan.get("reasoning", ""))[:240],
+                "fallback_status": merged.get("status", ""),
+                "fallback_reasoning": str(fallback.get("reasoning", ""))[:240],
+                "fallback_action_count": len(fallback_actions),
+            }
+            if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+                self.session_logger.log("planner_fallback", payload)
+            self._write_memory_episode("planner_fallback", payload, source="blocked_plan_rule_fallback")
+            return merged
         return plan
 
     def _task_memory_context(self, goal: str, current_state: dict = None) -> str:

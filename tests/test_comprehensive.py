@@ -423,10 +423,18 @@ class TestRulePlanner(unittest.TestCase):
         plan = self.planner.plan_from_goal("Mine cobblestone", obs)
         self.assertEqual(plan["status"], "complete")
 
-    def test_mine_cobblestone_need_pickaxe(self):
-        obs = {"inventory": {}}
+    def test_mine_cobblestone_bootstraps_pickaxe(self):
+        obs = {
+            "inventory": {},
+            "trees_found": [
+                {"name": "oak_log", "position": {"x": 2, "y": 64, "z": 2}, "distance": 2.0}
+            ],
+            "position": {"x": 0, "y": 64, "z": 0},
+        }
         plan = self.planner.plan_from_goal("Mine cobblestone", obs)
-        self.assertEqual(plan["status"], "blocked")
+        self.assertEqual(plan["status"], "in_progress")
+        self.assertTrue(plan["actions"])
+        self.assertIn("Need pickaxe", plan["reasoning"])
 
     def test_mine_cobblestone_have_pickaxe(self):
         obs = {"inventory": {"wooden_pickaxe": 1}}

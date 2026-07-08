@@ -17,5 +17,6 @@
 **Singularity Adaptation**:
   - Added `self-evolution-report` to summarize progress, regression, stagnation, repeated failures, typed feedback counts, remedy candidates, and adaptor recommendations from session logs.
   - The report now discounts successful actions without observed state, inventory, or verifier deltas, recording no-progress successes and repeated success loops before any plan-suffix repair is considered.
+  - The report now flags blocked/empty plans that fail before any executable action, and runtime LLM planning can fall back to deterministic prerequisite rules before the goal loop gives up.
   - `self_evolution_feedback` mirrors existing memory/action/discovery feedback payloads so later policies can consume execution knowledge safely.
-**Next Action**: Run the tightened `self-evolution-report` on live M1/M2/autonomous logs and compare no-progress success loops plus adaptor hints against actual retry outcomes.
+**Next Action**: Re-run live M1/M2 after the blocked-plan fallback and compare zero-action failures, planner-fallback events, and no-progress success loops against the saved 2026-07-09 report.

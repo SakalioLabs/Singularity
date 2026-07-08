@@ -900,6 +900,9 @@ class SelfEvolutionTraceCase:
     repeated_failure_count: int = 0
     no_progress_success_count: int = 0
     repeated_success_loop_count: int = 0
+    blocked_plan_count: int = 0
+    empty_plan_count: int = 0
+    zero_action_failure_count: int = 0
     consecutive_no_movement_count: int = 0
     relative_reward_delta: float = 0.0
     absolute_reward_mean: float = 0.0
@@ -960,6 +963,18 @@ class SelfEvolutionTraceReport:
     @property
     def repeated_success_loop_count(self) -> int:
         return sum(case.repeated_success_loop_count for case in self.cases)
+
+    @property
+    def blocked_plan_count(self) -> int:
+        return sum(case.blocked_plan_count for case in self.cases)
+
+    @property
+    def empty_plan_count(self) -> int:
+        return sum(case.empty_plan_count for case in self.cases)
+
+    @property
+    def zero_action_failure_count(self) -> int:
+        return sum(case.zero_action_failure_count for case in self.cases)
 
     @property
     def relative_reward_delta(self) -> float:
@@ -3274,6 +3289,13 @@ class BenchmarkRunner:
                 "reason": "successful action returns did not produce observed state, inventory, or verifier progress",
                 "count": report.no_progress_success_count,
             })
+        if report.zero_action_failure_count:
+            policy_hints.append({
+                "self_evolution_policy": "repair_blocked_plan_or_prerequisite_fallback",
+                "priority": "high",
+                "reason": "failed logs contain repeated blocked or empty plans before any executable action",
+                "count": report.zero_action_failure_count,
+            })
         if report.failed_action_count:
             policy_hints.append({
                 "self_evolution_policy": "induce_failure_remedies",
@@ -3308,6 +3330,9 @@ class BenchmarkRunner:
             "repeated_failure_count": report.repeated_failure_count,
             "no_progress_success_count": report.no_progress_success_count,
             "repeated_success_loop_count": report.repeated_success_loop_count,
+            "blocked_plan_count": report.blocked_plan_count,
+            "empty_plan_count": report.empty_plan_count,
+            "zero_action_failure_count": report.zero_action_failure_count,
             "relative_reward_delta": report.relative_reward_delta,
             "typed_feedback_counts": typed_feedback,
             "action_failure_categories": failure_categories,
@@ -5561,6 +5586,33 @@ class BenchmarkRunner:
             for event in events
             if event.get("type") == "action" and isinstance(event.get("data", {}), dict)
         ]
+        plan_events = [
+            event.get("data", {})
+            for event in events
+            if event.get("type") == "plan" and isinstance(event.get("data", {}), dict)
+        ]
+        blocked_plan_events = sum(
+            1
+            for event in events
+            if str(event.get("type") or "").lower() == "blocked_plan"
+        )
+        empty_plan_events = sum(
+            1
+            for event in events
+            if str(event.get("type") or "").lower() == "empty_plan"
+        )
+        blocked_plan_count = max(
+            blocked_plan_events,
+            sum(1 for plan in plan_events if str(plan.get("status") or "").lower() == "blocked"),
+        )
+        empty_plan_count = max(
+            empty_plan_events,
+            sum(
+                1
+                for plan in plan_events
+                if not isinstance(plan.get("actions", []), list) or not plan.get("actions", [])
+            ),
+        )
         goal_segments = self._session_goal_segments(events)
 
         typed_feedback = {}
@@ -5718,6 +5770,17 @@ class BenchmarkRunner:
                     inc(typed_feedback, "monitor_verification_failure")
                     adaptor_recommendations.append("Repair the unfinished plan suffix before retrying a verifier-rejected goal.")
 
+        zero_action_failure = int(
+            not action_events
+            and failed_goals > 0
+            and bool(blocked_plan_count or empty_plan_count)
+        )
+        if zero_action_failure:
+            inc(typed_feedback, "monitor_blocked_plan_loop", max(1, blocked_plan_count or empty_plan_count))
+            adaptor_recommendations.append(
+                "Use rule/prerequisite fallback or curriculum subgoal when a blocked plan has no executable actions."
+            )
+
         if stagnation_signals:
             adaptor_recommendations.append("Use accumulated typed feedback to rewrite only the unfinished plan suffix.")
         if regression_signals > progress_signals:
@@ -5750,6 +5813,9 @@ class BenchmarkRunner:
             repeated_failure_count=repeated_failures,
             no_progress_success_count=no_progress_successes,
             repeated_success_loop_count=repeated_success_loops,
+            blocked_plan_count=blocked_plan_count,
+            empty_plan_count=empty_plan_count,
+            zero_action_failure_count=zero_action_failure,
             consecutive_no_movement_count=consecutive_no_movement,
             relative_reward_delta=round(relative_reward, 3),
             absolute_reward_mean=round(sum(absolute_scores) / len(absolute_scores), 3) if absolute_scores else 0.0,
@@ -9028,6 +9094,12 @@ class BenchmarkRunner:
             f"no_progress_successes={report.no_progress_success_count}, "
             f"repeated_success_loops={report.repeated_success_loop_count}"
         )
+        print(
+            "  plans: "
+            f"blocked={report.blocked_plan_count}, "
+            f"empty={report.empty_plan_count}, "
+            f"zero_action_failures={report.zero_action_failure_count}"
+        )
         print(f"  relative reward delta: {report.relative_reward_delta:.3f}")
         feedback = self.self_evolution_feedback(report)
         if feedback["policy_hints"]:
@@ -9052,6 +9124,11 @@ class BenchmarkRunner:
                 print(
                     f"      no-progress successes={case.no_progress_success_count}, "
                     f"repeated_success_loops={case.repeated_success_loop_count}"
+                )
+            if case.blocked_plan_count or case.empty_plan_count:
+                print(
+                    f"      plan stalls: blocked={case.blocked_plan_count}, "
+                    f"empty={case.empty_plan_count}, zero_action_failures={case.zero_action_failure_count}"
                 )
             if case.action_failure_categories:
                 print(f"      failure categories: {self._format_counts(case.action_failure_categories)}")

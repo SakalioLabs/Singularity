@@ -12,6 +12,7 @@ from singularity.core.memory_policy import MemoryLifecyclePolicy, promptware_thr
 from singularity.core.config import Config
 from singularity.core.planner import Planner
 from singularity.core.agent import Agent
+from singularity.core.rule_planner import RuleBasedPlanner
 from singularity.core.skill_extractor import (
     SkillCandidate,
     SkillCandidateQueue,
@@ -198,6 +199,31 @@ def test_knowledge_base_loads_recipes():
     assert kb.get_recipe("crafting_table")
     assert kb.can_craft("crafting_table", {"oak_planks": 4})
     print("PASS: KnowledgeBase loads crafting recipes")
+
+
+def test_agent_replaces_blocked_llm_plan_with_rule_fallback():
+    agent = Agent.__new__(Agent)
+    agent.config = Config()
+    agent.rule_planner = RuleBasedPlanner()
+    agent.session_logger = FakeSessionLogger()
+    agent._write_memory_episode = lambda *args, **kwargs: None
+
+    plan = {"status": "blocked", "reasoning": "Need oak logs", "actions": []}
+    observation = {
+        "inventory": {},
+        "trees_found": [
+            {"name": "oak_log", "position": {"x": 1, "y": 64, "z": 2}, "distance": 2.0}
+        ],
+        "position": {"x": 0, "y": 64, "z": 0},
+    }
+
+    fallback = agent._blocked_plan_rule_fallback(plan, "Craft a crafting table", observation)
+
+    assert fallback["status"] == "in_progress"
+    assert fallback["actions"]
+    assert "Rule fallback replaced stalled planner output" in fallback["reasoning"]
+    assert any(event["type"] == "planner_fallback" for event in agent.session_logger.events)
+    print("PASS: Agent replaces blocked LLM plans with deterministic rule fallback")
 
 
 def test_knowledge_graph_plans_resources_and_tools():
@@ -2185,6 +2211,7 @@ def test_agent_visual_action_grounding_prepends_resource_focus():
 
 if __name__ == "__main__":
     test_knowledge_base_loads_recipes()
+    test_agent_replaces_blocked_llm_plan_with_rule_fallback()
     test_knowledge_graph_plans_resources_and_tools()
     test_memory_curates_and_retrieves_transfer_experience()
     test_memory_ranks_experiences_by_transfer_axes()
