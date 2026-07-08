@@ -173,6 +173,9 @@ python -m singularity.main terminal-commitment-report --session-log logs/session
 python -m singularity.main action-verification-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/action_verification.json
 # Replay rejected actions through verifier-guided repair candidate selection.
 python -m singularity.main action-candidate-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/action_candidate.json
+# Aggregate action outcome values and failure-correction pairs for candidate scoring.
+python -m singularity.main action-value-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/action_value.json
+python -m singularity.main run --goal "Craft torches" --action-value-feedback logs/benchmarks/action_value.json
 # Gate any future automatic plan-suffix repair with explicit verifier and counterexample evidence.
 python -m singularity.main self-evolution-gate --self-evolution-report logs/benchmarks/self_evolution.json --verifier-report logs/benchmarks/goal_verification_ablation.json --counterexample-report logs/benchmarks/self_evolution_counterexamples.json --output logs/benchmarks/self_evolution_gate.json
 

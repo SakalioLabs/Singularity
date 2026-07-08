@@ -72,6 +72,7 @@ Singularity adaptation:
 - In the near term, compute a `consolidation_score` for session traces.
 - Promote high-score traces from episode logs to skill candidates.
 - Store failed action plus corrected action together for future contrastive prompts.
+- Use `action-value-report` as the lightweight non-parametric staging layer before any LoRA/MoE internalization: it aggregates action signatures, outcome values, and failed-action -> recovery-action pairs.
 
 ### WISE: Why-Which Reasoning for Long-Horizon Minecraft Agents
 
@@ -483,3 +484,4 @@ User-authored Minecraft requests need a benchmark layer between free-form chat a
 - Added a VIGIL-style terminal commitment report. `terminal-commitment-report` replays final goal observations through the verifier, compares world completion against the `goal_end` completion claim, and separates verified success, unsupported commitment, post-attainment drift, missed execution, and unknown-world cases before any completion policy is trusted.
 - Added a VeGAS/SVA-style action verification layer. `ActionVerifier` checks craft ingredients, mining tools/targets, inventory-backed item actions, and attack targets before live execution; Agent now logs `action_verification` events and blocks deterministic rejects when enforcement is enabled; `action-verification-report` replays session logs to track accepted, review, rejected, rejected-success, and failed-without-reject action gaps.
 - Added a conservative verifier-guided candidate selector. `ActionCandidateSelector` keeps accepted/review planner actions unchanged, but when the original action is rejected it proposes feasible prerequisite repairs such as mining visible missing resources or crafting available tool/material prerequisites; Agent logs changed `action_candidate_selection` events, and `action-candidate-report` tracks original rejects, repaired rejects, unchanged rejects, and replacement examples before broadening the policy.
+- Added an action-value memory bridge. `ActionValueProfile` records action signatures, successes, failures, verifier statuses, and task families; Agent updates the profile after each action and can load offline `--action-value-feedback` to bias `ActionCandidateSelector` scores; `action-value-report` exports reusable value items plus PEAM-style failure-correction pairs.

@@ -10,6 +10,7 @@ from singularity.action.controller import ActionController
 from singularity.action.mapping import ActionMapper
 from singularity.action.policy import ActionGranularityPolicy
 from singularity.action.selection import ActionCandidateSelector
+from singularity.action.value import ActionValueProfile
 from singularity.action.verifier import ActionVerifier
 from singularity.core.agent import Agent
 from singularity.core.config import Config
@@ -103,6 +104,28 @@ def _write_self_evolution_feedback(tmpdir):
                     },
                 ],
             },
+        }, f)
+    return feedback_path
+
+
+def _write_action_value_feedback(tmpdir):
+    feedback_path = os.path.join(tmpdir, "action_value.json")
+    with open(feedback_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "action_value_feedback": {
+                "action_value_items": [
+                    {
+                        "signature": "dig:coal_ore",
+                        "action_type": "dig",
+                        "attempts": 4,
+                        "successes": 4,
+                        "failures": 0,
+                        "unknown_outcomes": 0,
+                        "verifier_accepts": 4,
+                        "task_families": {"crafting": 4},
+                    }
+                ]
+            }
         }, f)
     return feedback_path
 
@@ -370,6 +393,30 @@ def test_agent_loads_self_evolution_feedback_into_planner_policy():
     print("PASS: Agent loads self-evolution feedback into planner policy")
 
 
+def test_agent_loads_action_value_feedback_into_candidate_selector():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = _write_action_value_feedback(tmpdir)
+    config = Config(
+        log_dir=os.path.join(tmpdir, "logs"),
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        action_value_feedback_paths=[feedback_path],
+    )
+
+    agent = Agent(config)
+    report = agent.action_value_feedback_report
+    value = agent.action_candidate_selector.value_profile.score(
+        {"type": "dig", "parameters": {"block": "coal_ore"}},
+        goal="Craft torches",
+    )
+
+    assert report["loaded_count"] == 1
+    assert report["value_items_loaded"] == 1
+    assert value["attempts"] == 4
+    assert value["value_score"] > 0.7
+    print("PASS: Agent loads action-value feedback into candidate selector")
+
+
 def test_agent_loads_skill_memory_quality_feedback_into_library():
     tmpdir = tempfile.mkdtemp()
     feedback_path = _write_skill_memory_quality_feedback(tmpdir)
@@ -527,6 +574,33 @@ def test_action_candidate_selector_repairs_rejected_craft_action():
     print("PASS: ActionCandidateSelector repairs rejected craft actions conservatively")
 
 
+def test_action_candidate_selector_surfaces_action_value_evidence():
+    profile = ActionValueProfile()
+    for _ in range(4):
+        profile.record(
+            {"type": "dig", "parameters": {"block": "coal_ore"}},
+            {"success": True},
+            goal="Craft torches",
+        )
+    selector = ActionCandidateSelector(value_profile=profile)
+
+    selection = selector.select(
+        {"type": "craft", "parameters": {"item": "torch", "count": 4}},
+        {
+            "inventory": {"stick": 1, "wooden_pickaxe": 1},
+            "nearby_blocks": [{"name": "coal_ore"}],
+        },
+        goal="Craft torches",
+    ).as_dict()
+
+    selected = selection["candidates"][selection["selected_index"]]
+    assert selected["action"]["type"] == "dig"
+    assert selected["value"]["signature"] == "dig:coal_ore"
+    assert selected["value"]["attempts"] == 4
+    assert selected["value"]["value_score"] > 0.7
+    print("PASS: ActionCandidateSelector surfaces action-value evidence")
+
+
 if __name__ == "__main__":
     test_self_evolution_policy_formats_advisory_context()
     test_use_item_equips_requested_item_first()
@@ -538,10 +612,12 @@ if __name__ == "__main__":
     test_agent_loads_mixed_policy_patch_into_runtime_policies()
     test_agent_loads_mixed_policy_patch_when_gate_is_approved()
     test_agent_loads_self_evolution_feedback_into_planner_policy()
+    test_agent_loads_action_value_feedback_into_candidate_selector()
     test_agent_loads_skill_memory_quality_feedback_into_library()
     test_agent_loads_skill_memory_quality_feedback_when_gate_is_approved()
     test_agent_skips_skill_memory_quality_feedback_when_gate_is_not_approved()
     test_agent_skips_mixed_policy_patch_when_gate_is_not_approved()
     test_action_verifier_rejects_missing_craft_materials_and_tools()
     test_action_candidate_selector_repairs_rejected_craft_action()
+    test_action_candidate_selector_surfaces_action_value_evidence()
     print("\nAction controller tests PASSED")

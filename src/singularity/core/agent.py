@@ -26,6 +26,7 @@ from singularity.observation.observer import Observer
 from singularity.action.controller import ActionController
 from singularity.action.policy import ActionGranularityPolicy
 from singularity.action.selection import ActionCandidateSelector
+from singularity.action.value import ActionValueProfile
 from singularity.action.verifier import ActionVerifier
 from singularity.bot.bridge import BotBridge
 from singularity.evaluation.mixed_initiative import (
@@ -54,7 +55,12 @@ class Agent:
         self.observer = Observer(self.bot)
         self.action_policy = ActionGranularityPolicy()
         self.action_verifier = ActionVerifier()
-        self.action_candidate_selector = ActionCandidateSelector(self.action_verifier)
+        self.action_value_profile = ActionValueProfile()
+        self.action_value_feedback_report = self._load_action_value_feedback()
+        self.action_candidate_selector = ActionCandidateSelector(
+            self.action_verifier,
+            value_profile=self.action_value_profile,
+        )
         self.mixed_initiative_policy = MixedInitiativeFeedbackPolicy()
         self.mixed_policy_patch_report = self._load_mixed_policy_patches()
         self.self_evolution_policy = SelfEvolutionPolicy()
@@ -195,6 +201,41 @@ class Agent:
                 "Self-evolution feedback loaded: "
                 f"{report['loaded_count']} files, "
                 f"hints={report['policy_hints_applied']}, "
+                f"errors={len(report['errors'])}"
+            )
+        return report
+
+    def _load_action_value_feedback(self) -> dict:
+        """Load advisory action-value feedback into candidate scoring."""
+        paths = [
+            path for path in (getattr(self.config, "action_value_feedback_paths", []) or [])
+            if path
+        ]
+        report = {
+            "paths": list(paths),
+            "loaded_count": 0,
+            "skipped_count": 0,
+            "value_items_loaded": 0,
+            "advisory_only": True,
+            "errors": [],
+        }
+        for path in paths:
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    payload = json.load(f)
+                feedback = payload.get("action_value_feedback", payload) if isinstance(payload, dict) else {}
+                loaded = self.action_value_profile.merge_feedback(feedback)
+                report["loaded_count"] += 1
+                report["value_items_loaded"] += int(loaded or 0)
+            except Exception as e:
+                message = f"{path}: {e}"
+                report["errors"].append(message)
+                logger.warning(f"Failed to load action-value feedback {message}")
+        if report["loaded_count"] or report["errors"]:
+            logger.info(
+                "Action-value feedback loaded: "
+                f"{report['loaded_count']} files, "
+                f"items={report['value_items_loaded']}, "
                 f"errors={len(report['errors'])}"
             )
         return report
@@ -510,6 +551,7 @@ class Agent:
                             result["action_verification"] = action_verification
                     if action_selection:
                         result["action_candidate_selection"] = action_selection
+                    self._record_action_value(action, result, goal, action_verification)
                     self.session_logger.log_action(action, result)
                     self._write_memory_episode("action", {"action": action, "result": result}, source="goal_action")
                     observation = self._apply_action_feedback(action, result, observation, {"cycle": cycle, "goal": goal})
@@ -720,6 +762,7 @@ class Agent:
                                 result["action_verification"] = action_verification
                         if action_selection:
                             result["action_candidate_selection"] = action_selection
+                        self._record_action_value(action, result, goal, action_verification)
                         self.session_logger.log_action(action, result)
                         self._write_memory_episode(
                             "action",
@@ -1023,6 +1066,17 @@ class Agent:
         self._write_memory_episode("action_candidate_selection", payload, source="action_candidate_selector")
         selected_action = selection_data.get("selected_action", action)
         return selected_action if isinstance(selected_action, dict) else action, selection_data
+
+    def _record_action_value(self, action: dict, result: dict, goal: str, verification: dict = None):
+        """Record action outcome evidence for later verifier-guided candidate scoring."""
+        profile = getattr(self, "action_value_profile", None)
+        if profile is None or not hasattr(profile, "record"):
+            return
+        try:
+            result_data = result if isinstance(result, dict) else {}
+            profile.record(action, result_data, goal=goal, verification=verification or result_data.get("action_verification", {}))
+        except Exception as e:
+            logger.warning(f"Action-value recording failed: {e}")
 
     def _task_memory_context(self, goal: str, current_state: dict = None) -> str:
         if not getattr(getattr(self, "config", None), "enable_task_memory_context", True):

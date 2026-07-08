@@ -18,4 +18,5 @@
   - Current implementation starts with deterministic `ActionVerifier` status and score rather than learned Q-values.
   - Added `ActionCandidateSelector`, a conservative candidate selector that only replaces a planner action when the original is verifier-rejected and a feasible prerequisite repair is available.
   - Added `action-candidate-report` and saved `logs/benchmarks/action_candidate_m1_2026-07-09.json`; the current M1 replay has 200 actions, 0 original rejects, 0 replacements, and 0 unchanged rejects.
-**Next Action**: Re-run on live M1/M2 retries where missing-material failures are likely, then add pass@k-style planner alternatives once replacement examples can be audited against later goal progress.
+  - Added `ActionValueProfile` and `action-value-report`; `--action-value-feedback` now gives candidate scoring a small historical value bias without overriding verifier feasibility.
+**Next Action**: Re-run on live M1/M2 retries where missing-material failures are likely, then add pass@k-style planner alternatives once action-value feedback has enough failed/recovery examples.

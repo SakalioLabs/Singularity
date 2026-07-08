@@ -23,6 +23,7 @@ from singularity.core.skill_extractor import (
 from singularity.core.skill_library import SkillLibrary
 from singularity.core.task_system import TaskStatus, TaskSystem
 from singularity.action.selection import ActionCandidateSelector
+from singularity.action.value import ActionValueProfile
 from singularity.action.verifier import ActionVerifier
 from singularity.data.knowledge_base import KnowledgeBase
 from singularity.evaluation.benchmark_runner import BenchmarkRunner
@@ -2159,6 +2160,27 @@ def test_agent_action_candidate_selection_repairs_rejected_action():
     print("PASS: Agent action candidate selection repairs verifier-rejected actions")
 
 
+def test_agent_records_action_value_after_execution():
+    agent = object.__new__(Agent)
+    agent.action_value_profile = ActionValueProfile()
+
+    agent._record_action_value(
+        {"type": "dig", "parameters": {"block": "coal_ore"}},
+        {"success": True},
+        "Craft torches",
+        {"status": "accept"},
+    )
+
+    value = agent.action_value_profile.score(
+        {"type": "dig", "parameters": {"block": "coal_ore"}},
+        goal="Craft torches",
+    )
+    assert value["attempts"] == 1
+    assert value["success_rate"] == 1.0
+    assert value["task_family"] == "crafting"
+    print("PASS: Agent records action-value evidence after execution")
+
+
 def test_agent_visual_action_grounding_prepends_danger_retreat():
     agent = object.__new__(Agent)
     agent.config = Config(enable_visual_action_grounding=True)
@@ -2315,6 +2337,7 @@ if __name__ == "__main__":
     test_agent_visual_action_grounding_fills_missing_dig_coordinates()
     test_agent_action_verification_blocks_rejected_actions()
     test_agent_action_candidate_selection_repairs_rejected_action()
+    test_agent_records_action_value_after_execution()
     test_agent_visual_action_grounding_prepends_danger_retreat()
     test_agent_visual_action_grounding_prepends_resource_approach()
     test_agent_visual_action_grounding_prepends_resource_focus()

@@ -1304,6 +1304,74 @@ class ActionCandidateSelectionTraceReport:
 
 
 @dataclass
+class ActionValueTraceCase:
+    source_log: str
+    event_count: int = 0
+    goal_count: int = 0
+    action_count: int = 0
+    success_count: int = 0
+    failure_count: int = 0
+    unknown_outcome_count: int = 0
+    signature_count: int = 0
+    high_value_count: int = 0
+    low_value_count: int = 0
+    action_value_items: list[dict] = field(default_factory=list)
+    high_value_items: list[dict] = field(default_factory=list)
+    low_value_items: list[dict] = field(default_factory=list)
+    failure_correction_pairs: list[dict] = field(default_factory=list)
+    ready_for_action_value_review: bool = False
+
+
+@dataclass
+class ActionValueTraceReport:
+    cases: list[ActionValueTraceCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_log_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_action_value_review)
+
+    @property
+    def action_count(self) -> int:
+        return sum(case.action_count for case in self.cases)
+
+    @property
+    def success_count(self) -> int:
+        return sum(case.success_count for case in self.cases)
+
+    @property
+    def failure_count(self) -> int:
+        return sum(case.failure_count for case in self.cases)
+
+    @property
+    def unknown_outcome_count(self) -> int:
+        return sum(case.unknown_outcome_count for case in self.cases)
+
+    @property
+    def signature_count(self) -> int:
+        return len({item.get("signature") for case in self.cases for item in case.action_value_items if item.get("signature")})
+
+    @property
+    def failure_correction_pair_count(self) -> int:
+        return sum(len(case.failure_correction_pairs) for case in self.cases)
+
+    @property
+    def success_rate(self) -> float:
+        return self._ratio(self.success_count, self.action_count)
+
+    @property
+    def failure_rate(self) -> float:
+        return self._ratio(self.failure_count, self.action_count)
+
+    def _ratio(self, numerator: int, denominator: int) -> float:
+        return round(numerator / denominator, 3) if denominator else 0.0
+
+
+@dataclass
 class DiscoveryApplicationTraceCase:
     source_log: str
     event_count: int = 0
@@ -3802,6 +3870,64 @@ class BenchmarkRunner:
             "unchanged_reject_count": report.unchanged_reject_count,
             "selection_change_rate": report.selection_change_rate,
             "repaired_reject_rate": report.repaired_reject_rate,
+            "policy_hints": policy_hints,
+        }
+
+    def run_action_value_report_from_logs(self, session_log_paths: list[str]) -> ActionValueTraceReport:
+        """Aggregate action outcome value profiles from session logs."""
+        report = ActionValueTraceReport()
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                report.cases.append(self._action_value_trace_case(path, events))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
+    def action_value_feedback(self, report: ActionValueTraceReport) -> dict:
+        """Convert action outcome profiles into reusable candidate scoring feedback."""
+        items = self._aggregate_action_value_items(report)
+        high_value = [item for item in items if item.get("attempts", 0) >= 2 and item.get("value_score", 0) >= 0.7]
+        low_value = [item for item in items if item.get("attempts", 0) >= 2 and item.get("value_score", 1) <= 0.35]
+        policy_hints = []
+        if high_value:
+            policy_hints.append({
+                "action_value_policy": "prefer_high_value_action_signatures",
+                "priority": "medium",
+                "reason": "some action signatures repeatedly succeed and can bias verifier-guided candidate ranking",
+                "count": len(high_value),
+            })
+        if low_value:
+            policy_hints.append({
+                "action_value_policy": "demote_low_value_action_signatures",
+                "priority": "medium",
+                "reason": "some action signatures repeatedly fail and should not win candidate tie-breaks",
+                "count": len(low_value),
+            })
+        if report.failure_correction_pair_count:
+            policy_hints.append({
+                "action_value_policy": "mine_failure_correction_pairs_for_repair_candidates",
+                "priority": "high",
+                "reason": "failed actions followed by successful recovery actions can seed future repair candidates",
+                "count": report.failure_correction_pair_count,
+            })
+        return {
+            "log_count": report.log_count,
+            "ready_log_count": report.ready_log_count,
+            "action_count": report.action_count,
+            "success_count": report.success_count,
+            "failure_count": report.failure_count,
+            "unknown_outcome_count": report.unknown_outcome_count,
+            "signature_count": report.signature_count,
+            "success_rate": report.success_rate,
+            "failure_rate": report.failure_rate,
+            "failure_correction_pair_count": report.failure_correction_pair_count,
+            "action_value_items": items,
+            "high_value_items": high_value[:20],
+            "low_value_items": low_value[:20],
+            "failure_correction_pairs": [
+                pair for case in report.cases for pair in case.failure_correction_pairs
+            ][:40],
             "policy_hints": policy_hints,
         }
 
@@ -6603,6 +6729,109 @@ class BenchmarkRunner:
             ready_for_action_candidate_review=bool(action_count),
         )
 
+    def _action_value_trace_case(
+        self,
+        source_log: str,
+        events: list[dict],
+        limit: int = 20,
+    ) -> ActionValueTraceCase:
+        from singularity.action.value import ActionValueProfile, action_signature
+
+        profile = ActionValueProfile()
+        current_goal = ""
+        goal_count = 0
+        action_count = 0
+        success_count = 0
+        failure_count = 0
+        unknown_count = 0
+        failure_pairs = []
+        pending_failure = None
+
+        for index, event in enumerate(events):
+            event_type = str(event.get("type") or "")
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event_type == "goal_start":
+                current_goal = str(data.get("goal") or current_goal)
+                goal_count += 1
+            elif event_type == "action":
+                action = data.get("action", {}) if isinstance(data.get("action", {}), dict) else {}
+                result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+                verification = result.get("action_verification", {}) if isinstance(result.get("action_verification", {}), dict) else {}
+                profile.record(action, result, goal=current_goal, verification=verification)
+                action_count += 1
+                success = self._event_success(result)
+                if success is True:
+                    success_count += 1
+                    if pending_failure and len(failure_pairs) < limit:
+                        failure_pairs.append({
+                            "failed_event_index": pending_failure["event_index"],
+                            "recovery_event_index": index,
+                            "goal": current_goal,
+                            "failed_signature": pending_failure["signature"],
+                            "recovery_signature": action_signature(action),
+                            "failed_action": pending_failure["action"],
+                            "recovery_action": action,
+                            "failed_error": pending_failure.get("error", ""),
+                        })
+                    pending_failure = None
+                elif success is False:
+                    failure_count += 1
+                    pending_failure = {
+                        "event_index": index,
+                        "signature": action_signature(action),
+                        "action": action,
+                        "error": str(result.get("error") or result.get("reason") or ""),
+                    }
+                else:
+                    unknown_count += 1
+
+        feedback = profile.as_feedback(limit=1000)
+        high_value = profile.high_value_items()
+        low_value = profile.low_value_items()
+        return ActionValueTraceCase(
+            source_log=source_log,
+            event_count=len(events),
+            goal_count=goal_count,
+            action_count=action_count,
+            success_count=success_count,
+            failure_count=failure_count,
+            unknown_outcome_count=unknown_count,
+            signature_count=feedback["signature_count"],
+            high_value_count=len(high_value),
+            low_value_count=len(low_value),
+            action_value_items=feedback["action_value_items"],
+            high_value_items=high_value[:limit],
+            low_value_items=low_value[:limit],
+            failure_correction_pairs=failure_pairs,
+            ready_for_action_value_review=bool(action_count),
+        )
+
+    def _aggregate_action_value_items(self, report: ActionValueTraceReport) -> list[dict]:
+        from singularity.action.value import ActionValueStats
+
+        aggregate = {}
+        for case in report.cases:
+            for item in case.action_value_items:
+                signature = str(item.get("signature") or "")
+                if not signature:
+                    continue
+                stats = aggregate.get(signature)
+                if stats is None:
+                    stats = ActionValueStats(signature=signature, action_type=str(item.get("action_type") or "unknown"))
+                    aggregate[signature] = stats
+                stats.attempts += self._small_int(item.get("attempts", 0))
+                stats.successes += self._small_int(item.get("successes", 0))
+                stats.failures += self._small_int(item.get("failures", 0))
+                stats.unknown_outcomes += self._small_int(item.get("unknown_outcomes", 0))
+                stats.verifier_rejects += self._small_int(item.get("verifier_rejects", 0))
+                stats.verifier_reviews += self._small_int(item.get("verifier_reviews", 0))
+                stats.verifier_accepts += self._small_int(item.get("verifier_accepts", 0))
+                families = item.get("task_families", {}) if isinstance(item.get("task_families", {}), dict) else {}
+                for family, count in families.items():
+                    stats.task_families[str(family)] = stats.task_families.get(str(family), 0) + self._small_int(count)
+        items = [stats.as_dict() for stats in aggregate.values()]
+        return sorted(items, key=lambda item: (-item["attempts"], item["signature"]))
+
     def _self_evolution_trace_case(self, source_log: str, events: list[dict]) -> SelfEvolutionTraceCase:
         observations = [
             event.get("data", {})
@@ -7025,6 +7254,12 @@ class BenchmarkRunner:
             if isinstance(value, str) and value.strip():
                 values.append(value.strip())
         return values
+
+    def _small_int(self, value) -> int:
+        try:
+            return int(float(value or 0))
+        except (TypeError, ValueError):
+            return 0
 
     def _event_success(self, record: dict):
         if not isinstance(record, dict):
@@ -10354,6 +10589,49 @@ class BenchmarkRunner:
                     f"      example event#{example.get('event_index')}: "
                     f"{example.get('original_status')} -> {example.get('selected_status')} "
                     f"{example.get('reason')}"
+                )
+        for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_action_value_report(self, report: ActionValueTraceReport):
+        print("\nAction Value Trace")
+        print(f"  logs ready for action value review: {report.ready_log_count}/{report.log_count}")
+        print(
+            "  counts: "
+            f"actions={report.action_count}, successes={report.success_count}, "
+            f"failures={report.failure_count}, unknown={report.unknown_outcome_count}, "
+            f"signatures={report.signature_count}"
+        )
+        print(
+            "  rates: "
+            f"success_rate={report.success_rate:.3f}, failure_rate={report.failure_rate:.3f}, "
+            f"failure_corrections={report.failure_correction_pair_count}"
+        )
+        feedback = self.action_value_feedback(report)
+        if feedback["policy_hints"]:
+            hints = [
+                f"{hint['action_value_policy']}({hint['priority']})"
+                for hint in feedback["policy_hints"][:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for item in feedback["action_value_items"][:6]:
+            print(
+                f"  value {item.get('signature')}: "
+                f"score={item.get('value_score')}, attempts={item.get('attempts')}, "
+                f"success={item.get('successes')}, failure={item.get('failures')}"
+            )
+        for case in report.cases:
+            marker = "+" if case.ready_for_action_value_review else "~"
+            print(f"  [{marker}] {case.source_log}")
+            print(
+                f"      actions={case.action_count}, success={case.success_count}, "
+                f"failure={case.failure_count}, signatures={case.signature_count}, "
+                f"pairs={len(case.failure_correction_pairs)}"
+            )
+            for pair in case.failure_correction_pairs[:3]:
+                print(
+                    f"      repair: {pair.get('failed_signature')} -> "
+                    f"{pair.get('recovery_signature')}"
                 )
         for error in report.errors:
             print(f"  error: {error}")

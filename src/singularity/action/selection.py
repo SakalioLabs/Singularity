@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from singularity.action.verifier import ActionVerifier
+from singularity.action.value import ActionValueProfile
 from singularity.data.knowledge_base import KnowledgeBase
 
 
@@ -16,6 +17,7 @@ class ActionCandidateScore:
     verification: dict
     score: float
     reason: str = ""
+    value: dict = field(default_factory=dict)
 
     def as_dict(self) -> dict:
         return {
@@ -25,6 +27,7 @@ class ActionCandidateScore:
             "verification": self.verification,
             "score": round(float(self.score), 3),
             "reason": self.reason,
+            "value": dict(self.value),
         }
 
 
@@ -64,9 +67,11 @@ class ActionCandidateSelector:
         self,
         verifier: Optional[ActionVerifier] = None,
         knowledge_base: Optional[KnowledgeBase] = None,
+        value_profile: Optional[ActionValueProfile] = None,
     ):
         self.kb = knowledge_base or getattr(verifier, "kb", None) or KnowledgeBase()
         self.verifier = verifier or ActionVerifier(self.kb)
+        self.value_profile = value_profile or ActionValueProfile()
 
     def select(
         self,
@@ -92,13 +97,15 @@ class ActionCandidateSelector:
         for index, spec in enumerate(candidate_specs):
             candidate_action = spec.get("action", {}) if isinstance(spec.get("action", {}), dict) else {}
             verification = self.verifier.verify(candidate_action, state, goal=goal).as_dict()
+            value = self.value_profile.score(candidate_action, goal=goal)
             scores.append(ActionCandidateScore(
                 action=candidate_action,
                 source=str(spec.get("source") or "candidate"),
                 source_index=index,
                 verification=verification,
-                score=self._candidate_score(candidate_action, verification, spec.get("source") == "repair", goal),
+                score=self._candidate_score(candidate_action, verification, value, spec.get("source") == "repair", goal),
                 reason=str(spec.get("reason") or ""),
+                value=value,
             ))
 
         selected_index = 0
@@ -125,10 +132,17 @@ class ActionCandidateSelector:
             candidates=scores,
         )
 
-    def _candidate_score(self, action: dict, verification: dict, repair: bool, goal: str) -> float:
+    def _candidate_score(self, action: dict, verification: dict, value: dict, repair: bool, goal: str) -> float:
         status = str(verification.get("status") or "unknown")
         verifier_score = float(verification.get("score") or 0.0)
-        score = (0.72 * self.STATUS_WEIGHTS.get(status, 0.3)) + (0.28 * verifier_score)
+        value_score = float(value.get("value_score") or 0.5) if isinstance(value, dict) else 0.5
+        value_attempts = int(value.get("attempts") or 0) if isinstance(value, dict) else 0
+        value_weight = min(0.16, value_attempts * 0.03)
+        score = (
+            (0.72 - value_weight) * self.STATUS_WEIGHTS.get(status, 0.3)
+            + (0.28 * verifier_score)
+            + (value_weight * value_score)
+        )
         params = action.get("parameters", {}) if isinstance(action, dict) and isinstance(action.get("parameters", {}), dict) else {}
         target = str(params.get("item") or params.get("block") or params.get("name") or "").lower()
         goal_text = str(goal or "").lower()

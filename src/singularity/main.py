@@ -114,6 +114,7 @@ def main():
     run_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load at runtime")
     run_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading runtime policy patches")
     run_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
+    run_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     run_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     run_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     run_parser.add_argument("--log-level", type=str, default="INFO")
@@ -141,6 +142,7 @@ def main():
     auto_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load at runtime")
     auto_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading runtime policy patches")
     auto_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
+    auto_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     auto_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     auto_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     auto_parser.add_argument("--log-level", type=str, default="INFO")
@@ -167,6 +169,7 @@ def main():
     bench_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load in benchmark agents")
     bench_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading benchmark policy patches")
     bench_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
+    bench_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     bench_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     bench_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     bench_parser.add_argument("--skill-memory-quality-preflight", action="store_true", help="Run gate and offline ranking preflight before quality-feedback-assisted benchmarks")
@@ -438,6 +441,7 @@ def main():
     collab_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load in Agent executor roles")
     collab_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading Agent executor policy patches")
     collab_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
+    collab_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     collab_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     collab_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     collab_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
@@ -543,6 +547,12 @@ def main():
     action_candidate_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
     action_candidate_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     action_candidate_parser.add_argument("--log-level", type=str, default="INFO")
+
+    # Offline action outcome value profile report
+    action_value_parser = subparsers.add_parser("action-value-report", help="Aggregate action outcome values from session logs")
+    action_value_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    action_value_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    action_value_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Offline self-evolution automatic repair gate
     self_evolution_gate_parser = subparsers.add_parser("self-evolution-gate", help="Gate automatic self-evolution plan repair with verifier and counterexample evidence")
@@ -1628,6 +1638,7 @@ def main():
                     mixed_policy_patch_paths=list(mixed_policy_patch_paths or []),
                     mixed_policy_gate_paths=getattr(args, "mixed_policy_gate", []) or [],
                     self_evolution_feedback_paths=getattr(args, "self_evolution_feedback", []) or [],
+                    action_value_feedback_paths=getattr(args, "action_value_feedback", []) or [],
                     skill_memory_quality_feedback_paths=getattr(args, "skill_memory_quality_feedback", []) or [],
                     skill_memory_quality_gate_paths=getattr(args, "skill_memory_quality_gate", []) or [],
                     screenshot_dir=getattr(args, "screenshot_dir", "logs/screenshots"),
@@ -2242,6 +2253,38 @@ def main():
                     "selection_change_rate": report.selection_change_rate,
                     "repaired_reject_rate": report.repaired_reject_rate,
                     "action_candidate_feedback": action_candidate_feedback,
+                    "errors": report.errors,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "action-value-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("action-value-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_action_value_report_from_logs(session_logs)
+        runner.print_action_value_report(report)
+        action_value_feedback = runner.action_value_feedback(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "log_count": report.log_count,
+                    "ready_log_count": report.ready_log_count,
+                    "action_count": report.action_count,
+                    "success_count": report.success_count,
+                    "failure_count": report.failure_count,
+                    "unknown_outcome_count": report.unknown_outcome_count,
+                    "signature_count": report.signature_count,
+                    "success_rate": report.success_rate,
+                    "failure_rate": report.failure_rate,
+                    "failure_correction_pair_count": report.failure_correction_pair_count,
+                    "action_value_feedback": action_value_feedback,
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
@@ -2975,6 +3018,7 @@ def main():
         mixed_policy_patch_paths=getattr(args, "mixed_policy_patch", []) or [],
         mixed_policy_gate_paths=getattr(args, "mixed_policy_gate", []) or [],
         self_evolution_feedback_paths=getattr(args, "self_evolution_feedback", []) or [],
+        action_value_feedback_paths=getattr(args, "action_value_feedback", []) or [],
         skill_memory_quality_feedback_paths=getattr(args, "skill_memory_quality_feedback", []) or [],
         skill_memory_quality_gate_paths=getattr(args, "skill_memory_quality_gate", []) or [],
         enable_screenshot_capture=getattr(args, "capture_screenshots", False),

@@ -1696,6 +1696,41 @@ def test_action_candidate_report_replays_repairable_rejected_actions():
     print("PASS: Action candidate report replays repairable rejected actions")
 
 
+def test_action_value_report_aggregates_outcome_profiles():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "action_value_session.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {"type": "action", "data": {"action": {"type": "craft", "parameters": {"item": "torch"}}, "result": {"success": False, "error": "Missing coal"}}},
+        {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "coal_ore"}}, "result": {"success": True}}},
+        {"type": "action", "data": {"action": {"type": "craft", "parameters": {"item": "torch"}}, "result": {"success": False, "error": "Missing coal"}}},
+        {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "coal_ore"}}, "result": {"success": True}}},
+        {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "coal_ore"}}, "result": {"success": True}}},
+        {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "coal_ore"}}, "result": {"success": True}}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config())
+    report = runner.run_action_value_report_from_logs([session_path])
+    feedback = runner.action_value_feedback(report)
+    items = {item["signature"]: item for item in feedback["action_value_items"]}
+    policies = {hint["action_value_policy"] for hint in feedback["policy_hints"]}
+
+    assert report.ready_log_count == 1
+    assert report.action_count == 6
+    assert report.success_count == 4
+    assert report.failure_count == 2
+    assert report.failure_correction_pair_count == 2
+    assert items["dig:coal_ore"]["attempts"] == 4
+    assert items["dig:coal_ore"]["value_score"] >= 0.7
+    assert items["craft:torch"]["failures"] == 2
+    assert "prefer_high_value_action_signatures" in policies
+    assert "mine_failure_correction_pairs_for_repair_candidates" in policies
+    print("PASS: Action value report aggregates outcome profiles and repair pairs")
+
+
 def test_self_evolution_gate_requires_verifier_and_counterexamples():
     runner = BenchmarkRunner(Config())
     self_evolution_report = {
@@ -3567,6 +3602,7 @@ if __name__ == "__main__":
     test_terminal_commitment_report_separates_world_completion_from_reporting()
     test_action_verification_report_replays_logged_actions()
     test_action_candidate_report_replays_repairable_rejected_actions()
+    test_action_value_report_aggregates_outcome_profiles()
     test_self_evolution_gate_requires_verifier_and_counterexamples()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
     test_discovery_skill_gate_controls_experiment_derived_skill_promotion()

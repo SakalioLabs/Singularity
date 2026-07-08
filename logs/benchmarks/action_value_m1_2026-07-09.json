@@ -1,0 +1,332 @@
+{
+  "log_count": 5,
+  "ready_log_count": 1,
+  "action_count": 200,
+  "success_count": 200,
+  "failure_count": 0,
+  "unknown_outcome_count": 0,
+  "signature_count": 3,
+  "success_rate": 1.0,
+  "failure_rate": 0.0,
+  "failure_correction_pair_count": 0,
+  "action_value_feedback": {
+    "log_count": 5,
+    "ready_log_count": 1,
+    "action_count": 200,
+    "success_count": 200,
+    "failure_count": 0,
+    "unknown_outcome_count": 0,
+    "signature_count": 3,
+    "success_rate": 1.0,
+    "failure_rate": 0.0,
+    "failure_correction_pair_count": 0,
+    "action_value_items": [
+      {
+        "signature": "move_to:navigation",
+        "action_type": "move_to",
+        "attempts": 100,
+        "successes": 100,
+        "failures": 0,
+        "unknown_outcomes": 0,
+        "success_rate": 1.0,
+        "failure_rate": 0.0,
+        "value_score": 0.995,
+        "verifier_rejects": 0,
+        "verifier_reviews": 0,
+        "verifier_accepts": 0,
+        "task_families": {
+          "gathering": 100
+        }
+      },
+      {
+        "signature": "wait:low_impact",
+        "action_type": "wait",
+        "attempts": 95,
+        "successes": 95,
+        "failures": 0,
+        "unknown_outcomes": 0,
+        "success_rate": 1.0,
+        "failure_rate": 0.0,
+        "value_score": 0.995,
+        "verifier_rejects": 0,
+        "verifier_reviews": 0,
+        "verifier_accepts": 0,
+        "task_families": {
+          "gathering": 95
+        }
+      },
+      {
+        "signature": "dig:coordinates",
+        "action_type": "dig",
+        "attempts": 5,
+        "successes": 5,
+        "failures": 0,
+        "unknown_outcomes": 0,
+        "success_rate": 1.0,
+        "failure_rate": 0.0,
+        "value_score": 0.847,
+        "verifier_rejects": 0,
+        "verifier_reviews": 0,
+        "verifier_accepts": 0,
+        "task_families": {
+          "gathering": 5
+        }
+      }
+    ],
+    "high_value_items": [
+      {
+        "signature": "move_to:navigation",
+        "action_type": "move_to",
+        "attempts": 100,
+        "successes": 100,
+        "failures": 0,
+        "unknown_outcomes": 0,
+        "success_rate": 1.0,
+        "failure_rate": 0.0,
+        "value_score": 0.995,
+        "verifier_rejects": 0,
+        "verifier_reviews": 0,
+        "verifier_accepts": 0,
+        "task_families": {
+          "gathering": 100
+        }
+      },
+      {
+        "signature": "wait:low_impact",
+        "action_type": "wait",
+        "attempts": 95,
+        "successes": 95,
+        "failures": 0,
+        "unknown_outcomes": 0,
+        "success_rate": 1.0,
+        "failure_rate": 0.0,
+        "value_score": 0.995,
+        "verifier_rejects": 0,
+        "verifier_reviews": 0,
+        "verifier_accepts": 0,
+        "task_families": {
+          "gathering": 95
+        }
+      },
+      {
+        "signature": "dig:coordinates",
+        "action_type": "dig",
+        "attempts": 5,
+        "successes": 5,
+        "failures": 0,
+        "unknown_outcomes": 0,
+        "success_rate": 1.0,
+        "failure_rate": 0.0,
+        "value_score": 0.847,
+        "verifier_rejects": 0,
+        "verifier_reviews": 0,
+        "verifier_accepts": 0,
+        "task_families": {
+          "gathering": 5
+        }
+      }
+    ],
+    "low_value_items": [],
+    "failure_correction_pairs": [],
+    "policy_hints": [
+      {
+        "action_value_policy": "prefer_high_value_action_signatures",
+        "priority": "medium",
+        "reason": "some action signatures repeatedly succeed and can bias verifier-guided candidate ranking",
+        "count": 3
+      }
+    ]
+  },
+  "errors": [],
+  "cases": [
+    {
+      "source_log": "logs\\session_2818ff2a-612.jsonl",
+      "event_count": 403,
+      "goal_count": 1,
+      "action_count": 200,
+      "success_count": 200,
+      "failure_count": 0,
+      "unknown_outcome_count": 0,
+      "signature_count": 3,
+      "high_value_count": 3,
+      "low_value_count": 0,
+      "action_value_items": [
+        {
+          "signature": "move_to:navigation",
+          "action_type": "move_to",
+          "attempts": 100,
+          "successes": 100,
+          "failures": 0,
+          "unknown_outcomes": 0,
+          "success_rate": 1.0,
+          "failure_rate": 0.0,
+          "value_score": 0.995,
+          "verifier_rejects": 0,
+          "verifier_reviews": 0,
+          "verifier_accepts": 0,
+          "task_families": {
+            "gathering": 100
+          }
+        },
+        {
+          "signature": "wait:low_impact",
+          "action_type": "wait",
+          "attempts": 95,
+          "successes": 95,
+          "failures": 0,
+          "unknown_outcomes": 0,
+          "success_rate": 1.0,
+          "failure_rate": 0.0,
+          "value_score": 0.995,
+          "verifier_rejects": 0,
+          "verifier_reviews": 0,
+          "verifier_accepts": 0,
+          "task_families": {
+            "gathering": 95
+          }
+        },
+        {
+          "signature": "dig:coordinates",
+          "action_type": "dig",
+          "attempts": 5,
+          "successes": 5,
+          "failures": 0,
+          "unknown_outcomes": 0,
+          "success_rate": 1.0,
+          "failure_rate": 0.0,
+          "value_score": 0.847,
+          "verifier_rejects": 0,
+          "verifier_reviews": 0,
+          "verifier_accepts": 0,
+          "task_families": {
+            "gathering": 5
+          }
+        }
+      ],
+      "high_value_items": [
+        {
+          "signature": "move_to:navigation",
+          "action_type": "move_to",
+          "attempts": 100,
+          "successes": 100,
+          "failures": 0,
+          "unknown_outcomes": 0,
+          "success_rate": 1.0,
+          "failure_rate": 0.0,
+          "value_score": 0.995,
+          "verifier_rejects": 0,
+          "verifier_reviews": 0,
+          "verifier_accepts": 0,
+          "task_families": {
+            "gathering": 100
+          }
+        },
+        {
+          "signature": "wait:low_impact",
+          "action_type": "wait",
+          "attempts": 95,
+          "successes": 95,
+          "failures": 0,
+          "unknown_outcomes": 0,
+          "success_rate": 1.0,
+          "failure_rate": 0.0,
+          "value_score": 0.995,
+          "verifier_rejects": 0,
+          "verifier_reviews": 0,
+          "verifier_accepts": 0,
+          "task_families": {
+            "gathering": 95
+          }
+        },
+        {
+          "signature": "dig:coordinates",
+          "action_type": "dig",
+          "attempts": 5,
+          "successes": 5,
+          "failures": 0,
+          "unknown_outcomes": 0,
+          "success_rate": 1.0,
+          "failure_rate": 0.0,
+          "value_score": 0.847,
+          "verifier_rejects": 0,
+          "verifier_reviews": 0,
+          "verifier_accepts": 0,
+          "task_families": {
+            "gathering": 5
+          }
+        }
+      ],
+      "low_value_items": [],
+      "failure_correction_pairs": [],
+      "ready_for_action_value_review": true
+    },
+    {
+      "source_log": "logs\\session_bcd06511-00a.jsonl",
+      "event_count": 203,
+      "goal_count": 1,
+      "action_count": 0,
+      "success_count": 0,
+      "failure_count": 0,
+      "unknown_outcome_count": 0,
+      "signature_count": 0,
+      "high_value_count": 0,
+      "low_value_count": 0,
+      "action_value_items": [],
+      "high_value_items": [],
+      "low_value_items": [],
+      "failure_correction_pairs": [],
+      "ready_for_action_value_review": false
+    },
+    {
+      "source_log": "logs\\session_dc8fff18-00b.jsonl",
+      "event_count": 203,
+      "goal_count": 1,
+      "action_count": 0,
+      "success_count": 0,
+      "failure_count": 0,
+      "unknown_outcome_count": 0,
+      "signature_count": 0,
+      "high_value_count": 0,
+      "low_value_count": 0,
+      "action_value_items": [],
+      "high_value_items": [],
+      "low_value_items": [],
+      "failure_correction_pairs": [],
+      "ready_for_action_value_review": false
+    },
+    {
+      "source_log": "logs\\session_4138b270-949.jsonl",
+      "event_count": 203,
+      "goal_count": 1,
+      "action_count": 0,
+      "success_count": 0,
+      "failure_count": 0,
+      "unknown_outcome_count": 0,
+      "signature_count": 0,
+      "high_value_count": 0,
+      "low_value_count": 0,
+      "action_value_items": [],
+      "high_value_items": [],
+      "low_value_items": [],
+      "failure_correction_pairs": [],
+      "ready_for_action_value_review": false
+    },
+    {
+      "source_log": "logs\\session_67ba45ce-2e1.jsonl",
+      "event_count": 203,
+      "goal_count": 1,
+      "action_count": 0,
+      "success_count": 0,
+      "failure_count": 0,
+      "unknown_outcome_count": 0,
+      "signature_count": 0,
+      "high_value_count": 0,
+      "low_value_count": 0,
+      "action_value_items": [],
+      "high_value_items": [],
+      "low_value_items": [],
+      "failure_correction_pairs": [],
+      "ready_for_action_value_review": false
+    }
+  ]
+}

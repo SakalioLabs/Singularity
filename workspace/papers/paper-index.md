@@ -356,7 +356,7 @@
 - **Memory**: Episodic staging plus parameter-resident skill memory
 - **Key Results**: Improved long-horizon performance, retention, and parametric-vs-retrieval efficiency
 - **Scores**: R=5, N=5, R=2, E=4
-- **Value to Project**: Consolidation-worthiness, failure-correction learning, slow/fast split
+- **Value to Project**: Motivates `ActionValueProfile` and `action-value-report` as a non-parametric staging layer for consolidation-worthiness, failure-correction learning, and eventual slow/fast skill internalization
 - **Reproduction Priority**: P3
 - **Card**: `2026-07-08-peam.md`
 
@@ -1184,7 +1184,7 @@
 - **Memory**: Return-labeled trajectories and evaluator decisions that can feed a reusable action-value model
 - **Key Results**: Shows pass@k exposes latent good actions and that a smaller VLA plus evaluator can outperform a larger VLA with lower latency
 - **Scores**: R=4, N=5, R=3, E=5
-- **Value to Project**: Motivates the conservative `ActionCandidateSelector` now used for rejected-action repairs and points toward broader pass@k-style Minecraft action ranking using verifier scores, logged outcomes, and uncertainty-aware progress estimates
+- **Value to Project**: Motivates `ActionValueProfile` plus `action-value-report`, giving conservative candidate scoring a reusable outcome-value memory before broader pass@k-style Minecraft action ranking
 - **Reproduction Priority**: P1
 - **Card**: `2026-07-09-sva-action-evaluation.md`
 
