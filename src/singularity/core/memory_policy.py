@@ -122,11 +122,14 @@ class MemoryPolicyDecision:
 class MemoryLifecyclePolicy:
     """Advisory memory policy that can later enforce stricter write gates."""
 
-    def __init__(self, feedback: Optional[dict] = None, enforce_write_gate: bool = False):
+    def __init__(self, feedback: Optional[dict] = None, enforce_write_gate: bool = False, transfer_gate: Optional[dict] = None):
         self.enforce_write_gate = enforce_write_gate
         self._feedback_by_policy: dict[str, dict] = {}
+        self._transfer_gate: dict = {}
         if feedback:
             self.record_memory_policy_feedback(feedback)
+        if transfer_gate:
+            self.record_task_stream_transfer_gate(transfer_gate)
 
     def record_memory_policy_feedback(self, feedback: dict) -> int:
         stored = 0
@@ -139,6 +142,13 @@ class MemoryLifecyclePolicy:
             self._feedback_by_policy[policy_name] = dict(hint)
             stored += 1
         return stored
+
+    def record_task_stream_transfer_gate(self, gate: dict) -> int:
+        """Record task-stream transfer readiness for durable memory promotion decisions."""
+        if not isinstance(gate, dict) or not gate:
+            return 0
+        self._transfer_gate = dict(gate)
+        return 1
 
     def decide_write(
         self,
@@ -154,6 +164,14 @@ class MemoryLifecyclePolicy:
         normalized_operation = str(operation or "write").lower()
         flags = self._quality_flags(content, normalized_type, source, confidence)
         feedback_hints = self._active_hints()
+        transfer_decision = self._transfer_gate_write_decision(
+            normalized_layer,
+            normalized_type,
+            normalized_operation,
+            feedback_hints,
+        )
+        if transfer_decision is not None:
+            return transfer_decision
 
         if flags:
             feedback_requested_gate = self._has_hint("tighten_memory_write_gate")
@@ -180,18 +198,22 @@ class MemoryLifecyclePolicy:
 
         if self._is_verified_outcome(normalized_type, content):
             feedback_requested_promotion = self._has_hint("promote_verified_outcomes")
+            transfer_approved = self._transfer_gate_readiness() == "approved"
             return MemoryPolicyDecision(
                 operation=normalized_operation,
                 layer=normalized_layer,
                 memory_type=normalized_type,
                 decision="semantic_promotion_candidate",
                 reason=(
+                    "verified outcome has approved transfer evidence and should be promoted"
+                    if transfer_approved
+                    else
                     "verified outcome should be reviewed for durable memory; feedback found missed semantic writes"
                     if feedback_requested_promotion
                     else "verified outcome should be reviewed for durable memory"
                 ),
-                priority=self._hint_priority("promote_verified_outcomes", "high"),
-                should_review=True,
+                priority="high" if transfer_approved else self._hint_priority("promote_verified_outcomes", "high"),
+                should_review=not transfer_approved,
                 should_consolidate=True,
                 feedback_hints=feedback_hints,
             )
@@ -283,7 +305,10 @@ class MemoryLifecyclePolicy:
         )
 
     def feedback_hints(self) -> dict:
-        return {name: dict(hint) for name, hint in self._feedback_by_policy.items()}
+        hints = {name: dict(hint) for name, hint in self._feedback_by_policy.items()}
+        if self._transfer_gate:
+            hints["task_stream_transfer_gate"] = dict(self._transfer_gate)
+        return hints
 
     def feedback_profile(self) -> dict:
         return {
@@ -296,7 +321,11 @@ class MemoryLifecyclePolicy:
         }
 
     def _active_hints(self) -> list[str]:
-        return sorted(self._feedback_by_policy)
+        hints = sorted(self._feedback_by_policy)
+        readiness = self._transfer_gate_readiness()
+        if readiness:
+            hints.append(f"task_stream_transfer_gate_{readiness}")
+        return sorted(set(hints))
 
     def _has_hint(self, name: str) -> bool:
         return name in self._feedback_by_policy
@@ -304,6 +333,65 @@ class MemoryLifecyclePolicy:
     def _hint_priority(self, name: str, default: str) -> str:
         hint = self._feedback_by_policy.get(name, {})
         return str(hint.get("priority") or default)
+
+    def _transfer_gate_readiness(self) -> str:
+        if not isinstance(self._transfer_gate, dict) or not self._transfer_gate.get("required"):
+            return ""
+        return str(self._transfer_gate.get("readiness") or "unknown")
+
+    def _transfer_gate_write_decision(
+        self,
+        layer: str,
+        memory_type: str,
+        operation: str,
+        feedback_hints: list[str],
+    ) -> Optional[MemoryPolicyDecision]:
+        readiness = self._transfer_gate_readiness()
+        if not readiness or not self._is_transfer_gated_memory(layer, memory_type):
+            return None
+        reason = str(self._transfer_gate.get("reason") or "task-stream transfer gate")
+        if readiness == "approved":
+            return None
+        if readiness in {"rejected", "error"}:
+            return MemoryPolicyDecision(
+                operation=operation,
+                layer=layer,
+                memory_type=memory_type,
+                decision="transfer_promotion_blocked",
+                reason=f"task-stream transfer gate {readiness}: {reason}",
+                priority="high",
+                should_persist=False,
+                should_review=True,
+                should_consolidate=False,
+                feedback_hints=feedback_hints,
+            )
+        return MemoryPolicyDecision(
+            operation=operation,
+            layer=layer,
+            memory_type=memory_type,
+            decision="transfer_promotion_review_needed",
+            reason=f"task-stream transfer gate {readiness}: {reason}",
+            priority="high",
+            should_persist=not self.enforce_write_gate,
+            should_review=True,
+            should_consolidate=False,
+            feedback_hints=feedback_hints,
+        )
+
+    def _is_transfer_gated_memory(self, layer: str, memory_type: str) -> bool:
+        return (
+            layer in {"semantic", "episodic", "l3", "long_term"}
+            or memory_type in {
+                "fact",
+                "semantic",
+                "episodic",
+                "experience",
+                "skill",
+                "verified_outcome",
+                "failure_correction",
+                "correction",
+            }
+        )
 
     def _quality_flags(self, content, memory_type: str, source: str, confidence: float) -> list[str]:
         flags = []

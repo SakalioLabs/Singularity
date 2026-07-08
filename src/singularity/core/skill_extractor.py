@@ -52,6 +52,7 @@ class SkillPromotionValidationReport:
     warnings: list[str] = field(default_factory=list)
     gate: dict = field(default_factory=dict)
     discovery_gate: dict = field(default_factory=dict)
+    transfer_gate: dict = field(default_factory=dict)
     critic: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
@@ -197,6 +198,7 @@ class SkillCandidateQueue:
         skill_library,
         promotion_critic=None,
         discovery_gate_paths: list[str] = None,
+        transfer_gate_paths: list[str] = None,
     ) -> SkillCandidate | None:
         candidate = self.candidates.get(candidate_id)
         if not candidate:
@@ -205,6 +207,7 @@ class SkillCandidateQueue:
             skill_library,
             promotion_critic=promotion_critic,
             discovery_gate_paths=discovery_gate_paths,
+            transfer_gate_paths=transfer_gate_paths,
         ).approve_candidate(candidate)
         if skill is not None:
             candidate.review_status = "approved"
@@ -224,7 +227,7 @@ class SkillCandidateQueue:
         if not os.path.exists(self.path):
             return
         try:
-            with open(self.path, "r", encoding="utf-8") as f:
+            with open(self.path, "r", encoding="utf-8-sig") as f:
                 for line in f:
                     line = line.strip()
                     if not line:
@@ -340,11 +343,140 @@ def build_discovery_skill_gate(
     }
 
 
+def build_task_stream_transfer_skill_gate(
+    transfer_gate_paths: list[str] = None,
+    gate: dict = None,
+    source: str = "",
+) -> dict:
+    """Build an approve/review/reject gate from task-stream transfer evidence."""
+    inputs = []
+    errors = []
+    if isinstance(gate, dict) and gate:
+        inputs.append({"source": source or "candidate", "gate": gate})
+    for path in transfer_gate_paths or []:
+        if not path:
+            continue
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                payload = json.load(f)
+            if not isinstance(payload, dict):
+                raise ValueError("task-stream transfer gate JSON must be an object")
+            inputs.append({"source": path, "gate": payload})
+        except Exception as e:
+            errors.append(f"{path}: {e}")
+
+    if not inputs and not errors:
+        return {
+            "required": False,
+            "readiness": "not_required",
+            "decision": "allow",
+            "reason": "no_task_stream_transfer_gate_required",
+            "sources": [],
+            "evidence": [],
+            "missing": [],
+            "warnings": [],
+            "errors": [],
+        }
+
+    totals = {
+        "stream_count": 0,
+        "ready_stream_count": 0,
+        "task_count": 0,
+        "interference_count": 0,
+        "evidence_count": 0,
+        "warning_count": 0,
+        "regression_count": 0,
+    }
+    gains = {
+        "average_plasticity_gain": [],
+        "average_stability_gain": [],
+        "average_generalization_gain": [],
+    }
+    sources = []
+    evidence = []
+    missing = []
+    warnings = []
+    readinesses = []
+    for item in inputs:
+        source_name = item["source"]
+        item_gate = item["gate"]
+        sources.append(source_name)
+        readiness = str(item_gate.get("readiness") or "unknown")
+        readinesses.append(readiness)
+        if readiness == "approved":
+            evidence.append(f"{source_name}: controlled transfer gate approved")
+        else:
+            missing.append(f"{source_name}: transfer gate {readiness}")
+        for key in totals:
+            totals[key] += _safe_int(item_gate.get(key, 0))
+        for key in gains:
+            value = _safe_float_or_none(item_gate.get(key))
+            if value is not None:
+                gains[key].append(value)
+        if item_gate.get("reason"):
+            warnings.append(str(item_gate.get("reason")))
+        for warning in item_gate.get("warnings", []) if isinstance(item_gate.get("warnings", []), list) else []:
+            if str(warning or "").strip():
+                warnings.append(str(warning))
+        for check in item_gate.get("checks", []) if isinstance(item_gate.get("checks", []), list) else []:
+            if isinstance(check, dict) and check.get("status") in {"warn", "fail"}:
+                warnings.append(f"{source_name}: {check.get('detail', 'transfer gate check')}")
+
+    if errors:
+        readiness = "error"
+        decision = "reject"
+        reason = "task_stream_transfer_gate_error"
+    elif any(item in {"rejected", "error"} for item in readinesses):
+        readiness = "rejected"
+        decision = "reject"
+        reason = "task_stream_transfer_gate_rejected"
+    elif readinesses and all(item == "approved" for item in readinesses):
+        readiness = "approved"
+        decision = "allow"
+        reason = "task_stream_transfer_gate_approved"
+    else:
+        readiness = "review"
+        decision = "reject"
+        reason = "task_stream_transfer_gate_requires_review"
+
+    return {
+        "required": True,
+        "readiness": readiness,
+        "decision": decision,
+        "reason": reason,
+        "sources": sources,
+        "evidence": evidence,
+        "missing": missing,
+        "warnings": _dedupe_strings(warnings),
+        "errors": errors,
+        **totals,
+        "average_plasticity_gain": _average_or_none(gains["average_plasticity_gain"]),
+        "average_stability_gain": _average_or_none(gains["average_stability_gain"]),
+        "average_generalization_gain": _average_or_none(gains["average_generalization_gain"]),
+    }
+
+
 def _safe_int(value) -> int:
     try:
         return int(value or 0)
     except (TypeError, ValueError):
         return 0
+
+
+def _safe_float_or_none(value):
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _average_or_none(values: list):
+    present = [float(value) for value in values if value is not None]
+    if not present:
+        return None
+    return round(sum(present) / len(present), 3)
 
 
 def _dedupe_strings(values: list) -> list[str]:
@@ -369,12 +501,14 @@ class SkillExtractor:
         auto_promote: bool = True,
         promotion_critic=None,
         discovery_gate_paths: list[str] = None,
+        transfer_gate_paths: list[str] = None,
     ):
         self.skill_library = skill_library
         self.memory_system = memory_system
         self.auto_promote = auto_promote
         self.promotion_critic = promotion_critic
         self.discovery_gate_paths = list(discovery_gate_paths or [])
+        self.transfer_gate_paths = list(transfer_gate_paths or [])
 
     def extract_from_session(self, session_log_path: str) -> list:
         """Extract skills from a successful session log."""
@@ -498,6 +632,7 @@ class SkillExtractor:
         candidate.signals = {
             **candidate.signals,
             "verification_gate": gate,
+            "task_stream_transfer_gate": report.transfer_gate,
             "promotion_report": report.to_dict(),
         }
         if report.decision == "reject":
@@ -527,6 +662,7 @@ class SkillExtractor:
                 "reason": report.reason,
                 "verification": report.gate,
                 "discovery": report.discovery_gate,
+                "transfer": report.transfer_gate,
                 "matched_rules": report.matched_rules,
                 "warnings": report.warnings,
             },
@@ -539,6 +675,7 @@ class SkillExtractor:
         """Explain whether a candidate is ready for promotion."""
         gate = self._candidate_verification_gate(candidate)
         discovery_gate = self._candidate_discovery_gate(candidate)
+        transfer_gate = self._candidate_transfer_gate(candidate)
         if discovery_gate.get("required"):
             gate = {
                 **gate,
@@ -553,6 +690,20 @@ class SkillExtractor:
                     "status": f"discovery_{discovery_gate.get('readiness', 'review')}",
                     "reason": discovery_gate.get("reason", "discovery_skill_gate_requires_review"),
                 })
+        if transfer_gate.get("required"):
+            gate = {
+                **gate,
+                "task_stream_transfer_gate": transfer_gate,
+                "matched_rules": self._merge_list(gate.get("matched_rules", []), ["task_stream_transfer_gate"]),
+                "evidence": self._merge_list(gate.get("evidence", []), transfer_gate.get("evidence", [])),
+                "missing": self._merge_list(gate.get("missing", []), transfer_gate.get("missing", [])),
+            }
+            if transfer_gate.get("decision") == "reject":
+                gate.update({
+                    "decision": "reject",
+                    "status": f"transfer_{transfer_gate.get('readiness', 'review')}",
+                    "reason": transfer_gate.get("reason", "task_stream_transfer_gate_requires_review"),
+                })
         critic = {}
         if gate.get("status") == "unknown" and self.promotion_critic:
             gate, critic = self._apply_promotion_critic(candidate, gate)
@@ -562,6 +713,10 @@ class SkillExtractor:
             warnings.extend(discovery_gate.get("warnings", []))
         if discovery_gate.get("errors"):
             warnings.extend(discovery_gate.get("errors", []))
+        if transfer_gate.get("warnings"):
+            warnings.extend(transfer_gate.get("warnings", []))
+        if transfer_gate.get("errors"):
+            warnings.extend(transfer_gate.get("errors", []))
         if gate.get("status") == "unknown":
             warnings.append("no deterministic verification proof; approval relies on consolidation score and human/operator review")
         if not postconditions:
@@ -593,6 +748,7 @@ class SkillExtractor:
             warnings=warnings,
             gate=gate,
             discovery_gate=discovery_gate,
+            transfer_gate=transfer_gate,
             critic=critic,
         )
 
@@ -915,6 +1071,18 @@ class SkillExtractor:
         if isinstance(feedback, dict) and feedback:
             return build_discovery_skill_gate(feedback=feedback, source=f"candidate:{candidate.id}")
         return build_discovery_skill_gate()
+
+    def _candidate_transfer_gate(self, candidate: SkillCandidate) -> dict:
+        if self.transfer_gate_paths:
+            return build_task_stream_transfer_skill_gate(transfer_gate_paths=self.transfer_gate_paths)
+        gate = candidate.signals.get("task_stream_transfer_gate", {}) if isinstance(candidate.signals, dict) else {}
+        if isinstance(gate, dict) and gate:
+            return build_task_stream_transfer_skill_gate(gate=gate, source=f"candidate:{candidate.id}")
+        promotion = candidate.signals.get("promotion_report", {}) if isinstance(candidate.signals, dict) else {}
+        transfer_gate = promotion.get("transfer_gate", {}) if isinstance(promotion, dict) else {}
+        if isinstance(transfer_gate, dict) and transfer_gate:
+            return build_task_stream_transfer_skill_gate(gate=transfer_gate, source=f"candidate:{candidate.id}")
+        return build_task_stream_transfer_skill_gate()
 
     def _skill_dependencies_from_candidate(self, candidate: SkillCandidate) -> list[str]:
         try:

@@ -1551,6 +1551,94 @@ def test_discovery_skill_gate_controls_experiment_derived_skill_promotion():
     print("PASS: Discovery skill gate controls experiment-derived skill promotion")
 
 
+def test_task_stream_transfer_gate_controls_skill_promotion_path():
+    tmpdir = tempfile.mkdtemp()
+    skill_library = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=True)
+    verification_gate = {
+        "decision": "allow",
+        "status": "achieved",
+        "reason": "deterministic_verification_achieved",
+        "target_inventory": {},
+        "inventory_delta": {},
+        "evidence": ["goal verifier accepted pickaxe crafting"],
+        "matched_rules": ["goal_verifier"],
+    }
+    approved_transfer_gate = {
+        "required": True,
+        "readiness": "approved",
+        "decision": "allow_candidate_promotion",
+        "reason": "controlled task streams show positive transfer",
+        "stream_count": 1,
+        "ready_stream_count": 1,
+        "task_count": 3,
+        "interference_count": 0,
+        "evidence_count": 1,
+        "evidence": ["wood_to_pickaxe: transfer gate approved"],
+        "missing": [],
+        "warnings": [],
+        "errors": [],
+        "average_plasticity_gain": 0.42,
+        "average_stability_gain": 0.03,
+        "average_generalization_gain": 0.37,
+    }
+    review_transfer_gate = {
+        **approved_transfer_gate,
+        "readiness": "review",
+        "decision": "keep_candidate_review_only",
+        "reason": "held-out transfer evidence is missing",
+        "evidence_count": 0,
+        "warning_count": 1,
+        "evidence": [],
+        "missing": ["wood_to_pickaxe: transfer gate review"],
+        "warnings": ["held-out generalization gain evidence is missing"],
+        "average_generalization_gain": None,
+    }
+    ready_candidate = SkillCandidate(
+        name="craft_stone_pickaxe_transfer_ready",
+        goal="Craft a stone pickaxe",
+        description="Transfer-tested stone pickaxe skill",
+        implementation=json.dumps([{"type": "craft", "parameters": {"item": "stone_pickaxe"}}]),
+        score=0.91,
+        signals={
+            "verification_gate": verification_gate,
+            "task_stream_transfer_gate": approved_transfer_gate,
+        },
+    )
+    blocked_candidate = SkillCandidate(
+        name="craft_stone_pickaxe_transfer_blocked",
+        goal="Craft a stone pickaxe",
+        description="Transfer-untested stone pickaxe skill",
+        implementation=json.dumps([{"type": "craft", "parameters": {"item": "stone_pickaxe"}}]),
+        score=0.91,
+        signals={
+            "verification_gate": verification_gate,
+            "task_stream_transfer_gate": review_transfer_gate,
+        },
+    )
+
+    extractor = SkillExtractor(skill_library, auto_promote=False)
+    ready_skill = extractor.approve_candidate(ready_candidate)
+    blocked_skill = extractor.approve_candidate(blocked_candidate)
+
+    assert ready_skill is not None
+    assert ready_candidate.review_status == "approved"
+    ready_report = ready_candidate.signals["promotion_report"]
+    assert ready_report["transfer_gate"]["readiness"] == "approved"
+    assert ready_skill.gate["transfer"]["readiness"] == "approved"
+    governance = skill_library.skill_graph_report()
+    ready_node = next(node for node in governance["nodes"] if node["name"] == ready_skill.name)
+    assert ready_node["governance"]["transfer_readiness"] == "approved"
+
+    assert blocked_skill is None
+    assert blocked_candidate.review_status == "rejected"
+    blocked_report = blocked_candidate.signals["promotion_report"]
+    assert blocked_report["decision"] == "reject"
+    assert blocked_report["transfer_gate"]["readiness"] == "review"
+    assert blocked_report["reason"] == "task_stream_transfer_gate_requires_review"
+    assert "held-out generalization gain evidence is missing" in blocked_report["warnings"]
+    print("PASS: Task stream transfer gate controls skill promotion path")
+
+
 def test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_action_abstraction.jsonl")
@@ -1761,6 +1849,67 @@ def test_memory_policy_report_counts_write_read_manage_gaps_and_feedback():
     assert failure.decision == "failure_learning_candidate"
     assert "record_failure_corrections" in failure.feedback_hints
     print("PASS: Memory policy report counts write/read/manage gaps and feedback")
+
+
+def test_memory_lifecycle_policy_uses_task_stream_transfer_gate():
+    approved_gate = {
+        "required": True,
+        "readiness": "approved",
+        "decision": "allow_candidate_promotion",
+        "reason": "positive transfer without regressions",
+    }
+    rejected_gate = {
+        "required": True,
+        "readiness": "rejected",
+        "decision": "do_not_promote_candidate",
+        "reason": "held-out regression detected",
+    }
+    review_gate = {
+        "required": True,
+        "readiness": "review",
+        "decision": "keep_candidate_review_only",
+        "reason": "missing held-out stream",
+    }
+
+    approved_policy = MemoryLifecyclePolicy(transfer_gate=approved_gate)
+    promoted = approved_policy.decide_write(
+        "episodic",
+        "goal_end",
+        "write_episode",
+        {"goal": "Craft torches", "success": True},
+        source="test",
+    )
+    assert promoted.decision == "semantic_promotion_candidate"
+    assert promoted.should_review is False
+    assert "approved transfer evidence" in promoted.reason
+    assert "task_stream_transfer_gate_approved" in promoted.feedback_hints
+
+    rejected_policy = MemoryLifecyclePolicy(transfer_gate=rejected_gate)
+    blocked = rejected_policy.decide_write(
+        "semantic",
+        "fact",
+        "write_fact",
+        {"content": "oak-to-planks transfers to crafting table"},
+        source="test",
+    )
+    assert blocked.decision == "transfer_promotion_blocked"
+    assert blocked.should_persist is False
+    assert blocked.should_review is True
+    assert "held-out regression detected" in blocked.reason
+
+    review_policy = MemoryLifecyclePolicy(transfer_gate=review_gate)
+    review = review_policy.decide_write(
+        "episodic",
+        "experience",
+        "write_episode",
+        {"content": "stone pickaxe workflow may transfer"},
+        source="test",
+    )
+    assert review.decision == "transfer_promotion_review_needed"
+    assert review.should_persist is True
+    assert review.should_review is True
+    assert "task_stream_transfer_gate_review" in review.feedback_hints
+    print("PASS: Memory lifecycle policy uses task stream transfer gate")
 
 
 def test_bounded_context_report_audits_typed_planner_context():
@@ -2649,8 +2798,10 @@ if __name__ == "__main__":
     test_self_evolution_gate_requires_verifier_and_counterexamples()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
     test_discovery_skill_gate_controls_experiment_derived_skill_promotion()
+    test_task_stream_transfer_gate_controls_skill_promotion_path()
     test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates()
     test_memory_policy_report_counts_write_read_manage_gaps_and_feedback()
+    test_memory_lifecycle_policy_uses_task_stream_transfer_gate()
     test_bounded_context_report_audits_typed_planner_context()
     test_continual_learning_report_aggregates_open_ended_axes()
     test_continual_learning_report_accepts_flat_session_log_fields()

@@ -17,5 +17,6 @@
 **Singularity Adaptation**:
   - `skill-contract-report` already audits prerequisites/postconditions and governance.
   - `task-stream-transfer-gate` now adds cross-task transfer evidence before memory or skill promotion.
+  - Skill candidate approval now stores task-stream gate readiness in promotion reports and skill governance metadata.
   - Next, approved Minecraft skills should accumulate skill-local replay notes and failure corrections instead of only global episodic memories.
-**Next Action**: Attach task-stream gate readiness and per-skill transfer evidence to approved skill metadata.
+**Next Action**: Add per-skill memory/replay notes keyed by approved transfer evidence and task family.

@@ -590,7 +590,8 @@ class SkillLibrary:
         notes = str(skill.notes or "")
         verification_gate = gate.get("verification", {}) if isinstance(gate.get("verification", {}), dict) else {}
         discovery_gate = gate.get("discovery", {}) if isinstance(gate.get("discovery", {}), dict) else {}
-        gate_readiness = self._gate_readiness(gate, verification_gate, discovery_gate)
+        transfer_gate = gate.get("transfer", {}) if isinstance(gate.get("transfer", {}), dict) else {}
+        gate_readiness = self._gate_readiness(gate, verification_gate, discovery_gate, transfer_gate)
         governed = bool(
             built_in
             or gate
@@ -605,16 +606,22 @@ class SkillLibrary:
             "decision": gate.get("decision", "builtin" if built_in else "unknown"),
             "verification_status": verification_gate.get("status", ""),
             "discovery_readiness": discovery_gate.get("readiness", ""),
+            "transfer_readiness": transfer_gate.get("readiness", ""),
             "provenance_sources": self._provenance_sources(provenance),
         }
 
-    def _gate_readiness(self, gate: dict, verification_gate: dict, discovery_gate: dict) -> str:
+    def _gate_readiness(self, gate: dict, verification_gate: dict, discovery_gate: dict, transfer_gate: dict = None) -> str:
+        transfer_gate = transfer_gate if isinstance(transfer_gate, dict) else {}
         if not gate:
             return "not_required"
         if discovery_gate.get("readiness") in {"review", "rejected", "error"}:
             return str(discovery_gate.get("readiness"))
+        if transfer_gate.get("readiness") in {"review", "rejected", "error"}:
+            return str(transfer_gate.get("readiness"))
         if gate.get("decision") == "reject" or verification_gate.get("decision") == "reject":
             return "rejected"
+        if transfer_gate.get("readiness") == "approved":
+            return "approved"
         if discovery_gate.get("readiness") == "approved":
             return "approved"
         if verification_gate.get("status") in {"achieved", "critic_approved"} or gate.get("decision") == "approve":

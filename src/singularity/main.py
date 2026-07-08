@@ -268,6 +268,7 @@ def main():
     candidates_parser.add_argument("--session", type=str, default="", help="Extract candidates from a session JSONL log")
     candidates_parser.add_argument("--promotion-critic", action="store_true", help="Use configured LLM as fallback critic for unknown verifier gates")
     candidates_parser.add_argument("--discovery-skill-gate", action="append", default=[], help="Saved discovery-application-report JSON required before approving experiment-derived skills")
+    candidates_parser.add_argument("--task-stream-transfer-gate", action="append", default=[], help="Saved task-stream-transfer-gate JSON required before promoting transfer-tested skills")
     candidates_parser.add_argument("--llm-provider", type=str, default="openai")
     candidates_parser.add_argument("--llm-model", type=str, default="gpt-4o-mini")
     candidates_parser.add_argument("--llm-base-url", type=str, default="")
@@ -1081,6 +1082,7 @@ def main():
                 auto_promote=False,
                 promotion_critic=promotion_critic,
                 discovery_gate_paths=getattr(args, "discovery_skill_gate", []) or [],
+                transfer_gate_paths=getattr(args, "task_stream_transfer_gate", []) or [],
             )
             candidates = extractor.extract_skill_candidates(args.session)
             if getattr(args, "causal_summaries", False):
@@ -1115,6 +1117,7 @@ def main():
                 lib,
                 promotion_critic=promotion_critic,
                 discovery_gate_paths=getattr(args, "discovery_skill_gate", []) or [],
+                transfer_gate_paths=getattr(args, "task_stream_transfer_gate", []) or [],
             )
             if not candidate:
                 print(f"candidate not found: {args.approve}")
@@ -1148,7 +1151,13 @@ def main():
             discovery_text = ""
             if isinstance(discovery_gate, dict) and discovery_gate.get("required"):
                 discovery_text = f" discovery={discovery_gate.get('readiness', 'unknown')}:{discovery_gate.get('reason', '')}"
-            print(f"- {candidate.id} [{candidate.review_status}] {candidate.name} score={candidate.score}{gate_text}{discovery_text}: {candidate.description}")
+            transfer_gate = report.get("transfer_gate", {}) if isinstance(report, dict) else {}
+            if not transfer_gate and isinstance(candidate.signals, dict):
+                transfer_gate = candidate.signals.get("task_stream_transfer_gate", {})
+            transfer_text = ""
+            if isinstance(transfer_gate, dict) and transfer_gate.get("required"):
+                transfer_text = f" transfer={transfer_gate.get('readiness', 'unknown')}:{transfer_gate.get('reason', '')}"
+            print(f"- {candidate.id} [{candidate.review_status}] {candidate.name} score={candidate.score}{gate_text}{discovery_text}{transfer_text}: {candidate.description}")
         return
 
     if args.command == "collab-benchmark":

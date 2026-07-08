@@ -145,6 +145,7 @@
 - [x] Add AgentOdyssey/AgentCL-style `continual-learning-report` to aggregate progress, world-knowledge acquisition, episodic/semantic memory use, object/action exploration, action diversity, bounded-context quality, and meaningful-horizon signals from session logs.
 - [x] Add AgentCL-style `task-stream-transfer-report` so controlled Minecraft task streams can measure plasticity, second-pass stability, held-out generalization, reuse evidence coverage, and memory/skill interference.
 - [x] Add `task-stream-transfer-gate` so transfer memories and reusable skills can be approved, held for review, or rejected based on controlled task-stream evidence before promotion.
+- [x] Feed `task-stream-transfer-gate` into skill-candidate approval metadata and `MemoryLifecyclePolicy` so transfer-approved evidence can unlock promotion while review/rejected transfer gates block default promotion.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -160,7 +161,7 @@
 - [ ] Run `bounded-context-report` on real M1/M2/autonomous session logs and tighten planner context budgets if raw transcript or oversized memory-read cycles appear.
 - [ ] Run `continual-learning-report` on real autonomous/M7 session logs and compare axis scores against later task success, transfer-memory matches, and skill-candidate reuse.
 - [ ] Build controlled Minecraft task-stream specs for wood-to-tools, shelter, mining, navigation, and redstone variants; run `task-stream-transfer-report` before promoting transfer memories or approved skills to defaults.
-- [ ] Feed approved `task-stream-transfer-gate` reports into skill-candidate and memory-lifecycle promotion paths so positive transfer can unlock promotion while interference blocks defaults.
+- [ ] Feed real approved `task-stream-transfer-gate` reports from autonomous/M7 stream specs into queued skill approvals and memory-lifecycle profiles before enabling transfer-tested defaults.
 - [ ] Run `transfer-memory-report` on real M1/M2/autonomous memory stores and compare high-scoring transfer matches against downstream task success.
 - [ ] Run `task-memory-report` on real multi-session task traces and compare task-centric memory matches against verifier outcomes and repeated-failure reductions.
 - [ ] Run `memory-promptware-report` on live autonomous/M7 memory stores and inspect any flagged entries before enabling stricter default memory enforcement.
