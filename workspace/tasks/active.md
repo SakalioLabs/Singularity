@@ -112,6 +112,7 @@
 - [x] Add `ActionGranularityPolicy` and wire `ActionController` results with `control_policy` decisions for safe Mineflayer fallback plus future visual/desktop control switching.
 - [x] Add offline `memory-policy-report` for AutoMem-style auditing of memory writes, reads, management events, missed semantic writes, failure-learning candidates, noisy writes, and consolidation signals.
 - [x] Add Echo-style dimension-weighted transfer retrieval and `transfer-memory-report` so structure/attribute/process/function/interaction evidence can guide planner memory context.
+- [x] Add MemoryArena-style task-centric memory profiles and `task-memory-report` so active task metadata, scoped memory matches, transfer-axis matches, and read-filter diagnostics can guide planner context.
 - [x] Instrument Agent memory lifecycle calls with `memory_write`, `memory_read`, and `memory_manage` session events plus summary metrics.
 - [x] Add `MemoryLifecyclePolicy` as the first consumer of `memory_policy_feedback`, with advisory decisions by default and an optional strict write gate for noisy memory candidates.
 - [x] Close the first `memory_policy_feedback` loop so feedback hints alter `MemoryLifecyclePolicy` priorities, reasons, and review routing for future write/read/manage decisions.
@@ -149,6 +150,7 @@
 - [ ] Run autonomous mode with the new curriculum enabled and inspect `curriculum.last_decision` plus `auto_goal_complete/failed` episodes for goal-loop quality.
 - [ ] Run `memory-policy-report` on real M1/M2/autonomous session logs and compare `MemoryLifecyclePolicy` decisions against task outcomes before enabling strict write gates.
 - [ ] Run `transfer-memory-report` on real M1/M2/autonomous memory stores and compare high-scoring transfer matches against downstream task success.
+- [ ] Run `task-memory-report` on real multi-session task traces and compare task-centric memory matches against verifier outcomes and repeated-failure reductions.
 - [ ] Run live M7 with shared-memory governance enabled and compare `false_promotion_review_count` plus provenance histories across collaboration logs.
 - [ ] Add mutable-world-state keys to live M7/autonomous traces and compare `state_revision_count` plus `implicit_conflict_count` against stale-task decisions.
 - [ ] Run `memory_read_filter_report()` on live autonomous/M7 memory stores and compare filtered stale/conditional entries against actual task outcomes.

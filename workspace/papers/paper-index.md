@@ -884,6 +884,24 @@
 
 ---
 
+## P-048: MemoryArena
+
+- **Title**: MemoryArena: Benchmarking Agent Memory in Interdependent Multi-Session Agentic Tasks
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2602.16313
+- **Type**: Agent memory benchmark / multi-session evaluation
+- **Task Type**: Interdependent multi-session agentic tasks
+- **Core Method**: Memory-Agent-Environment loops that require earlier feedback to be distilled into memory and used in later dependent actions
+- **Action Space**: Web navigation, preference-constrained planning, progressive information search, and formal reasoning tasks
+- **Memory**: Cross-session task memories as decision priors, not passive recall records
+- **Key Results**: Shows strong long-context memory benchmark performance does not imply success in agentic memory-use settings
+- **Scores**: R=5, N=4, R=3, E=5
+- **Value to Project**: Supports task-centric memory reports that tie retrieved memories to active task metadata and downstream verifier outcomes
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-memoryarena.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -935,3 +953,4 @@
 | P-045 | VLM-AR3L | 2026 | R4/N4/R3/E4 | P2 |
 | P-046 | EmbodiSkill | 2026 | R4/N5/R3/E5 | P2 |
 | P-047 | VASO | 2026 | R3/N5/R3/E5 | P2 |
+| P-048 | MemoryArena | 2026 | R5/N4/R3/E5 | P2 |

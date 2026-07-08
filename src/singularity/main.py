@@ -173,6 +173,18 @@ def main():
     transfer_memory_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     transfer_memory_parser.add_argument("--log-level", type=str, default="INFO")
 
+    task_memory_parser = subparsers.add_parser("task-memory-report", help="Report task-centric memory context for a goal and task")
+    task_memory_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
+    task_memory_parser.add_argument("--goal", type=str, required=True, help="Goal query to scope task memory")
+    task_memory_parser.add_argument("--task-json", type=str, default="", help="Optional task JSON object")
+    task_memory_parser.add_argument("--task-file", type=str, default="", help="Optional task JSON file")
+    task_memory_parser.add_argument("--current-state-json", type=str, default="", help="Optional current state JSON object")
+    task_memory_parser.add_argument("--current-state-file", type=str, default="", help="Optional current state JSON file")
+    task_memory_parser.add_argument("--min-score", type=float, default=0.1)
+    task_memory_parser.add_argument("--limit", type=int, default=5)
+    task_memory_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    task_memory_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline memory policy trace report
     memory_policy_parser = subparsers.add_parser("memory-policy-report", help="Report memory write/read/manage policy gaps in session logs")
     memory_policy_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -625,6 +637,59 @@ def main():
             print(
                 f"  - {match['id']} score={match['score']:.2f} "
                 f"axes={axes}: {match['task']} -> {match['outcome']}"
+            )
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"  saved: {args.output}")
+        return
+
+    if args.command == "task-memory-report":
+        from singularity.core.memory import MemorySystem
+
+        current_state = {}
+        if getattr(args, "current_state_file", ""):
+            with open(args.current_state_file, "r", encoding="utf-8-sig") as f:
+                current_state = json.load(f)
+        elif getattr(args, "current_state_json", ""):
+            current_state = json.loads(args.current_state_json)
+        if not isinstance(current_state, dict):
+            print("task-memory-report current state must be a JSON object")
+            sys.exit(1)
+
+        task = {}
+        if getattr(args, "task_file", ""):
+            with open(args.task_file, "r", encoding="utf-8-sig") as f:
+                task = json.load(f)
+        elif getattr(args, "task_json", ""):
+            task = json.loads(args.task_json)
+        if task and not isinstance(task, dict):
+            print("task-memory-report task must be a JSON object")
+            sys.exit(1)
+
+        memory = MemorySystem(memory_dir=getattr(args, "memory_dir", "workspace/memory"))
+        report = memory.task_memory_profile(
+            getattr(args, "goal", ""),
+            task=task,
+            current_state=current_state,
+            limit=getattr(args, "limit", 5),
+            min_score=getattr(args, "min_score", 0.1),
+        )
+        print("\nTask Memory Report")
+        print(f"  goal: {report['goal']}")
+        if report["task"].get("title"):
+            print(f"  task: {report['task'].get('title')}")
+        print(f"  scoped memories: {report['memory_match_count']}, transfer matches: {report['transfer_match_count']}")
+        if report["axis_counts"]:
+            parts = [f"{axis}={count}" for axis, count in sorted(report["axis_counts"].items())]
+            print(f"  transfer axes: {', '.join(parts)}")
+        for memory_match in report["memory_matches"][:getattr(args, "limit", 5)]:
+            print(f"  - memory {memory_match['id']} score={memory_match['score']:.2f}: {memory_match['content'][:120]}")
+        for transfer in report["transfer_matches"][:getattr(args, "limit", 5)]:
+            axes = ",".join(transfer.get("matched_axes", [])) or "text"
+            print(
+                f"  - transfer {transfer['id']} score={transfer['score']:.2f} "
+                f"axes={axes}: {transfer['task']} -> {transfer['outcome']}"
             )
         if getattr(args, "output", ""):
             with open(args.output, "w", encoding="utf-8") as f:

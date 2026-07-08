@@ -622,6 +622,7 @@ class Agent:
     def _think_llm(self, observation: dict, goal: str) -> dict:
         # Gather memory context for planning
         memory_context = self._read_relevant_memory(goal, observation, source="planner_goal")
+        task_memory_context = self._task_memory_context(goal, observation)
         context_window = self._read_context_window(source="planner_context")
 
         # Get skill recommendations
@@ -647,6 +648,7 @@ class Agent:
             self_evolution_context = self._self_evolution_context(goal, observation)
             combined_memory = "\n".join(part for part in (
                 memory_context,
+                task_memory_context,
                 context_window,
                 visual_context,
                 visual_action_context,
@@ -663,6 +665,39 @@ class Agent:
     def _think_rule(self, observation: dict, goal: str) -> dict:
         plan = self.rule_planner.plan_from_goal(goal, observation)
         return plan
+
+    def _task_memory_context(self, goal: str, current_state: dict = None) -> str:
+        if not getattr(getattr(self, "config", None), "enable_task_memory_context", True):
+            return ""
+        task = None
+        if hasattr(self, "task_system") and self.task_system:
+            try:
+                task = self.task_system.get_next_task(current_state or {})
+            except Exception as e:
+                logger.warning(f"Task memory next-task lookup failed: {e}")
+        query = " ".join(part for part in [goal, getattr(task, "title", "")] if part)
+        decision = self._memory_read_decision(query or goal, "task", "task_memory", "retrieve")
+        result = ""
+        if decision.should_retrieve and hasattr(self, "memory") and self.memory and hasattr(self.memory, "task_memory_context"):
+            try:
+                result = self.memory.task_memory_context(
+                    goal,
+                    task=task,
+                    current_state=current_state or {},
+                    limit=3,
+                )
+            except Exception as e:
+                logger.warning(f"Task memory context failed: {e}")
+        self._log_memory_read(
+            query=query or goal,
+            layer="task",
+            memory_type="task_memory",
+            operation="retrieve",
+            result=result,
+            source="planner_task_memory",
+            decision=decision,
+        )
+        return result
 
     def _write_memory_context(self, entry: dict, source: str = "agent_context"):
         decision = self._memory_write_decision(

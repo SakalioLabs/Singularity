@@ -315,6 +315,7 @@ User-authored Minecraft requests need a benchmark layer between free-form chat a
 - Added `ExperienceRecord` for Echo-style transferable experience and WISE-style causal fields.
 - Added retrieval and curation methods to `MemorySystem`.
 - Added Echo-style transfer-axis scoring to `MemorySystem.rank_transfer_experiences()`, so structure, attribute, process, function, and interaction matches can be surfaced in planner context and audited with `transfer-memory-report`.
+- Added MemoryArena-style task-centric memory profiles. `MemorySystem.task_memory_profile()` and `task-memory-report` combine active task metadata, scoped memory matches, transfer-axis matches, and read-filter diagnostics, while `Agent._task_memory_context()` injects that evidence into LLM planning.
 - Added task dependencies, preconditions, opportunity triggers, deadlines, and dynamic scoring to `TaskSystem`.
 - Added unit coverage for knowledge loading, experience retrieval, and opportunity scheduling.
 - Added first conservative visual action grounding from structured visual observations into executable actions.

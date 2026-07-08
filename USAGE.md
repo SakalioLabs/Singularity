@@ -138,6 +138,8 @@ python -m singularity.main skill-candidates --session logs/session_xxx.jsonl --f
 python -m singularity.main memory-consolidation-report --memory-dir workspace/memory --min-recall-count 2 --min-unique-queries 2
 # Audit Echo-style transfer-axis matches from stored experience records
 python -m singularity.main transfer-memory-report --memory-dir workspace/memory --query "Craft a stone pickaxe from cobblestone and sticks"
+# Audit task-centric memory context for a goal plus active task metadata
+python -m singularity.main task-memory-report --memory-dir workspace/memory --goal "Upgrade mining tool" --task-json "{\"title\":\"Craft stone pickaxe\",\"preconditions\":{\"inventory\":{\"cobblestone\":3,\"stick\":2}},\"success_criteria\":{\"inventory\":{\"stone_pickaxe\":1}}}"
 
 # Audit session logs for memory write/read/manage policy gaps
 python -m singularity.main memory-policy-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/memory_policy.json

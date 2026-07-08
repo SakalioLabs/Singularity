@@ -503,6 +503,93 @@ class MemorySystem:
             ],
         }
 
+    def task_memory_profile(
+        self,
+        goal: str,
+        task=None,
+        current_state: Optional[dict] = None,
+        limit: int = 5,
+        min_score: float = 0.1,
+        mark_recalled: bool = False,
+    ) -> dict:
+        """Build a task-scoped memory profile for planner context and audits."""
+        task_payload = self._task_payload(task)
+        query = self._task_memory_query(goal, task_payload)
+        transfer_matches = self.rank_transfer_experiences(
+            query,
+            current_state=current_state,
+            limit=limit,
+            min_score=min_score,
+            mark_recalled=mark_recalled,
+        )
+        memory_matches = self._rank_memory_entries_for_query(
+            query,
+            current_state=current_state,
+            limit=limit,
+            mark_recalled=mark_recalled,
+        )
+        read_filter_report = self.memory_read_filter_report(query, current_state=current_state)
+        axis_counts = {}
+        for item in transfer_matches:
+            for axis in item["matched_axes"]:
+                axis_counts[axis] = axis_counts.get(axis, 0) + 1
+        return {
+            "goal": goal,
+            "task": task_payload,
+            "query": query,
+            "current_state": current_state or {},
+            "transfer_match_count": len(transfer_matches),
+            "memory_match_count": len(memory_matches),
+            "axis_counts": axis_counts,
+            "read_filter_report": read_filter_report,
+            "transfer_matches": [
+                {key: value for key, value in item.items() if key != "record"}
+                for item in transfer_matches
+            ],
+            "memory_matches": memory_matches,
+        }
+
+    def task_memory_context(
+        self,
+        goal: str,
+        task=None,
+        current_state: Optional[dict] = None,
+        limit: int = 3,
+    ) -> str:
+        """Format task-centric memory evidence for the planner prompt."""
+        profile = self.task_memory_profile(
+            goal,
+            task=task,
+            current_state=current_state,
+            limit=limit,
+            mark_recalled=True,
+        )
+        task_payload = profile["task"]
+        if not task_payload and not profile["transfer_matches"] and not profile["memory_matches"]:
+            return ""
+        title = task_payload.get("title") or goal
+        lines = [f"Task-centric memory (task={title}):"]
+        if task_payload.get("preconditions"):
+            lines.append(f"- preconditions: {json.dumps(task_payload.get('preconditions'), default=str)[:180]}")
+        if task_payload.get("success_criteria"):
+            lines.append(f"- success criteria: {json.dumps(task_payload.get('success_criteria'), default=str)[:180]}")
+        if task_payload.get("blockers"):
+            lines.append(f"- blockers: {'; '.join(str(item) for item in task_payload.get('blockers', [])[:3])}")
+        for memory in profile["memory_matches"][:limit]:
+            tags = ",".join(memory.get("tags", [])[:4])
+            tag_text = f" tags={tags}" if tags else ""
+            lines.append(f"- scoped memory{tag_text}: {memory.get('content', '')[:180]}")
+        for match in profile["transfer_matches"][:limit]:
+            axes = ",".join(match.get("matched_axes", [])[:5]) or "text"
+            lines.append(
+                f"- transfer[{axes} score={match.get('score', 0):.2f}]: "
+                f"{match.get('task', '')} -> {match.get('outcome', '')}"
+            )
+        filtered = profile.get("read_filter_report", {}).get("filtered_entries", 0)
+        if filtered:
+            lines.append(f"- filtered stale/conditional memories: {filtered}")
+        return "\n".join(lines)
+
     def memory_read_filter_report(self, query: str = "", current_state: Optional[dict] = None) -> dict:
         """Summarize durable memory entries excluded from read-time evidence."""
         report = {
@@ -755,6 +842,92 @@ class MemorySystem:
             if key in dimensions:
                 return dimensions.get(key)
         return ""
+
+    def _task_payload(self, task) -> dict:
+        if task is None:
+            return {}
+        if isinstance(task, dict):
+            payload = dict(task)
+        elif hasattr(task, "__dataclass_fields__"):
+            payload = asdict(task)
+        else:
+            payload = {
+                "title": getattr(task, "title", ""),
+                "type": getattr(task, "type", ""),
+                "status": getattr(getattr(task, "status", None), "value", getattr(task, "status", "")),
+                "priority": getattr(task, "priority", None),
+                "preconditions": getattr(task, "preconditions", {}),
+                "success_criteria": getattr(task, "success_criteria", {}),
+                "failure_criteria": getattr(task, "failure_criteria", {}),
+                "assigned_skill": getattr(task, "assigned_skill", ""),
+                "tags": getattr(task, "tags", []),
+                "opportunity_triggers": getattr(task, "opportunity_triggers", []),
+                "blockers": getattr(task, "blockers", []),
+                "rationale": getattr(task, "rationale", ""),
+            }
+        status = payload.get("status")
+        if hasattr(status, "value"):
+            payload["status"] = status.value
+        return payload
+
+    def _task_memory_query(self, goal: str, task_payload: dict) -> str:
+        parts = [goal]
+        for key in ("title", "type", "assigned_skill", "rationale"):
+            if task_payload.get(key):
+                parts.append(str(task_payload.get(key)))
+        for key in ("tags", "opportunity_triggers", "blockers"):
+            values = task_payload.get(key, [])
+            if isinstance(values, list):
+                parts.extend(str(value) for value in values)
+        for key in ("preconditions", "success_criteria", "failure_criteria"):
+            value = task_payload.get(key)
+            if value:
+                parts.append(json.dumps(value, default=str))
+        return " ".join(part for part in parts if str(part or "").strip())
+
+    def _rank_memory_entries_for_query(
+        self,
+        query: str,
+        current_state: Optional[dict] = None,
+        limit: int = 5,
+        mark_recalled: bool = False,
+    ) -> list[dict]:
+        query_words = self._transfer_tokens(query)
+        state_words = self._transfer_tokens(json.dumps(current_state or {}, default=str))
+        ranked = []
+        for entry in self.entries.values():
+            if not self._entry_applicable(entry, current_state):
+                continue
+            entry_words = self._transfer_tokens(entry.prompt_line())
+            matches = sorted((query_words & entry_words) | (state_words & entry_words))
+            if not matches:
+                continue
+            tag_matches = sorted(query_words & self._transfer_tokens(" ".join(entry.tags)))
+            score = (
+                len(query_words & entry_words) * 1.3
+                + len(state_words & entry_words) * 0.7
+                + len(tag_matches) * 0.5
+                + entry.importance * entry.confidence
+            )
+            ranked.append({
+                "id": entry.id,
+                "content": entry.content,
+                "layer": entry.layer,
+                "memory_type": entry.memory_type,
+                "tags": list(entry.tags),
+                "score": round(score, 4),
+                "matches": matches[:12],
+                "source": entry.source,
+            })
+        ranked.sort(key=lambda item: (item["score"], len(item["matches"])), reverse=True)
+        selected = ranked[:limit] if limit and limit > 0 else ranked
+        if mark_recalled and selected:
+            for item in selected:
+                entry = self.entries.get(item["id"])
+                if entry:
+                    self._mark_entry_recalled(entry, query)
+            self._rewrite_entries()
+        return selected
 
     def _mark_entry_recalled(self, entry: MemoryEntry, query: str):
         entry.uses += 1

@@ -289,6 +289,57 @@ def test_memory_ranks_experiences_by_transfer_axes():
     print("PASS: Memory ranks experiences by transfer axes")
 
 
+def test_task_memory_profile_scopes_memory_to_active_task():
+    memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
+    memory.add_memory(
+        "For stone tools, craft sticks first and use a crafting table.",
+        tags=["stone_pickaxe", "sticks", "crafting_table"],
+        importance=0.9,
+    )
+    memory.record_experience(
+        goal="Craft a wooden pickaxe",
+        task="Convert logs into planks, sticks, and a pickaxe",
+        outcome="wooden_pickaxe crafted",
+        dimensions={
+            "structure": "planks -> sticks -> pickaxe",
+            "attribute": {"tool_family": "pickaxe", "materials": ["stick"]},
+            "process": "craft intermediate materials before the pickaxe",
+            "function": "make a pickaxe for mining",
+            "interaction": "use crafting_table",
+        },
+        causal={"which": "craft", "why": "sticks and table unlock tool recipes"},
+        tags=["pickaxe", "tool", "crafting"],
+        success=True,
+    )
+    task = {
+        "title": "Craft stone pickaxe",
+        "type": "crafting",
+        "preconditions": {"inventory": {"cobblestone": 3, "stick": 2}},
+        "success_criteria": {"inventory": {"stone_pickaxe": 1}},
+        "opportunity_triggers": ["crafting_table"],
+        "tags": ["stone_pickaxe", "tool"],
+    }
+
+    profile = memory.task_memory_profile(
+        "Upgrade mining tool",
+        task=task,
+        current_state={"inventory": {"cobblestone": 3, "stick": 2, "crafting_table": 1}},
+    )
+    context = memory.task_memory_context(
+        "Upgrade mining tool",
+        task=task,
+        current_state={"inventory": {"cobblestone": 3, "stick": 2, "crafting_table": 1}},
+    )
+
+    assert profile["memory_match_count"] >= 1
+    assert profile["transfer_match_count"] >= 1
+    assert profile["memory_matches"][0]["content"].startswith("For stone tools")
+    assert "Task-centric memory" in context
+    assert "success criteria" in context
+    assert "transfer[" in context
+    print("PASS: Task memory profile scopes memory to active task")
+
+
 def test_memory_read_filters_stale_and_conditional_entries():
     memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
     stale = memory.add_memory(
@@ -704,6 +755,42 @@ def test_agent_passes_observation_to_memory_retrieval():
     assert agent.session_logger.events[0]["type"] == "memory_read"
     assert agent.session_logger.events[0]["data"]["read_filter_report"]["filtered_entries"] == 1
     print("PASS: Agent passes observation to memory retrieval")
+
+
+def test_agent_injects_task_memory_context_for_planner():
+    agent = object.__new__(Agent)
+    agent.config = Config(enable_task_memory_context=True)
+    agent.memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
+    agent.memory_policy = MemoryLifecyclePolicy()
+    agent.session_logger = FakeSessionLogger()
+    agent.task_system = TaskSystem()
+    agent.task_system.create_task(
+        "Craft stone pickaxe",
+        status=TaskStatus.ACCEPTED,
+        priority=1,
+        preconditions={"inventory": {"cobblestone": 3, "stick": 2}},
+        success_criteria={"inventory": {"stone_pickaxe": 1}},
+        opportunity_triggers=["crafting_table"],
+        tags=["stone_pickaxe", "tool"],
+    )
+    agent.memory.add_memory(
+        "Stone pickaxe crafting needs cobblestone, sticks, and a crafting table.",
+        tags=["stone_pickaxe", "crafting_table"],
+        importance=0.9,
+    )
+
+    context = agent._task_memory_context(
+        "Upgrade mining tool",
+        {"inventory": {"cobblestone": 3, "stick": 2, "crafting_table": 1}},
+    )
+
+    assert "Task-centric memory" in context
+    assert "Stone pickaxe crafting" in context
+    event = agent.session_logger.events[-1]
+    assert event["type"] == "memory_read"
+    assert event["data"]["memory_type"] == "task_memory"
+    assert event["data"]["query"] == "Upgrade mining tool Craft stone pickaxe"
+    print("PASS: Agent injects task memory context for planner")
 
 
 def test_memory_policy_routes_correlated_evidence_to_review():
@@ -1576,6 +1663,7 @@ if __name__ == "__main__":
     test_knowledge_graph_plans_resources_and_tools()
     test_memory_curates_and_retrieves_transfer_experience()
     test_memory_ranks_experiences_by_transfer_axes()
+    test_task_memory_profile_scopes_memory_to_active_task()
     test_memory_read_filters_stale_and_conditional_entries()
     test_memory_tracks_recall_diversity_for_consolidation()
     test_memory_persists_entries_and_experiences()
@@ -1590,6 +1678,7 @@ if __name__ == "__main__":
     test_agent_logs_memory_lifecycle_events_for_policy_report()
     test_agent_memory_policy_can_suppress_noisy_write_when_enforced()
     test_agent_passes_observation_to_memory_retrieval()
+    test_agent_injects_task_memory_context_for_planner()
     test_memory_policy_routes_correlated_evidence_to_review()
     test_memory_policy_routes_state_revisions_to_review()
     test_planner_preserves_task_scheduling_hints()
