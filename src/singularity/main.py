@@ -294,6 +294,13 @@ def main():
     mixed_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     mixed_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline mixed-initiative trace report
+    mixed_trace_parser = subparsers.add_parser("mixed-initiative-trace-report", help="Replay session logs through MineNPC-style task validators")
+    mixed_trace_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    mixed_trace_parser.add_argument("--template", type=str, default="auto", choices=["auto", "collect_oak_logs", "fetch_named_tool"], help="Template to use for all goals")
+    mixed_trace_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    mixed_trace_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline visual review pipeline
     visual_pipeline_parser = subparsers.add_parser("visual-review-pipeline", help="Run visual trace audit, review templates, label validation, and optional ablations")
     visual_pipeline_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -1025,6 +1032,52 @@ def main():
         if getattr(args, "output", ""):
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "mixed-initiative-trace-report":
+        from singularity.evaluation.mixed_initiative import build_mixed_initiative_trace_report
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("mixed-initiative-trace-report requires at least one --session-log")
+            sys.exit(1)
+        report = build_mixed_initiative_trace_report(
+            session_logs,
+            template_id=getattr(args, "template", "auto"),
+        )
+        print("\nMixed-Initiative Trace Report")
+        print(f"  logs: {report.log_count}")
+        print(f"  goals: {report.goal_count}")
+        print(f"  goals needing clarification: {report.needs_clarification_count}")
+        print(f"  unbound slots: {report.unbound_slot_count}")
+        print(f"  validator success: {report.validator_success_count}/{report.goal_count}")
+        print(f"  policy violations: {report.policy_violation_count}")
+        if report.agreement_counts:
+            parts = [f"{key}={value}" for key, value in sorted(report.agreement_counts.items())]
+            print(f"  agreement: {', '.join(parts)}")
+        for case in report.cases:
+            marker = "+" if case.validator_success else "x" if case.policy_violation_count else "~"
+            print(f"  [{marker}] {case.goal}")
+            print(f"      template={case.template_id}, preview={case.plan_preview}")
+            print(
+                f"      subtasks={case.validation_passed_count}/{case.subtask_count} passed, "
+                f"failed={case.validation_failed_count}, invalid={case.validation_invalid_count}, "
+                f"unknown={case.validation_unknown_count}"
+            )
+            if case.needs_clarification and case.clarifying_questions:
+                print(f"      clarification: {case.clarifying_questions[0]}")
+            if case.goal_verification_status:
+                print(
+                    f"      goal verifier: status={case.goal_verification_status}, "
+                    f"accepted={case.goal_verification_accepted}"
+                )
+            print(f"      agreement: {case.agreement}")
+        for error in report.errors:
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
         return
 

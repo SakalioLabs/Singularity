@@ -157,6 +157,10 @@ python -m singularity.main mixed-initiative-report --goal "Get me a pickaxe" --c
 # Use --evidence-file with pre_observation/post_observation/actions/recent_chat JSON to validate subtasks
 # without admin commands, hidden world state, or global map shortcuts.
 
+# Replay session logs through the same MineNPC-style template validators and
+# compare bounded validator outcomes with logged GoalVerifier decisions.
+python -m singularity.main mixed-initiative-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/mixed_initiative_trace.json
+
 # M2 benchmarks (LLM planning)
 python -m singularity.main benchmark --suite m2
 

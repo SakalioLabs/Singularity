@@ -1,6 +1,8 @@
 """Unit tests for MineNPC-style mixed-initiative task templates."""
+import json
 import os
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -8,7 +10,16 @@ from singularity.evaluation.mixed_initiative import (
     BoundedEvidenceValidator,
     MixedInitiativeTemplateCompiler,
     build_mixed_initiative_report,
+    build_mixed_initiative_trace_report,
 )
+
+
+def write_jsonl(events):
+    path = os.path.join(tempfile.mkdtemp(), "session.jsonl")
+    with open(path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+    return path
 
 
 def test_collect_logs_template_binds_goal_slots_and_context():
@@ -135,6 +146,106 @@ def test_mixed_initiative_report_validates_all_subtasks():
     print("PASS: Mixed-initiative report validates each template subtask")
 
 
+def test_mixed_initiative_trace_report_agrees_with_goal_verifier():
+    session_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Collect 20 oak logs"}},
+        {"type": "observation", "data": {"inventory": {}, "nearby_blocks": [{"name": "oak_log"}]}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "dig", "parameters": {"block": "oak_log"}},
+                "result": {"success": True},
+            },
+        },
+        {
+            "type": "observation",
+            "data": {
+                "inventory": {"oak_log": 20},
+                "nearby_blocks": [{"name": "oak_log"}],
+                "recent_chat": ["logs collected"],
+            },
+        },
+        {
+            "type": "goal_verification",
+            "data": {
+                "goal": "Collect 20 oak logs",
+                "achieved": True,
+                "status": "achieved",
+                "context": {"accepted": True},
+            },
+        },
+        {"type": "goal_end", "data": {"goal": "Collect 20 oak logs", "result": {"completed": True}}},
+    ])
+
+    report = build_mixed_initiative_trace_report([session_path])
+
+    assert report.goal_count == 1
+    assert report.validator_success_count == 1
+    assert report.agreement_counts["agrees_success"] == 1
+    case = report.cases[0]
+    assert case.validation_passed_count == 3
+    assert case.goal_verification_status == "achieved"
+    assert case.evidence_summary["recent_chat_count"] == 1
+    print("PASS: Mixed-initiative trace report agrees with goal verifier on bounded evidence")
+
+
+def test_mixed_initiative_trace_report_flags_validator_stricter_case():
+    session_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Collect 20 oak logs"}},
+        {"type": "observation", "data": {"inventory": {}, "nearby_blocks": [{"name": "oak_log"}]}},
+        {"type": "observation", "data": {"inventory": {"oak_log": 20}, "nearby_blocks": [{"name": "oak_log"}]}},
+        {
+            "type": "goal_verification",
+            "data": {
+                "goal": "Collect 20 oak logs",
+                "achieved": True,
+                "status": "achieved",
+                "context": {"accepted": True},
+            },
+        },
+        {"type": "goal_end", "data": {"goal": "Collect 20 oak logs", "result": {"completed": True}}},
+    ])
+
+    report = build_mixed_initiative_trace_report([session_path])
+
+    assert report.goal_count == 1
+    case = report.cases[0]
+    assert not case.validator_success
+    assert case.validation_failed_count == 1
+    assert case.agreement == "validator_stricter"
+    print("PASS: Mixed-initiative trace report flags validator stricter than goal verifier")
+
+
+def test_mixed_initiative_trace_report_flags_policy_violation():
+    session_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Collect 20 oak logs"}},
+        {"type": "observation", "data": {"inventory": {}, "nearby_blocks": [{"name": "oak_log"}]}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "chat", "parameters": {"message": "/give Singularity oak_log 20"}},
+                "result": {"success": True},
+            },
+        },
+        {
+            "type": "observation",
+            "data": {
+                "inventory": {"oak_log": 20},
+                "nearby_blocks": [{"name": "oak_log"}],
+                "recent_chat": ["logs collected"],
+            },
+        },
+        {"type": "goal_end", "data": {"goal": "Collect 20 oak logs", "result": {"completed": True}}},
+    ])
+
+    report = build_mixed_initiative_trace_report([session_path])
+
+    assert report.policy_violation_count == 3
+    assert report.cases[0].agreement == "invalid_policy"
+    assert all(result["status"] == "invalid" for result in report.cases[0].validation)
+    print("PASS: Mixed-initiative trace report invalidates privileged shortcuts")
+
+
 if __name__ == "__main__":
     test_collect_logs_template_binds_goal_slots_and_context()
     test_fetch_tool_template_asks_single_targeted_clarification()
@@ -142,4 +253,7 @@ if __name__ == "__main__":
     test_bounded_validator_accepts_inventory_evidence()
     test_bounded_validator_rejects_privileged_commands()
     test_mixed_initiative_report_validates_all_subtasks()
+    test_mixed_initiative_trace_report_agrees_with_goal_verifier()
+    test_mixed_initiative_trace_report_flags_validator_stricter_case()
+    test_mixed_initiative_trace_report_flags_policy_violation()
     print("\nMixed-initiative tests PASSED")

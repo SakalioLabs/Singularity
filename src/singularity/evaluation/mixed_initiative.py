@@ -8,6 +8,7 @@ validators that only use bounded in-world evidence.
 from __future__ import annotations
 
 import math
+import json
 import re
 from dataclasses import asdict, dataclass, field
 from typing import Any, Optional
@@ -148,6 +149,91 @@ class SubtaskValidationResult:
             "missing": list(self.missing),
             "policy_violations": [violation.to_dict() for violation in self.policy_violations],
             "bounded_evidence_keys": list(self.bounded_evidence_keys),
+        }
+
+
+@dataclass
+class MixedInitiativeTraceCase:
+    source_log: str
+    goal: str
+    event_count: int = 0
+    observation_count: int = 0
+    action_count: int = 0
+    template_id: str = ""
+    template_name: str = ""
+    category: str = ""
+    plan_preview: str = ""
+    subtask_count: int = 0
+    needs_clarification: bool = False
+    unbound_slot_count: int = 0
+    clarifying_questions: list[str] = field(default_factory=list)
+    suppressed_questions: list[str] = field(default_factory=list)
+    memory_write_candidate_count: int = 0
+    validation_passed_count: int = 0
+    validation_failed_count: int = 0
+    validation_invalid_count: int = 0
+    validation_unknown_count: int = 0
+    policy_violation_count: int = 0
+    goal_verification_status: str = ""
+    goal_verification_achieved: Optional[bool] = None
+    goal_verification_accepted: Optional[bool] = None
+    validator_success: bool = False
+    agreement: str = "unverified"
+    plan: dict = field(default_factory=dict)
+    validation: list[dict] = field(default_factory=list)
+    evidence_summary: dict = field(default_factory=dict)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
+class MixedInitiativeTraceReport:
+    cases: list[MixedInitiativeTraceCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len({case.source_log for case in self.cases})
+
+    @property
+    def goal_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def needs_clarification_count(self) -> int:
+        return sum(1 for case in self.cases if case.needs_clarification)
+
+    @property
+    def unbound_slot_count(self) -> int:
+        return sum(case.unbound_slot_count for case in self.cases)
+
+    @property
+    def validator_success_count(self) -> int:
+        return sum(1 for case in self.cases if case.validator_success)
+
+    @property
+    def policy_violation_count(self) -> int:
+        return sum(case.policy_violation_count for case in self.cases)
+
+    @property
+    def agreement_counts(self) -> dict:
+        counts = {}
+        for case in self.cases:
+            counts[case.agreement] = counts.get(case.agreement, 0) + 1
+        return counts
+
+    def to_dict(self) -> dict:
+        return {
+            "log_count": self.log_count,
+            "goal_count": self.goal_count,
+            "needs_clarification_count": self.needs_clarification_count,
+            "unbound_slot_count": self.unbound_slot_count,
+            "validator_success_count": self.validator_success_count,
+            "policy_violation_count": self.policy_violation_count,
+            "agreement_counts": self.agreement_counts,
+            "errors": list(self.errors),
+            "cases": [case.to_dict() for case in self.cases],
         }
 
 
@@ -865,4 +951,252 @@ def build_mixed_initiative_report(
             "invalid": sum(1 for result in validation if result["status"] == "invalid"),
             "unknown": sum(1 for result in validation if result["status"] == "unknown"),
         },
+    }
+
+
+def build_mixed_initiative_trace_report(
+    session_log_paths: list[str],
+    template_id: str = "auto",
+) -> MixedInitiativeTraceReport:
+    """Replay session JSONL logs through MineNPC-style template validators."""
+    compiler = MixedInitiativeTemplateCompiler()
+    report = MixedInitiativeTraceReport()
+    for path in session_log_paths:
+        try:
+            events = _load_session_events(path)
+        except Exception as exc:
+            report.errors.append(f"{path}: {exc}")
+            continue
+        segments = _goal_segments(events)
+        if not segments:
+            report.errors.append(f"{path}: no goal_start/goal_end segments found")
+            continue
+        for goal, segment in segments:
+            if not goal:
+                report.errors.append(f"{path}: skipped segment with missing goal")
+                continue
+            try:
+                case = _mixed_initiative_trace_case(path, goal, segment, compiler, template_id)
+                report.cases.append(case)
+            except Exception as exc:
+                report.errors.append(f"{path}: {goal}: {exc}")
+    return report
+
+
+def _mixed_initiative_trace_case(
+    source_log: str,
+    goal: str,
+    events: list[dict],
+    compiler: MixedInitiativeTemplateCompiler,
+    template_id: str,
+) -> MixedInitiativeTraceCase:
+    context = _trace_context(events)
+    plan = compiler.compile_goal(goal, template_id=template_id, context=context)
+    evidence = _bounded_evidence_from_events(events)
+    validator = BoundedEvidenceValidator(
+        max_scan_radius=int(plan.bounded_policy.get("max_scan_radius", 128))
+    )
+    validation = [
+        validator.validate_subtask(subtask, evidence).to_dict()
+        for subtask in plan.subtasks
+    ]
+    goal_verification = _latest_goal_verification(events)
+    validation_passed = sum(1 for result in validation if result["success"])
+    validation_failed = sum(1 for result in validation if result["status"] == "failed")
+    validation_invalid = sum(1 for result in validation if result["status"] == "invalid")
+    validation_unknown = sum(1 for result in validation if result["status"] == "unknown")
+    policy_violations = sum(len(result.get("policy_violations", [])) for result in validation)
+    validator_success = bool(validation) and all(result["success"] for result in validation)
+
+    return MixedInitiativeTraceCase(
+        source_log=source_log,
+        goal=goal,
+        event_count=len(events),
+        observation_count=sum(1 for event in events if event.get("type") == "observation"),
+        action_count=sum(1 for event in events if event.get("type") == "action"),
+        template_id=plan.template_id,
+        template_name=plan.template_name,
+        category=plan.category,
+        plan_preview=plan.plan_preview,
+        subtask_count=len(plan.subtasks),
+        needs_clarification=plan.needs_clarification,
+        unbound_slot_count=plan.unbound_slot_count,
+        clarifying_questions=list(plan.clarifying_questions),
+        suppressed_questions=list(plan.suppressed_questions),
+        memory_write_candidate_count=len(plan.memory_write_candidates),
+        validation_passed_count=validation_passed,
+        validation_failed_count=validation_failed,
+        validation_invalid_count=validation_invalid,
+        validation_unknown_count=validation_unknown,
+        policy_violation_count=policy_violations,
+        goal_verification_status=goal_verification.get("status", ""),
+        goal_verification_achieved=goal_verification.get("achieved"),
+        goal_verification_accepted=_goal_verification_accepted(goal_verification),
+        validator_success=validator_success,
+        agreement=_validator_goal_agreement(validator_success, validation_invalid > 0, goal_verification),
+        plan=plan.to_dict(),
+        validation=validation,
+        evidence_summary=_evidence_summary(evidence),
+    )
+
+
+def _load_session_events(session_log_path: str) -> list[dict]:
+    events = []
+    with open(session_log_path, "r", encoding="utf-8-sig") as f:
+        for line_number, line in enumerate(f, start=1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"line {line_number}: invalid JSON: {exc}") from exc
+            if isinstance(event, dict):
+                events.append(event)
+    return events
+
+
+def _goal_segments(events: list[dict]) -> list[tuple[str, list[dict]]]:
+    segments = []
+    current_goal = ""
+    current_events: list[dict] = []
+    for event in events:
+        event_type = event.get("type")
+        data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+        if event_type == "goal_start":
+            if current_events:
+                segments.append((current_goal, current_events))
+            current_goal = str(data.get("goal", ""))
+            current_events = [event]
+            continue
+        if current_events:
+            current_events.append(event)
+            if event_type == "goal_end":
+                if not current_goal:
+                    current_goal = str(data.get("goal", ""))
+                segments.append((current_goal, current_events))
+                current_goal = ""
+                current_events = []
+        elif event_type == "goal_end":
+            goal = str(data.get("goal", ""))
+            segments.append((goal, [event]))
+    if current_events:
+        segments.append((current_goal, current_events))
+    return segments
+
+
+def _trace_context(events: list[dict]) -> dict:
+    context = {
+        "slots": {},
+        "memory_preferences": {},
+        "clarification_answers": {},
+    }
+    for event in events:
+        data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+        if event.get("type") in {"clarification", "clarification_answer"}:
+            slot = data.get("slot") or data.get("parameter")
+            value = data.get("value") or data.get("answer")
+            if slot and value not in (None, ""):
+                context["clarification_answers"][str(slot)] = value
+        if event.get("type") == "memory_write":
+            content = data.get("content", {})
+            if isinstance(content, dict) and content.get("memory_type") == "scoped_preference":
+                slot = content.get("slot")
+                value = content.get("value")
+                if slot and value not in (None, ""):
+                    context["memory_preferences"][str(slot)] = value
+        if event.get("type") == "observation":
+            obs_preferences = data.get("memory_preferences", {})
+            if isinstance(obs_preferences, dict):
+                context["memory_preferences"].update(obs_preferences)
+            slots = data.get("slots", {})
+            if isinstance(slots, dict):
+                context["slots"].update(slots)
+    return {key: value for key, value in context.items() if value}
+
+
+def _bounded_evidence_from_events(events: list[dict]) -> dict:
+    observations = [
+        event.get("data", {})
+        for event in events
+        if event.get("type") == "observation" and isinstance(event.get("data", {}), dict)
+    ]
+    actions = [
+        event.get("data", {})
+        for event in events
+        if event.get("type") == "action" and isinstance(event.get("data", {}), dict)
+    ]
+    recent_chat = []
+    for event in events:
+        data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+        if event.get("type") in {"chat", "message"}:
+            text = data.get("message") or data.get("text")
+            if text:
+                recent_chat.append(str(text))
+        if event.get("type") == "observation":
+            for key in ("recent_chat", "chat"):
+                value = data.get(key, [])
+                if isinstance(value, list):
+                    recent_chat.extend(str(item) for item in value)
+                elif value:
+                    recent_chat.append(str(value))
+    return {
+        "pre_observation": observations[0] if observations else {},
+        "post_observation": observations[-1] if observations else {},
+        "actions": actions,
+        "recent_chat": recent_chat,
+    }
+
+
+def _latest_goal_verification(events: list[dict]) -> dict:
+    for event in reversed(events):
+        if event.get("type") == "goal_verification" and isinstance(event.get("data", {}), dict):
+            return event["data"]
+    return {}
+
+
+def _goal_verification_accepted(goal_verification: dict) -> Optional[bool]:
+    if not goal_verification:
+        return None
+    context = goal_verification.get("context", {})
+    if isinstance(context, dict) and "accepted" in context:
+        return bool(context.get("accepted"))
+    if "achieved" in goal_verification:
+        return bool(goal_verification.get("achieved"))
+    return None
+
+
+def _validator_goal_agreement(
+    validator_success: bool,
+    validator_invalid: bool,
+    goal_verification: dict,
+) -> str:
+    if validator_invalid:
+        return "invalid_policy"
+    accepted = _goal_verification_accepted(goal_verification)
+    achieved = goal_verification.get("achieved") if goal_verification else None
+    if accepted is None and achieved is None:
+        return "no_goal_verification"
+    goal_success = bool(accepted if accepted is not None else achieved)
+    if validator_success and goal_success:
+        return "agrees_success"
+    if not validator_success and not goal_success:
+        return "agrees_failure"
+    if not validator_success and goal_success:
+        return "validator_stricter"
+    return "goal_verifier_stricter"
+
+
+def _evidence_summary(evidence: dict) -> dict:
+    pre = evidence.get("pre_observation", {}) if isinstance(evidence.get("pre_observation", {}), dict) else {}
+    post = evidence.get("post_observation", {}) if isinstance(evidence.get("post_observation", {}), dict) else {}
+    return {
+        "has_pre_observation": bool(pre),
+        "has_post_observation": bool(post),
+        "pre_inventory_keys": sorted((pre.get("inventory", {}) or {}).keys()) if isinstance(pre.get("inventory", {}), dict) else [],
+        "post_inventory_keys": sorted((post.get("inventory", {}) or {}).keys()) if isinstance(post.get("inventory", {}), dict) else [],
+        "nearby_block_count": len(post.get("nearby_blocks", []) or []),
+        "nearby_entity_count": len(post.get("nearby_entities", []) or []),
+        "action_count": len(evidence.get("actions", []) or []),
+        "recent_chat_count": len(evidence.get("recent_chat", []) or []),
     }

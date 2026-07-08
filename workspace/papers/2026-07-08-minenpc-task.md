@@ -21,4 +21,5 @@
   - Added `src/singularity/evaluation/mixed_initiative.py` with seed MineNPC-style templates for collecting oak logs and fetching a named pickaxe.
   - Added `mixed-initiative-report` CLI to compile a natural-language goal into a plan preview, one surfaced clarification, subtask records, scoped memory-write candidates, and optional bounded-evidence validation.
   - Added `BoundedEvidenceValidator` for inventory, inventory-delta, equipment, flag, nearby-block/entity, chat, action-success, and position-delta checks, plus policy violations for admin commands, hidden evidence, and over-wide scans.
-**Next Action**: Mine real chat/session logs into more templates, then connect template validators into live benchmark denominators for mixed-initiative tasks.
+  - Added `mixed-initiative-trace-report` to replay session logs through the same template validators and compare bounded validator outcomes against logged `GoalVerifier` decisions.
+**Next Action**: Mine recurring chat/session-log requests into more templates, then connect template validators into live benchmark denominators for mixed-initiative tasks.
