@@ -120,6 +120,7 @@
 - [x] Add GameWorld and OmniGameArena paper cards for verifiable game-agent evaluation and improvement-dynamics benchmarking.
 - [x] Add `mixed-initiative-variant-report` for held-out template paraphrases, expected slot checks, JSON/JSONL case files, and optional bounded validator replay.
 - [x] Add GameWorld-style action-validity metrics to `mixed-initiative-trace-report`, separating raw action success from bounded-policy-valid success and aggregating by template.
+- [x] Add `mixed_initiative_feedback` hints to trace JSON so action-validity, validator disagreement, and unsupported-template signals can feed later policy/template updates.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -140,6 +141,7 @@
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
 - [ ] Mine real player/session requests into `mixed-initiative-variant-report --case-file` suites and track held-out template coverage before changing auto-selection heuristics.
 - [ ] Run `mixed-initiative-trace-report` on live M1/M2/M7 logs and compare `template_action_metrics` for invalid actions, failed backend actions, and valid-success rates by task family.
+- [ ] Feed `mixed_initiative_feedback.policy_hints` from live traces into action/template policy experiments and compare before/after held-out variant coverage.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
 - [ ] Run an unknown visual/environment goal with `--goal-critic` and inspect `goal_verification_metrics` plus critic evidence in the session log.
 - [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces and compare completion judgments against manual review.

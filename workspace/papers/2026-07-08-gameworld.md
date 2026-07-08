@@ -18,5 +18,5 @@
   - `GoalVerifier`, mixed-initiative bounded validators, `action-abstraction-report`, and visual-action ablations together form a Minecraft-specific version of standardized semantic actions plus verifiable metrics.
   - New mixed-initiative templates should ship with a validator and at least one replayable trace test, not just a prompt pattern.
   - Future live benchmark reports should separate semantic action validity, Mineflayer backend success, and final task evidence.
-**Implemented Hook**: `mixed-initiative-trace-report` now separates raw action success, bounded-policy-valid success, invalid action counts, action type counts, and per-template action-validity aggregates.
+**Implemented Hook**: `mixed-initiative-trace-report` now separates raw action success, bounded-policy-valid success, invalid action counts, action type counts, per-template action-validity aggregates, and `mixed_initiative_feedback` policy hints.
 **Next Action**: Feed live M1/M2/M7 session logs into the trace report and compare action-validity regressions by task family.

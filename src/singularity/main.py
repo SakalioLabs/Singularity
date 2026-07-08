@@ -1140,6 +1140,15 @@ def main():
                     f"valid={item['valid_action_count']}, invalid={item['invalid_action_count']}, "
                     f"valid_success_rate={item['valid_action_success_rate']:.2f}"
                 )
+        feedback = report.mixed_initiative_feedback
+        if feedback.get("policy_hints"):
+            print("  feedback hints:")
+            for hint in feedback["policy_hints"][:6]:
+                target = hint.get("template_id") or hint.get("candidate_id") or "trace"
+                print(
+                    f"    - {hint['policy']}[{hint.get('priority', 'low')}] "
+                    f"{target}: {hint.get('reason', '')}"
+                )
         if report.template_candidates:
             print("  template candidates:")
             for candidate in report.template_candidates[:6]:

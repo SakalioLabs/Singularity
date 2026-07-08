@@ -301,6 +301,8 @@ def test_mixed_initiative_trace_report_flags_validator_stricter_case():
     assert not case.validator_success
     assert case.validation_failed_count == 1
     assert case.agreement == "validator_stricter"
+    feedback = report.mixed_initiative_feedback
+    assert any(hint["policy"] == "audit_goal_verifier_acceptance" for hint in feedback["policy_hints"])
     print("PASS: Mixed-initiative trace report flags validator stricter than goal verifier")
 
 
@@ -339,8 +341,39 @@ def test_mixed_initiative_trace_report_flags_policy_violation():
     assert report.cases[0].agreement == "invalid_policy"
     assert report.cases[0].invalid_action_count == 1
     assert report.template_action_metrics[0]["invalid_action_count"] == 1
+    feedback = report.mixed_initiative_feedback
+    policies = {hint["policy"]: hint for hint in feedback["policy_hints"]}
+    assert policies["reject_invalid_actions"]["priority"] == "high"
+    assert policies["reject_invalid_actions"]["invalid_action_count"] == 1
     assert all(result["status"] == "invalid" for result in report.cases[0].validation)
     print("PASS: Mixed-initiative trace report invalidates privileged shortcuts")
+
+
+def test_mixed_initiative_trace_report_feedback_flags_failed_actions():
+    session_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Craft 4 torches"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch"}},
+                "result": {"success": False, "error": "Missing coal"},
+            },
+        },
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {"type": "goal_end", "data": {"goal": "Craft 4 torches", "result": {"completed": False}}},
+    ])
+
+    report = build_mixed_initiative_trace_report([session_path])
+
+    assert report.failed_action_count == 1
+    assert report.valid_action_success_rate == 0.0
+    assert report.template_action_metrics[0]["template_id"] == "craft_or_process_item"
+    feedback = report.mixed_initiative_feedback
+    policies = {hint["policy"]: hint for hint in feedback["policy_hints"]}
+    assert policies["inspect_backend_execution"]["template_id"] == "craft_or_process_item"
+    assert policies["improve_action_policy"]["valid_action_success_rate"] == 0.0
+    print("PASS: Mixed-initiative feedback flags failed backend actions")
 
 
 def test_mixed_initiative_trace_report_groups_template_candidates():
@@ -363,6 +396,11 @@ def test_mixed_initiative_trace_report_groups_template_candidates():
     assert candidate["count"] == 2
     assert "goal_verification" in candidate["suggested_validators"]
     assert all(case.template_id == "unsupported_request" for case in report.cases)
+    feedback = report.mixed_initiative_feedback
+    candidate_hint = feedback["template_candidate_hints"][0]
+    assert candidate_hint["policy"] == "promote_template_candidate"
+    assert candidate_hint["candidate_id"] == "general_player_request"
+    assert candidate_hint["priority"] == "medium"
     print("PASS: Mixed-initiative trace report groups unsupported goals into template candidates")
 
 
@@ -437,6 +475,7 @@ if __name__ == "__main__":
     test_mixed_initiative_trace_report_agrees_with_goal_verifier()
     test_mixed_initiative_trace_report_flags_validator_stricter_case()
     test_mixed_initiative_trace_report_flags_policy_violation()
+    test_mixed_initiative_trace_report_feedback_flags_failed_actions()
     test_mixed_initiative_trace_report_groups_template_candidates()
     test_mixed_initiative_variant_report_checks_heldout_templates()
     test_mixed_initiative_variant_report_flags_slot_mismatch()

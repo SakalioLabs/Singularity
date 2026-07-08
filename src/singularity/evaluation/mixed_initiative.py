@@ -345,6 +345,10 @@ class MixedInitiativeTraceReport:
             metrics.append(item)
         return sorted(metrics, key=lambda item: item["template_id"])
 
+    @property
+    def mixed_initiative_feedback(self) -> dict:
+        return _mixed_initiative_feedback(self)
+
     def to_dict(self) -> dict:
         return {
             "log_count": self.log_count,
@@ -366,6 +370,7 @@ class MixedInitiativeTraceReport:
             "template_candidates": self.template_candidates,
             "action_type_counts": self.action_type_counts,
             "template_action_metrics": self.template_action_metrics,
+            "mixed_initiative_feedback": self.mixed_initiative_feedback,
             "errors": list(self.errors),
             "cases": [case.to_dict() for case in self.cases],
         }
@@ -737,6 +742,133 @@ class MixedInitiativeTemplateCompiler:
             if landmark:
                 slots["landmark"] = landmark.group(1).strip().replace(" ", "_")
         return slots
+
+
+def _mixed_initiative_feedback(report: MixedInitiativeTraceReport) -> dict:
+    """Aggregate trace metrics into template and policy improvement hints."""
+    template_hints = []
+    for item in report.template_action_metrics:
+        template_id = item["template_id"]
+        action_count = int(item.get("action_count", 0) or 0)
+        invalid_count = int(item.get("invalid_action_count", 0) or 0)
+        failed_count = int(item.get("failed_action_count", 0) or 0)
+        valid_count = int(item.get("valid_action_count", 0) or 0)
+        validator_success_count = int(item.get("validator_success_count", 0) or 0)
+        case_count = int(item.get("case_count", 0) or 0)
+        valid_success_rate = float(item.get("valid_action_success_rate", 0.0) or 0.0)
+        if invalid_count:
+            template_hints.append({
+                "policy": "reject_invalid_actions",
+                "template_id": template_id,
+                "category": item.get("category", ""),
+                "priority": "high",
+                "reason": "actions violated bounded-world policy and should not count as valid task progress",
+                "action_count": action_count,
+                "invalid_action_count": invalid_count,
+                "policy_violation_count": int(item.get("policy_violation_count", 0) or 0),
+            })
+        if failed_count:
+            priority = "high" if valid_count and valid_success_rate < 0.5 else "medium"
+            template_hints.append({
+                "policy": "inspect_backend_execution",
+                "template_id": template_id,
+                "category": item.get("category", ""),
+                "priority": priority,
+                "reason": "backend action failures indicate missing preconditions, wrong action parameters, or fragile control",
+                "failed_action_count": failed_count,
+                "valid_action_success_rate": valid_success_rate,
+                "action_type_counts": dict(item.get("action_type_counts", {})),
+            })
+        if valid_count and valid_success_rate < 0.75:
+            template_hints.append({
+                "policy": "improve_action_policy",
+                "template_id": template_id,
+                "category": item.get("category", ""),
+                "priority": "medium",
+                "reason": "valid actions are succeeding too rarely for this template family",
+                "valid_action_count": valid_count,
+                "valid_successful_action_count": int(item.get("valid_successful_action_count", 0) or 0),
+                "valid_action_success_rate": valid_success_rate,
+            })
+        if case_count and validator_success_count < case_count and template_id != "unsupported_request":
+            template_hints.append({
+                "policy": "audit_template_validator",
+                "template_id": template_id,
+                "category": item.get("category", ""),
+                "priority": "medium",
+                "reason": "some cases did not satisfy the template's bounded validator",
+                "case_count": case_count,
+                "validator_success_count": validator_success_count,
+            })
+
+    template_candidate_hints = [
+        {
+            "policy": "promote_template_candidate",
+            "candidate_id": candidate["candidate_id"],
+            "category": candidate.get("category", "general"),
+            "priority": "medium" if int(candidate.get("count", 0) or 0) > 1 else "low",
+            "reason": candidate.get("reason", "unsupported goals cluster into a reusable template family"),
+            "count": int(candidate.get("count", 0) or 0),
+            "suggested_slots": list(candidate.get("suggested_slots", [])),
+            "suggested_validators": list(candidate.get("suggested_validators", [])),
+            "example_goals": list(candidate.get("example_goals", [])[:3]),
+        }
+        for candidate in report.template_candidates
+    ]
+
+    agreement_hints = []
+    agreement_counts = report.agreement_counts
+    if agreement_counts.get("validator_stricter", 0):
+        agreement_hints.append({
+            "policy": "audit_goal_verifier_acceptance",
+            "priority": "medium",
+            "reason": "GoalVerifier accepted cases that bounded template validators rejected",
+            "count": int(agreement_counts.get("validator_stricter", 0) or 0),
+        })
+    if agreement_counts.get("goal_verifier_stricter", 0):
+        agreement_hints.append({
+            "policy": "strengthen_template_success_evidence",
+            "priority": "medium",
+            "reason": "template validators passed cases that GoalVerifier did not accept",
+            "count": int(agreement_counts.get("goal_verifier_stricter", 0) or 0),
+        })
+    if report.needs_clarification_count:
+        agreement_hints.append({
+            "policy": "mine_slot_memory",
+            "priority": "low",
+            "reason": "repeated clarifications can become scoped memory preferences or better slot inference rules",
+            "count": report.needs_clarification_count,
+        })
+
+    policy_hints = _sort_mixed_initiative_hints(
+        template_hints + agreement_hints + template_candidate_hints
+    )
+    return {
+        "goal_count": report.goal_count,
+        "unsupported_goal_count": report.unsupported_goal_count,
+        "validator_success_count": report.validator_success_count,
+        "action_count": report.action_count,
+        "invalid_action_count": report.invalid_action_count,
+        "failed_action_count": report.failed_action_count,
+        "valid_action_success_rate": report.valid_action_success_rate,
+        "agreement_counts": report.agreement_counts,
+        "template_hints": _sort_mixed_initiative_hints(template_hints),
+        "template_candidate_hints": template_candidate_hints,
+        "agreement_hints": _sort_mixed_initiative_hints(agreement_hints),
+        "policy_hints": policy_hints,
+    }
+
+
+def _sort_mixed_initiative_hints(hints: list[dict]) -> list[dict]:
+    priority_rank = {"high": 0, "medium": 1, "low": 2}
+    return sorted(
+        hints,
+        key=lambda hint: (
+            priority_rank.get(str(hint.get("priority", "low")), 3),
+            str(hint.get("policy", "")),
+            str(hint.get("template_id", hint.get("candidate_id", ""))),
+        ),
+    )
 
 
 class BoundedEvidenceValidator:
