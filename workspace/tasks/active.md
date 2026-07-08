@@ -105,6 +105,7 @@
 - [x] Add SkillDAG to the paper index and expose `skill-graph-report` for dependency/provenance/gate audits over approved skills.
 - [x] Add MineEvolve and VLM-AR3L to the paper index and expose `self-evolution-report` for progress/regression/stagnation feedback, remedy candidates, and adaptor hints.
 - [x] Add EmbodiSkill and VASO to the paper index and wire `self_evolution_feedback` into an advisory runtime `SelfEvolutionPolicy` for planner context without auto-mutating skills or bypassing verification.
+- [x] Add `self-evolution-gate` so any future automatic plan-suffix repair requires explicit self-evolution feedback, verifier success evidence, and counterexample reports before runtime mutation.
 - [x] Add OpenHA/CrossAgent to the paper index and map Chain-of-Action ideas onto Singularity's action abstraction layer.
 - [x] Add offline `action-abstraction-report` for OpenHA/CrossAgent-style analysis of canonical actions, backend commands, failed mappings, and actions that may need lower-level visual control.
 - [x] Add `action_abstraction_feedback` policy hints and an application hook so action-policy experiments can consume API-vs-visual-control recommendations.
@@ -155,7 +156,7 @@
 - [ ] Compare approved vs review-blocked discovery skill candidates on held-out redstone/building variants before enabling defaults.
 - [ ] Run `skill-graph-report` after real skill approvals and resolve missing dependencies, ungoverned custom skills, or graph cycles before runtime defaults.
 - [ ] Run `self-evolution-report` on real M1/M2/autonomous logs and compare adaptor recommendations against retry outcomes before enabling automatic plan-suffix repair.
-- [ ] Gate any future automatic self-evolution plan repair with explicit verifier/counterexample reports before allowing runtime plan mutation.
+- [ ] Run `self-evolution-gate` on real self-evolution, verifier, and counterexample reports; only then design a guarded runtime plan-suffix repair path.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
 - [ ] Mine real player/session requests into `mixed-initiative-variant-report --case-file` suites and track held-out template coverage before changing auto-selection heuristics.
 - [ ] Run `mixed-initiative-trace-report` on live M1/M2/M7 logs and compare `template_action_metrics` for invalid actions, failed backend actions, and valid-success rates by task family.

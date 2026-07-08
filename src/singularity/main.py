@@ -304,6 +304,14 @@ def main():
     self_evolution_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     self_evolution_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline self-evolution automatic repair gate
+    self_evolution_gate_parser = subparsers.add_parser("self-evolution-gate", help="Gate automatic self-evolution plan repair with verifier and counterexample evidence")
+    self_evolution_gate_parser.add_argument("--self-evolution-report", action="append", default=[], help="Saved self-evolution-report JSON")
+    self_evolution_gate_parser.add_argument("--verifier-report", action="append", default=[], help="Saved goal verifier or goal-verification-ablation JSON")
+    self_evolution_gate_parser.add_argument("--counterexample-report", action="append", default=[], help="Saved counterexample JSON proving unresolved counterexamples are absent or reviewed")
+    self_evolution_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    self_evolution_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline discovery-to-application trace report
     discovery_parser = subparsers.add_parser("discovery-application-report", help="Report SciCrafter-style discovery-to-application evidence in session logs")
     discovery_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -1279,6 +1287,33 @@ def main():
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "self-evolution-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        self_evolution_reports = getattr(args, "self_evolution_report", []) or []
+        verifier_reports = getattr(args, "verifier_report", []) or []
+        counterexample_reports = getattr(args, "counterexample_report", []) or []
+        if not self_evolution_reports and not verifier_reports and not counterexample_reports:
+            print("self-evolution-gate requires at least one evidence report")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.build_self_evolution_plan_repair_gate(
+            self_evolution_report_paths=self_evolution_reports,
+            verifier_report_paths=verifier_reports,
+            counterexample_report_paths=counterexample_reports,
+        )
+        runner.print_self_evolution_gate_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"rejected", "error"}:
+            sys.exit(1)
         return
 
     if args.command == "discovery-application-report":

@@ -1220,6 +1220,78 @@ def test_self_evolution_report_tracks_progress_and_stagnation():
     print("PASS: Self-evolution report tracks progress and stagnation")
 
 
+def test_self_evolution_gate_requires_verifier_and_counterexamples():
+    runner = BenchmarkRunner(Config())
+    self_evolution_report = {
+        "ready_log_count": 1,
+        "self_evolution_feedback": {
+            "ready_log_count": 1,
+            "failed_action_count": 2,
+            "stagnation_signal_count": 1,
+            "remedy_candidates": ["dig coal_ore: add scan/look_at before retry"],
+            "adaptor_recommendations": ["Rewrite only the unfinished suffix."],
+            "policy_hints": [
+                {
+                    "self_evolution_policy": "repair_stagnant_plan_suffix",
+                    "priority": "high",
+                }
+            ],
+        },
+        "errors": [],
+    }
+    verifier_report = {
+        "goal_count": 1,
+        "errors": [],
+        "cases": [
+            {
+                "goal": "Craft torches",
+                "screenshot_vlm_readiness": "approved",
+                "screenshot_vlm_status": "achieved",
+            }
+        ],
+    }
+    clear_counterexamples = {
+        "counterexample_count": 0,
+        "unresolved_counterexample_count": 0,
+        "counterexamples": [],
+        "errors": [],
+    }
+
+    review_report = runner.build_self_evolution_plan_repair_gate(
+        self_evolution_reports=[self_evolution_report],
+    )
+    assert review_report["readiness"] == "review"
+    assert review_report["decision"] == "keep_self_evolution_feedback_advisory"
+    assert "verifier_report" in review_report["missing"]
+    assert "counterexample_report" in review_report["missing"]
+
+    approved_report = runner.build_self_evolution_plan_repair_gate(
+        self_evolution_reports=[self_evolution_report],
+        verifier_reports=[verifier_report],
+        counterexample_reports=[clear_counterexamples],
+    )
+    assert approved_report["readiness"] == "approved"
+    assert approved_report["decision"] == "allow_verified_plan_suffix_repair"
+    assert approved_report["actionable_feedback_count"] == 1
+    assert approved_report["verifier_success_count"] == 1
+    assert approved_report["unresolved_counterexample_count"] == 0
+
+    rejected_report = runner.build_self_evolution_plan_repair_gate(
+        self_evolution_reports=[self_evolution_report],
+        verifier_reports=[verifier_report],
+        counterexample_reports=[{
+            "counterexamples": [
+                {"id": "ce-1", "status": "open", "detail": "retry still digs invisible target"}
+            ],
+            "errors": [],
+        }],
+    )
+    assert rejected_report["readiness"] == "rejected"
+    assert rejected_report["decision"] == "do_not_mutate_plan"
+    assert rejected_report["unresolved_counterexample_count"] == 1
+    print("PASS: Self-evolution gate requires verifier and counterexamples")
+
+
 def test_discovery_application_report_tracks_hypothesis_to_application_loop():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_discovery_application.jsonl")
@@ -2107,6 +2179,7 @@ if __name__ == "__main__":
     test_visual_trace_report_validates_screenshot_files()
     test_exploration_trace_report_counts_open_world_coverage()
     test_self_evolution_report_tracks_progress_and_stagnation()
+    test_self_evolution_gate_requires_verifier_and_counterexamples()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
     test_discovery_skill_gate_controls_experiment_derived_skill_promotion()
     test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates()

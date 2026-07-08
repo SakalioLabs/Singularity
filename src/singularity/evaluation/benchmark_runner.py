@@ -2376,6 +2376,294 @@ class BenchmarkRunner:
             })
         return feedback
 
+    def build_self_evolution_plan_repair_gate(
+        self,
+        self_evolution_reports: Optional[list[dict]] = None,
+        self_evolution_report_paths: Optional[list[str]] = None,
+        verifier_reports: Optional[list[dict]] = None,
+        verifier_report_paths: Optional[list[str]] = None,
+        counterexample_reports: Optional[list[dict]] = None,
+        counterexample_report_paths: Optional[list[str]] = None,
+    ) -> dict:
+        """Gate future automatic plan repair with verifier and counterexample evidence."""
+        report = {
+            "required": True,
+            "readiness": "review",
+            "decision": "keep_self_evolution_feedback_advisory",
+            "reason": "explicit self-evolution, verifier, and counterexample reports are required",
+            "self_evolution_report_count": 0,
+            "verifier_report_count": 0,
+            "counterexample_report_count": 0,
+            "actionable_feedback_count": 0,
+            "verifier_success_count": 0,
+            "verifier_failure_count": 0,
+            "counterexample_count": 0,
+            "unresolved_counterexample_count": 0,
+            "remedy_candidate_count": 0,
+            "adaptor_recommendation_count": 0,
+            "policy_hints": [],
+            "evidence_count": 0,
+            "warning_count": 0,
+            "regression_count": 0,
+            "missing": [],
+            "checks": [],
+            "errors": [],
+        }
+
+        self_items = self._load_gate_payloads(
+            self_evolution_reports or [],
+            self_evolution_report_paths or [],
+            report["errors"],
+            "self_evolution_report",
+        )
+        verifier_items = self._load_gate_payloads(
+            verifier_reports or [],
+            verifier_report_paths or [],
+            report["errors"],
+            "verifier_report",
+        )
+        counterexample_items = self._load_gate_payloads(
+            counterexample_reports or [],
+            counterexample_report_paths or [],
+            report["errors"],
+            "counterexample_report",
+        )
+
+        report["self_evolution_report_count"] = len(self_items)
+        report["verifier_report_count"] = len(verifier_items)
+        report["counterexample_report_count"] = len(counterexample_items)
+
+        policy_hints = set()
+        for source, payload in self_items:
+            check = self._self_evolution_gate_check(source, payload)
+            report["checks"].append(check)
+            metrics = check.get("metrics", {})
+            report["actionable_feedback_count"] += int(metrics.get("actionable_feedback", 0) or 0)
+            report["remedy_candidate_count"] += int(metrics.get("remedy_candidate_count", 0) or 0)
+            report["adaptor_recommendation_count"] += int(metrics.get("adaptor_recommendation_count", 0) or 0)
+            policy_hints.update(metrics.get("policy_hints", []))
+
+        for source, payload in verifier_items:
+            check = self._self_evolution_verifier_gate_check(source, payload)
+            report["checks"].append(check)
+            metrics = check.get("metrics", {})
+            report["verifier_success_count"] += int(metrics.get("success_count", 0) or 0)
+            report["verifier_failure_count"] += int(metrics.get("failure_count", 0) or 0)
+
+        for source, payload in counterexample_items:
+            check = self._self_evolution_counterexample_gate_check(source, payload)
+            report["checks"].append(check)
+            metrics = check.get("metrics", {})
+            report["counterexample_count"] += int(metrics.get("counterexample_count", 0) or 0)
+            report["unresolved_counterexample_count"] += int(metrics.get("unresolved_count", 0) or 0)
+
+        if not self_items:
+            report["missing"].append("self_evolution_report")
+        if not verifier_items:
+            report["missing"].append("verifier_report")
+        if not counterexample_items:
+            report["missing"].append("counterexample_report")
+
+        report["policy_hints"] = sorted(policy_hints)
+        report["evidence_count"] = sum(1 for check in report["checks"] if check.get("status") == "pass")
+        report["warning_count"] = sum(1 for check in report["checks"] if check.get("status") == "warn")
+        report["regression_count"] = sum(1 for check in report["checks"] if check.get("status") == "fail")
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "do_not_mutate_plan"
+            report["reason"] = "gate inputs could not be loaded"
+        elif report["regression_count"] or report["verifier_failure_count"] or report["unresolved_counterexample_count"]:
+            report["readiness"] = "rejected"
+            report["decision"] = "do_not_mutate_plan"
+            report["reason"] = "verifier failures or unresolved counterexamples block automatic repair"
+        elif report["missing"] or report["warning_count"] or not report["actionable_feedback_count"]:
+            report["readiness"] = "review"
+            report["decision"] = "keep_self_evolution_feedback_advisory"
+            report["reason"] = "automatic repair requires complete, actionable, non-regressing evidence"
+        else:
+            report["readiness"] = "approved"
+            report["decision"] = "allow_verified_plan_suffix_repair"
+            report["reason"] = "self-evolution feedback is actionable and verifier/counterexample gates passed"
+        return report
+
+    def _load_gate_payloads(self, payloads: list[dict], paths: list[str], errors: list[str], label: str) -> list[tuple[str, dict]]:
+        items = []
+        for index, payload in enumerate(payloads, start=1):
+            if isinstance(payload, dict):
+                items.append((f"{label}:{index}", payload))
+            else:
+                errors.append(f"{label}:{index}: payload must be a dict")
+        for path in paths:
+            if not path:
+                continue
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    payload = json.load(f)
+                if not isinstance(payload, dict):
+                    raise ValueError("report JSON must be an object")
+                items.append((path, payload))
+            except Exception as e:
+                errors.append(f"{path}: {e}")
+        return items
+
+    def _self_evolution_gate_check(self, source: str, payload: dict) -> dict:
+        feedback = payload.get("self_evolution_feedback", payload) if isinstance(payload, dict) else {}
+        if not isinstance(feedback, dict):
+            feedback = {}
+        report_errors = payload.get("errors", []) if isinstance(payload.get("errors", []), list) else []
+        hints = feedback.get("policy_hints", []) if isinstance(feedback.get("policy_hints", []), list) else []
+        hint_names = self._dedupe_strings([
+            str(hint.get("self_evolution_policy") or hint.get("policy") or "")
+            for hint in hints
+            if isinstance(hint, dict)
+        ])
+        actionable = [
+            name for name in hint_names
+            if name in {
+                "repair_stagnant_plan_suffix",
+                "route_through_adaptor_before_retry",
+                "induce_failure_remedies",
+            }
+        ]
+        remedy_candidates = feedback.get("remedy_candidates", [])
+        adaptor_recommendations = feedback.get("adaptor_recommendations", [])
+        ready_log_count = self._gate_int(payload.get("ready_log_count", feedback.get("ready_log_count", 0)))
+        failed_action_count = self._gate_int(feedback.get("failed_action_count", payload.get("failed_action_count", 0)))
+        stagnation_count = self._gate_int(feedback.get("stagnation_signal_count", payload.get("stagnation_signal_count", 0)))
+        metrics = {
+            "ready_log_count": ready_log_count,
+            "failed_action_count": failed_action_count,
+            "stagnation_signal_count": stagnation_count,
+            "policy_hints": hint_names,
+            "actionable_feedback": 1 if actionable else 0,
+            "remedy_candidate_count": len(remedy_candidates) if isinstance(remedy_candidates, list) else 0,
+            "adaptor_recommendation_count": len(adaptor_recommendations) if isinstance(adaptor_recommendations, list) else 0,
+        }
+        if report_errors:
+            return self._gate_check(source, "self_evolution_report", "fail", "self-evolution report contains errors", metrics)
+        if actionable and (ready_log_count or failed_action_count or stagnation_count):
+            return self._gate_check(source, "self_evolution_report", "pass", "actionable self-evolution feedback is present", metrics)
+        if actionable:
+            return self._gate_check(source, "self_evolution_report", "warn", "policy hints exist but trace readiness is weak", metrics)
+        return self._gate_check(source, "self_evolution_report", "warn", "no actionable automatic-repair hint was found", metrics)
+
+    def _self_evolution_verifier_gate_check(self, source: str, payload: dict) -> dict:
+        report_errors = payload.get("errors", []) if isinstance(payload.get("errors", []), list) else []
+        cases = payload.get("cases", []) if isinstance(payload.get("cases", []), list) else []
+        success_count = 0
+        failure_count = 0
+        unknown_count = 0
+        records = cases or [payload]
+        for record in records:
+            if not isinstance(record, dict):
+                unknown_count += 1
+                continue
+            status = self._verification_gate_status(record)
+            if status == "approved":
+                success_count += 1
+            elif status == "rejected":
+                failure_count += 1
+            else:
+                unknown_count += 1
+        metrics = {
+            "case_count": len(cases),
+            "success_count": success_count,
+            "failure_count": failure_count,
+            "unknown_count": unknown_count,
+        }
+        if report_errors:
+            return self._gate_check(source, "verifier_report", "fail", "verifier report contains errors", metrics)
+        if failure_count:
+            return self._gate_check(source, "verifier_report", "fail", "verifier reported failed or rejected cases", metrics)
+        if success_count:
+            status = "warn" if unknown_count else "pass"
+            detail = "verifier passed with unknown cases" if unknown_count else "verifier evidence passed"
+            return self._gate_check(source, "verifier_report", status, detail, metrics)
+        return self._gate_check(source, "verifier_report", "warn", "no verifier success evidence was found", metrics)
+
+    def _self_evolution_counterexample_gate_check(self, source: str, payload: dict) -> dict:
+        report_errors = payload.get("errors", []) if isinstance(payload.get("errors", []), list) else []
+        examples = payload.get("counterexamples", None)
+        if examples is None:
+            examples = payload.get("cases", [])
+        if not isinstance(examples, list):
+            examples = []
+        explicit_count = self._gate_int(payload.get("counterexample_count", len(examples)))
+        unresolved = self._gate_int(payload.get("unresolved_counterexample_count", 0))
+        resolved = self._gate_int(payload.get("resolved_counterexample_count", 0))
+        unknown = 0
+        for item in examples:
+            if not isinstance(item, dict):
+                unknown += 1
+                continue
+            state = self._counterexample_state(item)
+            if state == "unresolved":
+                unresolved += 1
+            elif state == "resolved":
+                resolved += 1
+            else:
+                unknown += 1
+        counterexample_count = max(explicit_count, unresolved + resolved + unknown, len(examples))
+        metrics = {
+            "counterexample_count": counterexample_count,
+            "resolved_count": resolved,
+            "unresolved_count": unresolved,
+            "unknown_count": unknown,
+        }
+        if report_errors:
+            return self._gate_check(source, "counterexample_report", "fail", "counterexample report contains errors", metrics)
+        if unresolved:
+            return self._gate_check(source, "counterexample_report", "fail", "unresolved counterexamples remain", metrics)
+        if unknown:
+            return self._gate_check(source, "counterexample_report", "warn", "counterexample status is incomplete", metrics)
+        return self._gate_check(source, "counterexample_report", "pass", "no unresolved counterexamples remain", metrics)
+
+    def _verification_gate_status(self, record: dict) -> str:
+        for key in ("screenshot_vlm_readiness", "api_visual_readiness", "deterministic_readiness", "readiness"):
+            value = str(record.get(key) or "").lower()
+            if value in {"approved", "achieved", "passed", "pass", "success"}:
+                return "approved"
+            if value in {"rejected", "failed", "fail", "error"}:
+                return "rejected"
+        status = str(record.get("status") or "").lower()
+        if status in {"achieved", "approved", "passed", "pass", "success"}:
+            return "approved"
+        if status in {"failed", "rejected", "fail", "error"}:
+            return "rejected"
+        if record.get("achieved") is True or record.get("ok") is True:
+            return "approved"
+        if record.get("achieved") is False or record.get("ok") is False:
+            return "rejected"
+        return "unknown"
+
+    def _counterexample_state(self, item: dict) -> str:
+        if item.get("resolved") is True or item.get("fixed") is True:
+            return "resolved"
+        if item.get("resolved") is False or item.get("fixed") is False:
+            return "unresolved"
+        status = str(item.get("status") or item.get("readiness") or item.get("state") or "").lower()
+        if status in {"resolved", "closed", "fixed", "passed", "approved"}:
+            return "resolved"
+        if status in {"open", "unresolved", "failed", "rejected", "failing", "error"}:
+            return "unresolved"
+        return "unknown"
+
+    def _gate_check(self, source: str, kind: str, status: str, detail: str, metrics: dict) -> dict:
+        return {
+            "source": source,
+            "kind": kind,
+            "status": status,
+            "detail": detail,
+            "metrics": metrics,
+        }
+
+    def _gate_int(self, value) -> int:
+        try:
+            return int(float(value or 0))
+        except (TypeError, ValueError):
+            return 0
+
     def run_discovery_application_report_from_logs(self, session_log_paths: list[str]) -> DiscoveryApplicationTraceReport:
         """Summarize SciCrafter-style discovery-to-application evidence in session logs."""
         report = DiscoveryApplicationTraceReport()
@@ -5515,6 +5803,31 @@ class BenchmarkRunner:
             for recommendation in case.adaptor_recommendations[:4]:
                 print(f"      adaptor: {recommendation}")
         for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_self_evolution_gate_report(self, report: dict):
+        print("\nSelf-Evolution Plan Repair Gate")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  inputs: "
+            f"self_evolution={report.get('self_evolution_report_count', 0)}, "
+            f"verifier={report.get('verifier_report_count', 0)}, "
+            f"counterexamples={report.get('counterexample_report_count', 0)}"
+        )
+        print(
+            "  checks: "
+            f"evidence={report.get('evidence_count', 0)}, "
+            f"warnings={report.get('warning_count', 0)}, "
+            f"failures={report.get('regression_count', 0)}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for check in report.get("checks", []):
+            marker = "+" if check.get("status") == "pass" else "!" if check.get("status") == "warn" else "x"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
+        for error in report.get("errors", []):
             print(f"  error: {error}")
 
     def print_discovery_application_report(self, report: DiscoveryApplicationTraceReport):
