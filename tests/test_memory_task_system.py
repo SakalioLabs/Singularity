@@ -1389,6 +1389,53 @@ def test_skill_library_reports_skill_graph_governance():
     print("PASS: SkillLibrary reports skill graph governance")
 
 
+def test_skill_library_reports_contract_readiness_and_recommends_matches():
+    tmpdir = tempfile.mkdtemp()
+    skills = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=True)
+    skills.create_skill(
+        "craft_torch_contract",
+        "Craft torches from coal and sticks",
+        json.dumps([{"type": "craft", "parameters": {"item": "torch", "count": 4}}]),
+        preconditions={"inventory": {"Coal": 1, "stick": 1}},
+        postconditions={"inventory": {"torch": 4}},
+        dependencies=["craft_item"],
+        gate={"decision": "approve", "verification": {"status": "achieved"}},
+    )
+    skills.create_skill(
+        "mine_diamond_contract",
+        "Mine diamond ore with iron pickaxe",
+        json.dumps([{"type": "dig", "parameters": {"block": "diamond_ore"}}]),
+        required_items=["iron_pickaxe"],
+        preconditions={"nearby_block_present": ["diamond_ore"]},
+        dependencies=["dig_block"],
+        postconditions={"inventory": {"diamond": 1}},
+    )
+
+    world_state = {
+        "inventory": {"coal": 1, "stick": 2},
+        "nearby_blocks": [{"name": "coal_ore"}],
+    }
+    report = skills.skill_contract_report("Craft torches", world_state, limit=0)
+    matches = {match["name"]: match for match in report["matches"]}
+
+    ready = matches["craft_torch_contract"]
+    blocked_for_review = matches["mine_diamond_contract"]
+    assert report["matched_count"] >= 1
+    assert report["review_count"] >= 1
+    assert ready["readiness"] == "ready"
+    assert ready["score"] > 0
+    assert "inventory:torch" in ready["postcondition_targets"]
+    assert blocked_for_review["readiness"] == "review"
+    assert "iron_pickaxe" in blocked_for_review["missing_required_items"]
+    assert "nearby_block:diamond_ore" in blocked_for_review["missing_preconditions"]
+
+    recommended = skills.get_recommended_skills("Craft torches", world_state)
+    assert recommended
+    assert recommended[0].name == "craft_torch_contract"
+    assert SkillLibrary(persist=False).get_recommended_skills("any goal", {}) == []
+    print("PASS: SkillLibrary reports contract readiness and recommends matches")
+
+
 def test_skill_library_reports_canonical_dependency_cycles():
     tmpdir = tempfile.mkdtemp()
     skills = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=True)
@@ -1782,6 +1829,7 @@ if __name__ == "__main__":
     test_skill_extractor_promotes_failure_correction_candidate()
     test_skill_library_recommends_policy_skills_and_corrections()
     test_skill_library_reports_skill_graph_governance()
+    test_skill_library_reports_contract_readiness_and_recommends_matches()
     test_skill_library_reports_canonical_dependency_cycles()
     test_skill_library_handles_legacy_dependency_string()
     test_agent_runs_approved_failure_correction_sequence()

@@ -920,6 +920,24 @@
 
 ---
 
+## P-050: COS-PLAY
+
+- **Title**: Co-Evolving LLM Decision and Skill Bank Agents for Long-Horizon Tasks
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2604.20987
+- **Type**: Co-evolving game-agent skill bank and decision policy
+- **Task Type**: Long-horizon game tasks with reusable skill discovery and retrieval
+- **Core Method**: A decision agent retrieves skills from a learnable skill bank while a skill-bank agent segments rollouts, learns effect contracts, and curates skill entries
+- **Action Space**: Primitive game actions guided by retrieved skill protocols
+- **Memory**: Reusable skill bank with contracts, retrieval evidence, and maintenance operations
+- **Key Results**: Reports over 25.1% average reward improvement against frontier LLM baselines on single-player game benchmarks while staying competitive on multiplayer social reasoning games
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Supports contract-aware Minecraft skill retrieval, explicit readiness states, and skill-bank maintenance before online reuse
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-cosplay.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -973,3 +991,4 @@
 | P-047 | VASO | 2026 | R3/N5/R3/E5 | P2 |
 | P-048 | MemoryArena | 2026 | R5/N4/R3/E5 | P2 |
 | P-049 | AGI Maze | 2026 | R4/N5/R3/E5 | P2 |
+| P-050 | COS-PLAY | 2026 | R5/N5/R4/E5 | P1 |

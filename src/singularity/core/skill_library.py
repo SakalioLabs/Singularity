@@ -95,13 +95,30 @@ class SkillLibrary:
 
     def get_recommended_skills(self, goal: str, world_state: dict) -> list[Skill]:
         """Return skills that match the current context, sorted by success rate and policy relevance."""
-        candidates = [s for s in self.skills.values() if s.total_uses > 0]
-        candidates.extend(
-            skill for skill in self._policy_skills(goal, world_state)
-            if skill not in candidates
+        scored: dict[str, tuple[float, Skill]] = {}
+        for skill in self.skills.values():
+            if skill.total_uses > 0:
+                scored[skill.name] = (skill.success_rate + min(1.0, skill.total_uses * 0.05), skill)
+        for skill in self._policy_skills(goal, world_state):
+            score = self._policy_relevance_score(skill, goal, world_state) + 1.0
+            previous = scored.get(skill.name)
+            if previous is None or score > previous[0]:
+                scored[skill.name] = (score, skill)
+        for profile in self._skill_contract_profiles(goal, world_state, limit=0):
+            if profile["score"] <= 0 or profile["readiness"] == "blocked":
+                continue
+            skill = self.skills.get(profile["name"])
+            if not skill:
+                continue
+            previous = scored.get(skill.name)
+            if previous is None or profile["score"] > previous[0]:
+                scored[skill.name] = (profile["score"], skill)
+        ranked = sorted(
+            scored.values(),
+            key=lambda item: (item[0], item[1].success_rate, item[1].total_uses),
+            reverse=True,
         )
-        candidates.sort(key=lambda s: s.success_rate, reverse=True)
-        return candidates[:5]
+        return [skill for _, skill in ranked[:5]]
 
     def get_policy_skill_hints(self, goal: str, world_state: dict, limit: int = 5) -> list[str]:
         """Return concise online hints from approved causal/failure-correction skills."""
@@ -221,6 +238,25 @@ class SkillLibrary:
             "edges": sorted(edges, key=lambda edge: (edge["from"], edge["type"], edge["to"])),
         }
 
+    def skill_contract_report(self, goal: str = "", world_state: Optional[dict] = None, limit: int = 20) -> dict:
+        """Return COS-PLAY-style skill contract readiness and retrieval evidence."""
+        all_profiles = self._skill_contract_profiles(goal, world_state or {}, limit=0)
+        profiles = all_profiles[:limit] if limit and limit > 0 else all_profiles
+        issue_counts = {}
+        for profile in all_profiles:
+            for issue in profile["issues"]:
+                issue_counts[issue] = issue_counts.get(issue, 0) + 1
+        return {
+            "goal": goal,
+            "skill_count": len(self.skills),
+            "matched_count": sum(1 for profile in all_profiles if profile["score"] > 0),
+            "ready_count": sum(1 for profile in all_profiles if profile["readiness"] == "ready"),
+            "blocked_count": sum(1 for profile in all_profiles if profile["readiness"] == "blocked"),
+            "review_count": sum(1 for profile in all_profiles if profile["readiness"] == "review"),
+            "issue_counts": issue_counts,
+            "matches": profiles,
+        }
+
     def _load_custom_skills(self):
         if not os.path.exists(self.custom_path):
             return
@@ -279,6 +315,194 @@ class SkillLibrary:
         if skill.total_uses:
             score += skill.success_rate
         return score
+
+    def _skill_contract_profiles(self, goal: str, world_state: dict, limit: int = 20) -> list[dict]:
+        profiles = [
+            self._skill_contract_profile(skill, goal, world_state or {})
+            for skill in self.skills.values()
+        ]
+        profiles.sort(
+            key=lambda item: (
+                item["score"],
+                1 if item["readiness"] == "ready" else 0,
+                item["success_rate"],
+                item["total_uses"],
+            ),
+            reverse=True,
+        )
+        return profiles[:limit] if limit and limit > 0 else profiles
+
+    def _skill_contract_profile(self, skill: Skill, goal: str, world_state: dict) -> dict:
+        inventory = world_state.get("inventory", {}) if isinstance(world_state.get("inventory", {}), dict) else {}
+        builtin_names = self._builtin_skill_names()
+        goal_tokens = self._keywords(goal)
+        state_tokens = self._keywords(json.dumps({
+            "inventory": inventory,
+            "nearby_blocks": world_state.get("nearby_blocks", []),
+            "nearby_entities": world_state.get("nearby_entities", []),
+            "grounded_resources": world_state.get("grounded_resources", []),
+        }, default=str))
+        contract_text = " ".join([
+            skill.name,
+            skill.description,
+            json.dumps(skill.parameters, default=str),
+            json.dumps(skill.preconditions, default=str),
+            json.dumps(skill.postconditions, default=str),
+            " ".join(str(item) for item in skill.required_items),
+        ])
+        contract_tokens = self._keywords(contract_text)
+        goal_matches = sorted(goal_tokens & contract_tokens)
+        state_matches = sorted(state_tokens & contract_tokens)
+        postcondition_targets = self._postcondition_keys(skill.postconditions)
+        postcondition_tokens = self._keywords(" ".join(postcondition_targets))
+        postcondition_matches = sorted(goal_tokens & postcondition_tokens)
+
+        missing_preconditions = self._missing_preconditions(skill, world_state)
+        missing_required_items = self._missing_required_items(skill, inventory)
+        dependencies = self._skill_dependencies(skill)
+        missing_dependencies = [dep for dep in dependencies if dep not in self.skills]
+        governance = self._skill_governance(skill, built_in=skill.name in builtin_names)
+
+        issues = []
+        if missing_preconditions:
+            issues.append("missing_preconditions")
+        if missing_required_items:
+            issues.append("missing_required_items")
+        if missing_dependencies:
+            issues.append("missing_dependencies")
+        if governance["gate_readiness"] in {"review", "rejected", "error"}:
+            issues.append(f"gate_{governance['gate_readiness']}")
+        if skill.name not in builtin_names and not postcondition_targets:
+            issues.append("missing_postconditions")
+        if not skill.preconditions and not skill.required_items and skill.layer in {"composite", "strategic"}:
+            issues.append("underspecified_preconditions")
+
+        score = 0.0
+        score += len(goal_matches) * 1.4
+        score += len(state_matches) * 0.8
+        score += len(postcondition_matches) * 2.0
+        if skill.total_uses:
+            score += skill.success_rate + min(1.0, skill.total_uses * 0.05)
+        if governance["gate_readiness"] == "approved":
+            score += 1.0
+        score -= len(missing_preconditions) * 2.0
+        score -= len(missing_required_items) * 2.0
+        score -= len(missing_dependencies) * 3.0
+        score = round(max(0.0, score), 4)
+
+        if missing_dependencies or governance["gate_readiness"] in {"rejected", "error"}:
+            readiness = "blocked"
+        elif missing_preconditions or missing_required_items or governance["gate_readiness"] == "review":
+            readiness = "review"
+        else:
+            readiness = "ready"
+
+        return {
+            "name": skill.name,
+            "layer": skill.layer,
+            "description": skill.description,
+            "score": score,
+            "readiness": readiness,
+            "success_rate": round(skill.success_rate, 4),
+            "total_uses": skill.total_uses,
+            "goal_matches": goal_matches[:12],
+            "state_matches": state_matches[:12],
+            "postcondition_targets": postcondition_targets,
+            "postcondition_matches": postcondition_matches[:12],
+            "required_items": list(skill.required_items),
+            "missing_required_items": missing_required_items,
+            "missing_preconditions": missing_preconditions,
+            "dependencies": dependencies,
+            "missing_dependencies": missing_dependencies,
+            "gate_readiness": governance["gate_readiness"],
+            "issues": sorted(set(issues)),
+        }
+
+    def _missing_required_items(self, skill: Skill, inventory: dict) -> list[str]:
+        missing = []
+        for item in skill.required_items or []:
+            if isinstance(item, dict):
+                name = str(item.get("item") or item.get("name") or "").strip()
+                needed = self._safe_int(item.get("count", 1), default=1)
+            else:
+                name = str(item or "").strip()
+                needed = 1
+            if name and self._inventory_quantity(inventory, name) < needed:
+                missing.append(name if needed <= 1 else f"{name}>={needed}")
+        return missing
+
+    def _missing_preconditions(self, skill: Skill, world_state: dict) -> list[str]:
+        preconditions = skill.preconditions if isinstance(skill.preconditions, dict) else {}
+        inventory = world_state.get("inventory", {}) if isinstance(world_state.get("inventory", {}), dict) else {}
+        flags = set(str(flag).lower() for flag in world_state.get("flags", []) if flag)
+        missing = []
+        inventory_preconditions = (
+            preconditions.get("inventory", {})
+            if isinstance(preconditions.get("inventory", {}), dict)
+            else {}
+        )
+        for item, count in inventory_preconditions.items():
+            needed = self._safe_int(count, default=1)
+            if self._inventory_quantity(inventory, item) < needed:
+                missing.append(f"inventory:{item}>={needed}")
+        flag_preconditions = (
+            preconditions.get("flags", [])
+            if isinstance(preconditions.get("flags", []), list)
+            else []
+        )
+        for flag in flag_preconditions:
+            if str(flag).lower() not in flags:
+                missing.append(f"flag:{flag}")
+        nearby = self._world_state_nearby_names(world_state)
+        nearby_preconditions = (
+            preconditions.get("nearby_block_present", [])
+            if isinstance(preconditions.get("nearby_block_present", []), list)
+            else []
+        )
+        for block in nearby_preconditions:
+            if str(block).lower() not in nearby:
+                missing.append(f"nearby_block:{block}")
+        return missing
+
+    def _inventory_quantity(self, inventory: dict, item: str) -> int:
+        if not isinstance(inventory, dict):
+            return 0
+        target = str(item or "").strip().lower()
+        for key, value in inventory.items():
+            if str(key).strip().lower() == target:
+                return self._safe_int(value, default=1 if value else 0)
+        return 0
+
+    def _safe_int(self, value, default: int = 0) -> int:
+        if value in (None, ""):
+            return default
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            try:
+                return int(float(value))
+            except (TypeError, ValueError):
+                return default
+
+    def _world_state_nearby_names(self, world_state: dict) -> set[str]:
+        names = set()
+        for key in ("nearby_blocks", "grounded_resources", "visible_blocks", "resources"):
+            value = world_state.get(key, [])
+            if isinstance(value, dict):
+                iterable = value.values()
+            elif isinstance(value, list):
+                iterable = value
+            else:
+                iterable = []
+            for item in iterable:
+                if isinstance(item, dict):
+                    raw = item.get("name") or item.get("type") or item.get("block") or item.get("resource")
+                else:
+                    raw = item
+                text = str(raw or "").strip().lower()
+                if text:
+                    names.add(text)
+        return names
 
     def _payload_actions(self, payload: dict) -> list[dict]:
         actions = []

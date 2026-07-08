@@ -152,6 +152,16 @@ def main():
     skill_graph_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     skill_graph_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Skill contract retrieval report
+    skill_contract_parser = subparsers.add_parser("skill-contract-report", help="Report skill contract readiness for a goal and world state")
+    skill_contract_parser.add_argument("--skill-storage-path", type=str, default="workspace/skills", help="Skill storage path containing custom_skills.jsonl")
+    skill_contract_parser.add_argument("--goal", type=str, required=True, help="Goal or task query to score against skill contracts")
+    skill_contract_parser.add_argument("--world-state-json", type=str, default="", help="Optional world state JSON object")
+    skill_contract_parser.add_argument("--world-state-file", type=str, default="", help="Optional world state JSON file")
+    skill_contract_parser.add_argument("--limit", type=int, default=20)
+    skill_contract_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    skill_contract_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Memory consolidation report
     memory_report_parser = subparsers.add_parser("memory-consolidation-report", help="Report repeatedly recalled memories worth consolidation")
     memory_report_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
@@ -580,6 +590,61 @@ def main():
                 print(f"      issues: {', '.join(node['issues'])}")
             if node["missing_dependencies"]:
                 print(f"      missing deps: {', '.join(node['missing_dependencies'])}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "skill-contract-report":
+        from singularity.core.skill_library import SkillLibrary
+
+        world_state = {}
+        if getattr(args, "world_state_file", ""):
+            with open(args.world_state_file, "r", encoding="utf-8-sig") as f:
+                world_state = json.load(f)
+        elif getattr(args, "world_state_json", ""):
+            try:
+                world_state = json.loads(args.world_state_json)
+            except json.JSONDecodeError as exc:
+                print(f"skill-contract-report could not parse --world-state-json: {exc}")
+                sys.exit(1)
+        if not isinstance(world_state, dict):
+            print("skill-contract-report world state must be a JSON object")
+            sys.exit(1)
+
+        lib = SkillLibrary(storage_path=getattr(args, "skill_storage_path", "workspace/skills"), persist=True)
+        report = lib.skill_contract_report(
+            goal=getattr(args, "goal", ""),
+            world_state=world_state,
+            limit=getattr(args, "limit", 20),
+        )
+        print("\nSkill Contract Report")
+        print(f"  goal: {report['goal']}")
+        print(
+            f"  skills: {report['skill_count']}, matched: {report['matched_count']}, "
+            f"ready/review/blocked: {report['ready_count']}/{report['review_count']}/{report['blocked_count']}"
+        )
+        if report["issue_counts"]:
+            parts = [f"{key}={value}" for key, value in sorted(report["issue_counts"].items())]
+            print(f"  issues: {', '.join(parts)}")
+        for match in report["matches"][:getattr(args, "limit", 20)]:
+            if match["score"] <= 0 and match["readiness"] == "ready":
+                continue
+            issues = f" issues={','.join(match['issues'])}" if match["issues"] else ""
+            print(
+                f"  - {match['name']} score={match['score']:.2f} "
+                f"readiness={match['readiness']}{issues}"
+            )
+            if match["goal_matches"] or match["postcondition_matches"]:
+                terms = sorted(set(match["goal_matches"] + match["postcondition_matches"]))
+                print(f"      matches: {', '.join(terms[:8])}")
+            if match["missing_preconditions"] or match["missing_required_items"] or match["missing_dependencies"]:
+                missing = match["missing_preconditions"] + match["missing_required_items"] + match["missing_dependencies"]
+                print(f"      missing: {', '.join(str(item) for item in missing[:8])}")
         if getattr(args, "output", ""):
             output_dir = os.path.dirname(args.output)
             if output_dir:

@@ -140,6 +140,7 @@
 - [x] Add mixed-initiative review approval label templates and validation so review-plan commands require explicit operator approval before execution.
 - [x] Add `mixed-initiative-review-execute` to run approved review labels through whitelisted internal report builders and emit per-case artifacts.
 - [x] Add `mixed-initiative-policy-patch` to convert approved execution artifacts into reusable action/template policy feedback.
+- [x] Add COS-PLAY-style skill contract reporting and contract-aware skill recommendation so reusable Minecraft skills are retrieved by goal, world-state fit, prerequisites, postconditions, and governance gates.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -165,6 +166,7 @@
 - [ ] Run `discovery-application-report` on real redstone/building session logs and use `discovery_feedback` to gate experiment-derived skills before runtime use.
 - [ ] Compare approved vs review-blocked discovery skill candidates on held-out redstone/building variants before enabling defaults.
 - [ ] Run `skill-graph-report` after real skill approvals and resolve missing dependencies, ungoverned custom skills, or graph cycles before runtime defaults.
+- [ ] Run `skill-contract-report` after real skill approvals and compare ready/review/blocked skill retrieval against planner choices on held-out crafting, mining, and building goals.
 - [ ] Run `self-evolution-report` on real M1/M2/autonomous logs and compare adaptor recommendations against retry outcomes before enabling automatic plan-suffix repair.
 - [ ] Run `self-evolution-gate` on real self-evolution, verifier, and counterexample reports; only then design a guarded runtime plan-suffix repair path.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
