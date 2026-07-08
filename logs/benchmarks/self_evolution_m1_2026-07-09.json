@@ -1,0 +1,258 @@
+{
+  "log_count": 5,
+  "ready_log_count": 5,
+  "observation_count": 500,
+  "action_count": 200,
+  "failed_action_count": 0,
+  "progress_signal_count": 87,
+  "regression_signal_count": 10,
+  "stagnation_signal_count": 602,
+  "repeated_failure_count": 0,
+  "no_progress_success_count": 116,
+  "repeated_success_loop_count": 112,
+  "relative_reward_delta": 18.385,
+  "self_evolution_feedback": {
+    "log_count": 5,
+    "ready_log_count": 5,
+    "observation_count": 500,
+    "action_count": 200,
+    "failed_action_count": 0,
+    "progress_signal_count": 87,
+    "regression_signal_count": 10,
+    "stagnation_signal_count": 602,
+    "repeated_failure_count": 0,
+    "no_progress_success_count": 116,
+    "repeated_success_loop_count": 112,
+    "relative_reward_delta": 18.385,
+    "typed_feedback_counts": {
+      "monitor_state_change": 3,
+      "monitor_stagnation": 486,
+      "monitor_action_success": 200,
+      "monitor_no_progress_success": 116,
+      "monitor_repeated_success_loop": 112,
+      "monitor_goal_failure": 5
+    },
+    "action_failure_categories": {},
+    "action_type_counts": {
+      "move_to": 100,
+      "dig": 5,
+      "wait": 95
+    },
+    "remedy_candidates": [],
+    "adaptor_recommendations": [
+      "Require a state, inventory, or verifier delta before treating successful actions as progress.",
+      "Use accumulated typed feedback to rewrite only the unfinished plan suffix.",
+      "Route the next retry through a conservative adaptor before adding new goals."
+    ],
+    "policy_hints": [
+      {
+        "self_evolution_policy": "repair_stagnant_plan_suffix",
+        "priority": "high",
+        "reason": "execution produced repeated no-progress or repeated-failure signals",
+        "count": 602
+      },
+      {
+        "self_evolution_policy": "verify_successful_actions_with_state_delta",
+        "priority": "high",
+        "reason": "successful action returns did not produce observed state, inventory, or verifier progress",
+        "count": 116
+      }
+    ]
+  },
+  "errors": [],
+  "cases": [
+    {
+      "source_log": "logs\\session_2818ff2a-612.jsonl",
+      "event_count": 403,
+      "observation_count": 100,
+      "goal_count": 1,
+      "completed_goal_count": 0,
+      "failed_goal_count": 1,
+      "action_count": 200,
+      "successful_action_count": 200,
+      "failed_action_count": 0,
+      "progress_signal_count": 87,
+      "regression_signal_count": 2,
+      "stagnation_signal_count": 210,
+      "inventory_gain_count": 0,
+      "inventory_loss_count": 0,
+      "repeated_failure_count": 0,
+      "no_progress_success_count": 116,
+      "repeated_success_loop_count": 112,
+      "consecutive_no_movement_count": 94,
+      "relative_reward_delta": 24.385,
+      "absolute_reward_mean": 0.0,
+      "typed_feedback_counts": {
+        "monitor_state_change": 3,
+        "monitor_stagnation": 94,
+        "monitor_action_success": 200,
+        "monitor_no_progress_success": 116,
+        "monitor_repeated_success_loop": 112,
+        "monitor_goal_failure": 1
+      },
+      "action_type_counts": {
+        "move_to": 100,
+        "dig": 5,
+        "wait": 95
+      },
+      "action_failure_categories": {},
+      "progress_markers": [
+        "moved:2.2",
+        "moved:37.4",
+        "moved:0.8",
+        "action_success:move_to",
+        "action_success:dig",
+        "no_progress_success:move_to",
+        "no_progress_success:dig",
+        "action_success:wait",
+        "no_progress_success:wait"
+      ],
+      "remedy_candidates": [],
+      "adaptor_recommendations": [
+        "Require a state, inventory, or verifier delta before treating successful actions as progress.",
+        "Use accumulated typed feedback to rewrite only the unfinished plan suffix."
+      ],
+      "ready_for_self_evolution_review": true
+    },
+    {
+      "source_log": "logs\\session_bcd06511-00a.jsonl",
+      "event_count": 203,
+      "observation_count": 100,
+      "goal_count": 1,
+      "completed_goal_count": 0,
+      "failed_goal_count": 1,
+      "action_count": 0,
+      "successful_action_count": 0,
+      "failed_action_count": 0,
+      "progress_signal_count": 0,
+      "regression_signal_count": 2,
+      "stagnation_signal_count": 98,
+      "inventory_gain_count": 0,
+      "inventory_loss_count": 0,
+      "repeated_failure_count": 0,
+      "no_progress_success_count": 0,
+      "repeated_success_loop_count": 0,
+      "consecutive_no_movement_count": 98,
+      "relative_reward_delta": -1.5,
+      "absolute_reward_mean": 0.0,
+      "typed_feedback_counts": {
+        "monitor_stagnation": 98,
+        "monitor_goal_failure": 1
+      },
+      "action_type_counts": {},
+      "action_failure_categories": {},
+      "progress_markers": [],
+      "remedy_candidates": [],
+      "adaptor_recommendations": [
+        "Use accumulated typed feedback to rewrite only the unfinished plan suffix.",
+        "Route the next retry through a conservative adaptor before adding new goals."
+      ],
+      "ready_for_self_evolution_review": true
+    },
+    {
+      "source_log": "logs\\session_dc8fff18-00b.jsonl",
+      "event_count": 203,
+      "observation_count": 100,
+      "goal_count": 1,
+      "completed_goal_count": 0,
+      "failed_goal_count": 1,
+      "action_count": 0,
+      "successful_action_count": 0,
+      "failed_action_count": 0,
+      "progress_signal_count": 0,
+      "regression_signal_count": 2,
+      "stagnation_signal_count": 98,
+      "inventory_gain_count": 0,
+      "inventory_loss_count": 0,
+      "repeated_failure_count": 0,
+      "no_progress_success_count": 0,
+      "repeated_success_loop_count": 0,
+      "consecutive_no_movement_count": 98,
+      "relative_reward_delta": -1.5,
+      "absolute_reward_mean": 0.0,
+      "typed_feedback_counts": {
+        "monitor_stagnation": 98,
+        "monitor_goal_failure": 1
+      },
+      "action_type_counts": {},
+      "action_failure_categories": {},
+      "progress_markers": [],
+      "remedy_candidates": [],
+      "adaptor_recommendations": [
+        "Use accumulated typed feedback to rewrite only the unfinished plan suffix.",
+        "Route the next retry through a conservative adaptor before adding new goals."
+      ],
+      "ready_for_self_evolution_review": true
+    },
+    {
+      "source_log": "logs\\session_4138b270-949.jsonl",
+      "event_count": 203,
+      "observation_count": 100,
+      "goal_count": 1,
+      "completed_goal_count": 0,
+      "failed_goal_count": 1,
+      "action_count": 0,
+      "successful_action_count": 0,
+      "failed_action_count": 0,
+      "progress_signal_count": 0,
+      "regression_signal_count": 2,
+      "stagnation_signal_count": 98,
+      "inventory_gain_count": 0,
+      "inventory_loss_count": 0,
+      "repeated_failure_count": 0,
+      "no_progress_success_count": 0,
+      "repeated_success_loop_count": 0,
+      "consecutive_no_movement_count": 98,
+      "relative_reward_delta": -1.5,
+      "absolute_reward_mean": 0.0,
+      "typed_feedback_counts": {
+        "monitor_stagnation": 98,
+        "monitor_goal_failure": 1
+      },
+      "action_type_counts": {},
+      "action_failure_categories": {},
+      "progress_markers": [],
+      "remedy_candidates": [],
+      "adaptor_recommendations": [
+        "Use accumulated typed feedback to rewrite only the unfinished plan suffix.",
+        "Route the next retry through a conservative adaptor before adding new goals."
+      ],
+      "ready_for_self_evolution_review": true
+    },
+    {
+      "source_log": "logs\\session_67ba45ce-2e1.jsonl",
+      "event_count": 203,
+      "observation_count": 100,
+      "goal_count": 1,
+      "completed_goal_count": 0,
+      "failed_goal_count": 1,
+      "action_count": 0,
+      "successful_action_count": 0,
+      "failed_action_count": 0,
+      "progress_signal_count": 0,
+      "regression_signal_count": 2,
+      "stagnation_signal_count": 98,
+      "inventory_gain_count": 0,
+      "inventory_loss_count": 0,
+      "repeated_failure_count": 0,
+      "no_progress_success_count": 0,
+      "repeated_success_loop_count": 0,
+      "consecutive_no_movement_count": 98,
+      "relative_reward_delta": -1.5,
+      "absolute_reward_mean": 0.0,
+      "typed_feedback_counts": {
+        "monitor_stagnation": 98,
+        "monitor_goal_failure": 1
+      },
+      "action_type_counts": {},
+      "action_failure_categories": {},
+      "progress_markers": [],
+      "remedy_candidates": [],
+      "adaptor_recommendations": [
+        "Use accumulated typed feedback to rewrite only the unfinished plan suffix.",
+        "Route the next retry through a conservative adaptor before adding new goals."
+      ],
+      "ready_for_self_evolution_review": true
+    }
+  ]
+}

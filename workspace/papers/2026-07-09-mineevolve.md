@@ -16,5 +16,6 @@
   - Repair only the unfinished plan suffix after repeated failures.
 **Singularity Adaptation**:
   - Added `self-evolution-report` to summarize progress, regression, stagnation, repeated failures, typed feedback counts, remedy candidates, and adaptor recommendations from session logs.
+  - The report now discounts successful actions without observed state, inventory, or verifier deltas, recording no-progress successes and repeated success loops before any plan-suffix repair is considered.
   - `self_evolution_feedback` mirrors existing memory/action/discovery feedback payloads so later policies can consume execution knowledge safely.
-**Next Action**: Run `self-evolution-report` on live M1/M2/autonomous logs and compare adaptor hints against actual retry outcomes.
+**Next Action**: Run the tightened `self-evolution-report` on live M1/M2/autonomous logs and compare no-progress success loops plus adaptor hints against actual retry outcomes.

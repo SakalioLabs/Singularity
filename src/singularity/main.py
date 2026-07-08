@@ -2075,6 +2075,8 @@ def main():
                     "regression_signal_count": report.regression_signal_count,
                     "stagnation_signal_count": report.stagnation_signal_count,
                     "repeated_failure_count": report.repeated_failure_count,
+                    "no_progress_success_count": report.no_progress_success_count,
+                    "repeated_success_loop_count": report.repeated_success_loop_count,
                     "relative_reward_delta": report.relative_reward_delta,
                     "self_evolution_feedback": self_evolution_feedback,
                     "errors": report.errors,

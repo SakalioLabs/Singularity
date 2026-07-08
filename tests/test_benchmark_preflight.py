@@ -1265,6 +1265,36 @@ def test_self_evolution_report_tracks_progress_and_stagnation():
                 "health": 18,
             },
         },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "wait", "parameters": {"ms": 200}},
+                "result": {"success": True, "action_type": "wait"},
+            },
+        },
+        {
+            "type": "observation",
+            "data": {
+                "position": {"x": 4, "y": 64, "z": 0},
+                "inventory": {"stick": 1, "coal": 2},
+                "health": 18,
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "wait", "parameters": {"ms": 200}},
+                "result": {"success": True, "action_type": "wait"},
+            },
+        },
+        {
+            "type": "observation",
+            "data": {
+                "position": {"x": 4, "y": 64, "z": 0},
+                "inventory": {"stick": 1, "coal": 2},
+                "health": 18,
+            },
+        },
         {"type": "goal_verification", "data": {"goal": "Craft torches", "achieved": False, "status": "failed"}},
         {"type": "goal_end", "data": {"goal": "Craft torches after finding coal", "result": {"completed": False}}},
     ]
@@ -1285,14 +1315,20 @@ def test_self_evolution_report_tracks_progress_and_stagnation():
     assert case.inventory_gain_count == 1
     assert case.failed_action_count == 2
     assert case.repeated_failure_count == 1
+    assert case.no_progress_success_count == 2
+    assert case.repeated_success_loop_count == 1
     assert case.action_failure_categories["perception"] == 2
     assert case.typed_feedback_counts["monitor_inventory_gain"] == 1
+    assert case.typed_feedback_counts["monitor_no_progress_success"] == 2
+    assert case.typed_feedback_counts["monitor_repeated_success_loop"] == 1
     assert case.typed_feedback_counts["monitor_verification_failure"] == 1
     assert any("scan/look_at" in recommendation for recommendation in case.adaptor_recommendations)
+    assert any("state, inventory, or verifier delta" in recommendation for recommendation in case.adaptor_recommendations)
     assert any("coal_ore" in remedy for remedy in case.remedy_candidates)
     assert feedback["action_failure_categories"]["perception"] == 2
     policies = {hint["self_evolution_policy"] for hint in feedback["policy_hints"]}
     assert "repair_stagnant_plan_suffix" in policies
+    assert "verify_successful_actions_with_state_delta" in policies
     assert "induce_failure_remedies" in policies
 
     class CapturePolicy:
@@ -1306,6 +1342,7 @@ def test_self_evolution_report_tracks_progress_and_stagnation():
     applied = runner.apply_self_evolution_feedback(report, policy)
     assert applied == feedback
     assert policy.feedback["stagnation_signal_count"] == case.stagnation_signal_count
+    assert policy.feedback["no_progress_success_count"] == 2
     print("PASS: Self-evolution report tracks progress and stagnation")
 
 

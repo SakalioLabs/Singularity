@@ -159,6 +159,7 @@ python -m singularity.main world-model-report --session-log logs/session_xxx.jso
 # The saved JSON includes `world_model_feedback` for frontier/resource/danger-aware curriculum reranking.
 
 # Summarize MineEvolve-style execution progress, stagnation, and adaptor hints
+# Successful action returns are discounted unless later observations show state, inventory, or verifier progress.
 python -m singularity.main self-evolution-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/self_evolution.json
 # The saved JSON includes `self_evolution_feedback` for repair/adaptor and skill-curation experiments.
 # Use it as advisory planner context in later runs without auto-mutating skills or bypassing verification.

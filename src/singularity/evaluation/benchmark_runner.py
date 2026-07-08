@@ -898,6 +898,8 @@ class SelfEvolutionTraceCase:
     inventory_gain_count: int = 0
     inventory_loss_count: int = 0
     repeated_failure_count: int = 0
+    no_progress_success_count: int = 0
+    repeated_success_loop_count: int = 0
     consecutive_no_movement_count: int = 0
     relative_reward_delta: float = 0.0
     absolute_reward_mean: float = 0.0
@@ -950,6 +952,14 @@ class SelfEvolutionTraceReport:
     @property
     def repeated_failure_count(self) -> int:
         return sum(case.repeated_failure_count for case in self.cases)
+
+    @property
+    def no_progress_success_count(self) -> int:
+        return sum(case.no_progress_success_count for case in self.cases)
+
+    @property
+    def repeated_success_loop_count(self) -> int:
+        return sum(case.repeated_success_loop_count for case in self.cases)
 
     @property
     def relative_reward_delta(self) -> float:
@@ -3257,6 +3267,13 @@ class BenchmarkRunner:
                 "reason": "execution produced repeated no-progress or repeated-failure signals",
                 "count": report.stagnation_signal_count,
             })
+        if report.no_progress_success_count:
+            policy_hints.append({
+                "self_evolution_policy": "verify_successful_actions_with_state_delta",
+                "priority": "high" if report.no_progress_success_count >= max(3, report.action_count // 4) else "medium",
+                "reason": "successful action returns did not produce observed state, inventory, or verifier progress",
+                "count": report.no_progress_success_count,
+            })
         if report.failed_action_count:
             policy_hints.append({
                 "self_evolution_policy": "induce_failure_remedies",
@@ -3289,6 +3306,8 @@ class BenchmarkRunner:
             "regression_signal_count": report.regression_signal_count,
             "stagnation_signal_count": report.stagnation_signal_count,
             "repeated_failure_count": report.repeated_failure_count,
+            "no_progress_success_count": report.no_progress_success_count,
+            "repeated_success_loop_count": report.repeated_success_loop_count,
             "relative_reward_delta": report.relative_reward_delta,
             "typed_feedback_counts": typed_feedback,
             "action_failure_categories": failure_categories,
@@ -5557,6 +5576,8 @@ class BenchmarkRunner:
         inventory_losses = 0
         consecutive_no_movement = 0
         repeated_failures = 0
+        no_progress_successes = 0
+        repeated_success_loops = 0
         relative_reward = 0.0
 
         def inc(counts: dict, key: str, amount: int = 1):
@@ -5568,6 +5589,7 @@ class BenchmarkRunner:
         ]
         inventories = [self._inventory_counts(observation.get("inventory", {})) for observation in observations]
         absolute_scores = [self._absolute_progress_score(observation) for observation in observations]
+        success_progress_audit = self._successful_action_progress_audit(events)
 
         no_move_run = 0
         for index in range(1, len(observations)):
@@ -5614,7 +5636,7 @@ class BenchmarkRunner:
         failed_signatures = {}
         successful_actions = 0
         failed_actions = 0
-        for action_data in action_events:
+        for action_index, action_data in enumerate(action_events):
             action = action_data.get("action", {}) if isinstance(action_data.get("action", {}), dict) else {}
             result = action_data.get("result", {}) if isinstance(action_data.get("result", {}), dict) else {}
             action_type = str(action.get("type") or result.get("action_type") or "unknown").strip() or "unknown"
@@ -5622,10 +5644,25 @@ class BenchmarkRunner:
             success = self._event_success({"result": result})
             if success is True:
                 successful_actions += 1
-                progress_signals += 1
-                relative_reward += 0.5
                 inc(typed_feedback, "monitor_action_success")
-                progress_markers.append(f"action_success:{action_type}")
+                audit = success_progress_audit[action_index] if action_index < len(success_progress_audit) else {}
+                if audit.get("no_progress"):
+                    no_progress_successes += 1
+                    stagnation_signals += 1
+                    relative_reward -= 0.1 if action_type == "wait" else 0.2
+                    inc(typed_feedback, "monitor_no_progress_success")
+                    progress_markers.append(f"no_progress_success:{action_type}")
+                    if audit.get("repeated_success_loop"):
+                        repeated_success_loops += 1
+                        inc(typed_feedback, "monitor_repeated_success_loop")
+                    if no_progress_successes == 1:
+                        adaptor_recommendations.append(
+                            "Require a state, inventory, or verifier delta before treating successful actions as progress."
+                        )
+                else:
+                    progress_signals += 1
+                    relative_reward += 0.5
+                    progress_markers.append(f"action_success:{action_type}")
             elif success is False:
                 failed_actions += 1
                 regression_signals += 1
@@ -5711,6 +5748,8 @@ class BenchmarkRunner:
             inventory_gain_count=inventory_gains,
             inventory_loss_count=inventory_losses,
             repeated_failure_count=repeated_failures,
+            no_progress_success_count=no_progress_successes,
+            repeated_success_loop_count=repeated_success_loops,
             consecutive_no_movement_count=consecutive_no_movement,
             relative_reward_delta=round(relative_reward, 3),
             absolute_reward_mean=round(sum(absolute_scores) / len(absolute_scores), 3) if absolute_scores else 0.0,
@@ -5908,6 +5947,82 @@ class BenchmarkRunner:
         if isinstance(result, dict):
             return self._event_success(result)
         return None
+
+    def _successful_action_progress_audit(self, events: list[dict]) -> list[dict]:
+        audits = []
+        pending = []
+        latest_state = ""
+        no_progress_signatures = {}
+        for event in events:
+            event_type = str(event.get("type") or "").lower()
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event_type == "observation":
+                current_state = self._progress_state_signature(data)
+                for audit in pending:
+                    audit["after_state"] = current_state
+                    if audit.get("success") and audit.get("before_state") and current_state:
+                        if audit["before_state"] == current_state:
+                            audit["no_progress"] = True
+                            signature = audit.get("action_signature", "")
+                            if signature:
+                                no_progress_signatures[signature] = no_progress_signatures.get(signature, 0) + 1
+                                if no_progress_signatures[signature] > 1:
+                                    audit["repeated_success_loop"] = True
+                        else:
+                            audit["progress_observed"] = True
+                pending = []
+                latest_state = current_state
+            elif event_type == "action":
+                action, result, action_type = self._normalized_action_record(data)
+                audit = {
+                    "success": self._event_success({"result": result}) is True,
+                    "before_state": latest_state,
+                    "after_state": "",
+                    "no_progress": False,
+                    "progress_observed": False,
+                    "repeated_success_loop": False,
+                    "action_signature": self._action_progress_signature(action, result, action_type),
+                }
+                audits.append(audit)
+                if audit["success"]:
+                    pending.append(audit)
+        return audits
+
+    def _progress_state_signature(self, observation: dict) -> str:
+        if not isinstance(observation, dict):
+            return ""
+        signature = {
+            "position": self._position_tuple(observation.get("position")),
+            "inventory": self._inventory_counts(observation.get("inventory", {})),
+            "health": self._safe_float(observation.get("health"), 20.0),
+            "blocks": self._named_item_count_signature(observation, ["nearby_blocks", "blocks", "visible_blocks"]),
+            "resources": self._named_item_count_signature(
+                observation,
+                ["grounded_resources", "visual_resources", "resources"],
+            ),
+            "entities": self._named_item_count_signature(observation, ["nearby_entities", "entities", "dangers"]),
+        }
+        return json.dumps(signature, sort_keys=True, separators=(",", ":"))
+
+    def _named_item_count_signature(self, record: dict, keys: list[str]) -> dict:
+        counts = {}
+        for name in self._named_items_from_record(record, keys):
+            normalized = str(name or "").strip().lower()
+            if normalized:
+                counts[normalized] = counts.get(normalized, 0) + 1
+        return dict(sorted(counts.items()))
+
+    def _action_progress_signature(self, action: dict, result: dict, action_type: str = "") -> str:
+        action = action if isinstance(action, dict) else {}
+        result = result if isinstance(result, dict) else {}
+        action_type = str(action_type or action.get("type") or result.get("action_type") or "unknown").strip() or "unknown"
+        params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
+        target_parts = []
+        for key in ("item", "block", "entity", "target", "resource", "x", "y", "z", "ms"):
+            value = params.get(key)
+            if value not in (None, "", [], {}):
+                target_parts.append(f"{key}={value}")
+        return f"{action_type}:{'|'.join(target_parts) if target_parts else '-'}"
 
     def _skill_memory_hint_type_from_text(self, hint) -> str:
         text = str(hint or "").strip()
@@ -8909,7 +9024,9 @@ class BenchmarkRunner:
             "  actions: "
             f"total={report.action_count}, "
             f"failed={report.failed_action_count}, "
-            f"repeated_failures={report.repeated_failure_count}"
+            f"repeated_failures={report.repeated_failure_count}, "
+            f"no_progress_successes={report.no_progress_success_count}, "
+            f"repeated_success_loops={report.repeated_success_loop_count}"
         )
         print(f"  relative reward delta: {report.relative_reward_delta:.3f}")
         feedback = self.self_evolution_feedback(report)
@@ -8931,6 +9048,11 @@ class BenchmarkRunner:
                 f"stagnation={case.stagnation_signal_count}, reward_delta={case.relative_reward_delta:.3f}, "
                 f"absolute_mean={case.absolute_reward_mean:.3f}"
             )
+            if case.no_progress_success_count:
+                print(
+                    f"      no-progress successes={case.no_progress_success_count}, "
+                    f"repeated_success_loops={case.repeated_success_loop_count}"
+                )
             if case.action_failure_categories:
                 print(f"      failure categories: {self._format_counts(case.action_failure_categories)}")
             if case.progress_markers:

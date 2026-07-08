@@ -1100,6 +1100,24 @@
 
 ---
 
+## P-060: Solaris
+
+- **Title**: Solaris: Building a Multiplayer Video World Model in Minecraft
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2602.22208
+- **Type**: Multiplayer Minecraft data engine / video world model
+- **Task Type**: Cooperative multiplayer Minecraft episodes with aligned controller actions and visual observations
+- **Core Method**: Docker-orchestrated server, camera bots, controller bots, Mineflayer primitives, and communication layers collect scalable multiplayer visual gameplay traces
+- **Action Space**: Mineflayer-style programmable primitives plus visually captured multiplayer state
+- **Memory**: Episode traces, reusable skill primitives, role interaction state, and visual-action sequence data for future world-model learning
+- **Key Results**: Demonstrates a controllable multiplayer visual Minecraft data engine and positions rich cooperative traces as a foundation for world-model and VLA training
+- **Scores**: R=4, N=5, R=3, E=4
+- **Value to Project**: Supports Singularity's M7 role-bridge, screenshot, and shared-state trace roadmap, and motivates verifying that action success returns correspond to observed state deltas before using traces for training or promotion
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-solaris.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1163,3 +1181,4 @@
 | P-057 | Agent-Native Memory System | 2026 | R5/N4/R4/E5 | P1 |
 | P-058 | MemTier | 2026 | R5/N4/R4/E4 | P2 |
 | P-059 | SkillMaster | 2026 | R4/N5/R4/E4 | P2 |
+| P-060 | Solaris | 2026 | R4/N5/R3/E4 | P2 |
