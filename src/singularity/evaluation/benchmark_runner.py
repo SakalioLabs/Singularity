@@ -670,6 +670,9 @@ class MemoryPolicyTraceCase:
     consolidation_signal_count: int = 0
     noisy_write_candidate_count: int = 0
     missing_read_trace_count: int = 0
+    read_filter_event_count: int = 0
+    read_filtered_entry_count: int = 0
+    read_filter_reasons: dict = field(default_factory=dict)
     write_operations: dict = field(default_factory=dict)
     read_queries: list[str] = field(default_factory=list)
     policy_hints: list[str] = field(default_factory=list)
@@ -728,6 +731,22 @@ class MemoryPolicyTraceReport:
     @property
     def missing_read_trace_count(self) -> int:
         return sum(case.missing_read_trace_count for case in self.cases)
+
+    @property
+    def read_filter_event_count(self) -> int:
+        return sum(case.read_filter_event_count for case in self.cases)
+
+    @property
+    def read_filtered_entry_count(self) -> int:
+        return sum(case.read_filtered_entry_count for case in self.cases)
+
+    @property
+    def read_filter_reasons(self) -> dict:
+        reasons = {}
+        for case in self.cases:
+            for reason, count in case.read_filter_reasons.items():
+                reasons[reason] = reasons.get(reason, 0) + count
+        return reasons
 
 
 @dataclass
@@ -2083,6 +2102,13 @@ class BenchmarkRunner:
                 "reason": "trace contains repeated or completed behaviors worth offline consolidation review",
                 "count": report.consolidation_signal_count,
             })
+        if report.read_filtered_entry_count:
+            policy_hints.append({
+                "memory_policy": "review_filtered_memory_reads",
+                "priority": "medium",
+                "reason": "retrieval filtered stale, superseded, invalidated, or condition-mismatched memory entries",
+                "count": report.read_filtered_entry_count,
+            })
 
         return {
             "log_count": report.log_count,
@@ -2097,6 +2123,9 @@ class BenchmarkRunner:
             "consolidation_signal_count": report.consolidation_signal_count,
             "noisy_write_candidate_count": report.noisy_write_candidate_count,
             "missing_read_trace_count": report.missing_read_trace_count,
+            "read_filter_event_count": report.read_filter_event_count,
+            "read_filtered_entry_count": report.read_filtered_entry_count,
+            "read_filter_reasons": report.read_filter_reasons,
             "write_operations": write_operations,
             "read_queries": sorted(read_queries),
             "policy_hints": policy_hints,
@@ -2533,6 +2562,9 @@ class BenchmarkRunner:
         noisy_writes = 0
         write_operations = {}
         read_queries = []
+        read_filter_events = 0
+        read_filtered_entries = 0
+        read_filter_reasons = {}
         episodic_candidates = 0
         semantic_candidates = 0
         failure_candidates = 0
@@ -2576,6 +2608,11 @@ class BenchmarkRunner:
                 query = self._memory_read_query(data)
                 if query and query not in read_queries:
                     read_queries.append(query)
+                filter_report = data.get("read_filter_report", {}) if isinstance(data.get("read_filter_report", {}), dict) else {}
+                if filter_report:
+                    read_filter_events += 1
+                    read_filtered_entries += int(filter_report.get("filtered_entries") or 0)
+                    self._merge_counts(read_filter_reasons, filter_report.get("filter_reasons", {}))
             elif memory_kind == "manage":
                 explicit_manage += 1
 
@@ -2619,6 +2656,8 @@ class BenchmarkRunner:
             hints.append("tighten_memory_write_gate")
         if consolidation_signals:
             hints.append("queue_consolidation_review")
+        if read_filtered_entries:
+            hints.append("review_filtered_memory_reads")
 
         return MemoryPolicyTraceCase(
             source_log=source_log,
@@ -2640,6 +2679,9 @@ class BenchmarkRunner:
             consolidation_signal_count=consolidation_signals,
             noisy_write_candidate_count=noisy_writes,
             missing_read_trace_count=missing_reads,
+            read_filter_event_count=read_filter_events,
+            read_filtered_entry_count=read_filtered_entries,
+            read_filter_reasons=read_filter_reasons,
             write_operations=write_operations,
             read_queries=read_queries[:12],
             policy_hints=hints,
@@ -4515,6 +4557,13 @@ class BenchmarkRunner:
             f"failure_learning={report.failure_learning_candidate_count}, "
             f"noisy_writes={report.noisy_write_candidate_count}"
         )
+        if report.read_filter_event_count:
+            print(
+                "  read filters: "
+                f"events={report.read_filter_event_count}, "
+                f"filtered_entries={report.read_filtered_entry_count}, "
+                f"reasons={self._format_counts(report.read_filter_reasons)}"
+            )
         feedback = self.memory_policy_feedback(report)
         if feedback["policy_hints"]:
             hints = [
@@ -4544,6 +4593,12 @@ class BenchmarkRunner:
                 print(f"      writes: {self._format_counts(case.write_operations)}")
             if case.read_queries:
                 print(f"      read queries: {', '.join(case.read_queries[:4])}")
+            if case.read_filter_event_count:
+                print(
+                    f"      read filters: events={case.read_filter_event_count}, "
+                    f"filtered_entries={case.read_filtered_entry_count}, "
+                    f"reasons={self._format_counts(case.read_filter_reasons)}"
+                )
             if case.policy_hints:
                 print(f"      hints: {', '.join(case.policy_hints)}")
         for error in report.errors:

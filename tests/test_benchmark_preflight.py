@@ -1205,7 +1205,16 @@ def test_memory_policy_report_counts_write_read_manage_gaps_and_feedback():
     session_path = os.path.join(tmpdir, "session_memory_policy.jsonl")
     events = [
         {"type": "goal_start", "data": {"goal": "Craft torches"}},
-        {"type": "memory_read", "data": {"query": "craft torches"}},
+        {
+            "type": "memory_read",
+            "data": {
+                "query": "craft torches",
+                "read_filter_report": {
+                    "filtered_entries": 2,
+                    "filter_reasons": {"superseded": 1, "conditional_mismatch": 1},
+                },
+            },
+        },
         {"type": "observation", "data": {"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}]}},
         {"type": "plan", "data": {"status": "in_progress", "actions": [{"type": "craft", "parameters": {"item": "torch"}}]}},
         {"type": "action", "data": {"action": {"type": "craft", "parameters": {"item": "torch"}}, "result": {"success": False, "error": "Missing coal"}}},
@@ -1253,6 +1262,11 @@ def test_memory_policy_report_counts_write_read_manage_gaps_and_feedback():
     assert case.failure_learning_candidate_count == 3
     assert case.noisy_write_candidate_count == 1
     assert case.missing_read_trace_count == 0
+    assert case.read_filter_event_count == 1
+    assert case.read_filtered_entry_count == 2
+    assert case.read_filter_reasons["superseded"] == 1
+    assert report.read_filter_event_count == 1
+    assert report.read_filtered_entry_count == 2
     assert case.write_operations["memory_write:semantic:fact"] == 1
     assert case.write_operations["memory_write:context:raw_observation"] == 1
     assert "craft torches" in case.read_queries
@@ -1264,6 +1278,8 @@ def test_memory_policy_report_counts_write_read_manage_gaps_and_feedback():
     assert policies["record_failure_corrections"]["count"] == 3
     assert policies["tighten_memory_write_gate"]["count"] == 1
     assert policies["queue_consolidation_review"]["count"] == 2
+    assert policies["review_filtered_memory_reads"]["count"] == 2
+    assert feedback["read_filter_reasons"]["conditional_mismatch"] == 1
 
     class RecordingMemoryPolicy:
         def __init__(self):

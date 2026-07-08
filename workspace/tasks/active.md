@@ -111,7 +111,7 @@
 - [x] Add provenance/dependency metadata to M7 shared-state memory candidates and summarize GovMem-style false-promotion review counts in collaboration execution reports.
 - [x] Add STALE-style state revision detection so M7 shared-state value changes preserve previous provenance, mark implicit conflicts, and report state revision counts.
 - [x] Add MemConflict-style read filtering so stale, superseded, invalidated, contradicted, out-of-scope, and condition-mismatched durable memories are excluded before planner prompt construction.
-- [x] Add read-filter observability: Agent `memory_read` events, session summaries, and benchmark result JSON now include filter diagnostics, while `memory-read-filter-report` can audit durable memory stores offline.
+- [x] Add read-filter observability: Agent `memory_read` events, session summaries, benchmark result JSON, and `memory-policy-report` now include filter diagnostics, while `memory-read-filter-report` can audit durable memory stores offline.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
