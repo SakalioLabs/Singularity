@@ -41,6 +41,7 @@ class SkillLibrary:
         self.skills: dict[str, Skill] = {}
         self._skill_memory_quality_feedback: dict = {}
         self._skill_memory_quality_policies: dict[str, dict] = {}
+        self._skill_memory_quality_items: dict[tuple[str, str, str], dict] = {}
         os.makedirs(storage_path, exist_ok=True)
         self._load_builtin_skills()
         if self.persist:
@@ -204,6 +205,7 @@ class SkillLibrary:
             return 0
         self._skill_memory_quality_feedback = dict(feedback)
         self._skill_memory_quality_policies = {}
+        self._skill_memory_quality_items = {}
         stored = 0
         for hint in feedback.get("policy_hints", []):
             if not isinstance(hint, dict):
@@ -213,6 +215,17 @@ class SkillLibrary:
                 continue
             self._skill_memory_quality_policies[policy] = dict(hint)
             stored += 1
+        for item in feedback.get("hint_quality_items", []):
+            if not isinstance(item, dict):
+                continue
+            key = self._skill_memory_quality_item_key(
+                item.get("hint_type"),
+                item.get("skill"),
+                item.get("task_family"),
+            )
+            if key[0] == "UNKNOWN" or key[1] == "unknown":
+                continue
+            self._skill_memory_quality_items[key] = dict(item)
         return stored
 
     def skill_memory_quality_profile(self) -> dict:
@@ -228,6 +241,7 @@ class SkillLibrary:
             "task_family_counts": dict(self._skill_memory_quality_feedback.get("task_family_counts", {}))
             if isinstance(self._skill_memory_quality_feedback, dict)
             else {},
+            "hint_quality_items": list(self._skill_memory_quality_items.values()),
         }
 
     def _skill_memory_hint_candidates(self, goal: str = "", task_family: str = "") -> list[dict]:
@@ -257,7 +271,7 @@ class SkillLibrary:
                 elif transfer_readiness in {"review", "rejected", "error"}:
                     score -= 0.4
                 score += confidence
-                quality = self._skill_memory_quality_adjustment(hint_type, memory_family)
+                quality = self._skill_memory_quality_adjustment(hint_type, memory_family, skill.name)
                 candidates.append({
                     "skill_name": skill.name,
                     "hint_type": hint_type,
@@ -321,27 +335,47 @@ class SkillLibrary:
         suffix = f" ({', '.join(metadata)})" if metadata else ""
         return f"{candidate['hint_type']} {candidate['skill_name']}: {memory.get('note', '')}{suffix}"
 
-    def _skill_memory_quality_adjustment(self, hint_type: str, task_family: str = "") -> dict:
-        if not self._skill_memory_quality_policies:
+    def _skill_memory_quality_adjustment(self, hint_type: str, task_family: str = "", skill_name: str = "") -> dict:
+        if not self._skill_memory_quality_policies and not self._skill_memory_quality_items:
             return {"rank_delta": 0.0, "score_delta": 0.0, "policies": []}
         policies = []
         rank_delta = 0.0
         score_delta = 0.0
         hint_type = str(hint_type or "").upper()
         task_family = str(task_family or "").strip().lower()
-        if hint_type == "REUSE" and self._has_skill_memory_quality_policy("demote_conflicting_reuse_hints"):
+        item_labels = self._skill_memory_quality_item_labels(hint_type, skill_name, task_family)
+        has_local_items = bool(self._skill_memory_quality_items)
+        if hint_type == "REUSE" and item_labels.get("reuse_conflicted_with_failures", 0):
+            rank_delta -= 1.5
+            score_delta -= 2.5
+            policies.append("demote_conflicting_reuse_hints")
+        elif hint_type == "REUSE" and item_labels.get("reuse_supported_by_goal_success", 0):
+            rank_delta += 0.35
+            score_delta += 1.0
+            policies.append("candidate_promote_reuse_hints")
+        elif hint_type == "AVOID" and item_labels.get("avoid_unheeded_post_hint_failures", 0):
+            rank_delta += 0.45
+            score_delta += 0.8
+            policies.append("tighten_avoid_hint_prompting")
+        elif hint_type == "AVOID" and item_labels.get("avoid_supported_no_post_hint_failures", 0):
+            score_delta += 0.3
+            policies.append("retain_avoid_hint")
+        elif hint_type == "REVIEW_ONLY" and item_labels.get("review_only_present_keep_gated", 0):
+            score_delta -= 0.8
+            policies.append("keep_review_only_skill_memory_gated")
+        elif not has_local_items and hint_type == "REUSE" and self._has_skill_memory_quality_policy("demote_conflicting_reuse_hints"):
             rank_delta -= 1.25
             score_delta -= 2.0
             policies.append("demote_conflicting_reuse_hints")
-        if hint_type == "REUSE" and self._has_skill_memory_quality_policy("candidate_promote_reuse_hints"):
+        if not has_local_items and hint_type == "REUSE" and self._has_skill_memory_quality_policy("candidate_promote_reuse_hints"):
             rank_delta += 0.2
             score_delta += 0.8
             policies.append("candidate_promote_reuse_hints")
-        if hint_type == "AVOID" and self._has_skill_memory_quality_policy("tighten_avoid_hint_prompting"):
+        if not has_local_items and hint_type == "AVOID" and self._has_skill_memory_quality_policy("tighten_avoid_hint_prompting"):
             rank_delta += 0.35
             score_delta += 0.6
             policies.append("tighten_avoid_hint_prompting")
-        if hint_type == "REVIEW_ONLY" and self._has_skill_memory_quality_policy("keep_review_only_skill_memory_gated"):
+        if not has_local_items and hint_type == "REVIEW_ONLY" and self._has_skill_memory_quality_policy("keep_review_only_skill_memory_gated"):
             score_delta -= 0.6
             policies.append("keep_review_only_skill_memory_gated")
         feedback_families = self._skill_memory_quality_feedback.get("task_family_counts", {})
@@ -355,6 +389,28 @@ class SkillLibrary:
 
     def _has_skill_memory_quality_policy(self, policy: str) -> bool:
         return policy in self._skill_memory_quality_policies
+
+    def _skill_memory_quality_item_labels(self, hint_type: str, skill_name: str, task_family: str) -> dict:
+        keys = [
+            self._skill_memory_quality_item_key(hint_type, skill_name, task_family),
+            self._skill_memory_quality_item_key(hint_type, skill_name, ""),
+        ]
+        labels = {}
+        for key in keys:
+            item = self._skill_memory_quality_items.get(key, {})
+            item_labels = item.get("labels", {}) if isinstance(item, dict) else {}
+            if not isinstance(item_labels, dict):
+                continue
+            for label, count in item_labels.items():
+                labels[str(label)] = labels.get(str(label), 0) + int(count or 0)
+        return labels
+
+    def _skill_memory_quality_item_key(self, hint_type, skill_name, task_family) -> tuple[str, str, str]:
+        return (
+            str(hint_type or "UNKNOWN").strip().upper() or "UNKNOWN",
+            str(skill_name or "unknown").strip() or "unknown",
+            str(task_family or "").strip().lower(),
+        )
 
     def infer_task_family(self, text: str = "", action: Optional[dict] = None) -> str:
         """Infer a coarse Minecraft task-family zone for routing skill memories."""

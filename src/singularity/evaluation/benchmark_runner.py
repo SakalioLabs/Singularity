@@ -215,6 +215,7 @@ class SkillMemoryQualityCase:
     post_hint_goal_failure_count: int = 0
     task_family_counts: dict = field(default_factory=dict)
     hint_type_counts: dict = field(default_factory=dict)
+    hint_quality_items: list[dict] = field(default_factory=list)
     quality_labels: list[str] = field(default_factory=list)
     recommendations: list[str] = field(default_factory=list)
     ready_for_skill_memory_quality_review: bool = False
@@ -296,6 +297,40 @@ class SkillMemoryQualityReport:
             for label in case.quality_labels:
                 counts[label] = counts.get(label, 0) + 1
         return counts
+
+    @property
+    def hint_quality_items(self) -> list[dict]:
+        merged = {}
+        for case in self.cases:
+            for item in case.hint_quality_items:
+                key = (
+                    item.get("hint_type", "UNKNOWN"),
+                    item.get("skill", "unknown"),
+                    item.get("task_family", "unspecified"),
+                )
+                current = merged.setdefault(key, {
+                    "hint_type": key[0],
+                    "skill": key[1],
+                    "task_family": key[2],
+                    "count": 0,
+                    "labels": {},
+                    "source_logs": [],
+                    "examples": [],
+                })
+                current["count"] += int(item.get("count", 0) or 0)
+                for label, count in (item.get("labels", {}) or {}).items():
+                    current["labels"][label] = current["labels"].get(label, 0) + int(count or 0)
+                source_log = item.get("source_log")
+                if source_log and source_log not in current["source_logs"]:
+                    current["source_logs"].append(source_log)
+                for example in item.get("examples", []) or []:
+                    if example and example not in current["examples"]:
+                        current["examples"].append(example)
+        return sorted(
+            merged.values(),
+            key=lambda item: (sum(item["labels"].values()), item["count"], item["skill"]),
+            reverse=True,
+        )
 
 
 @dataclass
@@ -3515,6 +3550,7 @@ class BenchmarkRunner:
             "post_hint_goal_failure_count": report.post_hint_goal_failure_count,
             "repeated_post_hint_failure_count": report.repeated_post_hint_failure_count,
             "quality_label_counts": label_counts,
+            "hint_quality_items": report.hint_quality_items,
             "policy_hints": policy_hints,
         }
 
@@ -5357,6 +5393,20 @@ class BenchmarkRunner:
             return first
         return "UNKNOWN"
 
+    def _skill_memory_hint_record_from_text(self, hint, task_family: str = "") -> dict:
+        text = str(hint or "").strip()
+        hint_type = self._skill_memory_hint_type_from_text(text)
+        rest = text.split(maxsplit=1)[1] if hint_type != "UNKNOWN" and len(text.split(maxsplit=1)) > 1 else text
+        skill = rest.split(":", 1)[0].strip().split()[0] if rest.strip() else "unknown"
+        if not skill or skill.upper() in {"REUSE", "AVOID", "REVIEW_ONLY"}:
+            skill = "unknown"
+        return {
+            "hint_type": hint_type,
+            "skill": skill,
+            "task_family": str(task_family or "unspecified").strip().lower() or "unspecified",
+            "hint": self._short_text(text, 180),
+        }
+
     def _skill_memory_quality_labels(
         self,
         hint_type_counts: dict,
@@ -5402,6 +5452,54 @@ class BenchmarkRunner:
             "action_failures_after_hints": "inspect_post_hint_failed_actions_for_interference",
         }
         return [mapping[label] for label in labels if label in mapping]
+
+    def _skill_memory_quality_items(
+        self,
+        source_log: str,
+        hint_records: list[dict],
+        labels: list[str],
+    ) -> list[dict]:
+        if not hint_records:
+            return []
+        grouped = {}
+        for record in hint_records:
+            hint_type = record.get("hint_type", "UNKNOWN")
+            item_labels = self._skill_memory_labels_for_hint_type(hint_type, labels)
+            if not item_labels:
+                continue
+            key = (
+                hint_type,
+                record.get("skill", "unknown"),
+                record.get("task_family", "unspecified"),
+            )
+            item = grouped.setdefault(key, {
+                "hint_type": key[0],
+                "skill": key[1],
+                "task_family": key[2],
+                "count": 0,
+                "labels": {},
+                "source_log": source_log,
+                "examples": [],
+            })
+            item["count"] += 1
+            for label in item_labels:
+                item["labels"][label] = item["labels"].get(label, 0) + 1
+            example = record.get("hint", "")
+            if example and example not in item["examples"]:
+                item["examples"].append(example)
+        return sorted(grouped.values(), key=lambda item: (item["hint_type"], item["skill"], item["task_family"]))
+
+    def _skill_memory_labels_for_hint_type(self, hint_type: str, labels: list[str]) -> list[str]:
+        hint_type = str(hint_type or "").upper()
+        if hint_type == "REUSE":
+            allowed = {"reuse_supported_by_goal_success", "reuse_conflicted_with_failures"}
+        elif hint_type == "AVOID":
+            allowed = {"avoid_supported_no_post_hint_failures", "avoid_unheeded_post_hint_failures"}
+        elif hint_type == "REVIEW_ONLY":
+            allowed = {"review_only_present_keep_gated"}
+        else:
+            allowed = {"unknown_skill_memory_hint_format"}
+        return [label for label in labels if label in allowed]
 
     def _compact_event_text(self, value) -> str:
         parts = []
@@ -5537,6 +5635,7 @@ class BenchmarkRunner:
         post_hint_goal_failure_count = 0
         hint_seen = False
         last_post_hint_failure = ""
+        hint_records = []
 
         for event in events:
             event_type = str(event.get("type") or "")
@@ -5551,7 +5650,9 @@ class BenchmarkRunner:
                 if not raw_hints and data.get("hint"):
                     raw_hints = [data.get("hint")]
                 for hint in raw_hints:
-                    hint_type = self._skill_memory_hint_type_from_text(hint)
+                    record = self._skill_memory_hint_record_from_text(hint, family)
+                    hint_records.append(record)
+                    hint_type = record["hint_type"]
                     hint_type_counts[hint_type] = hint_type_counts.get(hint_type, 0) + 1
                     hint_count += 1
                 continue
@@ -5597,6 +5698,7 @@ class BenchmarkRunner:
             post_hint_goal_failure_count,
         )
         recommendations = self._skill_memory_quality_recommendations(labels)
+        hint_quality_items = self._skill_memory_quality_items(source_log, hint_records, labels)
         return SkillMemoryQualityCase(
             source_log=source_log,
             event_count=len(events),
@@ -5618,6 +5720,7 @@ class BenchmarkRunner:
             post_hint_goal_failure_count=post_hint_goal_failure_count,
             task_family_counts=task_family_counts,
             hint_type_counts=hint_type_counts,
+            hint_quality_items=hint_quality_items,
             quality_labels=labels,
             recommendations=recommendations,
             ready_for_skill_memory_quality_review=bool(hint_events and (post_hint_action_count or post_hint_goal_success_count or post_hint_goal_failure_count)),
@@ -8439,6 +8542,12 @@ class BenchmarkRunner:
         )
         if report.task_family_counts:
             print(f"  task families: {self._format_counts(report.task_family_counts)}")
+        for item in report.hint_quality_items[:5]:
+            labels = self._format_counts(item.get("labels", {}))
+            print(
+                f"  item: {item.get('hint_type')} {item.get('skill')} "
+                f"family={item.get('task_family')} count={item.get('count')} labels={labels}"
+            )
         feedback = self.skill_memory_quality_feedback(report)
         if feedback["policy_hints"]:
             hints = [

@@ -1594,6 +1594,62 @@ def test_skill_library_records_skill_level_memory_and_transfer_report():
     print("PASS: SkillLibrary records skill-level memory and transfer report")
 
 
+def test_skill_library_applies_quality_feedback_to_targeted_skill_only():
+    tmpdir = tempfile.mkdtemp()
+    skills = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=False)
+    skills.create_skill(
+        "risky_torch_skill",
+        "Craft torches from coal and sticks",
+        json.dumps([{"type": "craft", "parameters": {"item": "torch"}}]),
+        postconditions={"inventory": {"torch": 4}},
+    )
+    skills.create_skill(
+        "safe_torch_skill",
+        "Craft torches after verifying coal and sticks",
+        json.dumps([{"type": "craft", "parameters": {"item": "torch"}}]),
+        postconditions={"inventory": {"torch": 4}},
+    )
+    skills.record_skill_memory(
+        "risky_torch_skill",
+        "Craft torches immediately when the recipe appears available.",
+        memory_type="replay",
+        outcome="success",
+        task_family="crafting",
+        confidence=0.9,
+    )
+    skills.record_skill_memory(
+        "safe_torch_skill",
+        "Verify coal and sticks before crafting torches.",
+        memory_type="replay",
+        outcome="success",
+        task_family="crafting",
+        confidence=0.9,
+    )
+
+    skills.record_skill_memory_quality_feedback({
+        "policy_hints": [
+            {"skill_memory_policy": "demote_conflicting_reuse_hints", "priority": "high", "count": 1},
+        ],
+        "hint_quality_items": [
+            {
+                "hint_type": "REUSE",
+                "skill": "risky_torch_skill",
+                "task_family": "crafting",
+                "count": 1,
+                "labels": {"reuse_conflicted_with_failures": 1},
+            },
+        ],
+    })
+
+    hints = skills.get_skill_memory_hints("Craft torches", task_family="crafting", limit=2)
+
+    assert hints[0].startswith("REUSE safe_torch_skill")
+    assert "quality=" not in hints[0]
+    assert hints[1].startswith("REUSE risky_torch_skill")
+    assert "quality=demote_conflicting_reuse_hints" in hints[1]
+    print("PASS: SkillLibrary applies quality feedback to targeted skill only")
+
+
 def test_skill_library_reports_canonical_dependency_cycles():
     tmpdir = tempfile.mkdtemp()
     skills = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=True)
@@ -2050,6 +2106,7 @@ if __name__ == "__main__":
     test_skill_library_reports_skill_graph_governance()
     test_skill_library_reports_contract_readiness_and_recommends_matches()
     test_skill_library_records_skill_level_memory_and_transfer_report()
+    test_skill_library_applies_quality_feedback_to_targeted_skill_only()
     test_skill_library_reports_canonical_dependency_cycles()
     test_skill_library_handles_legacy_dependency_string()
     test_agent_runs_approved_failure_correction_sequence()

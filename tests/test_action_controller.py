@@ -116,6 +116,15 @@ def _write_skill_memory_quality_feedback(tmpdir):
                 },
                 "hint_type_counts": {"REUSE": 2, "AVOID": 1},
                 "task_family_counts": {"crafting": 2},
+                "hint_quality_items": [
+                    {
+                        "hint_type": "REUSE",
+                        "skill": "craft_torch_memory_skill",
+                        "task_family": "crafting",
+                        "count": 1,
+                        "labels": {"reuse_conflicted_with_failures": 1},
+                    },
+                ],
                 "policy_hints": [
                     {
                         "skill_memory_policy": "demote_conflicting_reuse_hints",
@@ -361,6 +370,7 @@ def test_agent_loads_skill_memory_quality_feedback_into_library():
     assert agent.skill_memory_quality_feedback_report["policy_hints_applied"] == 2
     assert "demote_conflicting_reuse_hints" in profile["policy_hints"]
     assert profile["task_family_counts"]["crafting"] == 2
+    assert profile["hint_quality_items"][0]["skill"] == "craft_torch_memory_skill"
     print("PASS: Agent loads skill-memory quality feedback into library")
 
 

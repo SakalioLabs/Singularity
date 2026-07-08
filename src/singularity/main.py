@@ -807,6 +807,7 @@ def main():
                     "post_hint_goal_failure_count": report.post_hint_goal_failure_count,
                     "repeated_post_hint_failure_count": report.repeated_post_hint_failure_count,
                     "quality_label_counts": report.quality_label_counts,
+                    "hint_quality_items": report.hint_quality_items,
                     "skill_memory_quality_feedback": quality_feedback,
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],

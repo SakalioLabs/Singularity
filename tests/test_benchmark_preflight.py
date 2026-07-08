@@ -2708,6 +2708,14 @@ def test_skill_memory_quality_report_labels_typed_hint_outcomes():
     assert report.post_hint_goal_success_count == 1
     assert report.post_hint_goal_failure_count == 1
     assert report.repeated_post_hint_failure_count == 1
+    items = {
+        (item["hint_type"], item["skill"], item["task_family"]): item
+        for item in report.hint_quality_items
+    }
+    assert items[("REUSE", "craft_torch_memory_skill", "crafting")]["labels"]["reuse_conflicted_with_failures"] == 1
+    assert items[("AVOID", "craft_torch_memory_skill", "crafting")]["labels"]["avoid_unheeded_post_hint_failures"] == 1
+    assert items[("REVIEW_ONLY", "desert_torch_route", "crafting")]["labels"]["review_only_present_keep_gated"] == 1
+    assert items[("REUSE", "mine_coal_for_torch", "mining")]["labels"]["reuse_supported_by_goal_success"] == 1
     assert "reuse_conflicted_with_failures" in conflict.quality_labels
     assert "avoid_unheeded_post_hint_failures" in conflict.quality_labels
     assert "review_only_present_keep_gated" in conflict.quality_labels
@@ -2721,6 +2729,7 @@ def test_skill_memory_quality_report_labels_typed_hint_outcomes():
     assert policies["keep_review_only_skill_memory_gated"]["count"] == 1
     assert policies["candidate_promote_reuse_hints"]["priority"] == "low"
     assert policies["instrument_skill_memory_hints"]["count"] == 1
+    assert feedback["hint_quality_items"]
     skill_library = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=False)
     applied = runner.apply_skill_memory_quality_feedback(report, skill_library)
     profile = skill_library.skill_memory_quality_profile()
