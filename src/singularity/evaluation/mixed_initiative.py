@@ -871,6 +871,187 @@ def _sort_mixed_initiative_hints(hints: list[dict]) -> list[dict]:
     )
 
 
+@dataclass
+class MixedInitiativePolicyDecision:
+    """Advisory decision produced from mixed-initiative trace feedback."""
+
+    target_type: str
+    target_id: str
+    decision: str
+    priority: str = "normal"
+    reason: str = "no_feedback"
+    should_review: bool = False
+    should_promote_template: bool = False
+    should_reject_invalid_actions: bool = False
+    should_inspect_backend: bool = False
+    should_audit_validator: bool = False
+    active_policies: list[str] = field(default_factory=list)
+    hints: list[dict] = field(default_factory=list)
+
+    def as_dict(self) -> dict:
+        data = {
+            "target_type": self.target_type,
+            "target_id": self.target_id,
+            "decision": self.decision,
+            "priority": self.priority,
+            "reason": self.reason,
+            "should_review": self.should_review,
+            "should_promote_template": self.should_promote_template,
+            "should_reject_invalid_actions": self.should_reject_invalid_actions,
+            "should_inspect_backend": self.should_inspect_backend,
+            "should_audit_validator": self.should_audit_validator,
+            "active_policies": list(self.active_policies),
+        }
+        if self.hints:
+            data["hints"] = [dict(hint) for hint in self.hints]
+        return data
+
+
+class MixedInitiativeFeedbackPolicy:
+    """Consumes mixed-initiative trace feedback for template/action review loops."""
+
+    def __init__(self, feedback: Optional[dict] = None):
+        self._hints_by_key: dict[str, dict] = {}
+        if feedback:
+            self.record_mixed_initiative_feedback(feedback)
+
+    def record_mixed_initiative_feedback(self, feedback: dict) -> int:
+        stored = 0
+        for hint in feedback.get("policy_hints", []) if isinstance(feedback, dict) else []:
+            if not isinstance(hint, dict):
+                continue
+            policy = str(hint.get("policy") or "")
+            if not policy:
+                continue
+            key = self._hint_key(hint)
+            self._hints_by_key[key] = dict(hint)
+            stored += 1
+        return stored
+
+    def decide_template(self, template_id: str) -> MixedInitiativePolicyDecision:
+        template_id = str(template_id or "")
+        hints = self._hints_for("template_id", template_id)
+        if not hints:
+            return MixedInitiativePolicyDecision(
+                target_type="template",
+                target_id=template_id,
+                decision="template_ok",
+                reason="no mixed-initiative feedback for template",
+            )
+        policies = {str(hint.get("policy") or "") for hint in hints}
+        priority = self._highest_priority(hints)
+        if "reject_invalid_actions" in policies:
+            decision = "block_invalid_progress"
+            reason = "template produced actions that violated bounded-world policy"
+        elif "inspect_backend_execution" in policies:
+            decision = "inspect_backend_execution"
+            reason = "template had backend action failures"
+        elif "improve_action_policy" in policies:
+            decision = "tune_action_policy"
+            reason = "template valid-action success rate is low"
+        elif "audit_template_validator" in policies:
+            decision = "audit_template_validator"
+            reason = "template validators rejected some cases"
+        else:
+            decision = "template_review"
+            reason = "mixed-initiative feedback requests template review"
+        return MixedInitiativePolicyDecision(
+            target_type="template",
+            target_id=template_id,
+            decision=decision,
+            priority=priority,
+            reason=reason,
+            should_review=True,
+            should_reject_invalid_actions="reject_invalid_actions" in policies,
+            should_inspect_backend=bool({"inspect_backend_execution", "improve_action_policy"} & policies),
+            should_audit_validator="audit_template_validator" in policies,
+            active_policies=sorted(policies),
+            hints=hints,
+        )
+
+    def decide_candidate(self, candidate_id: str) -> MixedInitiativePolicyDecision:
+        candidate_id = str(candidate_id or "")
+        hints = self._hints_for("candidate_id", candidate_id)
+        if not hints:
+            return MixedInitiativePolicyDecision(
+                target_type="template_candidate",
+                target_id=candidate_id,
+                decision="candidate_observe",
+                reason="no promotion feedback for template candidate",
+            )
+        policies = {str(hint.get("policy") or "") for hint in hints}
+        priority = self._highest_priority(hints)
+        return MixedInitiativePolicyDecision(
+            target_type="template_candidate",
+            target_id=candidate_id,
+            decision="promote_template_candidate" if "promote_template_candidate" in policies else "candidate_review",
+            priority=priority,
+            reason="unsupported goals cluster into a reusable template family",
+            should_review=True,
+            should_promote_template="promote_template_candidate" in policies,
+            active_policies=sorted(policies),
+            hints=hints,
+        )
+
+    def feedback_hints(self) -> dict:
+        return {key: dict(hint) for key, hint in sorted(self._hints_by_key.items())}
+
+    def feedback_profile(self) -> dict:
+        priority_counts = {}
+        template_ids = set()
+        candidate_ids = set()
+        policy_counts = {}
+        for hint in self._hints_by_key.values():
+            priority = str(hint.get("priority") or "normal")
+            policy = str(hint.get("policy") or "")
+            priority_counts[priority] = priority_counts.get(priority, 0) + 1
+            if policy:
+                policy_counts[policy] = policy_counts.get(policy, 0) + 1
+            if hint.get("template_id"):
+                template_ids.add(str(hint.get("template_id")))
+            if hint.get("candidate_id"):
+                candidate_ids.add(str(hint.get("candidate_id")))
+        return {
+            "hint_count": len(self._hints_by_key),
+            "priority_counts": dict(sorted(priority_counts.items())),
+            "policy_counts": dict(sorted(policy_counts.items())),
+            "templates_for_review": sorted(template_ids),
+            "candidates_for_promotion": sorted(candidate_ids),
+        }
+
+    def recommendations(self) -> list[dict]:
+        decisions = []
+        profile = self.feedback_profile()
+        for template_id in profile["templates_for_review"]:
+            decisions.append(self.decide_template(template_id).as_dict())
+        for candidate_id in profile["candidates_for_promotion"]:
+            decisions.append(self.decide_candidate(candidate_id).as_dict())
+        return sorted(
+            decisions,
+            key=lambda item: (
+                {"high": 0, "medium": 1, "low": 2}.get(str(item.get("priority", "normal")), 3),
+                str(item.get("target_type", "")),
+                str(item.get("target_id", "")),
+            ),
+        )
+
+    def _hints_for(self, key: str, value: str) -> list[dict]:
+        return _sort_mixed_initiative_hints([
+            hint
+            for hint in self._hints_by_key.values()
+            if str(hint.get(key) or "") == value
+        ])
+
+    def _hint_key(self, hint: dict) -> str:
+        policy = str(hint.get("policy") or "")
+        target = str(hint.get("template_id") or hint.get("candidate_id") or "trace")
+        return f"{policy}:{target}"
+
+    def _highest_priority(self, hints: list[dict]) -> str:
+        ranked = _sort_mixed_initiative_hints(hints)
+        return str(ranked[0].get("priority") or "normal") if ranked else "normal"
+
+
 class BoundedEvidenceValidator:
     """Validate subtask success without hidden state or privileged commands."""
 

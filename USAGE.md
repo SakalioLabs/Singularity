@@ -169,6 +169,8 @@ python -m singularity.main mixed-initiative-trace-report --session-log logs/sess
 # generic collect/mine, and build/place requests. The saved JSON still includes
 # `template_candidates` and `mixed_initiative_feedback` for remaining unsupported
 # player requests, action-policy issues, and validator/GoalVerifier disagreements.
+# `MixedInitiativeFeedbackPolicy` can consume the saved feedback to produce
+# per-template review decisions and candidate-promotion recommendations.
 
 # Replay held-out paraphrases and optional JSON/JSONL case files before promoting
 # new mixed-initiative templates or changing auto-selection heuristics.

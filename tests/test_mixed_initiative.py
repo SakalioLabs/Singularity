@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from singularity.evaluation.mixed_initiative import (
     BoundedEvidenceValidator,
+    MixedInitiativeFeedbackPolicy,
     MixedInitiativeTemplateCompiler,
     build_mixed_initiative_report,
     build_mixed_initiative_trace_report,
@@ -376,6 +377,36 @@ def test_mixed_initiative_trace_report_feedback_flags_failed_actions():
     print("PASS: Mixed-initiative feedback flags failed backend actions")
 
 
+def test_mixed_initiative_feedback_policy_consumes_template_hints():
+    session_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Craft 4 torches"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch"}},
+                "result": {"success": False, "error": "Missing coal"},
+            },
+        },
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {"type": "goal_end", "data": {"goal": "Craft 4 torches", "result": {"completed": False}}},
+    ])
+    report = build_mixed_initiative_trace_report([session_path])
+
+    policy = MixedInitiativeFeedbackPolicy(report.mixed_initiative_feedback)
+    decision = policy.decide_template("craft_or_process_item")
+    profile = policy.feedback_profile()
+
+    assert decision.decision == "inspect_backend_execution"
+    assert decision.priority == "high"
+    assert decision.should_review
+    assert decision.should_inspect_backend
+    assert "craft_or_process_item" in profile["templates_for_review"]
+    assert profile["policy_counts"]["inspect_backend_execution"] == 1
+    assert policy.recommendations()[0]["target_id"] == "craft_or_process_item"
+    print("PASS: Mixed-initiative feedback policy consumes template hints")
+
+
 def test_mixed_initiative_trace_report_groups_template_candidates():
     first_path = write_jsonl([
         {"type": "goal_start", "data": {"goal": "Organize inventory"}},
@@ -402,6 +433,31 @@ def test_mixed_initiative_trace_report_groups_template_candidates():
     assert candidate_hint["candidate_id"] == "general_player_request"
     assert candidate_hint["priority"] == "medium"
     print("PASS: Mixed-initiative trace report groups unsupported goals into template candidates")
+
+
+def test_mixed_initiative_feedback_policy_consumes_candidate_hints():
+    first_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Organize inventory"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {"type": "goal_end", "data": {"goal": "Organize inventory", "result": {"completed": False}}},
+    ])
+    second_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Sort inventory"}},
+        {"type": "observation", "data": {"inventory": {"coal": 1}}},
+        {"type": "goal_end", "data": {"goal": "Sort inventory", "result": {"completed": False}}},
+    ])
+    report = build_mixed_initiative_trace_report([first_path, second_path])
+
+    policy = MixedInitiativeFeedbackPolicy(report.mixed_initiative_feedback)
+    decision = policy.decide_candidate("general_player_request")
+    profile = policy.feedback_profile()
+
+    assert decision.decision == "promote_template_candidate"
+    assert decision.priority == "medium"
+    assert decision.should_promote_template
+    assert "general_player_request" in profile["candidates_for_promotion"]
+    assert profile["policy_counts"]["promote_template_candidate"] == 1
+    print("PASS: Mixed-initiative feedback policy consumes candidate hints")
 
 
 def test_mixed_initiative_variant_report_checks_heldout_templates():
@@ -476,7 +532,9 @@ if __name__ == "__main__":
     test_mixed_initiative_trace_report_flags_validator_stricter_case()
     test_mixed_initiative_trace_report_flags_policy_violation()
     test_mixed_initiative_trace_report_feedback_flags_failed_actions()
+    test_mixed_initiative_feedback_policy_consumes_template_hints()
     test_mixed_initiative_trace_report_groups_template_candidates()
+    test_mixed_initiative_feedback_policy_consumes_candidate_hints()
     test_mixed_initiative_variant_report_checks_heldout_templates()
     test_mixed_initiative_variant_report_flags_slot_mismatch()
     test_mixed_initiative_variant_report_loads_jsonl_case_file()
