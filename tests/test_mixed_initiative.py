@@ -11,6 +11,7 @@ from singularity.evaluation.mixed_initiative import (
     MixedInitiativeFeedbackPolicy,
     MixedInitiativeTemplateCompiler,
     build_mixed_initiative_report,
+    build_mixed_initiative_review_queue,
     build_mixed_initiative_trace_report,
     build_mixed_initiative_variant_report,
 )
@@ -467,6 +468,75 @@ def test_mixed_initiative_feedback_policy_consumes_candidate_hints():
     print("PASS: Mixed-initiative feedback policy consumes candidate hints")
 
 
+def test_mixed_initiative_review_queue_groups_trace_recommendations():
+    craft_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Craft 4 torches"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch"}},
+                "result": {"success": False, "error": "Missing coal"},
+            },
+        },
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {"type": "goal_end", "data": {"goal": "Craft 4 torches", "result": {"completed": False}}},
+    ])
+    first_unsupported = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Organize inventory"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {"type": "goal_end", "data": {"goal": "Organize inventory", "result": {"completed": False}}},
+    ])
+    second_unsupported = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Sort inventory"}},
+        {"type": "observation", "data": {"inventory": {"coal": 1}}},
+        {"type": "goal_end", "data": {"goal": "Sort inventory", "result": {"completed": False}}},
+    ])
+    craft_report = build_mixed_initiative_trace_report([craft_path])
+    candidate_report = build_mixed_initiative_trace_report([first_unsupported, second_unsupported])
+
+    queue = build_mixed_initiative_review_queue(trace_reports=[craft_report, candidate_report])
+
+    assert queue.item_count == 2
+    assert queue.high_priority_count == 1
+    decisions = {item.decision: item for item in queue.items}
+    assert decisions["inspect_backend_execution"].target_id == "craft_or_process_item"
+    assert decisions["inspect_backend_execution"].source_goals == ["Craft 4 torches"]
+    assert decisions["promote_template_candidate"].target_id == "general_player_request"
+    assert decisions["promote_template_candidate"].recommendation_count == 1
+    assert "Organize inventory" in decisions["promote_template_candidate"].source_goals
+    print("PASS: Mixed-initiative review queue groups trace recommendations")
+
+
+def test_mixed_initiative_review_queue_loads_saved_trace_report():
+    craft_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Craft 4 torches"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch"}},
+                "result": {"success": False, "error": "Missing coal"},
+            },
+        },
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {"type": "goal_end", "data": {"goal": "Craft 4 torches", "result": {"completed": False}}},
+    ])
+    trace_report = build_mixed_initiative_trace_report([craft_path]).to_dict()
+    report_path = os.path.join(tempfile.mkdtemp(), "mixed_trace.json")
+    with open(report_path, "w", encoding="utf-8") as f:
+        json.dump(trace_report, f)
+
+    queue = build_mixed_initiative_review_queue(trace_report_paths=[report_path])
+
+    assert queue.errors == []
+    assert queue.item_count == 1
+    assert queue.items[0].source_reports == [report_path]
+    assert queue.items[0].decision == "inspect_backend_execution"
+    assert queue.to_dict()["items"][0]["id"].startswith("miq-template-craft-or-process-item")
+    print("PASS: Mixed-initiative review queue loads saved trace reports")
+
+
 def test_mixed_initiative_variant_report_checks_heldout_templates():
     report = build_mixed_initiative_variant_report()
 
@@ -542,6 +612,8 @@ if __name__ == "__main__":
     test_mixed_initiative_feedback_policy_consumes_template_hints()
     test_mixed_initiative_trace_report_groups_template_candidates()
     test_mixed_initiative_feedback_policy_consumes_candidate_hints()
+    test_mixed_initiative_review_queue_groups_trace_recommendations()
+    test_mixed_initiative_review_queue_loads_saved_trace_report()
     test_mixed_initiative_variant_report_checks_heldout_templates()
     test_mixed_initiative_variant_report_flags_slot_mismatch()
     test_mixed_initiative_variant_report_loads_jsonl_case_file()

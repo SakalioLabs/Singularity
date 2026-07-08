@@ -310,6 +310,17 @@ def main():
     mixed_trace_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     mixed_trace_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline mixed-initiative recommendation queue
+    mixed_queue_parser = subparsers.add_parser(
+        "mixed-initiative-review-queue",
+        help="Aggregate mixed-initiative trace recommendations into review queue items",
+    )
+    mixed_queue_parser.add_argument("--trace-report", action="append", default=[], help="Saved mixed-initiative trace JSON report")
+    mixed_queue_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect directly")
+    mixed_queue_parser.add_argument("--template", type=str, default="auto", choices=mixed_template_choices, help="Template to force for session-log inputs")
+    mixed_queue_parser.add_argument("--output", type=str, default="", help="Optional JSON queue path")
+    mixed_queue_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline mixed-initiative held-out variant report
     mixed_variant_parser = subparsers.add_parser(
         "mixed-initiative-variant-report",
@@ -1098,6 +1109,40 @@ def main():
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "mixed-initiative-review-queue":
+        from singularity.evaluation.mixed_initiative import build_mixed_initiative_review_queue
+
+        trace_reports = getattr(args, "trace_report", []) or []
+        session_logs = getattr(args, "session_log", []) or []
+        if not trace_reports and not session_logs:
+            print("mixed-initiative-review-queue requires --trace-report or --session-log")
+            sys.exit(1)
+        report = build_mixed_initiative_review_queue(
+            trace_report_paths=trace_reports,
+            session_log_paths=session_logs,
+            template_id=getattr(args, "template", "auto"),
+        )
+        print("\nMixed-Initiative Review Queue")
+        print(f"  items: {report.item_count}")
+        print(f"  high priority: {report.high_priority_count}")
+        if report.decision_counts:
+            parts = [f"{key}={value}" for key, value in sorted(report.decision_counts.items())]
+            print(f"  decisions: {', '.join(parts)}")
+        for item in report.items:
+            print(f"  [{item.priority}] {item.id}")
+            print(f"      {item.target_type}:{item.target_id} -> {item.decision}")
+            if item.source_goals:
+                print(f"      examples: {', '.join(item.source_goals[:3])}")
+            if item.action_items:
+                print(f"      next: {item.action_items[0]}")
+        for error in report.errors:
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
+            print(f"\nQueue saved to {args.output}")
         return
 
     if args.command == "mixed-initiative-trace-report":

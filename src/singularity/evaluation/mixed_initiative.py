@@ -490,6 +490,64 @@ class MixedInitiativeVariantReport:
         }
 
 
+@dataclass
+class MixedInitiativeReviewQueueItem:
+    id: str
+    target_type: str
+    target_id: str
+    decision: str
+    priority: str = "normal"
+    reason: str = ""
+    status: str = "pending"
+    recommendation_count: int = 0
+    source_reports: list[str] = field(default_factory=list)
+    source_goals: list[str] = field(default_factory=list)
+    active_policies: list[str] = field(default_factory=list)
+    action_items: list[str] = field(default_factory=list)
+    recommendations: list[dict] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
+class MixedInitiativeReviewQueueReport:
+    items: list[MixedInitiativeReviewQueueItem] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def item_count(self) -> int:
+        return len(self.items)
+
+    @property
+    def high_priority_count(self) -> int:
+        return sum(1 for item in self.items if item.priority == "high")
+
+    @property
+    def target_type_counts(self) -> dict:
+        counts = {}
+        for item in self.items:
+            counts[item.target_type] = counts.get(item.target_type, 0) + 1
+        return dict(sorted(counts.items()))
+
+    @property
+    def decision_counts(self) -> dict:
+        counts = {}
+        for item in self.items:
+            counts[item.decision] = counts.get(item.decision, 0) + 1
+        return dict(sorted(counts.items()))
+
+    def to_dict(self) -> dict:
+        return {
+            "item_count": self.item_count,
+            "high_priority_count": self.high_priority_count,
+            "target_type_counts": self.target_type_counts,
+            "decision_counts": self.decision_counts,
+            "errors": list(self.errors),
+            "items": [item.to_dict() for item in self.items],
+        }
+
+
 class MixedInitiativeTemplateCompiler:
     """Compile template subtasks into auditable records with slot binding."""
 
@@ -1926,6 +1984,185 @@ def _variant_case_from_any(item: Any, source: str, default_id: str) -> MixedInit
         tags=list(item.get("tags", []) or []),
         source=str(item.get("source", source)),
     )
+
+
+def build_mixed_initiative_review_queue(
+    trace_reports: Optional[list[Any]] = None,
+    trace_report_paths: Optional[list[str]] = None,
+    session_log_paths: Optional[list[str]] = None,
+    template_id: str = "auto",
+) -> MixedInitiativeReviewQueueReport:
+    """Aggregate trace recommendations into a stable mixed-initiative review queue."""
+    queue = MixedInitiativeReviewQueueReport()
+    payloads: list[tuple[str, dict]] = []
+    for index, report in enumerate(trace_reports or [], start=1):
+        try:
+            payloads.append((f"inline_report_{index}", _trace_report_payload_from_any(report)))
+        except Exception as exc:
+            queue.errors.append(f"inline_report_{index}: {exc}")
+    for path in trace_report_paths or []:
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                payloads.append((path, json.load(f)))
+        except Exception as exc:
+            queue.errors.append(f"{path}: {exc}")
+    if session_log_paths:
+        try:
+            trace_report = build_mixed_initiative_trace_report(
+                session_log_paths,
+                template_id=template_id,
+            )
+            payloads.append(("session_logs", trace_report.to_dict()))
+        except Exception as exc:
+            queue.errors.append(f"session_logs: {exc}")
+
+    grouped: dict[str, MixedInitiativeReviewQueueItem] = {}
+    for source, payload in payloads:
+        recommendations = payload.get("mixed_initiative_recommendations", [])
+        if not isinstance(recommendations, list):
+            queue.errors.append(f"{source}: mixed_initiative_recommendations is not a list")
+            continue
+        cases = payload.get("cases", []) if isinstance(payload.get("cases", []), list) else []
+        for recommendation in recommendations:
+            if not isinstance(recommendation, dict):
+                continue
+            incoming = _review_queue_item_from_recommendation(recommendation)
+            existing = grouped.get(incoming.id)
+            if existing is None:
+                existing = _empty_review_queue_item(incoming)
+                grouped[incoming.id] = existing
+            _merge_review_queue_item(existing, incoming, source, _goals_for_recommendation(cases, recommendation))
+
+    queue.items = sorted(
+        grouped.values(),
+        key=lambda item: (
+            {"high": 0, "medium": 1, "low": 2}.get(item.priority, 3),
+            item.target_type,
+            item.target_id,
+            item.decision,
+        ),
+    )
+    return queue
+
+
+def _trace_report_payload_from_any(report: Any) -> dict:
+    if isinstance(report, MixedInitiativeTraceReport):
+        return report.to_dict()
+    if isinstance(report, dict):
+        return report
+    if hasattr(report, "to_dict"):
+        payload = report.to_dict()
+        if isinstance(payload, dict):
+            return payload
+    raise ValueError("trace report must be a dict or MixedInitiativeTraceReport")
+
+
+def _review_queue_item_from_recommendation(recommendation: dict) -> MixedInitiativeReviewQueueItem:
+    target_type = str(recommendation.get("target_type") or "trace")
+    target_id = str(recommendation.get("target_id") or "unknown")
+    decision = str(recommendation.get("decision") or "review")
+    priority = str(recommendation.get("priority") or "normal")
+    review_id = _review_queue_id(target_type, target_id, decision)
+    return MixedInitiativeReviewQueueItem(
+        id=review_id,
+        target_type=target_type,
+        target_id=target_id,
+        decision=decision,
+        priority=priority,
+        reason=str(recommendation.get("reason") or ""),
+        active_policies=list(recommendation.get("active_policies", []) or []),
+        action_items=_action_items_for_recommendation(recommendation),
+        recommendations=[dict(recommendation)],
+    )
+
+
+def _empty_review_queue_item(item: MixedInitiativeReviewQueueItem) -> MixedInitiativeReviewQueueItem:
+    return MixedInitiativeReviewQueueItem(
+        id=item.id,
+        target_type=item.target_type,
+        target_id=item.target_id,
+        decision=item.decision,
+        priority=item.priority,
+        reason=item.reason,
+        action_items=[],
+        active_policies=[],
+        recommendations=[],
+    )
+
+
+def _merge_review_queue_item(
+    existing: MixedInitiativeReviewQueueItem,
+    incoming: MixedInitiativeReviewQueueItem,
+    source: str,
+    goals: list[str],
+):
+    existing.priority = _higher_priority(existing.priority, incoming.priority)
+    if source and source not in existing.source_reports:
+        existing.source_reports.append(source)
+    existing.recommendation_count += 1
+    for policy in incoming.active_policies:
+        if policy not in existing.active_policies:
+            existing.active_policies.append(policy)
+    existing.active_policies.sort()
+    for action_item in incoming.action_items:
+        if action_item not in existing.action_items:
+            existing.action_items.append(action_item)
+    for goal in goals:
+        if goal and goal not in existing.source_goals:
+            existing.source_goals.append(goal)
+    existing.source_goals = existing.source_goals[:8]
+    existing.recommendations.extend(incoming.recommendations)
+
+
+def _goals_for_recommendation(cases: list[dict], recommendation: dict) -> list[str]:
+    target_type = str(recommendation.get("target_type") or "")
+    target_id = str(recommendation.get("target_id") or "")
+    goals = []
+    for case in cases:
+        if not isinstance(case, dict):
+            continue
+        matches = False
+        if target_type == "template":
+            matches = str(case.get("template_id") or "") == target_id
+        elif target_type == "template_candidate":
+            candidate = case.get("template_candidate", {})
+            matches = isinstance(candidate, dict) and str(candidate.get("candidate_id") or "") == target_id
+        else:
+            matches = True
+        if matches and case.get("goal"):
+            goals.append(str(case.get("goal")))
+    return goals
+
+
+def _action_items_for_recommendation(recommendation: dict) -> list[str]:
+    decision = str(recommendation.get("decision") or "")
+    if decision == "block_invalid_progress":
+        return ["Review bounded-policy violations before counting these actions as progress."]
+    if decision == "inspect_backend_execution":
+        return ["Inspect failed action parameters, missing preconditions, and backend command results."]
+    if decision == "tune_action_policy":
+        return ["Run action-policy or visual-action ablations for this template family."]
+    if decision == "audit_template_validator":
+        return ["Compare template validator evidence against GoalVerifier and session observations."]
+    if decision == "promote_template_candidate":
+        return ["Draft or update a MixedInitiativeTaskTemplate with explicit slots and validators."]
+    if decision == "candidate_review":
+        return ["Review unsupported goal examples before promoting a template candidate."]
+    return ["Review mixed-initiative trace evidence for this target."]
+
+
+def _review_queue_id(target_type: str, target_id: str, decision: str) -> str:
+    return "miq-" + _slugify_id(f"{target_type}-{target_id}-{decision}")
+
+
+def _slugify_id(value: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", str(value or "").strip().lower()).strip("-")
+    return slug or "unknown"
+
+
+def _higher_priority(left: str, right: str) -> str:
+    rank = {"high": 0, "medium": 1, "low": 2, "normal": 3}
+    return left if rank.get(left, 3) <= rank.get(right, 3) else right
 
 
 def build_mixed_initiative_trace_report(

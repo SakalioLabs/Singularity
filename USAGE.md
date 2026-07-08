@@ -171,6 +171,11 @@ python -m singularity.main mixed-initiative-trace-report --session-log logs/sess
 # `mixed_initiative_recommendations` for unsupported requests, action-policy issues,
 # validator/GoalVerifier disagreements, template reviews, and candidate promotion.
 
+# Aggregate trace recommendations into stable pending review items for template
+# promotion, backend/action-policy inspection, or validator audits.
+python -m singularity.main mixed-initiative-review-queue --trace-report logs/benchmarks/mixed_initiative_trace.json --output logs/benchmarks/mixed_review_queue.json
+python -m singularity.main mixed-initiative-review-queue --session-log logs/session_xxx.jsonl
+
 # Replay held-out paraphrases and optional JSON/JSONL case files before promoting
 # new mixed-initiative templates or changing auto-selection heuristics.
 python -m singularity.main mixed-initiative-variant-report --output logs/benchmarks/mixed_initiative_variants.json
