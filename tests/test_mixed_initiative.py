@@ -58,6 +58,17 @@ def test_fetch_tool_template_asks_single_targeted_clarification():
     print("PASS: Mixed-initiative template asks one targeted clarification for missing slot")
 
 
+def test_unknown_goal_uses_unsupported_template_candidate():
+    compiler = MixedInitiativeTemplateCompiler()
+
+    plan = compiler.compile_goal("Craft torches before night")
+
+    assert plan.template_id == "unsupported_request"
+    assert plan.category == "template_gap"
+    assert plan.subtasks[0].id == "template_needed"
+    print("PASS: Unknown mixed-initiative goals use unsupported template instead of wrong validator")
+
+
 def test_clarification_answer_resolves_validator_and_memory_candidate():
     compiler = MixedInitiativeTemplateCompiler()
 
@@ -246,9 +257,33 @@ def test_mixed_initiative_trace_report_flags_policy_violation():
     print("PASS: Mixed-initiative trace report invalidates privileged shortcuts")
 
 
+def test_mixed_initiative_trace_report_groups_template_candidates():
+    first_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1, "coal": 1}}},
+        {"type": "goal_end", "data": {"goal": "Craft torches", "result": {"completed": False}}},
+    ])
+    second_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Smelt iron ingot"}},
+        {"type": "observation", "data": {"inventory": {"raw_iron": 1, "coal": 1}}},
+        {"type": "goal_end", "data": {"goal": "Smelt iron ingot", "result": {"completed": False}}},
+    ])
+
+    report = build_mixed_initiative_trace_report([first_path, second_path])
+
+    assert report.unsupported_goal_count == 2
+    candidate = report.template_candidates[0]
+    assert candidate["candidate_id"] == "craft_or_process_item"
+    assert candidate["count"] == 2
+    assert "inventory_at_least" in candidate["suggested_validators"]
+    assert all(case.template_id == "unsupported_request" for case in report.cases)
+    print("PASS: Mixed-initiative trace report groups unsupported goals into template candidates")
+
+
 if __name__ == "__main__":
     test_collect_logs_template_binds_goal_slots_and_context()
     test_fetch_tool_template_asks_single_targeted_clarification()
+    test_unknown_goal_uses_unsupported_template_candidate()
     test_clarification_answer_resolves_validator_and_memory_candidate()
     test_bounded_validator_accepts_inventory_evidence()
     test_bounded_validator_rejects_privileged_commands()
@@ -256,4 +291,5 @@ if __name__ == "__main__":
     test_mixed_initiative_trace_report_agrees_with_goal_verifier()
     test_mixed_initiative_trace_report_flags_validator_stricter_case()
     test_mixed_initiative_trace_report_flags_policy_violation()
+    test_mixed_initiative_trace_report_groups_template_candidates()
     print("\nMixed-initiative tests PASSED")

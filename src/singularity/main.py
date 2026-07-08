@@ -286,7 +286,7 @@ def main():
     # Offline mixed-initiative task template report
     mixed_parser = subparsers.add_parser("mixed-initiative-report", help="Compile MineNPC-style task templates and optionally validate bounded evidence")
     mixed_parser.add_argument("--goal", type=str, default="Collect 20 oak logs", help="Natural-language Minecraft request")
-    mixed_parser.add_argument("--template", type=str, default="auto", choices=["auto", "collect_oak_logs", "fetch_named_tool"], help="Template to use")
+    mixed_parser.add_argument("--template", type=str, default="auto", choices=["auto", "collect_oak_logs", "fetch_named_tool", "unsupported_request"], help="Template to use")
     mixed_parser.add_argument("--context-json", type=str, default="", help="Optional JSON object with slots, memory_preferences, or clarification_answers")
     mixed_parser.add_argument("--context-file", type=str, default="", help="Optional JSON file with context")
     mixed_parser.add_argument("--evidence-json", type=str, default="", help="Optional bounded evidence JSON object")
@@ -297,7 +297,7 @@ def main():
     # Offline mixed-initiative trace report
     mixed_trace_parser = subparsers.add_parser("mixed-initiative-trace-report", help="Replay session logs through MineNPC-style task validators")
     mixed_trace_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
-    mixed_trace_parser.add_argument("--template", type=str, default="auto", choices=["auto", "collect_oak_logs", "fetch_named_tool"], help="Template to use for all goals")
+    mixed_trace_parser.add_argument("--template", type=str, default="auto", choices=["auto", "collect_oak_logs", "fetch_named_tool", "unsupported_request"], help="Template to use for all goals")
     mixed_trace_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     mixed_trace_parser.add_argument("--log-level", type=str, default="INFO")
 
@@ -1051,11 +1051,20 @@ def main():
         print(f"  goals: {report.goal_count}")
         print(f"  goals needing clarification: {report.needs_clarification_count}")
         print(f"  unbound slots: {report.unbound_slot_count}")
+        print(f"  unsupported template goals: {report.unsupported_goal_count}")
         print(f"  validator success: {report.validator_success_count}/{report.goal_count}")
         print(f"  policy violations: {report.policy_violation_count}")
         if report.agreement_counts:
             parts = [f"{key}={value}" for key, value in sorted(report.agreement_counts.items())]
             print(f"  agreement: {', '.join(parts)}")
+        if report.template_candidates:
+            print("  template candidates:")
+            for candidate in report.template_candidates[:6]:
+                examples = ", ".join(candidate["example_goals"][:2])
+                print(
+                    f"    - {candidate['candidate_id']} x{candidate['count']} "
+                    f"({candidate['category']}): {examples}"
+                )
         for case in report.cases:
             marker = "+" if case.validator_success else "x" if case.policy_violation_count else "~"
             print(f"  [{marker}] {case.goal}")
@@ -1072,6 +1081,8 @@ def main():
                     f"      goal verifier: status={case.goal_verification_status}, "
                     f"accepted={case.goal_verification_accepted}"
                 )
+            if case.template_candidate:
+                print(f"      template candidate: {case.template_candidate.get('candidate_id')}")
             print(f"      agreement: {case.agreement}")
         for error in report.errors:
             print(f"  error: {error}")

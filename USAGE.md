@@ -160,6 +160,8 @@ python -m singularity.main mixed-initiative-report --goal "Get me a pickaxe" --c
 # Replay session logs through the same MineNPC-style template validators and
 # compare bounded validator outcomes with logged GoalVerifier decisions.
 python -m singularity.main mixed-initiative-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/mixed_initiative_trace.json
+# The saved JSON includes `template_candidates` for unsupported player requests,
+# with suggested slots and validators for the next templates to implement.
 
 # M2 benchmarks (LLM planning)
 python -m singularity.main benchmark --suite m2

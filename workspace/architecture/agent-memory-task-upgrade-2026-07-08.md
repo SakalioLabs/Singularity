@@ -118,24 +118,27 @@ Core idea:
 Singularity adaptation:
 - Build a lightweight knowledge graph over items, recipes, tools, blocks, biomes, and observed landmarks before attempting heavyweight VLA training.
 
-### Optimus-2, JARVIS-VLA, Game-TARS, OpenHA / CrossAgent
+### Optimus-2, JARVIS-VLA, Game-TARS, NitroGen, OpenHA / CrossAgent
 
 Sources:
 - https://arxiv.org/abs/2502.19902
 - https://arxiv.org/abs/2503.16365
 - https://arxiv.org/abs/2510.23691
+- https://arxiv.org/abs/2601.02427
 - https://arxiv.org/abs/2509.13347
 - https://arxiv.org/abs/2512.09706
 
 Core idea:
 - Strong game agents increasingly combine high-level language planning with low-level behavior/action policies.
 - Unified keyboard-mouse or goal-observation-action representations generalize better than narrow APIs, but are expensive to train.
+- NitroGen suggests that scalable visual-action priors can transfer across many games, but Singularity should collect narrow Minecraft screenshot/action traces first and only train/apply low-level policies where API-level control demonstrably fails.
 - OpenHA/CrossAgent adds that action abstraction itself should be task-dependent: abstract actions can be intermediate reasoning steps, while some steps need lower-level visual/keyboard-mouse control.
 
 Singularity adaptation:
 - Keep Mineflayer API control for reproducible M1-M5 progress.
 - Add optional screenshot/VLM diagnostics in M6 before considering keyboard-mouse policy learning.
 - Record canonical-to-backend action traces so future reports can compare API-level and low-level control needs by task.
+- Use `action-abstraction-report` plus `mixed-initiative-trace-report` to rank task families for future visual-action data collection.
 
 ### LLM-Based Game Agent Survey v5
 
@@ -422,3 +425,5 @@ User-authored Minecraft requests need a benchmark layer between free-form chat a
 - Wired read-filter diagnostics into Agent `memory_read` events, session summaries, benchmark result JSON, `memory-policy-report`, and added `memory-read-filter-report` CLI for offline memory-directory audits.
 - Added MineNPC-style mixed-initiative task templates and bounded validators: `mixed-initiative-report` compiles natural player requests into subtask records with dependencies, slot bindings, a surfaced clarification, scoped memory-write candidates, and optional bounded-evidence validation.
 - Added `mixed-initiative-trace-report` to replay session logs through those bounded validators, summarize clarification pressure and policy violations, and compare template-level evidence with logged `GoalVerifier` accept/reject decisions.
+- Updated mixed-initiative trace replay so unsupported goals are not forced into the oak-log template; reports now aggregate unsupported player requests into template candidates with suggested slots and validators.
+- Added NitroGen as a cross-game visual-action foundation-model reference for Singularity's long-term low-level control and trace-collection roadmap.

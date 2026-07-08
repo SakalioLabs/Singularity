@@ -162,6 +162,7 @@ class MixedInitiativeTraceCase:
     template_id: str = ""
     template_name: str = ""
     category: str = ""
+    unsupported_template: bool = False
     plan_preview: str = ""
     subtask_count: int = 0
     needs_clarification: bool = False
@@ -179,6 +180,7 @@ class MixedInitiativeTraceCase:
     goal_verification_accepted: Optional[bool] = None
     validator_success: bool = False
     agreement: str = "unverified"
+    template_candidate: dict = field(default_factory=dict)
     plan: dict = field(default_factory=dict)
     validation: list[dict] = field(default_factory=list)
     evidence_summary: dict = field(default_factory=dict)
@@ -217,11 +219,41 @@ class MixedInitiativeTraceReport:
         return sum(case.policy_violation_count for case in self.cases)
 
     @property
+    def unsupported_goal_count(self) -> int:
+        return sum(1 for case in self.cases if case.unsupported_template)
+
+    @property
     def agreement_counts(self) -> dict:
         counts = {}
         for case in self.cases:
             counts[case.agreement] = counts.get(case.agreement, 0) + 1
         return counts
+
+    @property
+    def template_candidates(self) -> list[dict]:
+        grouped = {}
+        for case in self.cases:
+            candidate = case.template_candidate or {}
+            candidate_id = candidate.get("candidate_id", "")
+            if not candidate_id:
+                continue
+            item = grouped.setdefault(candidate_id, {
+                "candidate_id": candidate_id,
+                "category": candidate.get("category", "general"),
+                "goal_pattern": candidate.get("goal_pattern", ""),
+                "suggested_slots": candidate.get("suggested_slots", []),
+                "suggested_validators": candidate.get("suggested_validators", []),
+                "reason": candidate.get("reason", ""),
+                "count": 0,
+                "example_goals": [],
+            })
+            item["count"] += 1
+            if case.goal not in item["example_goals"]:
+                item["example_goals"].append(case.goal)
+        return sorted(
+            grouped.values(),
+            key=lambda item: (-item["count"], item["candidate_id"]),
+        )
 
     def to_dict(self) -> dict:
         return {
@@ -231,7 +263,9 @@ class MixedInitiativeTraceReport:
             "unbound_slot_count": self.unbound_slot_count,
             "validator_success_count": self.validator_success_count,
             "policy_violation_count": self.policy_violation_count,
+            "unsupported_goal_count": self.unsupported_goal_count,
             "agreement_counts": self.agreement_counts,
+            "template_candidates": self.template_candidates,
             "errors": list(self.errors),
             "cases": [case.to_dict() for case in self.cases],
         }
@@ -302,7 +336,7 @@ class MixedInitiativeTemplateCompiler:
             return self.templates["fetch_named_tool"]
         if any(token in goal_lower for token in ("log", "logs", "wood", "oak")):
             return self.templates["collect_oak_logs"]
-        return self.templates["collect_oak_logs"]
+        return self.templates["unsupported_request"]
 
     def _compile_subtask(
         self,
@@ -917,9 +951,25 @@ def builtin_minenpc_templates() -> dict[str, MixedInitiativeTaskTemplate]:
             ),
         ],
     )
+    unsupported_request = MixedInitiativeTaskTemplate(
+        id="unsupported_request",
+        name="Unsupported mixed-initiative request",
+        category="template_gap",
+        goal_pattern="{user_goal}",
+        bounded_policy=common_policy,
+        subtasks=[
+            SubtaskTemplate(
+                id="template_needed",
+                name="define task template and validator",
+                success_criterion="No validator is available yet; mine this request into a template before scoring it.",
+                success_validator={},
+            ),
+        ],
+    )
     return {
         collect_oak_logs.id: collect_oak_logs,
         fetch_named_tool.id: fetch_named_tool,
+        unsupported_request.id: unsupported_request,
     }
 
 
@@ -1017,6 +1067,7 @@ def _mixed_initiative_trace_case(
         template_id=plan.template_id,
         template_name=plan.template_name,
         category=plan.category,
+        unsupported_template=plan.template_id == "unsupported_request",
         plan_preview=plan.plan_preview,
         subtask_count=len(plan.subtasks),
         needs_clarification=plan.needs_clarification,
@@ -1034,6 +1085,7 @@ def _mixed_initiative_trace_case(
         goal_verification_accepted=_goal_verification_accepted(goal_verification),
         validator_success=validator_success,
         agreement=_validator_goal_agreement(validator_success, validation_invalid > 0, goal_verification),
+        template_candidate=_template_candidate_for_goal(goal) if plan.template_id == "unsupported_request" else {},
         plan=plan.to_dict(),
         validation=validation,
         evidence_summary=_evidence_summary(evidence),
@@ -1185,6 +1237,95 @@ def _validator_goal_agreement(
     if not validator_success and goal_success:
         return "validator_stricter"
     return "goal_verifier_stricter"
+
+
+def _template_candidate_for_goal(goal: str) -> dict:
+    text = str(goal or "").lower()
+    count = _first_number(text)
+    if any(token in text for token in ("craft", "make", "smelt", "cook")):
+        target = _target_after_keywords(text, ["craft", "make", "smelt", "cook"]) or "item"
+        return {
+            "candidate_id": "craft_or_process_item",
+            "category": "crafting_processing",
+            "goal_pattern": f"craft/process {count or '{count}'} {target}",
+            "suggested_slots": ["item", "count", "station", "fuel"],
+            "suggested_validators": ["inventory_at_least", "inventory_delta_at_least", "action_success:craft_or_smelt"],
+            "reason": "goal uses crafting or processing language but no task template exists",
+        }
+    if any(token in text for token in ("mine", "dig", "collect", "gather", "harvest")):
+        target = _target_after_keywords(text, ["mine", "dig", "collect", "gather", "harvest"]) or "resource"
+        return {
+            "candidate_id": "collect_or_mine_resource",
+            "category": "resource_collection",
+            "goal_pattern": f"collect/mine {count or '{count}'} {target}",
+            "suggested_slots": ["resource", "count", "search_radius", "tool"],
+            "suggested_validators": ["nearby_block_present", "inventory_at_least", "inventory_delta_at_least"],
+            "reason": "resource collection request is outside the current oak-log seed template",
+        }
+    if any(token in text for token in ("build", "place", "shelter", "house", "wall", "bridge")):
+        target = _target_after_keywords(text, ["build", "place"]) or "structure"
+        return {
+            "candidate_id": "build_or_place_structure",
+            "category": "construction_building",
+            "goal_pattern": f"build/place {target}",
+            "suggested_slots": ["structure", "material", "location", "size"],
+            "suggested_validators": ["flag_present", "nearby_block_present", "action_success:place", "position_delta_at_least"],
+            "reason": "construction requests need layout/material slots and structure evidence validators",
+        }
+    if any(token in text for token in ("explore", "scout", "find", "locate", "navigate", "go to", "return")):
+        target = _target_after_keywords(text, ["find", "locate", "navigate", "explore", "scout"]) or "location"
+        return {
+            "candidate_id": "navigate_or_explore_location",
+            "category": "navigation_exploration",
+            "goal_pattern": f"navigate/explore {target}",
+            "suggested_slots": ["target", "search_radius", "return_target"],
+            "suggested_validators": ["position_delta_at_least", "nearby_block_present", "flag_present", "recent_chat_contains"],
+            "reason": "navigation and exploration requests need bounded location evidence",
+        }
+    if any(token in text for token in ("torch", "light", "hostile", "safe", "defend", "attack", "flee")):
+        return {
+            "candidate_id": "safety_or_lighting_task",
+            "category": "combat_safety",
+            "goal_pattern": "make area safe / place lighting",
+            "suggested_slots": ["threat", "light_source", "location"],
+            "suggested_validators": ["nearby_entity_absent", "nearby_block_present", "action_success:place_or_attack"],
+            "reason": "safety and lighting requests need threat/light evidence validators",
+        }
+    if any(token in text for token in ("fetch", "bring", "retrieve", "get")):
+        return {
+            "candidate_id": "retrieve_item_or_artifact",
+            "category": "navigation_retrieval",
+            "goal_pattern": "retrieve {item} from {location}",
+            "suggested_slots": ["item", "source_location", "return_target"],
+            "suggested_validators": ["inventory_at_least", "equipment_has", "position_delta_at_least"],
+            "reason": "retrieval request does not match the current pickaxe-specific template",
+        }
+    return {
+        "candidate_id": "general_player_request",
+        "category": "general",
+        "goal_pattern": "{user_goal}",
+        "suggested_slots": ["intent", "target", "location"],
+        "suggested_validators": ["goal_verification", "recent_chat_contains"],
+        "reason": "goal does not match any current mixed-initiative template family",
+    }
+
+
+def _first_number(text: str) -> Optional[int]:
+    match = re.search(r"\b(\d+)\b", text)
+    return int(match.group(1)) if match else None
+
+
+def _target_after_keywords(text: str, keywords: list[str]) -> str:
+    for keyword in keywords:
+        match = re.search(rf"\b{re.escape(keyword)}\b\s+(?:a|an|the|some)?\s*([a-z0-9_ -]+)", text)
+        if not match:
+            continue
+        target = match.group(1).strip()
+        target = re.split(r"\b(?:within|near|at|from|to|before|after|and|then|using|with)\b", target)[0].strip()
+        words = [word for word in target.split() if word]
+        if words:
+            return "_".join(words[:4])
+    return ""
 
 
 def _evidence_summary(evidence: dict) -> dict:

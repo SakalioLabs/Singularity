@@ -704,6 +704,24 @@
 
 ---
 
+## P-038: NitroGen
+
+- **Title**: NitroGen: An Open Foundation Model for Generalist Gaming Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2601.02427
+- **Type**: Foundation model / dataset / benchmark
+- **Task Type**: Cross-game vision-action control and generalist game-agent transfer
+- **Core Method**: Unified vision-action model trained from 40,000 hours of gameplay videos across more than 1,000 games
+- **Action Space**: Shared gamepad / vision-action behavior cloning interface
+- **Memory**: Mostly parametric visual-action priors rather than explicit symbolic memory
+- **Key Results**: Reports transfer to unseen games and procedurally generated worlds with stronger task success than training from scratch
+- **Scores**: R=3, N=5, R=4, E=4
+- **Value to Project**: Validates Singularity's two-lane strategy: keep Mineflayer API for reproducible tasks while logging visual/action traces and identifying task families that may need learned low-level control
+- **Reproduction Priority**: P3
+- **Card**: `2026-07-08-nitrogen.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -745,3 +763,4 @@
 | P-035 | MemConflict | 2026 | R5/N5/R4/E5 | P2 |
 | P-036 | ActMem | 2026 | R4/N5/R3/E5 | P2 |
 | P-037 | MineNPC-Task | 2026 | R5/N4/R4/E5 | P2 |
+| P-038 | NitroGen | 2026 | R3/N5/R4/E4 | P3 |
