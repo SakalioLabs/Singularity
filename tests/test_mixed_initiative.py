@@ -261,6 +261,14 @@ def test_mixed_initiative_trace_report_agrees_with_goal_verifier():
 
     assert report.goal_count == 1
     assert report.validator_success_count == 1
+    assert report.action_count == 1
+    assert report.valid_action_count == 1
+    assert report.invalid_action_count == 0
+    assert report.successful_action_count == 1
+    assert report.valid_successful_action_count == 1
+    assert report.action_type_counts["dig"] == 1
+    assert report.template_action_metrics[0]["template_id"] == "collect_oak_logs"
+    assert report.template_action_metrics[0]["valid_action_success_rate"] == 1.0
     assert report.agreement_counts["agrees_success"] == 1
     case = report.cases[0]
     assert case.validation_passed_count == 3
@@ -321,7 +329,16 @@ def test_mixed_initiative_trace_report_flags_policy_violation():
     report = build_mixed_initiative_trace_report([session_path])
 
     assert report.policy_violation_count == 3
+    assert report.action_count == 1
+    assert report.successful_action_count == 1
+    assert report.invalid_action_count == 1
+    assert report.valid_action_count == 0
+    assert report.valid_successful_action_count == 0
+    assert report.action_success_rate == 1.0
+    assert report.valid_action_success_rate == 0.0
     assert report.cases[0].agreement == "invalid_policy"
+    assert report.cases[0].invalid_action_count == 1
+    assert report.template_action_metrics[0]["invalid_action_count"] == 1
     assert all(result["status"] == "invalid" for result in report.cases[0].validation)
     print("PASS: Mixed-initiative trace report invalidates privileged shortcuts")
 

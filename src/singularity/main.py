@@ -1118,10 +1118,28 @@ def main():
         print(f"  unbound slots: {report.unbound_slot_count}")
         print(f"  unsupported template goals: {report.unsupported_goal_count}")
         print(f"  validator success: {report.validator_success_count}/{report.goal_count}")
+        print(
+            "  actions: "
+            f"total={report.action_count}, valid={report.valid_action_count}, "
+            f"invalid={report.invalid_action_count}, successful={report.successful_action_count}, "
+            f"failed={report.failed_action_count}"
+        )
+        print(
+            "  action success rates: "
+            f"raw={report.action_success_rate:.2f}, valid_only={report.valid_action_success_rate:.2f}"
+        )
         print(f"  policy violations: {report.policy_violation_count}")
         if report.agreement_counts:
             parts = [f"{key}={value}" for key, value in sorted(report.agreement_counts.items())]
             print(f"  agreement: {', '.join(parts)}")
+        if report.template_action_metrics:
+            print("  template action metrics:")
+            for item in report.template_action_metrics:
+                print(
+                    f"    - {item['template_id']}: actions={item['action_count']}, "
+                    f"valid={item['valid_action_count']}, invalid={item['invalid_action_count']}, "
+                    f"valid_success_rate={item['valid_action_success_rate']:.2f}"
+                )
         if report.template_candidates:
             print("  template candidates:")
             for candidate in report.template_candidates[:6]:
@@ -1139,6 +1157,12 @@ def main():
                 f"failed={case.validation_failed_count}, invalid={case.validation_invalid_count}, "
                 f"unknown={case.validation_unknown_count}"
             )
+            if case.action_count:
+                print(
+                    f"      actions: total={case.action_count}, valid={case.valid_action_count}, "
+                    f"invalid={case.invalid_action_count}, successful={case.successful_action_count}, "
+                    f"failed={case.failed_action_count}"
+                )
             if case.needs_clarification and case.clarifying_questions:
                 print(f"      clarification: {case.clarifying_questions[0]}")
             if case.goal_verification_status:

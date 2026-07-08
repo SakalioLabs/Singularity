@@ -162,6 +162,8 @@ python -m singularity.main mixed-initiative-report --goal "Build a cobblestone w
 
 # Replay session logs through the same MineNPC-style template validators and
 # compare bounded validator outcomes with logged GoalVerifier decisions.
+# Reports also separate raw action success from bounded-policy-valid action success
+# and aggregate action validity by template.
 python -m singularity.main mixed-initiative-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/mixed_initiative_trace.json
 # Built-in templates cover oak-log collection, pickaxe retrieval, generic craft/process,
 # generic collect/mine, and build/place requests. The saved JSON still includes

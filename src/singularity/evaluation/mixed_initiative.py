@@ -159,6 +159,13 @@ class MixedInitiativeTraceCase:
     event_count: int = 0
     observation_count: int = 0
     action_count: int = 0
+    valid_action_count: int = 0
+    invalid_action_count: int = 0
+    successful_action_count: int = 0
+    failed_action_count: int = 0
+    valid_successful_action_count: int = 0
+    action_type_counts: dict = field(default_factory=dict)
+    successful_action_type_counts: dict = field(default_factory=dict)
     template_id: str = ""
     template_name: str = ""
     category: str = ""
@@ -215,6 +222,38 @@ class MixedInitiativeTraceReport:
         return sum(1 for case in self.cases if case.validator_success)
 
     @property
+    def action_count(self) -> int:
+        return sum(case.action_count for case in self.cases)
+
+    @property
+    def valid_action_count(self) -> int:
+        return sum(case.valid_action_count for case in self.cases)
+
+    @property
+    def invalid_action_count(self) -> int:
+        return sum(case.invalid_action_count for case in self.cases)
+
+    @property
+    def successful_action_count(self) -> int:
+        return sum(case.successful_action_count for case in self.cases)
+
+    @property
+    def failed_action_count(self) -> int:
+        return sum(case.failed_action_count for case in self.cases)
+
+    @property
+    def valid_successful_action_count(self) -> int:
+        return sum(case.valid_successful_action_count for case in self.cases)
+
+    @property
+    def action_success_rate(self) -> float:
+        return self.successful_action_count / self.action_count if self.action_count else 0.0
+
+    @property
+    def valid_action_success_rate(self) -> float:
+        return self.valid_successful_action_count / self.valid_action_count if self.valid_action_count else 0.0
+
+    @property
     def policy_violation_count(self) -> int:
         return sum(case.policy_violation_count for case in self.cases)
 
@@ -255,6 +294,57 @@ class MixedInitiativeTraceReport:
             key=lambda item: (-item["count"], item["candidate_id"]),
         )
 
+    @property
+    def action_type_counts(self) -> dict:
+        counts = {}
+        for case in self.cases:
+            for action_type, count in case.action_type_counts.items():
+                counts[action_type] = counts.get(action_type, 0) + count
+        return dict(sorted(counts.items()))
+
+    @property
+    def template_action_metrics(self) -> list[dict]:
+        grouped = {}
+        for case in self.cases:
+            key = case.template_id or "unknown"
+            item = grouped.setdefault(key, {
+                "template_id": key,
+                "category": case.category,
+                "case_count": 0,
+                "action_count": 0,
+                "valid_action_count": 0,
+                "invalid_action_count": 0,
+                "successful_action_count": 0,
+                "failed_action_count": 0,
+                "valid_successful_action_count": 0,
+                "validator_success_count": 0,
+                "policy_violation_count": 0,
+                "action_type_counts": {},
+            })
+            item["case_count"] += 1
+            item["action_count"] += case.action_count
+            item["valid_action_count"] += case.valid_action_count
+            item["invalid_action_count"] += case.invalid_action_count
+            item["successful_action_count"] += case.successful_action_count
+            item["failed_action_count"] += case.failed_action_count
+            item["valid_successful_action_count"] += case.valid_successful_action_count
+            item["validator_success_count"] += 1 if case.validator_success else 0
+            item["policy_violation_count"] += case.policy_violation_count
+            for action_type, count in case.action_type_counts.items():
+                counts = item["action_type_counts"]
+                counts[action_type] = counts.get(action_type, 0) + count
+        metrics = []
+        for item in grouped.values():
+            action_count = item["action_count"]
+            valid_count = item["valid_action_count"]
+            item["action_success_rate"] = item["successful_action_count"] / action_count if action_count else 0.0
+            item["valid_action_success_rate"] = (
+                item["valid_successful_action_count"] / valid_count if valid_count else 0.0
+            )
+            item["action_type_counts"] = dict(sorted(item["action_type_counts"].items()))
+            metrics.append(item)
+        return sorted(metrics, key=lambda item: item["template_id"])
+
     def to_dict(self) -> dict:
         return {
             "log_count": self.log_count,
@@ -262,10 +352,20 @@ class MixedInitiativeTraceReport:
             "needs_clarification_count": self.needs_clarification_count,
             "unbound_slot_count": self.unbound_slot_count,
             "validator_success_count": self.validator_success_count,
+            "action_count": self.action_count,
+            "valid_action_count": self.valid_action_count,
+            "invalid_action_count": self.invalid_action_count,
+            "successful_action_count": self.successful_action_count,
+            "failed_action_count": self.failed_action_count,
+            "valid_successful_action_count": self.valid_successful_action_count,
+            "action_success_rate": self.action_success_rate,
+            "valid_action_success_rate": self.valid_action_success_rate,
             "policy_violation_count": self.policy_violation_count,
             "unsupported_goal_count": self.unsupported_goal_count,
             "agreement_counts": self.agreement_counts,
             "template_candidates": self.template_candidates,
+            "action_type_counts": self.action_type_counts,
+            "template_action_metrics": self.template_action_metrics,
             "errors": list(self.errors),
             "cases": [case.to_dict() for case in self.cases],
         }
@@ -1563,6 +1663,7 @@ def _mixed_initiative_trace_case(
     validation_unknown = sum(1 for result in validation if result["status"] == "unknown")
     policy_violations = sum(len(result.get("policy_violations", [])) for result in validation)
     validator_success = bool(validation) and all(result["success"] for result in validation)
+    action_validity = _action_validity_summary(evidence, validator)
 
     return MixedInitiativeTraceCase(
         source_log=source_log,
@@ -1570,6 +1671,13 @@ def _mixed_initiative_trace_case(
         event_count=len(events),
         observation_count=sum(1 for event in events if event.get("type") == "observation"),
         action_count=sum(1 for event in events if event.get("type") == "action"),
+        valid_action_count=action_validity["valid_action_count"],
+        invalid_action_count=action_validity["invalid_action_count"],
+        successful_action_count=action_validity["successful_action_count"],
+        failed_action_count=action_validity["failed_action_count"],
+        valid_successful_action_count=action_validity["valid_successful_action_count"],
+        action_type_counts=action_validity["action_type_counts"],
+        successful_action_type_counts=action_validity["successful_action_type_counts"],
         template_id=plan.template_id,
         template_name=plan.template_name,
         category=plan.category,
@@ -1596,6 +1704,49 @@ def _mixed_initiative_trace_case(
         validation=validation,
         evidence_summary=_evidence_summary(evidence),
     )
+
+
+def _action_validity_summary(evidence: dict, validator: BoundedEvidenceValidator) -> dict:
+    actions = evidence.get("actions", []) or []
+    if isinstance(actions, dict):
+        actions = [actions]
+    policy_violations = validator.check_bounded_policy(evidence)
+    invalid_indices = {
+        violation.action_index
+        for violation in policy_violations
+        if violation.action_index is not None
+    }
+    action_type_counts = {}
+    successful_action_type_counts = {}
+    successful_count = 0
+    failed_count = 0
+    valid_successful_count = 0
+    invalid_count = 0
+    for index, event in enumerate(actions):
+        action_type = validator._event_action_type(event) or "unknown"
+        action_type_counts[action_type] = action_type_counts.get(action_type, 0) + 1
+        success = validator._event_success(event)
+        invalid = index in invalid_indices
+        if invalid:
+            invalid_count += 1
+        if success:
+            successful_count += 1
+            successful_action_type_counts[action_type] = successful_action_type_counts.get(action_type, 0) + 1
+            if not invalid:
+                valid_successful_count += 1
+        else:
+            failed_count += 1
+    action_count = len(actions)
+    return {
+        "action_count": action_count,
+        "valid_action_count": max(action_count - invalid_count, 0),
+        "invalid_action_count": invalid_count,
+        "successful_action_count": successful_count,
+        "failed_action_count": failed_count,
+        "valid_successful_action_count": valid_successful_count,
+        "action_type_counts": dict(sorted(action_type_counts.items())),
+        "successful_action_type_counts": dict(sorted(successful_action_type_counts.items())),
+    }
 
 
 def _load_session_events(session_log_path: str) -> list[dict]:
