@@ -1028,6 +1028,24 @@
 
 ---
 
+## P-056: Memory Management and Experience-Following
+
+- **Title**: How Memory Management Impacts LLM Agents: An Empirical Study of Experience-Following Behavior
+- **Year**: 2026
+- **Link**: https://aclanthology.org/2026.acl-long.27/
+- **Type**: Empirical study of LLM-agent memory addition/deletion and long-term behavior
+- **Task Type**: Agent tasks with retrieved past executions used as future experience
+- **Core Method**: Measures experience-following behavior and studies how future task outcomes can label memory quality
+- **Action Space**: LLM-agent tool/task outputs influenced by retrieved memory records
+- **Memory**: Memory bank quality control, addition/deletion, error propagation, and misaligned experience replay
+- **Key Results**: Shows retrieved experience can strongly steer outputs, while inaccurate or misaligned memories can degrade later performance
+- **Scores**: R=5, N=4, R=4, E=5
+- **Value to Project**: Supports typed Minecraft skill-memory hints and future-task quality labels before replay memories become planner defaults
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-memory-management-experience-following.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1087,3 +1105,4 @@
 | P-053 | AgentCL | 2026 | R4/N5/R4/E5 | P2 |
 | P-054 | MUSE-Autoskill | 2026 | R4/N5/R4/E5 | P2 |
 | P-055 | RIZZ | 2026 | R4/N5/R4/E5 | P2 |
+| P-056 | Memory Management and Experience-Following | 2026 | R5/N4/R4/E5 | P1 |

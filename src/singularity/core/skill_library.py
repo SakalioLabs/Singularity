@@ -183,26 +183,103 @@ class SkillLibrary:
 
     def get_skill_memory_hints(self, goal: str = "", task_family: str = "", limit: int = 5) -> list[str]:
         """Return concise skill-local memories that can guide planning."""
-        report = self.skill_memory_report(
-            goal=goal,
-            task_family=task_family,
-            include_builtins=True,
-            limit=0,
+        candidates = self._skill_memory_hint_candidates(goal=goal, task_family=task_family)
+        candidates.sort(
+            key=lambda item: (
+                item["hint_rank"],
+                item["score"],
+                item["confidence"],
+                item["timestamp"],
+            ),
+            reverse=True,
         )
-        hints = []
-        for skill in report["skills"]:
-            for memory in skill["memories"]:
+        visible = candidates[:limit] if limit and limit > 0 else candidates
+        return [self._format_skill_memory_hint(candidate) for candidate in visible]
+
+    def _skill_memory_hint_candidates(self, goal: str = "", task_family: str = "") -> list[dict]:
+        family_filter = str(task_family or "").strip().lower()
+        goal_tokens = self._keywords(goal)
+        builtin_names = self._builtin_skill_names()
+        candidates = []
+        for skill in self.skills.values():
+            governance = self._skill_governance(skill, built_in=skill.name in builtin_names)
+            for memory in self._normalized_skill_memory(skill):
                 note = memory.get("note", "")
                 if not note:
                     continue
-                prefix = f"{skill['name']}[{memory.get('type', 'experience')}]"
-                outcome = memory.get("outcome", "")
-                if outcome:
-                    prefix += f"/{outcome}"
-                hints.append(f"{prefix}: {note}")
-                if len(hints) >= limit:
-                    return hints
-        return hints
+                memory_family = str(memory.get("task_family") or "").strip().lower()
+                if family_filter and memory_family != family_filter:
+                    continue
+                hint_type = self._skill_memory_hint_type(memory, governance)
+                confidence = float(memory.get("confidence", 0.0) or 0.0)
+                transfer_readiness = str(memory.get("transfer_readiness") or "").strip().lower()
+                score = self._skill_memory_goal_score(goal_tokens, skill, memory)
+                if family_filter and memory_family == family_filter:
+                    score += 3.0
+                elif not family_filter and memory_family:
+                    score += 0.5
+                if transfer_readiness == "approved":
+                    score += 1.0
+                elif transfer_readiness in {"review", "rejected", "error"}:
+                    score -= 0.4
+                score += confidence
+                candidates.append({
+                    "skill_name": skill.name,
+                    "hint_type": hint_type,
+                    "hint_rank": {"REUSE": 2, "AVOID": 1, "REVIEW_ONLY": 0}.get(hint_type, 0),
+                    "score": round(score, 4),
+                    "confidence": confidence,
+                    "timestamp": memory.get("timestamp", ""),
+                    "transfer_readiness": transfer_readiness,
+                    "memory": memory,
+                })
+        return candidates
+
+    def _skill_memory_hint_type(self, memory: dict, governance: dict) -> str:
+        memory_type = str(memory.get("type") or "").strip().lower()
+        outcome = str(memory.get("outcome") or "").strip().lower()
+        transfer_readiness = str(memory.get("transfer_readiness") or "").strip().lower()
+        gate_readiness = str(governance.get("gate_readiness") or "").strip().lower()
+        if memory_type in {"anti_pattern", "failure", "failure_mode"} or outcome in {
+            "failure", "failed", "rejected", "blocked", "regression", "negative",
+        }:
+            return "AVOID"
+        if transfer_readiness in {"review", "rejected", "error"} or gate_readiness in {"review", "rejected", "error"}:
+            return "REVIEW_ONLY"
+        if outcome in {"success", "succeeded", "achieved", "approved", "positive"} or transfer_readiness == "approved":
+            return "REUSE"
+        return "REVIEW_ONLY"
+
+    def _skill_memory_goal_score(self, goal_tokens: set[str], skill: Skill, memory: dict) -> float:
+        if not goal_tokens:
+            return 0.0
+        memory_text = " ".join([
+            skill.name,
+            skill.description,
+            memory.get("note", ""),
+            memory.get("type", ""),
+            memory.get("outcome", ""),
+            memory.get("task_family", ""),
+            " ".join(memory.get("tags", [])),
+        ])
+        matches = goal_tokens & self._keywords(memory_text)
+        return min(4.0, len(matches) * 0.75)
+
+    def _format_skill_memory_hint(self, candidate: dict) -> str:
+        memory = candidate.get("memory", {})
+        metadata = []
+        memory_type = memory.get("type", "")
+        outcome = memory.get("outcome", "")
+        transfer = candidate.get("transfer_readiness", "")
+        if memory_type:
+            metadata.append(f"type={memory_type}")
+        if outcome:
+            metadata.append(f"outcome={outcome}")
+        if transfer:
+            metadata.append(f"transfer={transfer}")
+        metadata.append(f"confidence={candidate.get('confidence', 0.0):.2f}")
+        suffix = f" ({', '.join(metadata)})" if metadata else ""
+        return f"{candidate['hint_type']} {candidate['skill_name']}: {memory.get('note', '')}{suffix}"
 
     def infer_task_family(self, text: str = "", action: Optional[dict] = None) -> str:
         """Infer a coarse Minecraft task-family zone for routing skill memories."""

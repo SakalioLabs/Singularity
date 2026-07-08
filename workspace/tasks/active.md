@@ -149,6 +149,7 @@
 - [x] Add MUSE-style skill-level memory records and `skill-memory-report` for replay, failure, anti-pattern, task-family, and transfer-gate evidence attached to individual skills.
 - [x] Feed approved skill-candidate promotion evidence and live failure-correction success/failure outcomes into `record_skill_memory()` automatically.
 - [x] Retrieve task-family skill-memory hints into LLM planner context and add `benchmark --skill-memory-ablation` for policy-skill-only versus skill-memory-assisted comparison.
+- [x] Type planner-facing skill-memory hints as `REUSE`, `AVOID`, or `REVIEW_ONLY` so successful replay, anti-patterns, and review-gated transfer evidence cannot be conflated in prompts.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -165,6 +166,7 @@
 - [ ] Run `continual-learning-report` on real autonomous/M7 session logs and compare axis scores against later task success, transfer-memory matches, and skill-candidate reuse.
 - [ ] Build controlled Minecraft task-stream specs for wood-to-tools, shelter, mining, navigation, and redstone variants; run `task-stream-transfer-report` before promoting transfer memories or approved skills to defaults.
 - [ ] Feed real approved `task-stream-transfer-gate` reports from autonomous/M7 stream specs into queued skill approvals and memory-lifecycle profiles before enabling transfer-tested defaults.
+- [ ] Run real `benchmark --skill-memory-ablation` cases and inspect whether typed `REUSE` hints improve completion while `AVOID`/`REVIEW_ONLY` hints reduce retries or interference.
 - [ ] Run `transfer-memory-report` on real M1/M2/autonomous memory stores and compare high-scoring transfer matches against downstream task success.
 - [ ] Run `task-memory-report` on real multi-session task traces and compare task-centric memory matches against verifier outcomes and repeated-failure reductions.
 - [ ] Run `memory-promptware-report` on live autonomous/M7 memory stores and inspect any flagged entries before enabling stricter default memory enforcement.

@@ -916,7 +916,8 @@ def test_agent_injects_skill_memory_context_for_planner():
 
     context = agent._skill_memory_context("Craft torches", {"inventory": {"stick": 1}}, limit=3)
 
-    assert "Skill-level memory (crafting)" in context
+    assert "Skill-level memory (crafting; REUSE/AVOID/REVIEW_ONLY)" in context
+    assert "REUSE craft_torch_memory_skill" in context
     assert "Mine coal_ore before crafting torches" in context
     event = agent.session_logger.events[-1]
     assert event["type"] == "skill_memory_hint"
@@ -1529,21 +1530,31 @@ def test_skill_library_records_skill_level_memory_and_transfer_report():
         confidence=0.8,
         transfer_gate={"readiness": "review", "target": "skill:craft_torch_memory_skill"},
     )
+    review_only = skills.record_skill_memory(
+        "craft_torch_memory_skill",
+        "Hold desert torch path variants for manual review until exposed-spawn recovery is replayed.",
+        memory_type="replay",
+        outcome="success",
+        task_family="crafting",
+        confidence=0.6,
+        transfer_gate={"readiness": "review", "target": "skill:craft_torch_memory_skill"},
+    )
 
     assert approved and approved["transfer_readiness"] == "approved"
     assert review and review["type"] == "anti_pattern"
+    assert review_only and review_only["transfer_readiness"] == "review"
 
     reloaded = SkillLibrary(storage_path=skill_dir, persist=True)
     report = reloaded.skill_memory_report("Craft torches", task_family="crafting", limit=0)
     summaries = {summary["name"]: summary for summary in report["skills"]}
     torch = summaries["craft_torch_memory_skill"]
 
-    assert report["memory_count"] == 2
+    assert report["memory_count"] == 3
     assert report["approved_transfer_memory_count"] == 1
-    assert report["review_transfer_memory_count"] == 1
+    assert report["review_transfer_memory_count"] == 2
     assert report["failure_memory_count"] == 1
-    assert report["task_family_counts"]["crafting"] == 2
-    assert torch["success_memory_count"] == 1
+    assert report["task_family_counts"]["crafting"] == 3
+    assert torch["success_memory_count"] == 2
     assert torch["failure_memory_count"] == 1
     assert "transfer_review_or_rejected" in torch["issues"]
     assert torch["memories"][0]["evidence"]["reuse_tag"] == "torch_recipe"
@@ -1552,8 +1563,12 @@ def test_skill_library_records_skill_level_memory_and_transfer_report():
     empty = {summary["name"]: summary for summary in unfiltered["skills"]}["empty_custom_memory_skill"]
     assert "missing_skill_memory" in empty["issues"]
 
-    hints = reloaded.get_skill_memory_hints("Craft torches", task_family="crafting", limit=2)
+    hints = reloaded.get_skill_memory_hints("Craft torches", task_family="crafting", limit=3)
     assert hints and "mine coal before crafting torches" in hints[0]
+    assert hints[0].startswith("REUSE craft_torch_memory_skill")
+    assert hints[1].startswith("AVOID craft_torch_memory_skill")
+    assert hints[2].startswith("REVIEW_ONLY craft_torch_memory_skill")
+    assert "transfer=review" in hints[2]
     print("PASS: SkillLibrary records skill-level memory and transfer report")
 
 

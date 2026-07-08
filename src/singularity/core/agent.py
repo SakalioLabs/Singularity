@@ -686,7 +686,7 @@ class Agent:
         }
         if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
             self.session_logger.log("skill_memory_hint", payload)
-        return "Skill-level memory ({family}):\n- {hints}".format(
+        return "Skill-level memory ({family}; REUSE/AVOID/REVIEW_ONLY):\n- {hints}".format(
             family=task_family,
             hints="\n- ".join(hints[:limit]),
         )
