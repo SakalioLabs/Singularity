@@ -501,6 +501,7 @@ class MixedInitiativeReviewQueueItem:
     status: str = "pending"
     recommendation_count: int = 0
     source_reports: list[str] = field(default_factory=list)
+    source_logs: list[str] = field(default_factory=list)
     source_goals: list[str] = field(default_factory=list)
     active_policies: list[str] = field(default_factory=list)
     action_items: list[str] = field(default_factory=list)
@@ -545,6 +546,65 @@ class MixedInitiativeReviewQueueReport:
             "decision_counts": self.decision_counts,
             "errors": list(self.errors),
             "items": [item.to_dict() for item in self.items],
+        }
+
+
+@dataclass
+class MixedInitiativeReviewExperimentCase:
+    id: str
+    queue_item_id: str
+    route: str
+    priority: str
+    target_type: str
+    target_id: str
+    decision: str
+    ready: bool = False
+    hypothesis: str = ""
+    status: str = "planned"
+    missing_inputs: list[str] = field(default_factory=list)
+    source_reports: list[str] = field(default_factory=list)
+    source_logs: list[str] = field(default_factory=list)
+    source_goals: list[str] = field(default_factory=list)
+    action_items: list[str] = field(default_factory=list)
+    recommended_commands: list[str] = field(default_factory=list)
+    success_metrics: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
+class MixedInitiativeReviewExperimentPlan:
+    cases: list[MixedInitiativeReviewExperimentCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def case_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready)
+
+    @property
+    def high_priority_count(self) -> int:
+        return sum(1 for case in self.cases if case.priority == "high")
+
+    @property
+    def route_counts(self) -> dict:
+        counts = {}
+        for case in self.cases:
+            counts[case.route] = counts.get(case.route, 0) + 1
+        return dict(sorted(counts.items()))
+
+    def to_dict(self) -> dict:
+        return {
+            "case_count": self.case_count,
+            "ready_count": self.ready_count,
+            "high_priority_count": self.high_priority_count,
+            "route_counts": self.route_counts,
+            "errors": list(self.errors),
+            "cases": [case.to_dict() for case in self.cases],
         }
 
 
@@ -2031,7 +2091,13 @@ def build_mixed_initiative_review_queue(
             if existing is None:
                 existing = _empty_review_queue_item(incoming)
                 grouped[incoming.id] = existing
-            _merge_review_queue_item(existing, incoming, source, _goals_for_recommendation(cases, recommendation))
+            _merge_review_queue_item(
+                existing,
+                incoming,
+                source,
+                _goals_for_recommendation(cases, recommendation),
+                _logs_for_recommendation(cases, recommendation),
+            )
 
     queue.items = sorted(
         grouped.values(),
@@ -2055,6 +2121,18 @@ def _trace_report_payload_from_any(report: Any) -> dict:
         if isinstance(payload, dict):
             return payload
     raise ValueError("trace report must be a dict or MixedInitiativeTraceReport")
+
+
+def _review_queue_payload_from_any(queue: Any) -> dict:
+    if isinstance(queue, MixedInitiativeReviewQueueReport):
+        return queue.to_dict()
+    if isinstance(queue, dict):
+        return queue
+    if hasattr(queue, "to_dict"):
+        payload = queue.to_dict()
+        if isinstance(payload, dict):
+            return payload
+    raise ValueError("review queue must be a dict or MixedInitiativeReviewQueueReport")
 
 
 def _review_queue_item_from_recommendation(recommendation: dict) -> MixedInitiativeReviewQueueItem:
@@ -2095,6 +2173,7 @@ def _merge_review_queue_item(
     incoming: MixedInitiativeReviewQueueItem,
     source: str,
     goals: list[str],
+    logs: list[str],
 ):
     existing.priority = _higher_priority(existing.priority, incoming.priority)
     if source and source not in existing.source_reports:
@@ -2111,13 +2190,34 @@ def _merge_review_queue_item(
         if goal and goal not in existing.source_goals:
             existing.source_goals.append(goal)
     existing.source_goals = existing.source_goals[:8]
+    for log in logs:
+        if log and log not in existing.source_logs:
+            existing.source_logs.append(log)
+    existing.source_logs = existing.source_logs[:8]
     existing.recommendations.extend(incoming.recommendations)
 
 
 def _goals_for_recommendation(cases: list[dict], recommendation: dict) -> list[str]:
+    return [
+        str(case.get("goal"))
+        for case in _matching_cases_for_recommendation(cases, recommendation)
+        if case.get("goal")
+    ]
+
+
+def _logs_for_recommendation(cases: list[dict], recommendation: dict) -> list[str]:
+    logs = []
+    for case in _matching_cases_for_recommendation(cases, recommendation):
+        source_log = str(case.get("source_log") or "")
+        if source_log and source_log not in logs:
+            logs.append(source_log)
+    return logs
+
+
+def _matching_cases_for_recommendation(cases: list[dict], recommendation: dict) -> list[dict]:
     target_type = str(recommendation.get("target_type") or "")
     target_id = str(recommendation.get("target_id") or "")
-    goals = []
+    matches_cases = []
     for case in cases:
         if not isinstance(case, dict):
             continue
@@ -2129,9 +2229,9 @@ def _goals_for_recommendation(cases: list[dict], recommendation: dict) -> list[s
             matches = isinstance(candidate, dict) and str(candidate.get("candidate_id") or "") == target_id
         else:
             matches = True
-        if matches and case.get("goal"):
-            goals.append(str(case.get("goal")))
-    return goals
+        if matches:
+            matches_cases.append(case)
+    return matches_cases
 
 
 def _action_items_for_recommendation(recommendation: dict) -> list[str]:
@@ -2163,6 +2263,203 @@ def _slugify_id(value: str) -> str:
 def _higher_priority(left: str, right: str) -> str:
     rank = {"high": 0, "medium": 1, "low": 2, "normal": 3}
     return left if rank.get(left, 3) <= rank.get(right, 3) else right
+
+
+def build_mixed_initiative_review_experiment_plan(
+    review_queue: Optional[Any] = None,
+    review_queue_paths: Optional[list[str]] = None,
+    trace_reports: Optional[list[Any]] = None,
+    trace_report_paths: Optional[list[str]] = None,
+    session_log_paths: Optional[list[str]] = None,
+    template_id: str = "auto",
+) -> MixedInitiativeReviewExperimentPlan:
+    """Route review queue items into concrete follow-up experiment cases."""
+    plan = MixedInitiativeReviewExperimentPlan()
+    payloads: list[tuple[str, dict]] = []
+    if review_queue is not None:
+        try:
+            payloads.append(("inline_review_queue", _review_queue_payload_from_any(review_queue)))
+        except Exception as exc:
+            plan.errors.append(f"inline_review_queue: {exc}")
+    for path in review_queue_paths or []:
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                payloads.append((path, json.load(f)))
+        except Exception as exc:
+            plan.errors.append(f"{path}: {exc}")
+    if trace_reports or trace_report_paths or session_log_paths:
+        queue = build_mixed_initiative_review_queue(
+            trace_reports=trace_reports,
+            trace_report_paths=trace_report_paths,
+            session_log_paths=session_log_paths,
+            template_id=template_id,
+        )
+        plan.errors.extend(queue.errors)
+        payloads.append(("derived_review_queue", queue.to_dict()))
+
+    cases_by_id: dict[str, MixedInitiativeReviewExperimentCase] = {}
+    for source, payload in payloads:
+        for error in _string_list(payload.get("errors", [])):
+            plan.errors.append(f"{source}: {error}")
+        items = payload.get("items", [])
+        if not isinstance(items, list):
+            plan.errors.append(f"{source}: items is not a list")
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            case = _experiment_case_from_review_queue_item(item)
+            if case.id not in cases_by_id:
+                cases_by_id[case.id] = case
+            else:
+                _merge_experiment_case(cases_by_id[case.id], case)
+
+    plan.cases = sorted(
+        cases_by_id.values(),
+        key=lambda case: (
+            {"high": 0, "medium": 1, "low": 2, "normal": 3}.get(case.priority, 3),
+            case.route,
+            case.target_type,
+            case.target_id,
+        ),
+    )
+    return plan
+
+
+def _experiment_case_from_review_queue_item(item: dict) -> MixedInitiativeReviewExperimentCase:
+    queue_item_id = str(item.get("id") or _review_queue_id(
+        str(item.get("target_type") or "trace"),
+        str(item.get("target_id") or "unknown"),
+        str(item.get("decision") or "review"),
+    ))
+    decision = str(item.get("decision") or "review")
+    target_type = str(item.get("target_type") or "trace")
+    target_id = str(item.get("target_id") or "unknown")
+    route = _review_experiment_route(decision, target_type)
+    source_logs = _string_list(item.get("source_logs", []))
+    source_goals = _string_list(item.get("source_goals", []))
+    source_reports = _string_list(item.get("source_reports", []))
+    missing_inputs = _review_experiment_missing_inputs(route, source_logs, source_goals)
+    return MixedInitiativeReviewExperimentCase(
+        id="mixexp-" + _slugify_id(queue_item_id),
+        queue_item_id=queue_item_id,
+        route=route,
+        priority=str(item.get("priority") or "normal"),
+        target_type=target_type,
+        target_id=target_id,
+        decision=decision,
+        ready=not missing_inputs,
+        status="ready" if not missing_inputs else "needs_input",
+        missing_inputs=missing_inputs,
+        hypothesis=_review_experiment_hypothesis(route, target_type, target_id, decision),
+        source_reports=source_reports,
+        source_logs=source_logs,
+        source_goals=source_goals,
+        action_items=_string_list(item.get("action_items", [])),
+        recommended_commands=_review_experiment_commands(route, source_logs),
+        success_metrics=_review_experiment_metrics(route),
+    )
+
+
+def _merge_experiment_case(existing: MixedInitiativeReviewExperimentCase, incoming: MixedInitiativeReviewExperimentCase):
+    existing.priority = _higher_priority(existing.priority, incoming.priority)
+    for attr in ("source_reports", "source_logs", "source_goals", "action_items", "recommended_commands", "success_metrics"):
+        values = getattr(existing, attr)
+        for value in getattr(incoming, attr):
+            if value not in values:
+                values.append(value)
+    existing.missing_inputs = _review_experiment_missing_inputs(existing.route, existing.source_logs, existing.source_goals)
+    existing.ready = not existing.missing_inputs
+    existing.status = "ready" if existing.ready else "needs_input"
+
+
+def _review_experiment_route(decision: str, target_type: str) -> str:
+    if decision in {"promote_template_candidate", "candidate_review"} or target_type == "template_candidate":
+        return "template_approval"
+    if decision == "tune_action_policy":
+        return "action_policy_ablation"
+    if decision == "inspect_backend_execution":
+        return "backend_inspection"
+    if decision in {"audit_template_validator", "block_invalid_progress"}:
+        return "validator_audit"
+    return "mixed_trace_review"
+
+
+def _review_experiment_missing_inputs(route: str, source_logs: list[str], source_goals: list[str]) -> list[str]:
+    missing = []
+    if route in {"action_policy_ablation", "backend_inspection", "validator_audit"} and not source_logs:
+        missing.append("source_session_log")
+    if route == "template_approval" and not source_goals:
+        missing.append("source_goal_examples")
+    return missing
+
+
+def _review_experiment_hypothesis(route: str, target_type: str, target_id: str, decision: str) -> str:
+    if route == "template_approval":
+        return f"Promoting or refining {target_id} should reduce unsupported mixed-initiative requests."
+    if route == "action_policy_ablation":
+        return f"Changing action policy for {target_id} should improve valid-success rate without increasing invalid actions."
+    if route == "backend_inspection":
+        return f"Inspecting backend execution for {target_id} should identify missing preconditions or command mapping gaps."
+    if route == "validator_audit":
+        return f"Auditing {target_id} should align bounded validators with accepted GoalVerifier evidence."
+    return f"Review {target_type}:{target_id} because the feedback policy emitted {decision}."
+
+
+def _review_experiment_commands(route: str, source_logs: list[str]) -> list[str]:
+    log_args = _session_log_args(source_logs)
+    if route == "template_approval":
+        return [
+            "python -m singularity.main mixed-initiative-variant-report --case-file workspace/evals/mixed_variants.jsonl --output logs/benchmarks/mixed_initiative_variants.json"
+        ]
+    if route == "action_policy_ablation":
+        return [
+            f"python -m singularity.main action-abstraction-report {log_args} --output logs/benchmarks/action_abstraction_review.json",
+            f"python -m singularity.main visual-action-ablation {log_args} --output logs/benchmarks/visual_action_review.json",
+        ]
+    if route == "backend_inspection":
+        return [
+            f"python -m singularity.main mixed-initiative-trace-report {log_args} --output logs/benchmarks/mixed_initiative_trace.json"
+        ]
+    if route == "validator_audit":
+        return [
+            f"python -m singularity.main mixed-initiative-trace-report {log_args} --output logs/benchmarks/mixed_initiative_trace.json",
+            "python -m singularity.main mixed-initiative-variant-report --output logs/benchmarks/mixed_initiative_variants.json",
+        ]
+    return [
+        f"python -m singularity.main mixed-initiative-trace-report {log_args} --output logs/benchmarks/mixed_initiative_trace.json"
+    ]
+
+
+def _review_experiment_metrics(route: str) -> list[str]:
+    if route == "template_approval":
+        return ["template_match_count", "slot_mismatch_count", "validation_success_count", "unsupported_template_count"]
+    if route == "action_policy_ablation":
+        return ["valid_successful_action_count", "invalid_action_count", "visual_action_helped_count"]
+    if route == "backend_inspection":
+        return ["failed_action_count", "valid_successful_action_count", "backend_error_categories"]
+    if route == "validator_audit":
+        return ["agreement_counts", "policy_violation_count", "validator_success_count"]
+    return ["mixed_initiative_recommendation_count"]
+
+
+def _session_log_args(source_logs: list[str]) -> str:
+    if not source_logs:
+        return "--session-log logs/session_xxx.jsonl"
+    return " ".join(f"--session-log {_quote_cli_arg(path)}" for path in source_logs[:3])
+
+
+def _quote_cli_arg(value: str) -> str:
+    text = str(value)
+    if not text or re.search(r"\s", text):
+        return '"' + text.replace('"', '\\"') + '"'
+    return text
+
+
+def _string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value if item is not None and str(item)]
 
 
 def build_mixed_initiative_trace_report(

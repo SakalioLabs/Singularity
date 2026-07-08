@@ -11,6 +11,7 @@ from singularity.evaluation.mixed_initiative import (
     MixedInitiativeFeedbackPolicy,
     MixedInitiativeTemplateCompiler,
     build_mixed_initiative_report,
+    build_mixed_initiative_review_experiment_plan,
     build_mixed_initiative_review_queue,
     build_mixed_initiative_trace_report,
     build_mixed_initiative_variant_report,
@@ -537,6 +538,79 @@ def test_mixed_initiative_review_queue_loads_saved_trace_report():
     print("PASS: Mixed-initiative review queue loads saved trace reports")
 
 
+def test_mixed_initiative_review_plan_routes_queue_items_to_experiments():
+    craft_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Craft 4 torches"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch"}},
+                "result": {"success": False, "error": "Missing coal"},
+            },
+        },
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {"type": "goal_end", "data": {"goal": "Craft 4 torches", "result": {"completed": False}}},
+    ])
+    unsupported_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Organize inventory"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {"type": "goal_end", "data": {"goal": "Organize inventory", "result": {"completed": False}}},
+    ])
+    craft_report = build_mixed_initiative_trace_report([craft_path])
+    candidate_report = build_mixed_initiative_trace_report([unsupported_path])
+    queue = build_mixed_initiative_review_queue(trace_reports=[craft_report, candidate_report])
+
+    plan = build_mixed_initiative_review_experiment_plan(review_queue=queue)
+
+    assert plan.case_count == 2
+    assert plan.ready_count == 2
+    assert plan.route_counts["backend_inspection"] == 1
+    assert plan.route_counts["template_approval"] == 1
+    routes = {case.route: case for case in plan.cases}
+    assert craft_path in routes["backend_inspection"].source_logs
+    assert "mixed-initiative-trace-report" in routes["backend_inspection"].recommended_commands[0]
+    assert "mixed-initiative-variant-report" in routes["template_approval"].recommended_commands[0]
+    assert routes["template_approval"].success_metrics == [
+        "template_match_count",
+        "slot_mismatch_count",
+        "validation_success_count",
+        "unsupported_template_count",
+    ]
+    print("PASS: Mixed-initiative review plan routes queue items to experiments")
+
+
+def test_mixed_initiative_review_plan_loads_saved_queue():
+    craft_path = write_jsonl([
+        {"type": "goal_start", "data": {"goal": "Craft 4 torches"}},
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch"}},
+                "result": {"success": False, "error": "Missing coal"},
+            },
+        },
+        {"type": "observation", "data": {"inventory": {"stick": 1}}},
+        {"type": "goal_end", "data": {"goal": "Craft 4 torches", "result": {"completed": False}}},
+    ])
+    queue = build_mixed_initiative_review_queue(
+        trace_reports=[build_mixed_initiative_trace_report([craft_path])]
+    )
+    queue_path = os.path.join(tempfile.mkdtemp(), "mixed_review_queue.json")
+    with open(queue_path, "w", encoding="utf-8") as f:
+        json.dump(queue.to_dict(), f)
+
+    plan = build_mixed_initiative_review_experiment_plan(review_queue_paths=[queue_path])
+
+    assert plan.errors == []
+    assert plan.case_count == 1
+    assert plan.cases[0].route == "backend_inspection"
+    assert plan.cases[0].queue_item_id == queue.items[0].id
+    assert plan.to_dict()["route_counts"] == {"backend_inspection": 1}
+    print("PASS: Mixed-initiative review plan loads saved queues")
+
+
 def test_mixed_initiative_variant_report_checks_heldout_templates():
     report = build_mixed_initiative_variant_report()
 
@@ -614,6 +688,8 @@ if __name__ == "__main__":
     test_mixed_initiative_feedback_policy_consumes_candidate_hints()
     test_mixed_initiative_review_queue_groups_trace_recommendations()
     test_mixed_initiative_review_queue_loads_saved_trace_report()
+    test_mixed_initiative_review_plan_routes_queue_items_to_experiments()
+    test_mixed_initiative_review_plan_loads_saved_queue()
     test_mixed_initiative_variant_report_checks_heldout_templates()
     test_mixed_initiative_variant_report_flags_slot_mismatch()
     test_mixed_initiative_variant_report_loads_jsonl_case_file()

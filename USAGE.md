@@ -176,6 +176,10 @@ python -m singularity.main mixed-initiative-trace-report --session-log logs/sess
 python -m singularity.main mixed-initiative-review-queue --trace-report logs/benchmarks/mixed_initiative_trace.json --output logs/benchmarks/mixed_review_queue.json
 python -m singularity.main mixed-initiative-review-queue --session-log logs/session_xxx.jsonl
 
+# Route review queue items into concrete follow-up experiment cases.
+python -m singularity.main mixed-initiative-review-plan --review-queue logs/benchmarks/mixed_review_queue.json --output logs/benchmarks/mixed_review_plan.json
+python -m singularity.main mixed-initiative-review-plan --session-log logs/session_xxx.jsonl
+
 # Replay held-out paraphrases and optional JSON/JSONL case files before promoting
 # new mixed-initiative templates or changing auto-selection heuristics.
 python -m singularity.main mixed-initiative-variant-report --output logs/benchmarks/mixed_initiative_variants.json

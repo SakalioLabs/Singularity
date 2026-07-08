@@ -321,6 +321,18 @@ def main():
     mixed_queue_parser.add_argument("--output", type=str, default="", help="Optional JSON queue path")
     mixed_queue_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline mixed-initiative review experiment routing
+    mixed_review_plan_parser = subparsers.add_parser(
+        "mixed-initiative-review-plan",
+        help="Route mixed-initiative review queue items into follow-up experiment cases",
+    )
+    mixed_review_plan_parser.add_argument("--review-queue", action="append", default=[], help="Saved mixed-initiative review queue JSON")
+    mixed_review_plan_parser.add_argument("--trace-report", action="append", default=[], help="Saved mixed-initiative trace JSON report")
+    mixed_review_plan_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect directly")
+    mixed_review_plan_parser.add_argument("--template", type=str, default="auto", choices=mixed_template_choices, help="Template to force for session-log inputs")
+    mixed_review_plan_parser.add_argument("--output", type=str, default="", help="Optional JSON experiment plan path")
+    mixed_review_plan_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline mixed-initiative held-out variant report
     mixed_variant_parser = subparsers.add_parser(
         "mixed-initiative-variant-report",
@@ -1143,6 +1155,46 @@ def main():
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
             print(f"\nQueue saved to {args.output}")
+        return
+
+    if args.command == "mixed-initiative-review-plan":
+        from singularity.evaluation.mixed_initiative import build_mixed_initiative_review_experiment_plan
+
+        review_queues = getattr(args, "review_queue", []) or []
+        trace_reports = getattr(args, "trace_report", []) or []
+        session_logs = getattr(args, "session_log", []) or []
+        if not review_queues and not trace_reports and not session_logs:
+            print("mixed-initiative-review-plan requires --review-queue, --trace-report, or --session-log")
+            sys.exit(1)
+        report = build_mixed_initiative_review_experiment_plan(
+            review_queue_paths=review_queues,
+            trace_report_paths=trace_reports,
+            session_log_paths=session_logs,
+            template_id=getattr(args, "template", "auto"),
+        )
+        print("\nMixed-Initiative Review Experiment Plan")
+        print(f"  cases: {report.case_count}")
+        print(f"  ready: {report.ready_count}")
+        print(f"  high priority: {report.high_priority_count}")
+        if report.route_counts:
+            parts = [f"{key}={value}" for key, value in sorted(report.route_counts.items())]
+            print(f"  routes: {', '.join(parts)}")
+        for case in report.cases:
+            marker = "+" if case.ready else "!"
+            print(f"  {marker} [{case.priority}] {case.id}")
+            print(f"      {case.route}: {case.target_type}:{case.target_id} -> {case.decision}")
+            if case.source_goals:
+                print(f"      examples: {', '.join(case.source_goals[:3])}")
+            if case.missing_inputs:
+                print(f"      missing: {', '.join(case.missing_inputs)}")
+            if case.recommended_commands:
+                print(f"      command: {case.recommended_commands[0]}")
+        for error in report.errors:
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
+            print(f"\nExperiment plan saved to {args.output}")
         return
 
     if args.command == "mixed-initiative-trace-report":
