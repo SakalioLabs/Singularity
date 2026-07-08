@@ -190,6 +190,24 @@ def test_agent_collaboration_executor_uses_explicit_role_bridge_ports():
     print("PASS: AgentCollaborationExecutor uses explicit role bridge ports")
 
 
+def test_agent_collaboration_executor_preserves_mixed_policy_patch_paths():
+    created = {}
+    config = Config(mixed_policy_patch_paths=["logs/benchmarks/mixed_policy_patch.json"])
+
+    def factory(role_config):
+        agent = FakeAgent(role_config)
+        created[role_config.bot.username] = agent
+        return agent
+
+    executor = AgentCollaborationExecutor(config, agent_factory=factory, bridge_port_base=4100)
+    executor(sample_task(), {"id": "resource_runner"}, {})
+
+    agent = created["Singularity_resource_runner"]
+    assert agent.config.bot.bridge_port == 4100
+    assert agent.config.mixed_policy_patch_paths == ["logs/benchmarks/mixed_policy_patch.json"]
+    print("PASS: AgentCollaborationExecutor preserves mixed policy patch paths")
+
+
 def test_agent_collaboration_executor_builds_bridge_launch_plan():
     executor = AgentCollaborationExecutor(Config(), bridge_port_base=4200)
     plan = executor.bridge_launch_plan(sample_spec())
@@ -441,6 +459,7 @@ if __name__ == "__main__":
     test_agent_collaboration_executor_runs_goal_and_returns_shared_updates()
     test_agent_collaboration_executor_assigns_role_bridge_ports()
     test_agent_collaboration_executor_uses_explicit_role_bridge_ports()
+    test_agent_collaboration_executor_preserves_mixed_policy_patch_paths()
     test_agent_collaboration_executor_builds_bridge_launch_plan()
     test_agent_collaboration_executor_launch_plan_uses_explicit_ports()
     test_agent_collaboration_executor_launch_plan_reports_port_conflicts()

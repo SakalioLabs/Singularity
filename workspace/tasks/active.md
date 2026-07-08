@@ -158,9 +158,11 @@
 - [x] Load approved mixed-initiative policy patches into live Agent/ActionController startup configuration.
 - [x] Add offline mixed-policy patch ablation to compare baseline vs patched control-policy and template-review decisions before live runs.
 - [x] Add live benchmark mixed-policy ablation mode that runs suites without and with approved patches, then compares control-policy logs.
+- [x] Wire approved mixed-policy patches into M7 Agent-backed collaboration executor roles.
 - [ ] Run live M1/M2/M7 with an approved mixed-policy patch and compare control-policy decisions plus mixed-policy review decisions against baseline.
 - [ ] Use `mixed-initiative-policy-ablation` on approved live-trace patches before running the corresponding patched benchmark suite.
 - [ ] Run `benchmark --mixed-policy-ablation --mixed-policy-patch ...` on M1/M2 once the bridge and Minecraft server are live.
+- [ ] Run Agent-backed `collab-benchmark --mixed-policy-patch ...` on BM-701 and compare role session logs against an unpatched run.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
 - [ ] Run an unknown visual/environment goal with `--goal-critic` and inspect `goal_verification_metrics` plus critic evidence in the session log.
 - [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces and compare completion judgments against manual review.

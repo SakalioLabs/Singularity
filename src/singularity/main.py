@@ -215,6 +215,7 @@ def main():
     collab_parser.add_argument("--capture-screenshots", action="store_true", help="Ask each Agent bridge renderer to capture screenshots for visual analysis")
     collab_parser.add_argument("--screenshot-dir", type=str, default="logs/screenshots", help="Directory for captured screenshot files")
     collab_parser.add_argument("--screenshot-min-interval", type=float, default=2.0, help="Minimum seconds between screenshot capture attempts")
+    collab_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load in Agent executor roles")
     collab_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     collab_parser.add_argument("--log-level", type=str, default="INFO")
 
@@ -727,6 +728,7 @@ def main():
                 enable_vision_analysis=not getattr(args, "no_vision_analysis", False),
                 enable_visual_action_grounding=not getattr(args, "no_visual_action_grounding", False),
                 enable_screenshot_capture=getattr(args, "capture_screenshots", False),
+                mixed_policy_patch_paths=getattr(args, "mixed_policy_patch", []) or [],
                 screenshot_dir=getattr(args, "screenshot_dir", "logs/screenshots"),
                 screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),
             ), bridge_port_base=getattr(args, "bridge_port_base", 0) or None, role_bridge_ports=role_bridge_ports)
