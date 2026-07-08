@@ -20,6 +20,7 @@ from singularity.core.goal_generator import GoalGenerator
 from singularity.core.curriculum import CurriculumManager
 from singularity.core.goal_verifier import GoalVerifier
 from singularity.core.explorer import Explorer
+from singularity.core.self_evolution_policy import SelfEvolutionPolicy
 from singularity.observation.observer import Observer
 from singularity.action.controller import ActionController
 from singularity.action.policy import ActionGranularityPolicy
@@ -51,6 +52,8 @@ class Agent:
         self.action_policy = ActionGranularityPolicy()
         self.mixed_initiative_policy = MixedInitiativeFeedbackPolicy()
         self.mixed_policy_patch_report = self._load_mixed_policy_patches()
+        self.self_evolution_policy = SelfEvolutionPolicy()
+        self.self_evolution_feedback_report = self._load_self_evolution_feedback()
         self.action_controller = ActionController(self.bot, config, action_policy=self.action_policy)
         self.running = False
         self.session_log: list[dict] = []
@@ -149,6 +152,44 @@ class Agent:
                 f"{report['loaded_count']} files, "
                 f"action_hints={report['action_policy_hints_applied']}, "
                 f"mixed_hints={report['mixed_policy_hints_applied']}, "
+                f"errors={len(report['errors'])}"
+            )
+        return report
+
+    def _load_self_evolution_feedback(self) -> dict:
+        """Load advisory self-evolution feedback reports for planner context."""
+        paths = [
+            path for path in (getattr(self.config, "self_evolution_feedback_paths", []) or [])
+            if path
+        ]
+        report = {
+            "paths": list(paths),
+            "loaded_count": 0,
+            "skipped_count": 0,
+            "policy_hints_applied": 0,
+            "advisory_only": True,
+            "errors": [],
+        }
+        if not getattr(self.config, "enable_self_evolution_policy", True):
+            report["skipped_count"] = len(paths)
+            return report
+        for path in paths:
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    payload = json.load(f)
+                feedback = payload.get("self_evolution_feedback", payload) if isinstance(payload, dict) else {}
+                applied = self.self_evolution_policy.record_self_evolution_feedback(feedback)
+                report["loaded_count"] += 1
+                report["policy_hints_applied"] += int(applied or 0)
+            except Exception as e:
+                message = f"{path}: {e}"
+                report["errors"].append(message)
+                logger.warning(f"Failed to load self-evolution feedback {message}")
+        if report["loaded_count"] or report["errors"]:
+            logger.info(
+                "Self-evolution feedback loaded: "
+                f"{report['loaded_count']} files, "
+                f"hints={report['policy_hints_applied']}, "
                 f"errors={len(report['errors'])}"
             )
         return report
@@ -603,7 +644,15 @@ class Agent:
         try:
             visual_context = self._visual_memory_context(goal)
             visual_action_context = self._visual_action_context(goal, observation)
-            combined_memory = "\n".join(part for part in (memory_context, context_window, visual_context, visual_action_context, skill_hint) if part)
+            self_evolution_context = self._self_evolution_context(goal, observation)
+            combined_memory = "\n".join(part for part in (
+                memory_context,
+                context_window,
+                visual_context,
+                visual_action_context,
+                self_evolution_context,
+                skill_hint,
+            ) if part)
             plan = self.planner.plan_from_goal(goal, observation, combined_memory)
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
@@ -845,6 +894,24 @@ class Agent:
                 f"{action.get('parameters', {})} because {suggestion.get('reason')}"
             )
         return "Visual action grounding hints:\n" + "\n".join(lines)
+
+    def _self_evolution_context(self, goal: str, observation: dict) -> str:
+        policy = getattr(self, "self_evolution_policy", None)
+        if not policy or not getattr(getattr(self, "config", None), "enable_self_evolution_policy", True):
+            return ""
+        try:
+            context = policy.planner_context(goal, observation)
+        except Exception as e:
+            logger.warning(f"Self-evolution policy context failed: {e}")
+            return ""
+        if context:
+            advice = policy.advise(goal, observation).as_dict()
+            self._log_policy_intervention("hint", {
+                "goal": goal,
+                "policy": "self_evolution",
+                "advice": advice,
+            })
+        return context
 
     def _apply_visual_action_grounding(self, plan: dict, observation: dict, goal: str) -> dict:
         if not getattr(getattr(self, "config", None), "enable_visual_action_grounding", True):

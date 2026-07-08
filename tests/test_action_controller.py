@@ -11,6 +11,7 @@ from singularity.action.mapping import ActionMapper
 from singularity.action.policy import ActionGranularityPolicy
 from singularity.core.agent import Agent
 from singularity.core.config import Config
+from singularity.core.self_evolution_policy import SelfEvolutionPolicy
 
 
 class FakeBot:
@@ -65,6 +66,70 @@ def _write_mixed_policy_gate(tmpdir, readiness):
             "reason": "test gate",
         }, f)
     return gate_path
+
+
+def _write_self_evolution_feedback(tmpdir):
+    feedback_path = os.path.join(tmpdir, "self_evolution.json")
+    with open(feedback_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "self_evolution_feedback": {
+                "relative_reward_delta": -1.25,
+                "action_failure_categories": {"perception": 2, "reasoning": 1},
+                "typed_feedback_counts": {
+                    "monitor_stagnation": 2,
+                    "monitor_action_failure": 2,
+                },
+                "remedy_candidates": [
+                    "dig coal_ore: learn perception remedy from failure (no target visible)",
+                ],
+                "adaptor_recommendations": [
+                    "Before retrying dig, insert scan/look_at or visual grounding for the target.",
+                    "Use accumulated typed feedback to rewrite only the unfinished plan suffix.",
+                ],
+                "policy_hints": [
+                    {
+                        "self_evolution_policy": "repair_stagnant_plan_suffix",
+                        "priority": "high",
+                        "reason": "execution produced repeated no-progress or repeated-failure signals",
+                        "count": 2,
+                    },
+                    {
+                        "self_evolution_policy": "induce_failure_remedies",
+                        "priority": "high",
+                        "reason": "failed actions should become typed remedy candidates before retry",
+                        "count": 2,
+                    },
+                ],
+            },
+        }, f)
+    return feedback_path
+
+
+def test_self_evolution_policy_formats_advisory_context():
+    policy = SelfEvolutionPolicy()
+    applied = policy.record_self_evolution_feedback({
+        "relative_reward_delta": -2.0,
+        "action_failure_categories": {"perception": 2},
+        "remedy_candidates": ["dig coal_ore: learn perception remedy from failure"],
+        "adaptor_recommendations": ["Before retrying dig, insert scan/look_at."],
+        "policy_hints": [
+            {"self_evolution_policy": "repair_stagnant_plan_suffix", "priority": "high"},
+            {"self_evolution_policy": "induce_failure_remedies", "priority": "high"},
+        ],
+    })
+
+    advice = policy.advise("Craft torches", {"inventory": {"stick": 1}})
+    context = policy.planner_context("Craft torches", {})
+
+    assert applied == 2
+    assert advice.mode == "repair_unfinished_plan_suffix"
+    assert advice.priority == "high"
+    assert advice.skill_reflection == "execution_lapse_first"
+    assert advice.safety_gate == "advisory_only_requires_verification"
+    assert "Self-evolution feedback" in context
+    assert "do not bypass verification" in context
+    assert "scan/look_at" in context
+    print("PASS: SelfEvolutionPolicy formats advisory context")
 
 
 def test_use_item_equips_requested_item_first():
@@ -226,6 +291,29 @@ def test_agent_loads_mixed_policy_patch_when_gate_is_approved():
     print("PASS: Agent loads mixed policy patch when gate is approved")
 
 
+def test_agent_loads_self_evolution_feedback_into_planner_policy():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = _write_self_evolution_feedback(tmpdir)
+    config = Config(
+        log_dir=os.path.join(tmpdir, "logs"),
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        self_evolution_feedback_paths=[feedback_path],
+    )
+
+    agent = Agent(config)
+    context = agent._self_evolution_context("Craft torches", {"inventory": {"stick": 1}})
+    profile = agent.self_evolution_policy.feedback_profile()
+
+    assert agent.self_evolution_feedback_report["loaded_count"] == 1
+    assert agent.self_evolution_feedback_report["policy_hints_applied"] == 2
+    assert profile["skill_reflection"] == "execution_lapse_first"
+    assert "repair_stagnant_plan_suffix" in profile["policy_hints"]
+    assert "advisory" in context
+    assert "dig coal_ore" in context
+    print("PASS: Agent loads self-evolution feedback into planner policy")
+
+
 def test_agent_skips_mixed_policy_patch_when_gate_is_not_approved():
     for readiness in ("review", "rejected"):
         tmpdir = tempfile.mkdtemp()
@@ -252,6 +340,7 @@ def test_agent_skips_mixed_policy_patch_when_gate_is_not_approved():
 
 
 if __name__ == "__main__":
+    test_self_evolution_policy_formats_advisory_context()
     test_use_item_equips_requested_item_first()
     test_action_mapper_desktop_backend_is_planned_not_executable()
     test_action_controller_rejects_non_executable_backend()
@@ -260,5 +349,6 @@ if __name__ == "__main__":
     test_action_granularity_policy_can_emit_planned_desktop_mapping()
     test_agent_loads_mixed_policy_patch_into_runtime_policies()
     test_agent_loads_mixed_policy_patch_when_gate_is_approved()
+    test_agent_loads_self_evolution_feedback_into_planner_policy()
     test_agent_skips_mixed_policy_patch_when_gate_is_not_approved()
     print("\nAction controller tests PASSED")

@@ -150,6 +150,8 @@ python -m singularity.main exploration-trace-report --session-log logs/session_x
 # Summarize MineEvolve-style execution progress, stagnation, and adaptor hints
 python -m singularity.main self-evolution-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/self_evolution.json
 # The saved JSON includes `self_evolution_feedback` for repair/adaptor and skill-curation experiments.
+# Use it as advisory planner context in later runs without auto-mutating skills or bypassing verification.
+python -m singularity.main run --goal "Craft torches" --self-evolution-feedback logs/benchmarks/self_evolution.json
 
 # Summarize SciCrafter-style discovery-to-application evidence from session logs
 python -m singularity.main discovery-application-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/discovery_application.json

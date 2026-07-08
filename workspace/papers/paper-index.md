@@ -848,6 +848,42 @@
 
 ---
 
+## P-046: EmbodiSkill
+
+- **Title**: EmbodiSkill: Skill-Aware Reflection for Self-Evolving Embodied Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2605.10332
+- **Type**: Skill-aware self-evolution / embodied reflection
+- **Task Type**: Embodied task execution and skill revision
+- **Core Method**: Separates skill-changing evidence from execution-lapse evidence, then performs targeted revision while preserving valid guidance
+- **Action Space**: Embodied skills, object search, action execution, and state changes
+- **Memory**: Trajectory evidence interpreted against current skill content
+- **Key Results**: Reports improved ALFWorld and EmbodiedBench task success through skill-aware reflection
+- **Scores**: R=4, N=5, R=3, E=5
+- **Value to Project**: Justifies treating perception/action-heavy Minecraft failures as execution lapses before mutating reviewed skills
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-embodiskill.md`
+
+---
+
+## P-047: VASO
+
+- **Title**: VASO: Formally Verifiable Self-Evolving Skills for Physical AI Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2606.05395
+- **Type**: Verification-guided self-evolving skill contracts
+- **Task Type**: Physical AI skill verification and repair
+- **Core Method**: Checks skill contract consistency, verifies induced plans against temporal specifications, and turns counterexamples into textual gradients
+- **Action Space**: Robot control commands and planner-facing semantic skill contracts
+- **Memory**: Counterexample traces as skill-evolution feedback
+- **Key Results**: Reports high formal-specification compliance using fewer than 100 optimization samples on robot tasks
+- **Scores**: R=3, N=5, R=3, E=5
+- **Value to Project**: Supports keeping Singularity self-evolution feedback advisory until verifier/gate reports approve durable plan or skill changes
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-vaso.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -897,3 +933,5 @@
 | P-043 | SkillDAG | 2026 | R4/N5/R4/E5 | P2 |
 | P-044 | MineEvolve | 2026 | R5/N5/R3/E5 | P1 |
 | P-045 | VLM-AR3L | 2026 | R4/N4/R3/E4 | P2 |
+| P-046 | EmbodiSkill | 2026 | R4/N5/R3/E5 | P2 |
+| P-047 | VASO | 2026 | R3/N5/R3/E5 | P2 |

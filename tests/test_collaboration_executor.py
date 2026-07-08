@@ -195,6 +195,7 @@ def test_agent_collaboration_executor_preserves_mixed_policy_patch_paths():
     config = Config(
         mixed_policy_patch_paths=["logs/benchmarks/mixed_policy_patch.json"],
         mixed_policy_gate_paths=["logs/benchmarks/mixed_policy_gate.json"],
+        self_evolution_feedback_paths=["logs/benchmarks/self_evolution.json"],
     )
 
     def factory(role_config):
@@ -209,6 +210,7 @@ def test_agent_collaboration_executor_preserves_mixed_policy_patch_paths():
     assert agent.config.bot.bridge_port == 4100
     assert agent.config.mixed_policy_patch_paths == ["logs/benchmarks/mixed_policy_patch.json"]
     assert agent.config.mixed_policy_gate_paths == ["logs/benchmarks/mixed_policy_gate.json"]
+    assert agent.config.self_evolution_feedback_paths == ["logs/benchmarks/self_evolution.json"]
     print("PASS: AgentCollaborationExecutor preserves mixed policy patch paths")
 
 

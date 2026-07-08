@@ -38,6 +38,8 @@ class Config:
     enable_visual_action_grounding: bool = True
     mixed_policy_patch_paths: list[str] = field(default_factory=list)
     mixed_policy_gate_paths: list[str] = field(default_factory=list)
+    self_evolution_feedback_paths: list[str] = field(default_factory=list)
+    enable_self_evolution_policy: bool = True
     enable_screenshot_capture: bool = False
     screenshot_dir: str = "logs/screenshots"
     screenshot_min_interval_s: float = 2.0
