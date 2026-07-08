@@ -147,6 +147,10 @@ python -m singularity.main memory-policy-report --session-log logs/session_xxx.j
 python -m singularity.main exploration-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/exploration_trace.json
 # The saved JSON includes `curriculum_feedback`, which can be applied to CurriculumManager for candidate reranking.
 
+# Summarize MineEvolve-style execution progress, stagnation, and adaptor hints
+python -m singularity.main self-evolution-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/self_evolution.json
+# The saved JSON includes `self_evolution_feedback` for repair/adaptor and skill-curation experiments.
+
 # Summarize SciCrafter-style discovery-to-application evidence from session logs
 python -m singularity.main discovery-application-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/discovery_application.json
 # The saved JSON includes `discovery_feedback` for experiment-derived memory, task, and skill gates.

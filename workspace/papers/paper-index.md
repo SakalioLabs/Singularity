@@ -812,6 +812,42 @@
 
 ---
 
+## P-044: MineEvolve
+
+- **Title**: MineEvolve: Self-Evolution with Accumulated Knowledge for Long-Horizon Embodied Minecraft Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2603.13131
+- **Type**: Minecraft self-evolution / execution-feedback framework
+- **Task Type**: Long-horizon Minecraft planning, skill induction, and failure repair
+- **Core Method**: Monitor typed execution feedback, induce successful skills and failed/stagnant remedies, curate accumulated knowledge, and adapt unfinished plan suffixes
+- **Action Space**: Minecraft subgoals and structured action traces
+- **Memory**: Accumulated behavioral knowledge from state changes, inventory changes, failures, progress, and stagnation
+- **Key Results**: Reports consistent long-horizon improvement across multiple planners, especially on high-dependency task groups
+- **Scores**: R=5, N=5, R=3, E=5
+- **Value to Project**: Direct blueprint for turning Singularity session logs into progress/stagnation feedback, remedy candidates, and plan-adaptor hints
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-mineevolve.md`
+
+---
+
+## P-045: VLM-AR3L
+
+- **Title**: VLM-AR3L: Vision-Language Models for Absolute and Relative Rewards in Reinforcement Learning
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2607.00483
+- **Type**: VLM reward learning / embodied progress evaluation
+- **Task Type**: Open-ended visual RL and Minecraft progress evaluation
+- **Core Method**: Combines absolute state rewards with relative rewards over consecutive observations using VLM preference labels
+- **Action Space**: General RL and open-world embodied tasks
+- **Memory**: Consecutive visual observations as progress/regression evidence
+- **Key Results**: Reports improved reward learning across control, manipulation, and Minecraft-style open-world tasks
+- **Scores**: R=4, N=4, R=3, E=4
+- **Value to Project**: Supports adding separate absolute-quality and relative-progress fields before future screenshot/VLM reward labels
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-vlm-ar3l.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -859,3 +895,5 @@
 | P-041 | SciCrafter | 2026 | R5/N5/R3/E5 | P2 |
 | P-042 | WhisperBench / MemGhost | 2026 | R5/N5/R3/E5 | P1 |
 | P-043 | SkillDAG | 2026 | R4/N5/R4/E5 | P2 |
+| P-044 | MineEvolve | 2026 | R5/N5/R3/E5 | P1 |
+| P-045 | VLM-AR3L | 2026 | R4/N4/R3/E4 | P2 |

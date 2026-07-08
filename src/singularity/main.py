@@ -294,6 +294,12 @@ def main():
     exploration_trace_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     exploration_trace_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline self-evolution trace report
+    self_evolution_parser = subparsers.add_parser("self-evolution-report", help="Report execution progress, stagnation, and adaptor hints in session logs")
+    self_evolution_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    self_evolution_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    self_evolution_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline discovery-to-application trace report
     discovery_parser = subparsers.add_parser("discovery-application-report", help="Report SciCrafter-style discovery-to-application evidence in session logs")
     discovery_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -1232,6 +1238,38 @@ def main():
                     "unique_entity_type_count": report.unique_entity_type_count,
                     "unique_resource_type_count": report.unique_resource_type_count,
                     "curriculum_feedback": curriculum_feedback,
+                    "errors": report.errors,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "self-evolution-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("self-evolution-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_self_evolution_report_from_logs(session_logs)
+        runner.print_self_evolution_report(report)
+        self_evolution_feedback = runner.self_evolution_feedback(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "log_count": report.log_count,
+                    "ready_log_count": report.ready_log_count,
+                    "observation_count": report.observation_count,
+                    "action_count": report.action_count,
+                    "failed_action_count": report.failed_action_count,
+                    "progress_signal_count": report.progress_signal_count,
+                    "regression_signal_count": report.regression_signal_count,
+                    "stagnation_signal_count": report.stagnation_signal_count,
+                    "repeated_failure_count": report.repeated_failure_count,
+                    "relative_reward_delta": report.relative_reward_delta,
+                    "self_evolution_feedback": self_evolution_feedback,
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)

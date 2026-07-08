@@ -1,5 +1,5 @@
 # Active Tasks
-> Last updated: 2026-07-08
+> Last updated: 2026-07-09
 
 ## Completed This Pass
 - [x] Review general agent memory/skill systems: Hermes Agent and OpenClaw.
@@ -103,6 +103,7 @@
 - [x] Add offline `discovery-application-report` for SciCrafter-style hypothesis, experiment, causal consolidation, and held-out application evidence.
 - [x] Gate experiment-derived skill promotion with discovery-to-application evidence before writing approved skills.
 - [x] Add SkillDAG to the paper index and expose `skill-graph-report` for dependency/provenance/gate audits over approved skills.
+- [x] Add MineEvolve and VLM-AR3L to the paper index and expose `self-evolution-report` for progress/regression/stagnation feedback, remedy candidates, and adaptor hints.
 - [x] Add OpenHA/CrossAgent to the paper index and map Chain-of-Action ideas onto Singularity's action abstraction layer.
 - [x] Add offline `action-abstraction-report` for OpenHA/CrossAgent-style analysis of canonical actions, backend commands, failed mappings, and actions that may need lower-level visual control.
 - [x] Add `action_abstraction_feedback` policy hints and an application hook so action-policy experiments can consume API-vs-visual-control recommendations.
@@ -152,6 +153,7 @@
 - [ ] Run `discovery-application-report` on real redstone/building session logs and use `discovery_feedback` to gate experiment-derived skills before runtime use.
 - [ ] Compare approved vs review-blocked discovery skill candidates on held-out redstone/building variants before enabling defaults.
 - [ ] Run `skill-graph-report` after real skill approvals and resolve missing dependencies, ungoverned custom skills, or graph cycles before runtime defaults.
+- [ ] Run `self-evolution-report` on real M1/M2/autonomous logs and compare adaptor recommendations against retry outcomes before enabling automatic plan-suffix repair.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
 - [ ] Mine real player/session requests into `mixed-initiative-variant-report --case-file` suites and track held-out template coverage before changing auto-selection heuristics.
 - [ ] Run `mixed-initiative-trace-report` on live M1/M2/M7 logs and compare `template_action_metrics` for invalid actions, failed backend actions, and valid-success rates by task family.

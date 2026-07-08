@@ -644,6 +644,81 @@ class ExplorationTraceReport:
 
 
 @dataclass
+class SelfEvolutionTraceCase:
+    source_log: str
+    event_count: int = 0
+    observation_count: int = 0
+    goal_count: int = 0
+    completed_goal_count: int = 0
+    failed_goal_count: int = 0
+    action_count: int = 0
+    successful_action_count: int = 0
+    failed_action_count: int = 0
+    progress_signal_count: int = 0
+    regression_signal_count: int = 0
+    stagnation_signal_count: int = 0
+    inventory_gain_count: int = 0
+    inventory_loss_count: int = 0
+    repeated_failure_count: int = 0
+    consecutive_no_movement_count: int = 0
+    relative_reward_delta: float = 0.0
+    absolute_reward_mean: float = 0.0
+    typed_feedback_counts: dict = field(default_factory=dict)
+    action_type_counts: dict = field(default_factory=dict)
+    action_failure_categories: dict = field(default_factory=dict)
+    progress_markers: list[str] = field(default_factory=list)
+    remedy_candidates: list[str] = field(default_factory=list)
+    adaptor_recommendations: list[str] = field(default_factory=list)
+    ready_for_self_evolution_review: bool = False
+
+
+@dataclass
+class SelfEvolutionTraceReport:
+    cases: list[SelfEvolutionTraceCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_log_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_self_evolution_review)
+
+    @property
+    def observation_count(self) -> int:
+        return sum(case.observation_count for case in self.cases)
+
+    @property
+    def action_count(self) -> int:
+        return sum(case.action_count for case in self.cases)
+
+    @property
+    def failed_action_count(self) -> int:
+        return sum(case.failed_action_count for case in self.cases)
+
+    @property
+    def progress_signal_count(self) -> int:
+        return sum(case.progress_signal_count for case in self.cases)
+
+    @property
+    def regression_signal_count(self) -> int:
+        return sum(case.regression_signal_count for case in self.cases)
+
+    @property
+    def stagnation_signal_count(self) -> int:
+        return sum(case.stagnation_signal_count for case in self.cases)
+
+    @property
+    def repeated_failure_count(self) -> int:
+        return sum(case.repeated_failure_count for case in self.cases)
+
+    @property
+    def relative_reward_delta(self) -> float:
+        return round(sum(case.relative_reward_delta for case in self.cases), 3)
+
+
+@dataclass
 class DiscoveryApplicationTraceCase:
     source_log: str
     event_count: int = 0
@@ -2215,6 +2290,92 @@ class BenchmarkRunner:
             curriculum_manager.record_exploration_feedback(feedback)
         return feedback
 
+    def run_self_evolution_report_from_logs(self, session_log_paths: list[str]) -> SelfEvolutionTraceReport:
+        """Summarize MineEvolve-style monitor/inducer/adaptor signals in session logs."""
+        report = SelfEvolutionTraceReport()
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                report.cases.append(self._self_evolution_trace_case(path, events))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
+    def self_evolution_feedback(self, report: SelfEvolutionTraceReport) -> dict:
+        """Aggregate execution feedback into reusable self-evolution policy hints."""
+        typed_feedback = {}
+        failure_categories = {}
+        action_types = {}
+        remedies = []
+        adaptor_recommendations = []
+        for case in report.cases:
+            self._merge_counts(typed_feedback, case.typed_feedback_counts)
+            self._merge_counts(failure_categories, case.action_failure_categories)
+            self._merge_counts(action_types, case.action_type_counts)
+            remedies.extend(case.remedy_candidates)
+            adaptor_recommendations.extend(case.adaptor_recommendations)
+
+        policy_hints = []
+        if report.stagnation_signal_count:
+            policy_hints.append({
+                "self_evolution_policy": "repair_stagnant_plan_suffix",
+                "priority": "high",
+                "reason": "execution produced repeated no-progress or repeated-failure signals",
+                "count": report.stagnation_signal_count,
+            })
+        if report.failed_action_count:
+            policy_hints.append({
+                "self_evolution_policy": "induce_failure_remedies",
+                "priority": "high" if report.failed_action_count >= report.action_count / 2 else "medium",
+                "reason": "failed actions should become typed remedy candidates before retry",
+                "count": report.failed_action_count,
+            })
+        if typed_feedback.get("monitor_inventory_gain", 0) or typed_feedback.get("monitor_goal_success", 0):
+            policy_hints.append({
+                "self_evolution_policy": "curate_successful_progress_patterns",
+                "priority": "medium",
+                "reason": "positive progress signals can seed reusable skills or curriculum targets",
+                "count": int(typed_feedback.get("monitor_inventory_gain", 0) or 0) + int(typed_feedback.get("monitor_goal_success", 0) or 0),
+            })
+        if report.regression_signal_count > report.progress_signal_count:
+            policy_hints.append({
+                "self_evolution_policy": "route_through_adaptor_before_retry",
+                "priority": "high",
+                "reason": "regression signals outnumber progress signals",
+                "count": report.regression_signal_count - report.progress_signal_count,
+            })
+
+        return {
+            "log_count": report.log_count,
+            "ready_log_count": report.ready_log_count,
+            "observation_count": report.observation_count,
+            "action_count": report.action_count,
+            "failed_action_count": report.failed_action_count,
+            "progress_signal_count": report.progress_signal_count,
+            "regression_signal_count": report.regression_signal_count,
+            "stagnation_signal_count": report.stagnation_signal_count,
+            "repeated_failure_count": report.repeated_failure_count,
+            "relative_reward_delta": report.relative_reward_delta,
+            "typed_feedback_counts": typed_feedback,
+            "action_failure_categories": failure_categories,
+            "action_type_counts": action_types,
+            "remedy_candidates": self._dedupe_strings(remedies)[:20],
+            "adaptor_recommendations": self._dedupe_strings(adaptor_recommendations)[:20],
+            "policy_hints": policy_hints,
+        }
+
+    def apply_self_evolution_feedback(self, report: SelfEvolutionTraceReport, policy) -> dict:
+        """Apply self-evolution feedback to a policy-like object when supported."""
+        feedback = self.self_evolution_feedback(report)
+        if hasattr(policy, "record_self_evolution_feedback"):
+            policy.record_self_evolution_feedback(feedback)
+        elif hasattr(policy, "record_exploration_feedback"):
+            policy.record_exploration_feedback({
+                "action_failure_categories": feedback.get("action_failure_categories", {}),
+                "low_movement_log_count": feedback.get("stagnation_signal_count", 0),
+            })
+        return feedback
+
     def run_discovery_application_report_from_logs(self, session_log_paths: list[str]) -> DiscoveryApplicationTraceReport:
         """Summarize SciCrafter-style discovery-to-application evidence in session logs."""
         report = DiscoveryApplicationTraceReport()
@@ -2761,6 +2922,198 @@ class BenchmarkRunner:
             unique_resource_types=sorted(resource_types),
             action_failure_categories=failure_categories,
             ready_for_exploration_review=ready,
+        )
+
+    def _self_evolution_trace_case(self, source_log: str, events: list[dict]) -> SelfEvolutionTraceCase:
+        observations = [
+            event.get("data", {})
+            for event in events
+            if event.get("type") == "observation" and isinstance(event.get("data", {}), dict)
+        ]
+        action_events = [
+            event.get("data", {})
+            for event in events
+            if event.get("type") == "action" and isinstance(event.get("data", {}), dict)
+        ]
+        goal_segments = self._session_goal_segments(events)
+
+        typed_feedback = {}
+        action_types = {}
+        failure_categories = {}
+        progress_markers = []
+        remedy_candidates = []
+        adaptor_recommendations = []
+        progress_signals = 0
+        regression_signals = 0
+        stagnation_signals = 0
+        inventory_gains = 0
+        inventory_losses = 0
+        consecutive_no_movement = 0
+        repeated_failures = 0
+        relative_reward = 0.0
+
+        def inc(counts: dict, key: str, amount: int = 1):
+            counts[key] = counts.get(key, 0) + amount
+
+        positions = [
+            self._position_tuple(observation.get("position"))
+            for observation in observations
+        ]
+        inventories = [self._inventory_counts(observation.get("inventory", {})) for observation in observations]
+        absolute_scores = [self._absolute_progress_score(observation) for observation in observations]
+
+        no_move_run = 0
+        for index in range(1, len(observations)):
+            previous_position = positions[index - 1]
+            current_position = positions[index]
+            if previous_position is not None and current_position is not None:
+                movement = self._path_distance([previous_position, current_position])
+                if movement > 0.75:
+                    progress_signals += 1
+                    relative_reward += min(1.0, movement / 8.0)
+                    no_move_run = 0
+                    inc(typed_feedback, "monitor_state_change")
+                    progress_markers.append(f"moved:{movement:.1f}")
+                else:
+                    no_move_run += 1
+                    if no_move_run >= 2:
+                        stagnation_signals += 1
+                        consecutive_no_movement += 1
+                        inc(typed_feedback, "monitor_stagnation")
+
+            previous_inventory = inventories[index - 1]
+            current_inventory = inventories[index]
+            for item in sorted(set(previous_inventory) | set(current_inventory)):
+                delta = current_inventory.get(item, 0.0) - previous_inventory.get(item, 0.0)
+                if delta > 0:
+                    progress_signals += 1
+                    inventory_gains += 1
+                    relative_reward += min(1.0, delta / 8.0)
+                    inc(typed_feedback, "monitor_inventory_gain")
+                    progress_markers.append(f"gained:{item}+{self._format_delta(delta)}")
+                elif delta < 0:
+                    regression_signals += 1
+                    inventory_losses += 1
+                    relative_reward -= min(1.0, abs(delta) / 8.0)
+                    inc(typed_feedback, "monitor_inventory_loss")
+
+            previous_health = self._safe_float(observations[index - 1].get("health"), 20.0)
+            current_health = self._safe_float(observations[index].get("health"), previous_health)
+            if current_health < previous_health:
+                regression_signals += 1
+                relative_reward -= min(1.0, (previous_health - current_health) / 10.0)
+                inc(typed_feedback, "monitor_state_regression")
+
+        failed_signatures = {}
+        successful_actions = 0
+        failed_actions = 0
+        for action_data in action_events:
+            action = action_data.get("action", {}) if isinstance(action_data.get("action", {}), dict) else {}
+            result = action_data.get("result", {}) if isinstance(action_data.get("result", {}), dict) else {}
+            action_type = str(action.get("type") or result.get("action_type") or "unknown").strip() or "unknown"
+            inc(action_types, action_type)
+            success = self._event_success({"result": result})
+            if success is True:
+                successful_actions += 1
+                progress_signals += 1
+                relative_reward += 0.5
+                inc(typed_feedback, "monitor_action_success")
+                progress_markers.append(f"action_success:{action_type}")
+            elif success is False:
+                failed_actions += 1
+                regression_signals += 1
+                relative_reward -= 0.75
+                inc(typed_feedback, "monitor_action_failure")
+                category = self._action_failure_category(action, result)
+                inc(failure_categories, category)
+                signature = self._action_failure_signature(action, category)
+                failed_signatures[signature] = failed_signatures.get(signature, 0) + 1
+                if failed_signatures[signature] > 1:
+                    repeated_failures += 1
+                    stagnation_signals += 1
+                    inc(typed_feedback, "monitor_stagnation")
+                remedy = self._self_evolution_remedy_candidate(action_type, category, action, result)
+                if remedy:
+                    remedy_candidates.append(remedy)
+                recommendation = self._self_evolution_adaptor_recommendation(action_type, category)
+                if recommendation:
+                    adaptor_recommendations.append(recommendation)
+
+        completed_goals = 0
+        failed_goals = 0
+        for event in events:
+            event_type = str(event.get("type") or "").lower()
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event_type in {"stagnation", "runtime_stagnation", "no_progress", "execution_stalled"}:
+                stagnation_signals += 1
+                inc(typed_feedback, "monitor_stagnation")
+                adaptor_recommendations.append("Switch to adaptor repair when the runtime emits no-progress signals.")
+            elif event_type == "goal_end":
+                result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+                completed = result.get("completed", result.get("success"))
+                if completed is True:
+                    completed_goals += 1
+                    progress_signals += 2
+                    relative_reward += 2.0
+                    inc(typed_feedback, "monitor_goal_success")
+                elif completed is False:
+                    failed_goals += 1
+                    regression_signals += 2
+                    relative_reward -= 1.5
+                    inc(typed_feedback, "monitor_goal_failure")
+            elif event_type == "goal_verification":
+                achieved = data.get("achieved")
+                status = str(data.get("status") or "").lower()
+                if achieved is True or status == "achieved":
+                    progress_signals += 1
+                    relative_reward += 1.0
+                    inc(typed_feedback, "monitor_verification_success")
+                elif achieved is False or status in {"failed", "rejected"}:
+                    regression_signals += 1
+                    relative_reward -= 1.0
+                    inc(typed_feedback, "monitor_verification_failure")
+                    adaptor_recommendations.append("Repair the unfinished plan suffix before retrying a verifier-rejected goal.")
+
+        if stagnation_signals:
+            adaptor_recommendations.append("Use accumulated typed feedback to rewrite only the unfinished plan suffix.")
+        if regression_signals > progress_signals:
+            adaptor_recommendations.append("Route the next retry through a conservative adaptor before adding new goals.")
+
+        ready = bool(
+            observations
+            and (
+                progress_signals
+                or regression_signals
+                or stagnation_signals
+                or action_events
+            )
+        )
+        return SelfEvolutionTraceCase(
+            source_log=source_log,
+            event_count=len(events),
+            observation_count=len(observations),
+            goal_count=len(goal_segments),
+            completed_goal_count=completed_goals,
+            failed_goal_count=failed_goals,
+            action_count=len(action_events),
+            successful_action_count=successful_actions,
+            failed_action_count=failed_actions,
+            progress_signal_count=progress_signals,
+            regression_signal_count=regression_signals,
+            stagnation_signal_count=stagnation_signals,
+            inventory_gain_count=inventory_gains,
+            inventory_loss_count=inventory_losses,
+            repeated_failure_count=repeated_failures,
+            consecutive_no_movement_count=consecutive_no_movement,
+            relative_reward_delta=round(relative_reward, 3),
+            absolute_reward_mean=round(sum(absolute_scores) / len(absolute_scores), 3) if absolute_scores else 0.0,
+            typed_feedback_counts=typed_feedback,
+            action_type_counts=action_types,
+            action_failure_categories=failure_categories,
+            progress_markers=self._dedupe_strings(progress_markers)[:20],
+            remedy_candidates=self._dedupe_strings(remedy_candidates)[:20],
+            adaptor_recommendations=self._dedupe_strings(adaptor_recommendations)[:20],
+            ready_for_self_evolution_review=ready,
         )
 
     def _discovery_application_trace_case(self, source_log: str, events: list[dict]) -> DiscoveryApplicationTraceCase:
@@ -3313,6 +3666,35 @@ class BenchmarkRunner:
             distance += (dx * dx + dy * dy + dz * dz) ** 0.5
         return distance
 
+    def _inventory_counts(self, inventory) -> dict:
+        if not isinstance(inventory, dict):
+            return {}
+        counts = {}
+        for item, count in inventory.items():
+            name = str(item or "").strip().lower()
+            if not name:
+                continue
+            counts[name] = self._safe_float(count, 0.0)
+        return counts
+
+    def _absolute_progress_score(self, observation: dict) -> float:
+        inventory = self._inventory_counts(observation.get("inventory", {}))
+        health = max(0.0, min(20.0, self._safe_float(observation.get("health"), 20.0))) / 20.0
+        item_score = min(8.0, sum(max(0.0, value) for value in inventory.values()) / 8.0)
+        diversity_score = min(4.0, len([name for name, value in inventory.items() if value > 0]) / 4.0)
+        dangers = observation.get("dangers", []) if isinstance(observation.get("dangers", []), list) else []
+        nearby_hostiles = [
+            entity for entity in self._entity_items_from_record(observation)
+            if self._is_hostile_entity(entity)
+        ]
+        danger_penalty = min(2.0, (len(dangers) + len(nearby_hostiles)) * 0.5)
+        return round(max(0.0, health + item_score + diversity_score - danger_penalty), 3)
+
+    def _format_delta(self, value: float) -> str:
+        if float(value).is_integer():
+            return str(int(value))
+        return f"{value:.2f}"
+
     def _named_items_from_record(self, record: dict, keys: list[str]) -> set[str]:
         names = set()
         for key in keys:
@@ -3369,6 +3751,27 @@ class BenchmarkRunner:
         if any(token in text for token in ("path", "reach", "distance", "blocked", "timeout", "collision", "failed to move")):
             return "action"
         return "unknown"
+
+    def _action_failure_signature(self, action: dict, category: str) -> str:
+        params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
+        subject = params.get("item") or params.get("block") or params.get("target") or params.get("entity")
+        return f"{action.get('type', 'unknown')}:{subject or '-'}:{category}"
+
+    def _self_evolution_remedy_candidate(self, action_type: str, category: str, action: dict, result: dict) -> str:
+        params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
+        subject = params.get("item") or params.get("block") or params.get("target") or params.get("entity") or ""
+        detail = result.get("error") or result.get("reason") or result.get("message") or category
+        target = f" {subject}" if subject else ""
+        return f"{action_type}{target}: learn {category} remedy from failure ({str(detail)[:100]})"
+
+    def _self_evolution_adaptor_recommendation(self, action_type: str, category: str) -> str:
+        if category == "perception":
+            return f"Before retrying {action_type}, insert scan/look_at or visual grounding for the target."
+        if category == "reasoning":
+            return f"Before retrying {action_type}, replan missing prerequisites and inventory/tool dependencies."
+        if category == "action":
+            return f"Before retrying {action_type}, repair navigation, reachability, or blocked-path steps."
+        return f"Queue {action_type} failure for review before replaying the same plan."
 
     def _looks_like_multihop_goal(self, goal: str) -> bool:
         text = str(goal or "").lower()
@@ -5066,6 +5469,51 @@ class BenchmarkRunner:
                     f"      multi-hop goals={case.multi_hop_goal_count}, "
                     f"multi-step plans={case.multi_step_plan_count}"
                 )
+        for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_self_evolution_report(self, report: SelfEvolutionTraceReport):
+        total = report.log_count
+        print("\nSelf-Evolution Trace")
+        print(f"  logs ready for self-evolution review: {report.ready_log_count}/{total}")
+        print(
+            "  monitor signals: "
+            f"progress={report.progress_signal_count}, "
+            f"regression={report.regression_signal_count}, "
+            f"stagnation={report.stagnation_signal_count}"
+        )
+        print(
+            "  actions: "
+            f"total={report.action_count}, "
+            f"failed={report.failed_action_count}, "
+            f"repeated_failures={report.repeated_failure_count}"
+        )
+        print(f"  relative reward delta: {report.relative_reward_delta:.3f}")
+        feedback = self.self_evolution_feedback(report)
+        if feedback["policy_hints"]:
+            hints = [
+                f"{hint['self_evolution_policy']}({hint['priority']})"
+                for hint in feedback["policy_hints"][:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for case in report.cases:
+            marker = "+" if case.ready_for_self_evolution_review else "~"
+            print(f"  [{marker}] {case.source_log}")
+            print(
+                f"      observations={case.observation_count}, goals={case.completed_goal_count}/{case.goal_count} completed, "
+                f"actions={case.action_count}, failed={case.failed_action_count}"
+            )
+            print(
+                f"      signals: progress={case.progress_signal_count}, regression={case.regression_signal_count}, "
+                f"stagnation={case.stagnation_signal_count}, reward_delta={case.relative_reward_delta:.3f}, "
+                f"absolute_mean={case.absolute_reward_mean:.3f}"
+            )
+            if case.action_failure_categories:
+                print(f"      failure categories: {self._format_counts(case.action_failure_categories)}")
+            if case.progress_markers:
+                print(f"      progress markers: {'; '.join(case.progress_markers[:4])}")
+            for recommendation in case.adaptor_recommendations[:4]:
+                print(f"      adaptor: {recommendation}")
         for error in report.errors:
             print(f"  error: {error}")
 

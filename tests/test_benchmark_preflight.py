@@ -1124,6 +1124,102 @@ def test_exploration_trace_report_counts_open_world_coverage():
     print("PASS: Exploration trace report counts open-world coverage")
 
 
+def test_self_evolution_report_tracks_progress_and_stagnation():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_self_evolution.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches after finding coal"}},
+        {
+            "type": "observation",
+            "data": {
+                "position": {"x": 0, "y": 64, "z": 0},
+                "inventory": {"stick": 1},
+                "health": 20,
+            },
+        },
+        {"type": "action", "data": {"action": {"type": "move_to"}, "result": {"success": True}}},
+        {
+            "type": "observation",
+            "data": {
+                "position": {"x": 4, "y": 64, "z": 0},
+                "inventory": {"stick": 1, "coal": 2},
+                "health": 20,
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "dig", "parameters": {"block": "coal_ore"}},
+                "result": {"success": False, "error": "no target visible"},
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "dig", "parameters": {"block": "coal_ore"}},
+                "result": {"success": False, "error": "no target visible"},
+            },
+        },
+        {
+            "type": "observation",
+            "data": {
+                "position": {"x": 4, "y": 64, "z": 0},
+                "inventory": {"stick": 1, "coal": 2},
+                "health": 18,
+            },
+        },
+        {
+            "type": "observation",
+            "data": {
+                "position": {"x": 4, "y": 64, "z": 0},
+                "inventory": {"stick": 1, "coal": 2},
+                "health": 18,
+            },
+        },
+        {"type": "goal_verification", "data": {"goal": "Craft torches", "achieved": False, "status": "failed"}},
+        {"type": "goal_end", "data": {"goal": "Craft torches after finding coal", "result": {"completed": False}}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_self_evolution_report_from_logs([session_path])
+    case = report.cases[0]
+    feedback = runner.self_evolution_feedback(report)
+
+    assert report.log_count == 1
+    assert report.ready_log_count == 1
+    assert case.progress_signal_count >= 3
+    assert case.regression_signal_count >= 4
+    assert case.stagnation_signal_count >= 2
+    assert case.inventory_gain_count == 1
+    assert case.failed_action_count == 2
+    assert case.repeated_failure_count == 1
+    assert case.action_failure_categories["perception"] == 2
+    assert case.typed_feedback_counts["monitor_inventory_gain"] == 1
+    assert case.typed_feedback_counts["monitor_verification_failure"] == 1
+    assert any("scan/look_at" in recommendation for recommendation in case.adaptor_recommendations)
+    assert any("coal_ore" in remedy for remedy in case.remedy_candidates)
+    assert feedback["action_failure_categories"]["perception"] == 2
+    policies = {hint["self_evolution_policy"] for hint in feedback["policy_hints"]}
+    assert "repair_stagnant_plan_suffix" in policies
+    assert "induce_failure_remedies" in policies
+
+    class CapturePolicy:
+        def __init__(self):
+            self.feedback = None
+
+        def record_self_evolution_feedback(self, payload):
+            self.feedback = payload
+
+    policy = CapturePolicy()
+    applied = runner.apply_self_evolution_feedback(report, policy)
+    assert applied == feedback
+    assert policy.feedback["stagnation_signal_count"] == case.stagnation_signal_count
+    print("PASS: Self-evolution report tracks progress and stagnation")
+
+
 def test_discovery_application_report_tracks_hypothesis_to_application_loop():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_discovery_application.jsonl")
@@ -2010,6 +2106,7 @@ if __name__ == "__main__":
     test_visual_trace_report_counts_visual_coverage()
     test_visual_trace_report_validates_screenshot_files()
     test_exploration_trace_report_counts_open_world_coverage()
+    test_self_evolution_report_tracks_progress_and_stagnation()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
     test_discovery_skill_gate_controls_experiment_derived_skill_promotion()
     test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates()
