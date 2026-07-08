@@ -1,23 +1,22 @@
 ﻿"""Planner - LLM-powered goal decomposition and action planning with Minecraft knowledge injection."""
 import json
-import os
 import logging
+import time
 from typing import Optional
 
-from singularity.llm.provider import LLMProvider
 from singularity.core.task_system import TaskSystem, Task, TaskStatus
+from singularity.data.knowledge_base import KnowledgeBase
+from singularity.llm.provider import LLMProvider
 
 logger = logging.getLogger("singularity.planner")
 
-# Load crafting recipes at module level
-_RECIPES_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'crafting_recipes.json')
 _CRAFTING_KNOWLEDGE = ""
 try:
-    with open(_RECIPES_PATH, 'r', encoding='utf-8') as f:
-        _data = json.load(f)
-        _CRAFTING_KNOWLEDGE = json.dumps(_data, indent=1)
-except Exception:
-    _CRAFTING_KNOWLEDGE = "{}"
+    _KB = KnowledgeBase()
+    _CRAFTING_KNOWLEDGE = _KB.format_for_prompt()
+except Exception as e:
+    logger.warning(f"Could not build planner knowledge summary: {e}")
+    _CRAFTING_KNOWLEDGE = "Key recipes unavailable"
 
 
 class Planner:
@@ -35,14 +34,7 @@ class Planner:
             plan = json.loads(response)
         except json.JSONDecodeError:
             plan = {"status": "error", "subtasks": [], "actions": [], "reasoning": "Failed to parse LLM output"}
-        subtasks = plan.get("subtasks", [])
-        for st in subtasks:
-            self.task_system.create_task(
-                title=st.get("title", "unnamed"),
-                task_type=st.get("type", "general"),
-                success_criteria=st.get("success_criteria", {}),
-                priority=st.get("priority", 3),
-            )
+        self._create_tasks_from_plan(plan)
         return plan
 
     def replan(self, failed_task: Task, world_state: dict, failure_reason: str) -> dict:
@@ -64,7 +56,7 @@ Suggest a new plan. Output JSON: {{"status":"replan","subtasks":[...],"actions":
 
 Available actions: move_to, look_at, dig, place, craft, attack, equip, use_item, chat, wait.
 
-MINECRAFT CRAFTING RECIPES:
+MINECRAFT KNOWLEDGE SUMMARY:
 {_CRAFTING_KNOWLEDGE}
 
 TOOL PROGRESSION: hand -> wooden -> stone -> iron -> diamond
@@ -79,7 +71,19 @@ Output JSON:
   "status": "planning" or "complete" or "blocked",
   "reasoning": "brief strategic explanation",
   "subtasks": [
-    {{"title": "...", "type": "...", "priority": 1-5, "success_criteria": {{...}}}}
+    {{
+      "title": "...",
+      "type": "...",
+      "priority": 1-5,
+      "success_criteria": {{}},
+      "preconditions": {{"inventory": {{"item_name": count}}, "flags": []}},
+      "depends_on": ["earlier subtask title"],
+      "opportunity_triggers": ["nearby block/entity/item that makes this task worth doing now"],
+      "tags": ["resource", "crafting"],
+      "deadline_seconds": optional seconds from now,
+      "assigned_skill": "optional skill name",
+      "rationale": "why this subtask matters"
+    }}
   ],
   "actions": [
     {{"type": "action_name", "parameters": {{...}}}}
@@ -97,3 +101,51 @@ World state:
 {f'Relevant memory: {memory_context}' if memory_context else ''}
 
 Plan the steps to achieve this goal."""
+
+    def _create_tasks_from_plan(self, plan: dict):
+        """Create task records from LLM subtasks, preserving dependencies and scheduling hints."""
+        subtasks = plan.get("subtasks", [])
+        title_to_id = {}
+        pending_dependencies: list[tuple[str, list[str]]] = []
+        for st in subtasks:
+            title = st.get("title", "unnamed")
+            task = self.task_system.create_task(
+                title=title,
+                task_type=st.get("type", "general"),
+                success_criteria=st.get("success_criteria", {}),
+                failure_criteria=st.get("failure_criteria", {}),
+                preconditions=st.get("preconditions", {}),
+                priority=self._safe_priority(st.get("priority", 3)),
+                assigned_skill=st.get("assigned_skill"),
+                tags=st.get("tags", []),
+                opportunity_triggers=st.get("opportunity_triggers", []),
+                deadline=self._deadline_from_seconds(st.get("deadline_seconds")),
+                rationale=st.get("rationale", ""),
+            )
+            title_to_id[title.lower()] = task.id
+            dependencies = st.get("depends_on", [])
+            if dependencies:
+                pending_dependencies.append((task.id, dependencies))
+        for task_id, dependencies in pending_dependencies:
+            task = self.task_system.tasks.get(task_id)
+            if not task:
+                continue
+            task.depends_on = [
+                title_to_id[dep.lower()]
+                for dep in dependencies
+                if isinstance(dep, str) and dep.lower() in title_to_id
+            ]
+
+    def _safe_priority(self, value) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return 3
+
+    def _deadline_from_seconds(self, seconds) -> float | None:
+        if seconds is None:
+            return None
+        try:
+            return time.time() + float(seconds)
+        except (TypeError, ValueError):
+            return None

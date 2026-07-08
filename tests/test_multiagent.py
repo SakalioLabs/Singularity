@@ -56,6 +56,15 @@ class TestSharedState(unittest.TestCase):
         tasks2 = self.state.get_agent_tasks("w1")
         self.assertEqual(tasks2[0]["status"], "completed")
 
+    def test_start_task(self):
+        self.state.register_agent("w1", AgentRole.WORKER)
+        self.state.assign_task("w1", {"title": "Test"})
+        tasks = self.state.get_agent_tasks("w1")
+        ok = self.state.start_task(tasks[0]["task_id"])
+        tasks2 = self.state.get_agent_tasks("w1")
+        self.assertTrue(ok)
+        self.assertEqual(tasks2[0]["status"], "in_progress")
+
     def test_fail_task(self):
         self.state.register_agent("w1", AgentRole.WORKER)
         self.state.assign_task("w1", {"title": "Test"})

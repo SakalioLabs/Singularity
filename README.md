@@ -10,7 +10,7 @@
 [![M5: Explore](https://img.shields.io/badge/M5-Integration-yellow)]()
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.20.4-green)]()
 [![Python](https://img.shields.io/badge/Python-3.12-blue)]()
-[![Tests](https://img.shields.io/badge/Tests-89/89-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-core%20passing-brightgreen)]()
 
 ## Architecture
 
@@ -95,10 +95,28 @@ python -m singularity.main run --goal "Gather 3 oak logs"
 python -m singularity.main autonomous --max-goals 10
 
 # Run benchmarks
-python -m singularity.main benchmark --suite m1
+python -m singularity.main preflight --skip-network
+python -m singularity.main preflight
+python -m singularity.main benchmark --suite m1 --preflight
+python -m singularity.main benchmark --suite m1 --ingest
+python -m singularity.main benchmark --suite m1 --ingest --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
+python -m singularity.main visual-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/visual_trace_report.json
+python -m singularity.main review-label-template --session-log logs/session_xxx.jsonl --mode both --output workspace/reviews/session_xxx_labels.jsonl
+python -m singularity.main promotion-review-ablation --session-log logs/session_xxx.jsonl --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
+python -m singularity.main goal-verification-ablation --session-log logs/session_xxx.jsonl --goal-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
+
+# Multi-bot collaboration uses one bridge port per role
+node src/bot/bot_server.js --username Singularity_resource_runner --bridge-port 3000
+node src/bot/bot_server.js --username Singularity_leader_builder --bridge-port 3001
+node src/bot/bot_server.js --username Singularity_single_agent --bridge-port 3002
+python -m singularity.main collab-benchmark --preflight --executor agent --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --role-bridge-port single_agent=3002 --single-agent-baseline
+python -m singularity.main collab-benchmark --execute --executor agent --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --role-bridge-port single_agent=3002 --single-agent-baseline --output logs/benchmarks/bm701_collab_report.json
 
 # List available skills
 python -m singularity.main skills
+
+# Review extracted skill candidates
+python -m singularity.main skill-candidates
 
 # With LLM
 python -m singularity.main run --goal "Craft a wooden pickaxe" \
@@ -132,14 +150,19 @@ Priority levels:
 ## Test Suite
 
 ```bash
-# Run all tests (89 tests, no MC server needed)
-python -m pytest tests/ -v
-
-# Run comprehensive module tests
-python -m pytest tests/test_comprehensive.py -v
+# Core script tests (no MC server needed)
+python tests/test_comprehensive.py
+python tests/test_m2_comprehensive.py
+python tests/test_action_controller.py
+python tests/test_runtime_supervisor.py
+python tests/test_bot_bridge.py
+python tests/test_collaboration_benchmark.py
+python tests/test_collaboration_executor.py
+python tests/test_memory_task_system.py
+python tests/test_benchmark_preflight.py
 ```
 
-Coverage: Config (2), GoalGenerator (8), Explorer (13), MemorySystem (8), SkillLibrary (10), TaskSystem (9), RulePlanner (15), KnowledgeBase (6), SessionLogger (8), Integration (3), M2 integration (1)
+Coverage includes config, goal generation, exploration, interruptible runtime supervision, action safety helpers, memory and experience records, skill extraction/review, task scheduling, rule planning, knowledge loading, session logging, benchmark preflight, bridge health, collaboration benchmark feasibility/execution, Agent-backed collaboration task adapters, and benchmark trace ingestion.
 
 ## Project Structure
 
@@ -207,4 +230,4 @@ Singularity/
 ## Contact
 
 - **Repository**: [SakalioLabs/Singularity](https://github.com/SakalioLabs/Singularity)
-- **Email**: sakalioling@rankchord.com
+- **Issues**: [GitHub Issues](https://github.com/SakalioLabs/Singularity/issues)

@@ -54,6 +54,7 @@ class SharedState:
         if "agents" not in state:
             state["agents"] = {}
         state["agents"][agent_id] = {
+            "id": agent_id,
             "role": role.value,
             "last_seen": time.time(),
             "status": "idle",
@@ -64,6 +65,18 @@ class SharedState:
         }
         self._write_state(state)
         return state["agents"][agent_id]
+
+    def update_shared(self, updates: dict) -> dict:
+        """Update benchmark/shared coordination keys."""
+        state = self._read_state()
+        if "shared" not in state:
+            state["shared"] = {}
+        state["shared"].update(updates)
+        self._write_state(state)
+        return state["shared"]
+
+    def get_shared(self) -> dict:
+        return self._read_state().get("shared", {})
 
     def update_agent_state(self, agent_id: str, **kwargs) -> dict:
         state = self._read_state()
@@ -103,6 +116,17 @@ class SharedState:
         task["status"] = "assigned"
         task["created_at"] = time.time()
         state["tasks"][task_id] = task
+        self._write_state(state)
+        return True
+
+    def start_task(self, task_id: str) -> bool:
+        state = self._read_state()
+        if task_id not in state.get("tasks", {}):
+            return False
+        if state["tasks"][task_id].get("status") != "assigned":
+            return False
+        state["tasks"][task_id]["status"] = "in_progress"
+        state["tasks"][task_id]["started_at"] = time.time()
         self._write_state(state)
         return True
 

@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import unittest
 from singularity.vision.analyzer import VisionAnalyzer
+from singularity.vision.action_advisor import VisualActionAdvisor
 from singularity.vision.visual_memory import VisualMemory
 
 
@@ -49,7 +50,7 @@ class TestVisionAnalyzer(unittest.TestCase):
 
     def test_analyzer_returns_structured_result(self):
         result = self.analyzer.analyze(self.sample_obs)
-        for key in ("position", "health", "resources", "dangers", "nearby_entities", "visual_analysis"):
+        for key in ("position", "health", "resources", "grounded_resources", "dangers", "nearby_entities", "visual_analysis"):
             self.assertIn(key, result)
 
     def test_analyzer_no_dangers_when_safe(self):
@@ -78,6 +79,60 @@ class TestVisionAnalyzer(unittest.TestCase):
     def test_is_available_false_without_key(self):
         a = VisionAnalyzer()
         self.assertFalse(a.is_available())
+
+    def test_analyzer_adds_grounded_resource_fields(self):
+        obs = {
+            "inventory": {"stone_pickaxe": 1},
+            "nearby_blocks": [{"name": "iron_ore", "distance": 8}],
+            "trees_found": [],
+        }
+        result = self.analyzer.analyze(obs)
+        iron = result["resources"][0]
+        self.assertEqual(iron["drop"], "raw_iron")
+        self.assertEqual(iron["required_tool_tier"], 2)
+        self.assertEqual(iron["recommended_tool"], "stone_pickaxe")
+        self.assertEqual(iron["best_available_tool"], "stone_pickaxe")
+        self.assertTrue(iron["can_harvest"])
+        self.assertIn("iron_ore", iron["source_blocks"])
+
+    def test_analyzer_marks_unharvestable_resource_without_tool(self):
+        obs = {
+            "inventory": {},
+            "nearby_blocks": [{"name": "coal_ore", "distance": 4}],
+            "trees_found": [],
+        }
+        result = self.analyzer.analyze(obs)
+        coal = result["resources"][0]
+        self.assertEqual(coal["drop"], "coal")
+        self.assertEqual(coal["required_tool_tier"], 1)
+        self.assertEqual(coal["recommended_tool"], "wooden_pickaxe")
+        self.assertIsNone(coal["best_available_tool"])
+        self.assertFalse(coal["can_harvest"])
+
+    def test_analyzer_keeps_hand_collectable_logs_available(self):
+        obs = {
+            "inventory": {},
+            "nearby_blocks": [{"name": "oak_log", "distance": 5}],
+            "trees_found": [],
+        }
+        result = self.analyzer.analyze(obs)
+        log = result["resources"][0]
+        self.assertEqual(log["drop"], "oak_log")
+        self.assertEqual(log["best_available_tool"], "hand")
+        self.assertTrue(log["can_harvest"])
+        self.assertIn("oak_planks", log["crafts_into"])
+
+    def test_analyzer_prioritizes_harvestable_resources(self):
+        obs = {
+            "inventory": {},
+            "nearby_blocks": [
+                {"name": "diamond_ore", "distance": 1},
+                {"name": "oak_log", "distance": 7},
+            ],
+            "trees_found": [],
+        }
+        result = self.analyzer.analyze(obs)
+        self.assertEqual(result["grounded_resources"][0]["name"], "oak_log")
 
 
 class TestVisualMemory(unittest.TestCase):
@@ -126,6 +181,89 @@ class TestVisualMemory(unittest.TestCase):
     def test_search_empty(self):
         results = self.mem.search(query="nonexistent")
         self.assertEqual(len(results), 0)
+
+
+class TestVisualActionAdvisor(unittest.TestCase):
+    def test_advisor_harvests_visible_goal_resource_with_coordinates(self):
+        advisor = VisualActionAdvisor()
+        suggestions = advisor.suggest("gather oak logs", {
+            "grounded_resources": [{
+                "name": "oak_log",
+                "can_harvest": True,
+                "best_available_tool": "hand",
+                "position": {"x": 5, "y": 66, "z": 7},
+            }],
+        })
+
+        harvest = next(item for item in suggestions if item["kind"] == "resource_harvest")
+        self.assertEqual(harvest["action"]["type"], "dig")
+        self.assertEqual(harvest["action"]["parameters"], {"x": 5, "y": 66, "z": 7})
+
+    def test_advisor_does_not_mine_unrelated_visible_resource(self):
+        advisor = VisualActionAdvisor()
+        suggestions = advisor.suggest("mine iron ore", {
+            "grounded_resources": [{
+                "name": "oak_log",
+                "can_harvest": True,
+                "best_available_tool": "hand",
+                "position": {"x": 5, "y": 66, "z": 7},
+            }],
+        })
+
+        self.assertFalse(any(item["kind"] == "resource_harvest" for item in suggestions))
+
+    def test_advisor_moves_toward_far_visible_resource_before_harvest(self):
+        advisor = VisualActionAdvisor(harvest_reach=4, stand_distance=2)
+        suggestions = advisor.suggest("mine iron ore", {
+            "position": {"x": 0, "y": 64, "z": 0},
+            "grounded_resources": [{
+                "name": "iron_ore",
+                "can_harvest": True,
+                "best_available_tool": "stone_pickaxe",
+                "required_tool_tier": 2,
+                "position": {"x": 10, "y": 64, "z": 0},
+            }],
+        })
+
+        self.assertEqual(suggestions[0]["kind"], "resource_approach")
+        self.assertEqual(suggestions[0]["action"]["type"], "move_to")
+        self.assertEqual(suggestions[0]["action"]["parameters"], {"x": 8.0, "z": 0.0, "y": 64})
+        self.assertTrue(any(item["kind"] == "resource_harvest" for item in suggestions))
+
+    def test_advisor_focuses_visible_resource_before_harvest(self):
+        advisor = VisualActionAdvisor()
+        suggestions = advisor.suggest("mine iron ore", {
+            "position": {"x": 2, "y": 64, "z": 0},
+            "grounded_resources": [{
+                "name": "iron_ore",
+                "can_harvest": True,
+                "best_available_tool": "stone_pickaxe",
+                "required_tool_tier": 2,
+                "position": {"x": 3, "y": 64, "z": 0},
+            }],
+        })
+
+        focus = next(item for item in suggestions if item["kind"] == "resource_focus")
+        self.assertEqual(focus["action"]["type"], "look_at")
+        self.assertEqual(focus["action"]["parameters"], {"x": 3, "y": 64, "z": 0})
+
+    def test_advisor_retreats_from_nearby_hostile_entity(self):
+        advisor = VisualActionAdvisor(retreat_distance=8)
+        suggestions = advisor.suggest("mine iron", {
+            "position": {"x": 0, "y": 64, "z": 0},
+            "nearby_entities": [{
+                "type": "zombie",
+                "hostile": True,
+                "distance": 3,
+                "position": {"x": 4, "y": 64, "z": 0},
+            }],
+        })
+
+        retreat = suggestions[0]
+        self.assertEqual(retreat["kind"], "danger_retreat")
+        self.assertEqual(retreat["action"]["type"], "move_to")
+        self.assertLess(retreat["action"]["parameters"]["x"], 0)
+        self.assertEqual(retreat["action"]["parameters"]["z"], 0)
 
 
 class TestVisionIntegration(unittest.TestCase):

@@ -5,11 +5,14 @@
  * Handles commands from the agent and returns bot state.
  * 
  * Usage: node bot_server.js [--host localhost] [--port 25565] [--bridge-port 3000]
+ * Optional screenshots: --screenshot-plugin ./path/to/plugin.js
  */
 
 const { Vec3 } = require('vec3');
 const mineflayer = require('mineflayer');
 const net = require('net');
+const fs = require('fs');
+const path = require('path');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 
 // Parse CLI args
@@ -23,11 +26,266 @@ const MC_HOST = getArg('host', 'localhost');
 const MC_PORT = parseInt(getArg('port', '25565'));
 const MC_USERNAME = getArg('username', 'Singularity');
 const MC_VERSION = getArg('version', '1.20.4');
+const BRIDGE_HOST = getArg('bridge-host', '127.0.0.1');
 const BRIDGE_PORT = parseInt(getArg('bridge-port', '3000'));
+const SCREENSHOT_PLUGIN = getArg('screenshot-plugin', '');
+const SCREENSHOT_OPTIONS = {
+    width: parseInt(getArg('screenshot-width', '512')),
+    height: parseInt(getArg('screenshot-height', '512')),
+    viewDistance: parseInt(getArg('screenshot-view-distance', '4')),
+    renderDelayMs: parseInt(getArg('screenshot-render-delay-ms', '500')),
+};
 
 let bot = null;
+let botReady = false;
+let lastBotError = "";
+let screenshotPluginCapture = null;
+let screenshotPluginStatus = {
+    configured: Boolean(SCREENSHOT_PLUGIN),
+    loaded: false,
+    supported: false,
+    source: SCREENSHOT_PLUGIN,
+    options: SCREENSHOT_OPTIONS,
+    error: '',
+};
+
+function resolveScreenshotPluginSpec(pluginSpec) {
+    const spec = String(pluginSpec || '').trim();
+    if (!spec) return '';
+    const looksLikePath =
+        path.isAbsolute(spec) ||
+        spec.startsWith('.') ||
+        spec.includes('/') ||
+        spec.includes('\\');
+    return looksLikePath ? path.resolve(process.cwd(), spec) : spec;
+}
+
+function publicScreenshotPluginStatus(status) {
+    const { capture, ...publicStatus } = status || {};
+    return publicStatus;
+}
+
+function attachScreenshotPlugin(botInstance, pluginSpec, options = {}) {
+    const source = String(pluginSpec || '').trim();
+    const status = {
+        configured: Boolean(source),
+        loaded: false,
+        supported: false,
+        source,
+        resolved: '',
+        options,
+        error: '',
+        capture: null,
+    };
+    if (!source) return status;
+
+    try {
+        const resolved = resolveScreenshotPluginSpec(source);
+        status.resolved = resolved;
+        const moduleValue = require(resolved);
+        const plugin = moduleValue && moduleValue.default ? moduleValue.default : moduleValue;
+        const context = {
+            bot: botInstance,
+            fs,
+            path,
+            options,
+            minecraft: {
+                host: MC_HOST,
+                port: MC_PORT,
+                username: MC_USERNAME,
+                version: MC_VERSION,
+            },
+            bridge: {
+                port: BRIDGE_PORT,
+            },
+        };
+
+        let attached = null;
+        if (typeof plugin === 'function') {
+            attached = plugin(botInstance, context);
+        } else if (plugin && typeof plugin.attachScreenshotPlugin === 'function') {
+            attached = plugin.attachScreenshotPlugin(botInstance, context);
+        } else if (plugin && typeof plugin.attach === 'function') {
+            attached = plugin.attach(botInstance, context);
+        } else if (plugin && typeof plugin.install === 'function') {
+            attached = plugin.install(botInstance, context);
+        }
+
+        let capture = null;
+        if (typeof attached === 'function') {
+            capture = attached;
+        } else if (attached && typeof attached.captureScreenshot === 'function') {
+            capture = attached.captureScreenshot.bind(attached);
+        } else if (plugin && typeof plugin.captureScreenshot === 'function') {
+            capture = plugin.captureScreenshot.bind(plugin);
+        } else if (botInstance && typeof botInstance.captureScreenshot === 'function') {
+            capture = botInstance.captureScreenshot.bind(botInstance);
+        }
+
+        if (capture && botInstance && typeof botInstance.captureScreenshot !== 'function') {
+            botInstance.captureScreenshot = capture;
+        }
+
+        status.loaded = true;
+        status.supported = Boolean(capture);
+        status.capture = capture;
+        if (!capture) {
+            status.error = 'plugin loaded but did not expose a screenshot capture function';
+        }
+    } catch (e) {
+        status.error = e.message;
+    }
+    return status;
+}
+
+function imageBytesFromCaptureResult(result) {
+    if (Buffer.isBuffer(result)) return result;
+    if (!result || typeof result !== 'object') return null;
+    for (const key of ['buffer', 'bytes', 'image']) {
+        if (Buffer.isBuffer(result[key])) return result[key];
+    }
+    for (const key of ['base64', 'image_base64']) {
+        if (typeof result[key] === 'string' && result[key]) {
+            return Buffer.from(result[key], 'base64');
+        }
+    }
+    return null;
+}
+
+function screenshotPathFromCaptureResult(result, requestedPath) {
+    if (typeof result === 'string' && result) return result;
+    if (result && typeof result === 'object') {
+        for (const key of ['screenshot_path', 'path', 'file', 'filename']) {
+            if (typeof result[key] === 'string' && result[key]) return result[key];
+        }
+    }
+    return requestedPath || '';
+}
+
+function fileStatusForScreenshot(screenshotPath) {
+    if (!screenshotPath) return { file_exists: false, file_size: 0 };
+    const resolved = path.resolve(screenshotPath);
+    try {
+        const stat = fs.statSync(resolved);
+        return {
+            file_exists: stat.isFile(),
+            file_size: stat.isFile() ? stat.size : 0,
+        };
+    } catch (e) {
+        return { file_exists: false, file_size: 0 };
+    }
+}
+
+function findScreenshotCapture(activeBot) {
+    if (typeof screenshotPluginCapture === 'function') return screenshotPluginCapture;
+    if (activeBot && typeof activeBot.captureScreenshot === 'function') {
+        return activeBot.captureScreenshot.bind(activeBot);
+    }
+    if (activeBot?.viewer && typeof activeBot.viewer.captureScreenshot === 'function') {
+        return activeBot.viewer.captureScreenshot.bind(activeBot.viewer);
+    }
+    if (activeBot?.viewer && typeof activeBot.viewer.screenshot === 'function') {
+        return activeBot.viewer.screenshot.bind(activeBot.viewer);
+    }
+    return null;
+}
+
+function createCaptureScreenshotHandler(getState = () => ({ bot, botReady })) {
+    return async (params = {}) => {
+        const requestedPath = params.path || '';
+        const state = getState() || {};
+        const activeBot = state.bot;
+        const ready = Boolean(state.botReady && activeBot?.entity);
+        try {
+            if (!activeBot || !ready) {
+                return {
+                    success: false,
+                    supported: false,
+                    error: 'bot is not ready for screenshot capture',
+                    requested_path: requestedPath,
+                    screenshot_plugin: publicScreenshotPluginStatus(screenshotPluginStatus),
+                };
+            }
+
+            const captureFn = findScreenshotCapture(activeBot);
+            if (!captureFn) {
+                return {
+                    success: false,
+                    supported: false,
+                    error: 'Screenshot capture requires a renderer plugin that exposes captureScreenshot or screenshot',
+                    requested_path: requestedPath,
+                    screenshot_plugin: publicScreenshotPluginStatus(screenshotPluginStatus),
+                };
+            }
+
+            const result = await captureFn(requestedPath, { path: requestedPath, bot: activeBot });
+            if (result && typeof result === 'object' && result.success === false) {
+                return {
+                    success: false,
+                    supported: true,
+                    error: result.error || 'renderer reported screenshot capture failure',
+                    requested_path: requestedPath,
+                    screenshot_plugin: publicScreenshotPluginStatus(screenshotPluginStatus),
+                };
+            }
+
+            const bytes = imageBytesFromCaptureResult(result);
+            const screenshotPath = screenshotPathFromCaptureResult(result, requestedPath);
+            if (bytes) {
+                if (!screenshotPath) {
+                    return {
+                        success: false,
+                        supported: true,
+                        error: 'renderer returned image bytes but no output path was requested',
+                        screenshot_plugin: publicScreenshotPluginStatus(screenshotPluginStatus),
+                    };
+                }
+                fs.mkdirSync(path.dirname(path.resolve(screenshotPath)), { recursive: true });
+                fs.writeFileSync(screenshotPath, bytes);
+            }
+
+            if (!screenshotPath) {
+                return {
+                    success: false,
+                    supported: true,
+                    error: 'renderer did not return a screenshot path',
+                    screenshot_plugin: publicScreenshotPluginStatus(screenshotPluginStatus),
+                };
+            }
+
+            return {
+                success: true,
+                supported: true,
+                source: result?.source || screenshotPluginStatus.source || 'bridge_renderer',
+                screenshot_path: screenshotPath,
+                requested_path: requestedPath,
+                screenshot_plugin: publicScreenshotPluginStatus(screenshotPluginStatus),
+                ...fileStatusForScreenshot(screenshotPath),
+            };
+        } catch (e) {
+            return {
+                success: false,
+                supported: true,
+                error: e.message,
+                requested_path: requestedPath,
+                screenshot_plugin: publicScreenshotPluginStatus(screenshotPluginStatus),
+            };
+        }
+    };
+}
+
+function installConfiguredScreenshotPlugin(botInstance) {
+    screenshotPluginStatus = attachScreenshotPlugin(botInstance, SCREENSHOT_PLUGIN, SCREENSHOT_OPTIONS);
+    screenshotPluginCapture = screenshotPluginStatus.capture || null;
+    if (SCREENSHOT_PLUGIN && !screenshotPluginStatus.supported) {
+        console.warn(`[Screenshot] Plugin not ready: ${screenshotPluginStatus.error}`);
+    } else if (SCREENSHOT_PLUGIN) {
+        console.log(`[Screenshot] Plugin loaded from ${screenshotPluginStatus.resolved || SCREENSHOT_PLUGIN}`);
+    }
+}
 
 function connectBot() {
+    botReady = false;
     bot = mineflayer.createBot({
         host: MC_HOST,
         port: MC_PORT,
@@ -36,8 +294,11 @@ function connectBot() {
     });
 
     bot.loadPlugin(pathfinder);
+    installConfiguredScreenshotPlugin(bot);
 
     bot.on('spawn', () => {
+        botReady = true;
+        lastBotError = "";
         console.log(`[Bot] Spawned in world at ${bot.entity.position}`);
         const mcData = require('minecraft-data')(bot.version);
         const defaultMove = new Movements(bot, mcData);
@@ -47,9 +308,13 @@ function connectBot() {
         bot.pathfinder.setMovements(defaultMove);
     });
 
-    bot.on('error', (err) => console.error('[Bot] Error:', err.message));
+    bot.on('error', (err) => {
+        lastBotError = err.message;
+        console.error('[Bot] Error:', err.message);
+    });
     bot.on('kicked', (reason) => console.warn('[Bot] Kicked:', reason));
     bot.on('end', () => {
+        botReady = false;
         console.log('[Bot] Disconnected - reconnecting in 5s');
         setTimeout(connectBot, 5000);
     });
@@ -57,6 +322,23 @@ function connectBot() {
 
 // Command handlers
 const handlers = {
+    health: () => ({
+        success: true,
+        bridge: true,
+        bot_created: Boolean(bot),
+        bot_ready: botReady && Boolean(bot?.entity),
+        mc_host: MC_HOST,
+        mc_port: MC_PORT,
+        bridge_host: BRIDGE_HOST,
+        bridge_port: BRIDGE_PORT,
+        username: MC_USERNAME,
+        version: bot?.version || MC_VERSION,
+        position: botReady && bot?.entity ? bot.entity.position : null,
+        last_error: lastBotError,
+        screenshot_capture_supported: Boolean(findScreenshotCapture(bot)),
+        screenshot_plugin: publicScreenshotPluginStatus(screenshotPluginStatus),
+    }),
+
     get_player_state: () => ({
         position: bot.entity.position,
         health: bot.health,
@@ -140,6 +422,8 @@ const handlers = {
         const block = bot.blockAt(bot.entity.position.offset(0, 1, 0));
         return { light_level: block ? block.light : 0 };
     },
+
+    capture_screenshot: createCaptureScreenshotHandler(),
 
     get_nearby_trees: (params) => {
         const radius = Math.min(params.radius || 16, 16);
@@ -281,45 +565,60 @@ const handlers = {
     },
 };
 
-// TCP Bridge Server
-const server = net.createServer((socket) => {
-    console.log(`[Bridge] Python client connected`);
-    let buffer = '';
+function createBridgeServer() {
+    return net.createServer((socket) => {
+        console.log(`[Bridge] Python client connected`);
+        let buffer = '';
 
-    socket.on('data', async (data) => {
-        buffer += data.toString();
-        const lines = buffer.split('\n');
-        buffer = lines.pop(); // Keep incomplete line in buffer
+        socket.on('data', async (data) => {
+            buffer += data.toString();
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // Keep incomplete line in buffer
 
-        for (const line of lines) {
-            if (!line.trim()) continue;
-            try {
-                const msg = JSON.parse(line);
-                const handler = handlers[msg.command];
-                if (!handler) {
-                    socket.write(JSON.stringify({ success: false, error: `Unknown command: ${msg.command}` }) + '\n');
-                    continue;
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                try {
+                    const msg = JSON.parse(line);
+                    const handler = handlers[msg.command];
+                    if (!handler) {
+                        socket.write(JSON.stringify({ success: false, error: `Unknown command: ${msg.command}` }) + '\n');
+                        continue;
+                    }
+                    const result = await handler(msg.params || {});
+                    socket.write(JSON.stringify(result) + '\n');
+                } catch (e) {
+                    socket.write(JSON.stringify({ success: false, error: e.message }) + '\n');
                 }
-                const result = await handler(msg.params || {});
-                socket.write(JSON.stringify(result) + '\n');
-            } catch (e) {
-                socket.write(JSON.stringify({ success: false, error: e.message }) + '\n');
             }
-        }
+        });
+
+        socket.on('close', () => console.log('[Bridge] Client disconnected'));
+        socket.on('error', (err) => console.error('[Bridge] Socket error:', err.message));
     });
+}
 
-    socket.on('close', () => console.log('[Bridge] Client disconnected'));
-    socket.on('error', (err) => console.error('[Bridge] Socket error:', err.message));
-});
+function startBridge() {
+    connectBot();
+    const server = createBridgeServer();
+    server.listen(BRIDGE_PORT, BRIDGE_HOST, () => {
+        console.log(`[Bridge] Listening on ${BRIDGE_HOST}:${BRIDGE_PORT}`);
+        console.log(`[Bridge] Connecting to MC server ${MC_HOST}:${MC_PORT} as ${MC_USERNAME}`);
+    });
+    return server;
+}
 
-// Start
-connectBot();
-server.listen(BRIDGE_PORT, '127.0.0.1', () => {
-    console.log(`[Bridge] Listening on 127.0.0.1:${BRIDGE_PORT}`);
-    console.log(`[Bridge] Connecting to MC server ${MC_HOST}:${MC_PORT} as ${MC_USERNAME}`);
-});
+if (require.main === module) {
+    startBridge();
+}
 
-
-
-
-
+module.exports = {
+    attachScreenshotPlugin,
+    createBridgeServer,
+    createCaptureScreenshotHandler,
+    fileStatusForScreenshot,
+    imageBytesFromCaptureResult,
+    publicScreenshotPluginStatus,
+    resolveScreenshotPluginSpec,
+    screenshotPathFromCaptureResult,
+    startBridge,
+};

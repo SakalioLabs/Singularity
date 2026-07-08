@@ -4,7 +4,6 @@ Tests planner, task system, retry logic, and error handling."""
 import sys, os, json, time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-import pytest
 import unittest
 from singularity.core.config import LLMConfig
 from singularity.core.planner import Planner
@@ -362,6 +361,5 @@ class TestPlannerIntegration(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
-
 
 

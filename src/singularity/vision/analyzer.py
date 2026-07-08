@@ -4,16 +4,25 @@ import base64
 import logging
 from typing import Optional
 
+from singularity.data.knowledge_base import KnowledgeBase
+
 logger = logging.getLogger("singularity.vision")
 
 
 class VisionAnalyzer:
     """Analyzes game observations and optionally screenshots using a VLM."""
 
-    def __init__(self, api_key: str = "", provider: str = "openai", model: str = ""):
+    def __init__(
+        self,
+        api_key: str = "",
+        provider: str = "openai",
+        model: str = "",
+        knowledge_base: Optional[KnowledgeBase] = None,
+    ):
         self.api_key = api_key
         self.provider = provider
         self.model = model or ("gpt-4o-mini" if provider == "openai" else "claude-3-haiku-20240307")
+        self.knowledge_base = knowledge_base or KnowledgeBase()
         self._client = None
         self._available = False
         self._init_from_env()
@@ -45,10 +54,13 @@ class VisionAnalyzer:
         blocks = observations.get("nearby_blocks", [])
         entities = observations.get("nearby_entities", [])
         trees = observations.get("trees_found", [])
+        inventory = self._normalize_inventory(observations.get("inventory", {}))
+        resources = self._ground_resources(self._find_resources(blocks, trees), inventory)
         result = {
             "position": observations.get("position", {}),
             "health": observations.get("health", 20),
-            "resources": self._find_resources(blocks, trees),
+            "resources": resources,
+            "grounded_resources": self._prioritize_resources(resources),
             "dangers": self._detect_dangers(entities),
             "nearby_entities": entities[:5],
             "visual_analysis": "",
@@ -68,13 +80,52 @@ class VisionAnalyzer:
             if "ore" in n or "log" in n:
                 if n not in seen:
                     seen.add(n)
-                    resources.append({"type": "block", "name": n, "dist": b.get("distance")})
+                    resource = {"type": "block", "name": n, "dist": b.get("distance")}
+                    if "position" in b:
+                        resource["position"] = b["position"]
+                    resources.append(resource)
         for t in trees:
             n = t.get("name", "")
             if n not in seen:
                 seen.add(n)
-                resources.append({"type": "tree", "name": n, "dist": t.get("distance")})
+                resource = {"type": "tree", "name": n, "dist": t.get("distance")}
+                if "position" in t:
+                    resource["position"] = t["position"]
+                resources.append(resource)
         return resources
+
+    def _ground_resources(self, resources: list, inventory: dict) -> list:
+        grounded = []
+        for resource in resources:
+            name = resource.get("name", "")
+            facts = self.knowledge_base.describe_observed_resource(name, inventory)
+            grounded.append({**resource, **facts})
+        return grounded
+
+    def _prioritize_resources(self, resources: list) -> list:
+        return sorted(resources, key=self._resource_priority)
+
+    def _resource_priority(self, resource: dict) -> tuple:
+        distance = resource.get("dist")
+        if distance is None:
+            distance = float("inf")
+        return (
+            0 if resource.get("can_harvest") else 1,
+            distance,
+            resource.get("required_tool_tier", 0),
+            resource.get("name", ""),
+        )
+
+    def _normalize_inventory(self, inventory) -> dict:
+        if isinstance(inventory, dict):
+            return inventory
+        summary = {}
+        if isinstance(inventory, list):
+            for item in inventory:
+                if isinstance(item, dict):
+                    name = item.get("name", "unknown")
+                    summary[name] = summary.get(name, 0) + item.get("count", 1)
+        return summary
 
     def _detect_dangers(self, entities: list) -> list:
         hostile = {"zombie", "skeleton", "creeper", "spider", "enderman", "witch", "phantom"}

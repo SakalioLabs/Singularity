@@ -1,5 +1,5 @@
 ﻿"""M2 Integration Test - tests LLM planning pipeline.
-Requires OPENAI_API_KEY env var and bot bridge running on port 3000.
+Requires OPENAI_API_KEY env var and bot bridge running on the configured port (default 3000).
 Usage: python tests/test_m2_integration.py"""
 import json, socket, sys, os
 sys.path.insert(0, "src")

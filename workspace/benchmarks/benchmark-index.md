@@ -1,5 +1,5 @@
 ﻿# Benchmark Index
-> Last updated: 2026-07-07
+> Last updated: 2026-07-08
 
 ## M1 Benchmarks (5 tasks)
 
@@ -30,5 +30,14 @@
 | BM-013 | Smelt iron ingot | iron_ingot in inventory | 300s | M3 |
 | BM-014 | Craft iron pickaxe | iron_pickaxe in inventory | 300s | M3 |
 
+## M7 Collaboration Benchmarks
+
+| ID | Task | Success Criteria | Max Time | Phase |
+|----|------|-----------------|----------|-------|
+| BM-701 | Time-sensitive shared shelter | wood delivered, shelter frame done, torch ready before hostile nightfall | 420s | M7 |
+
 ## Benchmark Format
-Each benchmark records: seed, MC version, bot version, model, task description, success criteria, max time, max tokens, human intervention allowed, result, log, failure reason.
+Each benchmark records: seed, MC version, bot version, model, task description, success criteria, max time, max tokens, human intervention allowed, result, log, failure reason, and reviewed policy-skill intervention metrics.
+
+## M7 Collaboration Format
+M7 benchmark specs are JSON documents with roles, tasks, deadlines, dynamic events, shared state, success criteria, and static feasibility checks. See `m7_time_sensitive_shelter.json`.

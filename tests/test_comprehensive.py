@@ -32,6 +32,8 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.bot.host, "localhost")
         self.assertEqual(config.bot.port, 25565)
         self.assertEqual(config.bot.username, "Singularity")
+        self.assertEqual(config.bot.bridge_host, "127.0.0.1")
+        self.assertEqual(config.bot.bridge_port, 3000)
         self.assertEqual(config.llm.provider, "openai")
         self.assertEqual(config.llm.model, "gpt-4o-mini")
         self.assertEqual(config.health_critical_threshold, 4.0)
@@ -39,10 +41,11 @@ class TestConfig(unittest.TestCase):
 
     def test_custom_config(self):
         config = Config(
-            bot=BotConfig(host="192.168.1.10", port=25566, username="TestBot"),
+            bot=BotConfig(host="192.168.1.10", port=25566, username="TestBot", bridge_port=3005),
             llm=LLMConfig(provider="anthropic", model="claude-3", api_key="test-key"),
         )
         self.assertEqual(config.bot.host, "192.168.1.10")
+        self.assertEqual(config.bot.bridge_port, 3005)
         self.assertEqual(config.llm.provider, "anthropic")
 
 
@@ -508,10 +511,47 @@ class TestSessionLogger(unittest.TestCase):
     def test_summary(self):
         self.logger.log_observation({"test": 1})
         self.logger.log_action({"type": "dig"}, {"success": True})
+        self.logger.log("policy_hint", {"phase": "hint", "hints": ["correct_craft_torch: if craft:torch fails, try dig:coal_ore"]})
+        self.logger.log("policy_intervention", {"phase": "selected", "skill": "correct_craft_torch"})
+        self.logger.log("policy_intervention", {"phase": "action", "skill": "correct_craft_torch"})
+        self.logger.log("policy_intervention", {"phase": "completed", "skill": "correct_craft_torch"})
         self.logger.log_error("error")
         summary = self.logger.get_summary()
         self.assertEqual(summary["action_count"], 1)
         self.assertEqual(summary["error_count"], 1)
+        metrics = summary["intervention_metrics"]
+        self.assertEqual(metrics["policy_hint_count"], 1)
+        self.assertEqual(metrics["policy_intervention_count"], 1)
+        self.assertEqual(metrics["policy_intervention_actions"], 1)
+        self.assertEqual(metrics["policy_intervention_successes"], 1)
+        self.assertEqual(metrics["policy_intervention_success_rate"], 1.0)
+
+    def test_visual_action_summary_metrics(self):
+        self.logger.log("visual_action_suggestion", {
+            "goal": "mine iron ore",
+            "suggestions": [
+                {"kind": "resource_approach", "action": {"type": "move_to", "parameters": {"x": 8, "y": 64, "z": 0}}},
+                {"kind": "resource_harvest", "action": {"type": "dig", "parameters": {"x": 10, "y": 64, "z": 0}}},
+            ],
+        })
+        self.logger.log("visual_action_intervention", {
+            "goal": "mine iron ore",
+            "phase": "prepend_approach",
+            "suggestion": {"kind": "resource_approach", "action": {"type": "move_to", "parameters": {"x": 8, "y": 64, "z": 0}}},
+        })
+
+        summary = self.logger.get_summary()
+        visual = summary["visual_action_metrics"]
+        metrics = summary["intervention_metrics"]
+
+        self.assertEqual(visual["visual_action_suggestion_event_count"], 1)
+        self.assertEqual(visual["visual_action_suggestion_count"], 2)
+        self.assertEqual(visual["visual_action_intervention_count"], 1)
+        self.assertEqual(visual["visual_action_intervention_phases"]["prepend_approach"], 1)
+        self.assertEqual(visual["visual_action_suggestion_kinds"]["resource_harvest"], 1)
+        self.assertEqual(visual["visual_action_action_types"]["move_to"], 2)
+        self.assertEqual(visual["visual_action_goals"], ["mine iron ore"])
+        self.assertEqual(metrics["visual_action_intervention_count"], 1)
 
     def test_jsonl_file_written(self):
         self.logger.log("test", {"value": 1})
@@ -578,4 +618,3 @@ class TestIntegrationRulePlannerGoalGenerator(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
-

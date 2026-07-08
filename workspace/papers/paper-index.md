@@ -1,6 +1,6 @@
 ﻿# Paper Index — Minecraft Agent Research
 
-> Last updated: 2026-07-07
+> Last updated: 2026-07-08
 > Scoring: Relevance / Novelty / Reproducibility / Engineering Value (1-5 each)
 
 ---
@@ -21,6 +21,7 @@
 - **Reproducibility**: High (code available, Mineflayer-based)
 - **Scores**: R=5, N=5, R=5, E=5
 - **Value to Project**: Foundational — directly informs skill library, curriculum, and code-as-action design
+- **Singularity Status**: Deterministic automatic curriculum layer now implemented in `CurriculumManager`; deterministic self-verification now implemented in `GoalVerifier`; live autonomous comparison still pending
 - **Reproduction Priority**: P1 (core reference)
 
 ---
@@ -343,6 +344,222 @@
 
 ---
 
+## P-018: PEAM: Parametric Embodied Agent Memory
+
+- **Title**: PEAM: Parametric Embodied Agent Memory through Contrastive Internalization of Experience in Minecraft
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2605.27762
+- **Type**: Paper
+- **Task Type**: Long-horizon Minecraft memory consolidation
+- **Core Method**: Slow deliberative LLM + fast parametric MoE-LoRA memory internalized from selected experiences
+- **Action Space**: Minecraft embodied actions
+- **Memory**: Episodic staging plus parameter-resident skill memory
+- **Key Results**: Improved long-horizon performance, retention, and parametric-vs-retrieval efficiency
+- **Scores**: R=5, N=5, R=2, E=4
+- **Value to Project**: Consolidation-worthiness, failure-correction learning, slow/fast split
+- **Reproduction Priority**: P3
+- **Card**: `2026-07-08-peam.md`
+
+---
+
+## P-019: Echo: Experience Transfer for Multimodal LLM Agents
+
+- **Title**: Experience Transfer for Multimodal LLM Agents in Minecraft Game
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2604.05533
+- **Type**: Paper
+- **Task Type**: Experience transfer and object unlocking
+- **Core Method**: Transfer-oriented memory with structure, attribute, process, function, and interaction dimensions
+- **Action Space**: Multimodal Minecraft agent actions
+- **Memory**: Dimensioned experience atoms plus in-context analogy learning
+- **Key Results**: Reports faster object unlocking and transfer to related tasks
+- **Scores**: R=5, N=4, R=3, E=5
+- **Value to Project**: Direct match for `ExperienceRecord` and memory retrieval upgrades
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-echo.md`
+
+---
+
+## P-020: WISE: Why-Which Reasoning
+
+- **Title**: WISE: A Long-Horizon Agent in Minecraft with Why-Which Reasoning
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2606.12852
+- **Type**: Paper
+- **Task Type**: Long-horizon sparse Minecraft tasks
+- **Core Method**: Causal event graph plus opportunistic task scheduler and progressive exploration
+- **Action Space**: Minecraft low-level controller actions
+- **Memory**: Which-why causal event memory
+- **Key Results**: Reports better success and efficiency under sparse long-horizon conditions
+- **Scores**: R=5, N=4, R=3, E=5
+- **Value to Project**: Causal memory and opportunistic scheduling are already partially implemented
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-wise.md`
+
+---
+
+## P-021: TickingCollabBench
+
+- **Title**: Multi-agent Framework for Time-Sensitive Complementary Collaboration in Minecraft
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2606.15684
+- **Type**: Paper + Benchmark
+- **Task Type**: Multi-agent time-sensitive complementary collaboration
+- **Core Method**: Heterogeneous roles, mandatory cooperation, dynamic environments, deadlines, feasibility-checked task generation
+- **Action Space**: Abstracted Minecraft primitive APIs
+- **Memory**: Shared state and communication under evaluation
+- **Key Results**: Shows LLM agents struggle with latency, dynamic coordination, and partial observability
+- **Scores**: R=5, N=5, R=3, E=5
+- **Value to Project**: Blueprint for M7 benchmark schema
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-tickingcollabbench.md`
+
+---
+
+## P-022: VistaWise
+
+- **Title**: VistaWise: Building Cost-Effective Agent with Cross-Modal Knowledge Graph for Minecraft
+- **Year**: 2025
+- **Link**: https://arxiv.org/abs/2508.18722
+- **Type**: Paper
+- **Task Type**: Open-world embodied decision-making in Minecraft
+- **Core Method**: Cross-modal knowledge graph, visual detector, retrieval pooling, desktop skill library
+- **Action Space**: Minecraft desktop-level control
+- **Memory**: Cross-modal knowledge graph
+- **Key Results**: Reports strong open-world performance with lower domain-specific data cost
+- **Scores**: R=4, N=4, R=3, E=4
+- **Value to Project**: Validates the lightweight graph direction before M6 vision
+- **Reproduction Priority**: P3
+- **Card**: `2026-07-08-vistawise.md`
+
+---
+
+## P-023: Optimus-2
+
+- **Title**: Optimus-2: Multimodal Minecraft Agent with Goal-Observation-Action Conditioned Policy
+- **Year**: 2025
+- **Link**: https://arxiv.org/abs/2502.19902
+- **Type**: Paper + Dataset
+- **Task Type**: Atomic, long-horizon, and open-ended Minecraft tasks
+- **Core Method**: MLLM planner plus goal-observation-action conditioned low-level policy
+- **Action Space**: Goal-observation-action action prediction
+- **Memory**: Compact behavior tokens over observation-action history
+- **Key Results**: Reports strong performance across multiple Minecraft task categories
+- **Scores**: R=4, N=4, R=2, E=3
+- **Value to Project**: Supports compact action-history summaries and planner/actor split
+- **Reproduction Priority**: P3
+- **Card**: `2026-07-08-optimus2.md`
+
+---
+
+## P-024: JARVIS-VLA
+
+- **Title**: JARVIS-VLA: Post-Training Large-Scale Vision Language Models to Play Visual Games with Keyboards and Mouse
+- **Year**: 2025
+- **Link**: https://arxiv.org/abs/2503.16365
+- **Type**: Paper + Code/Models/Datasets
+- **Task Type**: Visual Minecraft atomic tasks
+- **Core Method**: Visual-language post-training before VLA action training
+- **Action Space**: Keyboard and mouse
+- **Memory**: Mostly parametric multimodal grounding
+- **Key Results**: Reports broad instruction following across 1k+ atomic tasks and gains from non-trajectory post-training
+- **Scores**: R=4, N=4, R=3, E=3
+- **Value to Project**: M6 vision baseline and future desktop-control reference
+- **Reproduction Priority**: P3
+- **Card**: `2026-07-08-jarvis-vla.md`
+
+---
+
+## P-025: Game-TARS
+
+- **Title**: Game-TARS: Pretrained Foundation Models for Scalable Generalist Multimodal Game Agents
+- **Year**: 2025
+- **Link**: https://arxiv.org/abs/2510.23691
+- **Type**: Paper + Foundation Model
+- **Task Type**: Cross-game generalist multimodal agents
+- **Core Method**: Unified keyboard-mouse action space, large-scale multimodal pretraining, sparse-thinking
+- **Action Space**: Native keyboard and mouse
+- **Memory**: Parametric pretraining
+- **Key Results**: Reports strong open-world Minecraft and cross-game generalization
+- **Scores**: R=3, N=5, R=1, E=3
+- **Value to Project**: Long-term action abstraction and sparse reasoning reference
+- **Reproduction Priority**: P4
+- **Card**: `2026-07-08-game-tars.md`
+
+---
+
+## P-026: Odyssey
+
+- **Title**: Odyssey: Empowering Minecraft Agents with Open-World Skills
+- **Year**: 2025
+- **Link**: https://arxiv.org/abs/2407.15325
+- **Type**: Paper + Code/Dataset
+- **Task Type**: Long-term planning, dynamic-immediate planning, autonomous exploration
+- **Core Method**: Planner-actor-critic with open-world skill library and self-validation
+- **Action Space**: Mineflayer/code skills
+- **Memory**: Skill library plus successful/failed task feedback
+- **Key Results**: Introduces 40 primitive skills, 183 compositional skills, and open-world Minecraft capability benchmarks
+- **Scores**: R=5, N=4, R=4, E=5
+- **Value to Project**: Direct reference for skill-level critic/self-validation, suite-level candidate quality tracking, and broader open-world skill taxonomy
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-odyssey.md`
+
+---
+
+## P-027: OpenSkill
+
+- **Title**: OpenSkill: Open-World Self-Evolution for LLM Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2606.06741
+- **Type**: Paper / self-evolution framework
+- **Task Type**: Open-world self-improvement without pre-existing verifier signals
+- **Core Method**: Mine open resources for knowledge and verification anchors, synthesize skills, and refine them on virtual practice tasks
+- **Action Space**: General agent skills
+- **Memory**: Transferable skill/anchor library
+- **Key Results**: Reports higher automated pass rates while avoiding target-task supervision
+- **Scores**: R=4, N=5, R=2, E=5
+- **Value to Project**: Blueprint for generating verifier anchors and aggregating verifier-gated skill readiness instead of hand-writing every postcondition
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-openskill.md`
+
+---
+
+## P-028: MineExplorer
+
+- **Title**: Evaluating Open-World Exploration of MLLM Agents in Minecraft
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2605.30931
+- **Type**: Benchmark / evaluation framework
+- **Task Type**: Open-world exploration
+- **Core Method**: ReAct-style evaluation across perception, reasoning, and action while reducing Minecraft-prior confounds
+- **Action Space**: MLLM agent actions in Minecraft
+- **Memory**: Exploration trace evidence
+- **Key Results**: Introduces a Minecraft benchmark focused on sustained open-world exploration capability
+- **Scores**: R=4, N=4, R=3, E=4
+- **Value to Project**: Blueprint for autonomous-mode exploration coverage metrics beyond inventory unlocks
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-mineexplorer.md`
+
+---
+
+## P-029: OpenHA / CrossAgent
+
+- **Title**: OpenHA: A Series of Open-Source Hierarchical Agentic Models in Minecraft
+- **Year**: 2025-2026
+- **Link**: https://arxiv.org/abs/2509.13347
+- **Type**: Paper + code + model/dataset release
+- **Task Type**: Hierarchical Minecraft action-space generalization
+- **Core Method**: Chain of Action treats abstract actions as intermediate reasoning, while CrossAgent learns heterogeneous action-space switching
+- **Action Space**: Mixed abstract actions, VLA actions, and low-level controls
+- **Memory**: Trained hierarchical policy traces
+- **Key Results**: Reports stronger generalization from mixed action spaces and CoA-style abstraction
+- **Scores**: R=4, N=5, R=4, E=4
+- **Value to Project**: Direct reference for extending `ActionMapper` into a cross-level action abstraction benchmark
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-openha.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -364,3 +581,15 @@
 | P-015 | Toolformer | 2023 | R3/N3/R3/E3 | P3 |
 | P-016 | SkillForge | 2024 | R4/N4/R2/E3 | P3 |
 | P-017 | Multi-Agent MC | 2024 | R4/N3/R1/E2 | P4 |
+| P-018 | PEAM | 2026 | R5/N5/R2/E4 | P3 |
+| P-019 | Echo | 2026 | R5/N4/R3/E5 | P2 |
+| P-020 | WISE | 2026 | R5/N4/R3/E5 | P2 |
+| P-021 | TickingCollabBench | 2026 | R5/N5/R3/E5 | P2 |
+| P-022 | VistaWise | 2025 | R4/N4/R3/E4 | P3 |
+| P-023 | Optimus-2 | 2025 | R4/N4/R2/E3 | P3 |
+| P-024 | JARVIS-VLA | 2025 | R4/N4/R3/E3 | P3 |
+| P-025 | Game-TARS | 2025 | R3/N5/R1/E3 | P4 |
+| P-026 | Odyssey | 2025 | R5/N4/R4/E5 | P2 |
+| P-027 | OpenSkill | 2026 | R4/N5/R2/E5 | P2 |
+| P-028 | MineExplorer | 2026 | R4/N4/R3/E4 | P2 |
+| P-029 | OpenHA / CrossAgent | 2025-2026 | R4/N5/R4/E4 | P2 |

@@ -9,6 +9,8 @@ class BotConfig:
     username: str = "Singularity"
     version: str = "1.20.4"
     auth: str = "offline"
+    bridge_host: str = "127.0.0.1"
+    bridge_port: int = 3000
 
 
 @dataclass
@@ -27,5 +29,15 @@ class Config:
     llm: LLMConfig = field(default_factory=LLMConfig)
     log_dir: str = "logs"
     memory_dir: str = "workspace/memory"
+    skill_dir: str = "workspace/skills"
+    enable_policy_skills: bool = True
+    enable_autocurriculum: bool = True
+    enable_vision_analysis: bool = True
+    enable_visual_action_grounding: bool = True
+    enable_screenshot_capture: bool = False
+    screenshot_dir: str = "logs/screenshots"
+    screenshot_min_interval_s: float = 2.0
+    enable_goal_verification: bool = True
+    enable_goal_critic: bool = False
     max_action_timeout: int = 30000  # ms
     health_critical_threshold: float = 4.0  # hearts

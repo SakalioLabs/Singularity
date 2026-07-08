@@ -27,6 +27,10 @@ java -Xmx1G -Xms512M -jar server.jar nogui
 **Terminal 2: Bot Bridge**
 ```powershell
 node src/bot/bot_server.js
+# Optional screenshot renderer/plugin for --capture-screenshots:
+node src/bot/bot_server.js --screenshot-plugin src/bot/screenshot_plugin_prismarine_viewer.js
+# or:
+npm run start:screenshot
 ```
 
 **Terminal 3: Agent**
@@ -35,8 +39,41 @@ node src/bot/bot_server.js
 $env:OPENAI_API_KEY = "sk-..."
 python -m singularity.main run --goal "Gather 3 oak logs" --llm-provider openai --llm-model gpt-4o-mini
 
-# With DeepSeek
-python -m singularity.main run --goal "Gather wood" --llm-provider openai --llm-model deepseek-chat --api-key YOUR_KEY --base-url https://api.deepseek.com/v1
+# Optional fallback critic for goals that deterministic verification cannot cover
+python -m singularity.main run --goal "Confirm base entrance is sealed" --goal-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
+
+# Structured vision grounding is enabled by default and logs lightweight `vision` events.
+# Disable it for debugging or baseline runs:
+python -m singularity.main run --goal "Gather wood" --no-vision-analysis
+# Visual action grounding is also enabled by default. It can use grounded
+# resources/dangers to approach and look at visible resources, fill dig
+# coordinates, or insert a retreat action:
+python -m singularity.main run --goal "Mine nearby iron ore" --no-visual-action-grounding
+
+# If the bridge has a renderer/plugin that implements capture_screenshot,
+# capture screenshot paths into vision logs and VisualMemory:
+python -m singularity.main run --goal "Inspect shelter entrance" --capture-screenshots --screenshot-dir logs/screenshots
+
+# Screenshot plugin contract:
+# - export a function, attach(bot, context), attachScreenshotPlugin(bot, context),
+#   install(bot, context), or captureScreenshot(outputPath, context)
+# - return a screenshot path, a Buffer/base64 image, or an object with
+#   screenshot_path/path/buffer/base64 fields
+# The bridge writes Buffer/base64 output to the requested path and reports
+# file_exists/file_size for visual-trace quality gates.
+# The included prismarine-viewer plugin is optional and needs renderer deps:
+# npm install prismarine-viewer three PrismarineJS/node-canvas-webgl
+# On Windows, prefer WSL or Docker for node-canvas-webgl.
+# Check readiness before a screenshot run:
+python -m singularity.main preflight --skip-network --screenshot-renderer
+# Docker alternative for the screenshot bridge:
+npm run docker:screenshot:build
+New-Item -ItemType Directory -Force logs\screenshots | Out-Null
+docker run --rm -it -p 3000:3000 -v ${PWD}\logs\screenshots:/app/logs/screenshots -e MC_HOST=host.docker.internal -e MC_PORT=25565 singularity-screenshot-bridge
+python -m singularity.main screenshot-smoke-test --bridge-host 127.0.0.1 --bridge-port 3000 --screenshot-dir logs/screenshots
+
+# With an OpenAI-compatible provider
+python -m singularity.main run --goal "Gather wood" --llm-provider openai --llm-model deepseek-chat --api-key YOUR_KEY --llm-base-url https://api.deepseek.com/v1
 
 # With local Ollama
 python -m singularity.main run --goal "Gather wood" --llm-provider ollama --llm-model llama3
@@ -45,10 +82,64 @@ python -m singularity.main run --goal "Gather wood" --llm-provider ollama --llm-
 python -m singularity.main run --goal "Gather 3 oak logs"
 ```
 
+Use a non-default bridge port when running more than one bot bridge:
+
+```powershell
+node src/bot/bot_server.js --username SingularityA --bridge-port 3000
+python -m singularity.main run --goal "Gather 3 oak logs" --bridge-port 3000
+```
+
 ### Running Benchmarks
 ```powershell
+# Readiness checks
+python -m singularity.main preflight --skip-network
+python -m singularity.main preflight
+
 # M1 benchmarks (basic actions)
-python -m singularity.main benchmark --suite m1
+python -m singularity.main benchmark --suite m1 --preflight
+
+# Run benchmarks and ingest passing traces into memory + skill candidates
+python -m singularity.main benchmark --suite m1 --preflight --ingest
+
+# Add an explicit LLM fallback critic for unknown verifier gates during ingestion
+python -m singularity.main benchmark --suite m1 --ingest --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
+
+# Benchmark result JSON includes reviewed policy-skill intervention metrics when they fire
+
+# Live reviewed policy-skill ablation across the selected suite
+python -m singularity.main benchmark --suite m1 --preflight --policy-skill-ablation
+
+# Live visual action grounding ablation across the selected suite
+python -m singularity.main benchmark --suite m1 --preflight --visual-action-ablation --output visual_action_benchmark_ablation.json
+
+# Offline causal scheduling ablation (no MC server needed)
+python -m singularity.main scheduling-ablation
+
+# Replay session logs through the same ablation.
+# Repeated action/subject/outcome events are aggregated into compact summaries.
+python -m singularity.main scheduling-ablation --session-log logs/session_xxx.jsonl --max-cases-per-log 20 --min-value-score 0.55
+
+# Offline reviewed policy-skill ablation (no MC server needed)
+python -m singularity.main policy-skill-ablation
+python -m singularity.main policy-skill-ablation --skill-storage-path workspace/skills --no-builtin
+
+# Offline visual action grounding ablation (no MC server needed)
+python -m singularity.main visual-action-ablation --output logs/benchmarks/visual_action_ablation.json
+# Replay visual grounding interventions mined from real session logs
+python -m singularity.main visual-action-ablation --session-log logs/session_xxx.jsonl --include-builtin --output logs/benchmarks/visual_action_ablation.json
+
+# Queue reviewable skills from repeated high-value causal summaries in a session log
+python -m singularity.main skill-candidates --session logs/session_xxx.jsonl --causal-summaries --min-causal-repeats 3 --min-causal-value 0.65
+
+# Queue reviewable correction skills from repeated failures followed by useful recovery actions
+python -m singularity.main skill-candidates --session logs/session_xxx.jsonl --failure-corrections --min-failure-repeats 2 --min-failure-value 0.55
+
+# Report repeatedly recalled memories/experiences that are worth consolidation review
+python -m singularity.main memory-consolidation-report --memory-dir workspace/memory --min-recall-count 2 --min-unique-queries 2
+
+# Summarize open-world exploration coverage from autonomous/session logs
+python -m singularity.main exploration-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/exploration_trace.json
+# The saved JSON includes `curriculum_feedback`, which can be applied to CurriculumManager for candidate reranking.
 
 # M2 benchmarks (LLM planning)
 python -m singularity.main benchmark --suite m2
@@ -66,6 +157,98 @@ python tests/test_goal_generator.py
 $env:OPENAI_API_KEY = "sk-..."
 python tests/test_m2_integration.py
 ```
+
+### Reviewing Skill Candidates
+```powershell
+# Extract candidates from a session log
+python -m singularity.main skill-candidates --session logs/session_xxx.jsonl
+
+# Extract with an explicit LLM fallback critic for candidates the deterministic verifier cannot prove
+python -m singularity.main skill-candidates --session logs/session_xxx.jsonl --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
+
+# If the session log includes screenshot_path, visual_analysis, grounded_resources,
+# landmarks, structures, or nearby entity/block observations, the critic receives
+# a compact visual_evidence summary automatically.
+
+# Check whether a session already has enough screenshot/VLM/API visual coverage
+python -m singularity.main visual-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/visual_trace_report.json
+python -m singularity.main visual-trace-report --session-log logs/session_xxx.jsonl --causal-summaries --failure-corrections
+# The report separates raw screenshot references from verified local image files,
+# missing paths, and invalid non-image files before you spend time labeling.
+# `review-label-template` and visual ablations use the same gate: screenshot/VLM
+# critic prompts receive only verified local image paths.
+
+# Generate JSONL review-label templates before manual annotation
+python -m singularity.main review-label-template --session-log logs/session_xxx.jsonl --mode both --output workspace/reviews/session_xxx_labels.jsonl
+python -m singularity.main review-label-template --session-log logs/session_xxx.jsonl --mode promotion --causal-summaries --failure-corrections --output workspace/reviews/promotion_labels.jsonl
+
+# Validate filled labels before using them for agreement metrics
+python -m singularity.main review-label-validate --label-file workspace/reviews/session_xxx_labels.jsonl --output logs/benchmarks/session_xxx_label_validation.json
+
+# Run the full offline visual review chain in one report
+python -m singularity.main visual-review-pipeline --session-log logs/session_xxx.jsonl --mode both --output logs/benchmarks/visual_review_pipeline.json
+python -m singularity.main visual-review-pipeline --session-log logs/session_xxx.jsonl --mode both --label-file workspace/reviews/session_xxx_labels.jsonl --run-ablations --promotion-critic --goal-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL --output logs/benchmarks/visual_review_pipeline.json
+# The pipeline runs visual trace coverage, generates review templates, validates
+# filled labels, and optionally runs promotion, goal-verification, and visual
+# action-grounding ablations. Combined label files are split by record type so
+# promotion and goal-verification labels do not cross-match accidentally.
+
+# Compare deterministic-only, API visual summary, and screenshot/VLM-assisted review
+python -m singularity.main promotion-review-ablation --session-log logs/session_xxx.jsonl --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
+python -m singularity.main promotion-review-ablation --session-log logs/session_xxx.jsonl --promotion-critic --causal-summaries --failure-corrections --label-file workspace/reviews/promotion_labels.jsonl --output logs/benchmarks/promotion_review_ablation.json
+
+# Promotion label files may be JSONL records such as:
+# {"source_log":"logs/session_xxx.jsonl","goal":"Inspect completed shelter frame","readiness":"approved","reviewer":"manual","notes":"screenshot confirms reusable skill"}
+
+# Compare deterministic-only, API visual summary, and screenshot/VLM-assisted goal verification
+python -m singularity.main goal-verification-ablation --session-log logs/session_xxx.jsonl --goal-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
+python -m singularity.main goal-verification-ablation --session-log logs/session_xxx.jsonl --goal-critic --label-file workspace/reviews/goal_labels.jsonl --output logs/benchmarks/goal_verification_ablation.json
+
+# Label files may be JSONL records such as:
+# {"source_log":"logs/session_xxx.jsonl","goal":"Confirm base entrance is sealed","readiness":"approved","reviewer":"manual","notes":"screenshot shows sealed entrance"}
+
+# Or queue candidates automatically from passing benchmark traces
+python -m singularity.main benchmark --suite m1 --ingest
+
+# List pending candidates
+python -m singularity.main skill-candidates
+
+# Approve or reject a candidate
+python -m singularity.main skill-candidates --approve CANDIDATE_ID
+python -m singularity.main skill-candidates --approve CANDIDATE_ID --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
+python -m singularity.main skill-candidates --reject CANDIDATE_ID --reason "too brittle"
+
+# Approved causal/correction skills are loaded from workspace/skills by the agent.
+# They appear as planner hints and can trigger correction sequences after matching failures.
+```
+
+### Preparing Collaboration Benchmarks
+```powershell
+# Dry-run BM-701 feasibility and task assignment into shared state
+python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json
+
+# Save dry-run plus static schedule analysis
+python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --output logs/benchmarks/bm701_schedule_report.json
+
+# Execute the synchronous collaboration state-transition loop
+python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --execute
+
+# Execute assigned tasks through live Agent.run_goal calls
+python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --execute --executor agent
+
+# Execute live collaboration roles through separate bot bridges
+# `--executor agent` prints and saves the exact bridge launch plan.
+node src/bot/bot_server.js --username Singularity_resource_runner --bridge-port 3000
+node src/bot/bot_server.js --username Singularity_leader_builder --bridge-port 3001
+node src/bot/bot_server.js --username Singularity_single_agent --bridge-port 3002
+python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --preflight --executor agent --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --role-bridge-port single_agent=3002 --single-agent-baseline
+python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --execute --executor agent --role-bridge-port resource_runner=3000 --role-bridge-port leader_builder=3001 --role-bridge-port single_agent=3002 --single-agent-baseline --output logs/benchmarks/bm701_collab_report.json
+
+# Use a custom shared-state file
+python -m singularity.main collab-benchmark --spec workspace/benchmarks/m7_time_sensitive_shelter.json --state-path workspace/multiagent/bm701_state.json
+```
+
+`collab-benchmark --execute` dispatches at most one runnable task per role in each wave, so separate live bot bridges can work in parallel while shared-state commits stay serialized. With `--executor agent`, the JSON report includes `agent_bridge_launch_plan` and optional `single_agent_baseline_bridge_launch_plan`; each plan lists the exact `node src/bot/bot_server.js` command and reports duplicate-port conflicts. Agent bridge preflight fails fast on duplicate role ports, so use either `--bridge-port-base` or explicit `--role-bridge-port ROLE=PORT` values for multi-role live runs. `collab-benchmark --output` writes `schedule_analysis` for the collaboration spec. When execution runs, it also writes `execution.dispatch_mode`, `execution.dispatch_batches`, `execution.max_parallel_tasks`, and `execution_schedule_comparison`, which aligns each task's predicted start/finish time with the measured start/finish/duration and reports actual overlap metrics such as `actual_peak_parallel_tasks`, `actual_parallel_overlap_s`, `actual_parallel_efficiency`, and `overlapping_task_pairs`. With `--single-agent-baseline`, it additionally writes `single_agent_baseline_schedule`, `schedule_comparison`, and `single_agent_baseline_schedule_execution_comparison`.
 
 ## Architecture
 
@@ -110,12 +293,12 @@ User Goal (NL) -> Planner (LLM) -> TaskSystem -> SkillLibrary -> ActionControlle
 
 ### DeepSeek
 ```
---llm-provider openai --llm-model deepseek-chat --base-url https://api.deepseek.com/v1
+--llm-provider openai --llm-model deepseek-chat --llm-base-url https://api.deepseek.com/v1
 ```
 
 ### Qwen
 ```
---llm-provider openai --llm-model qwen-turbo --base-url https://dashscope.aliyuncs.com/compatible-mode/v1
+--llm-provider openai --llm-model qwen-turbo --llm-base-url https://dashscope.aliyuncs.com/compatible-mode/v1
 ```
 
 ### Ollama (local)

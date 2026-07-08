@@ -3,15 +3,19 @@ import time
 import logging
 from typing import Optional
 
+from singularity.action.mapping import ActionMapper
+
 logger = logging.getLogger("singularity.action")
 
 
 class ActionController:
     """Executes actions on the Minecraft bot with pre/post validation."""
 
-    def __init__(self, bot, config):
+    def __init__(self, bot, config, backend: str = "mineflayer", mapper: Optional[ActionMapper] = None):
         self.bot = bot
         self.config = config
+        self.backend = backend
+        self.mapper = mapper or ActionMapper()
         self._action_handlers = {
             "walk_to": self._walk_to,
             "move_to": self._move_to,
@@ -28,9 +32,21 @@ class ActionController:
 
     def execute(self, action: dict, world_state: dict) -> dict:
         """Execute a single action with pre/post checks."""
-        action_type = action.get("type", "unknown")
-        params = action.get("parameters", {})
+        command = self.mapper.map(action, self.backend)
+        action_type = command.command
+        params = command.params
         start_time = time.time()
+
+        if not command.executable:
+            return {
+                "success": False,
+                "error": command.notes or f"Action not executable on backend {self.backend}",
+                "duration_ms": 0,
+                "action_type": action.get("type", "unknown"),
+                "backend": command.backend,
+                "backend_command": command.command,
+                "backend_params": command.params,
+            }
 
         # Pre-condition check
         pre_ok, pre_msg = self._check_preconditions(action_type, params, world_state)
@@ -50,7 +66,10 @@ class ActionController:
 
         duration_ms = int((time.time() - start_time) * 1000)
         result["duration_ms"] = duration_ms
-        result["action_type"] = action_type
+        result["action_type"] = action.get("type", action_type)
+        result["backend"] = command.backend
+        result["backend_command"] = command.command
+        result["backend_params"] = command.params
         return result
 
     def _check_preconditions(self, action_type: str, params: dict, state: dict) -> tuple:
@@ -110,6 +129,11 @@ class ActionController:
         return self.bot.equip(item_name, destination)
 
     def _use_item(self, params: dict) -> dict:
+        item_name = params.get("item")
+        if item_name:
+            equip_result = self.bot.equip(item_name, params.get("destination", "hand"))
+            if not equip_result.get("success"):
+                return equip_result
         return self.bot.use_item()
 
     def _chat(self, params: dict) -> dict:

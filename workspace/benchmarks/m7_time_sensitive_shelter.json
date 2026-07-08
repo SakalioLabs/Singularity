@@ -1,0 +1,119 @@
+{
+  "id": "BM-701",
+  "name": "Time-sensitive shared shelter",
+  "description": "Two complementary agents must gather resources and finish a lit shelter before hostile night conditions.",
+  "phase": "M7",
+  "max_duration_s": 420,
+  "roles": [
+    {
+      "id": "leader_builder",
+      "description": "Plans the structure, places blocks, and verifies shelter completion.",
+      "capabilities": ["plan", "build", "place_block", "craft", "verify"],
+      "required": true,
+      "starting_inventory": {"crafting_table": 1}
+    },
+    {
+      "id": "resource_runner",
+      "description": "Collects logs, crafts intermediate materials, and delivers resources.",
+      "capabilities": ["gather", "craft", "navigate", "handoff"],
+      "required": true,
+      "starting_inventory": {}
+    }
+  ],
+  "shared_state": {
+    "required_keys": ["wood_delivered", "shelter_frame_done", "torch_ready"],
+    "initial": {
+      "wood_delivered": false,
+      "shelter_frame_done": false,
+      "torch_ready": false
+    },
+    "success_keys": ["wood_delivered", "shelter_frame_done", "torch_ready"]
+  },
+  "tasks": [
+    {
+      "id": "gather_logs",
+      "title": "Gather 8 oak logs",
+      "assigned_role": "resource_runner",
+      "description": "Find nearby trees, gather logs, and return near the builder.",
+      "priority": 1,
+      "required_capabilities": ["gather", "navigate"],
+      "deadline_s": 150,
+      "estimated_duration_s": 90,
+      "success_criteria": {"inventory": {"oak_log": 8}}
+    },
+    {
+      "id": "deliver_wood",
+      "title": "Deliver wood to builder",
+      "assigned_role": "resource_runner",
+      "description": "Transfer enough planks/logs for shelter construction and mark delivery.",
+      "priority": 1,
+      "depends_on": ["gather_logs"],
+      "required_capabilities": ["handoff"],
+      "deadline_s": 210,
+      "estimated_duration_s": 45,
+      "success_criteria": {"shared_state": {"wood_delivered": true}},
+      "shared_state_updates": ["wood_delivered"]
+    },
+    {
+      "id": "build_frame",
+      "title": "Build 5x5 shelter frame",
+      "assigned_role": "leader_builder",
+      "description": "Use delivered wood to place a minimal enclosed shelter frame.",
+      "priority": 2,
+      "depends_on": ["deliver_wood"],
+      "required_capabilities": ["build", "place_block"],
+      "deadline_s": 330,
+      "estimated_duration_s": 90,
+      "preconditions": {"shared_state": {"wood_delivered": true}},
+      "success_criteria": {"shared_state": {"shelter_frame_done": true}},
+      "shared_state_updates": ["shelter_frame_done"]
+    },
+    {
+      "id": "prepare_torch",
+      "title": "Prepare shelter lighting",
+      "assigned_role": "resource_runner",
+      "description": "Craft or obtain at least one torch for shelter safety.",
+      "priority": 2,
+      "required_capabilities": ["gather", "craft"],
+      "deadline_s": 360,
+      "estimated_duration_s": 120,
+      "success_criteria": {"shared_state": {"torch_ready": true}},
+      "shared_state_updates": ["torch_ready"]
+    },
+    {
+      "id": "verify_shelter",
+      "title": "Verify lit shelter before night",
+      "assigned_role": "leader_builder",
+      "description": "Confirm shelter frame and torch readiness before the hostile event.",
+      "priority": 1,
+      "depends_on": ["build_frame", "prepare_torch"],
+      "required_capabilities": ["verify"],
+      "deadline_s": 410,
+      "estimated_duration_s": 20,
+      "preconditions": {"shared_state": {"shelter_frame_done": true, "torch_ready": true}},
+      "success_criteria": {"alive": true, "shared_state": {"shelter_frame_done": true, "torch_ready": true}}
+    }
+  ],
+  "dynamic_events": [
+    {
+      "at_s": 360,
+      "event_type": "hostile_nightfall",
+      "payload": {"risk": "hostile mobs spawn near exposed agents"}
+    }
+  ],
+  "success_criteria": {
+    "all_required_tasks_completed": true,
+    "shared_state": {
+      "wood_delivered": true,
+      "shelter_frame_done": true,
+      "torch_ready": true
+    },
+    "deadline_s": 420
+  },
+  "failure_risks": [
+    "resource_runner cannot find trees fast enough",
+    "handoff fails and builder waits idle",
+    "torch task competes with wood delivery under deadline pressure",
+    "hostile nightfall interrupts exposed agents"
+  ]
+}

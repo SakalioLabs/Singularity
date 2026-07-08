@@ -1,16 +1,134 @@
-﻿# Active Tasks
-> Last updated: 2026-07-07
-## M0 Deliverables
-- [x] ROADMAP.md, MEMORY.md, DECISIONS.md, RISKS.md, OPEN_QUESTIONS.md, STATUS.md
-- [x] paper-index.md (17 papers), repo-index.md (11 repos)
-- [x] current-architecture.md + 8 module docs
-- [x] benchmark-index.md (14 tasks)
-- [x] 8 skill templates
-- [x] Implementation notes (tech-stack, mineflayer, baritone, model-provider, minecraft-version)
-- [x] Experiment framework + task tracking
-- [ ] Git push to SakalioLabs/Singularity.git
-## Next (M1)
-- [ ] Set up local Minecraft 1.20.4 server
-- [ ] Implement Python-Mineflayer bridge
-- [ ] Implement observation module
-- [ ] Run EXP-0001 connectivity test
+# Active Tasks
+> Last updated: 2026-07-08
+
+## Completed This Pass
+- [x] Review general agent memory/skill systems: Hermes Agent and OpenClaw.
+- [x] Search recent Minecraft/game-agent papers with emphasis on 2025-2026 sandbox AGI work.
+- [x] Draft implementation-facing upgrade notes in `workspace/architecture/agent-memory-task-upgrade-2026-07-08.md`.
+- [x] Fix `KnowledgeBase` recipe path and BOM-safe recipe loading.
+- [x] Add bounded curated memory entries and transferable experience records.
+- [x] Add task dependencies, preconditions, opportunity triggers, deadlines, and dynamic task scoring.
+- [x] Add tests for recipe loading, experience retrieval, and opportunity scheduling.
+- [x] Wire `MemorySystem.get_relevant_memory()` and curated context into `Agent._think_llm()` via `Planner.plan_from_goal()`.
+- [x] Preserve dependency, precondition, skill, deadline, tag, and opportunity hints from LLM subtasks in `TaskSystem`.
+- [x] Add session-log to experience-atom extraction in `SkillExtractor`.
+- [x] Add consolidation scoring for skill promotion from repeated successes and failure-correction pairs.
+- [x] Remove unused `pytest` import so M2 mock tests run in the current minimal environment.
+- [x] Persist curated memory entries and experience atoms as JSONL sidecars.
+- [x] Add skill-promotion review gate with explicit `SkillCandidate` approval.
+- [x] Add M1 benchmark preflight for Python packages, Node/npm, Mineflayer dependencies, bot bridge, and MC server reachability.
+- [x] Document `preflight` and `benchmark --preflight` usage.
+- [x] Feed `TaskSystem.get_next_task(world_state)` into autonomous mode so opportunities can reorder active subtasks.
+- [x] Add durable skill candidate queue and operator approval CLI for extracted skills.
+- [x] Add preflight remediation hints for installing missing Python/Node dependencies and starting runtime services.
+- [x] Add benchmark-result ingestion that converts successful BM traces into experience atoms and skill candidates.
+- [x] Add task-state updates from action outcomes, not just planner-level completion.
+- [x] Run `npm install`; local dependency preflight now passes.
+- [x] Add bot-session health checks to distinguish a live TCP bridge from a spawned Mineflayer bot.
+- [x] Fix bridge response decoding for action commands and malformed bridge responses.
+- [x] Add lightweight item/block/tool knowledge graph before M6 vision work.
+- [x] Draft and implement first dual-loop planner/actor runtime layer for interruptible execution.
+- [x] Convert the 2026 paper sweep into indexed paper cards for PEAM, Echo, WISE, TickingCollabBench, VistaWise, Optimus-2, JARVIS-VLA, and Game-TARS.
+- [x] Define M7 time-sensitive collaboration benchmark schema with roles, deadlines, feasibility checks, and shared state.
+- [x] Add M7 collaboration dry-run runner that assigns `CollaborationBenchmarkSpec` tasks through `LeaderAgent`.
+- [x] Add action abstraction layer that can later target either Mineflayer API or desktop keyboard/mouse inputs.
+- [x] Add graph-backed visual grounding fields to `VisionAnalyzer` outputs.
+- [x] Add causal event index for WISE-style event tracking and post-hoc reasoning.
+- [x] Use causal event tags to bias `TaskSystem` opportunity scoring beyond direct block/entity matches.
+- [x] Add an ablation switch/report for causal-opportunity scheduling versus direct-observation-only scheduling.
+- [x] Replay successful and failed session logs through the causal scheduler ablation to estimate trace uplift.
+- [x] Filter high-value causal events before they become scheduling candidates.
+- [x] Deduplicate and aggregate repeated causal candidates into compact skill-level summaries.
+- [x] Promote stable causal summaries into reviewed reusable skill candidates.
+- [x] Learn failure-correction causal summaries that suggest safer alternative actions instead of only replaying successes.
+- [x] Use reviewed causal and failure-correction candidates to bias online action selection, not just offline review.
+- [x] Add online intervention metrics for reviewed causal/correction skills so benchmark runs can measure actual uplift.
+- [x] Add online reviewed-skill on/off ablation so benchmark runs can compare policy-skill uplift directly.
+- [x] Add multi-case policy-skill ablations from real approved skill logs, beyond the built-in missing-coal correction scenario.
+- [x] Add live benchmark flag to compare reviewed policy skills enabled versus disabled on M1/M2 suites.
+- [x] Add M7 collaboration execution loop that dispatches assigned tasks, respects dependencies/preconditions, and updates shared state.
+- [x] Add Agent-backed M7 collaboration executor adapter that turns assigned tasks into live `Agent.run_goal()` calls.
+- [x] Add configurable bot bridge host/port and sequential M7 role bridge ports for multi-bot collaboration.
+- [x] Add M7 Agent bridge preflight that checks each role's bridge port, bot readiness, and expected username before live execution.
+- [x] Add explicit M7 role-to-bridge-port mapping so live collaboration does not depend on dispatch order.
+- [x] Add structured M7 collaboration JSON reports for dry-run, bridge preflight, and execution results.
+- [x] Add M7 single-agent baseline execution and comparison output alongside collaboration reports.
+- [x] Add M7 static schedule analysis that estimates collaboration makespan, role busy/idle time, deadline misses, and single-agent baseline speedup before live execution.
+- [x] Add M7 schedule-vs-execution comparison that records measured task start/finish/duration and reports runtime overhead or missing scheduled tasks.
+- [x] Add M7 role-parallel dispatch so different live bot roles can execute runnable tasks concurrently while shared-state commits remain serialized.
+- [x] Make M7 live Agent executor thread-safe for role-parallel dispatch: per-role agent/connection caches are protected, different roles run concurrently, and same-role calls serialize.
+- [x] Add actual M7 overlap metrics to schedule-vs-execution reports: peak parallel tasks, overlap seconds, task-seconds, busy window, parallel efficiency, and overlapping task pairs.
+- [x] Add M7 Agent bridge launch plans to CLI/JSON reports, including exact role usernames, bridge ports, launch commands, and duplicate-port conflict warnings.
+- [x] Make M7 Agent bridge preflight fail fast on duplicate role bridge ports before attempting live bridge connections.
+- [x] Add a Voyager-style automatic curriculum manager for autonomous open-ended goals that preserves emergency survival goals, ranks progression/exploration candidates by novelty, readiness, skill gaps, and recent outcomes, and records curriculum decisions in memory.
+- [x] Add deterministic goal self-verification so planner-reported completion is gated by inventory/world/action evidence for common Minecraft goals, with session-level verification metrics.
+- [x] Add OpenSkill-style verifier-anchor extraction from recipes and knowledge-graph resource drops so goal verification coverage grows automatically with structured Minecraft knowledge.
+- [x] Extend verifier-anchor extraction to reviewed/custom skill postconditions and record before/after inventory deltas as verification evidence.
+- [x] Use verifier-anchor outcomes to gate skill-candidate promotion before writing reviewed custom skills: explicit failed verification rejects approval, achieved verification writes inventory postconditions.
+- [x] Add skill-candidate self-validation reports that explain approve/reject/unknown promotion decisions, persist them in candidate signals, and show verifier gate summaries in the review CLI.
+- [x] Aggregate skill promotion validation reports across benchmark ingestion so suite reports show approved/rejected/unknown readiness, verifier statuses, and per-candidate promotion evidence.
+- [x] Add an explicit LLM promotion critic fallback for skill candidates whose deterministic verifier status remains `unknown`, with CLI and benchmark-ingestion switches that stay disabled by default.
+- [x] Extend promotion critic inputs with lightweight visual evidence from session logs: screenshot references, VLM summaries, grounded resources, landmarks, structures, flags, nearby blocks, and nearby entities.
+- [x] Add offline `promotion-review-ablation` so the same session-log candidates can be reviewed with `visual_evidence` removed versus retained, reporting changed decisions and visual-helped counts.
+- [x] Extend `promotion-review-ablation` into a three-way split: deterministic-only, API visual summary, and screenshot/VLM-assisted review, including API-helped and screenshot-added-value counts.
+- [x] Add opt-in `GoalVerificationCritic` fallback for unknown goal completion checks, including `--goal-critic` CLI support and critic-specific acceptance reasons in session logs.
+- [x] Add offline `goal-verification-ablation` so session-log goals can be replayed through deterministic-only, API visual summary, and screenshot/VLM-assisted verification with API-helped and screenshot-added-value counts.
+- [x] Add manual-label agreement metrics to `goal-verification-ablation` via `--label-file`, so deterministic/API-visual/screenshot-VLM readiness can be compared against reviewed `approved/rejected/unknown` labels.
+- [x] Add manual-label agreement metrics to `promotion-review-ablation` via `--label-file`, using candidate id/name/goal/source matching so promotion decisions can be compared against reviewed `approved/rejected/unknown` labels.
+- [x] Add `review-label-template` so screenshot-backed session logs can generate JSONL manual-review templates for promotion candidates and goal-verification segments before running agreement ablations.
+- [x] Add `visual-trace-report` so session logs can be audited for screenshot paths, VLM summaries, API visual fields, visual goal coverage, and visual promotion-candidate coverage before running label templates or ablations.
+- [x] Wire `VisionAnalyzer` into Agent observation flow so live runs enrich observations with structured grounded resources/dangers and log lightweight `vision` events by default, with `--no-vision-analysis` for baselines.
+- [x] Wire short-term `VisualMemory` into Agent planning context so recent grounded resources, dangers, and VLM summaries can influence LLM planning beyond the current observation.
+- [x] Add screenshot-capture plumbing from Agent observations to BotBridge renderer hooks, CLI flags, vision logs, and VisualMemory while keeping capture disabled by default until a real renderer/plugin is attached.
+- [x] Add visual-trace screenshot file validation so `visual-trace-report` separates raw screenshot references from verified local image files, missing files, and invalid image payloads before screenshot-backed ablations.
+- [x] Gate review-label templates plus promotion/goal screenshot-VLM ablations on verified screenshot files, so missing or invalid screenshot path strings cannot be counted as screenshot-backed improvements.
+- [x] Add `review-label-validate` so filled manual labels can be checked for valid readiness values, match keys, and verified screenshot evidence before agreement ablations.
+- [x] Add `visual-review-pipeline` so screenshot-backed session logs can run visual trace audit, review-template generation, label validation, and optional promotion/goal visual ablations from one offline report.
+- [x] Add a Node bridge `--screenshot-plugin` loader so renderer modules can attach `captureScreenshot`, return file paths or image bytes, and have the bridge write/verify screenshot files for the Python visual pipeline.
+- [x] Add an optional `screenshot_plugin_prismarine_viewer.js` renderer plugin plus `npm run start:screenshot` so real prismarine-viewer screenshots can be attached once optional native renderer dependencies are installed.
+- [x] Add `preflight --screenshot-renderer` and automatic `benchmark --preflight --capture-screenshots` renderer checks so missing optional prismarine screenshot dependencies are caught before live runs.
+- [x] Add a Docker screenshot bridge (`docker/screenshot-bridge`) plus `npm run docker:screenshot:build`, and make the Node bridge listen host configurable so container port mapping can expose screenshot-capable bridges.
+- [x] Add `screenshot-smoke-test` so a live bridge can capture one screenshot and verify that the Python process can see a valid image file before running full Agent sessions or visual review pipelines.
+- [x] Add conservative visual action grounding so structured visible resources can insert approach/focus actions, fill missing `dig` coordinates, and nearby hostile entities can prepend a retreat action, with `--no-visual-action-grounding` for baselines.
+- [x] Add session and benchmark metrics for visual action grounding suggestions/interventions, including intervention phase, suggestion kind, action type, and touched goals.
+- [x] Add offline `visual-action-ablation` so built-in visual grounding cases for coordinate fill, resource approach, target focus, danger retreat, and unrelated-resource no-op can compare disabled versus enabled action plans without a Minecraft server.
+- [x] Extend `visual-action-ablation` to mine replay cases from session JSONL `visual_action_intervention` events and nearby logged plans.
+- [x] Add visual action grounding ablation into `visual-review-pipeline --run-ablations`, alongside promotion and goal-verification visual ablations.
+- [x] Add live benchmark `--visual-action-ablation` so M1/M2 suites can compare visual action grounding disabled versus enabled, including visual action intervention counts and phases.
+- [x] Add OpenClaw-style recall diversity tracking for memory entries and transferable experiences, plus `memory-consolidation-report` to identify reviewable consolidation candidates.
+- [x] Add MineExplorer to the paper index as the next open-world autonomous exploration evaluation reference.
+- [x] Add offline `exploration-trace-report` for MineExplorer-style autonomous/open-world coverage: visited position spread, newly observed blocks/entities/resources, visual evidence, hazards, multi-step plans, and action failure categories.
+- [x] Add a curriculum feedback bridge from `exploration-trace-report`: reports now emit `curriculum_feedback`, and `CurriculumManager.record_exploration_feedback()` uses discovered resources, low-movement logs, and failure categories to adjust future exploration candidates.
+- [x] Add OpenHA/CrossAgent to the paper index and map Chain-of-Action ideas onto Singularity's action abstraction layer.
+
+## Current Engineering Priorities
+- [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
+- [ ] Restart `node src/bot/bot_server.js` so the new `health` command is live.
+- [ ] Start Minecraft server on `localhost:25565`, then re-run `python -m singularity.main preflight`.
+- [ ] Run live M7 with `--single-agent-baseline --output logs/benchmarks/bm701_collab_report.json` and review the collaboration-vs-baseline comparison.
+- [ ] Run live M7 and inspect `execution_schedule_comparison` plus `single_agent_baseline_schedule_execution_comparison` for bridge/runtime overhead.
+- [ ] Inspect live M7 `execution_schedule_comparison.actual_peak_parallel_tasks`, `actual_parallel_overlap_s`, and `overlapping_task_pairs` to confirm real multi-bot overlap.
+- [ ] Use `agent_bridge_launch_plan.commands` from the preflight JSON as the source of truth for starting M7 bot bridges.
+- [ ] Keep all live M7 role ports unique with `--bridge-port-base` or repeated `--role-bridge-port ROLE=PORT`.
+- [ ] Run autonomous mode with the new curriculum enabled and inspect `curriculum.last_decision` plus `auto_goal_complete/failed` episodes for goal-loop quality.
+- [ ] Run `exploration-trace-report` on real autonomous session logs, apply `curriculum_feedback`, and compare before/after curriculum candidate rankings.
+- [ ] Add an action-abstraction report for OpenHA/CrossAgent-style analysis of canonical actions, backend commands, failed mappings, and tasks that may need lower-level visual control.
+- [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
+- [ ] Run an unknown visual/environment goal with `--goal-critic` and inspect `goal_verification_metrics` plus critic evidence in the session log.
+- [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces and compare completion judgments against manual review.
+- [ ] Run benchmark ingestion on live M1/M2 traces and compare `promotion_readiness` against manually reviewed candidate quality.
+- [ ] Run `--promotion-critic` on unknown live M1/M2 candidates and inspect critic-approved postconditions before approval.
+- [ ] Capture at least one real screenshot-backed session and verify that `visual_evidence` improves critic decisions for visual-only or environment-state goals.
+- [ ] Build and run the screenshot bridge container with `logs/screenshots` mounted, pass `screenshot-smoke-test`, then run with `--capture-screenshots` to produce real files under `logs/screenshots`.
+- [ ] Run `visual-review-pipeline` on real session logs, first without labels to triage coverage/templates, then with filled labels and `--run-ablations` to compare promotion and goal visual evidence against manual review.
+- [ ] Run live visual action grounding on a resource/danger scenario and compare against `--no-visual-action-grounding` logs.
+- [ ] Inspect `intervention_metrics.visual_action_intervention_count` and `visual_action_intervention_phases` in live benchmark results to confirm visual grounding actually changed online behavior.
+- [ ] Run `visual-action-ablation --session-log` on real screenshot-backed traces and compare mined cases against the built-in visual grounding cases.
+- [ ] Use `visual-review-pipeline --run-ablations` on real traces to inspect promotion, goal, and visual-action ablation summaries in one report.
+- [ ] Run `benchmark --suite m1 --preflight --visual-action-ablation` once the Minecraft server and screenshot-capable bridge are live.
+
+## Research Priorities
+- [ ] Run live policy-skill benchmark ablation after Minecraft server and bot bridge are ready.
+- [ ] Compare skill-candidate promotion rates with verifier gate enabled versus legacy score-only promotion on live M1/M2 traces.
+- [ ] Run the three-way `promotion-review-ablation` with `--label-file` on real screenshot-backed traces and compare reviewer agreement against manual judgments.
+- [ ] Compare the `visual-review-pipeline` promotion and goal ablation sections on the same screenshot-backed sessions to decide which visual evidence should become online policy.

@@ -1,0 +1,11 @@
+.git
+.venv
+__pycache__
+*.pyc
+node_modules
+logs
+mc-server
+workspace/reviews
+workspace/skills
+workspace/memory
+workspace/sessions

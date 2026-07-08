@@ -67,13 +67,147 @@ class SessionLogger:
         elapsed = time.time() - self.start_time
         action_count = sum(1 for e in self.events if e["type"] == "action")
         error_count = sum(1 for e in self.events if e["type"] == "error")
+        intervention_metrics = self._intervention_metrics()
+        visual_action_metrics = self._visual_action_metrics()
+        intervention_metrics.update(visual_action_metrics)
+        goal_verification_metrics = self._goal_verification_metrics()
         return {
             "session_id": self.session_id,
             "duration_s": round(elapsed, 2),
             "total_events": len(self.events),
             "action_count": action_count,
             "error_count": error_count,
+            "intervention_metrics": intervention_metrics,
+            "visual_action_metrics": visual_action_metrics,
+            "goal_verification_metrics": goal_verification_metrics,
             "log_path": self._log_path,
+        }
+
+    def _intervention_metrics(self) -> dict:
+        hints = [event for event in self.events if event.get("type") == "policy_hint"]
+        interventions = [
+            event for event in self.events
+            if event.get("type") in {"policy_intervention", "failure_correction_selected", "failure_correction_action", "failure_correction_completed", "failure_correction_failed"}
+        ]
+        phases = []
+        skills = set()
+        for event in interventions:
+            event_type = event.get("type")
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            phase = data.get("phase")
+            if not phase:
+                phase = {
+                    "failure_correction_selected": "selected",
+                    "failure_correction_action": "action",
+                    "failure_correction_completed": "completed",
+                    "failure_correction_failed": "failed",
+                }.get(event_type, "")
+            if phase:
+                phases.append(phase)
+            if data.get("skill"):
+                skills.add(str(data["skill"]))
+            for hint in data.get("hints", []):
+                if isinstance(hint, str) and ":" in hint:
+                    skills.add(hint.split(":", 1)[0])
+
+        completed = phases.count("completed")
+        failed = phases.count("failed")
+        attempts = phases.count("selected")
+        action_steps = phases.count("action")
+        denominator = completed + failed
+        return {
+            "policy_hint_count": len(hints),
+            "policy_intervention_count": attempts,
+            "policy_intervention_actions": action_steps,
+            "policy_intervention_successes": completed,
+            "policy_intervention_failures": failed,
+            "policy_intervention_success_rate": round(completed / denominator, 3) if denominator else 0.0,
+            "policy_intervention_skills": sorted(skills),
+        }
+
+    def _visual_action_metrics(self) -> dict:
+        suggestion_events = [
+            event for event in self.events
+            if event.get("type") == "visual_action_suggestion"
+        ]
+        intervention_events = [
+            event for event in self.events
+            if event.get("type") == "visual_action_intervention"
+        ]
+        suggestion_kinds = {}
+        intervention_kinds = {}
+        intervention_phases = {}
+        action_types = {}
+        goals = set()
+        suggestion_count = 0
+
+        for event in suggestion_events:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if data.get("goal"):
+                goals.add(str(data["goal"]))
+            suggestions = data.get("suggestions", [])
+            if not isinstance(suggestions, list):
+                continue
+            suggestion_count += len(suggestions)
+            for suggestion in suggestions:
+                if not isinstance(suggestion, dict):
+                    continue
+                kind = str(suggestion.get("kind", "unknown"))
+                suggestion_kinds[kind] = suggestion_kinds.get(kind, 0) + 1
+                action_type = suggestion.get("action", {}).get("type") if isinstance(suggestion.get("action", {}), dict) else ""
+                if action_type:
+                    action_types[str(action_type)] = action_types.get(str(action_type), 0) + 1
+
+        for event in intervention_events:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if data.get("goal"):
+                goals.add(str(data["goal"]))
+            phase = str(data.get("phase", "unknown"))
+            intervention_phases[phase] = intervention_phases.get(phase, 0) + 1
+            suggestion = data.get("suggestion", {}) if isinstance(data.get("suggestion", {}), dict) else {}
+            kind = str(suggestion.get("kind", "unknown"))
+            intervention_kinds[kind] = intervention_kinds.get(kind, 0) + 1
+            action = suggestion.get("action", {}) if isinstance(suggestion.get("action", {}), dict) else {}
+            action_type = action.get("type")
+            if action_type:
+                action_types[str(action_type)] = action_types.get(str(action_type), 0) + 1
+
+        return {
+            "visual_action_suggestion_event_count": len(suggestion_events),
+            "visual_action_suggestion_count": suggestion_count,
+            "visual_action_intervention_count": len(intervention_events),
+            "visual_action_suggestion_kinds": suggestion_kinds,
+            "visual_action_intervention_kinds": intervention_kinds,
+            "visual_action_intervention_phases": intervention_phases,
+            "visual_action_action_types": action_types,
+            "visual_action_goals": sorted(goals),
+        }
+
+    def _goal_verification_metrics(self) -> dict:
+        events = [event for event in self.events if event.get("type") == "goal_verification"]
+        accepted = 0
+        rejected = 0
+        reasons = {}
+        data_by_event = []
+        for event in events:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            data_by_event.append(data)
+            context = data.get("context", {}) if isinstance(data.get("context", {}), dict) else {}
+            if context.get("accepted") is True:
+                accepted += 1
+            elif context.get("accepted") is False:
+                rejected += 1
+            reason = context.get("acceptance_reason")
+            if reason:
+                reasons[reason] = reasons.get(reason, 0) + 1
+        return {
+            "count": len(events),
+            "achieved": sum(1 for data in data_by_event if data.get("achieved")),
+            "failed": sum(1 for data in data_by_event if data.get("status") == "failed"),
+            "unknown": sum(1 for data in data_by_event if data.get("status") == "unknown"),
+            "accepted": accepted,
+            "rejected": rejected,
+            "acceptance_reasons": reasons,
         }
 
     def close(self):

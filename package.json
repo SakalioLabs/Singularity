@@ -5,7 +5,10 @@
   "main": "src/bot/bot_server.js",
   "scripts": {
     "start": "node src/bot/bot_server.js",
-    "start:dev": "node src/bot/bot_server.js --host localhost --port 25565"
+    "start:dev": "node src/bot/bot_server.js --host localhost --port 25565",
+    "start:screenshot": "node src/bot/bot_server.js --screenshot-plugin src/bot/screenshot_plugin_prismarine_viewer.js",
+    "check:screenshot-renderer": "node src/bot/screenshot_plugin_prismarine_viewer.js --check",
+    "docker:screenshot:build": "docker build -f docker/screenshot-bridge/Dockerfile -t singularity-screenshot-bridge ."
   },
   "dependencies": {
     "mineflayer": "^4.0.0",

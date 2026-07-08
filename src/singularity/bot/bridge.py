@@ -3,6 +3,7 @@ import json
 import socket
 import logging
 import time
+from json import JSONDecodeError
 from typing import Optional
 
 from singularity.core.config import BotConfig
@@ -25,8 +26,8 @@ class BotBridge:
         self.config = config
         self._socket: Optional[socket.socket] = None
         self._connected = False
-        self._bridge_host = "127.0.0.1"
-        self._bridge_port = 3000
+        self._bridge_host = config.bridge_host
+        self._bridge_port = config.bridge_port
         self._retry_count = 0
 
     def connect(self) -> bool:
@@ -75,9 +76,7 @@ class BotBridge:
                     response += chunk
                     if b"\n" in response:
                         break
-                # Only parse first JSON in case of multi-response chunk
-                first_line = response.split(b"\n", 1)[0]
-                return json.loads(first_line.decode("utf-8").strip())
+                return self._decode_response(command, response)
             except (socket.timeout, ConnectionError, BrokenPipeError) as e:
                 delay = RETRY_BASE_DELAY * (2 ** attempt)
                 logger.warning(f"Command '{command}' attempt {attempt+1}/{MAX_RETRIES} failed: {e}, retrying in {delay}s")
@@ -88,6 +87,18 @@ class BotBridge:
                 logger.error(f"Command '{command}' failed: {e}")
                 return {"success": False, "error": str(e)}
         return {"success": False, "error": f"Command '{command}' failed after {MAX_RETRIES} retries"}
+
+    def _decode_response(self, command: str, response: bytes) -> dict:
+        """Decode one newline-delimited JSON response from the bridge."""
+        if not response:
+            return {"success": False, "error": f"Empty response from bot bridge for command '{command}'"}
+        first_line = response.split(b"\n", 1)[0].decode("utf-8").strip()
+        if not first_line:
+            return {"success": False, "error": f"Blank response from bot bridge for command '{command}'"}
+        try:
+            return json.loads(first_line)
+        except JSONDecodeError as e:
+            return {"success": False, "error": f"Invalid JSON from bot bridge for command '{command}': {e}"}
 
     def _reconnect(self):
         """Attempt to re-establish the connection."""
@@ -102,6 +113,9 @@ class BotBridge:
     # Observation commands
     def get_player_state(self) -> dict:
         return self._send_command("get_player_state")
+
+    def health(self) -> dict:
+        return self._send_command("health")
 
     def get_inventory(self) -> list:
         result = self._send_command("get_inventory")
@@ -135,6 +149,10 @@ class BotBridge:
         result = self._send_command("get_light_level")
         return result.get("light_level", 0)
 
+    def capture_screenshot(self, output_path: str = "") -> dict:
+        """Ask the bridge renderer, if present, to capture the current view."""
+        params = {"path": output_path} if output_path else {}
+        return self._send_command("capture_screenshot", params)
 
     def get_nearby_trees(self, radius: int = 32) -> list:
         result = self._send_command("get_nearby_trees", {"radius": radius})
@@ -149,12 +167,12 @@ class BotBridge:
             response = b""
             while True:
                 chunk = self._socket.recv(4096)
+                if not chunk:
+                    break
                 response += chunk
                 if b"\n" in response:
                     break
-                # Only parse first JSON in case of multi-response chunk
-                first_line = response.split(b"\n", 1)[0]
-            return json.loads(first_line.decode("utf-8").strip())
+            return self._decode_response(command, response)
         except Exception as e:
             return {"success": False, "error": str(e)}
     # Action commands
@@ -187,5 +205,3 @@ class BotBridge:
 
     def chat(self, message: str) -> dict:
         return self._send_command("chat", {"message": message})
-
-
