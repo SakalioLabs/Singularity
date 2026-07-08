@@ -283,6 +283,17 @@ def main():
     action_abstraction_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     action_abstraction_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline mixed-initiative task template report
+    mixed_parser = subparsers.add_parser("mixed-initiative-report", help="Compile MineNPC-style task templates and optionally validate bounded evidence")
+    mixed_parser.add_argument("--goal", type=str, default="Collect 20 oak logs", help="Natural-language Minecraft request")
+    mixed_parser.add_argument("--template", type=str, default="auto", choices=["auto", "collect_oak_logs", "fetch_named_tool"], help="Template to use")
+    mixed_parser.add_argument("--context-json", type=str, default="", help="Optional JSON object with slots, memory_preferences, or clarification_answers")
+    mixed_parser.add_argument("--context-file", type=str, default="", help="Optional JSON file with context")
+    mixed_parser.add_argument("--evidence-json", type=str, default="", help="Optional bounded evidence JSON object")
+    mixed_parser.add_argument("--evidence-file", type=str, default="", help="Optional bounded evidence JSON file")
+    mixed_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    mixed_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline visual review pipeline
     visual_pipeline_parser = subparsers.add_parser("visual-review-pipeline", help="Run visual trace audit, review templates, label validation, and optional ablations")
     visual_pipeline_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -946,6 +957,74 @@ def main():
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "mixed-initiative-report":
+        from singularity.evaluation.mixed_initiative import build_mixed_initiative_report
+
+        def load_json_arg(json_text: str = "", json_path: str = "") -> dict:
+            if json_path:
+                with open(json_path, "r", encoding="utf-8-sig") as f:
+                    return json.load(f)
+            if json_text:
+                return json.loads(json_text)
+            return {}
+
+        context = load_json_arg(
+            getattr(args, "context_json", ""),
+            getattr(args, "context_file", ""),
+        )
+        evidence = None
+        if getattr(args, "evidence_json", "") or getattr(args, "evidence_file", ""):
+            evidence = load_json_arg(
+                getattr(args, "evidence_json", ""),
+                getattr(args, "evidence_file", ""),
+            )
+        report = build_mixed_initiative_report(
+            getattr(args, "goal", "Collect 20 oak logs"),
+            template_id=getattr(args, "template", "auto"),
+            context=context,
+            evidence=evidence,
+        )
+        plan = report["plan"]
+        print("\nMixed-Initiative Task Report")
+        print(f"  template: {plan['template_id']} ({plan['category']})")
+        print(f"  goal: {plan['goal']}")
+        print(f"  preview: {plan['plan_preview']}")
+        if plan["clarifying_questions"]:
+            print(f"  clarification: {plan['clarifying_questions'][0]}")
+        print(f"  unbound slots: {plan['unbound_slot_count']}")
+        for subtask in plan["subtasks"]:
+            marker = "?" if subtask["missing_parameters"] else "+"
+            print(f"  [{marker}] {subtask['id']}: {subtask['name']}")
+            if subtask["bound_parameters"]:
+                params = ", ".join(f"{key}={value}" for key, value in subtask["bound_parameters"].items())
+                print(f"      params: {params}")
+            if subtask["missing_parameters"]:
+                print(f"      missing: {', '.join(subtask['missing_parameters'])}")
+            if subtask["clarifying_question"]:
+                print(f"      question: {subtask['clarifying_question']}")
+        if report["validation"]:
+            summary = report["validation_summary"]
+            print(
+                "  validation: "
+                f"passed={summary['passed']}, failed={summary['failed']}, "
+                f"invalid={summary['invalid']}, unknown={summary['unknown']}"
+            )
+            for result in report["validation"]:
+                marker = "+" if result["success"] else "x" if result["status"] == "invalid" else "-"
+                print(f"  [{marker}] {result['subtask_id']}: {result['status']}")
+                if result["evidence"]:
+                    print(f"      evidence: {'; '.join(result['evidence'][:3])}")
+                if result["missing"]:
+                    print(f"      missing: {'; '.join(result['missing'][:3])}")
+                if result["policy_violations"]:
+                    details = [violation["detail"] for violation in result["policy_violations"][:3]]
+                    print(f"      policy: {'; '.join(details)}")
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
         return
 

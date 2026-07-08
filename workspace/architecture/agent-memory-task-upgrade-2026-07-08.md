@@ -161,6 +161,20 @@ Singularity adaptation:
 - Add an exploration trace report over autonomous session logs: visited position spread, new block/entity/resource types, visual evidence coverage, hazards encountered, multi-step plans, and failed action categories.
 - Feed exploration coverage back into curriculum novelty scoring once live autonomous traces are available.
 
+### MineNPC-Task: Task Suite for Memory-Aware Minecraft Agents
+
+Source: https://arxiv.org/abs/2601.05215
+
+Core idea:
+- Natural player requests should be evaluated as mixed-initiative tasks with explicit slots, dependencies, plan previews, bounded public-API perception/action, and machine-checkable validators.
+- Missing slots should trigger a single targeted clarification, and answers should become scoped memory with provenance rather than unbounded global facts.
+- Valid completion evidence should come from in-world signals such as inventory/equipment deltas, position changes, loaded-chunk blocks/entities, and recent chat; privileged commands or global map introspection should invalidate runs.
+
+Singularity adaptation:
+- Add a lightweight template compiler for user-authored Minecraft requests.
+- Add bounded-evidence validators that complement `GoalVerifier`: template validators can judge subtask-level outcomes, while goal verification gates final planner completion.
+- Treat clarification answers as scoped preference memory candidates so repeated user corrections improve future slot binding without polluting global memory.
+
 ### AutoMem, Agentic Memory, GovMem, STALE, MemConflict, and ActMem
 
 Sources:
@@ -282,6 +296,15 @@ Memory should be treated as a policy-controlled subsystem:
 - read-time retrieval should filter stale/superseded/invalidated/condition-mismatched durable entries before they can influence planner prompts
 - strict write gates should remain off until real trace audits show high precision
 
+10. Mixed-initiative task templates
+
+User-authored Minecraft requests need a benchmark layer between free-form chat and raw live execution:
+- compile requests into short plan previews with explicit dependencies and slot bindings
+- ask at most one targeted clarification when a required slot is missing or a risky default should be confirmed
+- persist clarification answers as scoped preferences with provenance
+- validate each subtask against bounded in-world evidence, not planner self-report or privileged state
+- invalidate traces that use admin commands, global map/seed introspection, or scans beyond the loaded observation envelope
+
 ## Implemented in this pass
 
 - Fixed `KnowledgeBase` recipe loading path.
@@ -397,3 +420,4 @@ Memory should be treated as a policy-controlled subsystem:
 - Added STALE-style shared-state revision detection: when M7 execution changes a previously provenanced shared key, the runner records `supersedes` metadata, marks the candidate as `implicit_conflict`, and reports state revision counts.
 - Added MemConflict-style read filtering: `MemorySystem.get_relevant_memory()` accepts current state, excludes stale/superseded/invalidated/contradicted/out-of-scope or condition-mismatched durable entries, and exposes `memory_read_filter_report()` for retrieval diagnostics.
 - Wired read-filter diagnostics into Agent `memory_read` events, session summaries, benchmark result JSON, `memory-policy-report`, and added `memory-read-filter-report` CLI for offline memory-directory audits.
+- Added MineNPC-style mixed-initiative task templates and bounded validators: `mixed-initiative-report` compiles natural player requests into subtask records with dependencies, slot bindings, a surfaced clarification, scoped memory-write candidates, and optional bounded-evidence validation.

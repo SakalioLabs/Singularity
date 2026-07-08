@@ -151,6 +151,12 @@ python -m singularity.main exploration-trace-report --session-log logs/session_x
 python -m singularity.main action-abstraction-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/action_abstraction.json
 # The saved JSON includes `action_abstraction_feedback` policy hints for API-vs-visual-control selection.
 
+# Compile a MineNPC-style mixed-initiative task preview and optional bounded validator report
+python -m singularity.main mixed-initiative-report --goal "Collect 20 oak logs"
+python -m singularity.main mixed-initiative-report --goal "Get me a pickaxe" --context-json "{\"memory_preferences\":{\"landmark\":\"weapon_storage\"}}"
+# Use --evidence-file with pre_observation/post_observation/actions/recent_chat JSON to validate subtasks
+# without admin commands, hidden world state, or global map shortcuts.
+
 # M2 benchmarks (LLM planning)
 python -m singularity.main benchmark --suite m2
 

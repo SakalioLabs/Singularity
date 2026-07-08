@@ -955,9 +955,9 @@ class Agent:
         """Record self-verification outcomes for debugging and benchmark analysis."""
         payload = verification.to_dict()
         payload["context"] = context or {}
+        self._write_memory_episode("goal_verification", payload, source="goal_verifier")
         if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
             self.session_logger.log("goal_verification", payload)
-        self._write_memory_episode("goal_verification", payload, source="goal_verifier")
 
     def _record_skill_usage(self, action: dict, success: bool):
         """Record skill usage for actions that map to known skills."""

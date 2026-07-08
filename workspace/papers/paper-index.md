@@ -686,6 +686,24 @@
 
 ---
 
+## P-037: MineNPC-Task
+
+- **Title**: MineNPC-Task: Task Suite for Memory-Aware Minecraft Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2601.05215
+- **Type**: Benchmark / evaluation harness
+- **Task Type**: Memory-aware, mixed-initiative player-authored Minecraft requests
+- **Core Method**: Parametric templates with dependencies, required slots, one targeted clarification, bounded Mineflayer perception/action constraints, and machine-checkable validators
+- **Action Space**: Public Mineflayer APIs under bounded-knowledge policy
+- **Memory**: Scoped landmarks, artifacts, preferences, commitments, and breakdown records with provenance
+- **Key Results**: Reports 216 subtasks across 8 expert-player co-play sessions and highlights recurring execution, inventory/tool, referencing, and navigation failures
+- **Scores**: R=5, N=4, R=4, E=5
+- **Value to Project**: Direct blueprint for user-authored task templates, clarification-to-memory flow, and bounded-evidence validation in Singularity benchmarks
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-minenpc-task.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -726,3 +744,4 @@
 | P-034 | STALE | 2026 | R5/N5/R4/E5 | P2 |
 | P-035 | MemConflict | 2026 | R5/N5/R4/E5 | P2 |
 | P-036 | ActMem | 2026 | R4/N5/R3/E5 | P2 |
+| P-037 | MineNPC-Task | 2026 | R5/N4/R4/E5 | P2 |
