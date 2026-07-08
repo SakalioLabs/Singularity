@@ -251,6 +251,18 @@ def main():
     skill_memory_quality_ablation_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     skill_memory_quality_ablation_parser.add_argument("--log-level", type=str, default="INFO")
 
+    skill_memory_quality_gate_parser = subparsers.add_parser(
+        "skill-memory-quality-gate",
+        help="Gate REUSE skill-memory promotion with localized quality evidence",
+    )
+    skill_memory_quality_gate_parser.add_argument("--skill-memory-report", action="append", default=[], help="Saved skill-memory-report JSON")
+    skill_memory_quality_gate_parser.add_argument("--quality-feedback", action="append", default=[], help="Saved skill-memory-quality-report JSON or feedback JSON")
+    skill_memory_quality_gate_parser.add_argument("--target", type=str, default="skill_memory_reuse_promotion", help="Promotion target label for the gate report")
+    skill_memory_quality_gate_parser.add_argument("--min-supported-reuse", type=int, default=2, help="Minimum localized supported REUSE count required")
+    skill_memory_quality_gate_parser.add_argument("--max-conflicting-reuse", type=int, default=0, help="Maximum localized conflicting REUSE count allowed")
+    skill_memory_quality_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    skill_memory_quality_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Memory consolidation report
     memory_report_parser = subparsers.add_parser("memory-consolidation-report", help="Report repeatedly recalled memories worth consolidation")
     memory_report_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
@@ -914,6 +926,35 @@ def main():
             for item in case["adjusted_hints"][:min(3, getattr(args, "limit", 5))]:
                 quality = ",".join(item.get("quality_policies", [])) or "none"
                 print(f"      adjusted {item['rank']}: {item['hint_type']} {item['skill']} quality={quality}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "skill-memory-quality-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        memory_reports = getattr(args, "skill_memory_report", []) or []
+        feedback_paths = getattr(args, "quality_feedback", []) or []
+        if not memory_reports:
+            print("skill-memory-quality-gate requires at least one --skill-memory-report")
+            sys.exit(1)
+        if not feedback_paths:
+            print("skill-memory-quality-gate requires at least one --quality-feedback")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.build_skill_memory_quality_gate(
+            memory_report_paths=memory_reports,
+            quality_feedback_paths=feedback_paths,
+            target=getattr(args, "target", "skill_memory_reuse_promotion"),
+            min_supported_reuse=getattr(args, "min_supported_reuse", 2),
+            max_conflicting_reuse=getattr(args, "max_conflicting_reuse", 0),
+        )
+        runner.print_skill_memory_quality_gate_report(report)
         if getattr(args, "output", ""):
             output_dir = os.path.dirname(args.output)
             if output_dir:

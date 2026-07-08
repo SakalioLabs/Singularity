@@ -2738,6 +2738,89 @@ def test_skill_memory_quality_report_labels_typed_hint_outcomes():
     print("PASS: Skill memory quality report labels typed hint outcomes")
 
 
+def test_skill_memory_quality_gate_controls_reuse_promotion():
+    tmpdir = tempfile.mkdtemp()
+    skill_library = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=False)
+    for name in ("supported_torch_skill", "risky_torch_skill", "thin_torch_skill"):
+        skill_library.create_skill(
+            name,
+            "Craft torches with skill-local memory evidence",
+            json.dumps([{"type": "craft", "parameters": {"item": "torch", "count": 4}}]),
+            postconditions={"inventory": {"torch": 4}},
+            gate={"decision": "approve", "verification": {"status": "achieved"}},
+        )
+        skill_library.record_skill_memory(
+            name,
+            f"{name} replayed a torch crafting route.",
+            memory_type="replay",
+            outcome="success",
+            task_family="crafting",
+            confidence=0.9,
+        )
+    skill_library.record_skill_memory(
+        "supported_torch_skill",
+        "Second supported replay confirmed coal-before-craft ordering.",
+        memory_type="replay",
+        outcome="success",
+        task_family="crafting",
+        confidence=0.85,
+        transfer_gate={"readiness": "approved", "target": "skill:supported_torch_skill"},
+    )
+
+    memory_report = skill_library.skill_memory_report("Craft torches", task_family="crafting", limit=0)
+    quality_feedback = {
+        "skill_memory_quality_feedback": {
+            "hint_quality_items": [
+                {
+                    "hint_type": "REUSE",
+                    "skill": "supported_torch_skill",
+                    "task_family": "crafting",
+                    "count": 2,
+                    "labels": {"reuse_supported_by_goal_success": 2},
+                },
+                {
+                    "hint_type": "REUSE",
+                    "skill": "risky_torch_skill",
+                    "task_family": "crafting",
+                    "count": 2,
+                    "labels": {
+                        "reuse_supported_by_goal_success": 1,
+                        "reuse_conflicted_with_failures": 1,
+                    },
+                },
+                {
+                    "hint_type": "REUSE",
+                    "skill": "thin_torch_skill",
+                    "task_family": "crafting",
+                    "count": 1,
+                    "labels": {"reuse_supported_by_goal_success": 1},
+                },
+            ]
+        }
+    }
+
+    runner = BenchmarkRunner(Config())
+    gate = runner.build_skill_memory_quality_gate(
+        memory_reports=[memory_report],
+        quality_feedbacks=[quality_feedback],
+        min_supported_reuse=2,
+        max_conflicting_reuse=0,
+    )
+    candidates = {item["skill"]: item for item in gate["candidates"]}
+
+    assert gate["readiness"] == "rejected"
+    assert gate["approved_count"] == 1
+    assert gate["review_count"] == 1
+    assert gate["rejected_count"] == 1
+    assert candidates["supported_torch_skill"]["readiness"] == "approved"
+    assert candidates["supported_torch_skill"]["decision"] == "allow_supported_reuse_skill_memory_promotion"
+    assert candidates["risky_torch_skill"]["readiness"] == "rejected"
+    assert candidates["thin_torch_skill"]["readiness"] == "review"
+    assert "promote_supported_reuse_skill_memory" in gate["policy_hints"]
+    assert "block_conflicting_reuse_skill_memory" in gate["policy_hints"]
+    print("PASS: Skill memory quality gate controls REUSE promotion")
+
+
 def test_visual_action_benchmark_ablation_compares_live_suite_modes():
     class FakeVisualActionBenchmarkRunner(BenchmarkRunner):
         def _run_task_with_config(self, task, config):
@@ -2983,6 +3066,7 @@ if __name__ == "__main__":
     test_policy_skill_benchmark_ablation_compares_live_suite_modes()
     test_skill_memory_benchmark_ablation_compares_policy_only_baseline()
     test_skill_memory_quality_report_labels_typed_hint_outcomes()
+    test_skill_memory_quality_gate_controls_reuse_promotion()
     test_visual_action_benchmark_ablation_compares_live_suite_modes()
     test_mixed_policy_benchmark_ablation_compares_live_patch_modes()
     test_scheduling_ablation_report_compares_causal_switch()

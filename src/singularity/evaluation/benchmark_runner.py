@@ -3561,6 +3561,285 @@ class BenchmarkRunner:
             skill_library.record_skill_memory_quality_feedback(feedback)
         return feedback
 
+    def build_skill_memory_quality_gate(
+        self,
+        memory_reports: Optional[list[dict]] = None,
+        memory_report_paths: Optional[list[str]] = None,
+        quality_feedbacks: Optional[list[dict]] = None,
+        quality_feedback_paths: Optional[list[str]] = None,
+        target: str = "skill_memory_reuse_promotion",
+        min_supported_reuse: int = 2,
+        max_conflicting_reuse: int = 0,
+    ) -> dict:
+        """Gate skill-memory REUSE promotion with localized quality evidence."""
+        report = {
+            "required": True,
+            "target": target,
+            "readiness": "review",
+            "decision": "keep_skill_memory_review_only",
+            "reason": "localized skill-memory quality evidence is required",
+            "memory_report_count": 0,
+            "quality_feedback_count": 0,
+            "candidate_count": 0,
+            "approved_count": 0,
+            "review_count": 0,
+            "rejected_count": 0,
+            "thresholds": {
+                "min_supported_reuse": int(min_supported_reuse),
+                "max_conflicting_reuse": int(max_conflicting_reuse),
+            },
+            "missing": [],
+            "policy_hints": [],
+            "candidates": [],
+            "checks": [],
+            "errors": [],
+        }
+        memory_items = self._load_gate_payloads(
+            memory_reports or [],
+            memory_report_paths or [],
+            report["errors"],
+            "skill_memory_report",
+        )
+        quality_items = self._load_gate_payloads(
+            quality_feedbacks or [],
+            quality_feedback_paths or [],
+            report["errors"],
+            "skill_memory_quality_feedback",
+        )
+        report["memory_report_count"] = len(memory_items)
+        report["quality_feedback_count"] = len(quality_items)
+        if not memory_items:
+            report["missing"].append("skill_memory_report")
+        if not quality_items:
+            report["missing"].append("skill_memory_quality_feedback")
+
+        memory_index = self._skill_memory_gate_memory_index(memory_items)
+        quality_index = self._skill_memory_gate_quality_index(quality_items)
+        for key, quality in sorted(quality_index.items(), key=lambda item: item[0]):
+            hint_type, skill, family = key
+            if hint_type != "REUSE":
+                continue
+            candidate = self._skill_memory_quality_gate_candidate(
+                skill,
+                family,
+                quality,
+                memory_index.get((skill, family)) or memory_index.get((skill, "")),
+                report["thresholds"],
+            )
+            report["candidates"].append(candidate)
+            report["checks"].append({
+                "source": ",".join(candidate["sources"]) or "skill_memory_quality_feedback",
+                "kind": "skill_memory_quality_gate",
+                "status": candidate["status"],
+                "detail": candidate["reason"],
+                "metrics": {
+                    "skill": skill,
+                    "task_family": family,
+                    "supported_reuse_count": candidate["supported_reuse_count"],
+                    "conflicting_reuse_count": candidate["conflicting_reuse_count"],
+                    "family_memory_count": candidate["family_memory_count"],
+                },
+            })
+        report["candidate_count"] = len(report["candidates"])
+        report["approved_count"] = sum(1 for item in report["candidates"] if item["readiness"] == "approved")
+        report["review_count"] = sum(1 for item in report["candidates"] if item["readiness"] == "review")
+        report["rejected_count"] = sum(1 for item in report["candidates"] if item["readiness"] == "rejected")
+
+        policy_hints = set()
+        for candidate in report["candidates"]:
+            if candidate["readiness"] == "approved":
+                policy_hints.add("promote_supported_reuse_skill_memory")
+            elif candidate["readiness"] == "rejected":
+                policy_hints.add("block_conflicting_reuse_skill_memory")
+            else:
+                policy_hints.add("collect_more_skill_memory_quality_evidence")
+        report["policy_hints"] = sorted(policy_hints)
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "do_not_promote_skill_memory"
+            report["reason"] = "gate inputs could not be loaded"
+        elif report["rejected_count"]:
+            report["readiness"] = "rejected"
+            report["decision"] = "do_not_promote_skill_memory"
+            report["reason"] = "localized REUSE evidence contains conflicts or blocked skills"
+        elif report["missing"] or not report["candidate_count"] or report["review_count"]:
+            report["readiness"] = "review"
+            report["decision"] = "keep_skill_memory_review_only"
+            report["reason"] = "localized REUSE evidence is incomplete or below promotion confidence"
+        else:
+            report["readiness"] = "approved"
+            report["decision"] = "allow_supported_reuse_skill_memory_promotion"
+            report["reason"] = "localized REUSE hints are repeatedly supported and matched to skill memory"
+        return report
+
+    def _skill_memory_gate_memory_index(self, items: list[tuple[str, dict]]) -> dict[tuple[str, str], dict]:
+        index = {}
+        for source, payload in items:
+            memory_report = payload.get("skill_memory_report", payload) if isinstance(payload, dict) else {}
+            if not isinstance(memory_report, dict):
+                continue
+            default_family = str(memory_report.get("task_family") or "").strip().lower()
+            skills = memory_report.get("skills", [])
+            if not isinstance(skills, list):
+                continue
+            for skill in skills:
+                if not isinstance(skill, dict):
+                    continue
+                name = str(skill.get("name") or "").strip()
+                if not name:
+                    continue
+                family_counts = skill.get("task_family_counts", {}) if isinstance(skill.get("task_family_counts", {}), dict) else {}
+                families = sorted(
+                    str(family or "").strip().lower()
+                    for family in family_counts
+                    if str(family or "").strip()
+                )
+                if not families and default_family:
+                    families = [default_family]
+                if not families:
+                    families = [""]
+                for family in families:
+                    key = (name, family)
+                    entry = index.setdefault(key, {
+                        "skill": name,
+                        "task_family": family,
+                        "memory_count": 0,
+                        "family_memory_count": 0,
+                        "success_memory_count": 0,
+                        "failure_memory_count": 0,
+                        "approved_transfer_memory_count": 0,
+                        "review_transfer_memory_count": 0,
+                        "gate_readiness": "",
+                        "contract_readiness": "",
+                        "issues": set(),
+                        "recommendations": set(),
+                        "sources": set(),
+                    })
+                    family_count = self._gate_int(family_counts.get(family, skill.get("memory_count", 0)))
+                    entry["memory_count"] += self._gate_int(skill.get("memory_count", 0))
+                    entry["family_memory_count"] += family_count
+                    entry["success_memory_count"] += self._gate_int(skill.get("success_memory_count", 0))
+                    entry["failure_memory_count"] += self._gate_int(skill.get("failure_memory_count", 0))
+                    entry["approved_transfer_memory_count"] += self._gate_int(skill.get("approved_transfer_memory_count", 0))
+                    entry["review_transfer_memory_count"] += self._gate_int(skill.get("review_transfer_memory_count", 0))
+                    entry["gate_readiness"] = entry["gate_readiness"] or str(skill.get("gate_readiness") or "")
+                    entry["contract_readiness"] = entry["contract_readiness"] or str(skill.get("contract_readiness") or "")
+                    entry["issues"].update(str(issue) for issue in skill.get("issues", []) if issue)
+                    entry["recommendations"].update(str(item) for item in skill.get("recommendations", []) if item)
+                    entry["sources"].add(source)
+        for entry in index.values():
+            entry["issues"] = sorted(entry["issues"])
+            entry["recommendations"] = sorted(entry["recommendations"])
+            entry["sources"] = sorted(entry["sources"])
+        return index
+
+    def _skill_memory_gate_quality_index(self, items: list[tuple[str, dict]]) -> dict[tuple[str, str, str], dict]:
+        index = {}
+        for source, payload in items:
+            feedback = payload.get("skill_memory_quality_feedback", payload) if isinstance(payload, dict) else {}
+            if not isinstance(feedback, dict):
+                continue
+            quality_items = feedback.get("hint_quality_items", [])
+            if not isinstance(quality_items, list):
+                continue
+            for item in quality_items:
+                if not isinstance(item, dict):
+                    continue
+                hint_type = str(item.get("hint_type") or "UNKNOWN").strip().upper() or "UNKNOWN"
+                skill = str(item.get("skill") or "unknown").strip() or "unknown"
+                family = str(item.get("task_family") or "").strip().lower()
+                key = (hint_type, skill, family)
+                entry = index.setdefault(key, {
+                    "hint_type": hint_type,
+                    "skill": skill,
+                    "task_family": family,
+                    "count": 0,
+                    "labels": {},
+                    "examples": [],
+                    "sources": set(),
+                })
+                entry["count"] += self._gate_int(item.get("count", 0))
+                labels = item.get("labels", {}) if isinstance(item.get("labels", {}), dict) else {}
+                for label, count in labels.items():
+                    entry["labels"][str(label)] = entry["labels"].get(str(label), 0) + self._gate_int(count)
+                examples = item.get("examples", []) if isinstance(item.get("examples", []), list) else []
+                for example in examples:
+                    text = str(example or "").strip()
+                    if text and text not in entry["examples"]:
+                        entry["examples"].append(text)
+                entry["sources"].add(source)
+        for entry in index.values():
+            entry["sources"] = sorted(entry["sources"])
+        return index
+
+    def _skill_memory_quality_gate_candidate(
+        self,
+        skill: str,
+        family: str,
+        quality: dict,
+        memory: Optional[dict],
+        thresholds: dict,
+    ) -> dict:
+        labels = quality.get("labels", {}) if isinstance(quality.get("labels", {}), dict) else {}
+        supported = self._gate_int(labels.get("reuse_supported_by_goal_success", 0))
+        conflicting = self._gate_int(labels.get("reuse_conflicted_with_failures", 0))
+        memory = memory if isinstance(memory, dict) else {}
+        family_memory_count = self._gate_int(memory.get("family_memory_count", 0))
+        gate_readiness = str(memory.get("gate_readiness") or "").lower()
+        contract_readiness = str(memory.get("contract_readiness") or "").lower()
+        issues = list(memory.get("issues", [])) if isinstance(memory.get("issues", []), list) else []
+        min_supported = int(thresholds.get("min_supported_reuse", 2))
+        max_conflicting = int(thresholds.get("max_conflicting_reuse", 0))
+        readiness = "review"
+        decision = "keep_skill_memory_review_only"
+        status = "warn"
+        reason = "localized REUSE support is below promotion threshold"
+        if not memory:
+            reason = "quality item has no matching skill-memory report entry"
+        elif family_memory_count <= 0:
+            reason = "matching skill has no memory in this task family"
+        elif gate_readiness in {"rejected", "error"} or contract_readiness == "blocked":
+            readiness = "rejected"
+            decision = "do_not_promote_skill_memory"
+            status = "fail"
+            reason = "matching skill is blocked by governance or contract readiness"
+        elif conflicting > max_conflicting:
+            readiness = "rejected"
+            decision = "do_not_promote_skill_memory"
+            status = "fail"
+            reason = "localized REUSE hint conflicts with later failures"
+        elif supported >= min_supported:
+            if gate_readiness == "review" or contract_readiness == "review" or "transfer_review_or_rejected" in issues:
+                reason = "localized support is present but transfer or governance remains review-gated"
+            else:
+                readiness = "approved"
+                decision = "allow_supported_reuse_skill_memory_promotion"
+                status = "pass"
+                reason = "localized REUSE hint is repeatedly supported by successful outcomes"
+        return {
+            "skill": skill,
+            "task_family": family,
+            "hint_type": "REUSE",
+            "readiness": readiness,
+            "decision": decision,
+            "status": status,
+            "reason": reason,
+            "supported_reuse_count": supported,
+            "conflicting_reuse_count": conflicting,
+            "hint_count": self._gate_int(quality.get("count", 0)),
+            "family_memory_count": family_memory_count,
+            "success_memory_count": self._gate_int(memory.get("success_memory_count", 0)),
+            "failure_memory_count": self._gate_int(memory.get("failure_memory_count", 0)),
+            "approved_transfer_memory_count": self._gate_int(memory.get("approved_transfer_memory_count", 0)),
+            "review_transfer_memory_count": self._gate_int(memory.get("review_transfer_memory_count", 0)),
+            "gate_readiness": gate_readiness,
+            "contract_readiness": contract_readiness,
+            "issues": issues,
+            "examples": list(quality.get("examples", []))[:3],
+            "sources": sorted(set(quality.get("sources", [])) | set(memory.get("sources", []))),
+        }
+
     def run_memory_policy_report_from_logs(self, session_log_paths: list[str]) -> MemoryPolicyTraceReport:
         """Summarize memory write/read/manage evidence and policy gaps in session logs."""
         report = MemoryPolicyTraceReport()
@@ -8573,6 +8852,37 @@ class BenchmarkRunner:
             if case.recommendations:
                 print(f"      recommendations: {', '.join(case.recommendations[:4])}")
         for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_skill_memory_quality_gate_report(self, report: dict):
+        print("\nSkill Memory Quality Gate")
+        print(f"  target: {report.get('target', 'skill_memory_reuse_promotion')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  evidence: "
+            f"memory_reports={report.get('memory_report_count', 0)}, "
+            f"quality_feedback={report.get('quality_feedback_count', 0)}, "
+            f"candidates={report.get('candidate_count', 0)}, "
+            f"approved={report.get('approved_count', 0)}, "
+            f"review={report.get('review_count', 0)}, "
+            f"rejected={report.get('rejected_count', 0)}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for candidate in report.get("candidates", [])[:8]:
+            marker = "+" if candidate.get("readiness") == "approved" else "x" if candidate.get("readiness") == "rejected" else "!"
+            print(
+                f"  [{marker}] {candidate.get('skill')} ({candidate.get('task_family') or 'any'}): "
+                f"{candidate.get('readiness')} support={candidate.get('supported_reuse_count', 0)} "
+                f"conflict={candidate.get('conflicting_reuse_count', 0)} "
+                f"family_memories={candidate.get('family_memory_count', 0)}"
+            )
+            print(f"      {candidate.get('reason', '')}")
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', []))}")
+        for error in report.get("errors", []):
             print(f"  error: {error}")
 
     def print_bounded_context_report(self, report: BoundedPlanningContextReport):

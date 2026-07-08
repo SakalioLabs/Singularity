@@ -333,6 +333,8 @@ python -m singularity.main skill-memory-quality-report --session-log logs/sessio
 python -m singularity.main run --goal "Craft torches" --skill-memory-quality-feedback logs/benchmarks/skill_memory_quality.json
 # Compare baseline vs quality-feedback-adjusted skill-memory hint ranking offline:
 python -m singularity.main skill-memory-quality-ablation --skill-storage-path workspace/skills --quality-feedback logs/benchmarks/skill_memory_quality.json --goal "Craft torches" --task-family crafting --output logs/benchmarks/skill_memory_quality_ablation.json
+# Gate REUSE promotion by matching localized `hint_quality_items` against skill-local memories:
+python -m singularity.main skill-memory-quality-gate --skill-memory-report logs/benchmarks/skill_memory.json --quality-feedback logs/benchmarks/skill_memory_quality.json --output logs/benchmarks/skill_memory_quality_gate.json
 # Use --no-skill-memory-context on run/autonomous/benchmark/collab-benchmark for baselines.
 python -m singularity.main benchmark --suite m1 --skill-memory-ablation --output logs/benchmarks/skill_memory_ablation.json
 
