@@ -13,6 +13,7 @@ from singularity.evaluation.mixed_initiative import (
     apply_mixed_initiative_policy_patch,
     build_mixed_initiative_report,
     build_mixed_initiative_policy_ablation,
+    build_mixed_initiative_policy_gate,
     build_mixed_initiative_policy_patch,
     build_mixed_initiative_review_experiment_plan,
     build_mixed_initiative_review_label_templates,
@@ -924,6 +925,96 @@ def test_mixed_initiative_policy_ablation_compares_patch_decisions():
     print("PASS: Mixed-initiative policy ablation compares patch decisions")
 
 
+def test_mixed_initiative_policy_gate_approves_non_regressing_evidence():
+    policy_ablation = {
+        "ok": True,
+        "patch_count": 1,
+        "action_changed_count": 1,
+        "template_changed_count": 1,
+        "candidate_changed_count": 0,
+        "errors": [],
+    }
+    benchmark_ablation = {
+        "baseline_passed_count": 2,
+        "patched_passed_count": 2,
+        "changed_count": 1,
+        "control_changed_count": 1,
+        "cases": [
+            {"task_id": "BM-1", "baseline_status": "pass", "patched_status": "pass"}
+        ],
+    }
+    collab_ablation = {
+        "mixed_policy_comparison": {
+            "baseline_ok": True,
+            "patched_ok": True,
+            "ok_delta": 0,
+            "completed_tasks_delta": 0,
+            "failed_tasks_delta": 0,
+            "skipped_tasks_delta": 0,
+            "deadline_misses_delta": 0,
+            "control_policy_changed": True,
+        }
+    }
+
+    report = build_mixed_initiative_policy_gate(
+        policy_ablation_reports=[policy_ablation],
+        benchmark_ablation_reports=[benchmark_ablation],
+        collaboration_ablation_reports=[collab_ablation],
+    )
+
+    assert report.readiness == "approved"
+    assert report.decision == "allow_patch_auto_load"
+    assert report.regression_count == 0
+    assert report.warning_count == 0
+    assert report.evidence_count == 3
+    print("PASS: Mixed-initiative policy gate approves non-regressing evidence")
+
+
+def test_mixed_initiative_policy_gate_requests_review_without_live_evidence():
+    report = build_mixed_initiative_policy_gate(
+        policy_ablation_reports=[{
+            "ok": True,
+            "patch_count": 1,
+            "action_changed_count": 1,
+            "template_changed_count": 0,
+            "candidate_changed_count": 0,
+        }]
+    )
+
+    assert report.readiness == "review"
+    assert report.decision == "collect_live_ablation"
+    assert report.warning_count == 0
+    assert report.regression_count == 0
+    print("PASS: Mixed-initiative policy gate requests review without live evidence")
+
+
+def test_mixed_initiative_policy_gate_rejects_benchmark_regression():
+    report = build_mixed_initiative_policy_gate(
+        policy_ablation_reports=[{
+            "ok": True,
+            "patch_count": 1,
+            "action_changed_count": 1,
+            "template_changed_count": 0,
+            "candidate_changed_count": 0,
+        }],
+        benchmark_ablation_reports=[{
+            "baseline_passed_count": 1,
+            "patched_passed_count": 0,
+            "changed_count": 1,
+            "control_changed_count": 1,
+            "cases": [
+                {"task_id": "BM-REG", "baseline_status": "pass", "patched_status": "fail"}
+            ],
+        }],
+    )
+
+    assert report.readiness == "rejected"
+    assert report.decision == "do_not_auto_load_patch"
+    assert report.regression_count == 1
+    assert any(check["status"] == "fail" for check in report.checks)
+    print("PASS: Mixed-initiative policy gate rejects benchmark regression")
+
+
 def test_mixed_initiative_variant_report_checks_heldout_templates():
     report = build_mixed_initiative_variant_report()
 
@@ -1010,6 +1101,9 @@ if __name__ == "__main__":
     test_mixed_initiative_policy_patch_applies_mixed_feedback()
     test_mixed_initiative_policy_patch_applies_action_feedback()
     test_mixed_initiative_policy_ablation_compares_patch_decisions()
+    test_mixed_initiative_policy_gate_approves_non_regressing_evidence()
+    test_mixed_initiative_policy_gate_requests_review_without_live_evidence()
+    test_mixed_initiative_policy_gate_rejects_benchmark_regression()
     test_mixed_initiative_variant_report_checks_heldout_templates()
     test_mixed_initiative_variant_report_flags_slot_mismatch()
     test_mixed_initiative_variant_report_loads_jsonl_case_file()

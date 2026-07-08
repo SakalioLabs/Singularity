@@ -393,6 +393,16 @@ def main():
     mixed_policy_ablation_parser.add_argument("--output", type=str, default="", help="Optional JSON ablation report path")
     mixed_policy_ablation_parser.add_argument("--log-level", type=str, default="INFO")
 
+    mixed_policy_gate_parser = subparsers.add_parser(
+        "mixed-initiative-policy-gate",
+        help="Gate mixed-policy patch promotion using offline/live ablation reports",
+    )
+    mixed_policy_gate_parser.add_argument("--policy-ablation", action="append", default=[], help="Saved mixed-initiative-policy-ablation JSON")
+    mixed_policy_gate_parser.add_argument("--benchmark-ablation", action="append", default=[], help="Saved benchmark --mixed-policy-ablation JSON")
+    mixed_policy_gate_parser.add_argument("--collab-ablation", action="append", default=[], help="Saved collab-benchmark --mixed-policy-ablation JSON")
+    mixed_policy_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    mixed_policy_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline mixed-initiative held-out variant report
     mixed_variant_parser = subparsers.add_parser(
         "mixed-initiative-variant-report",
@@ -1598,6 +1608,41 @@ def main():
                 json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
         if not report.ok:
+            sys.exit(1)
+        return
+
+    if args.command == "mixed-initiative-policy-gate":
+        from singularity.evaluation.mixed_initiative import build_mixed_initiative_policy_gate
+
+        policy_ablation_paths = getattr(args, "policy_ablation", []) or []
+        benchmark_ablation_paths = getattr(args, "benchmark_ablation", []) or []
+        collab_ablation_paths = getattr(args, "collab_ablation", []) or []
+        if not policy_ablation_paths and not benchmark_ablation_paths and not collab_ablation_paths:
+            print("mixed-initiative-policy-gate requires at least one ablation report")
+            sys.exit(1)
+        report = build_mixed_initiative_policy_gate(
+            policy_ablation_paths=policy_ablation_paths,
+            benchmark_ablation_paths=benchmark_ablation_paths,
+            collaboration_ablation_paths=collab_ablation_paths,
+        )
+        print("\nMixed-Initiative Policy Gate")
+        print(f"  readiness: {report.readiness}")
+        print(f"  decision: {report.decision}")
+        print(f"  reason: {report.reason}")
+        print(f"  evidence: {report.evidence_count}, warnings: {report.warning_count}, regressions: {report.regression_count}")
+        for check in report.checks:
+            marker = "+" if check.get("status") == "pass" else "!" if check.get("status") == "warn" else "x"
+            print(f"  [{marker}] {check.get('source')}: {check.get('detail')}")
+        for error in report.errors:
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.readiness == "rejected":
             sys.exit(1)
         return
 

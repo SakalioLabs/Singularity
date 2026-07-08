@@ -925,6 +925,41 @@ class MixedInitiativePolicyAblationReport:
         }
 
 
+@dataclass
+class MixedInitiativePolicyGateReport:
+    readiness: str = "review"
+    decision: str = "manual_review_required"
+    reason: str = "no evidence"
+    policy_ablation_count: int = 0
+    benchmark_ablation_count: int = 0
+    collaboration_ablation_count: int = 0
+    evidence_count: int = 0
+    regression_count: int = 0
+    warning_count: int = 0
+    checks: list[dict] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return not self.errors and self.readiness in {"approved", "review"}
+
+    def to_dict(self) -> dict:
+        return {
+            "ok": self.ok,
+            "readiness": self.readiness,
+            "decision": self.decision,
+            "reason": self.reason,
+            "policy_ablation_count": self.policy_ablation_count,
+            "benchmark_ablation_count": self.benchmark_ablation_count,
+            "collaboration_ablation_count": self.collaboration_ablation_count,
+            "evidence_count": self.evidence_count,
+            "regression_count": self.regression_count,
+            "warning_count": self.warning_count,
+            "checks": [dict(item) for item in self.checks],
+            "errors": list(self.errors),
+        }
+
+
 class MixedInitiativeTemplateCompiler:
     """Compile template subtasks into auditable records with slot binding."""
 
@@ -2919,6 +2954,58 @@ def build_mixed_initiative_policy_ablation(
     return report
 
 
+def build_mixed_initiative_policy_gate(
+    policy_ablation_reports: Optional[list[dict]] = None,
+    policy_ablation_paths: Optional[list[str]] = None,
+    benchmark_ablation_reports: Optional[list[dict]] = None,
+    benchmark_ablation_paths: Optional[list[str]] = None,
+    collaboration_ablation_reports: Optional[list[dict]] = None,
+    collaboration_ablation_paths: Optional[list[str]] = None,
+) -> MixedInitiativePolicyGateReport:
+    """Gate approved policy patches using offline, benchmark, and M7 ablation evidence."""
+    report = MixedInitiativePolicyGateReport()
+    policy_reports = _load_policy_gate_payloads(policy_ablation_reports or [], policy_ablation_paths or [], report, "policy_ablation")
+    benchmark_reports = _load_policy_gate_payloads(benchmark_ablation_reports or [], benchmark_ablation_paths or [], report, "benchmark_ablation")
+    collaboration_reports = _load_policy_gate_payloads(collaboration_ablation_reports or [], collaboration_ablation_paths or [], report, "collaboration_ablation")
+
+    report.policy_ablation_count = len(policy_reports)
+    report.benchmark_ablation_count = len(benchmark_reports)
+    report.collaboration_ablation_count = len(collaboration_reports)
+
+    for index, payload in enumerate(policy_reports, start=1):
+        _gate_policy_ablation_payload(report, payload, f"policy_ablation:{index}")
+    for index, payload in enumerate(benchmark_reports, start=1):
+        _gate_benchmark_ablation_payload(report, payload, f"benchmark_ablation:{index}")
+    for index, payload in enumerate(collaboration_reports, start=1):
+        _gate_collaboration_ablation_payload(report, payload, f"collaboration_ablation:{index}")
+
+    report.regression_count = sum(1 for check in report.checks if check.get("status") == "fail")
+    report.warning_count = sum(1 for check in report.checks if check.get("status") == "warn")
+    report.evidence_count = sum(1 for check in report.checks if check.get("status") == "pass")
+
+    if report.errors or report.regression_count:
+        report.readiness = "rejected"
+        report.decision = "do_not_auto_load_patch"
+        report.reason = "regressions or invalid evidence were detected"
+    elif not policy_reports:
+        report.readiness = "review"
+        report.decision = "collect_policy_ablation"
+        report.reason = "no offline policy ablation report was provided"
+    elif not benchmark_reports and not collaboration_reports:
+        report.readiness = "review"
+        report.decision = "collect_live_ablation"
+        report.reason = "policy decisions changed, but no benchmark or collaboration evidence was provided"
+    elif report.warning_count:
+        report.readiness = "review"
+        report.decision = "manual_review_required"
+        report.reason = "evidence is non-regressing but incomplete or weak"
+    else:
+        report.readiness = "approved"
+        report.decision = "allow_patch_auto_load"
+        report.reason = "offline and live ablation evidence show no regressions"
+    return report
+
+
 def _execution_report_payload_from_any(report: Any) -> dict:
     if isinstance(report, MixedInitiativeReviewExecutionReport):
         return report.to_dict()
@@ -2941,6 +3028,182 @@ def _policy_patch_payload_from_any(policy_patch: Any) -> dict:
         if isinstance(payload, dict):
             return payload
     raise ValueError("policy patch must be a dict or MixedInitiativePolicyPatch")
+
+
+def _load_policy_gate_payloads(payloads: list[dict], paths: list[str], report: MixedInitiativePolicyGateReport, label: str) -> list[dict]:
+    loaded = []
+    for payload in payloads:
+        if isinstance(payload, dict):
+            loaded.append(payload)
+        else:
+            report.errors.append(f"{label}: payload must be a dict")
+    for path in paths:
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                payload = json.load(f)
+            if isinstance(payload, dict):
+                loaded.append(payload)
+            else:
+                report.errors.append(f"{path}: report JSON must be an object")
+        except Exception as exc:
+            report.errors.append(f"{path}: {exc}")
+    return loaded
+
+
+def _gate_policy_ablation_payload(report: MixedInitiativePolicyGateReport, payload: dict, source: str):
+    if payload.get("errors"):
+        _add_policy_gate_check(report, source, "fail", "policy ablation contains errors", {"errors": payload.get("errors", [])})
+        return
+    if payload.get("ok") is False:
+        _add_policy_gate_check(report, source, "fail", "policy ablation did not pass", {})
+        return
+    action_changed = int(payload.get("action_changed_count") or 0)
+    template_changed = int(payload.get("template_changed_count") or 0)
+    candidate_changed = int(payload.get("candidate_changed_count") or 0)
+    if action_changed + template_changed + candidate_changed <= 0:
+        _add_policy_gate_check(
+            report,
+            source,
+            "warn",
+            "policy patch produced no decision changes",
+            {
+                "action_changed_count": action_changed,
+                "template_changed_count": template_changed,
+                "candidate_changed_count": candidate_changed,
+            },
+        )
+        return
+    _add_policy_gate_check(
+        report,
+        source,
+        "pass",
+        "policy patch changes review/control decisions",
+        {
+            "action_changed_count": action_changed,
+            "template_changed_count": template_changed,
+            "candidate_changed_count": candidate_changed,
+        },
+    )
+
+
+def _gate_benchmark_ablation_payload(report: MixedInitiativePolicyGateReport, payload: dict, source: str):
+    if payload.get("errors"):
+        _add_policy_gate_check(report, source, "fail", "benchmark ablation contains errors", {"errors": payload.get("errors", [])})
+    baseline_passed = int(payload.get("baseline_passed_count") or payload.get("disabled_passed_count") or 0)
+    patched_passed = int(payload.get("patched_passed_count") or payload.get("enabled_passed_count") or 0)
+    regression_cases = []
+    for case in payload.get("cases", []) if isinstance(payload.get("cases", []), list) else []:
+        if not isinstance(case, dict):
+            continue
+        baseline_status = str(case.get("baseline_status") or case.get("disabled_status") or "")
+        patched_status = str(case.get("patched_status") or case.get("enabled_status") or "")
+        if baseline_status == "pass" and patched_status != "pass":
+            regression_cases.append({
+                "task_id": case.get("task_id"),
+                "baseline_status": baseline_status,
+                "patched_status": patched_status,
+            })
+    if patched_passed < baseline_passed or regression_cases:
+        _add_policy_gate_check(
+            report,
+            source,
+            "fail",
+            "patched benchmark regressed against baseline",
+            {
+                "baseline_passed_count": baseline_passed,
+                "patched_passed_count": patched_passed,
+                "regression_cases": regression_cases,
+            },
+        )
+        return
+    changed = int(payload.get("changed_count") or 0)
+    control_changed = int(payload.get("control_changed_count") or 0)
+    if changed <= 0 and control_changed <= 0:
+        _add_policy_gate_check(
+            report,
+            source,
+            "warn",
+            "benchmark ablation showed no behavioral or control-policy change",
+            {
+                "baseline_passed_count": baseline_passed,
+                "patched_passed_count": patched_passed,
+                "changed_count": changed,
+                "control_changed_count": control_changed,
+            },
+        )
+        return
+    _add_policy_gate_check(
+        report,
+        source,
+        "pass",
+        "patched benchmark did not regress and changed observed behavior or control policy",
+        {
+            "baseline_passed_count": baseline_passed,
+            "patched_passed_count": patched_passed,
+            "changed_count": changed,
+            "control_changed_count": control_changed,
+        },
+    )
+
+
+def _gate_collaboration_ablation_payload(report: MixedInitiativePolicyGateReport, payload: dict, source: str):
+    comparison = payload.get("mixed_policy_comparison", payload)
+    if not isinstance(comparison, dict):
+        _add_policy_gate_check(report, source, "fail", "collaboration ablation missing mixed_policy_comparison", {})
+        return
+    regressions = {}
+    for key in ("ok_delta", "completed_tasks_delta"):
+        value = int(comparison.get(key) or 0)
+        if value < 0:
+            regressions[key] = value
+    for key in ("failed_tasks_delta", "skipped_tasks_delta", "deadline_misses_delta"):
+        value = int(comparison.get(key) or 0)
+        if value > 0:
+            regressions[key] = value
+    if regressions:
+        _add_policy_gate_check(report, source, "fail", "patched collaboration regressed against baseline", regressions)
+        return
+    changed = bool(
+        comparison.get("control_policy_changed")
+        or comparison.get("task_status_changed")
+        or int(comparison.get("ok_delta") or 0)
+        or int(comparison.get("completed_tasks_delta") or 0)
+        or int(comparison.get("failed_tasks_delta") or 0)
+        or bool(comparison.get("shared_state_changed"))
+    )
+    if not changed:
+        _add_policy_gate_check(
+            report,
+            source,
+            "warn",
+            "collaboration ablation showed no control-policy or execution change",
+            {
+                "baseline_ok": comparison.get("baseline_ok"),
+                "patched_ok": comparison.get("patched_ok"),
+            },
+        )
+        return
+    _add_policy_gate_check(
+        report,
+        source,
+        "pass",
+        "patched collaboration did not regress and changed observed policy/execution evidence",
+        {
+            "ok_delta": int(comparison.get("ok_delta") or 0),
+            "completed_tasks_delta": int(comparison.get("completed_tasks_delta") or 0),
+            "failed_tasks_delta": int(comparison.get("failed_tasks_delta") or 0),
+            "control_policy_changed": bool(comparison.get("control_policy_changed")),
+        },
+    )
+
+
+def _add_policy_gate_check(report: MixedInitiativePolicyGateReport, source: str, status: str, detail: str, metrics: dict):
+    report.checks.append({
+        "source": source,
+        "status": status,
+        "detail": detail,
+        "metrics": dict(metrics or {}),
+    })
 
 
 def _mixed_policy_ablation_actions(actions: list[dict], patches: list[dict]) -> list[dict]:

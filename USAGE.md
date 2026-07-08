@@ -197,6 +197,8 @@ python -m singularity.main benchmark --suite m1 --mixed-policy-patch logs/benchm
 python -m singularity.main mixed-initiative-policy-ablation --policy-patch logs/benchmarks/mixed_policy_patch.json --output logs/benchmarks/mixed_policy_ablation.json
 # Run the selected live benchmark suite once without and once with the approved patch.
 python -m singularity.main benchmark --suite m1 --mixed-policy-ablation --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --output mixed_policy_benchmark_ablation.json
+# Gate patch promotion from offline, benchmark, and collaboration ablation evidence.
+python -m singularity.main mixed-initiative-policy-gate --policy-ablation logs/benchmarks/mixed_policy_ablation.json --benchmark-ablation logs/benchmarks/mixed_policy_benchmark_ablation.json --collab-ablation logs/benchmarks/bm701_mixed_policy_ablation.json --output logs/benchmarks/mixed_policy_gate.json
 
 # Replay held-out paraphrases and optional JSON/JSONL case files before promoting
 # new mixed-initiative templates or changing auto-selection heuristics.
