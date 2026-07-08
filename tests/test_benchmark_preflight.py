@@ -1486,6 +1486,89 @@ def test_plan_action_compliance_report_tracks_plan_following_gaps():
     print("PASS: Plan-action compliance report tracks plan-following gaps")
 
 
+def test_terminal_commitment_report_separates_world_completion_from_reporting():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_terminal_commitment.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {"type": "observation", "data": {"inventory": {"torch": 4}}},
+        {
+            "type": "goal_verification",
+            "data": {
+                "goal": "Craft torches",
+                "achieved": True,
+                "status": "achieved",
+                "evidence": ["torch inventory satisfied"],
+            },
+        },
+        {"type": "goal_end", "data": {"goal": "Craft torches", "result": {"completed": True}}},
+        {"type": "goal_start", "data": {"goal": "Gather 6 oak logs"}},
+        {"type": "observation", "data": {"inventory": {"oak_log": 2}}},
+        {
+            "type": "goal_verification",
+            "data": {
+                "goal": "Gather 6 oak logs",
+                "achieved": False,
+                "status": "failed",
+                "missing": ["need 6 oak_log, have 2"],
+            },
+        },
+        {"type": "goal_end", "data": {"goal": "Gather 6 oak logs", "result": {"completed": True}}},
+        {"type": "goal_start", "data": {"goal": "Craft a crafting table"}},
+        {"type": "observation", "data": {"inventory": {"crafting_table": 1}}},
+        {
+            "type": "goal_verification",
+            "data": {
+                "goal": "Craft a crafting table",
+                "achieved": True,
+                "status": "achieved",
+                "evidence": ["crafting_table present"],
+            },
+        },
+        {"type": "goal_end", "data": {"goal": "Craft a crafting table", "result": {"completed": False}}},
+        {"type": "goal_start", "data": {"goal": "Mine cobblestone"}},
+        {"type": "observation", "data": {"inventory": {}}},
+        {
+            "type": "goal_verification",
+            "data": {
+                "goal": "Mine cobblestone",
+                "achieved": False,
+                "status": "failed",
+                "missing": ["need cobblestone"],
+            },
+        },
+        {"type": "goal_end", "data": {"goal": "Mine cobblestone", "result": {"completed": False}}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_terminal_commitment_report_from_logs([session_path])
+    feedback = runner.terminal_commitment_feedback(report)
+    outcomes = {case.goal: case.outcome for case in report.cases}
+
+    assert report.goal_count == 4
+    assert report.ready_goal_count == 4
+    assert report.world_complete_count == 2
+    assert report.terminal_complete_count == 2
+    assert report.verified_success_count == 1
+    assert report.unsupported_commitment_count == 1
+    assert report.post_attainment_drift_count == 1
+    assert report.missed_execution_count == 1
+    assert report.world_completion_score == 0.5
+    assert report.terminal_commitment_score == 0.25
+    assert outcomes["Craft torches"] == "verified_success"
+    assert outcomes["Gather 6 oak logs"] == "unsupported_commitment"
+    assert outcomes["Craft a crafting table"] == "post_attainment_drift"
+    assert outcomes["Mine cobblestone"] == "missed_execution"
+    policies = {hint["terminal_commitment_policy"] for hint in feedback["policy_hints"]}
+    assert "reject_unsupported_completion_claims" in policies
+    assert "commit_when_world_state_is_verified" in policies
+    assert "repair_execution_before_completion_retry" in policies
+    print("PASS: Terminal commitment report separates world completion from reporting")
+
+
 def test_self_evolution_gate_requires_verifier_and_counterexamples():
     runner = BenchmarkRunner(Config())
     self_evolution_report = {
@@ -3354,6 +3437,7 @@ if __name__ == "__main__":
     test_self_evolution_report_tracks_progress_and_stagnation()
     test_self_evolution_report_flags_zero_action_blocked_plan_failure()
     test_plan_action_compliance_report_tracks_plan_following_gaps()
+    test_terminal_commitment_report_separates_world_completion_from_reporting()
     test_self_evolution_gate_requires_verifier_and_counterexamples()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
     test_discovery_skill_gate_controls_experiment_derived_skill_promotion()

@@ -1136,6 +1136,24 @@
 
 ---
 
+## P-062: VIGIL Terminal Commitment
+
+- **Title**: Done, But Not Sure: Disentangling World Completion from Self-Termination in Embodied Agents
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2605.08747
+- **Type**: Embodied-agent terminal commitment evaluation
+- **Task Type**: Embodied episodes with separate world-state completion and terminal self-report scoring
+- **Core Method**: Separates world completion from benchmark success so missed execution, post-attainment drift, unsupported commitment, and verified success are visible
+- **Action Space**: Embodied action trajectories with final semantic terminal reports; adapted here to Minecraft `goal_end` and verifier evidence
+- **Memory**: Terminal evidence traces that can feed completion-policy reminders, verifier gates, and self-evolution feedback
+- **Key Results**: Shows models with similar world completion can differ substantially in benchmark success because terminal commitment failures persist after execution improvements
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Motivates `terminal-commitment-report`, which prevents Singularity from conflating missed execution, unsupported completion claims, and post-attainment drift in Minecraft session logs
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-vigil-terminal-commitment.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1201,3 +1219,4 @@
 | P-059 | SkillMaster | 2026 | R4/N5/R4/E4 | P2 |
 | P-060 | Solaris | 2026 | R4/N5/R3/E4 | P2 |
 | P-061 | From Plan to Action | 2026 | R5/N4/R4/E5 | P1 |
+| P-062 | VIGIL Terminal Commitment | 2026 | R5/N5/R4/E5 | P1 |

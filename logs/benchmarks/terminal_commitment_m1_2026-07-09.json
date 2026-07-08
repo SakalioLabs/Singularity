@@ -1,0 +1,151 @@
+{
+  "goal_count": 5,
+  "ready_goal_count": 5,
+  "world_complete_count": 0,
+  "terminal_complete_count": 0,
+  "verified_success_count": 0,
+  "unsupported_commitment_count": 0,
+  "post_attainment_drift_count": 0,
+  "missed_execution_count": 5,
+  "unknown_world_count": 0,
+  "world_completion_score": 0.0,
+  "terminal_commitment_score": 0.0,
+  "unsupported_commitment_rate": 0.0,
+  "post_attainment_drift_rate": 0.0,
+  "terminal_commitment_feedback": {
+    "goal_count": 5,
+    "ready_goal_count": 5,
+    "world_complete_count": 0,
+    "terminal_complete_count": 0,
+    "verified_success_count": 0,
+    "unsupported_commitment_count": 0,
+    "post_attainment_drift_count": 0,
+    "missed_execution_count": 5,
+    "unknown_world_count": 0,
+    "world_completion_score": 0.0,
+    "terminal_commitment_score": 0.0,
+    "unsupported_commitment_rate": 0.0,
+    "post_attainment_drift_rate": 0.0,
+    "policy_hints": [
+      {
+        "terminal_commitment_policy": "repair_execution_before_completion_retry",
+        "priority": "high",
+        "reason": "neither world completion nor terminal completion was achieved",
+        "count": 5
+      }
+    ]
+  },
+  "errors": [],
+  "cases": [
+    {
+      "source_log": "logs\\session_2818ff2a-612.jsonl",
+      "goal": "Gather 3 oak logs",
+      "goal_index": 1,
+      "event_count": 402,
+      "observation_count": 100,
+      "action_count": 200,
+      "verification_event_count": 0,
+      "planner_complete_count": 0,
+      "terminal_reported_complete": false,
+      "world_complete": false,
+      "world_status": "failed",
+      "terminal_status": "not_reported_complete",
+      "outcome": "missed_execution",
+      "verification_source": "deterministic_replay",
+      "evidence": [],
+      "missing": [
+        "need 3 oak_log, have 0"
+      ],
+      "reason": "",
+      "ready_for_terminal_review": true
+    },
+    {
+      "source_log": "logs\\session_bcd06511-00a.jsonl",
+      "goal": "Craft a crafting table",
+      "goal_index": 1,
+      "event_count": 202,
+      "observation_count": 100,
+      "action_count": 0,
+      "verification_event_count": 0,
+      "planner_complete_count": 0,
+      "terminal_reported_complete": false,
+      "world_complete": false,
+      "world_status": "failed",
+      "terminal_status": "not_reported_complete",
+      "outcome": "missed_execution",
+      "verification_source": "deterministic_replay",
+      "evidence": [],
+      "missing": [
+        "need 1 crafting_table, have 0"
+      ],
+      "reason": "",
+      "ready_for_terminal_review": true
+    },
+    {
+      "source_log": "logs\\session_dc8fff18-00b.jsonl",
+      "goal": "Craft a wooden pickaxe",
+      "goal_index": 1,
+      "event_count": 202,
+      "observation_count": 100,
+      "action_count": 0,
+      "verification_event_count": 0,
+      "planner_complete_count": 0,
+      "terminal_reported_complete": false,
+      "world_complete": false,
+      "world_status": "failed",
+      "terminal_status": "not_reported_complete",
+      "outcome": "missed_execution",
+      "verification_source": "deterministic_replay",
+      "evidence": [],
+      "missing": [
+        "need 1 wooden_pickaxe, have 0"
+      ],
+      "reason": "",
+      "ready_for_terminal_review": true
+    },
+    {
+      "source_log": "logs\\session_4138b270-949.jsonl",
+      "goal": "Mine 3 cobblestone blocks",
+      "goal_index": 1,
+      "event_count": 202,
+      "observation_count": 100,
+      "action_count": 0,
+      "verification_event_count": 0,
+      "planner_complete_count": 0,
+      "terminal_reported_complete": false,
+      "world_complete": false,
+      "world_status": "failed",
+      "terminal_status": "not_reported_complete",
+      "outcome": "missed_execution",
+      "verification_source": "deterministic_replay",
+      "evidence": [],
+      "missing": [
+        "need 3 cobblestone, have 0"
+      ],
+      "reason": "",
+      "ready_for_terminal_review": true
+    },
+    {
+      "source_log": "logs\\session_67ba45ce-2e1.jsonl",
+      "goal": "Craft a stone pickaxe",
+      "goal_index": 1,
+      "event_count": 202,
+      "observation_count": 100,
+      "action_count": 0,
+      "verification_event_count": 0,
+      "planner_complete_count": 0,
+      "terminal_reported_complete": false,
+      "world_complete": false,
+      "world_status": "failed",
+      "terminal_status": "not_reported_complete",
+      "outcome": "missed_execution",
+      "verification_source": "deterministic_replay",
+      "evidence": [],
+      "missing": [
+        "need 1 stone_pickaxe, have 0"
+      ],
+      "reason": "",
+      "ready_for_terminal_review": true
+    }
+  ]
+}

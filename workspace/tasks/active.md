@@ -164,6 +164,7 @@
 - [x] Diagnose current M1 0-action failures as repeated blocked/empty plans, add blocked-plan rule fallback plus no-action loop logging, and regenerate `logs/benchmarks/self_evolution_m1_2026-07-09.json` with blocked/empty/zero-action counters.
 - [x] Add Plan-to-Action-style `plan-action-compliance-report`, save `logs/benchmarks/plan_action_compliance_m1_2026-07-09.json`, and use it to separate real plan-following from blocked empty-plan failure.
 - [x] Review fresh 2026 plan/execution papers for next implementation routes: Plan-to-Action for compliance metrics, VIGIL for terminal commitment, VeGAS for verifier-guided action selection, and Coachable Agents for runtime style control.
+- [x] Add VIGIL-style `terminal-commitment-report`, save `logs/benchmarks/terminal_commitment_m1_2026-07-09.json`, and classify the current M1 baseline as missed execution rather than unsupported completion or post-attainment drift.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -205,6 +206,7 @@
 - [x] Inspect `logs/benchmarks/self_evolution_m1_2026-07-09.json` for 0-action failed logs and decide whether the next fix belongs in benchmark execution, bridge action logging, or runtime adaptor routing.
 - [ ] Re-run live M1/M2 after the blocked-plan fallback and compare zero-action failures, planner fallback events, and cobblestone prerequisite recovery against the saved 2026-07-09 baseline.
 - [ ] Re-run `plan-action-compliance-report` on the same live M1/M2 retries and compare follow/precision/compliance scores against `logs/benchmarks/plan_action_compliance_m1_2026-07-09.json`.
+- [ ] Re-run `terminal-commitment-report` on live M1/M2 retries and compare missed_execution, unsupported_commitment, and post_attainment_drift against `logs/benchmarks/terminal_commitment_m1_2026-07-09.json`.
 - [ ] Run `self-evolution-gate` on real self-evolution, verifier, and counterexample reports; only then design a guarded runtime plan-suffix repair path.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
 - [ ] Mine real player/session requests into `mixed-initiative-variant-report --case-file` suites and track held-out template coverage before changing auto-selection heuristics.

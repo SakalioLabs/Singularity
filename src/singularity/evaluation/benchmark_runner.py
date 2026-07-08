@@ -1080,6 +1080,92 @@ class PlanActionComplianceReport:
 
 
 @dataclass
+class TerminalCommitmentCase:
+    source_log: str
+    goal: str
+    goal_index: int = 0
+    event_count: int = 0
+    observation_count: int = 0
+    action_count: int = 0
+    verification_event_count: int = 0
+    planner_complete_count: int = 0
+    terminal_reported_complete: bool = False
+    world_complete: Optional[bool] = None
+    world_status: str = "unknown"
+    terminal_status: str = "not_reported_complete"
+    outcome: str = "unknown"
+    verification_source: str = "none"
+    evidence: list[str] = field(default_factory=list)
+    missing: list[str] = field(default_factory=list)
+    reason: str = ""
+    ready_for_terminal_review: bool = False
+
+
+@dataclass
+class TerminalCommitmentReport:
+    cases: list[TerminalCommitmentCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def goal_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_goal_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_terminal_review)
+
+    @property
+    def world_complete_count(self) -> int:
+        return sum(1 for case in self.cases if case.world_complete is True)
+
+    @property
+    def terminal_complete_count(self) -> int:
+        return sum(1 for case in self.cases if case.terminal_reported_complete)
+
+    @property
+    def verified_success_count(self) -> int:
+        return self._outcome_count("verified_success")
+
+    @property
+    def unsupported_commitment_count(self) -> int:
+        return self._outcome_count("unsupported_commitment")
+
+    @property
+    def post_attainment_drift_count(self) -> int:
+        return self._outcome_count("post_attainment_drift")
+
+    @property
+    def missed_execution_count(self) -> int:
+        return self._outcome_count("missed_execution")
+
+    @property
+    def unknown_world_count(self) -> int:
+        return sum(1 for case in self.cases if case.world_complete is None)
+
+    @property
+    def world_completion_score(self) -> float:
+        return self._ratio(self.world_complete_count, self.goal_count)
+
+    @property
+    def terminal_commitment_score(self) -> float:
+        return self._ratio(self.verified_success_count, self.goal_count)
+
+    @property
+    def unsupported_commitment_rate(self) -> float:
+        return self._ratio(self.unsupported_commitment_count, self.goal_count)
+
+    @property
+    def post_attainment_drift_rate(self) -> float:
+        return self._ratio(self.post_attainment_drift_count, self.goal_count)
+
+    def _outcome_count(self, outcome: str) -> int:
+        return sum(1 for case in self.cases if case.outcome == outcome)
+
+    def _ratio(self, numerator: int, denominator: int) -> float:
+        return round(numerator / denominator, 3) if denominator else 0.0
+
+
+@dataclass
 class DiscoveryApplicationTraceCase:
     source_log: str
     event_count: int = 0
@@ -3416,6 +3502,70 @@ class BenchmarkRunner:
             "plan_follow_score": report.plan_follow_score,
             "action_precision": report.action_precision,
             "compliance_score": report.compliance_score,
+            "policy_hints": policy_hints,
+        }
+
+    def run_terminal_commitment_report_from_logs(self, session_log_paths: list[str]) -> TerminalCommitmentReport:
+        """Summarize VIGIL-style world completion versus terminal completion claims."""
+        report = TerminalCommitmentReport()
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                segments = self._session_goal_segments(events)
+                if not segments:
+                    report.errors.append(f"{path}: missing goal_start or goal_end goal")
+                    continue
+                for goal_index, (goal, segment_events) in enumerate(segments, start=1):
+                    report.cases.append(self._terminal_commitment_case(path, goal, goal_index, segment_events))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
+    def terminal_commitment_feedback(self, report: TerminalCommitmentReport) -> dict:
+        """Convert terminal commitment outcomes into advisory verifier/runtime hints."""
+        policy_hints = []
+        if report.unsupported_commitment_count:
+            policy_hints.append({
+                "terminal_commitment_policy": "reject_unsupported_completion_claims",
+                "priority": "high",
+                "reason": "agent reported completion while verifier/world evidence was missing or failed",
+                "count": report.unsupported_commitment_count,
+            })
+        if report.post_attainment_drift_count:
+            policy_hints.append({
+                "terminal_commitment_policy": "commit_when_world_state_is_verified",
+                "priority": "medium",
+                "reason": "world state appears achieved but the run did not terminate with a correct completion report",
+                "count": report.post_attainment_drift_count,
+            })
+        if report.missed_execution_count:
+            policy_hints.append({
+                "terminal_commitment_policy": "repair_execution_before_completion_retry",
+                "priority": "high",
+                "reason": "neither world completion nor terminal completion was achieved",
+                "count": report.missed_execution_count,
+            })
+        if report.unknown_world_count:
+            policy_hints.append({
+                "terminal_commitment_policy": "collect_stronger_terminal_evidence",
+                "priority": "medium",
+                "reason": "terminal world completion could not be deterministically established",
+                "count": report.unknown_world_count,
+            })
+        return {
+            "goal_count": report.goal_count,
+            "ready_goal_count": report.ready_goal_count,
+            "world_complete_count": report.world_complete_count,
+            "terminal_complete_count": report.terminal_complete_count,
+            "verified_success_count": report.verified_success_count,
+            "unsupported_commitment_count": report.unsupported_commitment_count,
+            "post_attainment_drift_count": report.post_attainment_drift_count,
+            "missed_execution_count": report.missed_execution_count,
+            "unknown_world_count": report.unknown_world_count,
+            "world_completion_score": report.world_completion_score,
+            "terminal_commitment_score": report.terminal_commitment_score,
+            "unsupported_commitment_rate": report.unsupported_commitment_rate,
+            "post_attainment_drift_rate": report.post_attainment_drift_rate,
             "policy_hints": policy_hints,
         }
 
@@ -5897,6 +6047,139 @@ class BenchmarkRunner:
             else:
                 difference.append(signature)
         return difference
+
+    def _terminal_commitment_case(
+        self,
+        source_log: str,
+        goal: str,
+        goal_index: int,
+        events: list[dict],
+    ) -> TerminalCommitmentCase:
+        observation = self._final_goal_observation(events)
+        recent_actions = self._recent_goal_actions(events)
+        terminal_record = self._terminal_goal_end_record(events)
+        terminal_reported_complete = self._event_success(terminal_record) is True
+        verification = self._terminal_world_verification(goal, events, observation, recent_actions)
+        world_complete = verification["world_complete"]
+        outcome = self._terminal_commitment_outcome(world_complete, terminal_reported_complete)
+        action_count = sum(1 for event in events if event.get("type") == "action")
+        observation_count = sum(1 for event in events if event.get("type") == "observation")
+        verification_event_count = sum(1 for event in events if event.get("type") == "goal_verification")
+        planner_complete_count = sum(
+            1
+            for event in events
+            if event.get("type") == "plan"
+            and isinstance(event.get("data", {}), dict)
+            and str(event.get("data", {}).get("status") or "").lower() == "complete"
+        )
+        return TerminalCommitmentCase(
+            source_log=source_log,
+            goal=goal,
+            goal_index=goal_index,
+            event_count=len(events),
+            observation_count=observation_count,
+            action_count=action_count,
+            verification_event_count=verification_event_count,
+            planner_complete_count=planner_complete_count,
+            terminal_reported_complete=terminal_reported_complete,
+            world_complete=world_complete,
+            world_status=verification["world_status"],
+            terminal_status="reported_complete" if terminal_reported_complete else "not_reported_complete",
+            outcome=outcome,
+            verification_source=verification["source"],
+            evidence=verification["evidence"],
+            missing=verification["missing"],
+            reason=verification["reason"],
+            ready_for_terminal_review=bool(terminal_record or verification_event_count or observation),
+        )
+
+    def _terminal_world_verification(
+        self,
+        goal: str,
+        events: list[dict],
+        observation: dict,
+        recent_actions: list[dict],
+    ) -> dict:
+        logged = self._latest_goal_verification_event(events)
+        if logged is not None:
+            status = str(logged.get("status") or "").lower()
+            achieved = logged.get("achieved")
+            if achieved is True or status == "achieved":
+                return {
+                    "world_complete": True,
+                    "world_status": status or "achieved",
+                    "source": "logged_goal_verification",
+                    "evidence": list(logged.get("evidence", []) or []),
+                    "missing": list(logged.get("missing", []) or []),
+                    "reason": str(logged.get("reason") or logged.get("critic", {}).get("reason", "")),
+                }
+            if achieved is False or status in {"failed", "rejected"}:
+                return {
+                    "world_complete": False,
+                    "world_status": status or "failed",
+                    "source": "logged_goal_verification",
+                    "evidence": list(logged.get("evidence", []) or []),
+                    "missing": list(logged.get("missing", []) or []),
+                    "reason": str(logged.get("reason") or logged.get("critic", {}).get("reason", "")),
+                }
+        if observation:
+            try:
+                from singularity.core.goal_verifier import GoalVerifier
+
+                verification = GoalVerifier().verify(goal, observation, recent_actions=recent_actions).to_dict()
+                status = str(verification.get("status") or "").lower()
+                achieved = verification.get("achieved")
+                world_complete = True if achieved is True or status == "achieved" else False if achieved is False or status in {"failed", "rejected"} else None
+                return {
+                    "world_complete": world_complete,
+                    "world_status": status or "unknown",
+                    "source": "deterministic_replay",
+                    "evidence": list(verification.get("evidence", []) or []),
+                    "missing": list(verification.get("missing", []) or []),
+                    "reason": str(verification.get("critic", {}).get("reason", "")),
+                }
+            except Exception as e:
+                return {
+                    "world_complete": None,
+                    "world_status": "error",
+                    "source": "deterministic_replay_error",
+                    "evidence": [],
+                    "missing": [],
+                    "reason": str(e),
+                }
+        return {
+            "world_complete": None,
+            "world_status": "unknown",
+            "source": "none",
+            "evidence": [],
+            "missing": [],
+            "reason": "missing terminal observation and goal verification",
+        }
+
+    def _latest_goal_verification_event(self, events: list[dict]) -> Optional[dict]:
+        for event in reversed(events):
+            if event.get("type") == "goal_verification" and isinstance(event.get("data", {}), dict):
+                return event["data"]
+        return None
+
+    def _terminal_goal_end_record(self, events: list[dict]) -> dict:
+        for event in reversed(events):
+            if event.get("type") == "goal_end" and isinstance(event.get("data", {}), dict):
+                data = event["data"]
+                result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+                return result or data
+        return {}
+
+    def _terminal_commitment_outcome(self, world_complete: Optional[bool], terminal_reported_complete: bool) -> str:
+        if world_complete is True and terminal_reported_complete:
+            return "verified_success"
+        if world_complete is False and terminal_reported_complete:
+            return "unsupported_commitment"
+        if world_complete is True and not terminal_reported_complete:
+            return "post_attainment_drift"
+        if world_complete is False and not terminal_reported_complete:
+            return "missed_execution"
+        return "unknown"
 
     def _self_evolution_trace_case(self, source_log: str, events: list[dict]) -> SelfEvolutionTraceCase:
         observations = [
@@ -9516,6 +9799,53 @@ class BenchmarkRunner:
                     f"missing={example['missing']}, unplanned={example['unplanned']}, "
                     f"order_violations={example['order_violations']}"
                 )
+        for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_terminal_commitment_report(self, report: TerminalCommitmentReport):
+        print("\nTerminal Commitment Trace")
+        print(f"  goals ready for terminal review: {report.ready_goal_count}/{report.goal_count}")
+        print(
+            "  outcomes: "
+            f"verified_success={report.verified_success_count}, "
+            f"unsupported_commitment={report.unsupported_commitment_count}, "
+            f"post_attainment_drift={report.post_attainment_drift_count}, "
+            f"missed_execution={report.missed_execution_count}, "
+            f"unknown_world={report.unknown_world_count}"
+        )
+        print(
+            "  scores: "
+            f"world_completion={report.world_completion_score:.3f}, "
+            f"terminal_commitment={report.terminal_commitment_score:.3f}, "
+            f"unsupported_rate={report.unsupported_commitment_rate:.3f}, "
+            f"drift_rate={report.post_attainment_drift_rate:.3f}"
+        )
+        feedback = self.terminal_commitment_feedback(report)
+        if feedback["policy_hints"]:
+            hints = [
+                f"{hint['terminal_commitment_policy']}({hint['priority']})"
+                for hint in feedback["policy_hints"][:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for case in report.cases:
+            marker = "+" if case.ready_for_terminal_review else "~"
+            world = "unknown" if case.world_complete is None else str(case.world_complete).lower()
+            print(f"  [{marker}] {case.source_log} goal#{case.goal_index}: {case.goal}")
+            print(
+                f"      outcome={case.outcome}, world_complete={world}, "
+                f"terminal_complete={str(case.terminal_reported_complete).lower()}, "
+                f"source={case.verification_source}"
+            )
+            print(
+                f"      events: observations={case.observation_count}, actions={case.action_count}, "
+                f"verifications={case.verification_event_count}, planner_complete={case.planner_complete_count}"
+            )
+            if case.evidence:
+                print(f"      evidence: {'; '.join(str(item) for item in case.evidence[:3])}")
+            if case.missing:
+                print(f"      missing: {'; '.join(str(item) for item in case.missing[:3])}")
+            if case.reason:
+                print(f"      reason: {case.reason[:180]}")
         for error in report.errors:
             print(f"  error: {error}")
 

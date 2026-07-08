@@ -167,6 +167,8 @@ python -m singularity.main self-evolution-report --session-log logs/session_xxx.
 python -m singularity.main run --goal "Craft torches" --self-evolution-feedback logs/benchmarks/self_evolution.json
 # Audit whether executed actions follow the preceding planner action list.
 python -m singularity.main plan-action-compliance-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/plan_action_compliance.json
+# Separate world-state completion from the agent's terminal completion report.
+python -m singularity.main terminal-commitment-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/terminal_commitment.json
 # Gate any future automatic plan-suffix repair with explicit verifier and counterexample evidence.
 python -m singularity.main self-evolution-gate --self-evolution-report logs/benchmarks/self_evolution.json --verifier-report logs/benchmarks/goal_verification_ablation.json --counterexample-report logs/benchmarks/self_evolution_counterexamples.json --output logs/benchmarks/self_evolution_gate.json
 
