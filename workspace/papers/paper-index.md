@@ -614,6 +614,24 @@
 
 ---
 
+## P-033: GovMem
+
+- **Title**: When Not to Write Memory: Governing False Promotion from Correlated Agent Traces
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2607.02579
+- **Type**: Paper
+- **Task Type**: Memory write-path governance for long-running and multi-agent LLM agents
+- **Core Method**: Dependency-aware support checks with promote, reject, and needs-review routes for candidate memories
+- **Action Space**: Memory write decisions linked to agent traces
+- **Memory**: Candidate durable memories with provenance, scope, counterevidence, and dependency metadata
+- **Key Results**: Identifies false promotion from correlated traces and proposes conservative write governance
+- **Scores**: R=5, N=5, R=3, E=5
+- **Value to Project**: Direct blueprint for preventing noisy or correlated M7 traces from becoming durable shared memory
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-08-govmem.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -650,3 +668,4 @@
 | P-030 | AutoMem | 2026 | R5/N5/R4/E4 | P2 |
 | P-031 | Memory for Autonomous LLM Agents | 2026 | R5/N4/R4/E5 | P1 |
 | P-032 | Agentic Memory | 2026 | R5/N5/R3/E4 | P2 |
+| P-033 | GovMem | 2026 | R5/N5/R3/E5 | P2 |

@@ -106,6 +106,8 @@
 - [x] Add offline `memory-policy-report` for AutoMem-style auditing of memory writes, reads, management events, missed semantic writes, failure-learning candidates, noisy writes, and consolidation signals.
 - [x] Instrument Agent memory lifecycle calls with `memory_write`, `memory_read`, and `memory_manage` session events plus summary metrics.
 - [x] Add `MemoryLifecyclePolicy` as the first consumer of `memory_policy_feedback`, with advisory decisions by default and an optional strict write gate for noisy memory candidates.
+- [x] Close the first `memory_policy_feedback` loop so feedback hints alter `MemoryLifecyclePolicy` priorities, reasons, and review routing for future write/read/manage decisions.
+- [x] Add GovMem-style correlated-evidence and unsafe-scope flags to `MemoryLifecyclePolicy` so shared, copied, stale, out-of-scope, adversarial, or contradicted memory candidates are routed through review before durable promotion.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -118,6 +120,7 @@
 - [ ] Keep all live M7 role ports unique with `--bridge-port-base` or repeated `--role-bridge-port ROLE=PORT`.
 - [ ] Run autonomous mode with the new curriculum enabled and inspect `curriculum.last_decision` plus `auto_goal_complete/failed` episodes for goal-loop quality.
 - [ ] Run `memory-policy-report` on real M1/M2/autonomous session logs and compare `MemoryLifecyclePolicy` decisions against task outcomes before enabling strict write gates.
+- [ ] Add provenance/dependency metadata to M7 shared-memory candidates, then compare GovMem-style false-promotion review counts across collaboration logs.
 - [ ] Run `exploration-trace-report` on real autonomous session logs, apply `curriculum_feedback`, and compare before/after curriculum candidate rankings.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.

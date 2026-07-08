@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from singularity.core.config import BotConfig, Config
 from singularity.core.goal_verifier import GoalVerificationCritic
 from singularity.core.memory import MemorySystem
+from singularity.core.memory_policy import MemoryLifecyclePolicy
 from singularity.core.skill_extractor import SkillCandidateQueue, SkillPromotionCritic
 from singularity.core.skill_library import SkillLibrary
 from singularity.evaluation import benchmark_runner as benchmark_module
@@ -1275,6 +1276,41 @@ def test_memory_policy_report_counts_write_read_manage_gaps_and_feedback():
     applied = runner.apply_memory_policy_feedback(report, policy)
     assert applied == feedback
     assert policy.feedback == feedback
+
+    lifecycle_policy = MemoryLifecyclePolicy()
+    runner.apply_memory_policy_feedback(report, lifecycle_policy)
+    profile = lifecycle_policy.feedback_profile()
+    assert profile["promote_verified_outcomes"]["priority"] == "high"
+    assert profile["tighten_memory_write_gate"]["count"] == 1
+    promoted = lifecycle_policy.decide_write(
+        "episodic",
+        "goal_end",
+        "write_episode",
+        {"goal": "Craft torches", "success": True},
+        source="test",
+    )
+    noisy = lifecycle_policy.decide_write(
+        "context",
+        "raw_observation",
+        "write_context",
+        {"raw": "x" * 600},
+        source="observation",
+        confidence=0.3,
+    )
+    failure = lifecycle_policy.decide_write(
+        "episodic",
+        "failure_correction_completed",
+        "write_episode",
+        {"skill": "collect_coal_before_torch"},
+        source="test",
+    )
+    assert promoted.decision == "semantic_promotion_candidate"
+    assert "missed semantic writes" in promoted.reason
+    assert noisy.decision == "write_review_needed"
+    assert noisy.priority == "medium"
+    assert "tighten_memory_write_gate" in noisy.feedback_hints
+    assert failure.decision == "failure_learning_candidate"
+    assert "record_failure_corrections" in failure.feedback_hints
     print("PASS: Memory policy report counts write/read/manage gaps and feedback")
 
 

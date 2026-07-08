@@ -80,13 +80,18 @@ class MemoryLifecyclePolicy:
         feedback_hints = self._active_hints()
 
         if flags:
+            feedback_requested_gate = self._has_hint("tighten_memory_write_gate")
             return MemoryPolicyDecision(
                 operation=normalized_operation,
                 layer=normalized_layer,
                 memory_type=normalized_type,
                 decision="write_suppressed" if self.enforce_write_gate else "write_review_needed",
-                reason="low-confidence or raw memory candidate",
-                priority="medium",
+                reason=(
+                    "low-confidence or raw memory candidate; feedback requested stricter write gate"
+                    if feedback_requested_gate
+                    else "low-confidence or raw memory candidate"
+                ),
+                priority=self._hint_priority("tighten_memory_write_gate", "medium"),
                 should_persist=not self.enforce_write_gate,
                 should_review=True,
                 quality_flags=flags,
@@ -94,26 +99,36 @@ class MemoryLifecyclePolicy:
             )
 
         if self._is_verified_outcome(normalized_type, content):
+            feedback_requested_promotion = self._has_hint("promote_verified_outcomes")
             return MemoryPolicyDecision(
                 operation=normalized_operation,
                 layer=normalized_layer,
                 memory_type=normalized_type,
                 decision="semantic_promotion_candidate",
-                reason="verified outcome should be reviewed for durable memory",
-                priority="high",
+                reason=(
+                    "verified outcome should be reviewed for durable memory; feedback found missed semantic writes"
+                    if feedback_requested_promotion
+                    else "verified outcome should be reviewed for durable memory"
+                ),
+                priority=self._hint_priority("promote_verified_outcomes", "high"),
                 should_review=True,
                 should_consolidate=True,
                 feedback_hints=feedback_hints,
             )
 
         if self._is_failure_learning(normalized_type):
+            feedback_requested_failures = self._has_hint("record_failure_corrections")
             return MemoryPolicyDecision(
                 operation=normalized_operation,
                 layer=normalized_layer,
                 memory_type=normalized_type,
                 decision="failure_learning_candidate",
-                reason="failure or correction trace can become reusable experience",
-                priority="medium",
+                reason=(
+                    "failure or correction trace can become reusable experience; feedback requested failure learning"
+                    if feedback_requested_failures
+                    else "failure or correction trace can become reusable experience"
+                ),
+                priority=self._hint_priority("record_failure_corrections", "medium"),
                 should_review=True,
                 should_consolidate=True,
                 feedback_hints=feedback_hints,
@@ -148,7 +163,7 @@ class MemoryLifecyclePolicy:
         operation: str = "retrieve",
     ) -> MemoryPolicyDecision:
         feedback_hints = self._active_hints()
-        priority = "high" if "instrument_memory_retrieval" in feedback_hints else "normal"
+        priority = self._hint_priority("instrument_memory_retrieval", "normal")
         reason = "retrieval should be instrumented" if priority == "high" else "default memory read path"
         return MemoryPolicyDecision(
             operation=str(operation or "retrieve").lower(),
@@ -173,13 +188,14 @@ class MemoryLifecyclePolicy:
         should_consolidate = "queue_consolidation_review" in feedback_hints or str(operation).lower() in {
             "consolidate", "save_session", "compact", "prune",
         }
+        priority = self._hint_priority("queue_consolidation_review", "low") if should_consolidate else "low"
         return MemoryPolicyDecision(
             operation=str(operation or "manage").lower(),
             layer=str(layer or "memory").lower(),
             memory_type=str(memory_type or "lifecycle").lower(),
             decision="manage_allowed",
             reason="memory lifecycle management operation",
-            priority="low",
+            priority=priority,
             should_persist=False,
             should_review=should_consolidate,
             should_consolidate=should_consolidate,
@@ -189,12 +205,37 @@ class MemoryLifecyclePolicy:
     def feedback_hints(self) -> dict:
         return {name: dict(hint) for name, hint in self._feedback_by_policy.items()}
 
+    def feedback_profile(self) -> dict:
+        return {
+            name: {
+                "priority": str(hint.get("priority") or "normal"),
+                "count": int(hint.get("count") or 0),
+                "reason": str(hint.get("reason") or ""),
+            }
+            for name, hint in sorted(self._feedback_by_policy.items())
+        }
+
     def _active_hints(self) -> list[str]:
         return sorted(self._feedback_by_policy)
+
+    def _has_hint(self, name: str) -> bool:
+        return name in self._feedback_by_policy
+
+    def _hint_priority(self, name: str, default: str) -> str:
+        hint = self._feedback_by_policy.get(name, {})
+        return str(hint.get("priority") or default)
 
     def _quality_flags(self, content, memory_type: str, source: str, confidence: float) -> list[str]:
         flags = []
         text = self._content_text(content)
+        metadata = content if isinstance(content, dict) else {}
+        dependency = str(
+            metadata.get("dependency")
+            or metadata.get("dependency_type")
+            or metadata.get("evidence_dependency")
+            or ""
+        ).lower()
+        validity = str(metadata.get("validity") or metadata.get("evidence_status") or "").lower()
         if text and len(text.strip()) < 12:
             flags.append("too_short")
         try:
@@ -207,6 +248,10 @@ class MemoryLifecyclePolicy:
             flags.append("raw_observation")
         if str(source or "").lower() in {"raw_observation", "observation"} and len(text) > 500:
             flags.append("raw_observation_dump")
+        if dependency in {"copied", "copied_source", "shared_prompt", "shared_tool", "same_agent_echo", "low_trust", "unknown"}:
+            flags.append("correlated_evidence")
+        if validity in {"stale", "out_of_scope", "adversarial", "contradicted"}:
+            flags.append("unsafe_scope")
         return flags
 
     def _is_verified_outcome(self, memory_type: str, content) -> bool:

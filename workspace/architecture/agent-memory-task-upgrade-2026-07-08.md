@@ -161,6 +161,24 @@ Singularity adaptation:
 - Add an exploration trace report over autonomous session logs: visited position spread, new block/entity/resource types, visual evidence coverage, hazards encountered, multi-step plans, and failed action categories.
 - Feed exploration coverage back into curriculum novelty scoring once live autonomous traces are available.
 
+### AutoMem, Agentic Memory, and GovMem
+
+Sources:
+- https://arxiv.org/abs/2607.01224
+- https://arxiv.org/abs/2601.01885
+- https://arxiv.org/abs/2607.02579
+
+Core idea:
+- Memory management should be an explicit trainable or feedback-driven skill, not an invisible side effect of planning.
+- Memory policies need separate write, read, manage, summarize, update, and discard decisions.
+- Repeated traces are not always independent evidence; shared prompts, copied sources, stale context, or narrow scope can create false memory promotion.
+
+Singularity adaptation:
+- Keep `memory_write`, `memory_read`, and `memory_manage` events visible in session logs.
+- Use `memory-policy-report` to convert trace gaps into `memory_policy_feedback`.
+- Let `MemoryLifecyclePolicy` consume feedback hints and tag candidate writes with reviewable decisions.
+- Add GovMem-style provenance flags (`correlated_evidence`, `unsafe_scope`) before candidate facts can become durable semantic memory.
+
 ## Proposed Singularity Delta Architecture
 
 1. Experience atoms
@@ -243,6 +261,14 @@ Structured perception should affect the action interface before a full VLA polic
 - as live traces arrive, session-log replay cases should reconstruct disabled baselines from logged visual interventions so offline evaluation stays tied to real behavior
 - the visual review pipeline should summarize promotion, goal-verification, and action-grounding ablations together so one session trace can be audited end-to-end
 - live benchmark suites should be able to flip visual action grounding independently from policy skills so perception-to-action gains can be measured as a controlled runtime ablation
+
+9. Governed memory lifecycle
+
+Memory should be treated as a policy-controlled subsystem:
+- every write/read/manage operation receives an explicit decision
+- offline reports should produce feedback hints for missed semantic writes, failure-learning traces, noisy writes, retrieval instrumentation, and consolidation review
+- correlated or stale evidence should be routed to review before semantic promotion
+- strict write gates should remain off until real trace audits show high precision
 
 ## Implemented in this pass
 
@@ -353,3 +379,5 @@ Structured perception should affect the action interface before a full VLA polic
 - Added `memory-policy-report`, an AutoMem-style offline audit that compares explicit memory write/read/manage events with inferred context, episodic, semantic, failure-learning, and consolidation needs from session logs, then emits `memory_policy_feedback`.
 - Instrumented Agent memory lifecycle calls so online runs log `memory_write`, `memory_read`, and `memory_manage` events, and `SessionLogger` summaries include memory policy metrics for writes, reads, management operations, layers, and memory types.
 - Added `MemoryLifecyclePolicy`, an advisory consumer of `memory_policy_feedback` that labels writes, reads, and management operations with decisions such as `semantic_promotion_candidate`, `failure_learning_candidate`, and `write_review_needed`; `enforce_memory_write_gate` can suppress noisy writes when enough trace evidence exists.
+- Closed the first feedback loop from `memory_policy_feedback` back into `MemoryLifecyclePolicy`, so missed semantic writes, failure-learning traces, noisy writes, retrieval instrumentation, and consolidation review hints alter future policy priorities and reasons.
+- Added GovMem-style write governance flags to `MemoryLifecyclePolicy`: correlated/shared evidence and stale/out-of-scope/contradicted validity metadata now route candidate writes through review or strict suppression.

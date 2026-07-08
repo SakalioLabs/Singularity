@@ -574,6 +574,43 @@ def test_agent_memory_policy_can_suppress_noisy_write_when_enforced():
     print("PASS: Agent memory policy can suppress noisy writes when enforced")
 
 
+def test_memory_policy_routes_correlated_evidence_to_review():
+    content = {
+        "claim": "Coal near spawn is always safe.",
+        "dependency": "shared_prompt",
+        "validity": "out_of_scope",
+    }
+    policy = MemoryLifecyclePolicy()
+    decision = policy.decide_write(
+        "semantic",
+        "fact",
+        "write_fact",
+        content,
+        source="multi_agent_trace",
+        confidence=0.9,
+    )
+
+    assert decision.decision == "write_review_needed"
+    assert decision.should_persist is True
+    assert decision.should_review is True
+    assert "correlated_evidence" in decision.quality_flags
+    assert "unsafe_scope" in decision.quality_flags
+
+    strict_policy = MemoryLifecyclePolicy(enforce_write_gate=True)
+    strict_decision = strict_policy.decide_write(
+        "semantic",
+        "fact",
+        "write_fact",
+        content,
+        source="multi_agent_trace",
+        confidence=0.9,
+    )
+    assert strict_decision.decision == "write_suppressed"
+    assert strict_decision.should_persist is False
+    assert "correlated_evidence" in strict_decision.quality_flags
+    print("PASS: Memory policy routes correlated evidence to review")
+
+
 def test_planner_preserves_task_scheduling_hints():
     tasks = TaskSystem()
     planner = Planner(MockPlannerLLM(), tasks)
@@ -1298,6 +1335,7 @@ if __name__ == "__main__":
     test_agent_autonomous_goal_uses_causal_memory_context()
     test_agent_logs_memory_lifecycle_events_for_policy_report()
     test_agent_memory_policy_can_suppress_noisy_write_when_enforced()
+    test_memory_policy_routes_correlated_evidence_to_review()
     test_planner_preserves_task_scheduling_hints()
     test_planner_prompt_includes_knowledge_graph_summary()
     test_skill_extractor_creates_experience_atom_and_skill()
