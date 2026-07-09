@@ -1,4 +1,5 @@
 ﻿"""Benchmark runner for Singularity M1-M2 validation."""
+import hashlib
 import importlib.util
 import json
 import math
@@ -9244,6 +9245,325 @@ class BenchmarkRunner:
             memory_policy.record_memory_policy_feedback(feedback)
         return feedback
 
+    def run_memory_attribution_report_from_logs(
+        self,
+        session_log_paths: list[str],
+        attribution_window_events: int = 16,
+    ) -> dict:
+        """Attribute generic memory reads to later plan/action/goal outcomes."""
+        report = {
+            "type": "memory_attribution_report",
+            "generated_at": round(time.time(), 3),
+            "attribution_window_events": max(1, int(attribution_window_events or 16)),
+            "log_count": 0,
+            "ready_log_count": 0,
+            "planning_cycle_count": 0,
+            "memory_read_count": 0,
+            "attributed_read_count": 0,
+            "supported_read_count": 0,
+            "conflicting_read_count": 0,
+            "review_read_count": 0,
+            "no_result_read_count": 0,
+            "successful_cycle_count": 0,
+            "failed_cycle_count": 0,
+            "unknown_cycle_count": 0,
+            "quality_label_counts": {},
+            "read_type_counts": {},
+            "read_layer_counts": {},
+            "policy_hints": [],
+            "recommendations": [],
+            "cases": [],
+            "errors": [],
+        }
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                case = self._memory_attribution_trace_case(
+                    path,
+                    events,
+                    report["attribution_window_events"],
+                )
+                report["cases"].append(case)
+            except Exception as e:
+                report["errors"].append(f"{path}: {e}")
+
+        report["log_count"] = len(report["cases"])
+        for case in report["cases"]:
+            if case.get("ready_for_memory_attribution_review"):
+                report["ready_log_count"] += 1
+            for key in (
+                "planning_cycle_count",
+                "memory_read_count",
+                "attributed_read_count",
+                "supported_read_count",
+                "conflicting_read_count",
+                "review_read_count",
+                "no_result_read_count",
+                "successful_cycle_count",
+                "failed_cycle_count",
+                "unknown_cycle_count",
+            ):
+                report[key] += self._safe_int(case.get(key, 0))
+            self._merge_counts(report["quality_label_counts"], case.get("quality_label_counts", {}))
+            self._merge_counts(report["read_type_counts"], case.get("read_type_counts", {}))
+            self._merge_counts(report["read_layer_counts"], case.get("read_layer_counts", {}))
+
+        feedback = self.memory_attribution_feedback(report)
+        report["policy_hints"] = feedback["policy_hints"]
+        report["recommendations"] = feedback["recommendations"]
+        return report
+
+    def memory_attribution_feedback(self, report: dict) -> dict:
+        """Convert memory-read attribution labels into conservative policy hints."""
+        policy_hints = []
+        recommendations = []
+        if self._safe_int(report.get("memory_read_count", 0)) <= 0:
+            policy_hints.append({
+                "memory_attribution_policy": "instrument_memory_retrieval",
+                "priority": "high",
+                "reason": "no memory_read events were available for attribution",
+                "count": 0,
+            })
+            recommendations.append("log_memory_read_events_before_each_plan")
+        if self._safe_int(report.get("no_result_read_count", 0)) > 0:
+            policy_hints.append({
+                "memory_attribution_policy": "include_retrieval_result_metadata",
+                "priority": "medium",
+                "reason": "some memory_read events lack result evidence or result size",
+                "count": report.get("no_result_read_count", 0),
+            })
+            recommendations.append("include_has_result_result_chars_and_source_for_memory_reads")
+        if self._safe_int(report.get("supported_read_count", 0)) > 0:
+            policy_hints.append({
+                "memory_attribution_policy": "promote_outcome_supported_retrieval",
+                "priority": "medium",
+                "reason": "retrieved memories were followed by successful plans/actions/goals",
+                "count": report.get("supported_read_count", 0),
+            })
+            recommendations.append("use_supported_memory_reads_as_candidates_for_weighted_retrieval_boost")
+        if self._safe_int(report.get("conflicting_read_count", 0)) > 0:
+            policy_hints.append({
+                "memory_attribution_policy": "demote_conflicting_retrieval",
+                "priority": "high",
+                "reason": "retrieved memories were followed by blocked plans, failed actions, or failed goals",
+                "count": report.get("conflicting_read_count", 0),
+            })
+            recommendations.append("route_conflicting_memory_reads_to_review_before_reuse")
+        if self._safe_int(report.get("review_read_count", 0)) > 0:
+            policy_hints.append({
+                "memory_attribution_policy": "collect_more_outcome_evidence",
+                "priority": "low",
+                "reason": "some retrieved memories have no decisive downstream outcome",
+                "count": report.get("review_read_count", 0),
+            })
+            recommendations.append("pair_memory_reads_with_goal_verification_or_action_outcome_windows")
+        return {
+            "memory_read_count": report.get("memory_read_count", 0),
+            "supported_read_count": report.get("supported_read_count", 0),
+            "conflicting_read_count": report.get("conflicting_read_count", 0),
+            "review_read_count": report.get("review_read_count", 0),
+            "no_result_read_count": report.get("no_result_read_count", 0),
+            "quality_label_counts": dict(sorted(report.get("quality_label_counts", {}).items())),
+            "read_type_counts": dict(sorted(report.get("read_type_counts", {}).items())),
+            "read_layer_counts": dict(sorted(report.get("read_layer_counts", {}).items())),
+            "policy_hints": policy_hints,
+            "recommendations": self._dedupe_strings(recommendations),
+        }
+
+    def _memory_attribution_trace_case(self, source_log: str, events: list[dict], attribution_window_events: int) -> dict:
+        current_goal = ""
+        pending_reads = []
+        cycles = []
+        items = []
+        for index, event in enumerate(events):
+            event_type = str(event.get("type") or "")
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event_type == "goal_start":
+                current_goal = str(data.get("goal") or current_goal or "")
+            elif event_type == "goal_end":
+                current_goal = str(data.get("goal") or current_goal or "")
+            elif event_type == "memory_read":
+                pending_reads.append((index, event, current_goal))
+            elif event_type == "plan":
+                cycle = self._memory_attribution_cycle(
+                    len(cycles) + 1,
+                    index,
+                    current_goal,
+                    data,
+                    pending_reads,
+                    events,
+                    attribution_window_events,
+                )
+                cycles.append(cycle)
+                items.extend(cycle.get("items", []))
+                pending_reads = []
+
+        quality_counts = {}
+        type_counts = {}
+        layer_counts = {}
+        for item in items:
+            self._increment(quality_counts, item.get("quality_label", "review"))
+            self._increment(type_counts, item.get("memory_type", "unknown"))
+            self._increment(layer_counts, item.get("layer", "unknown"))
+
+        return {
+            "source_log": source_log,
+            "event_count": len(events),
+            "planning_cycle_count": len(cycles),
+            "memory_read_count": len(items),
+            "attributed_read_count": sum(1 for item in items if item.get("quality_label") in {"supported", "conflicting"}),
+            "supported_read_count": sum(1 for item in items if item.get("quality_label") == "supported"),
+            "conflicting_read_count": sum(1 for item in items if item.get("quality_label") == "conflicting"),
+            "review_read_count": sum(1 for item in items if item.get("quality_label") == "review"),
+            "no_result_read_count": sum(1 for item in items if item.get("quality_label") == "no_result"),
+            "successful_cycle_count": sum(1 for cycle in cycles if cycle.get("cycle_outcome") == "success"),
+            "failed_cycle_count": sum(1 for cycle in cycles if cycle.get("cycle_outcome") == "failure"),
+            "unknown_cycle_count": sum(1 for cycle in cycles if cycle.get("cycle_outcome") == "unknown"),
+            "quality_label_counts": dict(sorted(quality_counts.items())),
+            "read_type_counts": dict(sorted(type_counts.items())),
+            "read_layer_counts": dict(sorted(layer_counts.items())),
+            "cycles": cycles,
+            "items": items[:80],
+            "ready_for_memory_attribution_review": bool(cycles),
+        }
+
+    def _memory_attribution_cycle(
+        self,
+        cycle_index: int,
+        plan_index: int,
+        goal: str,
+        plan: dict,
+        read_events: list[tuple[int, dict, str]],
+        events: list[dict],
+        attribution_window_events: int,
+    ) -> dict:
+        outcome = self._memory_attribution_cycle_outcome(plan, events, plan_index, attribution_window_events)
+        items = []
+        for read_index, event, read_goal in read_events:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            item = self._memory_attribution_item(
+                cycle_index,
+                read_index,
+                read_goal or goal,
+                data,
+                outcome,
+            )
+            items.append(item)
+        return {
+            "cycle_index": cycle_index,
+            "goal": self._short_text(goal, 160),
+            "plan_index": plan_index,
+            "plan_status": str(plan.get("status") or ""),
+            "planned_action_count": len(plan.get("actions", [])) if isinstance(plan.get("actions", []), list) else 0,
+            "memory_read_count": len(read_events),
+            "cycle_outcome": outcome["outcome"],
+            "outcome_reason": outcome["reason"],
+            "successful_action_count": outcome["successful_action_count"],
+            "failed_action_count": outcome["failed_action_count"],
+            "goal_success_count": outcome["goal_success_count"],
+            "goal_failure_count": outcome["goal_failure_count"],
+            "items": items,
+        }
+
+    def _memory_attribution_cycle_outcome(self, plan: dict, events: list[dict], plan_index: int, attribution_window_events: int) -> dict:
+        status = str(plan.get("status") or "").strip().lower()
+        planned_actions = plan.get("actions", []) if isinstance(plan.get("actions", []), list) else []
+        successful_actions = 0
+        failed_actions = 0
+        goal_success = 0
+        goal_failure = 0
+        end_index = min(len(events), plan_index + max(1, int(attribution_window_events or 16)) + 1)
+        for index in range(plan_index + 1, end_index):
+            event = events[index]
+            event_type = str(event.get("type") or "")
+            if event_type == "plan":
+                break
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event_type == "action":
+                action, result, _ = self._normalized_action_record(data)
+                success = self._event_success({"result": result}) if result else self._event_success(data)
+                if success is True:
+                    successful_actions += 1
+                elif success is False:
+                    failed_actions += 1
+            elif event_type in {"goal_end", "auto_goal_complete", "auto_goal_failed", "goal_verification"}:
+                success = self._event_success(data)
+                context = data.get("context", {}) if isinstance(data.get("context", {}), dict) else {}
+                if context.get("accepted") is False:
+                    success = False
+                elif context.get("accepted") is True and success is None:
+                    success = True
+                if success is True or event_type == "auto_goal_complete":
+                    goal_success += 1
+                elif success is False or event_type == "auto_goal_failed":
+                    goal_failure += 1
+        if status in {"blocked", "failed", "error", "rejected"}:
+            return self._memory_attribution_outcome("failure", "plan_status_failed", successful_actions, failed_actions, goal_success, goal_failure)
+        if failed_actions or goal_failure:
+            return self._memory_attribution_outcome("failure", "downstream_failure_after_memory_read", successful_actions, failed_actions, goal_success, goal_failure)
+        if goal_success or successful_actions:
+            return self._memory_attribution_outcome("success", "downstream_success_after_memory_read", successful_actions, failed_actions, goal_success, goal_failure)
+        if not planned_actions and status in {"blocked", "empty"}:
+            return self._memory_attribution_outcome("failure", "empty_or_blocked_plan_after_memory_read", successful_actions, failed_actions, goal_success, goal_failure)
+        return self._memory_attribution_outcome("unknown", "missing_downstream_outcome_after_memory_read", successful_actions, failed_actions, goal_success, goal_failure)
+
+    def _memory_attribution_outcome(
+        self,
+        outcome: str,
+        reason: str,
+        successful_actions: int,
+        failed_actions: int,
+        goal_success: int,
+        goal_failure: int,
+    ) -> dict:
+        return {
+            "outcome": outcome,
+            "reason": reason,
+            "successful_action_count": successful_actions,
+            "failed_action_count": failed_actions,
+            "goal_success_count": goal_success,
+            "goal_failure_count": goal_failure,
+        }
+
+    def _memory_attribution_item(self, cycle_index: int, read_index: int, goal: str, data: dict, outcome: dict) -> dict:
+        result_chars = self._safe_int(data.get("result_chars"), default=0)
+        has_result = data.get("has_result")
+        if not isinstance(has_result, bool):
+            has_result = result_chars > 0 or data.get("result") not in (None, "", [], {})
+        if not has_result:
+            label = "no_result"
+            reason = "memory_read_returned_no_result"
+        elif outcome["outcome"] == "success":
+            label = "supported"
+            reason = outcome["reason"]
+        elif outcome["outcome"] == "failure":
+            label = "conflicting"
+            reason = outcome["reason"]
+        else:
+            label = "review"
+            reason = outcome["reason"]
+        return {
+            "cycle_index": cycle_index,
+            "event_index": read_index,
+            "goal": self._short_text(goal, 140),
+            "layer": str(data.get("layer") or "unknown"),
+            "memory_type": str(data.get("memory_type") or "unknown"),
+            "source": self._short_text(str(data.get("source") or "unknown"), 100),
+            "query_signature": self._memory_query_signature(data.get("query")),
+            "memory_id": self._short_text(str(data.get("memory_id") or data.get("entry_id") or data.get("id") or ""), 80),
+            "result_chars": result_chars,
+            "has_result": bool(has_result),
+            "quality_label": label,
+            "reason": reason,
+            "cycle_outcome": outcome["outcome"],
+        }
+
+    def _memory_query_signature(self, query) -> str:
+        text = str(query or "").strip().lower()
+        if not text:
+            return ""
+        return hashlib.sha256(text.encode("utf-8", errors="ignore")).hexdigest()[:12]
+
     def run_bounded_context_report_from_logs(
         self,
         session_log_paths: list[str],
@@ -18083,6 +18403,66 @@ class BenchmarkRunner:
             if case.policy_hints:
                 print(f"      hints: {', '.join(case.policy_hints)}")
         for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_memory_attribution_report(self, report: dict):
+        print("\nMemory Attribution Trace")
+        print(f"  logs: {report.get('log_count', 0)}")
+        print(f"  ready logs: {report.get('ready_log_count', 0)}")
+        print(
+            "  cycles: "
+            f"total={report.get('planning_cycle_count', 0)}, "
+            f"success={report.get('successful_cycle_count', 0)}, "
+            f"failure={report.get('failed_cycle_count', 0)}, "
+            f"unknown={report.get('unknown_cycle_count', 0)}"
+        )
+        print(
+            "  memory reads: "
+            f"total={report.get('memory_read_count', 0)}, "
+            f"attributed={report.get('attributed_read_count', 0)}, "
+            f"supported={report.get('supported_read_count', 0)}, "
+            f"conflicting={report.get('conflicting_read_count', 0)}, "
+            f"review={report.get('review_read_count', 0)}, "
+            f"no_result={report.get('no_result_read_count', 0)}"
+        )
+        if report.get("read_type_counts"):
+            print(f"  read types: {self._format_counts(report.get('read_type_counts', {}))}")
+        if report.get("read_layer_counts"):
+            print(f"  read layers: {self._format_counts(report.get('read_layer_counts', {}))}")
+        if report.get("quality_label_counts"):
+            print(f"  labels: {self._format_counts(report.get('quality_label_counts', {}))}")
+        if report.get("policy_hints"):
+            hints = [
+                f"{hint.get('memory_attribution_policy', hint.get('policy', 'unknown'))}({hint.get('priority', 'review')})"
+                for hint in report.get("policy_hints", [])[:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for case in report.get("cases", []):
+            marker = "+" if case.get("ready_for_memory_attribution_review") else "~"
+            if case.get("conflicting_read_count", 0):
+                marker = "!"
+            print(f"  [{marker}] {case.get('source_log', '')}")
+            print(
+                f"      events={case.get('event_count', 0)}, "
+                f"cycles={case.get('planning_cycle_count', 0)}, "
+                f"reads={case.get('memory_read_count', 0)}, "
+                f"supported={case.get('supported_read_count', 0)}, "
+                f"conflicting={case.get('conflicting_read_count', 0)}, "
+                f"review={case.get('review_read_count', 0)}, "
+                f"no_result={case.get('no_result_read_count', 0)}"
+            )
+            if case.get("read_type_counts"):
+                print(f"      read types: {self._format_counts(case.get('read_type_counts', {}))}")
+            for item in case.get("items", [])[:5]:
+                print(
+                    f"      item cycle={item.get('cycle_index')} "
+                    f"label={item.get('quality_label')} "
+                    f"type={item.get('memory_type')} "
+                    f"layer={item.get('layer')} "
+                    f"query={item.get('query_signature')} "
+                    f"reason={item.get('reason')}"
+                )
+        for error in report.get("errors", []):
             print(f"  error: {error}")
 
     def print_skill_memory_quality_report(self, report: SkillMemoryQualityReport):

@@ -120,6 +120,8 @@
 - [x] Instrument Agent memory lifecycle calls with `memory_write`, `memory_read`, and `memory_manage` session events plus summary metrics.
 - [x] Add `MemoryLifecyclePolicy` as the first consumer of `memory_policy_feedback`, with advisory decisions by default and an optional strict write gate for noisy memory candidates.
 - [x] Close the first `memory_policy_feedback` loop so feedback hints alter `MemoryLifecyclePolicy` priorities, reasons, and review routing for future write/read/manage decisions.
+- [x] Add MemTier-style `memory-attribution-report` so generic `memory_read` events can be labeled against downstream plan/action/goal outcomes before retrieval weights or durable memories are updated.
+- [ ] Run `memory-attribution-report` on real M1/M2/autonomous logs and compare supported/conflicting reads against memory quality feedback before enabling weighted retrieval updates.
 - [x] Add GovMem-style correlated-evidence and unsafe-scope flags to `MemoryLifecyclePolicy` so shared, copied, stale, out-of-scope, adversarial, or contradicted memory candidates are routed through review before durable promotion.
 - [x] Add provenance/dependency metadata to M7 shared-state memory candidates and summarize GovMem-style false-promotion review counts in collaboration execution reports.
 - [x] Add STALE-style state revision detection so M7 shared-state value changes preserve previous provenance, mark implicit conflicts, and report state revision counts.

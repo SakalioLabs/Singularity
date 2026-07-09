@@ -3374,6 +3374,101 @@ def test_memory_policy_report_counts_write_read_manage_gaps_and_feedback():
     print("PASS: Memory policy report counts write/read/manage gaps and feedback")
 
 
+def test_memory_attribution_report_labels_retrieval_outcomes_without_raw_queries():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_memory_attribution.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "semantic",
+                "memory_type": "relevant_memory",
+                "source": "planner_memory",
+                "query": "craft torch route",
+                "memory_id": "memory-supported-1",
+                "result_chars": 200,
+                "has_result": True,
+            },
+        },
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "task",
+                "memory_type": "task_memory",
+                "source": "planner_task_memory",
+                "query": "torch task setup",
+                "memory_id": "memory-supported-2",
+                "result_chars": 80,
+                "has_result": True,
+            },
+        },
+        {"type": "plan", "data": {"status": "in_progress", "actions": [{"type": "craft", "parameters": {"item": "torch"}}]}},
+        {"type": "action", "data": {"action": {"type": "craft", "parameters": {"item": "torch"}}, "result": {"success": True}}},
+        {"type": "goal_verification", "data": {"achieved": True, "context": {"accepted": True}}},
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "semantic",
+                "memory_type": "relevant_memory",
+                "source": "planner_memory",
+                "query": "mine coal route",
+                "memory_id": "memory-conflict-1",
+                "result_chars": 180,
+                "has_result": True,
+            },
+        },
+        {"type": "plan", "data": {"status": "in_progress", "actions": [{"type": "dig", "parameters": {"block": "coal_ore"}}]}},
+        {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "coal_ore"}}, "result": {"success": False, "error": "wooden pickaxe"}}},
+        {"type": "goal_verification", "data": {"achieved": False, "context": {"accepted": False}}},
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "semantic",
+                "memory_type": "relevant_memory",
+                "source": "planner_memory",
+                "query": "empty recall",
+                "result_chars": 0,
+                "has_result": False,
+            },
+        },
+        {"type": "plan", "data": {"status": "in_progress", "actions": []}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_memory_attribution_report_from_logs([session_path])
+    case = report["cases"][0]
+    items = case["items"]
+
+    assert report["log_count"] == 1
+    assert report["ready_log_count"] == 1
+    assert report["planning_cycle_count"] == 3
+    assert report["memory_read_count"] == 4
+    assert report["attributed_read_count"] == 3
+    assert report["supported_read_count"] == 2
+    assert report["conflicting_read_count"] == 1
+    assert report["no_result_read_count"] == 1
+    assert report["quality_label_counts"]["supported"] == 2
+    assert report["read_type_counts"]["relevant_memory"] == 3
+    assert report["read_layer_counts"]["semantic"] == 3
+    assert {item["quality_label"] for item in items} == {"supported", "conflicting", "no_result"}
+    assert items[0]["query_signature"]
+    assert "query" not in items[0]
+    assert "craft torch route" not in json.dumps(items)
+    assert "mine coal route" not in json.dumps(items)
+
+    policies = {hint["memory_attribution_policy"]: hint for hint in report["policy_hints"]}
+    assert policies["promote_outcome_supported_retrieval"]["count"] == 2
+    assert policies["demote_conflicting_retrieval"]["count"] == 1
+    assert policies["include_retrieval_result_metadata"]["count"] == 1
+    assert "use_supported_memory_reads_as_candidates_for_weighted_retrieval_boost" in report["recommendations"]
+    assert "route_conflicting_memory_reads_to_review_before_reuse" in report["recommendations"]
+    print("PASS: Memory attribution report labels retrieval outcomes without raw queries")
+
+
 def test_memory_lifecycle_policy_uses_task_stream_transfer_gate():
     approved_gate = {
         "required": True,
@@ -5422,6 +5517,7 @@ if __name__ == "__main__":
     test_task_stream_transfer_gate_controls_skill_promotion_path()
     test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates()
     test_memory_policy_report_counts_write_read_manage_gaps_and_feedback()
+    test_memory_attribution_report_labels_retrieval_outcomes_without_raw_queries()
     test_memory_lifecycle_policy_uses_task_stream_transfer_gate()
     test_bounded_context_report_audits_typed_planner_context()
     test_bounded_context_gate_controls_planner_contract()

@@ -145,6 +145,8 @@ python -m singularity.main task-memory-report --memory-dir workspace/memory --go
 # Audit session logs for memory write/read/manage policy gaps
 python -m singularity.main memory-policy-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/memory_policy.json
 # The saved JSON includes `memory_policy_feedback` for future memory-write and retrieval policy tuning.
+# Attribute generic memory reads to downstream plan/action/goal outcomes before retrieval weights are tuned.
+python -m singularity.main memory-attribution-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/memory_attribution.json
 # New Agent runs log `memory_write`, `memory_read`, and `memory_manage` events plus summary metrics.
 # `MemoryLifecyclePolicy` is advisory by default; strict suppression also requires an approved memory-promptware gate.
 # Audit durable memory entries that would be excluded at read time.
@@ -385,6 +387,7 @@ python -m singularity.main review-label-validate --label-file workspace/reviews/
 
 # Audit whether each planner cycle used bounded typed retrieval instead of raw accumulated transcript context
 python -m singularity.main bounded-context-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/bounded_context.json
+python -m singularity.main memory-attribution-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/memory_attribution.json
 python -m singularity.main bounded-context-gate --bounded-context-report logs/benchmarks/bounded_context.json --output logs/benchmarks/bounded_context_gate.json
 
 # Aggregate open-ended continual-learning diagnostics across progress, world knowledge, memory, action diversity, and horizon

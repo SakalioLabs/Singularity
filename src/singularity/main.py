@@ -776,6 +776,20 @@ def main():
     memory_policy_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     memory_policy_parser.add_argument("--log-level", type=str, default="INFO")
 
+    memory_attribution_parser = subparsers.add_parser(
+        "memory-attribution-report",
+        help="Attribute memory reads to downstream plan/action/goal outcomes",
+    )
+    memory_attribution_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    memory_attribution_parser.add_argument(
+        "--attribution-window-events",
+        type=int,
+        default=16,
+        help="Maximum events after a plan to inspect before the next plan",
+    )
+    memory_attribution_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    memory_attribution_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline bounded planner context report
     bounded_context_parser = subparsers.add_parser("bounded-context-report", help="Audit bounded typed retrieval context before planner calls")
     bounded_context_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -2114,6 +2128,25 @@ def main():
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "memory-attribution-report":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("memory-attribution-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_memory_attribution_report_from_logs(
+            session_logs,
+            attribution_window_events=getattr(args, "attribution_window_events", 16),
+        )
+        runner.print_memory_attribution_report(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
         return
 
