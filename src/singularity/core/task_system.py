@@ -2,6 +2,7 @@
 import time
 import uuid
 import logging
+import math
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Optional
@@ -166,6 +167,9 @@ class TaskSystem:
         for flag in task.preconditions.get("flags", []):
             if flag not in flags:
                 return False
+        nearby_required = task.preconditions.get("nearby_block_present", [])
+        if nearby_required and not self._observed_names_satisfy(nearby_required, world_state):
+            return False
         return True
 
     def _task_score(self, task: Task, world_state: dict) -> float:
@@ -241,6 +245,12 @@ class TaskSystem:
             checks.append(all(flag in set(world_state.get("flags", [])) for flag in criteria["flags"]))
         if "health_at_least" in criteria:
             checks.append(world_state.get("health", 0) >= criteria["health_at_least"])
+        if "position_near" in criteria:
+            checks.append(self._position_near(criteria["position_near"], world_state, action, result))
+        if "observed" in criteria:
+            checks.append(self._observed_names_satisfy(criteria["observed"], world_state, result=result))
+        if "nearby_block_present" in criteria:
+            checks.append(self._observed_names_satisfy(criteria["nearby_block_present"], world_state))
         return bool(checks) and all(checks)
 
     def _failure_criteria_satisfied(self, task: Task, result: dict, world_state: dict) -> bool:
@@ -264,12 +274,83 @@ class TaskSystem:
     def _inventory_requirements(self, criteria: dict) -> dict:
         if isinstance(criteria.get("inventory"), dict):
             return criteria["inventory"]
-        reserved = {"action", "result", "flags", "health_at_least"}
+        reserved = {
+            "action",
+            "result",
+            "flags",
+            "health_at_least",
+            "position_near",
+            "observed",
+            "nearby_block_present",
+        }
         return {
             key: value
             for key, value in criteria.items()
             if key not in reserved and isinstance(value, (int, float))
         }
+
+    def _position_near(self, target: dict, world_state: dict, action: dict, result: dict) -> bool:
+        if not isinstance(target, dict):
+            return False
+        current = world_state.get("position", {}) if isinstance(world_state.get("position", {}), dict) else {}
+        if not current and result.get("success") and action.get("type") in {"move_to", "walk_to"}:
+            current = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
+        if not current:
+            return False
+        radius = float(target.get("radius", target.get("tolerance", 4.0)) or 4.0)
+        dx = float(current.get("x", 0) or 0) - float(target.get("x", 0) or 0)
+        dz = float(current.get("z", 0) or 0) - float(target.get("z", 0) or 0)
+        if "y" in target:
+            dy = float(current.get("y", target.get("y", 0)) or 0) - float(target.get("y", 0) or 0)
+            return math.sqrt(dx * dx + dy * dy + dz * dz) <= radius
+        return math.sqrt(dx * dx + dz * dz) <= radius
+
+    def _observed_names_satisfy(self, required, world_state: dict, result: dict = None) -> bool:
+        required_names = self._required_name_set(required)
+        if not required_names:
+            return True
+        observed = self._observed_name_set(world_state or {}, result or {})
+        return all(name in observed for name in required_names)
+
+    def _required_name_set(self, required) -> set[str]:
+        if isinstance(required, str):
+            return {required.lower()} if required else set()
+        if isinstance(required, dict):
+            return {
+                str(value).lower()
+                for value in required.values()
+                if value
+            }
+        if isinstance(required, list):
+            return {
+                str(value).lower()
+                for value in required
+                if value
+            }
+        return set()
+
+    def _observed_name_set(self, world_state: dict, result: dict) -> set[str]:
+        names = set()
+        for key in ("nearby_blocks", "grounded_resources", "trees_found", "nearby_entities", "landmarks"):
+            for item in world_state.get(key, []) or []:
+                if isinstance(item, str):
+                    names.add(item.lower())
+                    continue
+                if not isinstance(item, dict):
+                    continue
+                for field_name in ("name", "type", "block", "resource", "drop", "entity"):
+                    value = item.get(field_name)
+                    if value:
+                        names.add(str(value).lower())
+        for field_name in ("observed", "block", "resource", "entity", "item"):
+            value = result.get(field_name)
+            if isinstance(value, list):
+                names.update(str(item).lower() for item in value if item)
+            elif value:
+                names.add(str(value).lower())
+        if world_state.get("landmarks"):
+            names.add("landmark")
+        return names
 
     def _inventory_satisfies(self, requirements: dict, world_state: dict, action: dict, result: dict) -> bool:
         inventory = dict(world_state.get("inventory", {}))

@@ -1271,6 +1271,53 @@ def test_task_system_updates_state_from_action_success():
     print("PASS: TaskSystem completes tasks from action result evidence")
 
 
+def test_task_system_completes_frontier_position_and_observation_tasks():
+    tasks = TaskSystem()
+    navigate = tasks.create_task(
+        "Navigate to mapped frontier",
+        status=TaskStatus.ACCEPTED,
+        priority=1,
+        success_criteria={"position_near": {"x": 12, "z": 4, "radius": 3}},
+        opportunity_triggers=["frontier"],
+    )
+    inspect = tasks.create_task(
+        "Inspect frontier coal_ore",
+        status=TaskStatus.ACCEPTED,
+        priority=2,
+        depends_on=[navigate.id],
+        preconditions={"nearby_block_present": ["coal_ore"]},
+        success_criteria={"observed": "coal_ore"},
+        opportunity_triggers=["coal_ore"],
+    )
+
+    moved = tasks.apply_action_result(
+        {"type": "move_to", "parameters": {"x": 12, "z": 4}},
+        {"success": True, "action_type": "move_to"},
+        {"position": {"x": 11, "y": 64, "z": 5}, "nearby_blocks": []},
+        task_id=navigate.id,
+    )
+    blocked_ready = tasks.get_ready_tasks({"position": {"x": 11, "z": 5}, "nearby_blocks": []})
+    ready = tasks.get_ready_tasks({
+        "position": {"x": 11, "z": 5},
+        "nearby_blocks": [{"name": "coal_ore"}],
+    })
+    observed = tasks.apply_action_result(
+        {"type": "look_at", "parameters": {"x": 11, "y": 63, "z": 5}},
+        {"success": True, "action_type": "look_at"},
+        {"nearby_blocks": [{"name": "coal_ore", "position": {"x": 11, "y": 63, "z": 5}}]},
+        task_id=inspect.id,
+    )
+
+    assert moved.id == navigate.id
+    assert navigate.status == TaskStatus.COMPLETED
+    assert inspect not in blocked_ready
+    assert ready[0].id == inspect.id
+    assert observed.id == inspect.id
+    assert inspect.status == TaskStatus.COMPLETED
+    assert inspect.result["completed_by"] == "action_result"
+    print("PASS: TaskSystem completes frontier position and observation tasks")
+
+
 def test_task_system_updates_state_from_action_failure():
     tasks = TaskSystem()
     task = tasks.create_task(
@@ -3348,6 +3395,7 @@ if __name__ == "__main__":
     test_task_system_uses_causal_opportunity_tags()
     test_task_system_can_disable_causal_opportunity_scoring()
     test_task_system_updates_state_from_action_success()
+    test_task_system_completes_frontier_position_and_observation_tasks()
     test_task_system_updates_state_from_action_failure()
     test_agent_autonomous_goal_selects_ready_opportunity_task()
     test_agent_autonomous_goal_uses_causal_memory_context()
