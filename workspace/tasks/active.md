@@ -234,6 +234,7 @@
 - [ ] Run `benchmark --skill-memory-ablation` on live M1/M2/autonomous-ready tasks and compare skill-memory hint counts, pass rates, and regressions before making skills runtime defaults.
 - [ ] Run `self-evolution-report` on real M1/M2/autonomous logs and compare adaptor recommendations against retry outcomes before enabling automatic plan-suffix repair.
 - [x] Inspect `logs/benchmarks/self_evolution_m1_2026-07-09.json` for 0-action failed logs and decide whether the next fix belongs in benchmark execution, bridge action logging, or runtime adaptor routing.
+- [x] Add `self-evolution-counterexample-report`, generate `logs/benchmarks/self_evolution_counterexamples_m1_2026-07-09.json`, and run `self-evolution-gate` on the current M1 self-evolution plus terminal-verifier evidence; the gate rejects automatic plan repair with 32 unresolved counterexamples.
 - [ ] Re-run live M1/M2 after the blocked-plan fallback and compare zero-action failures, planner fallback events, and cobblestone prerequisite recovery against the saved 2026-07-09 baseline.
 - [ ] Re-run `plan-action-compliance-report` on the same live M1/M2 retries and compare follow/precision/compliance scores against `logs/benchmarks/plan_action_compliance_m1_2026-07-09.json`.
 - [ ] Re-run `terminal-commitment-report` on live M1/M2 retries and compare missed_execution, unsupported_commitment, and post_attainment_drift against `logs/benchmarks/terminal_commitment_m1_2026-07-09.json`.
@@ -246,7 +247,7 @@
 - [ ] Compare fresh live M1/M2 action-local transition diagnostics against `logs/benchmarks/action_value_m1_2026-07-09.json` before feeding transition values into runtime action ranking.
 - [ ] Run `action-value-transition-evaluator-report --llm-evaluator` on fresh high-confidence M1/M2 transition windows and pass approved reports with `--action-value-transition-evaluator-report` before enabling transition-scored runtime action ranking.
 - [ ] Use `benchmark --action-value-transition-preflight --require-action-value-transition-evaluator-report` before any transition-scored M1/M2 suite that passes `--action-value-feedback`.
-- [ ] Run `self-evolution-gate` on real self-evolution, verifier, and counterexample reports; only then design a guarded runtime plan-suffix repair path.
+- [ ] Re-run live M1/M2 after blocked-plan fallback and action-local logging, regenerate `self-evolution-counterexample-report`, and only consider guarded plan-suffix repair if unresolved counterexamples shrink and verifier reports pass.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
 - [ ] Mine real player/session requests into `mixed-initiative-variant-report --case-file` suites and track held-out template coverage before changing auto-selection heuristics.
 - [ ] Run `mixed-initiative-trace-report` on live M1/M2/M7 logs and compare `template_action_metrics` for invalid actions, failed backend actions, and valid-success rates by task family.

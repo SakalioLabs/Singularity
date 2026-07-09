@@ -703,6 +703,16 @@ def main():
     self_evolution_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     self_evolution_parser.add_argument("--log-level", type=str, default="INFO")
 
+    self_evolution_counterexample_parser = subparsers.add_parser("self-evolution-counterexample-report", help="Aggregate unresolved counterexamples before self-evolution plan repair")
+    self_evolution_counterexample_parser.add_argument("--self-evolution-report", action="append", default=[], help="Saved self-evolution-report JSON")
+    self_evolution_counterexample_parser.add_argument("--terminal-commitment-report", action="append", default=[], help="Saved terminal-commitment-report JSON")
+    self_evolution_counterexample_parser.add_argument("--plan-action-report", action="append", default=[], help="Saved plan-action-compliance-report JSON")
+    self_evolution_counterexample_parser.add_argument("--action-verification-report", action="append", default=[], help="Saved action-verification-report JSON")
+    self_evolution_counterexample_parser.add_argument("--action-value-report", action="append", default=[], help="Saved action-value-report JSON")
+    self_evolution_counterexample_parser.add_argument("--limit", type=int, default=120, help="Maximum counterexamples to include")
+    self_evolution_counterexample_parser.add_argument("--output", type=str, default="", help="Optional JSON counterexample report path")
+    self_evolution_counterexample_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline plan-action compliance trace report
     plan_action_parser = subparsers.add_parser("plan-action-compliance-report", help="Report whether executed actions follow preceding plan windows")
     plan_action_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -2512,6 +2522,38 @@ def main():
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "self-evolution-counterexample-report":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        self_reports = getattr(args, "self_evolution_report", []) or []
+        terminal_reports = getattr(args, "terminal_commitment_report", []) or []
+        plan_action_reports = getattr(args, "plan_action_report", []) or []
+        action_verification_reports = getattr(args, "action_verification_report", []) or []
+        action_value_reports = getattr(args, "action_value_report", []) or []
+        if not any((self_reports, terminal_reports, plan_action_reports, action_verification_reports, action_value_reports)):
+            print("self-evolution-counterexample-report requires at least one saved report")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.build_self_evolution_counterexample_report(
+            self_evolution_report_paths=self_reports,
+            terminal_commitment_report_paths=terminal_reports,
+            plan_action_report_paths=plan_action_reports,
+            action_verification_report_paths=action_verification_reports,
+            action_value_report_paths=action_value_reports,
+            limit=getattr(args, "limit", 120),
+        )
+        runner.print_self_evolution_counterexample_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") == "error":
+            sys.exit(1)
         return
 
     if args.command == "plan-action-compliance-report":

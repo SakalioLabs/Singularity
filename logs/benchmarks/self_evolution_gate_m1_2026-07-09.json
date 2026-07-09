@@ -1,0 +1,71 @@
+{
+  "required": true,
+  "readiness": "rejected",
+  "decision": "do_not_mutate_plan",
+  "reason": "verifier failures or unresolved counterexamples block automatic repair",
+  "self_evolution_report_count": 1,
+  "verifier_report_count": 1,
+  "counterexample_report_count": 1,
+  "actionable_feedback_count": 1,
+  "verifier_success_count": 0,
+  "verifier_failure_count": 5,
+  "counterexample_count": 32,
+  "unresolved_counterexample_count": 32,
+  "remedy_candidate_count": 0,
+  "adaptor_recommendation_count": 4,
+  "policy_hints": [
+    "repair_blocked_plan_or_prerequisite_fallback",
+    "repair_stagnant_plan_suffix",
+    "verify_successful_actions_with_state_delta"
+  ],
+  "evidence_count": 1,
+  "warning_count": 0,
+  "regression_count": 2,
+  "missing": [],
+  "checks": [
+    {
+      "source": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "kind": "self_evolution_report",
+      "status": "pass",
+      "detail": "actionable self-evolution feedback is present",
+      "metrics": {
+        "ready_log_count": 5,
+        "failed_action_count": 0,
+        "stagnation_signal_count": 602,
+        "policy_hints": [
+          "repair_stagnant_plan_suffix",
+          "verify_successful_actions_with_state_delta",
+          "repair_blocked_plan_or_prerequisite_fallback"
+        ],
+        "actionable_feedback": 1,
+        "remedy_candidate_count": 0,
+        "adaptor_recommendation_count": 4
+      }
+    },
+    {
+      "source": "logs\\benchmarks\\terminal_commitment_m1_2026-07-09.json",
+      "kind": "verifier_report",
+      "status": "fail",
+      "detail": "verifier reported failed or rejected cases",
+      "metrics": {
+        "case_count": 5,
+        "success_count": 0,
+        "failure_count": 5,
+        "unknown_count": 0
+      }
+    },
+    {
+      "source": "logs\\benchmarks\\self_evolution_counterexamples_m1_2026-07-09.json",
+      "kind": "counterexample_report",
+      "status": "fail",
+      "detail": "unresolved counterexamples remain",
+      "metrics": {
+        "counterexample_count": 32,
+        "resolved_count": 0,
+        "unresolved_count": 32,
+        "unknown_count": 0
+      }
+    }
+  ],
+  "errors": []
+}

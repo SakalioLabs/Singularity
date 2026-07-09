@@ -7456,6 +7456,142 @@ class BenchmarkRunner:
             })
         return feedback
 
+    def build_self_evolution_counterexample_report(
+        self,
+        self_evolution_reports: Optional[list[dict]] = None,
+        self_evolution_report_paths: Optional[list[str]] = None,
+        terminal_commitment_reports: Optional[list[dict]] = None,
+        terminal_commitment_report_paths: Optional[list[str]] = None,
+        plan_action_reports: Optional[list[dict]] = None,
+        plan_action_report_paths: Optional[list[str]] = None,
+        action_verification_reports: Optional[list[dict]] = None,
+        action_verification_report_paths: Optional[list[str]] = None,
+        action_value_reports: Optional[list[dict]] = None,
+        action_value_report_paths: Optional[list[str]] = None,
+        limit: int = 120,
+    ) -> dict:
+        """Build unresolved counterexamples that keep self-evolution repair advisory."""
+        errors = []
+        sources = []
+        source_groups = (
+            (
+                "self_evolution_report",
+                self_evolution_reports or [],
+                self_evolution_report_paths or [],
+                self._self_evolution_counterexamples_from_report,
+            ),
+            (
+                "terminal_commitment_report",
+                terminal_commitment_reports or [],
+                terminal_commitment_report_paths or [],
+                self._terminal_commitment_counterexamples_from_report,
+            ),
+            (
+                "plan_action_compliance_report",
+                plan_action_reports or [],
+                plan_action_report_paths or [],
+                self._plan_action_counterexamples_from_report,
+            ),
+            (
+                "action_verification_report",
+                action_verification_reports or [],
+                action_verification_report_paths or [],
+                self._action_verification_counterexamples_from_report,
+            ),
+            (
+                "action_value_report",
+                action_value_reports or [],
+                action_value_report_paths or [],
+                self._action_value_counterexamples_from_report,
+            ),
+        )
+        counterexamples = []
+        seen = set()
+        for label, inline_payloads, paths, extractor in source_groups:
+            items = self._load_gate_payloads(inline_payloads, paths, errors, label)
+            for source, payload in items:
+                sources.append({"source": source, "kind": label})
+                for record in extractor(source, payload):
+                    key = (
+                        str(record.get("source_report") or ""),
+                        str(record.get("source_log") or ""),
+                        str(record.get("goal") or ""),
+                        str(record.get("category") or ""),
+                        str(record.get("reason") or ""),
+                    )
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    counterexamples.append(record)
+
+        max_items = max(1, int(limit))
+        category_counts = {}
+        unresolved_count = 0
+        resolved_count = 0
+        unknown_count = 0
+        for item in counterexamples:
+            category = str(item.get("category") or "unknown")
+            category_counts[category] = category_counts.get(category, 0) + 1
+            state = self._counterexample_state(item)
+            if state == "unresolved":
+                unresolved_count += 1
+            elif state == "resolved":
+                resolved_count += 1
+            else:
+                unknown_count += 1
+
+        policy_hints = []
+        if unresolved_count:
+            policy_hints.extend([
+                "keep_self_evolution_feedback_advisory",
+                "resolve_self_evolution_counterexamples_before_plan_repair",
+                "collect_verified_retry_traces",
+            ])
+        if category_counts.get("missed_execution") or category_counts.get("blocked_plan_loop"):
+            policy_hints.append("repair_execution_before_completion_retry")
+        if category_counts.get("no_progress_success") or category_counts.get("repeated_success_loop"):
+            policy_hints.append("require_state_delta_before_success_credit")
+        if category_counts.get("transition_window_quality"):
+            policy_hints.append("collect_action_local_transition_windows")
+
+        readiness = "approved"
+        decision = "no_unresolved_counterexamples"
+        reason = "no unresolved self-evolution counterexamples were found"
+        if errors:
+            readiness = "error"
+            decision = "counterexample_inputs_failed"
+            reason = "counterexample evidence could not be loaded"
+        elif not sources:
+            readiness = "review"
+            decision = "missing_counterexample_evidence"
+            reason = "no counterexample evidence reports were supplied"
+            unknown_count = max(unknown_count, 1)
+        elif unresolved_count:
+            readiness = "rejected"
+            decision = "block_automatic_plan_repair"
+            reason = "unresolved counterexamples remain"
+        elif unknown_count:
+            readiness = "review"
+            decision = "hold_for_counterexample_review"
+            reason = "some counterexample statuses are unknown"
+
+        return {
+            "type": "self_evolution_counterexample_report",
+            "readiness": readiness,
+            "decision": decision,
+            "reason": reason,
+            "source_count": len(sources),
+            "sources": sources,
+            "counterexample_count": len(counterexamples) if sources else unknown_count,
+            "unresolved_counterexample_count": unresolved_count,
+            "resolved_counterexample_count": resolved_count,
+            "unknown_counterexample_count": unknown_count,
+            "category_counts": dict(sorted(category_counts.items())),
+            "counterexamples": counterexamples[:max_items],
+            "policy_hints": self._dedupe_strings(policy_hints),
+            "errors": errors,
+        }
+
     def build_self_evolution_plan_repair_gate(
         self,
         self_evolution_reports: Optional[list[dict]] = None,
@@ -7670,20 +7806,26 @@ class BenchmarkRunner:
         if not isinstance(examples, list):
             examples = []
         explicit_count = self._gate_int(payload.get("counterexample_count", len(examples)))
-        unresolved = self._gate_int(payload.get("unresolved_counterexample_count", 0))
-        resolved = self._gate_int(payload.get("resolved_counterexample_count", 0))
-        unknown = 0
+        explicit_unresolved = self._gate_int(payload.get("unresolved_counterexample_count", 0))
+        explicit_resolved = self._gate_int(payload.get("resolved_counterexample_count", 0))
+        explicit_unknown = self._gate_int(payload.get("unknown_counterexample_count", 0))
+        example_unresolved = 0
+        example_resolved = 0
+        example_unknown = 0
         for item in examples:
             if not isinstance(item, dict):
-                unknown += 1
+                example_unknown += 1
                 continue
             state = self._counterexample_state(item)
             if state == "unresolved":
-                unresolved += 1
+                example_unresolved += 1
             elif state == "resolved":
-                resolved += 1
+                example_resolved += 1
             else:
-                unknown += 1
+                example_unknown += 1
+        unresolved = max(explicit_unresolved, example_unresolved)
+        resolved = max(explicit_resolved, example_resolved)
+        unknown = max(explicit_unknown, example_unknown)
         counterexample_count = max(explicit_count, unresolved + resolved + unknown, len(examples))
         metrics = {
             "counterexample_count": counterexample_count,
@@ -7700,6 +7842,22 @@ class BenchmarkRunner:
         return self._gate_check(source, "counterexample_report", "pass", "no unresolved counterexamples remain", metrics)
 
     def _verification_gate_status(self, record: dict) -> str:
+        outcome = str(record.get("outcome") or "").lower()
+        if outcome in {"verified_success", "world_complete", "achieved"}:
+            return "approved"
+        if outcome in {"missed_execution", "unsupported_commitment", "post_attainment_drift", "failed"}:
+            return "rejected"
+        if record.get("world_complete") is True:
+            return "approved"
+        if record.get("world_complete") is False:
+            return "rejected"
+        if self._gate_int(record.get("failed_without_reject_count", 0)) or self._gate_int(record.get("rejected_action_count", 0)):
+            return "rejected"
+        if self._gate_int(record.get("verified_action_count", 0)) and not (
+            self._gate_int(record.get("failed_without_reject_count", 0))
+            or self._gate_int(record.get("rejected_action_count", 0))
+        ):
+            return "approved"
         for key in ("screenshot_vlm_readiness", "api_visual_readiness", "deterministic_readiness", "readiness"):
             value = str(record.get(key) or "").lower()
             if value in {"approved", "achieved", "passed", "pass", "success"}:
@@ -7728,6 +7886,258 @@ class BenchmarkRunner:
         if status in {"open", "unresolved", "failed", "rejected", "failing", "error"}:
             return "unresolved"
         return "unknown"
+
+    def _counterexample_record(
+        self,
+        source_report: str,
+        source_kind: str,
+        category: str,
+        reason: str,
+        source_log: str = "",
+        goal: str = "",
+        severity: str = "high",
+        metrics: Optional[dict] = None,
+        evidence: Optional[dict] = None,
+    ) -> dict:
+        return {
+            "type": "self_evolution_counterexample",
+            "status": "unresolved",
+            "resolved": False,
+            "source_report": source_report,
+            "source_kind": source_kind,
+            "source_log": source_log,
+            "goal": goal,
+            "category": category,
+            "severity": severity,
+            "reason": str(reason or category)[:240],
+            "metrics": metrics or {},
+            "evidence": evidence or {},
+        }
+
+    def _self_evolution_counterexamples_from_report(self, source: str, payload: dict) -> list[dict]:
+        records = payload.get("cases", []) if isinstance(payload, dict) and isinstance(payload.get("cases", []), list) else []
+        if not records and isinstance(payload, dict):
+            records = [payload]
+        counterexamples = []
+        for case in records:
+            if not isinstance(case, dict):
+                continue
+            source_log = str(case.get("source_log") or "")
+            goal = str(case.get("goal") or "")
+            if self._gate_int(case.get("zero_action_failure_count", 0)):
+                counterexamples.append(self._counterexample_record(
+                    source,
+                    "self_evolution_report",
+                    "zero_action_failure",
+                    "goal failed without executable actions",
+                    source_log,
+                    goal,
+                    metrics={"zero_action_failure_count": self._gate_int(case.get("zero_action_failure_count", 0))},
+                ))
+            blocked = self._gate_int(case.get("blocked_plan_count", 0))
+            empty = self._gate_int(case.get("empty_plan_count", 0))
+            if blocked or empty:
+                counterexamples.append(self._counterexample_record(
+                    source,
+                    "self_evolution_report",
+                    "blocked_plan_loop",
+                    "blocked or empty plans repeated before success evidence",
+                    source_log,
+                    goal,
+                    metrics={"blocked_plan_count": blocked, "empty_plan_count": empty},
+                ))
+            failed_goals = self._gate_int(case.get("failed_goal_count", 0))
+            if failed_goals:
+                counterexamples.append(self._counterexample_record(
+                    source,
+                    "self_evolution_report",
+                    "goal_failure",
+                    "goal ended failed in self-evolution trace",
+                    source_log,
+                    goal,
+                    metrics={"failed_goal_count": failed_goals},
+                ))
+            no_progress = self._gate_int(case.get("no_progress_success_count", 0))
+            if no_progress:
+                counterexamples.append(self._counterexample_record(
+                    source,
+                    "self_evolution_report",
+                    "no_progress_success",
+                    "successful action returns lacked observed state, inventory, or verifier progress",
+                    source_log,
+                    goal,
+                    metrics={"no_progress_success_count": no_progress},
+                ))
+            repeated = self._gate_int(case.get("repeated_success_loop_count", 0))
+            if repeated:
+                counterexamples.append(self._counterexample_record(
+                    source,
+                    "self_evolution_report",
+                    "repeated_success_loop",
+                    "successful actions repeated without sufficient progress",
+                    source_log,
+                    goal,
+                    metrics={"repeated_success_loop_count": repeated},
+                ))
+            regressions = self._gate_int(case.get("regression_signal_count", 0))
+            if regressions:
+                counterexamples.append(self._counterexample_record(
+                    source,
+                    "self_evolution_report",
+                    "regression_signal",
+                    "trace contains regression signals",
+                    source_log,
+                    goal,
+                    metrics={"regression_signal_count": regressions},
+                    severity="medium",
+                ))
+        return counterexamples
+
+    def _terminal_commitment_counterexamples_from_report(self, source: str, payload: dict) -> list[dict]:
+        records = payload.get("cases", []) if isinstance(payload, dict) and isinstance(payload.get("cases", []), list) else []
+        if not records and isinstance(payload, dict):
+            records = [payload]
+        counterexamples = []
+        for case in records:
+            if not isinstance(case, dict):
+                continue
+            outcome = str(case.get("outcome") or "").strip().lower()
+            world_complete = case.get("world_complete")
+            if outcome not in {"missed_execution", "unsupported_commitment", "post_attainment_drift"} and world_complete is not False:
+                continue
+            missing = case.get("missing", []) if isinstance(case.get("missing", []), list) else []
+            category = outcome or "terminal_world_incomplete"
+            counterexamples.append(self._counterexample_record(
+                source,
+                "terminal_commitment_report",
+                category,
+                "terminal evidence does not prove completed world state",
+                str(case.get("source_log") or ""),
+                str(case.get("goal") or ""),
+                metrics={
+                    "action_count": self._gate_int(case.get("action_count", 0)),
+                    "planner_complete_count": self._gate_int(case.get("planner_complete_count", 0)),
+                    "terminal_reported_complete": bool(case.get("terminal_reported_complete")),
+                },
+                evidence={
+                    "world_status": str(case.get("world_status") or ""),
+                    "terminal_status": str(case.get("terminal_status") or ""),
+                    "missing": missing[:6],
+                },
+            ))
+        return counterexamples
+
+    def _plan_action_counterexamples_from_report(self, source: str, payload: dict) -> list[dict]:
+        records = payload.get("cases", []) if isinstance(payload, dict) and isinstance(payload.get("cases", []), list) else []
+        if not records and isinstance(payload, dict):
+            records = [payload]
+        counterexamples = []
+        for case in records:
+            if not isinstance(case, dict):
+                continue
+            metrics = {
+                "blocked_plan_count": self._gate_int(case.get("blocked_plan_count", 0)),
+                "empty_plan_count": self._gate_int(case.get("empty_plan_count", 0)),
+                "missing_planned_action_count": self._gate_int(case.get("missing_planned_action_count", 0)),
+                "unplanned_action_count": self._gate_int(case.get("unplanned_action_count", 0)),
+                "order_violation_count": self._gate_int(case.get("order_violation_count", 0)),
+                "compliance_score": self._safe_float(case.get("compliance_score"), 1.0),
+            }
+            if not any(metrics[key] for key in (
+                "blocked_plan_count",
+                "empty_plan_count",
+                "missing_planned_action_count",
+                "unplanned_action_count",
+                "order_violation_count",
+            )) and metrics["compliance_score"] >= 0.8:
+                continue
+            category = "plan_action_mismatch"
+            if metrics["blocked_plan_count"] or metrics["empty_plan_count"]:
+                category = "blocked_plan_loop"
+            counterexamples.append(self._counterexample_record(
+                source,
+                "plan_action_compliance_report",
+                category,
+                "planned actions were blocked, missing, unordered, or not faithfully executed",
+                str(case.get("source_log") or ""),
+                str(case.get("goal") or ""),
+                metrics=metrics,
+                evidence={"mismatch_examples": (case.get("mismatch_examples", []) or [])[:3] if isinstance(case.get("mismatch_examples", []), list) else []},
+            ))
+        return counterexamples
+
+    def _action_verification_counterexamples_from_report(self, source: str, payload: dict) -> list[dict]:
+        records = payload.get("cases", []) if isinstance(payload, dict) and isinstance(payload.get("cases", []), list) else []
+        if not records and isinstance(payload, dict):
+            records = [payload]
+        counterexamples = []
+        for case in records:
+            if not isinstance(case, dict):
+                continue
+            rejected = self._gate_int(case.get("rejected_action_count", 0))
+            failed_without_reject = self._gate_int(case.get("failed_without_reject_count", 0))
+            rejected_success = self._gate_int(case.get("rejected_success_count", 0))
+            review = self._gate_int(case.get("review_action_count", 0))
+            if not any((rejected, failed_without_reject, rejected_success, review)):
+                continue
+            category = "action_verification_gap"
+            severity = "high" if (rejected or failed_without_reject or rejected_success) else "medium"
+            counterexamples.append(self._counterexample_record(
+                source,
+                "action_verification_report",
+                category,
+                "action verifier evidence is rejected, failed without reject, or still requires review",
+                str(case.get("source_log") or ""),
+                str(case.get("goal") or ""),
+                severity=severity,
+                metrics={
+                    "rejected_action_count": rejected,
+                    "failed_without_reject_count": failed_without_reject,
+                    "rejected_success_count": rejected_success,
+                    "review_action_count": review,
+                },
+                evidence={
+                    "rejection_reasons": case.get("rejection_reasons", {}) if isinstance(case.get("rejection_reasons", {}), dict) else {},
+                    "review_reasons": case.get("review_reasons", {}) if isinstance(case.get("review_reasons", {}), dict) else {},
+                    "examples": (case.get("examples", []) or [])[:3] if isinstance(case.get("examples", []), list) else [],
+                },
+            ))
+        return counterexamples
+
+    def _action_value_counterexamples_from_report(self, source: str, payload: dict) -> list[dict]:
+        feedback = payload.get("action_value_feedback", payload) if isinstance(payload, dict) else {}
+        if not isinstance(feedback, dict):
+            return []
+        diagnostics = self._action_value_transition_window_diagnostics_from_feedback(feedback)
+        counterexamples = []
+        if diagnostics and (
+            self._gate_int(diagnostics.get("low_confidence_transition_count", 0))
+            or self._gate_int(diagnostics.get("shared_observation_transition_count", 0))
+            or self._gate_int(diagnostics.get("missing_transition_window_count", 0))
+        ):
+            counterexamples.append(self._counterexample_record(
+                source,
+                "action_value_report",
+                "transition_window_quality",
+                "transition values are not action-local enough to support automatic repair",
+                metrics={
+                    "low_confidence_transition_count": self._gate_int(diagnostics.get("low_confidence_transition_count", 0)),
+                    "shared_observation_transition_count": self._gate_int(diagnostics.get("shared_observation_transition_count", 0)),
+                    "missing_transition_window_count": self._gate_int(diagnostics.get("missing_transition_window_count", 0)),
+                    "action_local_transition_rate": self._safe_float(diagnostics.get("action_local_transition_rate"), 0.0),
+                },
+                severity="medium",
+            ))
+        if self._gate_int(feedback.get("no_progress_transition_count", 0)):
+            counterexamples.append(self._counterexample_record(
+                source,
+                "action_value_report",
+                "no_progress_transition",
+                "accepted actions produced no-progress transition labels",
+                metrics={"no_progress_transition_count": self._gate_int(feedback.get("no_progress_transition_count", 0))},
+                severity="medium",
+            ))
+        return counterexamples
 
     def _gate_check(self, source: str, kind: str, status: str, detail: str, metrics: dict) -> dict:
         return {
@@ -15519,6 +15929,32 @@ class BenchmarkRunner:
             for recommendation in case.adaptor_recommendations[:4]:
                 print(f"      adaptor: {recommendation}")
         for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_self_evolution_counterexample_report(self, report: dict):
+        print("\nSelf-Evolution Counterexamples")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  counterexamples: "
+            f"total={report.get('counterexample_count', 0)}, "
+            f"unresolved={report.get('unresolved_counterexample_count', 0)}, "
+            f"resolved={report.get('resolved_counterexample_count', 0)}, "
+            f"unknown={report.get('unknown_counterexample_count', 0)}"
+        )
+        category_counts = report.get("category_counts", {}) if isinstance(report.get("category_counts", {}), dict) else {}
+        if category_counts:
+            print(f"  categories: {self._format_counts(category_counts)}")
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', [])[:8])}")
+        for item in report.get("counterexamples", [])[:8]:
+            print(
+                f"  [!] {item.get('category', 'unknown')} "
+                f"{item.get('source_log') or item.get('source_report', '')}: "
+                f"{item.get('reason', '')}"
+            )
+        for error in report.get("errors", []):
             print(f"  error: {error}")
 
     def print_plan_action_compliance_report(self, report: PlanActionComplianceReport):

@@ -1,0 +1,858 @@
+{
+  "type": "self_evolution_counterexample_report",
+  "readiness": "rejected",
+  "decision": "block_automatic_plan_repair",
+  "reason": "unresolved counterexamples remain",
+  "source_count": 5,
+  "sources": [
+    {
+      "source": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "kind": "self_evolution_report"
+    },
+    {
+      "source": "logs\\benchmarks\\terminal_commitment_m1_2026-07-09.json",
+      "kind": "terminal_commitment_report"
+    },
+    {
+      "source": "logs\\benchmarks\\plan_action_compliance_m1_2026-07-09.json",
+      "kind": "plan_action_compliance_report"
+    },
+    {
+      "source": "logs\\benchmarks\\action_verification_m1_2026-07-09.json",
+      "kind": "action_verification_report"
+    },
+    {
+      "source": "logs\\benchmarks\\action_value_m1_2026-07-09.json",
+      "kind": "action_value_report"
+    }
+  ],
+  "counterexample_count": 32,
+  "unresolved_counterexample_count": 32,
+  "resolved_counterexample_count": 0,
+  "unknown_counterexample_count": 0,
+  "category_counts": {
+    "action_verification_gap": 1,
+    "blocked_plan_loop": 8,
+    "goal_failure": 5,
+    "missed_execution": 5,
+    "no_progress_success": 1,
+    "no_progress_transition": 1,
+    "regression_signal": 5,
+    "repeated_success_loop": 1,
+    "transition_window_quality": 1,
+    "zero_action_failure": 4
+  },
+  "counterexamples": [
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_2818ff2a-612.jsonl",
+      "goal": "",
+      "category": "goal_failure",
+      "severity": "high",
+      "reason": "goal ended failed in self-evolution trace",
+      "metrics": {
+        "failed_goal_count": 1
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_2818ff2a-612.jsonl",
+      "goal": "",
+      "category": "no_progress_success",
+      "severity": "high",
+      "reason": "successful action returns lacked observed state, inventory, or verifier progress",
+      "metrics": {
+        "no_progress_success_count": 116
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_2818ff2a-612.jsonl",
+      "goal": "",
+      "category": "repeated_success_loop",
+      "severity": "high",
+      "reason": "successful actions repeated without sufficient progress",
+      "metrics": {
+        "repeated_success_loop_count": 112
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_2818ff2a-612.jsonl",
+      "goal": "",
+      "category": "regression_signal",
+      "severity": "medium",
+      "reason": "trace contains regression signals",
+      "metrics": {
+        "regression_signal_count": 2
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_bcd06511-00a.jsonl",
+      "goal": "",
+      "category": "zero_action_failure",
+      "severity": "high",
+      "reason": "goal failed without executable actions",
+      "metrics": {
+        "zero_action_failure_count": 1
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_bcd06511-00a.jsonl",
+      "goal": "",
+      "category": "blocked_plan_loop",
+      "severity": "high",
+      "reason": "blocked or empty plans repeated before success evidence",
+      "metrics": {
+        "blocked_plan_count": 100,
+        "empty_plan_count": 100
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_bcd06511-00a.jsonl",
+      "goal": "",
+      "category": "goal_failure",
+      "severity": "high",
+      "reason": "goal ended failed in self-evolution trace",
+      "metrics": {
+        "failed_goal_count": 1
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_bcd06511-00a.jsonl",
+      "goal": "",
+      "category": "regression_signal",
+      "severity": "medium",
+      "reason": "trace contains regression signals",
+      "metrics": {
+        "regression_signal_count": 2
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_dc8fff18-00b.jsonl",
+      "goal": "",
+      "category": "zero_action_failure",
+      "severity": "high",
+      "reason": "goal failed without executable actions",
+      "metrics": {
+        "zero_action_failure_count": 1
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_dc8fff18-00b.jsonl",
+      "goal": "",
+      "category": "blocked_plan_loop",
+      "severity": "high",
+      "reason": "blocked or empty plans repeated before success evidence",
+      "metrics": {
+        "blocked_plan_count": 100,
+        "empty_plan_count": 100
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_dc8fff18-00b.jsonl",
+      "goal": "",
+      "category": "goal_failure",
+      "severity": "high",
+      "reason": "goal ended failed in self-evolution trace",
+      "metrics": {
+        "failed_goal_count": 1
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_dc8fff18-00b.jsonl",
+      "goal": "",
+      "category": "regression_signal",
+      "severity": "medium",
+      "reason": "trace contains regression signals",
+      "metrics": {
+        "regression_signal_count": 2
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_4138b270-949.jsonl",
+      "goal": "",
+      "category": "zero_action_failure",
+      "severity": "high",
+      "reason": "goal failed without executable actions",
+      "metrics": {
+        "zero_action_failure_count": 1
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_4138b270-949.jsonl",
+      "goal": "",
+      "category": "blocked_plan_loop",
+      "severity": "high",
+      "reason": "blocked or empty plans repeated before success evidence",
+      "metrics": {
+        "blocked_plan_count": 100,
+        "empty_plan_count": 100
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_4138b270-949.jsonl",
+      "goal": "",
+      "category": "goal_failure",
+      "severity": "high",
+      "reason": "goal ended failed in self-evolution trace",
+      "metrics": {
+        "failed_goal_count": 1
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_4138b270-949.jsonl",
+      "goal": "",
+      "category": "regression_signal",
+      "severity": "medium",
+      "reason": "trace contains regression signals",
+      "metrics": {
+        "regression_signal_count": 2
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_67ba45ce-2e1.jsonl",
+      "goal": "",
+      "category": "zero_action_failure",
+      "severity": "high",
+      "reason": "goal failed without executable actions",
+      "metrics": {
+        "zero_action_failure_count": 1
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_67ba45ce-2e1.jsonl",
+      "goal": "",
+      "category": "blocked_plan_loop",
+      "severity": "high",
+      "reason": "blocked or empty plans repeated before success evidence",
+      "metrics": {
+        "blocked_plan_count": 100,
+        "empty_plan_count": 100
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_67ba45ce-2e1.jsonl",
+      "goal": "",
+      "category": "goal_failure",
+      "severity": "high",
+      "reason": "goal ended failed in self-evolution trace",
+      "metrics": {
+        "failed_goal_count": 1
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\self_evolution_m1_2026-07-09.json",
+      "source_kind": "self_evolution_report",
+      "source_log": "logs\\session_67ba45ce-2e1.jsonl",
+      "goal": "",
+      "category": "regression_signal",
+      "severity": "medium",
+      "reason": "trace contains regression signals",
+      "metrics": {
+        "regression_signal_count": 2
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\terminal_commitment_m1_2026-07-09.json",
+      "source_kind": "terminal_commitment_report",
+      "source_log": "logs\\session_2818ff2a-612.jsonl",
+      "goal": "Gather 3 oak logs",
+      "category": "missed_execution",
+      "severity": "high",
+      "reason": "terminal evidence does not prove completed world state",
+      "metrics": {
+        "action_count": 200,
+        "planner_complete_count": 0,
+        "terminal_reported_complete": false
+      },
+      "evidence": {
+        "world_status": "failed",
+        "terminal_status": "not_reported_complete",
+        "missing": [
+          "need 3 oak_log, have 0"
+        ]
+      }
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\terminal_commitment_m1_2026-07-09.json",
+      "source_kind": "terminal_commitment_report",
+      "source_log": "logs\\session_bcd06511-00a.jsonl",
+      "goal": "Craft a crafting table",
+      "category": "missed_execution",
+      "severity": "high",
+      "reason": "terminal evidence does not prove completed world state",
+      "metrics": {
+        "action_count": 0,
+        "planner_complete_count": 0,
+        "terminal_reported_complete": false
+      },
+      "evidence": {
+        "world_status": "failed",
+        "terminal_status": "not_reported_complete",
+        "missing": [
+          "need 1 crafting_table, have 0"
+        ]
+      }
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\terminal_commitment_m1_2026-07-09.json",
+      "source_kind": "terminal_commitment_report",
+      "source_log": "logs\\session_dc8fff18-00b.jsonl",
+      "goal": "Craft a wooden pickaxe",
+      "category": "missed_execution",
+      "severity": "high",
+      "reason": "terminal evidence does not prove completed world state",
+      "metrics": {
+        "action_count": 0,
+        "planner_complete_count": 0,
+        "terminal_reported_complete": false
+      },
+      "evidence": {
+        "world_status": "failed",
+        "terminal_status": "not_reported_complete",
+        "missing": [
+          "need 1 wooden_pickaxe, have 0"
+        ]
+      }
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\terminal_commitment_m1_2026-07-09.json",
+      "source_kind": "terminal_commitment_report",
+      "source_log": "logs\\session_4138b270-949.jsonl",
+      "goal": "Mine 3 cobblestone blocks",
+      "category": "missed_execution",
+      "severity": "high",
+      "reason": "terminal evidence does not prove completed world state",
+      "metrics": {
+        "action_count": 0,
+        "planner_complete_count": 0,
+        "terminal_reported_complete": false
+      },
+      "evidence": {
+        "world_status": "failed",
+        "terminal_status": "not_reported_complete",
+        "missing": [
+          "need 3 cobblestone, have 0"
+        ]
+      }
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\terminal_commitment_m1_2026-07-09.json",
+      "source_kind": "terminal_commitment_report",
+      "source_log": "logs\\session_67ba45ce-2e1.jsonl",
+      "goal": "Craft a stone pickaxe",
+      "category": "missed_execution",
+      "severity": "high",
+      "reason": "terminal evidence does not prove completed world state",
+      "metrics": {
+        "action_count": 0,
+        "planner_complete_count": 0,
+        "terminal_reported_complete": false
+      },
+      "evidence": {
+        "world_status": "failed",
+        "terminal_status": "not_reported_complete",
+        "missing": [
+          "need 1 stone_pickaxe, have 0"
+        ]
+      }
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\plan_action_compliance_m1_2026-07-09.json",
+      "source_kind": "plan_action_compliance_report",
+      "source_log": "logs\\session_bcd06511-00a.jsonl",
+      "goal": "",
+      "category": "blocked_plan_loop",
+      "severity": "high",
+      "reason": "planned actions were blocked, missing, unordered, or not faithfully executed",
+      "metrics": {
+        "blocked_plan_count": 100,
+        "empty_plan_count": 100,
+        "missing_planned_action_count": 0,
+        "unplanned_action_count": 0,
+        "order_violation_count": 0,
+        "compliance_score": 0.0
+      },
+      "evidence": {
+        "mismatch_examples": [
+          {
+            "plan_index": 1,
+            "event_index": 3,
+            "status": "blocked",
+            "reasoning": "Need oak logs",
+            "planned": [],
+            "actual": [],
+            "missing": [],
+            "unplanned": [],
+            "ordered_matches": 0,
+            "order_violations": 0
+          },
+          {
+            "plan_index": 2,
+            "event_index": 5,
+            "status": "blocked",
+            "reasoning": "Need oak logs",
+            "planned": [],
+            "actual": [],
+            "missing": [],
+            "unplanned": [],
+            "ordered_matches": 0,
+            "order_violations": 0
+          },
+          {
+            "plan_index": 3,
+            "event_index": 7,
+            "status": "blocked",
+            "reasoning": "Need oak logs",
+            "planned": [],
+            "actual": [],
+            "missing": [],
+            "unplanned": [],
+            "ordered_matches": 0,
+            "order_violations": 0
+          }
+        ]
+      }
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\plan_action_compliance_m1_2026-07-09.json",
+      "source_kind": "plan_action_compliance_report",
+      "source_log": "logs\\session_dc8fff18-00b.jsonl",
+      "goal": "",
+      "category": "blocked_plan_loop",
+      "severity": "high",
+      "reason": "planned actions were blocked, missing, unordered, or not faithfully executed",
+      "metrics": {
+        "blocked_plan_count": 100,
+        "empty_plan_count": 100,
+        "missing_planned_action_count": 0,
+        "unplanned_action_count": 0,
+        "order_violation_count": 0,
+        "compliance_score": 0.0
+      },
+      "evidence": {
+        "mismatch_examples": [
+          {
+            "plan_index": 1,
+            "event_index": 3,
+            "status": "blocked",
+            "reasoning": "Need materials",
+            "planned": [],
+            "actual": [],
+            "missing": [],
+            "unplanned": [],
+            "ordered_matches": 0,
+            "order_violations": 0
+          },
+          {
+            "plan_index": 2,
+            "event_index": 5,
+            "status": "blocked",
+            "reasoning": "Need materials",
+            "planned": [],
+            "actual": [],
+            "missing": [],
+            "unplanned": [],
+            "ordered_matches": 0,
+            "order_violations": 0
+          },
+          {
+            "plan_index": 3,
+            "event_index": 7,
+            "status": "blocked",
+            "reasoning": "Need materials",
+            "planned": [],
+            "actual": [],
+            "missing": [],
+            "unplanned": [],
+            "ordered_matches": 0,
+            "order_violations": 0
+          }
+        ]
+      }
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\plan_action_compliance_m1_2026-07-09.json",
+      "source_kind": "plan_action_compliance_report",
+      "source_log": "logs\\session_4138b270-949.jsonl",
+      "goal": "",
+      "category": "blocked_plan_loop",
+      "severity": "high",
+      "reason": "planned actions were blocked, missing, unordered, or not faithfully executed",
+      "metrics": {
+        "blocked_plan_count": 100,
+        "empty_plan_count": 100,
+        "missing_planned_action_count": 0,
+        "unplanned_action_count": 0,
+        "order_violation_count": 0,
+        "compliance_score": 0.0
+      },
+      "evidence": {
+        "mismatch_examples": [
+          {
+            "plan_index": 1,
+            "event_index": 3,
+            "status": "blocked",
+            "reasoning": "Need pickaxe",
+            "planned": [],
+            "actual": [],
+            "missing": [],
+            "unplanned": [],
+            "ordered_matches": 0,
+            "order_violations": 0
+          },
+          {
+            "plan_index": 2,
+            "event_index": 5,
+            "status": "blocked",
+            "reasoning": "Need pickaxe",
+            "planned": [],
+            "actual": [],
+            "missing": [],
+            "unplanned": [],
+            "ordered_matches": 0,
+            "order_violations": 0
+          },
+          {
+            "plan_index": 3,
+            "event_index": 7,
+            "status": "blocked",
+            "reasoning": "Need pickaxe",
+            "planned": [],
+            "actual": [],
+            "missing": [],
+            "unplanned": [],
+            "ordered_matches": 0,
+            "order_violations": 0
+          }
+        ]
+      }
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\plan_action_compliance_m1_2026-07-09.json",
+      "source_kind": "plan_action_compliance_report",
+      "source_log": "logs\\session_67ba45ce-2e1.jsonl",
+      "goal": "",
+      "category": "blocked_plan_loop",
+      "severity": "high",
+      "reason": "planned actions were blocked, missing, unordered, or not faithfully executed",
+      "metrics": {
+        "blocked_plan_count": 100,
+        "empty_plan_count": 100,
+        "missing_planned_action_count": 0,
+        "unplanned_action_count": 0,
+        "order_violation_count": 0,
+        "compliance_score": 0.0
+      },
+      "evidence": {
+        "mismatch_examples": [
+          {
+            "plan_index": 1,
+            "event_index": 3,
+            "status": "blocked",
+            "reasoning": "Need cobblestone and sticks",
+            "planned": [],
+            "actual": [],
+            "missing": [],
+            "unplanned": [],
+            "ordered_matches": 0,
+            "order_violations": 0
+          },
+          {
+            "plan_index": 2,
+            "event_index": 5,
+            "status": "blocked",
+            "reasoning": "Need cobblestone and sticks",
+            "planned": [],
+            "actual": [],
+            "missing": [],
+            "unplanned": [],
+            "ordered_matches": 0,
+            "order_violations": 0
+          },
+          {
+            "plan_index": 3,
+            "event_index": 7,
+            "status": "blocked",
+            "reasoning": "Need cobblestone and sticks",
+            "planned": [],
+            "actual": [],
+            "missing": [],
+            "unplanned": [],
+            "ordered_matches": 0,
+            "order_violations": 0
+          }
+        ]
+      }
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\action_verification_m1_2026-07-09.json",
+      "source_kind": "action_verification_report",
+      "source_log": "logs\\session_2818ff2a-612.jsonl",
+      "goal": "",
+      "category": "action_verification_gap",
+      "severity": "medium",
+      "reason": "action verifier evidence is rejected, failed without reject, or still requires review",
+      "metrics": {
+        "rejected_action_count": 0,
+        "failed_without_reject_count": 0,
+        "rejected_success_count": 0,
+        "review_action_count": 5
+      },
+      "evidence": {
+        "rejection_reasons": {},
+        "review_reasons": {
+          "dig coordinates present but target block is unknown": 5
+        },
+        "examples": [
+          {
+            "event_index": 5,
+            "goal": "Gather 3 oak logs",
+            "action": {
+              "type": "dig",
+              "parameters": {
+                "x": -12,
+                "y": 66,
+                "z": 0
+              }
+            },
+            "result_success": true,
+            "verification": {
+              "action_type": "dig",
+              "status": "review",
+              "score": 0.6,
+              "reason": "dig coordinates present but target block is unknown"
+            }
+          },
+          {
+            "event_index": 9,
+            "goal": "Gather 3 oak logs",
+            "action": {
+              "type": "dig",
+              "parameters": {
+                "x": -12,
+                "y": 67,
+                "z": 0
+              }
+            },
+            "result_success": true,
+            "verification": {
+              "action_type": "dig",
+              "status": "review",
+              "score": 0.6,
+              "reason": "dig coordinates present but target block is unknown"
+            }
+          },
+          {
+            "event_index": 13,
+            "goal": "Gather 3 oak logs",
+            "action": {
+              "type": "dig",
+              "parameters": {
+                "x": -12,
+                "y": 68,
+                "z": 0
+              }
+            },
+            "result_success": true,
+            "verification": {
+              "action_type": "dig",
+              "status": "review",
+              "score": 0.6,
+              "reason": "dig coordinates present but target block is unknown"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\action_value_m1_2026-07-09.json",
+      "source_kind": "action_value_report",
+      "source_log": "",
+      "goal": "",
+      "category": "transition_window_quality",
+      "severity": "medium",
+      "reason": "transition values are not action-local enough to support automatic repair",
+      "metrics": {
+        "low_confidence_transition_count": 198,
+        "shared_observation_transition_count": 0,
+        "missing_transition_window_count": 0,
+        "action_local_transition_rate": 0.0
+      },
+      "evidence": {}
+    },
+    {
+      "type": "self_evolution_counterexample",
+      "status": "unresolved",
+      "resolved": false,
+      "source_report": "logs\\benchmarks\\action_value_m1_2026-07-09.json",
+      "source_kind": "action_value_report",
+      "source_log": "",
+      "goal": "",
+      "category": "no_progress_transition",
+      "severity": "medium",
+      "reason": "accepted actions produced no-progress transition labels",
+      "metrics": {
+        "no_progress_transition_count": 196
+      },
+      "evidence": {}
+    }
+  ],
+  "policy_hints": [
+    "keep_self_evolution_feedback_advisory",
+    "resolve_self_evolution_counterexamples_before_plan_repair",
+    "collect_verified_retry_traces",
+    "repair_execution_before_completion_retry",
+    "require_state_delta_before_success_credit",
+    "collect_action_local_transition_windows"
+  ],
+  "errors": []
+}

@@ -202,8 +202,10 @@ python -m singularity.main run --goal "Craft torches" --knowledge-correction-fee
 python -m singularity.main benchmark --suite m1 --knowledge-correction-feedback logs/benchmarks/knowledge_correction.json --knowledge-correction-gate logs/benchmarks/knowledge_correction_gate.json --knowledge-correction-preflight-output logs/benchmarks/knowledge_correction_preflight.json
 # Offline context ablation shows which goals actually receive XENON correction hints.
 python -m singularity.main knowledge-correction-ablation --goal "Craft torches" --knowledge-correction-feedback logs/benchmarks/knowledge_correction.json --knowledge-correction-gate logs/benchmarks/knowledge_correction_gate.json --output logs/benchmarks/knowledge_correction_ablation.json
+# Aggregate unresolved self-evolution counterexamples from monitor, verifier, terminal, plan/action, and action-value reports.
+python -m singularity.main self-evolution-counterexample-report --self-evolution-report logs/benchmarks/self_evolution.json --terminal-commitment-report logs/benchmarks/terminal_commitment.json --plan-action-report logs/benchmarks/plan_action_compliance.json --action-verification-report logs/benchmarks/action_verification.json --action-value-report logs/benchmarks/action_value.json --output logs/benchmarks/self_evolution_counterexamples.json
 # Gate any future automatic plan-suffix repair with explicit verifier and counterexample evidence.
-python -m singularity.main self-evolution-gate --self-evolution-report logs/benchmarks/self_evolution.json --verifier-report logs/benchmarks/goal_verification_ablation.json --counterexample-report logs/benchmarks/self_evolution_counterexamples.json --output logs/benchmarks/self_evolution_gate.json
+python -m singularity.main self-evolution-gate --self-evolution-report logs/benchmarks/self_evolution.json --verifier-report logs/benchmarks/terminal_commitment.json --counterexample-report logs/benchmarks/self_evolution_counterexamples.json --output logs/benchmarks/self_evolution_gate.json
 
 # Summarize SciCrafter-style discovery-to-application evidence from session logs
 python -m singularity.main discovery-application-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/discovery_application.json

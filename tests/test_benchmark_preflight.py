@@ -2489,6 +2489,124 @@ def test_self_evolution_gate_requires_verifier_and_counterexamples():
     print("PASS: Self-evolution gate requires verifier and counterexamples")
 
 
+def test_self_evolution_counterexample_report_blocks_plan_repair_gate():
+    runner = BenchmarkRunner(Config())
+    self_evolution_report = {
+        "ready_log_count": 1,
+        "self_evolution_feedback": {
+            "ready_log_count": 1,
+            "stagnation_signal_count": 4,
+            "remedy_candidates": ["retry with prerequisite fallback"],
+            "adaptor_recommendations": ["rewrite unfinished suffix only"],
+            "policy_hints": [
+                {
+                    "self_evolution_policy": "repair_stagnant_plan_suffix",
+                    "priority": "high",
+                    "count": 4,
+                }
+            ],
+        },
+        "cases": [
+            {
+                "source_log": "logs/session_stalled.jsonl",
+                "goal": "Craft a crafting table",
+                "failed_goal_count": 1,
+                "blocked_plan_count": 3,
+                "empty_plan_count": 3,
+                "zero_action_failure_count": 1,
+                "no_progress_success_count": 0,
+                "repeated_success_loop_count": 0,
+                "regression_signal_count": 1,
+            }
+        ],
+    }
+    terminal_report = {
+        "cases": [
+            {
+                "source_log": "logs/session_stalled.jsonl",
+                "goal": "Craft a crafting table",
+                "outcome": "missed_execution",
+                "world_complete": False,
+                "world_status": "failed",
+                "terminal_status": "not_reported_complete",
+                "missing": ["need 1 crafting_table, have 0"],
+            }
+        ],
+        "errors": [],
+    }
+    plan_action_report = {
+        "cases": [
+            {
+                "source_log": "logs/session_stalled.jsonl",
+                "blocked_plan_count": 3,
+                "empty_plan_count": 3,
+                "missing_planned_action_count": 0,
+                "unplanned_action_count": 0,
+                "order_violation_count": 0,
+                "compliance_score": 0.0,
+                "mismatch_examples": [],
+            }
+        ],
+        "errors": [],
+    }
+    action_verification_report = {
+        "cases": [
+            {
+                "source_log": "logs/session_stalled.jsonl",
+                "verified_action_count": 1,
+                "rejected_action_count": 0,
+                "failed_without_reject_count": 0,
+                "rejected_success_count": 0,
+                "review_action_count": 1,
+                "review_reasons": {"dig coordinates present but target block is unknown": 1},
+            }
+        ],
+        "errors": [],
+    }
+    action_value_report = {
+        "action_value_feedback": {
+            "state_transition_count": 4,
+            "no_progress_transition_count": 3,
+            "low_confidence_transition_count": 4,
+            "transition_window_diagnostics": {
+                "state_transition_count": 4,
+                "low_confidence_transition_count": 4,
+                "shared_observation_transition_count": 4,
+                "missing_transition_window_count": 0,
+                "action_local_transition_rate": 0.0,
+            },
+        },
+        "errors": [],
+    }
+
+    counterexamples = runner.build_self_evolution_counterexample_report(
+        self_evolution_reports=[self_evolution_report],
+        terminal_commitment_reports=[terminal_report],
+        plan_action_reports=[plan_action_report],
+        action_verification_reports=[action_verification_report],
+        action_value_reports=[action_value_report],
+    )
+    categories = set(counterexamples["category_counts"])
+
+    assert counterexamples["readiness"] == "rejected"
+    assert counterexamples["unresolved_counterexample_count"] >= 5
+    assert "missed_execution" in categories
+    assert "blocked_plan_loop" in categories
+    assert "transition_window_quality" in categories
+    assert "resolve_self_evolution_counterexamples_before_plan_repair" in counterexamples["policy_hints"]
+
+    gate = runner.build_self_evolution_plan_repair_gate(
+        self_evolution_reports=[self_evolution_report],
+        verifier_reports=[terminal_report],
+        counterexample_reports=[counterexamples],
+    )
+    assert gate["readiness"] == "rejected"
+    assert gate["decision"] == "do_not_mutate_plan"
+    assert gate["verifier_failure_count"] == 1
+    assert gate["unresolved_counterexample_count"] == counterexamples["unresolved_counterexample_count"]
+    print("PASS: Self-evolution counterexample report blocks plan repair gate")
+
+
 def test_discovery_application_report_tracks_hypothesis_to_application_loop():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_discovery_application.jsonl")
@@ -4818,6 +4936,7 @@ if __name__ == "__main__":
     test_action_value_transition_gate_controls_runtime_feedback()
     test_action_value_transition_evaluator_compares_state_grounded_labels()
     test_self_evolution_gate_requires_verifier_and_counterexamples()
+    test_self_evolution_counterexample_report_blocks_plan_repair_gate()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
     test_discovery_skill_gate_controls_experiment_derived_skill_promotion()
     test_task_stream_transfer_gate_controls_skill_promotion_path()
