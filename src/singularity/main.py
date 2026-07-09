@@ -62,6 +62,26 @@ def _add_skill_runtime_default_args(parser):
     )
 
 
+def _add_knowledge_correction_args(parser):
+    parser.add_argument(
+        "--knowledge-correction-feedback",
+        action="append",
+        default=[],
+        help="knowledge-correction-report JSON to load as gated advisory planner feedback",
+    )
+    parser.add_argument(
+        "--knowledge-correction-gate",
+        action="append",
+        default=[],
+        help="Approved knowledge-correction-gate JSON required before loading correction feedback",
+    )
+    parser.add_argument(
+        "--no-knowledge-correction-context",
+        action="store_true",
+        help="Disable gated knowledge-correction hints in planner context",
+    )
+
+
 def _merge_skill_memory_quality_feedback_paths(paths: list[str]) -> dict:
     feedback = {
         "quality_label_counts": {},
@@ -139,6 +159,7 @@ def main():
     run_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
     run_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into autonomous curriculum after approved gate")
     run_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
+    _add_knowledge_correction_args(run_parser)
     run_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     run_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
     run_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
@@ -173,6 +194,7 @@ def main():
     auto_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
     auto_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into autonomous curriculum after approved gate")
     auto_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
+    _add_knowledge_correction_args(auto_parser)
     auto_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     auto_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
     auto_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
@@ -206,6 +228,7 @@ def main():
     bench_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
     bench_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into autonomous curriculum after approved gate")
     bench_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
+    _add_knowledge_correction_args(bench_parser)
     bench_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     bench_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
     bench_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
@@ -520,6 +543,7 @@ def main():
     collab_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
     collab_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into Agent executor curriculum after approved gate")
     collab_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
+    _add_knowledge_correction_args(collab_parser)
     collab_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     collab_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
     collab_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
@@ -1853,6 +1877,9 @@ def main():
                     self_evolution_feedback_paths=getattr(args, "self_evolution_feedback", []) or [],
                     world_model_feedback_paths=getattr(args, "world_model_feedback", []) or [],
                     world_model_gate_paths=getattr(args, "world_model_gate", []) or [],
+                    enable_knowledge_correction_context=not getattr(args, "no_knowledge_correction_context", False),
+                    knowledge_correction_feedback_paths=getattr(args, "knowledge_correction_feedback", []) or [],
+                    knowledge_correction_gate_paths=getattr(args, "knowledge_correction_gate", []) or [],
                     action_value_feedback_paths=getattr(args, "action_value_feedback", []) or [],
                     action_value_transition_gate_paths=getattr(args, "action_value_transition_gate", []) or [],
                     action_value_transition_evaluator_report_paths=getattr(args, "action_value_transition_evaluator_report", []) or [],
@@ -3459,6 +3486,9 @@ def main():
         self_evolution_feedback_paths=getattr(args, "self_evolution_feedback", []) or [],
         world_model_feedback_paths=getattr(args, "world_model_feedback", []) or [],
         world_model_gate_paths=getattr(args, "world_model_gate", []) or [],
+        enable_knowledge_correction_context=not getattr(args, "no_knowledge_correction_context", False),
+        knowledge_correction_feedback_paths=getattr(args, "knowledge_correction_feedback", []) or [],
+        knowledge_correction_gate_paths=getattr(args, "knowledge_correction_gate", []) or [],
         action_value_feedback_paths=getattr(args, "action_value_feedback", []) or [],
         action_value_transition_gate_paths=getattr(args, "action_value_transition_gate", []) or [],
         action_value_transition_evaluator_report_paths=getattr(args, "action_value_transition_evaluator_report", []) or [],

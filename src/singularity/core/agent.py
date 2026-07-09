@@ -83,6 +83,12 @@ class Agent:
         self.skill_library = SkillLibrary(storage_path=config.skill_dir, persist=True)
         self.skill_runtime_default_gate_report = self._load_skill_runtime_default_gates()
         self.skill_memory_quality_feedback_report = self._load_skill_memory_quality_feedback()
+        self.knowledge_correction_feedback = {
+            "dependency_corrections": [],
+            "failure_action_memories": [],
+            "policy_hints": [],
+        }
+        self.knowledge_correction_feedback_report = self._load_knowledge_correction_feedback()
         self.task_system = TaskSystem()
         self.goal_generator = GoalGenerator()
         self.curriculum = CurriculumManager()
@@ -459,6 +465,175 @@ class Agent:
             report["gate_readiness"] = "unknown"
         return report
 
+    def _load_knowledge_correction_feedback(self) -> dict:
+        """Load gated XENON-style knowledge corrections for planner context."""
+        paths = [
+            path for path in (getattr(self.config, "knowledge_correction_feedback_paths", []) or [])
+            if path
+        ]
+        gate_report = self._evaluate_knowledge_correction_gate(paths)
+        report = {
+            "paths": list(paths),
+            "loaded_count": 0,
+            "skipped_count": 0,
+            "dependency_correction_count": 0,
+            "failure_action_memory_count": 0,
+            "context_item_count": 0,
+            "policy_hints_applied": 0,
+            "advisory_only": True,
+            "errors": [],
+            **gate_report,
+        }
+        if not getattr(self.config, "enable_knowledge_correction_context", True):
+            report["skipped_count"] = len(paths)
+            return report
+        if report["gate_required"] and not report["gate_approved"]:
+            report["skipped_count"] = len(paths)
+            if paths:
+                logger.warning(
+                    "Knowledge-correction feedback loading skipped: "
+                    f"gate_readiness={report['gate_readiness']}, "
+                    f"gate_paths={len(report['gate_paths'])}, "
+                    f"feedback_paths={len(paths)}"
+                )
+            return report
+
+        for path in paths:
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    payload = json.load(f)
+                feedback = payload.get("knowledge_correction_feedback", payload) if isinstance(payload, dict) else {}
+                if not isinstance(feedback, dict):
+                    raise ValueError("knowledge-correction feedback JSON must contain an object")
+                applied = self._record_knowledge_correction_feedback(feedback)
+                report["loaded_count"] += 1
+                report["dependency_correction_count"] += int(applied.get("dependency_corrections", 0) or 0)
+                report["failure_action_memory_count"] += int(applied.get("failure_action_memories", 0) or 0)
+                report["policy_hints_applied"] += int(applied.get("policy_hints", 0) or 0)
+            except Exception as e:
+                message = f"{path}: {e}"
+                report["errors"].append(message)
+                logger.warning(f"Failed to load knowledge-correction feedback {message}")
+        report["context_item_count"] = (
+            len(self.knowledge_correction_feedback.get("dependency_corrections", []))
+            + len(self.knowledge_correction_feedback.get("failure_action_memories", []))
+        )
+        if report["loaded_count"] or report["errors"]:
+            logger.info(
+                "Knowledge-correction feedback loaded: "
+                f"{report['loaded_count']} files, "
+                f"dependency={report['dependency_correction_count']}, "
+                f"failed_memories={report['failure_action_memory_count']}, "
+                f"gate={report['gate_readiness']}, "
+                f"errors={len(report['errors'])}"
+            )
+        return report
+
+    def _evaluate_knowledge_correction_gate(self, feedback_paths: list[str]) -> dict:
+        """Return whether saved knowledge corrections may influence planner context."""
+        gate_paths = [
+            path for path in (getattr(self.config, "knowledge_correction_gate_paths", []) or [])
+            if path
+        ]
+        report = {
+            "gate_paths": list(gate_paths),
+            "gate_required": bool(feedback_paths),
+            "gate_approved": not bool(feedback_paths),
+            "gate_readiness": "not_required" if not feedback_paths else "missing",
+            "gate_reports": [],
+        }
+        if not feedback_paths:
+            return report
+        if not gate_paths:
+            return report
+
+        readinesses = []
+        for path in gate_paths:
+            gate_summary = {
+                "path": path,
+                "readiness": "error",
+                "decision": "",
+                "reason": "",
+            }
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    gate = json.load(f)
+                readiness = str(gate.get("readiness", "")).strip().lower() or "unknown"
+                gate_summary.update({
+                    "readiness": readiness,
+                    "decision": str(gate.get("decision", "")).strip(),
+                    "reason": str(gate.get("reason", "")).strip()[:300],
+                    "source_count": self._small_int(gate.get("source_count", 0)),
+                    "ready_log_count": self._small_int(gate.get("ready_log_count", 0)),
+                    "correction_count": self._small_int(gate.get("correction_count", 0)),
+                    "dependency_correction_count": self._small_int(gate.get("dependency_correction_count", 0)),
+                    "failure_action_memory_count": self._small_int(gate.get("failure_action_memory_count", 0)),
+                })
+            except Exception as e:
+                readiness = "error"
+                gate_summary["error"] = str(e)
+                logger.warning(f"Failed to load knowledge-correction gate {path}: {e}")
+            readinesses.append(readiness)
+            report["gate_reports"].append(gate_summary)
+
+        report["gate_approved"] = False
+        if any(readiness == "error" for readiness in readinesses):
+            report["gate_readiness"] = "error"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report["gate_readiness"] = "approved"
+            report["gate_approved"] = True
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report["gate_readiness"] = "rejected"
+        elif any(readiness == "review" for readiness in readinesses):
+            report["gate_readiness"] = "review"
+        else:
+            report["gate_readiness"] = "unknown"
+        return report
+
+    def _record_knowledge_correction_feedback(self, feedback: dict) -> dict:
+        feedback = feedback if isinstance(feedback, dict) else {}
+        applied = {
+            "dependency_corrections": 0,
+            "failure_action_memories": 0,
+            "policy_hints": 0,
+        }
+        for key in ("dependency_corrections", "failure_action_memories", "policy_hints"):
+            incoming = feedback.get(key, [])
+            if not isinstance(incoming, list):
+                continue
+            existing = self.knowledge_correction_feedback.setdefault(key, [])
+            seen = {
+                self._knowledge_correction_identity(key, item)
+                for item in existing
+                if isinstance(item, dict)
+            }
+            for item in incoming:
+                if not isinstance(item, dict):
+                    continue
+                identity = self._knowledge_correction_identity(key, item)
+                if identity in seen:
+                    continue
+                existing.append(dict(item))
+                seen.add(identity)
+                applied[key] += 1
+        return applied
+
+    def _knowledge_correction_identity(self, key: str, item: dict) -> str:
+        if key == "dependency_corrections":
+            return "|".join([
+                str(item.get("failed_signature", "")),
+                str(item.get("recovery_signature", "")),
+                str(item.get("goal", "")),
+            ])
+        if key == "failure_action_memories":
+            return "|".join([
+                str(item.get("signature", "")),
+                str(item.get("reason", "")),
+            ])
+        if key == "policy_hints":
+            return str(item.get("knowledge_correction_policy") or item.get("policy") or item)
+        return str(item)
+
     def _load_skill_runtime_default_gates(self) -> dict:
         """Load task-family runtime-default skill gates into the skill library."""
         gate_paths = [
@@ -553,6 +728,12 @@ class Agent:
             return int(float(value or 0))
         except (TypeError, ValueError):
             return 0
+
+    def _small_float(self, value) -> float:
+        try:
+            return float(value or 0.0)
+        except (TypeError, ValueError):
+            return 0.0
 
     def _load_world_model_feedback(self) -> dict:
         """Load gated world-model feedback into autonomous curriculum scoring."""
@@ -1226,6 +1407,7 @@ class Agent:
             visual_action_context = self._visual_action_context(goal, observation)
             coach_context = self._coach_context(goal, observation)
             self_evolution_context = self._self_evolution_context(goal, observation)
+            knowledge_correction_context = self._knowledge_correction_context(goal, observation)
             skill_memory_context = self._skill_memory_context(goal, observation)
             combined_memory = "\n".join(part for part in (
                 memory_context,
@@ -1235,6 +1417,7 @@ class Agent:
                 visual_action_context,
                 coach_context,
                 self_evolution_context,
+                knowledge_correction_context,
                 skill_memory_context,
                 skill_hint,
             ) if part)
@@ -1289,6 +1472,159 @@ class Agent:
             family=task_family,
             hints="\n- ".join(hints[:limit]),
         )
+
+    def _knowledge_correction_context(self, goal: str, current_state: dict = None, limit: int = 6) -> str:
+        """Retrieve approved dependency and failed-action corrections for the planner."""
+        if not getattr(getattr(self, "config", None), "enable_knowledge_correction_context", True):
+            return ""
+        report = getattr(self, "knowledge_correction_feedback_report", {}) or {}
+        if report.get("gate_required") and not report.get("gate_approved"):
+            return ""
+        feedback = getattr(self, "knowledge_correction_feedback", {}) or {}
+        dependency_items = self._select_knowledge_correction_items(
+            feedback.get("dependency_corrections", []),
+            goal,
+            current_state or {},
+            limit=limit,
+        )
+        remaining = max(0, int(limit) - len(dependency_items))
+        failure_items = self._select_knowledge_correction_items(
+            feedback.get("failure_action_memories", []),
+            goal,
+            current_state or {},
+            limit=remaining or min(2, limit),
+        )
+        lines = []
+        for item in dependency_items:
+            failed = str(item.get("failed_signature") or "unknown")
+            recovery = str(item.get("recovery_signature") or "unknown")
+            correction = str(item.get("correction") or "").strip()
+            evidence = self._small_int(item.get("evidence_count", 0))
+            confidence = self._small_float(item.get("confidence", 0.0))
+            if correction:
+                lines.append(
+                    f"- Dependency correction: {correction} "
+                    f"(failed={failed}, recovery={recovery}, evidence={evidence}, confidence={confidence:.2f})"
+                )
+            else:
+                lines.append(
+                    f"- Dependency correction: before retrying {failed}, prefer {recovery} "
+                    f"when the same failure context appears (evidence={evidence}, confidence={confidence:.2f})"
+                )
+        for item in failure_items:
+            signature = str(item.get("signature") or "unknown")
+            recommendation = str(item.get("recommendation") or "avoid_or_replan_until_preconditions_change")
+            reason = str(item.get("reason") or "repeated failure").strip()
+            failures = self._small_int(item.get("failures", 0))
+            attempts = self._small_int(item.get("attempts", 0))
+            lines.append(
+                f"- Failed-action memory: {signature} -> {recommendation}; "
+                f"reason={reason}; failures={failures}/{attempts}"
+            )
+        if not lines:
+            return ""
+
+        task_family = self._knowledge_task_family(goal)
+        payload = {
+            "goal": goal,
+            "task_family": task_family,
+            "dependency_correction_count": len(dependency_items),
+            "failure_action_memory_count": len(failure_items),
+            "gate_readiness": report.get("gate_readiness", "not_required"),
+        }
+        if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("knowledge_correction_hint", payload)
+        self._log_policy_intervention("hint", {
+            "goal": goal,
+            "policy": "knowledge_correction",
+            **payload,
+        })
+        return (
+            "Knowledge correction feedback "
+            "(gate-approved, advisory only; verify against current world state before acting):\n"
+            + "\n".join(lines[:limit])
+        )
+
+    def _select_knowledge_correction_items(
+        self,
+        items: list[dict],
+        goal: str,
+        current_state: dict,
+        limit: int = 6,
+    ) -> list[dict]:
+        if not isinstance(items, list) or limit <= 0:
+            return []
+        task_family = self._knowledge_task_family(goal)
+        scored = []
+        for index, item in enumerate(items):
+            if not isinstance(item, dict):
+                continue
+            score = self._knowledge_correction_score(item, goal, current_state or {}, task_family)
+            if score <= 0:
+                continue
+            scored.append((score, self._small_int(item.get("evidence_count", item.get("failures", 0))), -index, item))
+        scored.sort(reverse=True)
+        return [item for _, _, _, item in scored[:limit]]
+
+    def _knowledge_correction_score(self, item: dict, goal: str, current_state: dict, task_family: str) -> int:
+        text = self._knowledge_correction_item_text(item)
+        tokens = self._knowledge_context_tokens(goal)
+        score = sum(1 for token in tokens if token in text)
+        if task_family and task_family in text:
+            score += 3
+        inventory = current_state.get("inventory", {}) if isinstance(current_state, dict) else {}
+        if isinstance(inventory, dict):
+            for name, count in inventory.items():
+                try:
+                    amount = int(count or 0)
+                except (TypeError, ValueError):
+                    amount = 0
+                if amount > 0 and str(name).lower() in text:
+                    score += 1
+        if item.get("failed_signature") and str(item.get("failed_signature")).split(":", 1)[0] in text:
+            score += 1
+        return score
+
+    def _knowledge_correction_item_text(self, item: dict) -> str:
+        parts = []
+        for key in (
+            "goal",
+            "signature",
+            "failed_signature",
+            "recovery_signature",
+            "correction",
+            "recommendation",
+            "reason",
+        ):
+            value = item.get(key)
+            if value:
+                parts.append(str(value))
+        task_families = item.get("task_families", {})
+        if isinstance(task_families, dict):
+            parts.extend(str(key) for key in task_families)
+        dimensions = item.get("knowledge_dimensions", {})
+        if isinstance(dimensions, dict):
+            for values in dimensions.values():
+                if isinstance(values, list):
+                    parts.extend(str(value) for value in values)
+                elif values:
+                    parts.append(str(values))
+        targets = item.get("target_items", [])
+        if isinstance(targets, list):
+            parts.extend(str(value) for value in targets)
+        return " ".join(parts).lower().replace("_", " ")
+
+    def _knowledge_context_tokens(self, text: str) -> set[str]:
+        normalized = "".join(ch.lower() if ch.isalnum() else " " for ch in str(text or ""))
+        return {token for token in normalized.split() if len(token) >= 3}
+
+    def _knowledge_task_family(self, goal: str) -> str:
+        if hasattr(self, "skill_library") and hasattr(self.skill_library, "infer_task_family"):
+            try:
+                return self.skill_library.infer_task_family(goal, {})
+            except Exception:
+                return ""
+        return ""
 
     def _think_rule(self, observation: dict, goal: str) -> dict:
         plan = self.rule_planner.plan_from_goal(goal, observation)

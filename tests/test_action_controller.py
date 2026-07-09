@@ -257,6 +257,79 @@ def _write_skill_memory_quality_gate(tmpdir, readiness):
     return gate_path
 
 
+def _write_knowledge_correction_feedback(tmpdir):
+    feedback_path = os.path.join(tmpdir, "knowledge_correction.json")
+    with open(feedback_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "knowledge_correction_feedback": {
+                "log_count": 1,
+                "ready_log_count": 1,
+                "dependency_correction_count": 1,
+                "failure_action_memory_count": 1,
+                "dependency_corrections": [
+                    {
+                        "type": "dependency_correction",
+                        "goal": "Craft torches",
+                        "failed_signature": "craft:torch",
+                        "recovery_signature": "dig:coal_ore",
+                        "target_items": ["torch"],
+                        "evidence_count": 2,
+                        "confidence": 0.85,
+                        "recommendation": "add_reviewed_prerequisite_or_ordering_edge",
+                        "correction": "Before retrying craft:torch, collect or expose coal_ore with dig when the goal is Craft torches.",
+                        "knowledge_dimensions": {
+                            "attribute": ["crafting", "torch"],
+                            "interaction": ["dig_before_craft"],
+                        },
+                    },
+                ],
+                "failure_action_memories": [
+                    {
+                        "type": "failed_action_memory",
+                        "signature": "craft:torch",
+                        "action_type": "craft",
+                        "attempts": 3,
+                        "failures": 3,
+                        "task_families": {"crafting": 3},
+                        "recommendation": "avoid_or_replan_until_preconditions_change",
+                        "reason": "repeated_failed_action",
+                        "knowledge_dimensions": {
+                            "attribute": ["crafting", "torch"],
+                            "function": ["failed_action_memory"],
+                        },
+                    },
+                ],
+                "policy_hints": [
+                    {
+                        "knowledge_correction_policy": "review_dependency_graph_corrections",
+                        "priority": "high",
+                        "count": 1,
+                    },
+                ],
+            },
+        }, f)
+    return feedback_path
+
+
+def _write_knowledge_correction_gate(tmpdir, readiness):
+    gate_path = os.path.join(tmpdir, f"knowledge_correction_gate_{readiness}.json")
+    with open(gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "knowledge_correction_gate",
+            "readiness": readiness,
+            "decision": "allow_reviewed_knowledge_correction_feedback"
+            if readiness == "approved"
+            else "hold_knowledge_corrections_for_review",
+            "reason": "test knowledge-correction gate",
+            "source_count": 1,
+            "ready_log_count": 1 if readiness == "approved" else 0,
+            "correction_count": 2 if readiness == "approved" else 0,
+            "dependency_correction_count": 1 if readiness == "approved" else 0,
+            "failure_action_memory_count": 1 if readiness == "approved" else 0,
+        }, f)
+    return gate_path
+
+
 def test_self_evolution_policy_formats_advisory_context():
     policy = SelfEvolutionPolicy()
     applied = policy.record_self_evolution_feedback({
@@ -629,6 +702,77 @@ def test_agent_skips_skill_memory_quality_feedback_when_gate_is_not_approved():
     print("PASS: Agent skips skill-memory quality feedback when gate is not approved")
 
 
+def test_agent_loads_knowledge_correction_feedback_when_gate_is_approved():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = _write_knowledge_correction_feedback(tmpdir)
+    gate_path = _write_knowledge_correction_gate(tmpdir, "approved")
+    config = Config(
+        log_dir=os.path.join(tmpdir, "logs"),
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        knowledge_correction_feedback_paths=[feedback_path],
+        knowledge_correction_gate_paths=[gate_path],
+    )
+
+    agent = Agent(config)
+    report = agent.knowledge_correction_feedback_report
+    context = agent._knowledge_correction_context("Craft torches", {"inventory": {"stick": 1}})
+
+    assert report["gate_required"] is True
+    assert report["gate_approved"] is True
+    assert report["gate_readiness"] == "approved"
+    assert report["loaded_count"] == 1
+    assert report["skipped_count"] == 0
+    assert report["dependency_correction_count"] == 1
+    assert report["failure_action_memory_count"] == 1
+    assert report["context_item_count"] == 2
+    assert "Knowledge correction feedback" in context
+    assert "gate-approved, advisory only" in context
+    assert "craft:torch" in context
+    assert "dig:coal_ore" in context
+    assert "avoid_or_replan_until_preconditions_change" in context
+    print("PASS: Agent loads knowledge-correction feedback when gate is approved")
+
+
+def test_agent_skips_knowledge_correction_feedback_without_approved_gate():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = _write_knowledge_correction_feedback(tmpdir)
+    missing_gate_config = Config(
+        log_dir=os.path.join(tmpdir, "logs_missing"),
+        memory_dir=os.path.join(tmpdir, "memory_missing"),
+        skill_dir=os.path.join(tmpdir, "skills_missing"),
+        knowledge_correction_feedback_paths=[feedback_path],
+    )
+
+    missing_agent = Agent(missing_gate_config)
+    missing_report = missing_agent.knowledge_correction_feedback_report
+    assert missing_report["gate_required"] is True
+    assert missing_report["gate_approved"] is False
+    assert missing_report["gate_readiness"] == "missing"
+    assert missing_report["loaded_count"] == 0
+    assert missing_report["skipped_count"] == 1
+    assert missing_agent._knowledge_correction_context("Craft torches", {}) == ""
+
+    review_gate_path = _write_knowledge_correction_gate(tmpdir, "review")
+    review_config = Config(
+        log_dir=os.path.join(tmpdir, "logs_review"),
+        memory_dir=os.path.join(tmpdir, "memory_review"),
+        skill_dir=os.path.join(tmpdir, "skills_review"),
+        knowledge_correction_feedback_paths=[feedback_path],
+        knowledge_correction_gate_paths=[review_gate_path],
+    )
+
+    review_agent = Agent(review_config)
+    review_report = review_agent.knowledge_correction_feedback_report
+    assert review_report["gate_required"] is True
+    assert review_report["gate_approved"] is False
+    assert review_report["gate_readiness"] == "review"
+    assert review_report["loaded_count"] == 0
+    assert review_report["skipped_count"] == 1
+    assert review_agent._knowledge_correction_context("Craft torches", {}) == ""
+    print("PASS: Agent skips knowledge-correction feedback without approved gate")
+
+
 def test_agent_skips_mixed_policy_patch_when_gate_is_not_approved():
     for readiness in ("review", "rejected"):
         tmpdir = tempfile.mkdtemp()
@@ -848,6 +992,8 @@ if __name__ == "__main__":
     test_agent_loads_skill_memory_quality_feedback_into_library()
     test_agent_loads_skill_memory_quality_feedback_when_gate_is_approved()
     test_agent_skips_skill_memory_quality_feedback_when_gate_is_not_approved()
+    test_agent_loads_knowledge_correction_feedback_when_gate_is_approved()
+    test_agent_skips_knowledge_correction_feedback_without_approved_gate()
     test_agent_skips_mixed_policy_patch_when_gate_is_not_approved()
     test_action_verifier_rejects_missing_craft_materials_and_tools()
     test_action_candidate_selector_repairs_rejected_craft_action()

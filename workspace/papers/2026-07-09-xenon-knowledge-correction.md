@@ -18,4 +18,5 @@
   - `knowledge-correction-report` mines repeated failed/no-progress action signatures and failed-action -> successful-recovery pairs from session logs.
   - Candidate corrections include Echo-style structure, attribute, process, function, and interaction dimensions for later transfer retrieval.
   - `knowledge-correction-gate` holds these candidates until enough ready logs and reviewable correction evidence exist.
-**Next Action**: Run the report on fresh M1/M2 retries, review dependency corrections against `KnowledgeBase`, then add gated planner-context loading without mutating built-in recipes.
+  - Approved reports can now be passed with `--knowledge-correction-feedback` plus `--knowledge-correction-gate` so the planner receives short advisory dependency and failed-action hints without mutating built-in recipes.
+**Next Action**: Run the report and gate on fresh M1/M2 retries, then compare gated planner-context runs against the ungated baseline.

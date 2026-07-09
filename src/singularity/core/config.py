@@ -35,6 +35,7 @@ class Config:
     enable_memory_policy: bool = True
     enable_task_memory_context: bool = True
     enable_skill_memory_context: bool = True
+    enable_knowledge_correction_context: bool = True
     enforce_memory_write_gate: bool = False
     enable_coaching_policy: bool = True
     coach_style: str = ""
@@ -47,6 +48,8 @@ class Config:
     self_evolution_feedback_paths: list[str] = field(default_factory=list)
     world_model_feedback_paths: list[str] = field(default_factory=list)
     world_model_gate_paths: list[str] = field(default_factory=list)
+    knowledge_correction_feedback_paths: list[str] = field(default_factory=list)
+    knowledge_correction_gate_paths: list[str] = field(default_factory=list)
     action_value_feedback_paths: list[str] = field(default_factory=list)
     action_value_transition_gate_paths: list[str] = field(default_factory=list)
     action_value_transition_evaluator_report_paths: list[str] = field(default_factory=list)
