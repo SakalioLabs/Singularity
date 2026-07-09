@@ -245,6 +245,19 @@ def main():
     skill_memory_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     skill_memory_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # MUSE-style skill lifecycle report
+    skill_lifecycle_parser = subparsers.add_parser(
+        "skill-lifecycle-report",
+        help="Audit skill creation, memory, management, evaluation, and refinement readiness",
+    )
+    skill_lifecycle_parser.add_argument("--skill-storage-path", type=str, default="workspace/skills", help="Skill storage path containing custom_skills.jsonl")
+    skill_lifecycle_parser.add_argument("--goal", type=str, default="", help="Optional goal query to score skill contracts alongside lifecycle readiness")
+    skill_lifecycle_parser.add_argument("--task-family", type=str, default="", help="Optional task-family zone such as crafting, mining, shelter, or navigation")
+    skill_lifecycle_parser.add_argument("--include-builtins", action="store_true", help="Include built-in skills in the lifecycle audit")
+    skill_lifecycle_parser.add_argument("--limit", type=int, default=20)
+    skill_lifecycle_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    skill_lifecycle_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline skill-memory quality report
     skill_memory_quality_parser = subparsers.add_parser(
         "skill-memory-quality-report",
@@ -946,6 +959,23 @@ def main():
                 os.makedirs(output_dir, exist_ok=True)
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "skill-lifecycle-report":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        runner = BenchmarkRunner(Config(skill_dir=getattr(args, "skill_storage_path", "workspace/skills")))
+        report = runner.run_skill_lifecycle_report(
+            skill_storage_path=getattr(args, "skill_storage_path", "workspace/skills"),
+            goal=getattr(args, "goal", ""),
+            task_family=getattr(args, "task_family", ""),
+            include_builtins=getattr(args, "include_builtins", False),
+            limit=getattr(args, "limit", 20),
+        )
+        runner.print_skill_lifecycle_report(report)
+        if getattr(args, "output", ""):
+            runner.save_skill_lifecycle_report(report, getattr(args, "output", ""))
             print(f"\nReport saved to {args.output}")
         return
 

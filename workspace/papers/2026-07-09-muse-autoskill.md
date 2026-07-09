@@ -22,4 +22,5 @@
   - Approved skill candidates now seed promotion/transfer memories automatically, and runtime failure-correction skills append success or anti-pattern memories as they execute.
   - `Agent._think_llm()` now retrieves skill-memory hints into planner context, while `benchmark --skill-memory-ablation` compares policy-skill-only baselines against policy plus skill-memory context.
   - Planner-facing hints are typed as `REUSE`, `AVOID`, or `REVIEW_ONLY`, so per-skill experience can guide action without treating unverified replay or transfer-review notes as default skills.
-**Next Action**: Run real M1/M2/autonomous skill-memory ablations after live bridge readiness, then promote only task-family hints that improve or stabilize held-out goals.
+  - `skill-lifecycle-report` now unifies creation artifacts, skill-local memory, dependency/governance management, evaluation evidence, refinement signals, and runtime-default candidacy into one offline audit before skill defaults are enabled.
+**Next Action**: Run real M1/M2/autonomous skill lifecycle and skill-memory ablations after live bridge readiness, then promote only task-family skills and hints that are lifecycle-ready and improve or stabilize held-out goals.

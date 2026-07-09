@@ -2831,6 +2831,307 @@ class BenchmarkRunner:
         report["ready"] = report["readiness"] in {"approved", "not_required"}
         return report
 
+    def run_skill_lifecycle_report(
+        self,
+        skill_storage_path: str = "",
+        goal: str = "",
+        task_family: str = "",
+        include_builtins: bool = False,
+        limit: int = 20,
+    ) -> dict:
+        """Audit MUSE-style skill lifecycle readiness across creation, memory, and refinement."""
+        from singularity.core.skill_library import SkillLibrary
+
+        storage_path = skill_storage_path or getattr(self.config, "skill_dir", "workspace/skills")
+        report = {
+            "type": "skill_lifecycle_report",
+            "research_basis": [
+                "muse_autoskill_skill_creation_memory_management_evaluation_refinement",
+                "agent_skills_lifecycle_governance",
+                "minecraft_procedural_memory_transfer",
+            ],
+            "goal": str(goal or ""),
+            "task_family": str(task_family or "").strip().lower(),
+            "skill_storage_path": storage_path,
+            "include_builtins": bool(include_builtins),
+            "skill_count": 0,
+            "custom_skill_count": 0,
+            "ready_count": 0,
+            "review_count": 0,
+            "blocked_count": 0,
+            "runtime_default_candidate_count": 0,
+            "stage_counts": {
+                "creation_ready": 0,
+                "memory_ready": 0,
+                "management_ready": 0,
+                "evaluation_ready": 0,
+                "refinement_ready": 0,
+            },
+            "issue_counts": {},
+            "recommendation_counts": {},
+            "policy_hints": [],
+            "skills": [],
+            "errors": [],
+        }
+
+        try:
+            skill_library = SkillLibrary(storage_path=storage_path, persist=True)
+            builtin_names = skill_library._builtin_skill_names()
+            summaries = []
+            for skill in skill_library.list_skills():
+                built_in = skill.name in builtin_names
+                if built_in and not include_builtins:
+                    continue
+                summary = self._skill_lifecycle_summary(
+                    skill_library=skill_library,
+                    skill=skill,
+                    goal=report["goal"],
+                    task_family=report["task_family"],
+                    built_in=built_in,
+                )
+                summaries.append(summary)
+
+            summaries.sort(
+                key=lambda item: (
+                    1 if item["runtime_default_candidate"] else 0,
+                    1 if item["readiness"] == "ready" else 0,
+                    item["success_memory_count"],
+                    item["success_rate"],
+                    item["memory_count"],
+                    item["name"],
+                ),
+                reverse=True,
+            )
+            report["skill_count"] = len(summaries)
+            report["custom_skill_count"] = sum(1 for item in summaries if not item["built_in"])
+            report["ready_count"] = sum(1 for item in summaries if item["readiness"] == "ready")
+            report["review_count"] = sum(1 for item in summaries if item["readiness"] == "review")
+            report["blocked_count"] = sum(1 for item in summaries if item["readiness"] == "blocked")
+            report["runtime_default_candidate_count"] = sum(
+                1 for item in summaries if item["runtime_default_candidate"]
+            )
+            for summary in summaries:
+                for stage, status in summary["lifecycle_stages"].items():
+                    if status == "ready":
+                        key = f"{stage}_ready"
+                        report["stage_counts"][key] = report["stage_counts"].get(key, 0) + 1
+                for issue in summary["issues"]:
+                    report["issue_counts"][issue] = report["issue_counts"].get(issue, 0) + 1
+                for recommendation in summary["recommendations"]:
+                    report["recommendation_counts"][recommendation] = (
+                        report["recommendation_counts"].get(recommendation, 0) + 1
+                    )
+            report["policy_hints"] = self._skill_lifecycle_policy_hints(report)
+            report["skills"] = summaries[:limit] if limit and limit > 0 else summaries
+        except Exception as e:
+            report["errors"].append(f"skill_lifecycle_report: {e}")
+        return report
+
+    def _skill_lifecycle_summary(
+        self,
+        skill_library,
+        skill,
+        goal: str = "",
+        task_family: str = "",
+        built_in: bool = False,
+    ) -> dict:
+        all_memories = skill_library._normalized_skill_memory(skill)
+        memories = all_memories
+        if task_family:
+            memories = [
+                memory for memory in all_memories
+                if str(memory.get("task_family", "")).strip().lower() == task_family
+            ]
+        governance = skill_library._skill_governance(skill, built_in=built_in)
+        dependencies = skill_library._skill_dependencies(skill)
+        missing_dependencies = [dep for dep in dependencies if dep not in skill_library.skills]
+        postcondition_keys = skill_library._postcondition_keys(skill.postconditions)
+        action_types = skill_library._skill_action_types(skill)
+
+        success_outcomes = {"success", "succeeded", "achieved", "approved", "positive"}
+        failure_outcomes = {"failure", "failed", "rejected", "blocked", "regression", "negative"}
+        success_count = sum(1 for memory in memories if memory.get("outcome") in success_outcomes)
+        failure_count = sum(1 for memory in memories if memory.get("outcome") in failure_outcomes)
+        approved_transfer_count = sum(
+            1 for memory in memories if memory.get("transfer_readiness") == "approved"
+        )
+        review_transfer_count = sum(
+            1 for memory in memories
+            if memory.get("transfer_readiness") in {"review", "rejected", "error"}
+        )
+        task_family_counts = {}
+        for memory in all_memories:
+            family = memory.get("task_family") or "unspecified"
+            task_family_counts[family] = task_family_counts.get(family, 0) + 1
+
+        creation_ready = bool(
+            built_in
+            or (
+                str(skill.name or "").strip()
+                and str(skill.description or "").strip()
+                and (
+                    str(skill.implementation or "").strip()
+                    or bool(skill.parameters)
+                    or bool(skill.examples)
+                )
+            )
+        )
+        memory_ready = bool(built_in or memories)
+        management_ready = bool(governance["governed"] and not missing_dependencies)
+        evaluation_ready = bool(
+            built_in
+            or governance["gate_readiness"] == "approved"
+            or int(getattr(skill, "total_uses", 0) or 0) > 0
+            or success_count > 0
+            or bool(postcondition_keys)
+        )
+        refinement_signal = self._skill_lifecycle_refinement_signal(skill, memories)
+        unresolved_failure = failure_count > success_count and failure_count > 0 and not refinement_signal
+        refinement_ready = not unresolved_failure
+
+        issues = []
+        if not creation_ready:
+            issues.append("missing_creation_artifact")
+        if not built_in and not all_memories:
+            issues.append("missing_skill_memory")
+        elif not built_in and task_family and all_memories and not memories:
+            issues.append("missing_task_family_memory")
+        if not governance["governed"]:
+            issues.append("ungoverned_custom_skill" if not built_in else "ungoverned_builtin_skill")
+        if missing_dependencies:
+            issues.append("missing_dependency")
+        if not built_in and not postcondition_keys:
+            issues.append("missing_postconditions")
+        if not evaluation_ready:
+            issues.append("missing_evaluation_evidence")
+        if governance["gate_readiness"] in {"review", "rejected", "error"}:
+            issues.append(f"gate_{governance['gate_readiness']}")
+        if review_transfer_count:
+            issues.append("transfer_review_or_rejected")
+        if unresolved_failure:
+            issues.append("unresolved_failure_memory")
+
+        lifecycle_stages = {
+            "creation": "ready" if creation_ready else "review",
+            "memory": "ready" if memory_ready else "review",
+            "management": "blocked" if missing_dependencies or governance["gate_readiness"] in {"rejected", "error"}
+            else "ready" if management_ready else "review",
+            "evaluation": "blocked" if governance["gate_readiness"] in {"rejected", "error"}
+            else "ready" if evaluation_ready else "review",
+            "refinement": "ready" if refinement_ready else "review",
+        }
+        if missing_dependencies or governance["gate_readiness"] in {"rejected", "error"}:
+            readiness = "blocked"
+        elif any(status != "ready" for status in lifecycle_stages.values()) or issues:
+            readiness = "review"
+        else:
+            readiness = "ready"
+
+        runtime_default_candidate = bool(
+            not built_in
+            and readiness == "ready"
+            and governance["gate_readiness"] == "approved"
+            and approved_transfer_count > 0
+            and success_count > 0
+        )
+
+        recommendations = []
+        if "missing_creation_artifact" in issues:
+            recommendations.append("complete_skill_definition")
+        if "missing_skill_memory" in issues or "missing_task_family_memory" in issues:
+            recommendations.append("record_skill_local_replay_failure_or_transfer_memory")
+        if "ungoverned_custom_skill" in issues or governance["gate_readiness"] in {"unknown", "not_required"}:
+            recommendations.append("run_skill_lifecycle_gate_before_runtime_default")
+        if "missing_postconditions" in issues or "missing_evaluation_evidence" in issues:
+            recommendations.append("run_skill_contract_and_goal_verification")
+        if "transfer_review_or_rejected" in issues or governance["gate_readiness"] in {"review", "rejected", "error"}:
+            recommendations.append("keep_task_family_route_gated")
+        if "unresolved_failure_memory" in issues:
+            recommendations.append("refine_skill_or_add_failure_correction")
+        if runtime_default_candidate:
+            recommendations.append("candidate_runtime_default_for_matching_family")
+        elif readiness == "ready" and not built_in:
+            recommendations.append("candidate_for_lifecycle_gate")
+
+        contract = {}
+        if goal:
+            contract = skill_library._skill_contract_profile(skill, goal, {})
+
+        return {
+            "name": skill.name,
+            "layer": skill.layer,
+            "built_in": built_in,
+            "description": skill.description,
+            "readiness": readiness,
+            "runtime_default_candidate": runtime_default_candidate,
+            "lifecycle_stages": lifecycle_stages,
+            "governance": governance,
+            "gate_readiness": governance["gate_readiness"],
+            "dependencies": dependencies,
+            "missing_dependencies": missing_dependencies,
+            "action_types": action_types,
+            "postcondition_keys": postcondition_keys,
+            "total_uses": int(getattr(skill, "total_uses", 0) or 0),
+            "success_rate": round(float(getattr(skill, "success_rate", 0.0) or 0.0), 4),
+            "all_memory_count": len(all_memories),
+            "memory_count": len(memories),
+            "success_memory_count": success_count,
+            "failure_memory_count": failure_count,
+            "approved_transfer_memory_count": approved_transfer_count,
+            "review_transfer_memory_count": review_transfer_count,
+            "task_family_counts": task_family_counts,
+            "refinement_signal": refinement_signal,
+            "issues": sorted(set(issues)),
+            "recommendations": sorted(set(recommendations)),
+            "contract_score": round(float(contract.get("score", 0.0) or 0.0), 4) if contract else 0.0,
+            "contract_readiness": contract.get("readiness", "") if contract else "",
+            "goal_matches": contract.get("goal_matches", []) if contract else [],
+            "memories": memories[-5:],
+        }
+
+    def _skill_lifecycle_refinement_signal(self, skill, memories: list[dict]) -> bool:
+        refinement_terms = (
+            "refine",
+            "refined",
+            "repair",
+            "repaired",
+            "fixed",
+            "fixing",
+            "mitigation",
+            "counterexample",
+            "failure_correction",
+            "regression_fix",
+        )
+        for memory in memories:
+            memory_type = str(memory.get("type") or "").lower()
+            note = str(memory.get("note") or "").lower()
+            tags = " ".join(str(tag or "").lower() for tag in memory.get("tags", []))
+            if any(term in memory_type or term in note or term in tags for term in refinement_terms):
+                return True
+        notes = str(getattr(skill, "notes", "") or "").lower()
+        implementation = str(getattr(skill, "implementation", "") or "").lower()
+        provenance = getattr(skill, "provenance", {}) if isinstance(getattr(skill, "provenance", {}), dict) else {}
+        provenance_text = json.dumps(provenance, default=str).lower()
+        return any(term in notes or term in implementation or term in provenance_text for term in refinement_terms)
+
+    def _skill_lifecycle_policy_hints(self, report: dict) -> list[str]:
+        issues = report.get("issue_counts", {}) if isinstance(report, dict) else {}
+        recommendations = report.get("recommendation_counts", {}) if isinstance(report, dict) else {}
+        hints = []
+        if not report.get("skill_count", 0):
+            hints.append("seed_or_import_skills_before_lifecycle_review")
+        if issues.get("missing_skill_memory") or issues.get("missing_task_family_memory"):
+            hints.append("collect_skill_local_replay_failure_and_transfer_memory")
+        if issues.get("missing_postconditions") or issues.get("missing_evaluation_evidence"):
+            hints.append("complete_skill_contracts_and_goal_verification_before_promotion")
+        if issues.get("unresolved_failure_memory"):
+            hints.append("convert_failure_heavy_skills_into_refinement_or_failure_correction_candidates")
+        if issues.get("gate_review") or issues.get("gate_rejected") or issues.get("gate_error"):
+            hints.append("keep_review_only_until_lifecycle_gates_pass")
+        if recommendations.get("candidate_runtime_default_for_matching_family"):
+            hints.append("consider_task_family_runtime_default_candidates_after_gate_review")
+        return hints
+
     def _merge_skill_memory_quality_feedback_items(self, items: list[tuple[str, dict]]) -> dict:
         feedback = {
             "quality_label_counts": {},
@@ -11246,6 +11547,23 @@ class BenchmarkRunner:
             json.dump(report, f, indent=2, ensure_ascii=False)
         logger.info(f"Action-value transition preflight saved to {path}")
 
+    def save_skill_lifecycle_report(
+        self,
+        report: dict,
+        filename: str = "skill_lifecycle_report.json",
+    ):
+        path = filename
+        if not os.path.isabs(path) and not os.path.dirname(path):
+            os.makedirs(self.output_dir, exist_ok=True)
+            path = os.path.join(self.output_dir, path)
+        else:
+            parent = os.path.dirname(path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+        logger.info(f"Skill lifecycle report saved to {path}")
+
     def print_summary(self):
         total = len(self.results)
         passed = sum(1 for r in self.results if r.status == "pass")
@@ -11344,6 +11662,50 @@ class BenchmarkRunner:
                 f"apps={case.get('quality_policy_application_count', 0)} "
                 f"promoted={len(case.get('promoted', []))} demoted={len(case.get('demoted', []))}"
             )
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+
+    def print_skill_lifecycle_report(self, report: dict):
+        print("\nSkill Lifecycle Report")
+        if report.get("goal"):
+            print(f"  goal: {report.get('goal')}")
+        if report.get("task_family"):
+            print(f"  task family: {report.get('task_family')}")
+        print(f"  skill dir: {report.get('skill_storage_path', '')}")
+        print(
+            f"  skills: {report.get('skill_count', 0)} "
+            f"({report.get('custom_skill_count', 0)} custom), "
+            f"ready/review/blocked: "
+            f"{report.get('ready_count', 0)}/"
+            f"{report.get('review_count', 0)}/"
+            f"{report.get('blocked_count', 0)}"
+        )
+        print(f"  runtime default candidates: {report.get('runtime_default_candidate_count', 0)}")
+        stage_counts = report.get("stage_counts", {}) if isinstance(report.get("stage_counts", {}), dict) else {}
+        if stage_counts:
+            parts = [f"{key}={value}" for key, value in sorted(stage_counts.items())]
+            print(f"  lifecycle stages: {', '.join(parts)}")
+        if report.get("issue_counts"):
+            parts = [f"{key}={value}" for key, value in sorted(report.get("issue_counts", {}).items())]
+            print(f"  issues: {', '.join(parts)}")
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', []))}")
+        for skill in report.get("skills", [])[:20]:
+            marker = "+" if skill.get("readiness") == "ready" else "x" if skill.get("readiness") == "blocked" else "!"
+            candidate = " runtime_default_candidate" if skill.get("runtime_default_candidate") else ""
+            print(
+                f"  [{marker}] {skill.get('name')} readiness={skill.get('readiness')} "
+                f"gate={skill.get('gate_readiness')} memories={skill.get('memory_count', 0)}"
+                f"{candidate}"
+            )
+            stages = skill.get("lifecycle_stages", {})
+            if stages:
+                parts = [f"{key}:{value}" for key, value in sorted(stages.items())]
+                print(f"      stages: {', '.join(parts)}")
+            if skill.get("issues"):
+                print(f"      issues: {', '.join(skill.get('issues', []))}")
+            if skill.get("recommendations"):
+                print(f"      recommendations: {', '.join(skill.get('recommendations', []))}")
         for error in report.get("errors", []):
             print(f"  error: {error}")
 

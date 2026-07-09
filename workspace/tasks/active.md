@@ -177,6 +177,7 @@
 - [x] Add `action-value-transition-evaluator-report` so ASV-style transition labels can be compared against a state-grounded LLM evaluator before any automatic policy update path is considered.
 - [x] Wire ASV transition gates into runtime `--action-value-feedback` loading: approved gate/evaluator reports can admit transition scores, while configured review/rejected/unreadable gates suppress only `state_transition_value_items` and keep ordinary outcome-value feedback advisory.
 - [x] Add benchmark-level `--action-value-transition-preflight` so transition-scored live suites require approved transition gates/evaluator reports and trusted transition feedback before spending Minecraft runtime.
+- [x] Add MUSE-style `skill-lifecycle-report` so creation, skill-local memory, governance, evaluation, refinement, and runtime-default candidacy can be audited together before promoting Minecraft skills.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -213,6 +214,7 @@
 - [ ] Compare approved vs review-blocked discovery skill candidates on held-out redstone/building variants before enabling defaults.
 - [ ] Run `skill-graph-report` after real skill approvals and resolve missing dependencies, ungoverned custom skills, or graph cycles before runtime defaults.
 - [ ] Run `skill-contract-report` after real skill approvals and compare ready/review/blocked skill retrieval against planner choices on held-out crafting, mining, and building goals.
+- [ ] Run `skill-lifecycle-report` on real approved skill stores and use its ready/review/blocked plus runtime-default candidates before enabling task-family skill defaults.
 - [ ] Run `benchmark --skill-memory-ablation` on live M1/M2/autonomous-ready tasks and compare skill-memory hint counts, pass rates, and regressions before making skills runtime defaults.
 - [ ] Run `self-evolution-report` on real M1/M2/autonomous logs and compare adaptor recommendations against retry outcomes before enabling automatic plan-suffix repair.
 - [x] Inspect `logs/benchmarks/self_evolution_m1_2026-07-09.json` for 0-action failed logs and decide whether the next fix belongs in benchmark execution, bridge action logging, or runtime adaptor routing.

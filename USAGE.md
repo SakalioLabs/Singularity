@@ -340,6 +340,8 @@ python -m singularity.main skill-contract-report --skill-storage-path workspace/
 
 # Audit MUSE-style per-skill replay, failure, and transfer memories
 python -m singularity.main skill-memory-report --skill-storage-path workspace/skills --goal "Craft torches" --task-family crafting --output logs/benchmarks/skill_memory.json
+# Audit the full skill lifecycle before treating task-family skills as runtime defaults
+python -m singularity.main skill-lifecycle-report --skill-storage-path workspace/skills --goal "Craft torches" --task-family crafting --output logs/benchmarks/skill_lifecycle.json
 # Approved skill candidates seed promotion/transfer memories automatically, and
 # live failure-correction skills append success/failure memories during Agent runs.
 # Skill-memory hints are retrieved into LLM planner context by inferred task family

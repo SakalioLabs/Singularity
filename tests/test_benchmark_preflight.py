@@ -3593,6 +3593,95 @@ def test_skill_memory_quality_preflight_requires_gate_and_ranking_effect():
     print("PASS: Skill memory quality preflight requires gate and ranking effect")
 
 
+def test_skill_lifecycle_report_tracks_ready_and_refinement_paths():
+    tmpdir = tempfile.mkdtemp()
+    skill_dir = os.path.join(tmpdir, "skills")
+    skill_library = SkillLibrary(storage_path=skill_dir, persist=True)
+    skill_library.create_skill(
+        "craft_torch_reliable",
+        "Craft torches after confirming coal and sticks are available",
+        json.dumps([{"type": "craft", "parameters": {"item": "torch", "count": 4}}]),
+        parameters={"count": "int"},
+        preconditions={"inventory": {"coal": 1, "stick": 1}},
+        postconditions={"inventory": {"torch": 4}},
+        required_items=["coal", "stick"],
+        dependencies=["craft_item"],
+        total_uses=3,
+        successful_uses=3,
+        success_rate=1.0,
+        provenance={"source_log": "fixture", "goal": "Craft torches", "reviewer": "unit_test"},
+        gate={
+            "decision": "approve",
+            "verification": {"status": "achieved"},
+            "transfer": {"readiness": "approved"},
+        },
+    )
+    skill_library.record_skill_memory(
+        "craft_torch_reliable",
+        "Coal plus sticks reliably crafts four torches before cave exploration.",
+        memory_type="replay",
+        outcome="success",
+        task_family="crafting",
+        confidence=0.95,
+        transfer_gate={"readiness": "approved"},
+        evidence={"successes": 3},
+    )
+    skill_library.create_skill(
+        "craft_torch_risky",
+        "Craft torches without checking material counts",
+        json.dumps([{"type": "craft", "parameters": {"item": "torch"}}]),
+        preconditions={},
+        postconditions={},
+        total_uses=1,
+        successful_uses=0,
+        success_rate=0.0,
+        provenance={"source_log": "fixture", "goal": "Craft torches"},
+        gate={"transfer": {"readiness": "review"}},
+    )
+    skill_library.record_skill_memory(
+        "craft_torch_risky",
+        "The skill failed when coal was missing; it needs a material check or fallback.",
+        memory_type="failure",
+        outcome="failure",
+        task_family="crafting",
+        confidence=0.9,
+        transfer_gate={"readiness": "review"},
+        evidence={"failures": 1},
+    )
+
+    runner = BenchmarkRunner(Config(skill_dir=skill_dir))
+    report = runner.run_skill_lifecycle_report(
+        skill_storage_path=skill_dir,
+        goal="Craft torches before cave exploration",
+        task_family="crafting",
+        include_builtins=False,
+        limit=10,
+    )
+    by_name = {skill["name"]: skill for skill in report["skills"]}
+
+    assert report["skill_count"] == 2
+    assert report["custom_skill_count"] == 2
+    assert report["ready_count"] == 1
+    assert report["review_count"] == 1
+    assert report["blocked_count"] == 0
+    assert report["runtime_default_candidate_count"] == 1
+    assert report["stage_counts"]["creation_ready"] == 2
+    assert report["stage_counts"]["memory_ready"] == 2
+    assert report["stage_counts"]["management_ready"] == 2
+    assert report["stage_counts"]["evaluation_ready"] == 2
+    assert report["stage_counts"]["refinement_ready"] == 1
+    assert by_name["craft_torch_reliable"]["readiness"] == "ready"
+    assert by_name["craft_torch_reliable"]["runtime_default_candidate"]
+    assert "candidate_runtime_default_for_matching_family" in by_name["craft_torch_reliable"]["recommendations"]
+    assert by_name["craft_torch_risky"]["readiness"] == "review"
+    assert "unresolved_failure_memory" in by_name["craft_torch_risky"]["issues"]
+    assert "missing_postconditions" in by_name["craft_torch_risky"]["issues"]
+    assert "refine_skill_or_add_failure_correction" in by_name["craft_torch_risky"]["recommendations"]
+    assert "convert_failure_heavy_skills_into_refinement_or_failure_correction_candidates" in report["policy_hints"]
+    assert "consider_task_family_runtime_default_candidates_after_gate_review" in report["policy_hints"]
+    print("PASS: Skill lifecycle report tracks ready and refinement paths")
+
+
 def test_action_value_transition_preflight_requires_approved_gate_and_evaluator():
     tmpdir = tempfile.mkdtemp()
     feedback_path = os.path.join(tmpdir, "action_value_feedback.json")
@@ -3930,6 +4019,7 @@ if __name__ == "__main__":
     test_skill_memory_quality_report_labels_typed_hint_outcomes()
     test_skill_memory_quality_gate_controls_reuse_promotion()
     test_skill_memory_quality_preflight_requires_gate_and_ranking_effect()
+    test_skill_lifecycle_report_tracks_ready_and_refinement_paths()
     test_action_value_transition_preflight_requires_approved_gate_and_evaluator()
     test_visual_action_benchmark_ablation_compares_live_suite_modes()
     test_mixed_policy_benchmark_ablation_compares_live_patch_modes()
