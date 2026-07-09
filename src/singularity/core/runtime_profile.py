@@ -16,6 +16,7 @@ LIST_FIELDS = {
     "world_model_gate_paths": ("gates", ("world_model", "world_model_gate", "world_model_gate_paths")),
     "knowledge_correction_feedback_paths": ("artifacts", ("knowledge_correction_feedback", "knowledge_correction_feedback_paths")),
     "knowledge_correction_gate_paths": ("gates", ("knowledge_correction", "knowledge_correction_gate", "knowledge_correction_gate_paths")),
+    "plan_cache_paths": ("artifacts", ("plan_cache", "plan_transition_cache", "plan_cache_paths")),
     "action_value_feedback_paths": ("artifacts", ("action_value_feedback", "action_value_feedback_paths")),
     "action_value_transition_gate_paths": ("gates", ("action_value_transition", "action_value_transition_gate", "action_value_transition_gate_paths")),
     "action_value_transition_evaluator_report_paths": (
@@ -269,6 +270,7 @@ def build_runtime_profile_report_from_profiles(
                     report["errors"].append(f"{field}: missing artifact path {value}")
     settings = {
         "enable_goal_critic": _truthy(profile_setting(profiles, "enable_goal_critic", "goal_critic")),
+        "enable_plan_cache": _truthy(profile_setting(profiles, "enable_plan_cache", "plan_cache")),
         "enforce_memory_write_gate": _truthy(profile_setting(profiles, "enforce_memory_write_gate", "memory_write_gate")),
         "coach_style": str(profile_setting(profiles, "coach_style") or ""),
     }
@@ -350,6 +352,8 @@ def _add_missing_runtime_profile_requirements(report: dict, profiles: list[dict]
                 required = required or _setting_required(profile_setting(profiles, requirement))
         if required and not gate_paths:
             report["missing"].append(gate_field)
+    if _truthy(profile_setting(profiles, "enable_plan_cache", "plan_cache")) and not collect_profile_list(profiles, "plan_cache_paths"):
+        report["missing"].append("plan_cache_paths")
     report["missing"] = dedupe(report["missing"])
 
 

@@ -91,6 +91,7 @@ class SessionLogger:
         action_candidate_metrics = self._action_candidate_selection_metrics()
         intervention_metrics.update(action_candidate_metrics)
         goal_verification_metrics = self._goal_verification_metrics()
+        plan_cache_metrics = self._plan_cache_metrics()
         memory_policy_metrics = self._memory_policy_metrics()
         return {
             "session_id": self.session_id,
@@ -104,8 +105,31 @@ class SessionLogger:
             "action_verification_metrics": action_verification_metrics,
             "action_candidate_selection_metrics": action_candidate_metrics,
             "goal_verification_metrics": goal_verification_metrics,
+            "plan_cache_metrics": plan_cache_metrics,
             "memory_policy_metrics": memory_policy_metrics,
             "log_path": self._log_path,
+        }
+
+    def _plan_cache_metrics(self) -> dict:
+        hits = [event for event in self.events if event.get("type") == "plan_cache_hit"]
+        misses = [event for event in self.events if event.get("type") == "plan_cache_miss"]
+        signatures = [event for event in self.events if event.get("type") == "plan_cache_signature"]
+        hit_entries = {}
+        hit_goals = set()
+        for event in hits:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            entry_id = str(data.get("entry_id") or "unknown")
+            hit_entries[entry_id] = hit_entries.get(entry_id, 0) + 1
+            if data.get("goal"):
+                hit_goals.add(str(data["goal"]))
+        total = len(hits) + len(misses)
+        return {
+            "plan_cache_hit_count": len(hits),
+            "plan_cache_miss_count": len(misses),
+            "plan_cache_signature_count": len(signatures),
+            "plan_cache_hit_rate": round(len(hits) / total, 3) if total else 0.0,
+            "plan_cache_hit_entries": hit_entries,
+            "plan_cache_hit_goals": sorted(hit_goals),
         }
 
     def _memory_policy_metrics(self) -> dict:

@@ -1323,6 +1323,23 @@
 
 ---
 
+## P-073: AgenticCache: Cache-Driven Asynchronous Planning for Embodied AI Agents
+
+- **Title**: AgenticCache: Cache-Driven Asynchronous Planning for Embodied AI Agents
+- **Source**: https://arxiv.org/abs/2604.24039
+- **Year**: 2026
+- **Type**: Embodied planning cache / latency architecture
+- **Task Type**: Long-horizon embodied planning with repeated local plan transitions
+- **Core Method**: Runtime cache of frequent plan transitions plus asynchronous LLM updater and optional offline prefilling
+- **Memory**: Treats plan transitions as reusable short-horizon procedural memory
+- **Key Results**: Reports higher task success plus lower latency and token usage across embodied benchmarks
+- **Scores**: R=4, N=5, R=4, E=5
+- **Value to Project**: Directly motivates default-off `plan-cache-report` artifacts, runtime cache hits before LLM planning, and runtime-profile security scanning of cache artifacts
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-agenticcache.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1399,3 +1416,4 @@
 | P-070 | XENON Knowledge Correction | 2026 | R5/N5/R4/E5 | P1 |
 | P-071 | OpenClaw Memory Injection | 2026 | R5/N5/R3/E5 | P1 |
 | P-072 | Parallelized Planning-Acting | 2025/2026 | R5/N4/R3/E5 | P2 |
+| P-073 | AgenticCache | 2026 | R4/N5/R4/E5 | P1 |

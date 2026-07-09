@@ -75,6 +75,12 @@ def _add_memory_promptware_runtime_args(parser):
     parser.add_argument("--memory-promptware-gate", action="append", default=[], help="Approved memory-promptware-gate JSON required before strict memory write enforcement")
 
 
+def _add_plan_cache_runtime_args(parser):
+    parser.add_argument("--enable-plan-cache", action="store_true", help="Reuse approved AgenticCache-style plan-transition cache entries before LLM planning")
+    parser.add_argument("--plan-cache", action="append", default=[], help="Approved plan-transition-cache-report JSON for runtime plan reuse")
+    parser.add_argument("--plan-cache-min-confidence", type=float, default=0.75, help="Minimum confidence for runtime plan-cache entries")
+
+
 def _print_runtime_profile_report(report: dict):
     print("\nRuntime Profile Validation")
     print(f"  readiness: {report.get('readiness', 'unknown')}")
@@ -182,6 +188,8 @@ def _runtime_profile_payload_from_args(args) -> dict:
         settings["enable_screenshot_capture"] = True
     if getattr(args, "enforce_memory_write_gate", False):
         settings["enforce_memory_write_gate"] = True
+    if getattr(args, "enable_plan_cache", False):
+        settings["enable_plan_cache"] = True
     if getattr(args, "screenshot_dir", ""):
         settings["screenshot_dir"] = getattr(args, "screenshot_dir", "")
     path_fields = {
@@ -193,6 +201,7 @@ def _runtime_profile_payload_from_args(args) -> dict:
         "world_model_gate_paths": getattr(args, "world_model_gate", []) or [],
         "knowledge_correction_feedback_paths": getattr(args, "knowledge_correction_feedback", []) or [],
         "knowledge_correction_gate_paths": getattr(args, "knowledge_correction_gate", []) or [],
+        "plan_cache_paths": getattr(args, "plan_cache", []) or [],
         "action_value_feedback_paths": getattr(args, "action_value_feedback", []) or [],
         "action_value_transition_gate_paths": getattr(args, "action_value_transition_gate", []) or [],
         "action_value_transition_evaluator_report_paths": getattr(args, "action_value_transition_evaluator_report", []) or [],
@@ -366,6 +375,7 @@ def main():
     run_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into autonomous curriculum after approved gate")
     run_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
     _add_memory_promptware_runtime_args(run_parser)
+    _add_plan_cache_runtime_args(run_parser)
     _add_knowledge_correction_args(run_parser)
     run_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     run_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
@@ -404,6 +414,7 @@ def main():
     auto_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into autonomous curriculum after approved gate")
     auto_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
     _add_memory_promptware_runtime_args(auto_parser)
+    _add_plan_cache_runtime_args(auto_parser)
     _add_knowledge_correction_args(auto_parser)
     auto_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     auto_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
@@ -441,6 +452,7 @@ def main():
     bench_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into autonomous curriculum after approved gate")
     bench_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
     _add_memory_promptware_runtime_args(bench_parser)
+    _add_plan_cache_runtime_args(bench_parser)
     _add_knowledge_correction_args(bench_parser)
     bench_parser.add_argument("--knowledge-correction-preflight", action="store_true", help="Run approved gate and suite-coverage preflight before knowledge-correction-assisted benchmarks")
     bench_parser.add_argument("--knowledge-correction-preflight-output", type=str, default="", help="Optional JSON path for the knowledge-correction benchmark preflight report")
@@ -699,6 +711,14 @@ def main():
     memory_promptware_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
     memory_promptware_gate_parser.add_argument("--log-level", type=str, default="INFO")
 
+    plan_cache_parser = subparsers.add_parser("plan-cache-report", help="Mine AgenticCache-style plan transitions from session logs")
+    plan_cache_parser.add_argument("--session-log", action="append", default=[], help="Agent session JSONL log to mine")
+    plan_cache_parser.add_argument("--min-support", type=int, default=1, help="Minimum repeated transition support for runtime cache approval")
+    plan_cache_parser.add_argument("--min-success-rate", type=float, default=0.6, help="Minimum action/goal success rate for runtime cache approval")
+    plan_cache_parser.add_argument("--max-entries", type=int, default=200, help="Maximum cache entries to include")
+    plan_cache_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    plan_cache_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Skill candidate review queue
     candidates_parser = subparsers.add_parser("skill-candidates", help="Review extracted skill candidates")
     candidates_parser.add_argument("--queue", type=str, default="workspace/skills/skill_candidates.jsonl")
@@ -775,6 +795,7 @@ def main():
     collab_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into Agent executor curriculum after approved gate")
     collab_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
     _add_memory_promptware_runtime_args(collab_parser)
+    _add_plan_cache_runtime_args(collab_parser)
     _add_knowledge_correction_args(collab_parser)
     collab_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     collab_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
@@ -909,6 +930,7 @@ def main():
     runtime_profile_build_parser.add_argument("--coach-style", type=str, default="", help="Set coach_style in profile settings")
     runtime_profile_build_parser.add_argument("--capture-screenshots", action="store_true", help="Set enable_screenshot_capture in profile settings")
     runtime_profile_build_parser.add_argument("--enforce-memory-write-gate", action="store_true", help="Set enforce_memory_write_gate in profile settings")
+    runtime_profile_build_parser.add_argument("--enable-plan-cache", action="store_true", help="Set enable_plan_cache in profile settings")
     runtime_profile_build_parser.add_argument("--screenshot-dir", type=str, default="", help="Set screenshot_dir in profile settings")
     runtime_profile_build_parser.add_argument("--goal-critic-gate", action="append", default=[], help="Approved goal-verification-critic-gate JSON")
     runtime_profile_build_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-policy patch JSON")
@@ -918,6 +940,7 @@ def main():
     runtime_profile_build_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model gate JSON")
     runtime_profile_build_parser.add_argument("--knowledge-correction-feedback", action="append", default=[], help="knowledge-correction feedback JSON")
     runtime_profile_build_parser.add_argument("--knowledge-correction-gate", action="append", default=[], help="Approved knowledge-correction gate JSON")
+    runtime_profile_build_parser.add_argument("--plan-cache", action="append", default=[], help="Approved plan-transition-cache report JSON")
     runtime_profile_build_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value feedback JSON")
     runtime_profile_build_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value transition gate JSON")
     runtime_profile_build_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value evaluator report JSON")
@@ -2132,6 +2155,50 @@ def main():
             sys.exit(1)
         return
 
+    if args.command == "plan-cache-report":
+        from singularity.core.plan_cache import build_plan_transition_cache_report, write_plan_transition_cache_report
+
+        logs = getattr(args, "session_log", []) or []
+        if not logs:
+            print("plan-cache-report requires at least one --session-log")
+            sys.exit(1)
+        report = build_plan_transition_cache_report(
+            session_log_paths=logs,
+            min_support=getattr(args, "min_support", 1),
+            min_success_rate=getattr(args, "min_success_rate", 0.6),
+            max_entries=getattr(args, "max_entries", 200),
+        )
+        print("\nPlan Transition Cache Report")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  inputs: "
+            f"logs={report.get('session_log_count', 0)}, "
+            f"plans={report.get('plan_event_count', 0)}, "
+            f"candidates={report.get('transition_candidate_count', 0)}, "
+            f"accepted={report.get('accepted_entry_count', 0)}"
+        )
+        if report.get("promptware_threat_count"):
+            print(f"  promptware threats: {report.get('promptware_threat_count')}")
+        for entry in report.get("entries", [])[:8]:
+            marker = "+" if entry.get("accepted_for_runtime") else "!"
+            actions = entry.get("plan", {}).get("actions", []) if isinstance(entry.get("plan", {}), dict) else []
+            action_types = [str(action.get("type", "")) for action in actions if isinstance(action, dict)]
+            print(
+                f"  [{marker}] {entry.get('id')} confidence={entry.get('confidence')} "
+                f"support={entry.get('support_count')} success={entry.get('success_rate')} "
+                f"actions={','.join(action_types[:5])}"
+            )
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            write_plan_transition_cache_report(report, args.output)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") == "error":
+            sys.exit(1)
+        return
+
     if args.command == "skill-edit-proposal-report":
         from singularity.core.skill_extractor import build_skill_edit_proposal_report
 
@@ -2403,6 +2470,9 @@ def main():
                     goal_critic_gate_paths=merge_arg_profile_list(args, "goal_critic_gate", runtime_profiles, "goal_critic_gate_paths"),
                     enforce_memory_write_gate=profile_bool_arg(args, "enforce_memory_write_gate", runtime_profiles, "enforce_memory_write_gate", "memory_write_gate"),
                     memory_promptware_gate_paths=merge_arg_profile_list(args, "memory_promptware_gate", runtime_profiles, "memory_promptware_gate_paths"),
+                    enable_plan_cache=profile_bool_arg(args, "enable_plan_cache", runtime_profiles, "enable_plan_cache", "plan_cache"),
+                    plan_cache_paths=merge_arg_profile_list(args, "plan_cache", runtime_profiles, "plan_cache_paths"),
+                    plan_cache_min_confidence=getattr(args, "plan_cache_min_confidence", 0.75),
                     enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
                     enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
                     coach_style=profile_str_arg(args, "coach_style", runtime_profiles, "coach_style", default=""),
@@ -4248,6 +4318,9 @@ def main():
         goal_critic_gate_paths=merge_arg_profile_list(args, "goal_critic_gate", runtime_profiles, "goal_critic_gate_paths"),
         enforce_memory_write_gate=profile_bool_arg(args, "enforce_memory_write_gate", runtime_profiles, "enforce_memory_write_gate", "memory_write_gate"),
         memory_promptware_gate_paths=merge_arg_profile_list(args, "memory_promptware_gate", runtime_profiles, "memory_promptware_gate_paths"),
+        enable_plan_cache=profile_bool_arg(args, "enable_plan_cache", runtime_profiles, "enable_plan_cache", "plan_cache"),
+        plan_cache_paths=merge_arg_profile_list(args, "plan_cache", runtime_profiles, "plan_cache_paths"),
+        plan_cache_min_confidence=getattr(args, "plan_cache_min_confidence", 0.75),
         enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
         enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
         coach_style=profile_str_arg(args, "coach_style", runtime_profiles, "coach_style", default=""),

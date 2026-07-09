@@ -23,6 +23,7 @@ from singularity.core.goal_verifier import GoalVerifier
 from singularity.core.explorer import Explorer
 from singularity.core.rule_planner import RuleBasedPlanner
 from singularity.core.self_evolution_policy import SelfEvolutionPolicy
+from singularity.core.plan_cache import START_PLAN_SIGNATURE, PlanTransitionCache, plan_signature
 from singularity.observation.observer import Observer
 from singularity.action.controller import ActionController
 from singularity.action.policy import ActionGranularityPolicy
@@ -108,6 +109,11 @@ class Agent:
         self.goal_critic_gate_report = self._evaluate_goal_critic_runtime_gate()
         self.explorer = Explorer()
         self.rule_planner = RuleBasedPlanner()
+        self.plan_cache = PlanTransitionCache(
+            min_confidence=getattr(config, "plan_cache_min_confidence", 0.75)
+        )
+        self.plan_cache_report = self._load_plan_cache()
+        self._last_plan_cache_signature = START_PLAN_SIGNATURE
         self.runtime = RuntimeSupervisor(config, self.explorer)
         self.vision_analyzer = VisionAnalyzer(
             api_key=config.llm.api_key,
@@ -141,6 +147,31 @@ class Agent:
         else:
             self.reflector = None
             logger.info("No API key - using rule-based planner")
+
+    def _load_plan_cache(self) -> dict:
+        """Load approved AgenticCache-style plan-transition reports for runtime reuse."""
+        paths = [
+            path for path in (getattr(self.config, "plan_cache_paths", []) or [])
+            if path
+        ]
+        if not getattr(self.config, "enable_plan_cache", False):
+            return {
+                "enabled": False,
+                "paths": list(paths),
+                "loaded_entry_count": 0,
+                "skipped_entry_count": len(paths),
+                "reason": "plan cache disabled",
+                "errors": [],
+            }
+        report = self.plan_cache.load_reports(paths)
+        if paths and not report.get("loaded_entry_count"):
+            logger.warning(
+                "Plan cache enabled but no usable entries loaded: "
+                f"paths={len(paths)}, errors={len(report.get('errors', []))}"
+            )
+        elif report.get("loaded_entry_count"):
+            logger.info(f"Plan cache loaded {report['loaded_entry_count']} approved entries")
+        return report
 
     def _load_mixed_policy_patches(self) -> dict:
         """Load approved mixed-initiative policy patches into runtime policy objects."""
@@ -1018,6 +1049,7 @@ class Agent:
     def run_goal(self, goal: str) -> dict:
         """Pursue a specific natural-language goal."""
         self.current_goal = goal
+        self._last_plan_cache_signature = START_PLAN_SIGNATURE
         self.running = True
         logger.info(f"Starting goal: {goal}")
         self.session_logger.log_goal_start(goal)
@@ -1232,6 +1264,7 @@ class Agent:
             # Generate next goal from world state
             goal = self.goal_generator.next_goal(observation)
             goal = self._select_autonomous_goal(observation, goal)
+            self._last_plan_cache_signature = START_PLAN_SIGNATURE
             logger.info(f"[Autonomous] Goal {goals_completed + goals_failed + 1}/{max_goals}: {goal}")
             self._write_memory_episode("auto_goal", {"goal": goal}, source="autonomous_goal")
 
@@ -1504,12 +1537,70 @@ class Agent:
                 skill_memory_context,
                 skill_hint,
             ) if part)
+            cached_plan = self._plan_cache_lookup(goal, observation)
+            if cached_plan:
+                return cached_plan
             plan = self.planner.plan_from_goal(goal, observation, combined_memory)
+            self._record_plan_cache_signature(plan, goal, observation, source="llm_planner")
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
             self.session_logger.log_error(f"LLM call failed: {e}")
             plan = {"status": "error", "actions": [], "reasoning": str(e)}
         return plan
+
+    def _plan_cache_lookup(self, goal: str, observation: dict) -> dict | None:
+        """Try an approved plan-transition cache before spending an LLM call."""
+        if not getattr(self.config, "enable_plan_cache", False):
+            return None
+        cache = getattr(self, "plan_cache", None)
+        if not cache or not getattr(cache, "entries", []):
+            return None
+        previous = getattr(self, "_last_plan_cache_signature", START_PLAN_SIGNATURE) or START_PLAN_SIGNATURE
+        hit = cache.query(goal, observation, previous)
+        payload = {
+            "goal": goal,
+            "previous_plan_signature": previous,
+            "entry_count": len(cache.entries),
+        }
+        if not hit:
+            if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+                self.session_logger.log("plan_cache_miss", payload)
+            return None
+        payload.update({
+            "entry_id": hit.get("entry_id"),
+            "confidence": hit.get("confidence"),
+            "score": hit.get("score"),
+            "state_similarity": hit.get("state_similarity"),
+            "support_count": hit.get("support_count"),
+            "success_rate": hit.get("success_rate"),
+            "source_report": hit.get("source_report"),
+        })
+        if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("plan_cache_hit", payload)
+        plan = hit.get("plan", {})
+        planner = getattr(self, "planner", None)
+        if hasattr(planner, "_create_tasks_from_plan"):
+            try:
+                planner._create_tasks_from_plan(plan)
+            except Exception as e:
+                logger.warning(f"Plan cache task creation failed: {e}")
+        self._record_plan_cache_signature(plan, goal, observation, source="plan_transition_cache")
+        return plan
+
+    def _record_plan_cache_signature(self, plan: dict, goal: str, observation: dict, source: str = "planner"):
+        """Remember the last plan signature so future cache lookups model transitions."""
+        if not isinstance(plan, dict):
+            return
+        signature = plan_signature(plan)
+        self._last_plan_cache_signature = signature
+        if getattr(self.config, "enable_plan_cache", False) and hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("plan_cache_signature", {
+                "goal": goal,
+                "source": source,
+                "plan_signature": signature,
+                "action_count": len(plan.get("actions", []) or []),
+                "status": plan.get("status", ""),
+            })
 
     def _coach_context(self, goal: str, current_state: dict = None) -> str:
         """Retrieve advisory runtime coaching instructions for planner context."""

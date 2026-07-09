@@ -252,6 +252,7 @@
 - [ ] Compare fresh live M1/M2 action-local transition diagnostics against `logs/benchmarks/action_value_m1_2026-07-09.json` before feeding transition values into runtime action ranking.
 - [ ] Run `action-value-transition-evaluator-report --llm-evaluator` on fresh high-confidence M1/M2 transition windows and pass approved reports with `--action-value-transition-evaluator-report` before enabling transition-scored runtime action ranking.
 - [ ] Use `benchmark --action-value-transition-preflight --require-action-value-transition-evaluator-report` before any transition-scored M1/M2 suite that passes `--action-value-feedback`.
+- [ ] Run `plan-cache-report` on fresh M1/M2/M7 logs, load approved cache artifacts through `--enable-plan-cache` or runtime profiles, then compare cache hit rate, planner wait, token calls, verifier rejects, and completion against baseline.
 - [ ] Re-run live M1/M2 after blocked-plan fallback and action-local logging, regenerate `self-evolution-counterexample-report`, and only consider guarded plan-suffix repair if unresolved counterexamples shrink and verifier reports pass.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
 - [ ] Mine real player/session requests into `mixed-initiative-variant-report --case-file` suites and track held-out template coverage before changing auto-selection heuristics.
@@ -288,6 +289,7 @@
 - [x] Add `runtime-profile-suite-report` to discover runtime profiles, run validation plus promptware security audit per profile, and report missing required M1/M2/M7 coverage before live runs.
 - [x] Add benchmark-level runtime-profile suite preflight so `benchmark --runtime-profile ...` requires approved suite evidence that covers the configured profile paths and suite labels.
 - [x] Add M7 collaboration runtime-profile suite preflight so Agent-backed `collab-benchmark --runtime-profile ...` stops before bridge checks unless approved suite evidence covers M7 profiles.
+- [x] Add AgenticCache-style `plan-cache-report` plus default-off runtime `--enable-plan-cache --plan-cache ...` reuse, with cache artifacts scanned through runtime profiles and action/goal verification preserved on cached plans.
 - [ ] Re-run `runtime-profile-suite-report --required-profile m1 --required-profile m2 --required-profile m7` after M2/M7 profiles exist and require an approved suite before live profile-assisted benchmarks.
 - [ ] Run `runtime-profile-security-audit` on real M1/M2/M7 runtime profiles and inspect any rejected artifacts before live runs.
 - [ ] Add M2/M7 runtime profiles once their approved gate reports and feedback artifacts exist, then run `runtime-profile-validate` plus `runtime-profile-security-audit`.
