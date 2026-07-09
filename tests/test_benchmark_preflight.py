@@ -3526,6 +3526,102 @@ def test_bounded_context_report_audits_typed_planner_context():
     print("PASS: Bounded context report audits typed planner context")
 
 
+def test_bounded_context_gate_controls_planner_contract():
+    tmpdir = tempfile.mkdtemp()
+    ready_path = os.path.join(tmpdir, "session_bounded_ready.jsonl")
+    blocked_path = os.path.join(tmpdir, "session_bounded_blocked.jsonl")
+    ready_events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "semantic",
+                "memory_type": "relevant_memory",
+                "source": "planner_memory",
+                "query": "craft torches",
+                "result_chars": 180,
+            },
+        },
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "task",
+                "memory_type": "task_memory",
+                "source": "planner_task_memory",
+                "query": "craft torches",
+                "result_chars": 90,
+            },
+        },
+        {"type": "plan", "data": {"status": "in_progress", "actions": [{"type": "craft", "parameters": {"item": "torch"}}]}},
+    ]
+    blocked_events = [
+        {"type": "goal_start", "data": {"goal": "Mine coal"}},
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "raw",
+                "memory_type": "raw_transcript",
+                "source": "full_history",
+                "query": "message_history",
+                "result_chars": 2200,
+            },
+        },
+        {"type": "plan", "data": {"status": "in_progress", "actions": [{"type": "dig", "parameters": {"block": "coal_ore"}}]}},
+        {"type": "plan", "data": {"status": "blocked", "actions": []}},
+    ]
+    for path, events in ((ready_path, ready_events), (blocked_path, blocked_events)):
+        with open(path, "w", encoding="utf-8") as f:
+            for event in events:
+                f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    ready_report = runner.run_bounded_context_report_from_logs([ready_path], max_read_chars=1000, max_cycle_chars=1500)
+    ready_payload = {
+        "log_count": ready_report.log_count,
+        "ready_log_count": ready_report.ready_log_count,
+        "planning_cycle_count": ready_report.planning_cycle_count,
+        "bounded_cycle_count": ready_report.bounded_cycle_count,
+        "unbounded_cycle_count": ready_report.unbounded_cycle_count,
+        "missing_read_cycle_count": ready_report.missing_read_cycle_count,
+        "oversized_read_cycle_count": ready_report.oversized_read_cycle_count,
+        "oversized_cycle_count": ready_report.oversized_cycle_count,
+        "raw_context_cycle_count": ready_report.raw_context_cycle_count,
+        "low_diversity_cycle_count": ready_report.low_diversity_cycle_count,
+        "bounded_context_feedback": runner.bounded_context_feedback(ready_report),
+        "errors": ready_report.errors,
+        "cases": [asdict(case) for case in ready_report.cases],
+    }
+    ready_gate = runner.build_bounded_context_gate(bounded_context_reports=[ready_payload])
+
+    blocked_report = runner.run_bounded_context_report_from_logs([blocked_path], max_read_chars=1000, max_cycle_chars=1500)
+    blocked_payload = {
+        "log_count": blocked_report.log_count,
+        "ready_log_count": blocked_report.ready_log_count,
+        "planning_cycle_count": blocked_report.planning_cycle_count,
+        "bounded_cycle_count": blocked_report.bounded_cycle_count,
+        "unbounded_cycle_count": blocked_report.unbounded_cycle_count,
+        "missing_read_cycle_count": blocked_report.missing_read_cycle_count,
+        "oversized_read_cycle_count": blocked_report.oversized_read_cycle_count,
+        "oversized_cycle_count": blocked_report.oversized_cycle_count,
+        "raw_context_cycle_count": blocked_report.raw_context_cycle_count,
+        "low_diversity_cycle_count": blocked_report.low_diversity_cycle_count,
+        "bounded_context_feedback": runner.bounded_context_feedback(blocked_report),
+        "errors": blocked_report.errors,
+        "cases": [asdict(case) for case in blocked_report.cases],
+    }
+    blocked_gate = runner.build_bounded_context_gate(bounded_context_reports=[blocked_payload])
+
+    assert ready_gate["readiness"] == "approved"
+    assert ready_gate["decision"] == "allow_bounded_context_profile"
+    assert ready_gate["bounded_cycle_rate"] == 1.0
+    assert ready_gate["failure_count"] == 0
+    assert blocked_gate["readiness"] == "rejected"
+    assert blocked_gate["decision"] == "do_not_use_bounded_context_profile"
+    assert blocked_gate["unbounded_cycle_count"] == 2
+    assert "replace_raw_transcript_with_typed_retrieval" in blocked_gate["policy_hints"]
+    print("PASS: Bounded context gate controls planner contract")
+
+
 def test_continual_learning_report_aggregates_open_ended_axes():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_continual_learning.jsonl")
@@ -5328,6 +5424,7 @@ if __name__ == "__main__":
     test_memory_policy_report_counts_write_read_manage_gaps_and_feedback()
     test_memory_lifecycle_policy_uses_task_stream_transfer_gate()
     test_bounded_context_report_audits_typed_planner_context()
+    test_bounded_context_gate_controls_planner_contract()
     test_continual_learning_report_aggregates_open_ended_axes()
     test_continual_learning_report_accepts_flat_session_log_fields()
     test_task_stream_transfer_report_scores_controlled_reuse()

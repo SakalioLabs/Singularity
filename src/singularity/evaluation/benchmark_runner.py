@@ -9317,6 +9317,177 @@ class BenchmarkRunner:
             "policy_hints": policy_hints,
         }
 
+    def build_bounded_context_gate(
+        self,
+        bounded_context_reports: Optional[list[dict]] = None,
+        bounded_context_report_paths: Optional[list[str]] = None,
+        target: str = "planner_context_contract",
+        min_ready_logs: int = 1,
+        min_bounded_cycle_rate: float = 1.0,
+        max_unbounded_cycles: int = 0,
+        max_missing_read_cycles: int = 0,
+        max_oversized_read_cycles: int = 0,
+        max_oversized_cycles: int = 0,
+        max_raw_context_cycles: int = 0,
+        max_low_diversity_cycles: int = 0,
+    ) -> dict:
+        """Gate runtime/profile use on AgenticSTS-style bounded retrieval evidence."""
+        thresholds = {
+            "min_ready_logs": max(0, int(min_ready_logs or 0)),
+            "min_bounded_cycle_rate": max(0.0, min(1.0, float(min_bounded_cycle_rate or 0.0))),
+            "max_unbounded_cycles": max(0, int(max_unbounded_cycles or 0)),
+            "max_missing_read_cycles": max(0, int(max_missing_read_cycles or 0)),
+            "max_oversized_read_cycles": max(0, int(max_oversized_read_cycles or 0)),
+            "max_oversized_cycles": max(0, int(max_oversized_cycles or 0)),
+            "max_raw_context_cycles": max(0, int(max_raw_context_cycles or 0)),
+            "max_low_diversity_cycles": max(0, int(max_low_diversity_cycles or 0)),
+        }
+        report = {
+            "type": "bounded_context_gate",
+            "required": True,
+            "target": target,
+            "readiness": "review",
+            "decision": "hold_bounded_context_profile",
+            "reason": "bounded typed-retrieval context evidence is required",
+            "thresholds": thresholds,
+            "bounded_context_report_count": 0,
+            "log_count": 0,
+            "ready_log_count": 0,
+            "planning_cycle_count": 0,
+            "bounded_cycle_count": 0,
+            "unbounded_cycle_count": 0,
+            "missing_read_cycle_count": 0,
+            "oversized_read_cycle_count": 0,
+            "oversized_cycle_count": 0,
+            "raw_context_cycle_count": 0,
+            "low_diversity_cycle_count": 0,
+            "bounded_cycle_rate": 0.0,
+            "evidence_count": 0,
+            "warning_count": 0,
+            "failure_count": 0,
+            "missing": [],
+            "policy_hints": [],
+            "checks": [],
+            "errors": [],
+        }
+        items = self._load_gate_payloads(
+            bounded_context_reports or [],
+            bounded_context_report_paths or [],
+            report["errors"],
+            "bounded_context_report",
+        )
+        report["bounded_context_report_count"] = len(items)
+        if not items:
+            report["missing"].append("bounded_context_report")
+
+        policy_hints = set()
+        for source, payload in items:
+            check = self._bounded_context_gate_check(source, payload, thresholds)
+            report["checks"].append(check)
+            metrics = check.get("metrics", {})
+            for key in (
+                "log_count",
+                "ready_log_count",
+                "planning_cycle_count",
+                "bounded_cycle_count",
+                "unbounded_cycle_count",
+                "missing_read_cycle_count",
+                "oversized_read_cycle_count",
+                "oversized_cycle_count",
+                "raw_context_cycle_count",
+                "low_diversity_cycle_count",
+            ):
+                report[key] += self._gate_int(metrics.get(key, 0))
+            for hint in metrics.get("policy_hints", []) if isinstance(metrics.get("policy_hints", []), list) else []:
+                if hint:
+                    policy_hints.add(str(hint))
+
+        report["bounded_cycle_rate"] = round(
+            report["bounded_cycle_count"] / report["planning_cycle_count"],
+            3,
+        ) if report["planning_cycle_count"] else 0.0
+        report["policy_hints"] = sorted(policy_hints)
+        report["evidence_count"] = sum(1 for check in report["checks"] if check.get("status") == "pass")
+        report["warning_count"] = sum(1 for check in report["checks"] if check.get("status") == "warn")
+        report["failure_count"] = sum(1 for check in report["checks"] if check.get("status") == "fail")
+        if report["unbounded_cycle_count"] > thresholds["max_unbounded_cycles"]:
+            report["policy_hints"].append("enforce_bounded_context_contract")
+        if report["raw_context_cycle_count"] > thresholds["max_raw_context_cycles"]:
+            report["policy_hints"].append("replace_raw_transcript_with_typed_retrieval")
+        if report["missing_read_cycle_count"] > thresholds["max_missing_read_cycles"]:
+            report["policy_hints"].append("instrument_planning_context_reads")
+        if report["oversized_read_cycle_count"] > thresholds["max_oversized_read_cycles"] or report["oversized_cycle_count"] > thresholds["max_oversized_cycles"]:
+            report["policy_hints"].append("tighten_planner_context_budget")
+        if report["low_diversity_cycle_count"] > thresholds["max_low_diversity_cycles"]:
+            report["policy_hints"].append("increase_typed_retrieval_diversity")
+        report["policy_hints"] = self._dedupe_strings(report["policy_hints"])
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "do_not_use_bounded_context_profile"
+            report["reason"] = "bounded-context gate inputs could not be loaded"
+        elif report["failure_count"]:
+            report["readiness"] = "rejected"
+            report["decision"] = "do_not_use_bounded_context_profile"
+            report["reason"] = "planner context violates bounded typed-retrieval contract"
+        elif report["missing"] or report["warning_count"] or not report["evidence_count"]:
+            report["readiness"] = "review"
+            report["decision"] = "hold_bounded_context_profile"
+            report["reason"] = "bounded-context evidence is missing, thin, or needs retrieval diversity review"
+        else:
+            report["readiness"] = "approved"
+            report["decision"] = "allow_bounded_context_profile"
+            report["reason"] = "planner context stays within typed retrieval and character budgets"
+        return report
+
+    def _bounded_context_gate_check(self, source: str, payload: dict, thresholds: dict) -> dict:
+        feedback = payload.get("bounded_context_feedback", payload) if isinstance(payload, dict) else {}
+        if not isinstance(feedback, dict):
+            feedback = {}
+        report_errors = payload.get("errors", []) if isinstance(payload.get("errors", []), list) else []
+        policy_hints = []
+        for hint in feedback.get("policy_hints", []) if isinstance(feedback.get("policy_hints", []), list) else []:
+            if isinstance(hint, dict):
+                name = hint.get("bounded_context_policy") or hint.get("policy")
+                if name:
+                    policy_hints.append(str(name))
+            elif str(hint or "").strip():
+                policy_hints.append(str(hint))
+        metrics = {
+            "log_count": self._gate_int(payload.get("log_count", feedback.get("log_count", 0))),
+            "ready_log_count": self._gate_int(payload.get("ready_log_count", feedback.get("ready_log_count", 0))),
+            "planning_cycle_count": self._gate_int(payload.get("planning_cycle_count", feedback.get("planning_cycle_count", 0))),
+            "bounded_cycle_count": self._gate_int(payload.get("bounded_cycle_count", feedback.get("bounded_cycle_count", 0))),
+            "unbounded_cycle_count": self._gate_int(payload.get("unbounded_cycle_count", feedback.get("unbounded_cycle_count", 0))),
+            "missing_read_cycle_count": self._gate_int(payload.get("missing_read_cycle_count", feedback.get("missing_read_cycle_count", 0))),
+            "oversized_read_cycle_count": self._gate_int(payload.get("oversized_read_cycle_count", feedback.get("oversized_read_cycle_count", 0))),
+            "oversized_cycle_count": self._gate_int(payload.get("oversized_cycle_count", feedback.get("oversized_cycle_count", 0))),
+            "raw_context_cycle_count": self._gate_int(payload.get("raw_context_cycle_count", feedback.get("raw_context_cycle_count", 0))),
+            "low_diversity_cycle_count": self._gate_int(payload.get("low_diversity_cycle_count", feedback.get("low_diversity_cycle_count", 0))),
+            "policy_hints": self._dedupe_strings(policy_hints),
+        }
+        planning_cycles = max(0, metrics["planning_cycle_count"])
+        bounded_rate = round(metrics["bounded_cycle_count"] / planning_cycles, 3) if planning_cycles else 0.0
+        metrics["bounded_cycle_rate"] = bounded_rate
+        hard_issues = (
+            metrics["unbounded_cycle_count"] > thresholds["max_unbounded_cycles"]
+            or metrics["missing_read_cycle_count"] > thresholds["max_missing_read_cycles"]
+            or metrics["oversized_read_cycle_count"] > thresholds["max_oversized_read_cycles"]
+            or metrics["oversized_cycle_count"] > thresholds["max_oversized_cycles"]
+            or metrics["raw_context_cycle_count"] > thresholds["max_raw_context_cycles"]
+            or bounded_rate < thresholds["min_bounded_cycle_rate"]
+        )
+        low_diversity_review = metrics["low_diversity_cycle_count"] > thresholds["max_low_diversity_cycles"]
+        if report_errors:
+            return self._gate_check(source, "bounded_context_report", "fail", "bounded-context report contains errors", metrics)
+        if metrics["ready_log_count"] < thresholds["min_ready_logs"] or planning_cycles <= 0:
+            return self._gate_check(source, "bounded_context_report", "warn", "not enough ready bounded-context planning cycles", metrics)
+        if hard_issues:
+            return self._gate_check(source, "bounded_context_report", "fail", "planner context exceeds bounded typed-retrieval contract", metrics)
+        if low_diversity_review:
+            return self._gate_check(source, "bounded_context_report", "warn", "typed retrieval diversity needs review", metrics)
+        return self._gate_check(source, "bounded_context_report", "pass", "bounded typed-retrieval context contract is satisfied", metrics)
+
     def _bounded_context_trace_case(
         self,
         source_log: str,
@@ -18052,6 +18223,48 @@ class BenchmarkRunner:
                 if cycle.issues:
                     print(f"          issues: {', '.join(cycle.issues)}")
         for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_bounded_context_gate_report(self, report: dict):
+        print("\nBounded Context Gate")
+        print(f"  target: {report.get('target', '')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  inputs: "
+            f"reports={report.get('bounded_context_report_count', 0)}, "
+            f"logs={report.get('log_count', 0)}, "
+            f"ready_logs={report.get('ready_log_count', 0)}"
+        )
+        print(
+            "  cycles: "
+            f"bounded={report.get('bounded_cycle_count', 0)}, "
+            f"unbounded={report.get('unbounded_cycle_count', 0)}, "
+            f"total={report.get('planning_cycle_count', 0)}, "
+            f"rate={report.get('bounded_cycle_rate', 0)}"
+        )
+        print(
+            "  issues: "
+            f"missing_reads={report.get('missing_read_cycle_count', 0)}, "
+            f"oversized_reads={report.get('oversized_read_cycle_count', 0)}, "
+            f"oversized_cycles={report.get('oversized_cycle_count', 0)}, "
+            f"raw_context={report.get('raw_context_cycle_count', 0)}, "
+            f"low_diversity={report.get('low_diversity_cycle_count', 0)}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', [])[:8])}")
+        for check in report.get("checks", [])[:10]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            metrics = check.get("metrics", {}) if isinstance(check.get("metrics", {}), dict) else {}
+            print(
+                f"  [{marker}] {check.get('source')}: {check.get('detail')} "
+                f"rate={metrics.get('bounded_cycle_rate', 0)} "
+                f"unbounded={metrics.get('unbounded_cycle_count', 0)}"
+            )
+        for error in report.get("errors", []):
             print(f"  error: {error}")
 
     def print_continual_learning_report(self, report: ContinualLearningTraceReport):

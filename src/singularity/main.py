@@ -784,6 +784,20 @@ def main():
     bounded_context_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     bounded_context_parser.add_argument("--log-level", type=str, default="INFO")
 
+    bounded_context_gate_parser = subparsers.add_parser("bounded-context-gate", help="Gate bounded-context reports before runtime/profile use")
+    bounded_context_gate_parser.add_argument("--bounded-context-report", action="append", default=[], help="Saved bounded-context-report JSON")
+    bounded_context_gate_parser.add_argument("--target", type=str, default="planner_context_contract", help="Gate target label")
+    bounded_context_gate_parser.add_argument("--min-ready-logs", type=int, default=1, help="Minimum ready logs required")
+    bounded_context_gate_parser.add_argument("--min-bounded-cycle-rate", type=float, default=1.0, help="Minimum bounded planning cycle rate required")
+    bounded_context_gate_parser.add_argument("--max-unbounded-cycles", type=int, default=0, help="Maximum unbounded planner cycles allowed")
+    bounded_context_gate_parser.add_argument("--max-missing-read-cycles", type=int, default=0, help="Maximum planner cycles without memory_read traces")
+    bounded_context_gate_parser.add_argument("--max-oversized-read-cycles", type=int, default=0, help="Maximum planner cycles with oversized memory reads")
+    bounded_context_gate_parser.add_argument("--max-oversized-cycles", type=int, default=0, help="Maximum planner cycles over total context budget")
+    bounded_context_gate_parser.add_argument("--max-raw-context-cycles", type=int, default=0, help="Maximum planner cycles with raw transcript/context-window risk")
+    bounded_context_gate_parser.add_argument("--max-low-diversity-cycles", type=int, default=0, help="Maximum planner cycles with low typed-retrieval diversity before review")
+    bounded_context_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    bounded_context_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline continual-learning trace report
     continual_parser = subparsers.add_parser("continual-learning-report", help="Report open-ended continual-learning diagnostics in session logs")
     continual_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -2141,6 +2155,31 @@ def main():
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "bounded-context-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        runner = BenchmarkRunner(Config())
+        report = runner.build_bounded_context_gate(
+            bounded_context_report_paths=getattr(args, "bounded_context_report", []) or [],
+            target=getattr(args, "target", "planner_context_contract"),
+            min_ready_logs=getattr(args, "min_ready_logs", 1),
+            min_bounded_cycle_rate=getattr(args, "min_bounded_cycle_rate", 1.0),
+            max_unbounded_cycles=getattr(args, "max_unbounded_cycles", 0),
+            max_missing_read_cycles=getattr(args, "max_missing_read_cycles", 0),
+            max_oversized_read_cycles=getattr(args, "max_oversized_read_cycles", 0),
+            max_oversized_cycles=getattr(args, "max_oversized_cycles", 0),
+            max_raw_context_cycles=getattr(args, "max_raw_context_cycles", 0),
+            max_low_diversity_cycles=getattr(args, "max_low_diversity_cycles", 0),
+        )
+        runner.print_bounded_context_gate_report(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") != "approved":
+            sys.exit(2)
         return
 
     if args.command == "continual-learning-report":

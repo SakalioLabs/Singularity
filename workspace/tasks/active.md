@@ -208,7 +208,8 @@
 - [ ] Keep all live M7 role ports unique with `--bridge-port-base` or repeated `--role-bridge-port ROLE=PORT`.
 - [ ] Run autonomous mode with the new curriculum enabled and inspect `curriculum.last_decision` plus `auto_goal_complete/failed` episodes for goal-loop quality.
 - [ ] Run `memory-policy-report` on real M1/M2/autonomous session logs and compare `MemoryLifecyclePolicy` decisions against task outcomes before enabling strict write gates.
-- [ ] Run `bounded-context-report` on real M1/M2/autonomous session logs and tighten planner context budgets if raw transcript or oversized memory-read cycles appear.
+- [x] Add `bounded-context-gate` so AgenticSTS-style typed retrieval contracts can approve, review, or reject planner context evidence before runtime/profile use.
+- [ ] Run `bounded-context-report`/`bounded-context-gate` on real M1/M2/autonomous session logs and tighten planner context budgets if raw transcript or oversized memory-read cycles appear.
 - [ ] Run `continual-learning-report` on real autonomous/M7 session logs and compare axis scores against later task success, transfer-memory matches, and skill-candidate reuse.
 - [x] Build controlled Minecraft task-stream specs for wood-to-tools, shelter, mining, navigation, and redstone variants; run `task-stream-transfer-report` before promoting transfer memories or approved skills to defaults.
 - [ ] Feed real approved `task-stream-transfer-gate` reports from autonomous/M7 stream specs into queued skill approvals and memory-lifecycle profiles before enabling transfer-tested defaults.

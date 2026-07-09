@@ -385,6 +385,7 @@ python -m singularity.main review-label-validate --label-file workspace/reviews/
 
 # Audit whether each planner cycle used bounded typed retrieval instead of raw accumulated transcript context
 python -m singularity.main bounded-context-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/bounded_context.json
+python -m singularity.main bounded-context-gate --bounded-context-report logs/benchmarks/bounded_context.json --output logs/benchmarks/bounded_context_gate.json
 
 # Aggregate open-ended continual-learning diagnostics across progress, world knowledge, memory, action diversity, and horizon
 python -m singularity.main continual-learning-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/continual_learning.json
