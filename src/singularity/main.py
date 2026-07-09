@@ -832,6 +832,15 @@ def main():
     memory_attribution_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
     memory_attribution_gate_parser.add_argument("--log-level", type=str, default="INFO")
 
+    task_precondition_parser = subparsers.add_parser(
+        "task-precondition-report",
+        help="Mine review-only task precondition candidates from stalled plans and failed actions",
+    )
+    task_precondition_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    task_precondition_parser.add_argument("--min-evidence-count", type=int, default=1, help="Minimum repeated evidence required per candidate")
+    task_precondition_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    task_precondition_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline bounded planner context report
     bounded_context_parser = subparsers.add_parser("bounded-context-report", help="Audit bounded typed retrieval context before planner calls")
     bounded_context_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -2266,6 +2275,53 @@ def main():
             print(f"\nReport saved to {args.output}")
         if report.get("readiness") != "approved":
             sys.exit(2)
+        return
+
+    if args.command == "task-precondition-report":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("task-precondition-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_task_precondition_report_from_logs(
+            session_logs,
+            min_evidence_count=getattr(args, "min_evidence_count", 1),
+        )
+        print("\nTask Precondition Report")
+        print(
+            "  logs: "
+            f"{report.get('ready_log_count', 0)}/{report.get('log_count', 0)}, "
+            f"candidates={report.get('candidate_count', 0)}, "
+            f"failed_actions={report.get('failed_action_count', 0)}, "
+            f"blocked={report.get('blocked_plan_count', 0)}, "
+            f"empty={report.get('empty_plan_count', 0)}"
+        )
+        if report.get("candidate_type_counts"):
+            parts = [f"{key}={value}" for key, value in sorted(report.get("candidate_type_counts", {}).items())]
+            print(f"  candidate types: {', '.join(parts)}")
+        if report.get("policy_hints"):
+            hints = [
+                f"{hint.get('task_precondition_policy', 'unknown')}({hint.get('priority', 'review')})"
+                for hint in report.get("policy_hints", [])[:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for candidate in report.get("candidates", [])[:8]:
+            print(
+                f"  - {candidate.get('candidate_type', 'unknown')} "
+                f"{candidate.get('action_signature', '')} "
+                f"evidence={candidate.get('evidence_count', 0)} "
+                f"confidence={float(candidate.get('confidence') or 0.0):.2f}: "
+                f"{candidate.get('recommendation', '')}"
+            )
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
         return
 
     if args.command == "bounded-context-report":

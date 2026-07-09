@@ -2189,6 +2189,67 @@ def test_knowledge_correction_report_mines_failed_actions_and_dependencies():
     print("PASS: Knowledge correction report mines failed actions and dependencies")
 
 
+def test_task_precondition_report_mines_hidden_prerequisites_from_failures():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "task_preconditions_session.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches then mine iron ore"}},
+        {"type": "observation", "data": {"inventory": {}, "nearby_blocks": [{"name": "coal_ore"}, {"name": "iron_ore"}]}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "craft", "parameters": {"item": "torch"}},
+                "result": {"success": False, "error": "Missing coal and stick"},
+            },
+        },
+        {"type": "observation", "data": {"inventory": {"wooden_pickaxe": 1}, "nearby_blocks": [{"name": "iron_ore"}]}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "dig", "parameters": {"block": "iron_ore"}},
+                "result": {"success": False, "error": "requires stone pickaxe tool"},
+            },
+        },
+        {
+            "type": "blocked_plan",
+            "data": {
+                "goal": "Craft stone pickaxe before mining iron ore",
+                "reasoning": "Need cobblestone and sticks before retrying iron ore",
+            },
+        },
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config())
+    report = runner.run_task_precondition_report_from_logs([session_path])
+    feedback = runner.task_precondition_feedback(report)
+    candidate_by_type = {}
+    for candidate in report["candidates"]:
+        candidate_by_type.setdefault(candidate["candidate_type"], []).append(candidate)
+    policies = {hint["task_precondition_policy"] for hint in feedback["policy_hints"]}
+
+    assert report["ready_log_count"] == 1
+    assert report["failed_action_count"] == 2
+    assert report["blocked_plan_count"] == 1
+    assert report["candidate_count"] >= 3
+    assert report["candidate_type_counts"]["inventory_precondition"] >= 1
+    assert report["candidate_type_counts"]["tool_precondition"] == 1
+    assert report["candidate_type_counts"]["blocked_plan_prerequisite"] == 1
+    craft_candidate = next(item for item in candidate_by_type["inventory_precondition"] if item["action_signature"] == "craft:torch")
+    assert craft_candidate["inferred_preconditions"]["inventory"]["coal"] == 1
+    assert craft_candidate["inferred_preconditions"]["inventory"]["stick"] == 1
+    tool_candidate = candidate_by_type["tool_precondition"][0]
+    assert tool_candidate["action_signature"] == "dig:iron_ore"
+    assert tool_candidate["inferred_preconditions"]["inventory"]["stone_pickaxe"] == 1
+    assert tool_candidate["inferred_preconditions"]["tool_for"]["iron_ore"] == "stone_pickaxe"
+    assert "review_task_precondition_candidates" in policies
+    assert "add_inventory_preconditions_before_crafting" in policies
+    assert "add_tool_preconditions_before_mining" in policies
+    print("PASS: Task precondition report mines hidden prerequisites from failures")
+
+
 def test_knowledge_correction_preflight_requires_gate_and_suite_overlap():
     tmpdir = tempfile.mkdtemp()
     feedback_path = os.path.join(tmpdir, "knowledge_correction.json")
@@ -5614,6 +5675,7 @@ if __name__ == "__main__":
     test_action_candidate_report_replays_repairable_rejected_actions()
     test_action_value_report_aggregates_outcome_profiles()
     test_knowledge_correction_report_mines_failed_actions_and_dependencies()
+    test_task_precondition_report_mines_hidden_prerequisites_from_failures()
     test_knowledge_correction_preflight_requires_gate_and_suite_overlap()
     test_knowledge_correction_ablation_reports_context_changes()
     test_knowledge_correction_review_labels_emit_approved_feedback()

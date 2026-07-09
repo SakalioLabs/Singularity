@@ -7120,6 +7120,506 @@ class BenchmarkRunner:
             "policy_hints": policy_hints,
         }
 
+    def run_task_precondition_report_from_logs(
+        self,
+        session_log_paths: list[str],
+        min_evidence_count: int = 1,
+    ) -> dict:
+        """Mine reviewable task precondition candidates from stalled plans and failed actions."""
+        report = {
+            "type": "task_precondition_report",
+            "generated_at": round(time.time(), 3),
+            "min_evidence_count": max(1, int(min_evidence_count or 1)),
+            "log_count": 0,
+            "ready_log_count": 0,
+            "event_count": 0,
+            "failed_action_count": 0,
+            "reasoning_failure_count": 0,
+            "blocked_plan_count": 0,
+            "empty_plan_count": 0,
+            "candidate_count": 0,
+            "candidate_type_counts": {},
+            "task_family_counts": {},
+            "action_signature_counts": {},
+            "policy_hints": [],
+            "recommendations": [],
+            "candidates": [],
+            "cases": [],
+            "errors": [],
+        }
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                case = self._task_precondition_trace_case(path, events)
+                report["cases"].append(case)
+            except Exception as e:
+                report["errors"].append(f"{path}: {e}")
+        report["log_count"] = len(report["cases"])
+
+        buckets = {}
+        for case in report["cases"]:
+            if case.get("ready_for_task_precondition_review"):
+                report["ready_log_count"] += 1
+            for key in ("event_count", "failed_action_count", "reasoning_failure_count", "blocked_plan_count", "empty_plan_count"):
+                report[key] += self._safe_int(case.get(key, 0))
+            self._merge_counts(report["candidate_type_counts"], case.get("candidate_type_counts", {}))
+            self._merge_counts(report["task_family_counts"], case.get("task_family_counts", {}))
+            self._merge_counts(report["action_signature_counts"], case.get("action_signature_counts", {}))
+            for item in case.get("items", []):
+                self._accumulate_task_precondition_candidate(buckets, case.get("source_log", ""), item)
+
+        candidates = [
+            self._finalize_task_precondition_candidate(bucket)
+            for bucket in buckets.values()
+            if self._safe_int(bucket.get("evidence_count", 0)) >= report["min_evidence_count"]
+        ]
+        candidates.sort(
+            key=lambda item: (
+                self._task_precondition_priority_rank(item.get("priority")),
+                item.get("evidence_count", 0),
+                item.get("confidence", 0.0),
+                item.get("action_signature", ""),
+            ),
+            reverse=True,
+        )
+        report["candidates"] = candidates[:80]
+        report["candidate_count"] = len(report["candidates"])
+        feedback = self.task_precondition_feedback(report)
+        report["policy_hints"] = feedback["policy_hints"]
+        report["recommendations"] = feedback["recommendations"]
+        return report
+
+    def task_precondition_feedback(self, report: dict) -> dict:
+        """Convert task-precondition mining into conservative planner/task-system hints."""
+        policy_hints = []
+        recommendations = []
+        candidate_count = self._safe_int(report.get("candidate_count", 0))
+        type_counts = report.get("candidate_type_counts", {}) if isinstance(report.get("candidate_type_counts", {}), dict) else {}
+        if report.get("log_count", 0) and not candidate_count:
+            policy_hints.append({
+                "task_precondition_policy": "collect_richer_failure_and_plan_context",
+                "priority": "medium",
+                "reason": "logs were present but no task precondition candidates could be inferred",
+                "count": report.get("log_count", 0),
+            })
+            recommendations.append("log_failed_action_errors_blocked_plan_reasons_and_pre_post_observations")
+        if candidate_count:
+            policy_hints.append({
+                "task_precondition_policy": "review_task_precondition_candidates",
+                "priority": "high",
+                "reason": "failed actions or stalled plans suggest missing task preconditions",
+                "count": candidate_count,
+            })
+            recommendations.append("review_candidates_before_updating_task_graph_or_runtime_profiles")
+        if type_counts.get("inventory_precondition"):
+            policy_hints.append({
+                "task_precondition_policy": "add_inventory_preconditions_before_crafting",
+                "priority": "high",
+                "reason": "crafting failures identify missing inventory requirements",
+                "count": type_counts.get("inventory_precondition", 0),
+            })
+            recommendations.append("inject_missing_inventory_requirements_into_task_preconditions")
+        if type_counts.get("tool_precondition"):
+            policy_hints.append({
+                "task_precondition_policy": "add_tool_preconditions_before_mining",
+                "priority": "high",
+                "reason": "mining failures identify missing tool requirements",
+                "count": type_counts.get("tool_precondition", 0),
+            })
+            recommendations.append("add_tool_or_upgrade_subtasks_before_resource_mining")
+        if type_counts.get("blocked_plan_prerequisite"):
+            policy_hints.append({
+                "task_precondition_policy": "repair_blocked_plan_with_prerequisite_tasks",
+                "priority": "medium",
+                "reason": "blocked or empty plans mention unresolved prerequisites",
+                "count": type_counts.get("blocked_plan_prerequisite", 0),
+            })
+            recommendations.append("turn_blocked_plan_reasons_into_reviewable_prerequisite_subtasks")
+        return {
+            "candidate_count": candidate_count,
+            "candidate_type_counts": dict(sorted(type_counts.items())),
+            "policy_hints": policy_hints,
+            "recommendations": self._dedupe_strings(recommendations),
+        }
+
+    def _task_precondition_trace_case(self, source_log: str, events: list[dict]) -> dict:
+        current_goal = ""
+        last_observation = {}
+        items = []
+        failed_action_count = 0
+        reasoning_failure_count = 0
+        blocked_plan_count = 0
+        empty_plan_count = 0
+        for index, event in enumerate(events):
+            event_type = str(event.get("type") or "")
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event_type in {"goal_start", "goal_end", "auto_goal", "curriculum_goal"}:
+                current_goal = str(data.get("goal") or data.get("objective") or current_goal or "")
+            elif event_type == "observation":
+                last_observation = data
+            elif event_type == "action":
+                action, result, action_type = self._normalized_action_record(data)
+                if self._event_success(result) is False:
+                    failed_action_count += 1
+                    category = self._action_failure_category(action, result)
+                    if category == "reasoning":
+                        reasoning_failure_count += 1
+                    item = self._task_precondition_item_from_action(
+                        source_log,
+                        index,
+                        current_goal,
+                        action,
+                        result,
+                        action_type,
+                        category,
+                        last_observation,
+                    )
+                    if item:
+                        items.append(item)
+            elif event_type in {"blocked_plan", "empty_plan"} or (
+                event_type == "plan" and str(data.get("status") or "").lower() in {"blocked", "empty", "failed"}
+            ):
+                status = str(data.get("status") or event_type).lower()
+                if "blocked" in status:
+                    blocked_plan_count += 1
+                if "empty" in status or (event_type == "plan" and not data.get("actions")):
+                    empty_plan_count += 1
+                item = self._task_precondition_item_from_plan(
+                    source_log,
+                    index,
+                    current_goal,
+                    data,
+                    status,
+                    last_observation,
+                )
+                if item:
+                    items.append(item)
+
+        type_counts = {}
+        family_counts = {}
+        signature_counts = {}
+        for item in items:
+            self._increment(type_counts, item.get("candidate_type", "unknown"))
+            self._increment(family_counts, item.get("task_family", "unknown"))
+            self._increment(signature_counts, item.get("action_signature", "unknown"))
+        return {
+            "source_log": source_log,
+            "event_count": len(events),
+            "failed_action_count": failed_action_count,
+            "reasoning_failure_count": reasoning_failure_count,
+            "blocked_plan_count": blocked_plan_count,
+            "empty_plan_count": empty_plan_count,
+            "candidate_count": len(items),
+            "candidate_type_counts": dict(sorted(type_counts.items())),
+            "task_family_counts": dict(sorted(family_counts.items())),
+            "action_signature_counts": dict(sorted(signature_counts.items())),
+            "items": items[:80],
+            "ready_for_task_precondition_review": bool(items),
+        }
+
+    def _task_precondition_item_from_action(
+        self,
+        source_log: str,
+        event_index: int,
+        goal: str,
+        action: dict,
+        result: dict,
+        action_type: str,
+        category: str,
+        observation: dict,
+    ) -> dict:
+        inference = self._infer_task_preconditions(action, result, action_type, category, observation)
+        if not inference.get("has_precondition_signal"):
+            return {}
+        action_signature = self._task_action_signature(action, result, action_type)
+        candidate_type = inference.get("candidate_type") or self._task_precondition_type_for_category(category)
+        return {
+            "type": "task_precondition_item",
+            "source_log": source_log,
+            "event_index": event_index,
+            "goal": self._short_text(goal, 140),
+            "goal_signature": self._hash_text(goal),
+            "task_family": self._task_family_for_action(action_type, goal),
+            "candidate_type": candidate_type,
+            "action_signature": action_signature,
+            "action_type": action_type,
+            "target": self._short_text(self._action_target_name(action, result), 80),
+            "failure_category": category,
+            "inferred_preconditions": inference.get("preconditions", {}),
+            "source_blocks": inference.get("source_blocks", {}),
+            "reason_signature": self._hash_text(self._failure_reason_text(result)),
+            "reason_excerpt": self._short_text(self._failure_reason_text(result), 140),
+            "evidence_kind": "failed_action",
+            "priority": inference.get("priority", "medium"),
+        }
+
+    def _task_precondition_item_from_plan(
+        self,
+        source_log: str,
+        event_index: int,
+        goal: str,
+        data: dict,
+        status: str,
+        observation: dict,
+    ) -> dict:
+        text = " ".join(
+            str(value or "")
+            for value in (
+                goal,
+                data.get("goal"),
+                data.get("reason"),
+                data.get("reasoning"),
+                data.get("message"),
+                data.get("summary"),
+            )
+        )
+        tokens = self._known_minecraft_items_in_text(text)
+        if not tokens and not self._looks_like_prerequisite_text(text):
+            return {}
+        preconditions = {"inventory": {token: 1 for token in tokens[:8]}} if tokens else {"flags": ["resolve_prerequisite_task"]}
+        return {
+            "type": "task_precondition_item",
+            "source_log": source_log,
+            "event_index": event_index,
+            "goal": self._short_text(goal or str(data.get("goal") or ""), 140),
+            "goal_signature": self._hash_text(goal or str(data.get("goal") or "")),
+            "task_family": self._task_family_for_action("plan", goal or str(data.get("goal") or "")),
+            "candidate_type": "blocked_plan_prerequisite",
+            "action_signature": f"plan:{status or 'blocked'}",
+            "action_type": "plan",
+            "target": "",
+            "failure_category": "reasoning",
+            "inferred_preconditions": preconditions,
+            "source_blocks": self._source_blocks_for_items(tokens),
+            "reason_signature": self._hash_text(text),
+            "reason_excerpt": self._short_text(text, 140),
+            "evidence_kind": "stalled_plan",
+            "priority": "medium",
+        }
+
+    def _infer_task_preconditions(self, action: dict, result: dict, action_type: str, category: str, observation: dict) -> dict:
+        target = self._action_target_name(action, result)
+        inventory = observation.get("inventory", {}) if isinstance(observation, dict) and isinstance(observation.get("inventory", {}), dict) else {}
+        preconditions = {}
+        source_blocks = {}
+        candidate_type = self._task_precondition_type_for_category(category)
+        priority = "medium"
+        known_items = self._known_minecraft_items_in_text(self._failure_reason_text(result))
+        graph = self._minecraft_knowledge_graph()
+
+        if action_type == "craft" and target:
+            recipe_requirements = self._recipe_missing_requirements(target, inventory)
+            missing_items = recipe_requirements or {item: 1 for item in known_items if item != target}
+            if missing_items:
+                preconditions["inventory"] = dict(sorted(missing_items.items()))
+                source_blocks = self._source_blocks_for_items(list(missing_items.keys()))
+                candidate_type = "inventory_precondition"
+                priority = "high"
+        elif action_type == "dig" and target:
+            required_tool = ""
+            if graph is not None:
+                try:
+                    required_tool = graph.recommended_tool_for(target)
+                except Exception:
+                    required_tool = ""
+            text = self._failure_reason_text(result).lower()
+            if required_tool and required_tool != "hand" and (inventory.get(required_tool, 0) <= 0 or "tool" in text or "pickaxe" in text):
+                preconditions["inventory"] = {required_tool: 1}
+                preconditions["tool_for"] = {target: required_tool}
+                candidate_type = "tool_precondition"
+                priority = "high"
+            elif known_items:
+                preconditions["inventory"] = {item: 1 for item in known_items}
+                candidate_type = "inventory_precondition"
+        elif category == "perception":
+            preconditions["flags"] = ["target_visible"]
+            candidate_type = "perception_precondition"
+        elif category == "action":
+            preconditions["flags"] = ["reachable_path"]
+            candidate_type = "navigation_precondition"
+        elif known_items:
+            preconditions["inventory"] = {item: 1 for item in known_items}
+            candidate_type = "inventory_precondition"
+            priority = "high"
+
+        return {
+            "has_precondition_signal": bool(preconditions),
+            "candidate_type": candidate_type,
+            "preconditions": preconditions,
+            "source_blocks": source_blocks,
+            "priority": priority,
+        }
+
+    def _recipe_missing_requirements(self, target: str, inventory: dict) -> dict:
+        graph = self._minecraft_knowledge_graph()
+        if graph is None:
+            return {}
+        recipe = getattr(graph, "recipes", {}).get(str(target or ""))
+        if not isinstance(recipe, dict):
+            return {}
+        missing = {}
+        ingredients = recipe.get("ingredients", {}) if isinstance(recipe.get("ingredients", {}), dict) else {}
+        for item, count in ingredients.items():
+            needed = self._safe_int(count)
+            if needed > 0 and self._safe_int(inventory.get(item, 0)) < needed:
+                missing[str(item)] = needed
+        return missing
+
+    def _minecraft_knowledge_graph(self):
+        if hasattr(self, "_task_precondition_graph"):
+            return self._task_precondition_graph
+        try:
+            from singularity.data.knowledge_base import KnowledgeBase
+
+            kb = KnowledgeBase()
+            self._task_precondition_graph = kb.graph
+        except Exception:
+            self._task_precondition_graph = None
+        return self._task_precondition_graph
+
+    def _source_blocks_for_items(self, items: list[str]) -> dict:
+        graph = self._minecraft_knowledge_graph()
+        if graph is None:
+            return {}
+        source_blocks = {}
+        for item in items:
+            try:
+                blocks = graph.source_blocks_for_resource(item)
+            except Exception:
+                blocks = []
+            if blocks:
+                source_blocks[item] = blocks[:8]
+        return source_blocks
+
+    def _known_minecraft_items_in_text(self, text: str) -> list[str]:
+        normalized = str(text or "").lower().replace("-", "_")
+        normalized = normalized + " " + normalized.replace("_", " ")
+        graph = self._minecraft_knowledge_graph()
+        if graph is None:
+            return []
+        names = sorted(getattr(graph, "nodes", set()), key=len, reverse=True)
+        found = []
+        for name in names:
+            if not name:
+                continue
+            spaced = str(name).replace("_", " ")
+            if str(name).lower() in normalized or spaced.lower() in normalized:
+                if str(name) not in found:
+                    found.append(str(name))
+            if len(found) >= 12:
+                break
+        return found
+
+    def _looks_like_prerequisite_text(self, text: str) -> bool:
+        normalized = str(text or "").lower()
+        return any(token in normalized for token in ("need", "missing", "requires", "before", "prerequisite", "blocked", "craft", "mine", "gather"))
+
+    def _task_precondition_type_for_category(self, category: str) -> str:
+        if category == "perception":
+            return "perception_precondition"
+        if category == "action":
+            return "navigation_precondition"
+        return "inventory_precondition"
+
+    def _task_action_signature(self, action: dict, result: dict, action_type: str) -> str:
+        target = self._action_target_name(action, result)
+        return f"{action_type or 'unknown'}:{target or '-'}"
+
+    def _failure_reason_text(self, result: dict) -> str:
+        if not isinstance(result, dict):
+            return ""
+        return " ".join(str(result.get(key) or "") for key in ("error", "reason", "message", "detail") if result.get(key))
+
+    def _hash_text(self, text: str) -> str:
+        value = str(text or "").strip().lower()
+        if not value:
+            return ""
+        return hashlib.sha256(value.encode("utf-8", errors="ignore")).hexdigest()[:12]
+
+    def _task_family_for_action(self, action_type: str, goal: str = "") -> str:
+        text = f"{action_type} {goal}".lower()
+        if "craft" in text:
+            return "crafting"
+        if any(token in text for token in ("dig", "mine", "ore", "stone", "coal")):
+            return "mining"
+        if any(token in text for token in ("move", "explore", "navigate", "travel", "path")):
+            return "navigation"
+        if any(token in text for token in ("shelter", "bed", "night")):
+            return "survival"
+        return "general"
+
+    def _accumulate_task_precondition_candidate(self, buckets: dict, source_log: str, item: dict):
+        preconditions = item.get("inferred_preconditions", {}) if isinstance(item.get("inferred_preconditions", {}), dict) else {}
+        key_payload = {
+            "goal": item.get("goal_signature", ""),
+            "candidate_type": item.get("candidate_type", ""),
+            "action_signature": item.get("action_signature", ""),
+            "preconditions": preconditions,
+        }
+        key = hashlib.sha256(json.dumps(key_payload, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:16]
+        bucket = buckets.setdefault(key, {
+            "candidate_id": key,
+            "type": "task_precondition_candidate",
+            "candidate_type": item.get("candidate_type", "unknown"),
+            "task_family": item.get("task_family", "general"),
+            "goal": item.get("goal", ""),
+            "goal_signature": item.get("goal_signature", ""),
+            "action_signature": item.get("action_signature", "unknown"),
+            "action_type": item.get("action_type", "unknown"),
+            "target": item.get("target", ""),
+            "inferred_preconditions": preconditions,
+            "source_blocks": item.get("source_blocks", {}),
+            "failure_categories": {},
+            "evidence_count": 0,
+            "source_logs": [],
+            "reason_signatures": [],
+            "examples": [],
+            "priority": item.get("priority", "medium"),
+        })
+        bucket["evidence_count"] += 1
+        self._increment(bucket["failure_categories"], item.get("failure_category", "unknown"))
+        if source_log and source_log not in bucket["source_logs"]:
+            bucket["source_logs"].append(source_log)
+        if item.get("reason_signature") and item.get("reason_signature") not in bucket["reason_signatures"]:
+            bucket["reason_signatures"].append(item.get("reason_signature"))
+        if len(bucket["examples"]) < 4:
+            bucket["examples"].append({
+                "source_log": source_log,
+                "event_index": item.get("event_index", 0),
+                "evidence_kind": item.get("evidence_kind", ""),
+                "reason_excerpt": item.get("reason_excerpt", ""),
+            })
+        if self._task_precondition_priority_rank(item.get("priority")) > self._task_precondition_priority_rank(bucket.get("priority")):
+            bucket["priority"] = item.get("priority")
+
+    def _finalize_task_precondition_candidate(self, bucket: dict) -> dict:
+        evidence_count = self._safe_int(bucket.get("evidence_count", 0))
+        log_count = len(bucket.get("source_logs", []))
+        confidence = min(0.95, 0.45 + 0.15 * evidence_count + 0.1 * max(0, log_count - 1))
+        candidate = dict(bucket)
+        candidate["confidence"] = round(confidence, 3)
+        candidate["source_logs"] = bucket.get("source_logs", [])[:8]
+        candidate["reason_signatures"] = bucket.get("reason_signatures", [])[:12]
+        candidate["review_status"] = "review_only"
+        candidate["recommendation"] = self._task_precondition_recommendation(candidate)
+        return candidate
+
+    def _task_precondition_recommendation(self, candidate: dict) -> str:
+        candidate_type = candidate.get("candidate_type", "")
+        action = candidate.get("action_signature", "action")
+        if candidate_type == "tool_precondition":
+            return f"Before retrying {action}, insert tool acquisition or upgrade prerequisites."
+        if candidate_type == "inventory_precondition":
+            return f"Before retrying {action}, satisfy inferred inventory prerequisites."
+        if candidate_type == "perception_precondition":
+            return f"Before retrying {action}, add scan/look_at/visual grounding prerequisites."
+        if candidate_type == "navigation_precondition":
+            return f"Before retrying {action}, add reachability or path-repair prerequisites."
+        return "Review stalled-plan reason and add prerequisite subtasks before replay."
+
+    def _task_precondition_priority_rank(self, priority: str) -> int:
+        return {"critical": 4, "high": 3, "medium": 2, "low": 1}.get(str(priority or "").lower(), 0)
+
     def build_knowledge_correction_gate(
         self,
         knowledge_correction_reports: Optional[list[dict]] = None,
