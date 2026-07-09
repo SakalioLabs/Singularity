@@ -24,6 +24,7 @@ The paper frames runtime control as a style layer: the user can choose how an ag
 - Wired advisory coach context into `Agent._think_llm()`.
 - Wired coach-biased curriculum reranking into autonomous goal selection only after ready tasks are considered.
 - Added `coach-style-ablation` so style-biased curriculum changes can be replayed from default cases, JSON/JSONL case files, or session-log observations before live autonomous runs.
+- Added `coach-style-gate` so a style needs enough saved ablation cases and score-changing evidence before it is treated as benchmark-ready.
 
 ## Next Experiments
 

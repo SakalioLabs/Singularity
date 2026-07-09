@@ -518,6 +518,19 @@ def main():
     coach_ablation_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     coach_ablation_parser.add_argument("--log-level", type=str, default="INFO")
 
+    coach_gate_parser = subparsers.add_parser(
+        "coach-style-gate",
+        help="Gate advisory coaching styles with offline curriculum ablation evidence",
+    )
+    coach_gate_parser.add_argument("--coach-style-ablation", action="append", default=[], help="Saved coach-style-ablation JSON report")
+    coach_gate_parser.add_argument("--style", action="append", default=[], help="Style that must be covered; repeat for multiple styles")
+    coach_gate_parser.add_argument("--target", type=str, default="coach_style_curriculum_bias", help="Gate target label")
+    coach_gate_parser.add_argument("--min-cases-per-style", type=int, default=1, help="Minimum ablation cases required per style")
+    coach_gate_parser.add_argument("--min-score-changed-per-style", type=int, default=1, help="Minimum score-changing cases required per style")
+    coach_gate_parser.add_argument("--require-goal-change", action="store_true", help="Require at least one top-goal change for each requested style")
+    coach_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    coach_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline promotion review visual ablation
     review_parser = subparsers.add_parser("promotion-review-ablation", help="Compare skill promotion review with and without visual evidence")
     review_parser.add_argument("--session-log", action="append", default=[], help="Replay a session JSONL log into promotion review ablation")
@@ -2020,6 +2033,34 @@ def main():
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "coach-style-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        ablation_reports = getattr(args, "coach_style_ablation", []) or []
+        if not ablation_reports:
+            print("coach-style-gate requires at least one --coach-style-ablation")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.build_coach_style_gate(
+            coach_ablation_report_paths=ablation_reports,
+            styles=getattr(args, "style", []) or [],
+            target=getattr(args, "target", "coach_style_curriculum_bias"),
+            min_cases_per_style=getattr(args, "min_cases_per_style", 1),
+            min_score_changed_per_style=getattr(args, "min_score_changed_per_style", 1),
+            require_goal_change=getattr(args, "require_goal_change", False),
+        )
+        runner.print_coach_style_gate_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"rejected", "error"}:
+            sys.exit(1)
         return
 
     if args.command == "promotion-review-ablation":

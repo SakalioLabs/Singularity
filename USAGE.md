@@ -168,6 +168,8 @@ python -m singularity.main run --goal "Explore the nearby cave and return safely
 # Compare baseline curriculum choices with style-biased choices before spending live runtime.
 python -m singularity.main coach-style-ablation --style safe --style explorer --output logs/benchmarks/coach_style_ablation.json
 python -m singularity.main coach-style-ablation --session-log logs/session_xxx.jsonl --style explorer --output logs/benchmarks/coach_style_from_log.json
+# Gate saved coaching evidence before treating a style as benchmark-ready.
+python -m singularity.main coach-style-gate --coach-style-ablation logs/benchmarks/coach_style_ablation.json --style explorer --output logs/benchmarks/coach_style_gate.json
 
 # Summarize MineEvolve-style execution progress, stagnation, and adaptor hints
 # Successful action returns are discounted unless later observations show state, inventory, or verifier progress.

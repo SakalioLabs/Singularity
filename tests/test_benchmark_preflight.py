@@ -4079,6 +4079,41 @@ def test_coach_style_ablation_compares_curriculum_styles():
     print("PASS: Coach style ablation compares curriculum styles and case files")
 
 
+def test_coach_style_gate_controls_style_readiness():
+    runner = BenchmarkRunner(Config())
+    ablation = runner.run_coach_style_ablation(styles=["safe", "explorer"])
+    payload = {
+        "changed_count": ablation.changed_count,
+        "score_changed_count": ablation.score_changed_count,
+        "cases": [asdict(case) for case in ablation.cases],
+    }
+
+    approved = runner.build_coach_style_gate(
+        coach_ablation_reports=[payload],
+        styles=["explorer"],
+        min_cases_per_style=1,
+        min_score_changed_per_style=1,
+    )
+    review = runner.build_coach_style_gate(
+        coach_ablation_reports=[payload],
+        styles=["safe"],
+        min_cases_per_style=1,
+        min_score_changed_per_style=1,
+        require_goal_change=True,
+    )
+
+    assert approved["readiness"] == "approved"
+    assert approved["decision"] == "allow_coach_style"
+    assert approved["approved_styles"] == ["explorer"]
+    assert "styles_ready_for_benchmark_preflight" in approved["policy_hints"]
+    assert review["readiness"] == "review"
+    assert review["decision"] == "hold_coach_style"
+    assert review["review_styles"][0]["style"] == "safe"
+    assert "goal_change" in review["review_styles"][0]["missing"]
+    assert "keep_coach_style_manual_or_review_only" in review["policy_hints"]
+    print("PASS: Coach style gate controls style readiness")
+
+
 if __name__ == "__main__":
     test_preflight_report_without_network()
     test_bot_session_preflight_check()
@@ -4143,4 +4178,5 @@ if __name__ == "__main__":
     test_scheduling_ablation_report_compares_causal_switch()
     test_scheduling_ablation_replays_session_logs()
     test_coach_style_ablation_compares_curriculum_styles()
+    test_coach_style_gate_controls_style_readiness()
     print("\nBenchmark preflight tests PASSED")

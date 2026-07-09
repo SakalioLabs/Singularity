@@ -4532,6 +4532,173 @@ class BenchmarkRunner:
             "errors": [str(error) for error in source_errors],
         }
 
+    def build_coach_style_gate(
+        self,
+        coach_ablation_report_paths: list[str] = None,
+        coach_ablation_reports: list[dict] = None,
+        styles: list[str] = None,
+        target: str = "coach_style_curriculum_bias",
+        min_cases_per_style: int = 1,
+        min_score_changed_per_style: int = 1,
+        require_goal_change: bool = False,
+    ) -> dict:
+        """Gate advisory coaching styles before treating them as benchmark-ready."""
+        errors = []
+        report_items = self._load_gate_payloads(
+            coach_ablation_reports or [],
+            coach_ablation_report_paths or [],
+            errors,
+            "coach_style_ablation",
+        )
+        requested_styles = [str(style).strip().lower() for style in (styles or []) if str(style).strip()]
+        gate = {
+            "type": "coach_style_gate",
+            "target": target,
+            "readiness": "review",
+            "decision": "hold_coach_style",
+            "reason": "coach-style curriculum bias needs offline ablation evidence",
+            "min_cases_per_style": int(min_cases_per_style or 0),
+            "min_score_changed_per_style": int(min_score_changed_per_style or 0),
+            "require_goal_change": bool(require_goal_change),
+            "source_count": len(report_items),
+            "case_count": 0,
+            "changed_count": 0,
+            "score_changed_count": 0,
+            "styles": requested_styles,
+            "style_case_counts": {},
+            "style_changed_counts": {},
+            "style_score_changed_counts": {},
+            "approved_styles": [],
+            "review_styles": [],
+            "checks": [],
+            "sources": [],
+            "missing": [],
+            "policy_hints": [],
+            "errors": list(errors),
+        }
+        if not report_items:
+            gate["missing"].append("coach_style_ablation_report")
+            gate["checks"].append(self._gate_check(
+                "coach_style_gate",
+                "coach_style_ablation",
+                "warn",
+                "no coach-style-ablation JSON was provided",
+                {},
+            ))
+        for source, payload in report_items:
+            summary = self._coach_style_gate_source_summary(source, payload, requested_styles)
+            gate["sources"].append(summary)
+            gate["case_count"] += summary["case_count"]
+            gate["changed_count"] += summary["changed_count"]
+            gate["score_changed_count"] += summary["score_changed_count"]
+            for style, count in summary["style_case_counts"].items():
+                gate["style_case_counts"][style] = gate["style_case_counts"].get(style, 0) + count
+            for style, count in summary["style_changed_counts"].items():
+                gate["style_changed_counts"][style] = gate["style_changed_counts"].get(style, 0) + count
+            for style, count in summary["style_score_changed_counts"].items():
+                gate["style_score_changed_counts"][style] = gate["style_score_changed_counts"].get(style, 0) + count
+            gate["errors"].extend(summary["errors"])
+            status = "pass" if summary["ready"] else "warn"
+            gate["checks"].append(self._gate_check(
+                source,
+                "coach_style_ablation",
+                status,
+                summary["reason"],
+                {
+                    "case_count": summary["case_count"],
+                    "changed_count": summary["changed_count"],
+                    "score_changed_count": summary["score_changed_count"],
+                    "styles": summary["styles"],
+                },
+            ))
+
+        expected_styles = requested_styles or sorted(gate["style_case_counts"].keys())
+        if not expected_styles:
+            gate["missing"].append("style_evidence")
+        for style in expected_styles:
+            case_count = int(gate["style_case_counts"].get(style, 0) or 0)
+            score_changed = int(gate["style_score_changed_counts"].get(style, 0) or 0)
+            goal_changed = int(gate["style_changed_counts"].get(style, 0) or 0)
+            missing = []
+            if case_count < gate["min_cases_per_style"]:
+                missing.append("cases")
+            if score_changed < gate["min_score_changed_per_style"]:
+                missing.append("score_effect")
+            if gate["require_goal_change"] and goal_changed <= 0:
+                missing.append("goal_change")
+            if missing:
+                gate["review_styles"].append({"style": style, "missing": missing})
+            else:
+                gate["approved_styles"].append(style)
+
+        if gate["review_styles"]:
+            gate["missing"].append("style_readiness")
+        if gate["errors"]:
+            gate["readiness"] = "error"
+            gate["decision"] = "block_coach_style"
+            gate["reason"] = "coach-style gate inputs could not be loaded"
+        elif gate["missing"]:
+            gate["readiness"] = "review"
+            gate["decision"] = "hold_coach_style"
+            gate["reason"] = "coach-style bias needs stronger offline ablation evidence"
+        else:
+            gate["readiness"] = "approved"
+            gate["decision"] = "allow_coach_style"
+            gate["reason"] = "coach-style curriculum bias has offline ablation evidence"
+
+        if gate["readiness"] != "approved":
+            gate["policy_hints"].append("keep_coach_style_manual_or_review_only")
+        if gate["approved_styles"]:
+            gate["policy_hints"].append("styles_ready_for_benchmark_preflight")
+        if gate["review_styles"]:
+            gate["policy_hints"].append("collect_more_coach_style_ablation_cases")
+        return gate
+
+    def _coach_style_gate_source_summary(self, source: str, payload: dict, requested_styles: list[str]) -> dict:
+        payload = payload if isinstance(payload, dict) else {}
+        cases = payload.get("cases", []) if isinstance(payload.get("cases", []), list) else []
+        source_errors = payload.get("errors", []) if isinstance(payload.get("errors", []), list) else []
+        style_case_counts = {}
+        style_changed_counts = {}
+        style_score_changed_counts = {}
+        changed_count = 0
+        score_changed_count = 0
+        for case in cases:
+            if not isinstance(case, dict):
+                continue
+            style = str(case.get("style") or "").strip().lower()
+            if requested_styles and style not in requested_styles:
+                continue
+            if not style:
+                style = "unknown"
+            style_case_counts[style] = style_case_counts.get(style, 0) + 1
+            if bool(case.get("changed")):
+                changed_count += 1
+                style_changed_counts[style] = style_changed_counts.get(style, 0) + 1
+            score_delta = self._gate_float_or_none(case.get("score_delta"))
+            if score_delta is None:
+                score_delta = float(case.get("styled_score", 0) or 0) - float(case.get("baseline_score", 0) or 0)
+            if abs(float(score_delta or 0.0)) > 0.0001:
+                score_changed_count += 1
+                style_score_changed_counts[style] = style_score_changed_counts.get(style, 0) + 1
+        case_count = sum(style_case_counts.values())
+        reason = "coach-style ablation contains score-changing style evidence" if score_changed_count else "coach-style ablation has no score-changing style evidence"
+        if source_errors:
+            reason = "coach-style ablation contains errors"
+        return {
+            "source": source,
+            "ready": bool(case_count and score_changed_count and not source_errors),
+            "reason": reason,
+            "case_count": case_count,
+            "changed_count": changed_count,
+            "score_changed_count": score_changed_count,
+            "styles": sorted(style_case_counts),
+            "style_case_counts": style_case_counts,
+            "style_changed_counts": style_changed_counts,
+            "style_score_changed_counts": style_score_changed_counts,
+            "errors": [str(error) for error in source_errors],
+        }
+
     def run_self_evolution_report_from_logs(self, session_log_paths: list[str]) -> SelfEvolutionTraceReport:
         """Summarize MineEvolve-style monitor/inducer/adaptor signals in session logs."""
         report = SelfEvolutionTraceReport()
@@ -12348,6 +12515,28 @@ class BenchmarkRunner:
             coach_reasons = [reason for reason in case.styled_reasons if str(reason).startswith("coach:")]
             if coach_reasons:
                 print(f"      coach reasons: {', '.join(coach_reasons[:5])}")
+
+    def print_coach_style_gate_report(self, report: dict):
+        print("\nCoach Style Gate")
+        print(f"  target: {report.get('target', 'coach_style_curriculum_bias')}")
+        print(f"  readiness: {report.get('readiness')} ({report.get('decision')})")
+        print(f"  reason: {report.get('reason')}")
+        print(
+            "  evidence: "
+            f"cases={report.get('case_count', 0)}, "
+            f"changed={report.get('changed_count', 0)}, "
+            f"score_changed={report.get('score_changed_count', 0)}"
+        )
+        if report.get("approved_styles"):
+            print(f"  approved styles: {', '.join(report.get('approved_styles', []))}")
+        if report.get("review_styles"):
+            for item in report.get("review_styles", [])[:8]:
+                print(f"  review style: {item.get('style')} missing={','.join(item.get('missing', []))}")
+        for check in report.get("checks", [])[:10]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
 
     def print_visual_trace_report(self, report: VisualTraceCoverageReport):
         total = report.log_count
