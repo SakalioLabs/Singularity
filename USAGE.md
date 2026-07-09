@@ -198,6 +198,9 @@ python -m singularity.main plan-cache-report --session-log logs/session_xxx.json
 python -m singularity.main plan-cache-runtime-report --session-log logs/session_cache_run.jsonl --output logs/benchmarks/plan_cache_runtime.json
 python -m singularity.main plan-cache-gate --plan-cache-report logs/benchmarks/plan_cache.json --runtime-report logs/benchmarks/plan_cache_runtime.json --min-runtime-hits 1 --output logs/benchmarks/plan_cache_gate.json
 python -m singularity.main run --goal "Craft torches" --enable-plan-cache --plan-cache logs/benchmarks/plan_cache.json --plan-cache-gate logs/benchmarks/plan_cache_gate.json
+# Compare an ungated baseline against a module-assisted candidate across plan cache,
+# visual grounding, action verification, skill memory, memory policy, and control policy signals.
+python -m singularity.main agent-module-comparison-report --baseline-session-log logs/session_baseline.jsonl --candidate-session-log logs/session_candidate.jsonl --baseline-label m1_plain --candidate-label m1_module_profile --output logs/benchmarks/agent_module_comparison.json
 # Separate world-state completion from the agent's terminal completion report.
 python -m singularity.main terminal-commitment-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/terminal_commitment.json
 # Replay logged actions through deterministic pre-execution feasibility checks.

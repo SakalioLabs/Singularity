@@ -52,6 +52,12 @@ After each benchmark run, generate:
 4. Comparison with previous runs
 5. Recommendations for next iteration
 
+## Implemented Offline Reports
+
+- `agent-module-comparison-report` compares baseline and candidate session JSONL logs as Orak-style module experiments.
+- It summarizes completion rate, action failure rate, empty/blocked plans, and module activity for plan cache, visual action grounding, action verification, action candidate selection, skill memory, policy skills, memory policy, goal verification, and control-policy/backend decisions.
+- The report marks a candidate `approved`, `review`, or `rejected` using configurable regression thresholds, then recommends the dedicated gate/report family to run next before packaging a runtime profile.
+
 ## Dependencies
 
 - Task system (task state and results)

@@ -179,6 +179,56 @@ def _print_runtime_profile_suite_report(report: dict):
         print(f"  error: {error}")
 
 
+def _print_agent_module_comparison_report(report: dict):
+    baseline = report.get("baseline", {}) if isinstance(report.get("baseline", {}), dict) else {}
+    candidate = report.get("candidate", {}) if isinstance(report.get("candidate", {}), dict) else {}
+    deltas = report.get("deltas", {}) if isinstance(report.get("deltas", {}), dict) else {}
+    activity = report.get("module_activity", {}) if isinstance(report.get("module_activity", {}), dict) else {}
+    print("\nAgent Module Comparison")
+    print(f"  readiness: {report.get('readiness', 'unknown')}")
+    print(f"  decision: {report.get('decision', 'unknown')}")
+    print(f"  reason: {report.get('reason', '')}")
+    print(
+        "  logs: "
+        f"baseline={baseline.get('readable_log_count', 0)}/{baseline.get('requested_log_count', 0)}, "
+        f"candidate={candidate.get('readable_log_count', 0)}/{candidate.get('requested_log_count', 0)}"
+    )
+    print(
+        "  completion: "
+        f"baseline={baseline.get('completion_rate', 0)} "
+        f"candidate={candidate.get('completion_rate', 0)} "
+        f"delta={deltas.get('completion_rate_delta', 0)}"
+    )
+    print(
+        "  actions: "
+        f"baseline_fail_rate={baseline.get('action_failure_rate', 0)} "
+        f"candidate_fail_rate={candidate.get('action_failure_rate', 0)} "
+        f"delta={deltas.get('action_failure_rate_delta', 0)}"
+    )
+    print(
+        "  modules: "
+        f"active={activity.get('candidate_active_module_count', 0)}, "
+        f"increased={activity.get('new_or_increased_module_count', 0)}"
+    )
+    if activity.get("candidate_active_modules"):
+        print(f"  active modules: {', '.join(activity.get('candidate_active_modules', []))}")
+    for item in activity.get("modules", [])[:12]:
+        if item.get("candidate_activity_count", 0) <= 0 and item.get("baseline_activity_count", 0) <= 0:
+            continue
+        marker = "+" if item.get("new_or_increased") else "~"
+        print(
+            f"  [{marker}] {item.get('module')}: "
+            f"baseline={item.get('baseline_activity_count', 0)} "
+            f"candidate={item.get('candidate_activity_count', 0)} "
+            f"delta={item.get('activity_delta', 0)}"
+        )
+    for check in report.get("checks", [])[:12]:
+        marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+        print(f"  [{marker}] {check.get('name')}: {check.get('detail')}")
+    for recommendation in report.get("recommendations", [])[:8]:
+        print(f"  next: {recommendation}")
+
+
 def _runtime_profile_payload_from_args(args) -> dict:
     settings = {}
     if getattr(args, "enable_goal_critic", False):
@@ -739,6 +789,21 @@ def main():
     plan_cache_gate_parser.add_argument("--max-action-failure-rate", type=float, default=0.3, help="Maximum failed action rate after cache hits")
     plan_cache_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
     plan_cache_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
+    agent_module_parser = subparsers.add_parser(
+        "agent-module-comparison-report",
+        help="Compare baseline vs candidate session logs across optional agent modules",
+    )
+    agent_module_parser.add_argument("--baseline-session-log", action="append", default=[], help="Baseline Agent session JSONL log")
+    agent_module_parser.add_argument("--candidate-session-log", action="append", default=[], help="Candidate Agent session JSONL log")
+    agent_module_parser.add_argument("--baseline-label", type=str, default="baseline")
+    agent_module_parser.add_argument("--candidate-label", type=str, default="candidate")
+    agent_module_parser.add_argument("--max-completion-regression", type=float, default=0.0)
+    agent_module_parser.add_argument("--max-action-failure-regression", type=float, default=0.10)
+    agent_module_parser.add_argument("--max-verifier-reject-regression", type=float, default=0.10)
+    agent_module_parser.add_argument("--max-empty-plan-regression", type=float, default=0.10)
+    agent_module_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    agent_module_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Skill candidate review queue
     candidates_parser = subparsers.add_parser("skill-candidates", help="Review extracted skill candidates")
@@ -2309,6 +2374,33 @@ def main():
             print(f"\nReport saved to {args.output}")
         if report.get("readiness") in {"error", "rejected"}:
             sys.exit(1)
+        return
+
+    if args.command == "agent-module-comparison-report":
+        from singularity.evaluation.module_comparison import (
+            build_agent_module_comparison_report,
+            write_agent_module_comparison_report,
+        )
+
+        baseline_logs = getattr(args, "baseline_session_log", []) or []
+        candidate_logs = getattr(args, "candidate_session_log", []) or []
+        if not baseline_logs or not candidate_logs:
+            print("agent-module-comparison-report requires at least one --baseline-session-log and one --candidate-session-log")
+            sys.exit(1)
+        report = build_agent_module_comparison_report(
+            baseline_log_paths=baseline_logs,
+            candidate_log_paths=candidate_logs,
+            baseline_label=getattr(args, "baseline_label", "baseline"),
+            candidate_label=getattr(args, "candidate_label", "candidate"),
+            max_completion_regression=getattr(args, "max_completion_regression", 0.0),
+            max_action_failure_regression=getattr(args, "max_action_failure_regression", 0.10),
+            max_verifier_reject_regression=getattr(args, "max_verifier_reject_regression", 0.10),
+            max_empty_plan_regression=getattr(args, "max_empty_plan_regression", 0.10),
+        )
+        _print_agent_module_comparison_report(report)
+        if getattr(args, "output", ""):
+            write_agent_module_comparison_report(report, args.output)
+            print(f"\nReport saved to {args.output}")
         return
 
     if args.command == "skill-edit-proposal-report":

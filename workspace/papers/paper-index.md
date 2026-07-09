@@ -1357,6 +1357,23 @@
 
 ---
 
+## P-075: CausalGame: Benchmarking Causal Thinking of LLM Agents in Games
+
+- **Title**: CausalGame: Benchmarking Causal Thinking of LLM Agents in Games
+- **Source**: https://arxiv.org/abs/2607.04293
+- **Year**: 2026
+- **Type**: Interactive game benchmark for causal thinking in LLM agents
+- **Task Type**: Experimental design, observation collection, causal explanation, and failure-mode analysis in games
+- **Core Method**: Agents actively design protocols, collect observations, and produce explanation reports under selection-bias, measurement-error, and hidden-confounder challenges
+- **Memory**: Emphasizes that repeated observations should not become durable memories or skills without causal evidence and counterexample checks
+- **Key Results**: Frames games as causal-discovery environments where plausible post-hoc explanations can diverge from grounded causal reasoning
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Motivates contrastive causal-evidence audits over Minecraft session logs before promoting causal summaries, discovery skills, or knowledge corrections
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-causalgame.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1435,3 +1452,4 @@
 | P-072 | Parallelized Planning-Acting | 2025/2026 | R5/N4/R3/E5 | P2 |
 | P-073 | AgenticCache | 2026 | R4/N5/R4/E5 | P1 |
 | P-074 | Orak | 2025/2026 | R4/N4/R4/E5 | P2 |
+| P-075 | CausalGame | 2026 | R5/N5/R4/E5 | P1 |
