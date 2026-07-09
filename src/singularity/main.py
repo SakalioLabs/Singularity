@@ -176,6 +176,9 @@ def main():
     bench_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     bench_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
     bench_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
+    bench_parser.add_argument("--action-value-transition-preflight", action="store_true", help="Run saved action-value transition gate/evaluator preflight before transition-scored benchmarks")
+    bench_parser.add_argument("--action-value-transition-preflight-output", type=str, default="", help="Optional JSON path for the action-value transition benchmark preflight report")
+    bench_parser.add_argument("--require-action-value-transition-evaluator-report", action="store_true", help="Require approved state-grounded evaluator reports in action-value transition preflight")
     bench_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     bench_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     bench_parser.add_argument("--skill-memory-quality-preflight", action="store_true", help="Run gate and offline ranking preflight before quality-feedback-assisted benchmarks")
@@ -3180,6 +3183,23 @@ def main():
             quality_preflight_output = getattr(args, "skill_memory_quality_preflight_output", "") or ""
             if quality_preflight_output:
                 runner.save_skill_memory_quality_preflight_report(report, quality_preflight_output)
+            if not report.get("ready"):
+                sys.exit(1)
+        transition_gate_paths = getattr(args, "action_value_transition_gate", []) or []
+        transition_evaluator_paths = getattr(args, "action_value_transition_evaluator_report", []) or []
+        if (
+            getattr(args, "action_value_transition_preflight", False)
+            or transition_gate_paths
+            or transition_evaluator_paths
+        ):
+            report = runner.run_action_value_transition_preflight(
+                suite=args.suite,
+                require_evaluator_report=getattr(args, "require_action_value_transition_evaluator_report", False),
+            )
+            runner.print_action_value_transition_preflight_report(report)
+            transition_preflight_output = getattr(args, "action_value_transition_preflight_output", "") or ""
+            if transition_preflight_output:
+                runner.save_action_value_transition_preflight_report(report, transition_preflight_output)
             if not report.get("ready"):
                 sys.exit(1)
         if getattr(args, "policy_skill_ablation", False):

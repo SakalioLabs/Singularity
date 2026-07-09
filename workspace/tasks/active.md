@@ -176,6 +176,7 @@
 - [x] Add `action-value-transition-gate` so saved ASV transition-value artifacts must prove enough trusted action-local transition windows before they are treated as runtime-ready feedback.
 - [x] Add `action-value-transition-evaluator-report` so ASV-style transition labels can be compared against a state-grounded LLM evaluator before any automatic policy update path is considered.
 - [x] Wire ASV transition gates into runtime `--action-value-feedback` loading: approved gate/evaluator reports can admit transition scores, while configured review/rejected/unreadable gates suppress only `state_transition_value_items` and keep ordinary outcome-value feedback advisory.
+- [x] Add benchmark-level `--action-value-transition-preflight` so transition-scored live suites require approved transition gates/evaluator reports and trusted transition feedback before spending Minecraft runtime.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -225,6 +226,7 @@
 - [ ] Run `action-value-transition-gate` on fresh M1/M2 action-value reports and pass approved reports with `--action-value-transition-gate` before allowing ASV transition scores through `--action-value-feedback`.
 - [ ] Investigate why the current M1 action-value baseline reports 200/200 successful actions but mostly no-progress state transitions, then compare against live M1/M2 retries before feeding transition values into runtime action ranking.
 - [ ] Run `action-value-transition-evaluator-report --llm-evaluator` on fresh high-confidence M1/M2 transition windows and pass approved reports with `--action-value-transition-evaluator-report` before enabling transition-scored runtime action ranking.
+- [ ] Use `benchmark --action-value-transition-preflight --require-action-value-transition-evaluator-report` before any transition-scored M1/M2 suite that passes `--action-value-feedback`.
 - [ ] Run `self-evolution-gate` on real self-evolution, verifier, and counterexample reports; only then design a guarded runtime plan-suffix repair path.
 - [ ] Run `action-abstraction-report` on real M1/M2/M6/M7 session logs, feed the results into `ActionGranularityPolicy`, and compare policy hints by task family.
 - [ ] Mine real player/session requests into `mixed-initiative-variant-report --case-file` suites and track held-out template coverage before changing auto-selection heuristics.

@@ -2919,6 +2919,303 @@ class BenchmarkRunner:
             })
         return cases
 
+    def run_action_value_transition_preflight(
+        self,
+        suite: str = "m1",
+        feedback_paths: Optional[list[str]] = None,
+        transition_gate_paths: Optional[list[str]] = None,
+        evaluator_report_paths: Optional[list[str]] = None,
+        require_evaluator_report: bool = False,
+    ) -> dict:
+        """Check action-value transition gates before transition-scored live benchmarks."""
+        clean_feedback_paths = [
+            path for path in (
+                feedback_paths
+                if feedback_paths is not None
+                else getattr(self.config, "action_value_feedback_paths", [])
+            ) or []
+            if path
+        ]
+        clean_gate_paths = [
+            path for path in (
+                transition_gate_paths
+                if transition_gate_paths is not None
+                else getattr(self.config, "action_value_transition_gate_paths", [])
+            ) or []
+            if path
+        ]
+        clean_evaluator_paths = [
+            path for path in (
+                evaluator_report_paths
+                if evaluator_report_paths is not None
+                else getattr(self.config, "action_value_transition_evaluator_report_paths", [])
+            ) or []
+            if path
+        ]
+        report = {
+            "required": bool(clean_feedback_paths or clean_gate_paths or clean_evaluator_paths),
+            "ready": not bool(clean_feedback_paths or clean_gate_paths or clean_evaluator_paths),
+            "readiness": "not_required" if not (clean_feedback_paths or clean_gate_paths or clean_evaluator_paths) else "review",
+            "decision": "skip_action_value_transition_preflight" if not (clean_feedback_paths or clean_gate_paths or clean_evaluator_paths) else "hold_transition_value_benchmark",
+            "reason": "no action-value transition feedback or gates configured",
+            "suite": suite,
+            "feedback_paths": list(clean_feedback_paths),
+            "transition_gate_paths": list(clean_gate_paths),
+            "transition_evaluator_report_paths": list(clean_evaluator_paths),
+            "require_evaluator_report": bool(require_evaluator_report),
+            "feedback_count": 0,
+            "action_value_item_count": 0,
+            "transition_item_count": 0,
+            "trusted_transition_item_count": 0,
+            "low_confidence_transition_item_count": 0,
+            "transition_gate_count": 0,
+            "transition_gate_readiness": "not_required",
+            "transition_gate_approved": not bool(clean_gate_paths),
+            "transition_evaluator_report_count": 0,
+            "transition_evaluator_readiness": "not_required",
+            "transition_evaluator_approved": not bool(clean_evaluator_paths),
+            "transition_gate_reports": [],
+            "transition_evaluator_reports": [],
+            "checks": [],
+            "missing": [],
+            "errors": [],
+        }
+        if not report["required"]:
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "action_value_transition_preflight",
+                "pass",
+                "no action-value transition feedback is configured for this benchmark",
+                {"feedback_paths": 0},
+            ))
+            return report
+
+        feedback_items = self._load_gate_payloads(
+            [],
+            clean_feedback_paths,
+            report["errors"],
+            "action_value_feedback",
+        )
+        report["feedback_count"] = len(feedback_items)
+        self._attach_action_value_transition_preflight_feedback(report, feedback_items)
+
+        gate_items = self._load_gate_payloads(
+            [],
+            clean_gate_paths,
+            report["errors"],
+            "action_value_transition_gate",
+        )
+        report["transition_gate_count"] = len(gate_items)
+        self._attach_action_value_transition_preflight_gates(report, gate_items)
+
+        evaluator_items = self._load_gate_payloads(
+            [],
+            clean_evaluator_paths,
+            report["errors"],
+            "action_value_transition_evaluator_report",
+        )
+        report["transition_evaluator_report_count"] = len(evaluator_items)
+        self._attach_action_value_transition_preflight_evaluators(report, evaluator_items)
+
+        if report["transition_item_count"] > 0 and not gate_items:
+            report["missing"].append("action_value_transition_gate")
+            report["transition_gate_readiness"] = "missing"
+            report["transition_gate_approved"] = False
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "action_value_transition_gate",
+                "warn",
+                "transition-scored action-value feedback requires an approved action-value-transition-gate report",
+                {"transition_item_count": report["transition_item_count"]},
+            ))
+        if (bool(require_evaluator_report) or clean_evaluator_paths) and report["transition_item_count"] > 0 and not evaluator_items:
+            report["missing"].append("action_value_transition_evaluator_report")
+            report["transition_evaluator_readiness"] = "missing"
+            report["transition_evaluator_approved"] = False
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "action_value_transition_evaluator_report",
+                "warn",
+                "transition-scored benchmarks require an approved state-grounded evaluator report",
+                {"transition_item_count": report["transition_item_count"]},
+            ))
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "block_transition_value_benchmark"
+            report["reason"] = "action-value transition preflight inputs could not be loaded"
+        elif not clean_feedback_paths:
+            report["readiness"] = "review"
+            report["decision"] = "hold_transition_value_benchmark"
+            report["reason"] = "transition gates were configured without action-value feedback"
+            report["missing"].append("action_value_feedback")
+        elif report["transition_item_count"] <= 0:
+            report["ready"] = True
+            report["readiness"] = "approved"
+            report["decision"] = "allow_action_value_benchmark_without_transition_scores"
+            report["reason"] = "action-value feedback contains no transition scores to gate"
+        elif report["missing"]:
+            report["readiness"] = "review"
+            report["decision"] = "hold_transition_value_benchmark"
+            report["reason"] = "action-value transition preflight is missing required gate evidence"
+        elif not report["transition_gate_approved"]:
+            report["readiness"] = report["transition_gate_readiness"] or "review"
+            report["decision"] = "block_transition_value_benchmark"
+            report["reason"] = "action-value transition gate is not approved"
+        elif (bool(require_evaluator_report) or clean_evaluator_paths) and not report["transition_evaluator_approved"]:
+            report["readiness"] = report["transition_evaluator_readiness"] or "review"
+            report["decision"] = "block_transition_value_benchmark"
+            report["reason"] = "state-grounded transition evaluator report is not approved"
+        elif report["trusted_transition_item_count"] <= 0:
+            report["readiness"] = "review"
+            report["decision"] = "hold_transition_value_benchmark"
+            report["reason"] = "action-value feedback has transition items but none pass trusted local checks"
+        else:
+            report["ready"] = True
+            report["readiness"] = "approved"
+            report["decision"] = "allow_transition_value_benchmark"
+            report["reason"] = "approved transition gates and trusted transition feedback are present"
+        report["ready"] = report["readiness"] in {"approved", "not_required"}
+        return report
+
+    def _attach_action_value_transition_preflight_feedback(self, report: dict, feedback_items: list[tuple[str, dict]]):
+        if not feedback_items:
+            report["missing"].append("action_value_feedback")
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "action_value_feedback",
+                "warn",
+                "action-value transition preflight requires at least one action-value feedback report",
+                {"feedback_reports": 0},
+            ))
+            return
+
+        for source, payload in feedback_items:
+            feedback = payload.get("action_value_feedback", payload) if isinstance(payload, dict) else {}
+            if not isinstance(feedback, dict):
+                feedback = {}
+            action_items = feedback.get("action_value_items", []) if isinstance(feedback.get("action_value_items", []), list) else []
+            transition_items = feedback.get("state_transition_value_items", []) if isinstance(feedback.get("state_transition_value_items", []), list) else []
+            trusted = 0
+            low_confidence = 0
+            for item in transition_items:
+                if not isinstance(item, dict):
+                    continue
+                confidence = self._safe_float(item.get("avg_transition_confidence"), 0.0)
+                attempts = max(0, self._gate_int(item.get("attempts")))
+                low_windows = max(0, self._gate_int(item.get("low_confidence_transitions")))
+                low_rate = low_windows / max(1, attempts)
+                if confidence < 0.75 or low_rate > 0.25:
+                    low_confidence += 1
+                if attempts > 0 and confidence >= 0.75 and low_rate <= 0.25 and item.get("avg_transition_value_score") is not None:
+                    trusted += 1
+            report["action_value_item_count"] += len(action_items)
+            report["transition_item_count"] += len(transition_items)
+            report["trusted_transition_item_count"] += trusted
+            report["low_confidence_transition_item_count"] += low_confidence
+            status = "pass" if trusted else "warn" if transition_items else "pass"
+            detail = (
+                f"{trusted}/{len(transition_items)} transition value items look trusted"
+                if transition_items else
+                "feedback has no transition value items"
+            )
+            report["checks"].append(self._gate_check(
+                source,
+                "action_value_transition_feedback",
+                status,
+                detail,
+                {
+                    "action_value_items": len(action_items),
+                    "transition_items": len(transition_items),
+                    "trusted_transition_items": trusted,
+                    "low_confidence_transition_items": low_confidence,
+                },
+            ))
+
+    def _attach_action_value_transition_preflight_gates(self, report: dict, gate_items: list[tuple[str, dict]]):
+        if not gate_items:
+            return
+        readinesses = []
+        report["transition_gate_approved"] = False
+        for source, payload in gate_items:
+            readiness = str(payload.get("readiness") or "").strip().lower() or "unknown"
+            summary = {
+                "path": source,
+                "readiness": readiness,
+                "decision": str(payload.get("decision") or "").strip(),
+                "reason": str(payload.get("reason") or "").strip()[:300],
+                "trusted_item_count": self._gate_int(payload.get("trusted_item_count", 0)),
+                "trusted_transition_count": self._gate_int(payload.get("trusted_transition_count", 0)),
+                "low_confidence_rate": self._safe_float(payload.get("low_confidence_rate"), 0.0),
+            }
+            report["transition_gate_reports"].append(summary)
+            readinesses.append(readiness)
+            status = "pass" if readiness == "approved" else "fail" if readiness in {"rejected", "error"} else "warn"
+            report["checks"].append(self._gate_check(
+                source,
+                "action_value_transition_gate",
+                status,
+                summary["reason"] or f"transition gate readiness is {readiness}",
+                {
+                    "trusted_item_count": summary["trusted_item_count"],
+                    "trusted_transition_count": summary["trusted_transition_count"],
+                    "low_confidence_rate": summary["low_confidence_rate"],
+                },
+            ))
+        if any(readiness == "error" for readiness in readinesses):
+            report["transition_gate_readiness"] = "error"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report["transition_gate_readiness"] = "approved"
+            report["transition_gate_approved"] = True
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report["transition_gate_readiness"] = "rejected"
+        elif any(readiness == "review" for readiness in readinesses):
+            report["transition_gate_readiness"] = "review"
+        else:
+            report["transition_gate_readiness"] = "unknown"
+
+    def _attach_action_value_transition_preflight_evaluators(self, report: dict, evaluator_items: list[tuple[str, dict]]):
+        if not evaluator_items:
+            return
+        readinesses = []
+        report["transition_evaluator_approved"] = False
+        for source, payload in evaluator_items:
+            readiness = str(payload.get("readiness") or "").strip().lower() or "unknown"
+            summary = {
+                "path": source,
+                "readiness": readiness,
+                "decision": str(payload.get("decision") or "").strip(),
+                "reason": str(payload.get("reason") or "").strip()[:300],
+                "evaluated_count": self._gate_int(payload.get("evaluated_count", 0)),
+                "agreement_rate": self._safe_float(payload.get("agreement_rate"), 0.0),
+                "avg_abs_score_delta": self._safe_float(payload.get("avg_abs_score_delta"), 0.0),
+            }
+            report["transition_evaluator_reports"].append(summary)
+            readinesses.append(readiness)
+            status = "pass" if readiness == "approved" else "fail" if readiness in {"rejected", "error"} else "warn"
+            report["checks"].append(self._gate_check(
+                source,
+                "action_value_transition_evaluator_report",
+                status,
+                summary["reason"] or f"transition evaluator readiness is {readiness}",
+                {
+                    "evaluated_count": summary["evaluated_count"],
+                    "agreement_rate": summary["agreement_rate"],
+                    "avg_abs_score_delta": summary["avg_abs_score_delta"],
+                },
+            ))
+        if any(readiness == "error" for readiness in readinesses):
+            report["transition_evaluator_readiness"] = "error"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report["transition_evaluator_readiness"] = "approved"
+            report["transition_evaluator_approved"] = True
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report["transition_evaluator_readiness"] = "rejected"
+        elif any(readiness == "review" for readiness in readinesses):
+            report["transition_evaluator_readiness"] = "review"
+        else:
+            report["transition_evaluator_readiness"] = "unknown"
+
     def _run_task_with_config(self, task: BenchmarkTask, config: Config) -> BenchmarkResult:
         runner = BenchmarkRunner(config, output_dir=self.output_dir, bridge_factory=self.bridge_factory)
         return runner.run_task(task)
@@ -10932,6 +11229,23 @@ class BenchmarkRunner:
             json.dump(report, f, indent=2, ensure_ascii=False)
         logger.info(f"Skill-memory quality preflight saved to {path}")
 
+    def save_action_value_transition_preflight_report(
+        self,
+        report: dict,
+        filename: str = "action_value_transition_preflight.json",
+    ):
+        path = filename
+        if not os.path.isabs(path) and not os.path.dirname(path):
+            os.makedirs(self.output_dir, exist_ok=True)
+            path = os.path.join(self.output_dir, path)
+        else:
+            parent = os.path.dirname(path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+        logger.info(f"Action-value transition preflight saved to {path}")
+
     def print_summary(self):
         total = len(self.results)
         passed = sum(1 for r in self.results if r.status == "pass")
@@ -11030,6 +11344,56 @@ class BenchmarkRunner:
                 f"apps={case.get('quality_policy_application_count', 0)} "
                 f"promoted={len(case.get('promoted', []))} demoted={len(case.get('demoted', []))}"
             )
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+
+    def print_action_value_transition_preflight_report(self, report: dict):
+        print("\nAction Value Transition Benchmark Preflight")
+        print(f"  suite: {report.get('suite', 'm1')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  inputs: "
+            f"feedback={report.get('feedback_count', 0)}, "
+            f"transition_gates={report.get('transition_gate_count', 0)}, "
+            f"evaluator_reports={report.get('transition_evaluator_report_count', 0)}"
+        )
+        print(
+            "  feedback: "
+            f"action_items={report.get('action_value_item_count', 0)}, "
+            f"transition_items={report.get('transition_item_count', 0)}, "
+            f"trusted_transition_items={report.get('trusted_transition_item_count', 0)}, "
+            f"low_confidence_items={report.get('low_confidence_transition_item_count', 0)}"
+        )
+        print(
+            "  readiness: "
+            f"gate={report.get('transition_gate_readiness', 'unknown')}, "
+            f"evaluator={report.get('transition_evaluator_readiness', 'unknown')}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for gate in report.get("transition_gate_reports", [])[:6]:
+            marker = "+" if gate.get("readiness") == "approved" else "x" if gate.get("readiness") == "rejected" else "!"
+            print(
+                f"  [{marker}] transition gate {gate.get('path')}: {gate.get('readiness')} "
+                f"trusted_items={gate.get('trusted_item_count', 0)} "
+                f"trusted_attempts={gate.get('trusted_transition_count', 0)}"
+            )
+            if gate.get("reason"):
+                print(f"      {gate.get('reason')}")
+        for evaluator in report.get("transition_evaluator_reports", [])[:6]:
+            marker = "+" if evaluator.get("readiness") == "approved" else "x" if evaluator.get("readiness") == "rejected" else "!"
+            print(
+                f"  [{marker}] evaluator {evaluator.get('path')}: {evaluator.get('readiness')} "
+                f"evaluated={evaluator.get('evaluated_count', 0)} "
+                f"agreement={evaluator.get('agreement_rate', 0.0)}"
+            )
+            if evaluator.get("reason"):
+                print(f"      {evaluator.get('reason')}")
+        for check in report.get("checks", [])[:10]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
         for error in report.get("errors", []):
             print(f"  error: {error}")
 

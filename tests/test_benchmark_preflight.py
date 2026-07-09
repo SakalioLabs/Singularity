@@ -3593,6 +3593,86 @@ def test_skill_memory_quality_preflight_requires_gate_and_ranking_effect():
     print("PASS: Skill memory quality preflight requires gate and ranking effect")
 
 
+def test_action_value_transition_preflight_requires_approved_gate_and_evaluator():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = os.path.join(tmpdir, "action_value_feedback.json")
+    gate_path = os.path.join(tmpdir, "action_value_transition_gate.json")
+    evaluator_path = os.path.join(tmpdir, "action_value_transition_evaluator.json")
+    with open(feedback_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "action_value_feedback": {
+                "action_value_items": [
+                    {
+                        "signature": "dig:coal_ore",
+                        "action_type": "dig",
+                        "attempts": 4,
+                        "successes": 4,
+                        "failures": 0,
+                    }
+                ],
+                "state_transition_value_items": [
+                    {
+                        "signature": "dig:coal_ore",
+                        "action_type": "dig",
+                        "attempts": 4,
+                        "avg_transition_value_score": 0.82,
+                        "avg_transition_confidence": 1.0,
+                        "low_confidence_transitions": 0,
+                    }
+                ],
+            }
+        }, f)
+    with open(gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "readiness": "approved",
+            "decision": "approve",
+            "reason": "trusted transition values are ready",
+            "trusted_item_count": 1,
+            "trusted_transition_count": 4,
+            "low_confidence_rate": 0.0,
+        }, f)
+    with open(evaluator_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "readiness": "approved",
+            "decision": "approve_comparison",
+            "reason": "state-grounded evaluator agrees",
+            "evaluated_count": 2,
+            "agreement_rate": 1.0,
+            "avg_abs_score_delta": 0.02,
+        }, f)
+
+    approved_runner = BenchmarkRunner(Config(
+        action_value_feedback_paths=[feedback_path],
+        action_value_transition_gate_paths=[gate_path],
+        action_value_transition_evaluator_report_paths=[evaluator_path],
+    ))
+    approved = approved_runner.run_action_value_transition_preflight(
+        suite="m1",
+        require_evaluator_report=True,
+    )
+
+    assert approved["ready"]
+    assert approved["readiness"] == "approved"
+    assert approved["transition_item_count"] == 1
+    assert approved["trusted_transition_item_count"] == 1
+    assert approved["transition_gate_approved"]
+    assert approved["transition_evaluator_approved"]
+
+    ungated_runner = BenchmarkRunner(Config(
+        action_value_feedback_paths=[feedback_path],
+    ))
+    ungated = ungated_runner.run_action_value_transition_preflight(
+        suite="m1",
+        require_evaluator_report=True,
+    )
+
+    assert not ungated["ready"]
+    assert ungated["readiness"] == "review"
+    assert "action_value_transition_gate" in ungated["missing"]
+    assert "action_value_transition_evaluator_report" in ungated["missing"]
+    print("PASS: Action value transition preflight requires approved gate and evaluator")
+
+
 def test_visual_action_benchmark_ablation_compares_live_suite_modes():
     class FakeVisualActionBenchmarkRunner(BenchmarkRunner):
         def _run_task_with_config(self, task, config):
@@ -3850,6 +3930,7 @@ if __name__ == "__main__":
     test_skill_memory_quality_report_labels_typed_hint_outcomes()
     test_skill_memory_quality_gate_controls_reuse_promotion()
     test_skill_memory_quality_preflight_requires_gate_and_ranking_effect()
+    test_action_value_transition_preflight_requires_approved_gate_and_evaluator()
     test_visual_action_benchmark_ablation_compares_live_suite_modes()
     test_mixed_policy_benchmark_ablation_compares_live_patch_modes()
     test_scheduling_ablation_report_compares_causal_switch()
