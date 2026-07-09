@@ -38,6 +38,7 @@ class Config:
     enable_knowledge_correction_context: bool = True
     enable_plan_cache: bool = False
     plan_cache_paths: list[str] = field(default_factory=list)
+    plan_cache_gate_paths: list[str] = field(default_factory=list)
     plan_cache_min_confidence: float = 0.75
     enforce_memory_write_gate: bool = False
     memory_promptware_gate_paths: list[str] = field(default_factory=list)

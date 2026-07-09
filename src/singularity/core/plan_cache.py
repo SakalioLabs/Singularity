@@ -270,6 +270,24 @@ def _action_succeeded(event: dict) -> bool | None:
     return None
 
 
+def _action_verification_rejected(event: dict) -> bool:
+    data = _event_data(event)
+    verification = data.get("verification", {}) if isinstance(data.get("verification", {}), dict) else {}
+    return str(verification.get("status") or "").lower() == "reject"
+
+
+def _ratio(numerator: int, denominator: int) -> float:
+    return round(numerator / denominator, 3) if denominator else 0.0
+
+
+def _load_json_report(path: str) -> dict:
+    with open(path, "r", encoding="utf-8-sig") as f:
+        payload = json.load(f)
+    if not isinstance(payload, dict):
+        raise ValueError("report JSON must be an object")
+    return payload
+
+
 def build_plan_transition_cache_report(
     session_log_paths: list[str],
     min_support: int = 1,
@@ -465,6 +483,395 @@ def build_plan_transition_cache_report(
         report["readiness"] = "review"
         report["decision"] = "hold_plan_transition_cache"
         report["reason"] = "plan transitions need more successful action evidence before runtime cache use"
+    return report
+
+
+def build_plan_cache_runtime_report(
+    session_log_paths: list[str],
+    min_cache_hits: int = 1,
+    max_rejected_action_rate: float = 0.0,
+    max_action_failure_rate: float = 0.3,
+) -> dict:
+    """Audit actual runtime cache hits before promoting cache use."""
+    report = {
+        "type": "plan_cache_runtime_report",
+        "readiness": "review",
+        "decision": "hold_plan_cache_runtime_use",
+        "reason": "no runtime cache hits found",
+        "session_log_paths": list(session_log_paths or []),
+        "session_log_count": 0,
+        "plan_cache_hit_count": 0,
+        "plan_cache_miss_count": 0,
+        "plan_cache_hit_rate": 0.0,
+        "cached_plan_event_count": 0,
+        "post_hit_action_count": 0,
+        "post_hit_action_success_count": 0,
+        "post_hit_action_failure_count": 0,
+        "post_hit_action_failure_rate": 0.0,
+        "post_hit_action_verification_reject_count": 0,
+        "post_hit_action_verification_reject_rate": 0.0,
+        "post_hit_goal_completed_count": 0,
+        "min_cache_hits": max(0, _safe_int(min_cache_hits, 1)),
+        "max_rejected_action_rate": max(0.0, min(1.0, _safe_float(max_rejected_action_rate, 0.0))),
+        "max_action_failure_rate": max(0.0, min(1.0, _safe_float(max_action_failure_rate, 0.3))),
+        "entry_hit_counts": {},
+        "hit_examples": [],
+        "errors": [],
+    }
+
+    def finalize(active: dict | None):
+        if not active:
+            return
+        report["post_hit_action_count"] += active.get("action_count", 0)
+        report["post_hit_action_success_count"] += active.get("action_success_count", 0)
+        report["post_hit_action_failure_count"] += active.get("action_failure_count", 0)
+        report["post_hit_action_verification_reject_count"] += active.get("verification_reject_count", 0)
+        if active.get("goal_completed"):
+            report["post_hit_goal_completed_count"] += 1
+        if active.get("cached_plan_seen"):
+            report["cached_plan_event_count"] += 1
+        if len(report["hit_examples"]) < 12:
+            report["hit_examples"].append({
+                "entry_id": active.get("entry_id", ""),
+                "goal": active.get("goal", ""),
+                "confidence": active.get("confidence", 0.0),
+                "state_similarity": active.get("state_similarity", 0.0),
+                "action_count": active.get("action_count", 0),
+                "action_failure_count": active.get("action_failure_count", 0),
+                "verification_reject_count": active.get("verification_reject_count", 0),
+                "goal_completed": bool(active.get("goal_completed", False)),
+            })
+
+    for path in session_log_paths or []:
+        try:
+            events = _load_session_events(path)
+            report["session_log_count"] += 1
+        except Exception as exc:
+            report["errors"].append(f"{path}: {exc}")
+            continue
+        active_hit = None
+        for event in events:
+            event_type = str(event.get("type") or "")
+            data = _event_data(event)
+            if event_type == "plan_cache_hit":
+                finalize(active_hit)
+                entry_id = str(data.get("entry_id") or "")
+                report["plan_cache_hit_count"] += 1
+                if entry_id:
+                    counts = report["entry_hit_counts"]
+                    counts[entry_id] = counts.get(entry_id, 0) + 1
+                active_hit = {
+                    "entry_id": entry_id,
+                    "goal": str(data.get("goal") or "")[:160],
+                    "confidence": _safe_float(data.get("confidence"), 0.0),
+                    "state_similarity": _safe_float(data.get("state_similarity"), 0.0),
+                    "action_count": 0,
+                    "action_success_count": 0,
+                    "action_failure_count": 0,
+                    "verification_reject_count": 0,
+                    "goal_completed": False,
+                    "cached_plan_seen": False,
+                }
+            elif event_type == "plan_cache_miss":
+                finalize(active_hit)
+                active_hit = None
+                report["plan_cache_miss_count"] += 1
+            elif event_type == "plan" and active_hit:
+                if str(data.get("source") or "") == "plan_transition_cache" or data.get("cache_entry_id"):
+                    active_hit["cached_plan_seen"] = True
+            elif event_type == "action_verification" and active_hit:
+                if _action_verification_rejected(event):
+                    active_hit["verification_reject_count"] += 1
+            elif event_type == "action" and active_hit:
+                succeeded = _action_succeeded(event)
+                active_hit["action_count"] += 1
+                if succeeded is True:
+                    active_hit["action_success_count"] += 1
+                elif succeeded is False:
+                    active_hit["action_failure_count"] += 1
+            elif event_type == "goal_end" and active_hit:
+                result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+                active_hit["goal_completed"] = bool(result.get("completed", False))
+                finalize(active_hit)
+                active_hit = None
+        finalize(active_hit)
+
+    total_queries = report["plan_cache_hit_count"] + report["plan_cache_miss_count"]
+    report["plan_cache_hit_rate"] = _ratio(report["plan_cache_hit_count"], total_queries)
+    report["post_hit_action_failure_rate"] = _ratio(
+        report["post_hit_action_failure_count"],
+        report["post_hit_action_count"],
+    )
+    report["post_hit_action_verification_reject_rate"] = _ratio(
+        report["post_hit_action_verification_reject_count"],
+        report["post_hit_action_count"],
+    )
+
+    if report["errors"]:
+        report["readiness"] = "error" if not report["plan_cache_hit_count"] else "review"
+        report["decision"] = "hold_plan_cache_runtime_use"
+        report["reason"] = "some session logs could not be loaded"
+    elif report["plan_cache_hit_count"] < report["min_cache_hits"]:
+        report["readiness"] = "review"
+        report["decision"] = "hold_plan_cache_runtime_use"
+        report["reason"] = "plan cache needs more runtime hit evidence"
+    elif report["post_hit_action_verification_reject_rate"] > report["max_rejected_action_rate"]:
+        report["readiness"] = "rejected"
+        report["decision"] = "reject_plan_cache_runtime_use"
+        report["reason"] = "cached plans produced too many verifier-rejected actions"
+    elif report["post_hit_action_failure_rate"] > report["max_action_failure_rate"]:
+        report["readiness"] = "rejected"
+        report["decision"] = "reject_plan_cache_runtime_use"
+        report["reason"] = "cached plans produced too many failed actions"
+    else:
+        report["readiness"] = "approved"
+        report["decision"] = "allow_plan_cache_runtime_use"
+        report["reason"] = "runtime cache hits stayed within verifier and action-failure limits"
+    return report
+
+
+def build_plan_cache_gate(
+    cache_report_paths: list[str],
+    runtime_report_paths: list[str] = None,
+    min_accepted_entries: int = 1,
+    min_runtime_hits: int = 0,
+    max_promptware_threats: int = 0,
+    max_rejected_action_rate: float = 0.0,
+    max_action_failure_rate: float = 0.3,
+) -> dict:
+    """Gate plan-cache artifacts before runtime use."""
+    report = {
+        "type": "plan_cache_gate",
+        "target": "plan_transition_cache_runtime_use",
+        "readiness": "review",
+        "decision": "hold_plan_cache_runtime_use",
+        "reason": "plan cache gate needs approved cache reports",
+        "cache_report_paths": list(cache_report_paths or []),
+        "runtime_report_paths": list(runtime_report_paths or []),
+        "cache_report_count": 0,
+        "approved_cache_report_count": 0,
+        "runtime_report_count": 0,
+        "approved_runtime_report_count": 0,
+        "accepted_entry_count": 0,
+        "promptware_threat_count": 0,
+        "runtime_hit_count": 0,
+        "runtime_action_count": 0,
+        "runtime_action_failure_count": 0,
+        "runtime_action_failure_rate": 0.0,
+        "runtime_action_verification_reject_count": 0,
+        "runtime_action_verification_reject_rate": 0.0,
+        "min_accepted_entries": max(1, _safe_int(min_accepted_entries, 1)),
+        "min_runtime_hits": max(0, _safe_int(min_runtime_hits, 0)),
+        "max_promptware_threats": max(0, _safe_int(max_promptware_threats, 0)),
+        "max_rejected_action_rate": max(0.0, min(1.0, _safe_float(max_rejected_action_rate, 0.0))),
+        "max_action_failure_rate": max(0.0, min(1.0, _safe_float(max_action_failure_rate, 0.3))),
+        "checks": [],
+        "missing": [],
+        "errors": [],
+    }
+    if not cache_report_paths:
+        report["missing"].append("plan_cache_report")
+
+    for path in cache_report_paths or []:
+        try:
+            payload = _load_json_report(path)
+            if payload.get("type") != "plan_transition_cache_report":
+                raise ValueError("report type must be plan_transition_cache_report")
+            readiness = str(payload.get("readiness") or "unknown").lower()
+            accepted = _safe_int(payload.get("accepted_entry_count"), 0)
+            threats = _safe_int(payload.get("promptware_threat_count"), 0)
+            report["cache_report_count"] += 1
+            report["accepted_entry_count"] += accepted
+            report["promptware_threat_count"] += threats
+            if readiness == "approved":
+                report["approved_cache_report_count"] += 1
+            report["checks"].append({
+                "source": path,
+                "kind": "cache_report",
+                "status": "pass" if readiness == "approved" and accepted else "fail",
+                "readiness": readiness,
+                "accepted_entry_count": accepted,
+                "promptware_threat_count": threats,
+            })
+        except Exception as exc:
+            report["errors"].append(f"{path}: {exc}")
+
+    for path in runtime_report_paths or []:
+        try:
+            payload = _load_json_report(path)
+            if payload.get("type") != "plan_cache_runtime_report":
+                raise ValueError("report type must be plan_cache_runtime_report")
+            readiness = str(payload.get("readiness") or "unknown").lower()
+            hits = _safe_int(payload.get("plan_cache_hit_count"), 0)
+            actions = _safe_int(payload.get("post_hit_action_count"), 0)
+            failures = _safe_int(payload.get("post_hit_action_failure_count"), 0)
+            rejects = _safe_int(payload.get("post_hit_action_verification_reject_count"), 0)
+            report["runtime_report_count"] += 1
+            report["runtime_hit_count"] += hits
+            report["runtime_action_count"] += actions
+            report["runtime_action_failure_count"] += failures
+            report["runtime_action_verification_reject_count"] += rejects
+            if readiness == "approved":
+                report["approved_runtime_report_count"] += 1
+            report["checks"].append({
+                "source": path,
+                "kind": "runtime_report",
+                "status": "pass" if readiness == "approved" else "fail" if readiness in {"rejected", "error"} else "review",
+                "readiness": readiness,
+                "plan_cache_hit_count": hits,
+                "post_hit_action_count": actions,
+                "post_hit_action_failure_count": failures,
+                "post_hit_action_verification_reject_count": rejects,
+            })
+        except Exception as exc:
+            report["errors"].append(f"{path}: {exc}")
+
+    report["runtime_action_failure_rate"] = _ratio(
+        report["runtime_action_failure_count"],
+        report["runtime_action_count"],
+    )
+    report["runtime_action_verification_reject_rate"] = _ratio(
+        report["runtime_action_verification_reject_count"],
+        report["runtime_action_count"],
+    )
+
+    readinesses = [check.get("readiness") for check in report["checks"]]
+    if report["errors"]:
+        report["readiness"] = "error"
+        report["decision"] = "reject_plan_cache_runtime_use"
+        report["reason"] = "plan cache gate inputs could not be loaded"
+    elif report["missing"]:
+        report["readiness"] = "review"
+        report["decision"] = "hold_plan_cache_runtime_use"
+        report["reason"] = "plan cache gate is missing required reports"
+    elif any(readiness in {"rejected", "error"} for readiness in readinesses):
+        report["readiness"] = "rejected"
+        report["decision"] = "reject_plan_cache_runtime_use"
+        report["reason"] = "plan cache gate includes rejected or error reports"
+    elif report["approved_cache_report_count"] != report["cache_report_count"]:
+        report["readiness"] = "review"
+        report["decision"] = "hold_plan_cache_runtime_use"
+        report["reason"] = "plan cache reports are not all approved"
+    elif report["accepted_entry_count"] < report["min_accepted_entries"]:
+        report["readiness"] = "review"
+        report["decision"] = "hold_plan_cache_runtime_use"
+        report["reason"] = "plan cache gate needs more accepted entries"
+    elif report["promptware_threat_count"] > report["max_promptware_threats"]:
+        report["readiness"] = "rejected"
+        report["decision"] = "reject_plan_cache_runtime_use"
+        report["reason"] = "plan cache reports contain promptware threats"
+    elif report["runtime_hit_count"] < report["min_runtime_hits"]:
+        report["readiness"] = "review"
+        report["decision"] = "hold_plan_cache_runtime_use"
+        report["reason"] = "plan cache gate needs more runtime hit evidence"
+    elif report["runtime_action_verification_reject_rate"] > report["max_rejected_action_rate"]:
+        report["readiness"] = "rejected"
+        report["decision"] = "reject_plan_cache_runtime_use"
+        report["reason"] = "runtime cache hits exceed verifier reject limit"
+    elif report["runtime_action_failure_rate"] > report["max_action_failure_rate"]:
+        report["readiness"] = "rejected"
+        report["decision"] = "reject_plan_cache_runtime_use"
+        report["reason"] = "runtime cache hits exceed action failure limit"
+    else:
+        report["readiness"] = "approved"
+        report["decision"] = "allow_plan_cache_runtime_use"
+        report["reason"] = "approved cache reports and runtime evidence allow plan-cache use"
+    return report
+
+
+def evaluate_plan_cache_runtime_gate(
+    gate_paths: list[str] = None,
+    enable_requested: bool = False,
+) -> dict:
+    """Evaluate saved plan-cache-gate reports before runtime cache loading."""
+    clean_paths = [str(path or "").strip() for path in (gate_paths or []) if str(path or "").strip()]
+    report = {
+        "type": "plan_cache_runtime_gate",
+        "required": bool(enable_requested),
+        "requested_enable_plan_cache": bool(enable_requested),
+        "effective_enable_plan_cache": False,
+        "readiness": "not_required" if not enable_requested else "review",
+        "decision": "skip_plan_cache_runtime_gate" if not enable_requested else "hold_plan_cache_runtime_use",
+        "reason": "plan cache is not requested",
+        "gate_paths": clean_paths,
+        "gate_count": 0,
+        "approved_gate_count": 0,
+        "review_gate_count": 0,
+        "rejected_gate_count": 0,
+        "error_gate_count": 0,
+        "gate_readiness": "not_required" if not enable_requested else "missing",
+        "gate_approved": not bool(enable_requested),
+        "gate_reports": [],
+        "missing": [],
+        "errors": [],
+    }
+    if not enable_requested:
+        return report
+    if not clean_paths:
+        report["reason"] = "plan cache runtime use requires approved plan-cache-gate reports"
+        report["missing"].append("plan_cache_gate")
+        return report
+
+    readinesses = []
+    for path in clean_paths:
+        try:
+            payload = _load_json_report(path)
+            if payload.get("type") != "plan_cache_gate":
+                raise ValueError("report type must be plan_cache_gate")
+            readiness = str(payload.get("readiness") or "unknown").lower()
+            summary = {
+                "path": path,
+                "readiness": readiness,
+                "decision": str(payload.get("decision") or ""),
+                "reason": str(payload.get("reason") or "")[:300],
+                "accepted_entry_count": _safe_int(payload.get("accepted_entry_count"), 0),
+                "runtime_hit_count": _safe_int(payload.get("runtime_hit_count"), 0),
+                "runtime_action_verification_reject_rate": _safe_float(
+                    payload.get("runtime_action_verification_reject_rate"),
+                    0.0,
+                ),
+            }
+            report["gate_reports"].append(summary)
+            report["gate_count"] += 1
+            readinesses.append(readiness)
+            if readiness == "approved":
+                report["approved_gate_count"] += 1
+            elif readiness == "rejected":
+                report["rejected_gate_count"] += 1
+            elif readiness == "error":
+                report["error_gate_count"] += 1
+            else:
+                report["review_gate_count"] += 1
+        except Exception as exc:
+            report["errors"].append(f"{path}: {exc}")
+
+    if report["errors"]:
+        report["readiness"] = "error"
+        report["gate_readiness"] = "error"
+        report["decision"] = "disable_plan_cache_runtime_use"
+        report["reason"] = "plan cache runtime gate inputs could not be loaded"
+    elif any(readiness == "error" for readiness in readinesses):
+        report["readiness"] = "error"
+        report["gate_readiness"] = "error"
+        report["decision"] = "disable_plan_cache_runtime_use"
+        report["reason"] = "plan-cache gate has error readiness"
+    elif any(readiness == "rejected" for readiness in readinesses):
+        report["readiness"] = "rejected"
+        report["gate_readiness"] = "rejected"
+        report["decision"] = "disable_plan_cache_runtime_use"
+        report["reason"] = "plan-cache gate rejected runtime use"
+    elif readinesses and all(readiness == "approved" for readiness in readinesses):
+        report["readiness"] = "approved"
+        report["gate_readiness"] = "approved"
+        report["gate_approved"] = True
+        report["effective_enable_plan_cache"] = True
+        report["decision"] = "enable_plan_cache_runtime_use"
+        report["reason"] = "approved plan-cache gates allow runtime cache use"
+    else:
+        report["readiness"] = "review"
+        report["gate_readiness"] = "review" if readinesses else "missing"
+        report["decision"] = "hold_plan_cache_runtime_use"
+        report["reason"] = "plan-cache gate is not approved"
     return report
 
 

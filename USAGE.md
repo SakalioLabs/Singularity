@@ -194,7 +194,10 @@ python -m singularity.main plan-act-latency-report --collab-report logs/benchmar
 python -m singularity.main plan-act-latency-gate --baseline-plan-act-report logs/benchmarks/bm701_baseline_plan_act_latency.json --candidate-plan-act-report logs/benchmarks/bm701_interruptible_plan_act_latency.json --baseline-verifier-report logs/benchmarks/bm701_baseline_action_verification.json --candidate-verifier-report logs/benchmarks/bm701_interruptible_action_verification.json --output logs/benchmarks/bm701_plan_act_latency_gate.json
 # Mine AgenticCache-style plan transitions for explicit, default-off runtime reuse.
 python -m singularity.main plan-cache-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/plan_cache.json
-python -m singularity.main run --goal "Craft torches" --enable-plan-cache --plan-cache logs/benchmarks/plan_cache.json
+# Optional runtime audit after a cache-assisted run; use it to prove cached plans stay verifier-safe.
+python -m singularity.main plan-cache-runtime-report --session-log logs/session_cache_run.jsonl --output logs/benchmarks/plan_cache_runtime.json
+python -m singularity.main plan-cache-gate --plan-cache-report logs/benchmarks/plan_cache.json --runtime-report logs/benchmarks/plan_cache_runtime.json --min-runtime-hits 1 --output logs/benchmarks/plan_cache_gate.json
+python -m singularity.main run --goal "Craft torches" --enable-plan-cache --plan-cache logs/benchmarks/plan_cache.json --plan-cache-gate logs/benchmarks/plan_cache_gate.json
 # Separate world-state completion from the agent's terminal completion report.
 python -m singularity.main terminal-commitment-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/terminal_commitment.json
 # Replay logged actions through deterministic pre-execution feasibility checks.
@@ -283,7 +286,7 @@ python -m singularity.main benchmark --suite m1 --mixed-policy-patch logs/benchm
 # Bundle approved gates and feedback artifacts into a reusable runtime profile.
 # Keep provider keys in environment variables or CLI only; profile JSON should
 # contain paths and safe runtime switches, not secrets.
-python -m singularity.main runtime-profile-build --name m1_visual_goal_critic --enable-goal-critic --goal-critic-gate logs/benchmarks/goal_critic_gate.json --enable-plan-cache --plan-cache logs/benchmarks/plan_cache.json --enforce-memory-write-gate --memory-promptware-gate logs/benchmarks/memory_promptware_gate.json --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json --output workspace/runtime/m1_visual_profile.json
+python -m singularity.main runtime-profile-build --name m1_visual_goal_critic --enable-goal-critic --goal-critic-gate logs/benchmarks/goal_critic_gate.json --enable-plan-cache --plan-cache logs/benchmarks/plan_cache.json --plan-cache-gate logs/benchmarks/plan_cache_gate.json --enforce-memory-write-gate --memory-promptware-gate logs/benchmarks/memory_promptware_gate.json --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json --output workspace/runtime/m1_visual_profile.json
 python -m singularity.main runtime-profile-validate --runtime-profile workspace/runtime/m1_visual_profile.json --output logs/benchmarks/runtime_profile_validation.json
 python -m singularity.main runtime-profile-security-audit --runtime-profile workspace/runtime/m1_visual_profile.json --output logs/benchmarks/runtime_profile_security.json
 python -m singularity.main runtime-profile-suite-report --runtime-dir workspace/runtime --required-profile m1 --required-profile m2 --required-profile m7 --output logs/benchmarks/runtime_profile_suite.json

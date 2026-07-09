@@ -17,6 +17,7 @@ LIST_FIELDS = {
     "knowledge_correction_feedback_paths": ("artifacts", ("knowledge_correction_feedback", "knowledge_correction_feedback_paths")),
     "knowledge_correction_gate_paths": ("gates", ("knowledge_correction", "knowledge_correction_gate", "knowledge_correction_gate_paths")),
     "plan_cache_paths": ("artifacts", ("plan_cache", "plan_transition_cache", "plan_cache_paths")),
+    "plan_cache_gate_paths": ("gates", ("plan_cache", "plan_cache_gate", "plan_cache_gate_paths")),
     "action_value_feedback_paths": ("artifacts", ("action_value_feedback", "action_value_feedback_paths")),
     "action_value_transition_gate_paths": ("gates", ("action_value_transition", "action_value_transition_gate", "action_value_transition_gate_paths")),
     "action_value_transition_evaluator_report_paths": (
@@ -44,6 +45,7 @@ REQUIRED_GATES = {
     "skill_memory_quality_gate_paths": ("skill_memory_quality_feedback_paths",),
     "coach_style_gate_paths": ("coach_style", "coach_style_ablation_paths"),
     "memory_promptware_gate_paths": ("enforce_memory_write_gate",),
+    "plan_cache_gate_paths": ("enable_plan_cache", "plan_cache_paths"),
 }
 
 
@@ -57,6 +59,7 @@ GATE_FIELDS = {
     "skill_memory_quality_gate_paths",
     "skill_runtime_default_gate_paths",
     "memory_promptware_gate_paths",
+    "plan_cache_gate_paths",
     "coach_style_gate_paths",
 }
 

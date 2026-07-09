@@ -23,7 +23,12 @@ from singularity.core.goal_verifier import GoalVerifier
 from singularity.core.explorer import Explorer
 from singularity.core.rule_planner import RuleBasedPlanner
 from singularity.core.self_evolution_policy import SelfEvolutionPolicy
-from singularity.core.plan_cache import START_PLAN_SIGNATURE, PlanTransitionCache, plan_signature
+from singularity.core.plan_cache import (
+    START_PLAN_SIGNATURE,
+    PlanTransitionCache,
+    evaluate_plan_cache_runtime_gate,
+    plan_signature,
+)
 from singularity.observation.observer import Observer
 from singularity.action.controller import ActionController
 from singularity.action.policy import ActionGranularityPolicy
@@ -112,6 +117,10 @@ class Agent:
         self.plan_cache = PlanTransitionCache(
             min_confidence=getattr(config, "plan_cache_min_confidence", 0.75)
         )
+        self.plan_cache_runtime_gate_report = evaluate_plan_cache_runtime_gate(
+            getattr(config, "plan_cache_gate_paths", []),
+            enable_requested=getattr(config, "enable_plan_cache", False),
+        )
         self.plan_cache_report = self._load_plan_cache()
         self._last_plan_cache_signature = START_PLAN_SIGNATURE
         self.runtime = RuntimeSupervisor(config, self.explorer)
@@ -154,16 +163,37 @@ class Agent:
             path for path in (getattr(self.config, "plan_cache_paths", []) or [])
             if path
         ]
+        gate_report = getattr(self, "plan_cache_runtime_gate_report", {})
         if not getattr(self.config, "enable_plan_cache", False):
             return {
                 "enabled": False,
                 "paths": list(paths),
+                "errors": [],
+                **gate_report,
                 "loaded_entry_count": 0,
                 "skipped_entry_count": len(paths),
                 "reason": "plan cache disabled",
+            }
+        if not gate_report.get("effective_enable_plan_cache"):
+            if paths:
+                logger.warning(
+                    "Plan cache loading skipped: "
+                    f"gate_readiness={gate_report.get('gate_readiness')}, "
+                    f"gate_paths={len(gate_report.get('gate_paths', []))}, "
+                    f"cache_paths={len(paths)}"
+                )
+            return {
+                "enabled": False,
+                "paths": list(paths),
                 "errors": [],
+                **gate_report,
+                "loaded_entry_count": 0,
+                "skipped_entry_count": len(paths),
             }
         report = self.plan_cache.load_reports(paths)
+        load_errors = list(report.get("errors", []))
+        report.update(gate_report)
+        report["errors"] = load_errors + list(gate_report.get("errors", []))
         if paths and not report.get("loaded_entry_count"):
             logger.warning(
                 "Plan cache enabled but no usable entries loaded: "

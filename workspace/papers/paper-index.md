@@ -1340,6 +1340,23 @@
 
 ---
 
+## P-074: Orak: A Foundational Benchmark for Training and Evaluating LLM Agents on Diverse Video Games
+
+- **Title**: Orak: A Foundational Benchmark for Training and Evaluating LLM Agents on Diverse Video Games
+- **Source**: https://arxiv.org/abs/2506.03610
+- **Year**: 2025; active versions in 2026
+- **Type**: Multi-game LLM-agent benchmark and training dataset
+- **Task Type**: General game agents across genres; module evaluation and fine-tuning trajectories
+- **Core Method**: 12-game benchmark with MCP-style plug-and-play interface, score leaderboards, battle arenas, visual-input studies, strategy analyses, and gameplay trajectories
+- **Memory**: Provides an evaluation lens for memory, perception, planning, and agentic module choices rather than a single memory architecture
+- **Key Results**: Establishes a systematic benchmark for training and evaluating generic gaming agents across diverse real-world games
+- **Scores**: R=4, N=4, R=4, E=5
+- **Value to Project**: Motivates suite-level module comparison reports and gate-backed runtime-profile packaging for plan cache, action values, visual grounding, skill memory, and mixed-policy patches
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-orak.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1417,3 +1434,4 @@
 | P-071 | OpenClaw Memory Injection | 2026 | R5/N5/R3/E5 | P1 |
 | P-072 | Parallelized Planning-Acting | 2025/2026 | R5/N4/R3/E5 | P2 |
 | P-073 | AgenticCache | 2026 | R4/N5/R4/E5 | P1 |
+| P-074 | Orak | 2025/2026 | R4/N4/R4/E5 | P2 |

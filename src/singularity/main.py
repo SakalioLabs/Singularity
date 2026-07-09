@@ -78,6 +78,7 @@ def _add_memory_promptware_runtime_args(parser):
 def _add_plan_cache_runtime_args(parser):
     parser.add_argument("--enable-plan-cache", action="store_true", help="Reuse approved AgenticCache-style plan-transition cache entries before LLM planning")
     parser.add_argument("--plan-cache", action="append", default=[], help="Approved plan-transition-cache-report JSON for runtime plan reuse")
+    parser.add_argument("--plan-cache-gate", action="append", default=[], help="Approved plan-cache-gate JSON required before runtime plan-cache loading")
     parser.add_argument("--plan-cache-min-confidence", type=float, default=0.75, help="Minimum confidence for runtime plan-cache entries")
 
 
@@ -202,6 +203,7 @@ def _runtime_profile_payload_from_args(args) -> dict:
         "knowledge_correction_feedback_paths": getattr(args, "knowledge_correction_feedback", []) or [],
         "knowledge_correction_gate_paths": getattr(args, "knowledge_correction_gate", []) or [],
         "plan_cache_paths": getattr(args, "plan_cache", []) or [],
+        "plan_cache_gate_paths": getattr(args, "plan_cache_gate", []) or [],
         "action_value_feedback_paths": getattr(args, "action_value_feedback", []) or [],
         "action_value_transition_gate_paths": getattr(args, "action_value_transition_gate", []) or [],
         "action_value_transition_evaluator_report_paths": getattr(args, "action_value_transition_evaluator_report", []) or [],
@@ -719,6 +721,25 @@ def main():
     plan_cache_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     plan_cache_parser.add_argument("--log-level", type=str, default="INFO")
 
+    plan_cache_runtime_parser = subparsers.add_parser("plan-cache-runtime-report", help="Audit runtime plan-cache hits from session logs")
+    plan_cache_runtime_parser.add_argument("--session-log", action="append", default=[], help="Agent session JSONL log with plan-cache hit/miss events")
+    plan_cache_runtime_parser.add_argument("--min-cache-hits", type=int, default=1, help="Minimum cache hits required for approval")
+    plan_cache_runtime_parser.add_argument("--max-rejected-action-rate", type=float, default=0.0, help="Maximum verifier-rejected action rate after cache hits")
+    plan_cache_runtime_parser.add_argument("--max-action-failure-rate", type=float, default=0.3, help="Maximum failed action rate after cache hits")
+    plan_cache_runtime_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    plan_cache_runtime_parser.add_argument("--log-level", type=str, default="INFO")
+
+    plan_cache_gate_parser = subparsers.add_parser("plan-cache-gate", help="Gate plan-cache artifacts before runtime use")
+    plan_cache_gate_parser.add_argument("--plan-cache-report", action="append", default=[], help="Saved plan-cache-report JSON")
+    plan_cache_gate_parser.add_argument("--runtime-report", action="append", default=[], help="Optional saved plan-cache-runtime-report JSON")
+    plan_cache_gate_parser.add_argument("--min-accepted-entries", type=int, default=1, help="Minimum accepted cache entries required")
+    plan_cache_gate_parser.add_argument("--min-runtime-hits", type=int, default=0, help="Minimum runtime cache hits required when runtime reports are supplied")
+    plan_cache_gate_parser.add_argument("--max-promptware-threats", type=int, default=0, help="Maximum promptware threats allowed across cache reports")
+    plan_cache_gate_parser.add_argument("--max-rejected-action-rate", type=float, default=0.0, help="Maximum verifier-rejected action rate after cache hits")
+    plan_cache_gate_parser.add_argument("--max-action-failure-rate", type=float, default=0.3, help="Maximum failed action rate after cache hits")
+    plan_cache_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    plan_cache_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Skill candidate review queue
     candidates_parser = subparsers.add_parser("skill-candidates", help="Review extracted skill candidates")
     candidates_parser.add_argument("--queue", type=str, default="workspace/skills/skill_candidates.jsonl")
@@ -941,6 +962,7 @@ def main():
     runtime_profile_build_parser.add_argument("--knowledge-correction-feedback", action="append", default=[], help="knowledge-correction feedback JSON")
     runtime_profile_build_parser.add_argument("--knowledge-correction-gate", action="append", default=[], help="Approved knowledge-correction gate JSON")
     runtime_profile_build_parser.add_argument("--plan-cache", action="append", default=[], help="Approved plan-transition-cache report JSON")
+    runtime_profile_build_parser.add_argument("--plan-cache-gate", action="append", default=[], help="Approved plan-cache gate JSON")
     runtime_profile_build_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value feedback JSON")
     runtime_profile_build_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value transition gate JSON")
     runtime_profile_build_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value evaluator report JSON")
@@ -2199,6 +2221,96 @@ def main():
             sys.exit(1)
         return
 
+    if args.command == "plan-cache-runtime-report":
+        from singularity.core.plan_cache import build_plan_cache_runtime_report, write_plan_transition_cache_report
+
+        logs = getattr(args, "session_log", []) or []
+        if not logs:
+            print("plan-cache-runtime-report requires at least one --session-log")
+            sys.exit(1)
+        report = build_plan_cache_runtime_report(
+            session_log_paths=logs,
+            min_cache_hits=getattr(args, "min_cache_hits", 1),
+            max_rejected_action_rate=getattr(args, "max_rejected_action_rate", 0.0),
+            max_action_failure_rate=getattr(args, "max_action_failure_rate", 0.3),
+        )
+        print("\nPlan Cache Runtime Report")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  cache: "
+            f"hits={report.get('plan_cache_hit_count', 0)}, "
+            f"misses={report.get('plan_cache_miss_count', 0)}, "
+            f"hit_rate={report.get('plan_cache_hit_rate', 0)}"
+        )
+        print(
+            "  post-hit actions: "
+            f"actions={report.get('post_hit_action_count', 0)}, "
+            f"failures={report.get('post_hit_action_failure_count', 0)} "
+            f"rate={report.get('post_hit_action_failure_rate', 0)}, "
+            f"verifier_rejects={report.get('post_hit_action_verification_reject_count', 0)} "
+            f"rate={report.get('post_hit_action_verification_reject_rate', 0)}"
+        )
+        for item in report.get("hit_examples", [])[:8]:
+            print(
+                f"  [+] {item.get('entry_id', '-')}: "
+                f"actions={item.get('action_count', 0)}, "
+                f"failures={item.get('action_failure_count', 0)}, "
+                f"rejects={item.get('verification_reject_count', 0)}, "
+                f"completed={item.get('goal_completed', False)}"
+            )
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            write_plan_transition_cache_report(report, args.output)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") == "error":
+            sys.exit(1)
+        return
+
+    if args.command == "plan-cache-gate":
+        from singularity.core.plan_cache import build_plan_cache_gate, write_plan_transition_cache_report
+
+        report = build_plan_cache_gate(
+            cache_report_paths=getattr(args, "plan_cache_report", []) or [],
+            runtime_report_paths=getattr(args, "runtime_report", []) or [],
+            min_accepted_entries=getattr(args, "min_accepted_entries", 1),
+            min_runtime_hits=getattr(args, "min_runtime_hits", 0),
+            max_promptware_threats=getattr(args, "max_promptware_threats", 0),
+            max_rejected_action_rate=getattr(args, "max_rejected_action_rate", 0.0),
+            max_action_failure_rate=getattr(args, "max_action_failure_rate", 0.3),
+        )
+        print("\nPlan Cache Gate")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  inputs: "
+            f"cache_reports={report.get('approved_cache_report_count', 0)}/{report.get('cache_report_count', 0)} approved, "
+            f"runtime_reports={report.get('approved_runtime_report_count', 0)}/{report.get('runtime_report_count', 0)} approved, "
+            f"accepted_entries={report.get('accepted_entry_count', 0)}, "
+            f"runtime_hits={report.get('runtime_hit_count', 0)}"
+        )
+        print(
+            "  runtime rates: "
+            f"failure={report.get('runtime_action_failure_rate', 0)}, "
+            f"verifier_reject={report.get('runtime_action_verification_reject_rate', 0)}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for check in report.get("checks", [])[:12]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('readiness')}")
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            write_plan_transition_cache_report(report, args.output)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"error", "rejected"}:
+            sys.exit(1)
+        return
+
     if args.command == "skill-edit-proposal-report":
         from singularity.core.skill_extractor import build_skill_edit_proposal_report
 
@@ -2472,6 +2584,7 @@ def main():
                     memory_promptware_gate_paths=merge_arg_profile_list(args, "memory_promptware_gate", runtime_profiles, "memory_promptware_gate_paths"),
                     enable_plan_cache=profile_bool_arg(args, "enable_plan_cache", runtime_profiles, "enable_plan_cache", "plan_cache"),
                     plan_cache_paths=merge_arg_profile_list(args, "plan_cache", runtime_profiles, "plan_cache_paths"),
+                    plan_cache_gate_paths=merge_arg_profile_list(args, "plan_cache_gate", runtime_profiles, "plan_cache_gate_paths"),
                     plan_cache_min_confidence=getattr(args, "plan_cache_min_confidence", 0.75),
                     enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
                     enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
@@ -4320,6 +4433,7 @@ def main():
         memory_promptware_gate_paths=merge_arg_profile_list(args, "memory_promptware_gate", runtime_profiles, "memory_promptware_gate_paths"),
         enable_plan_cache=profile_bool_arg(args, "enable_plan_cache", runtime_profiles, "enable_plan_cache", "plan_cache"),
         plan_cache_paths=merge_arg_profile_list(args, "plan_cache", runtime_profiles, "plan_cache_paths"),
+        plan_cache_gate_paths=merge_arg_profile_list(args, "plan_cache_gate", runtime_profiles, "plan_cache_gate_paths"),
         plan_cache_min_confidence=getattr(args, "plan_cache_min_confidence", 0.75),
         enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
         enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
