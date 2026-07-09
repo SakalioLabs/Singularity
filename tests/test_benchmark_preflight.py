@@ -1794,6 +1794,60 @@ def test_action_value_report_uses_embedded_action_observation_windows():
     print("PASS: Action value report uses embedded action observation windows")
 
 
+def test_action_value_transition_gate_controls_runtime_feedback():
+    runner = BenchmarkRunner(Config())
+    trusted_payload = {
+        "action_value_feedback": {
+            "state_transition_count": 4,
+            "low_confidence_transition_count": 0,
+            "state_transition_value_items": [
+                {
+                    "signature": "dig:coal_ore",
+                    "action_type": "dig",
+                    "attempts": 4,
+                    "avg_transition_value_score": 0.82,
+                    "avg_transition_confidence": 1.0,
+                    "low_confidence_transitions": 0,
+                }
+            ],
+        },
+        "errors": [],
+    }
+    low_confidence_payload = {
+        "action_value_feedback": {
+            "state_transition_count": 4,
+            "low_confidence_transition_count": 4,
+            "state_transition_value_items": [
+                {
+                    "signature": "dig:coal_ore",
+                    "action_type": "dig",
+                    "attempts": 4,
+                    "avg_transition_value_score": 0.2,
+                    "avg_transition_confidence": 0.5,
+                    "low_confidence_transitions": 4,
+                }
+            ],
+        },
+        "errors": [],
+    }
+
+    approved = runner.build_action_value_transition_gate(action_value_reports=[trusted_payload])
+    review = runner.build_action_value_transition_gate(action_value_reports=[low_confidence_payload])
+
+    assert approved["readiness"] == "approved"
+    assert approved["decision"] == "approve"
+    assert approved["trusted_item_count"] == 1
+    assert approved["trusted_transition_count"] == 4
+    assert "load_trusted_transition_values" in approved["policy_hints"]
+    assert review["readiness"] == "review"
+    assert review["decision"] == "hold_for_review"
+    assert review["trusted_item_count"] == 0
+    assert review["low_confidence_rate"] == 1.0
+    assert "collect_action_local_transition_windows" in review["policy_hints"]
+    assert review["review_items"][0]["reason"] == "low_transition_confidence"
+    print("PASS: Action value transition gate controls runtime feedback")
+
+
 def test_self_evolution_gate_requires_verifier_and_counterexamples():
     runner = BenchmarkRunner(Config())
     self_evolution_report = {
@@ -3667,6 +3721,7 @@ if __name__ == "__main__":
     test_action_candidate_report_replays_repairable_rejected_actions()
     test_action_value_report_aggregates_outcome_profiles()
     test_action_value_report_uses_embedded_action_observation_windows()
+    test_action_value_transition_gate_controls_runtime_feedback()
     test_self_evolution_gate_requires_verifier_and_counterexamples()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
     test_discovery_skill_gate_controls_experiment_derived_skill_promotion()

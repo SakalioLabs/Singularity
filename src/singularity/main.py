@@ -554,6 +554,18 @@ def main():
     action_value_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     action_value_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline action transition value runtime-readiness gate
+    action_value_gate_parser = subparsers.add_parser("action-value-transition-gate", help="Gate ASV-style transition-value feedback before runtime use")
+    action_value_gate_parser.add_argument("--action-value-report", action="append", default=[], help="Saved action-value-report JSON")
+    action_value_gate_parser.add_argument("--target", type=str, default="action_value_transition_feedback", help="Gate target label")
+    action_value_gate_parser.add_argument("--min-trusted-items", type=int, default=1, help="Minimum trusted transition signatures required")
+    action_value_gate_parser.add_argument("--min-trusted-transitions", type=int, default=1, help="Minimum trusted transition attempts required")
+    action_value_gate_parser.add_argument("--min-transition-confidence", type=float, default=0.75, help="Minimum average transition confidence")
+    action_value_gate_parser.add_argument("--max-low-confidence-rate", type=float, default=0.25, help="Maximum overall low-confidence transition rate")
+    action_value_gate_parser.add_argument("--max-item-low-confidence-rate", type=float, default=0.25, help="Maximum per-item low-confidence transition rate")
+    action_value_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    action_value_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline self-evolution automatic repair gate
     self_evolution_gate_parser = subparsers.add_parser("self-evolution-gate", help="Gate automatic self-evolution plan repair with verifier and counterexample evidence")
     self_evolution_gate_parser.add_argument("--self-evolution-report", action="append", default=[], help="Saved self-evolution-report JSON")
@@ -2289,6 +2301,35 @@ def main():
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "action-value-transition-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        action_value_reports = getattr(args, "action_value_report", []) or []
+        if not action_value_reports:
+            print("action-value-transition-gate requires at least one --action-value-report")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.build_action_value_transition_gate(
+            action_value_report_paths=action_value_reports,
+            target=getattr(args, "target", "action_value_transition_feedback"),
+            min_trusted_items=getattr(args, "min_trusted_items", 1),
+            min_trusted_transitions=getattr(args, "min_trusted_transitions", 1),
+            min_transition_confidence=getattr(args, "min_transition_confidence", 0.75),
+            max_low_confidence_rate=getattr(args, "max_low_confidence_rate", 0.25),
+            max_item_low_confidence_rate=getattr(args, "max_item_low_confidence_rate", 0.25),
+        )
+        runner.print_action_value_transition_gate_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"rejected", "error"}:
+            sys.exit(1)
         return
 
     if args.command == "self-evolution-gate":

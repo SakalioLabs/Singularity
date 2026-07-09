@@ -3988,6 +3988,121 @@ class BenchmarkRunner:
             "policy_hints": policy_hints,
         }
 
+    def build_action_value_transition_gate(
+        self,
+        action_value_reports: list[dict] = None,
+        action_value_report_paths: list[str] = None,
+        target: str = "action_value_transition_feedback",
+        min_trusted_items: int = 1,
+        min_trusted_transitions: int = 1,
+        min_transition_confidence: float = 0.75,
+        max_low_confidence_rate: float = 0.25,
+        max_item_low_confidence_rate: float = 0.25,
+    ) -> dict:
+        """Gate ASV-style transition values before they influence runtime action ranking."""
+        report = {
+            "type": "action_value_transition_gate",
+            "target": target,
+            "readiness": "review",
+            "decision": "hold_for_review",
+            "reason": "insufficient trusted transition-value evidence",
+            "thresholds": {
+                "min_trusted_items": int(min_trusted_items),
+                "min_trusted_transitions": int(min_trusted_transitions),
+                "min_transition_confidence": float(min_transition_confidence),
+                "max_low_confidence_rate": float(max_low_confidence_rate),
+                "max_item_low_confidence_rate": float(max_item_low_confidence_rate),
+            },
+            "source_count": 0,
+            "state_transition_count": 0,
+            "trusted_item_count": 0,
+            "trusted_transition_count": 0,
+            "low_confidence_transition_count": 0,
+            "low_confidence_rate": 0.0,
+            "trusted_items": [],
+            "review_items": [],
+            "checks": [],
+            "missing": [],
+            "policy_hints": [],
+            "errors": [],
+        }
+        sources = []
+        for index, payload in enumerate(action_value_reports or []):
+            if isinstance(payload, dict):
+                sources.append((f"inline:{index}", payload))
+        for path in action_value_report_paths or []:
+            if not path:
+                continue
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    sources.append((path, json.load(f)))
+            except Exception as e:
+                report["errors"].append(f"{path}: {e}")
+
+        report["source_count"] = len(sources)
+        if not sources:
+            report["missing"].append("action_value_report")
+
+        thresholds = report["thresholds"]
+        for source, payload in sources:
+            check = self._action_value_transition_gate_check(source, payload, thresholds)
+            report["checks"].append(check)
+            metrics = check.get("metrics", {})
+            report["state_transition_count"] += int(metrics.get("state_transition_count") or 0)
+            report["trusted_item_count"] += int(metrics.get("trusted_item_count") or 0)
+            report["trusted_transition_count"] += int(metrics.get("trusted_transition_count") or 0)
+            report["low_confidence_transition_count"] += int(metrics.get("low_confidence_transition_count") or 0)
+            report["trusted_items"].extend(metrics.get("trusted_items", [])[:8])
+            report["review_items"].extend(metrics.get("review_items", [])[:8])
+
+        if report["state_transition_count"]:
+            report["low_confidence_rate"] = round(
+                report["low_confidence_transition_count"] / max(1, report["state_transition_count"]),
+                3,
+            )
+
+        failed_checks = [check for check in report["checks"] if check.get("status") == "fail"]
+        warn_checks = [check for check in report["checks"] if check.get("status") == "warn"]
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "reject"
+            report["reason"] = "action-value transition gate input could not be read"
+        elif failed_checks:
+            report["readiness"] = "rejected"
+            report["decision"] = "reject"
+            report["reason"] = failed_checks[0].get("detail", "transition gate failed")
+        elif (
+            report["trusted_item_count"] >= int(min_trusted_items)
+            and report["trusted_transition_count"] >= int(min_trusted_transitions)
+            and report["low_confidence_rate"] <= float(max_low_confidence_rate)
+            and not warn_checks
+        ):
+            report["readiness"] = "approved"
+            report["decision"] = "approve"
+            report["reason"] = "trusted transition values are ready for conservative runtime scoring"
+            report["policy_hints"].append("load_trusted_transition_values")
+        else:
+            report["readiness"] = "review"
+            report["decision"] = "hold_for_review"
+            if report["state_transition_count"] <= 0:
+                report["missing"].append("state_transition_value_items")
+                report["reason"] = "no state-transition value evidence was found"
+            elif report["trusted_item_count"] < int(min_trusted_items):
+                report["missing"].append("trusted_transition_items")
+                report["reason"] = "not enough trusted transition-value items"
+            elif report["trusted_transition_count"] < int(min_trusted_transitions):
+                report["missing"].append("trusted_transition_count")
+                report["reason"] = "not enough trusted transition attempts"
+            elif report["low_confidence_rate"] > float(max_low_confidence_rate):
+                report["missing"].append("low_confidence_rate_below_threshold")
+                report["reason"] = "too many transition windows are low confidence"
+            else:
+                report["reason"] = "transition-value evidence needs review"
+            report["policy_hints"].append("collect_action_local_transition_windows")
+        report["trusted_items"] = report["trusted_items"][:20]
+        report["review_items"] = report["review_items"][:20]
+        return report
+
     def self_evolution_feedback(self, report: SelfEvolutionTraceReport) -> dict:
         """Aggregate execution feedback into reusable self-evolution policy hints."""
         typed_feedback = {}
@@ -7046,6 +7161,79 @@ class BenchmarkRunner:
                 "examples": record["examples"],
             })
         return sorted(items, key=lambda item: (-item["attempts"], item["signature"]))
+
+    def _action_value_transition_gate_check(self, source: str, payload: dict, thresholds: dict) -> dict:
+        if not isinstance(payload, dict):
+            return self._gate_check(source, "action_value_transition_gate", "fail", "payload is not a JSON object", {})
+        feedback = payload.get("action_value_feedback", payload)
+        if not isinstance(feedback, dict):
+            return self._gate_check(source, "action_value_transition_gate", "fail", "missing action_value_feedback object", {})
+        items = feedback.get("state_transition_value_items", [])
+        if not isinstance(items, list):
+            items = []
+        state_transition_count = self._gate_int(
+            feedback.get("state_transition_count", payload.get("state_transition_count", len(items)))
+        )
+        low_confidence_count = self._gate_int(
+            feedback.get("low_confidence_transition_count", payload.get("low_confidence_transition_count", 0))
+        )
+        trusted_items = []
+        review_items = []
+        trusted_transition_count = 0
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            attempts = max(0, self._gate_int(item.get("attempts")))
+            confidence = self._gate_float_or_none(item.get("avg_transition_confidence"))
+            confidence = 0.0 if confidence is None else confidence
+            low_confidence = max(0, self._gate_int(item.get("low_confidence_transitions")))
+            low_rate = round(low_confidence / max(1, attempts), 3)
+            record = {
+                "signature": str(item.get("signature") or "unknown"),
+                "attempts": attempts,
+                "avg_transition_confidence": round(confidence, 3),
+                "low_confidence_rate": low_rate,
+                "avg_transition_value_score": item.get("avg_transition_value_score"),
+            }
+            if attempts <= 0:
+                record["reason"] = "no_transition_attempts"
+                review_items.append(record)
+                continue
+            if confidence < float(thresholds.get("min_transition_confidence", 0.75)):
+                record["reason"] = "low_transition_confidence"
+                review_items.append(record)
+                continue
+            if low_rate > float(thresholds.get("max_item_low_confidence_rate", 0.25)):
+                record["reason"] = "too_many_low_confidence_windows"
+                review_items.append(record)
+                continue
+            if item.get("avg_transition_value_score") is None:
+                record["reason"] = "missing_transition_value_score"
+                review_items.append(record)
+                continue
+            trusted_transition_count += attempts
+            trusted_items.append(record)
+
+        low_confidence_rate = round(low_confidence_count / max(1, state_transition_count), 3) if state_transition_count else 0.0
+        metrics = {
+            "state_transition_count": state_transition_count,
+            "low_confidence_transition_count": low_confidence_count,
+            "low_confidence_rate": low_confidence_rate,
+            "trusted_item_count": len(trusted_items),
+            "trusted_transition_count": trusted_transition_count,
+            "review_item_count": len(review_items),
+            "trusted_items": trusted_items[:8],
+            "review_items": review_items[:8],
+        }
+        if state_transition_count <= 0:
+            return self._gate_check(source, "action_value_transition_gate", "warn", "no transition-value evidence found", metrics)
+        if low_confidence_rate > float(thresholds.get("max_low_confidence_rate", 0.25)):
+            return self._gate_check(source, "action_value_transition_gate", "warn", "overall low-confidence transition rate is too high", metrics)
+        if len(trusted_items) < int(thresholds.get("min_trusted_items", 1)):
+            return self._gate_check(source, "action_value_transition_gate", "warn", "not enough trusted transition-value items", metrics)
+        if trusted_transition_count < int(thresholds.get("min_trusted_transitions", 1)):
+            return self._gate_check(source, "action_value_transition_gate", "warn", "not enough trusted transition attempts", metrics)
+        return self._gate_check(source, "action_value_transition_gate", "pass", "trusted transition-value evidence is available", metrics)
 
     def _action_embedded_observation(self, action_data: dict, result: dict, before: bool) -> dict:
         key_groups = (
@@ -11060,6 +11248,45 @@ class BenchmarkRunner:
                     f"{pair.get('recovery_signature')}"
                 )
         for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_action_value_transition_gate_report(self, report: dict):
+        print("\nAction Value Transition Gate")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  transitions: "
+            f"total={report.get('state_transition_count', 0)}, "
+            f"trusted_items={report.get('trusted_item_count', 0)}, "
+            f"trusted_attempts={report.get('trusted_transition_count', 0)}, "
+            f"low_confidence={report.get('low_confidence_transition_count', 0)} "
+            f"rate={report.get('low_confidence_rate', 0.0):.3f}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', []))}")
+        for check in report.get("checks", [])[:8]:
+            marker = "+" if check.get("status") == "pass" else "!" if check.get("status") == "warn" else "x"
+            metrics = check.get("metrics", {})
+            print(
+                f"  [{marker}] {check.get('source')}: {check.get('detail')} "
+                f"trusted={metrics.get('trusted_item_count', 0)}/"
+                f"{metrics.get('trusted_transition_count', 0)} "
+                f"low_rate={metrics.get('low_confidence_rate', 0.0):.3f}"
+            )
+        for item in report.get("trusted_items", [])[:5]:
+            print(
+                f"      trusted {item.get('signature')}: attempts={item.get('attempts')} "
+                f"conf={item.get('avg_transition_confidence')} score={item.get('avg_transition_value_score')}"
+            )
+        for item in report.get("review_items", [])[:5]:
+            print(
+                f"      review {item.get('signature')}: {item.get('reason')} "
+                f"attempts={item.get('attempts')} conf={item.get('avg_transition_confidence')}"
+            )
+        for error in report.get("errors", []):
             print(f"  error: {error}")
 
     def print_self_evolution_gate_report(self, report: dict):

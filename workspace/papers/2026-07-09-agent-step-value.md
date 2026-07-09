@@ -21,4 +21,5 @@
   - The current M1 baseline marks all transition windows as low-confidence because old logs often share one after-observation across multiple actions; this is useful audit evidence, not yet a runtime policy update signal.
   - Runtime action events now carry compact action-local `pre_observation` and `post_observation` snapshots so new live logs can produce high-confidence transition values.
   - `ActionValueProfile` now treats ASV feedback as gated evidence: low-confidence transition items are skipped with reasons, while trusted transition scores are blended conservatively with outcome success rates for candidate ranking.
-**Next Action**: Run the transition-value report on fresh M1/M2 logs, then compare deterministic deltas against a state-grounded LLM evaluator before allowing transition scores to directly update runtime action ranking.
+  - `action-value-transition-gate` adds an offline approval step for saved ASV feedback artifacts, requiring enough trusted action-local transition items and low overall low-confidence rates before transition values are considered runtime-ready.
+**Next Action**: Run `action-value-report` and `action-value-transition-gate` on fresh M1/M2 logs, then compare deterministic deltas against a state-grounded LLM evaluator before allowing transition scores to directly update runtime action ranking.
