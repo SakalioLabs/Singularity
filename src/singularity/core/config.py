@@ -35,6 +35,7 @@ class Config:
     enable_memory_policy: bool = True
     enable_task_memory_context: bool = True
     enable_task_continuity_context: bool = True
+    enable_task_readiness_context: bool = True
     enable_skill_memory_context: bool = True
     enable_curriculum_planner_context: bool = True
     enable_knowledge_correction_context: bool = True

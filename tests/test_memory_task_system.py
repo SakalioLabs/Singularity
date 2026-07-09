@@ -95,6 +95,24 @@ class FakeCausalMemory:
         }
 
 
+class FakeCapturePlanner:
+    def __init__(self):
+        self.calls = []
+
+    def plan_from_goal(self, goal: str, observation: dict, memory_context: str = "") -> dict:
+        self.calls.append({
+            "goal": goal,
+            "observation": observation,
+            "memory_context": memory_context,
+        })
+        return {
+            "status": "planning",
+            "reasoning": "captured readiness context",
+            "actions": [{"type": "wait", "parameters": {"ticks": 1}}],
+            "subtasks": [],
+        }
+
+
 class FakeActionController:
     def __init__(self):
         self.actions = []
@@ -1746,6 +1764,92 @@ def test_agent_records_and_reads_task_continuity_context():
     agent.config = Config(enable_task_continuity_context=False)
     assert agent._task_continuity_context("Craft torches", {}) == ""
     print("PASS: Agent records and reads task continuity context")
+
+
+def test_agent_injects_task_readiness_context_for_planner():
+    agent = object.__new__(Agent)
+    agent.config = Config(enable_task_readiness_context=True)
+    agent.session_logger = FakeSessionLogger()
+    agent.task_system = TaskSystem()
+    navigate = agent.task_system.create_task(
+        "Navigate to east frontier",
+        status=TaskStatus.ACCEPTED,
+        priority=1,
+        success_criteria={"position_near": {"x": 12, "z": 4, "radius": 3}},
+        opportunity_triggers=["frontier"],
+    )
+    agent.task_system.create_task(
+        "Inspect frontier coal",
+        status=TaskStatus.ACCEPTED,
+        priority=2,
+        depends_on=[navigate.id],
+        preconditions={
+            "inventory": {"torch": 1},
+            "nearby_block_present": ["coal_ore"],
+        },
+        success_criteria={"observed": "coal_ore"},
+    )
+
+    context = agent._task_readiness_context(
+        "Explore east frontier",
+        {"inventory": {}, "nearby_blocks": [{"name": "stone"}]},
+    )
+
+    assert "Task readiness diagnosis" in context
+    assert "verified task graph" in context
+    assert "ready=1" in context
+    assert "blocked=1" in context
+    assert "ready: Navigate to east frontier" in context
+    assert "blocked: Inspect frontier coal" in context
+    assert "missing_dependencies=Navigate to east frontier:accepted" in context
+    assert "inventory torch=1" in context
+    assert "nearby_block_present coal_ore" in context
+    event = agent.session_logger.events[-1]
+    assert event["type"] == "task_readiness_planner_context"
+    assert event["data"]["ready_count"] == 1
+    assert event["data"]["blocked_count"] == 1
+
+    agent.config = Config(enable_task_readiness_context=False)
+    assert agent._task_readiness_context("Explore east frontier", {}) == ""
+    print("PASS: Agent injects task readiness context for planner")
+
+
+def test_agent_passes_task_readiness_context_to_llm_planner():
+    agent = object.__new__(Agent)
+    agent.config = Config(enable_task_readiness_context=True)
+    agent.session_logger = FakeSessionLogger()
+    agent.task_system = TaskSystem()
+    agent.skill_library = SkillLibrary(storage_path=os.path.join(tempfile.mkdtemp(), "skills"), persist=False)
+    agent.planner = FakeCapturePlanner()
+    agent._read_relevant_memory = lambda goal, observation, source="": ""
+    agent._task_memory_context = lambda goal, observation: ""
+    agent._task_continuity_context = lambda goal, observation: ""
+    agent._read_context_window = lambda source="": ""
+    agent._visual_memory_context = lambda goal: ""
+    agent._visual_action_context = lambda goal, observation: ""
+    agent._coach_context = lambda goal, observation: ""
+    agent._curriculum_context = lambda goal, observation: ""
+    agent._self_evolution_context = lambda goal, observation: ""
+    agent._knowledge_correction_context = lambda goal, observation: ""
+    agent._task_precondition_context = lambda goal, observation: ""
+    agent._skill_memory_context = lambda goal, observation: ""
+    agent.task_system.create_task(
+        "Inspect coal before mining",
+        status=TaskStatus.ACCEPTED,
+        priority=1,
+        preconditions={"nearby_block_present": ["coal_ore"]},
+        success_criteria={"observed": "coal_ore"},
+    )
+
+    plan = agent._think_llm({"inventory": {}, "nearby_blocks": [{"name": "stone"}]}, "Mine coal")
+
+    assert plan["status"] == "planning"
+    memory_context = agent.planner.calls[0]["memory_context"]
+    assert "Task readiness diagnosis" in memory_context
+    assert "blocked: Inspect coal before mining" in memory_context
+    assert "nearby_block_present coal_ore" in memory_context
+    assert any(event["type"] == "task_readiness_planner_context" for event in agent.session_logger.events)
+    print("PASS: Agent passes task readiness context to LLM planner")
 
 
 def test_agent_injects_skill_memory_context_for_planner():
@@ -3489,6 +3593,8 @@ if __name__ == "__main__":
     test_agent_passes_observation_to_memory_retrieval()
     test_agent_injects_task_memory_context_for_planner()
     test_agent_records_and_reads_task_continuity_context()
+    test_agent_injects_task_readiness_context_for_planner()
+    test_agent_passes_task_readiness_context_to_llm_planner()
     test_agent_injects_skill_memory_context_for_planner()
     test_agent_injects_coach_context_as_advisory_policy_hint()
     test_agent_injects_curriculum_context_for_planner()

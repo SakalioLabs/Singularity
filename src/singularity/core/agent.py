@@ -1721,6 +1721,7 @@ class Agent:
         memory_context = self._read_relevant_memory(goal, observation, source="planner_goal")
         task_memory_context = self._task_memory_context(goal, observation)
         task_continuity_context = self._task_continuity_context(goal, observation)
+        task_readiness_context = self._task_readiness_context(goal, observation)
         context_window = self._read_context_window(source="planner_context")
 
         # Get skill recommendations
@@ -1753,6 +1754,7 @@ class Agent:
                 memory_context,
                 task_memory_context,
                 task_continuity_context,
+                task_readiness_context,
                 context_window,
                 visual_context,
                 visual_action_context,
@@ -2134,10 +2136,15 @@ class Agent:
         if inventory_missing:
             missing["inventory"] = inventory_missing
         required_flags = preconditions.get("flags", []) if isinstance(preconditions.get("flags", []), list) else []
-        flags = set(current_state.get("flags", [])) if isinstance(current_state, dict) else set()
-        flag_missing = [str(flag) for flag in required_flags if flag not in flags]
+        state_flags = current_state.get("flags", []) if isinstance(current_state, dict) and isinstance(current_state.get("flags", []), list) else []
+        flags = {str(flag) for flag in state_flags}
+        flag_missing = [str(flag) for flag in required_flags if str(flag) not in flags]
         if flag_missing:
             missing["flags"] = flag_missing
+        nearby_required = preconditions.get("nearby_block_present", [])
+        nearby_missing = self._missing_observed_names(nearby_required, current_state or {})
+        if nearby_missing:
+            missing["nearby_block_present"] = nearby_missing
         return missing
 
     def _format_task_preconditions(self, preconditions: dict) -> str:
@@ -2157,7 +2164,62 @@ class Agent:
         flags = preconditions.get("flags", []) if isinstance(preconditions.get("flags", []), list) else []
         if flags:
             parts.append("flags " + ", ".join(str(flag) for flag in flags))
+        nearby = preconditions.get("nearby_block_present", [])
+        if isinstance(nearby, str):
+            nearby = [nearby]
+        elif isinstance(nearby, dict):
+            nearby = [value for value in nearby.values() if value]
+        elif not isinstance(nearby, list):
+            nearby = []
+        if nearby:
+            parts.append("nearby_block_present " + ", ".join(str(item) for item in nearby[:6]))
         return "; ".join(parts) if parts else "reviewed prerequisite task"
+
+    def _missing_observed_names(self, required, current_state: dict) -> list[str]:
+        required_names = self._required_observed_names(required)
+        if not required_names:
+            return []
+        observed = self._observed_names(current_state or {})
+        return sorted(name for name in required_names if name not in observed)
+
+    def _required_observed_names(self, required) -> set[str]:
+        if isinstance(required, str):
+            return {required.lower()} if required else set()
+        if isinstance(required, dict):
+            return {
+                str(value).lower()
+                for value in required.values()
+                if value
+            }
+        if isinstance(required, list):
+            return {
+                str(value).lower()
+                for value in required
+                if value
+            }
+        return set()
+
+    def _observed_names(self, current_state: dict) -> set[str]:
+        names = set()
+        if not isinstance(current_state, dict):
+            return names
+        for key in ("nearby_blocks", "grounded_resources", "trees_found", "nearby_entities", "landmarks"):
+            values = current_state.get(key, [])
+            if not isinstance(values, list):
+                continue
+            for item in values:
+                if isinstance(item, str):
+                    names.add(item.lower())
+                    continue
+                if not isinstance(item, dict):
+                    continue
+                for field_name in ("name", "type", "block", "resource", "drop", "entity"):
+                    value = item.get(field_name)
+                    if value:
+                        names.add(str(value).lower())
+        if current_state.get("landmarks"):
+            names.add("landmark")
+        return names
 
     def _select_knowledge_correction_items(
         self,
@@ -2444,6 +2506,84 @@ class Agent:
             decision=decision,
         )
         return result
+
+    def _task_readiness_context(self, goal: str, current_state: dict = None, limit: int = 4) -> str:
+        """Expose verified task graph readiness and blockers as compact planner context."""
+        if not getattr(getattr(self, "config", None), "enable_task_readiness_context", True):
+            return ""
+        task_system = getattr(self, "task_system", None)
+        if not task_system or not hasattr(task_system, "task_readiness_report"):
+            return ""
+        try:
+            report = task_system.task_readiness_report(current_state or {})
+        except Exception as e:
+            logger.warning(f"Task readiness context failed: {e}")
+            return ""
+        tasks = [task for task in report.get("tasks", []) if isinstance(task, dict)]
+        if not tasks:
+            return ""
+        ready = [task for task in tasks if task.get("ready")]
+        blocked = [task for task in tasks if not task.get("ready")]
+        lines = [
+            "Task readiness diagnosis "
+            "(verified task graph; honor ready tasks and insert missing prerequisites before retrying blocked tasks):",
+            (
+                f"- summary: ready={report.get('ready_count', 0)}, "
+                f"blocked={report.get('blocked_count', 0)}, "
+                f"accepted={report.get('accepted_count', 0)}, active={report.get('active_count', 0)}"
+            ),
+        ]
+        max_items = max(1, min(self._small_int(limit or 4), 6))
+        ready_limit = min(len(ready), max_items)
+        if blocked and ready_limit >= max_items:
+            ready_limit = max(0, max_items - 1)
+        blocked_limit = max_items - ready_limit
+        if blocked and blocked_limit <= 0:
+            blocked_limit = 1
+        for task in ready[:ready_limit]:
+            lines.append(self._format_task_readiness_line(task, ready=True))
+        for task in blocked[:blocked_limit]:
+            lines.append(self._format_task_readiness_line(task, ready=False))
+        payload = {
+            "goal": goal,
+            "ready_count": report.get("ready_count", 0),
+            "blocked_count": report.get("blocked_count", 0),
+            "task_count": report.get("task_count", 0),
+        }
+        if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("task_readiness_planner_context", payload)
+        return "\n".join(line for line in lines if line)
+
+    def _format_task_readiness_line(self, task: dict, ready: bool) -> str:
+        title = str(task.get("title") or "task")[:120]
+        status = str(task.get("status") or "unknown")
+        priority = self._small_int(task.get("priority", 3))
+        score = task.get("score", 0)
+        prefix = "ready" if ready else "blocked"
+        parts = [f"- {prefix}: {title} (status={status}, priority={priority}, score={score})"]
+        if ready:
+            triggers = task.get("opportunity_triggers", []) if isinstance(task.get("opportunity_triggers", []), list) else []
+            if triggers:
+                parts.append("triggers=" + ",".join(str(item) for item in triggers[:4]))
+            return "; ".join(parts)
+
+        dependencies = task.get("missing_dependencies", [])
+        if isinstance(dependencies, list) and dependencies:
+            dep_text = ", ".join(
+                f"{dep.get('title') or dep.get('id')}:{dep.get('status', 'missing')}"
+                for dep in dependencies[:3]
+                if isinstance(dep, dict)
+            )
+            if dep_text:
+                parts.append(f"missing_dependencies={dep_text}")
+        missing = task.get("missing_preconditions", {}) if isinstance(task.get("missing_preconditions", {}), dict) else {}
+        if missing:
+            parts.append(f"missing_preconditions={self._format_task_preconditions(missing)}")
+        blockers = task.get("blockers", []) if isinstance(task.get("blockers", []), list) else []
+        blocker_text = ", ".join(str(item) for item in blockers[:3] if item)
+        if blocker_text:
+            parts.append(f"blockers={blocker_text}")
+        return "; ".join(parts)
 
     def _record_task_continuity(
         self,
