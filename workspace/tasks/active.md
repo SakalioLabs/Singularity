@@ -283,6 +283,7 @@
 - [x] Seed `workspace/runtime/m1_observed_action_value_profile.json` from real M1 action-value feedback and save approved validation/security reports.
 - [x] Add runtime-profile security audit for referenced memory/correction artifacts so persistent promptware cannot enter live profiles through approved-looking paths.
 - [x] Add `runtime-profile-suite-report` to discover runtime profiles, run validation plus promptware security audit per profile, and report missing required M1/M2/M7 coverage before live runs.
+- [x] Add benchmark-level runtime-profile suite preflight so `benchmark --runtime-profile ...` requires approved suite evidence that covers the configured profile paths and suite labels.
 - [ ] Re-run `runtime-profile-suite-report --required-profile m1 --required-profile m2 --required-profile m7` after M2/M7 profiles exist and require an approved suite before live profile-assisted benchmarks.
 - [ ] Run `runtime-profile-security-audit` on real M1/M2/M7 runtime profiles and inspect any rejected artifacts before live runs.
 - [ ] Add M2/M7 runtime profiles once their approved gate reports and feedback artifacts exist, then run `runtime-profile-validate` plus `runtime-profile-security-audit`.

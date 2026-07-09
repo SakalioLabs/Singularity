@@ -280,7 +280,7 @@ python -m singularity.main runtime-profile-build --name m1_visual_goal_critic --
 python -m singularity.main runtime-profile-validate --runtime-profile workspace/runtime/m1_visual_profile.json --output logs/benchmarks/runtime_profile_validation.json
 python -m singularity.main runtime-profile-security-audit --runtime-profile workspace/runtime/m1_visual_profile.json --output logs/benchmarks/runtime_profile_security.json
 python -m singularity.main runtime-profile-suite-report --runtime-dir workspace/runtime --required-profile m1 --required-profile m2 --required-profile m7 --output logs/benchmarks/runtime_profile_suite.json
-python -m singularity.main benchmark --suite m1 --runtime-profile workspace/runtime/m1_visual_profile.json
+python -m singularity.main benchmark --suite m1 --runtime-profile workspace/runtime/m1_visual_profile.json --runtime-profile-suite-report logs/benchmarks/runtime_profile_suite.json --runtime-profile-suite-preflight-output logs/benchmarks/runtime_profile_suite_preflight.json
 python -m singularity.main collab-benchmark --executor agent --runtime-profile workspace/runtime/m7_roles_profile.json --preflight
 # Runtime commands that load --runtime-profile automatically reject unreadable
 # artifacts or promptware-like referenced content before live Agent startup.

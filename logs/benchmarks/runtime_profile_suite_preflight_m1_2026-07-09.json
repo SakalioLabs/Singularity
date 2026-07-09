@@ -1,0 +1,96 @@
+{
+  "required": true,
+  "ready": false,
+  "readiness": "review",
+  "decision": "hold_runtime_profile_benchmark",
+  "reason": "no approved runtime profile suite report is available",
+  "suite": "m1",
+  "profile_paths": [
+    "workspace/runtime/m1_observed_action_value_profile.json"
+  ],
+  "suite_report_paths": [
+    "logs/benchmarks/runtime_profile_suite_m1_2026-07-09.json"
+  ],
+  "required_profiles": [
+    "m1"
+  ],
+  "suite_report_count": 1,
+  "approved_suite_report_count": 0,
+  "review_suite_report_count": 1,
+  "rejected_suite_report_count": 0,
+  "error_suite_report_count": 0,
+  "covered_profile_paths": [],
+  "missing_profile_paths": [
+    "workspace/runtime/m1_observed_action_value_profile.json"
+  ],
+  "covered_required_profiles": [],
+  "missing_required_profiles": [
+    "m1"
+  ],
+  "suite_reports": [
+    {
+      "path": "logs/benchmarks/runtime_profile_suite_m1_2026-07-09.json",
+      "readiness": "review",
+      "decision": "hold_runtime_profile_suite",
+      "reason": "runtime profile suite is missing required profile coverage",
+      "profile_count": 1,
+      "approved_profile_count": 1,
+      "review_profile_count": 0,
+      "rejected_profile_count": 0,
+      "error_profile_count": 0,
+      "required_profiles": [
+        "m1",
+        "m2",
+        "m7"
+      ],
+      "missing_required_profiles": [
+        "m2",
+        "m7"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "source": "logs/benchmarks/runtime_profile_suite_m1_2026-07-09.json",
+      "kind": "runtime_profile_suite_report",
+      "status": "warn",
+      "detail": "runtime profile suite is missing required profile coverage",
+      "metrics": {
+        "profile_count": 1,
+        "approved_profile_count": 1,
+        "missing_required_profiles": 2
+      }
+    },
+    {
+      "source": "benchmark",
+      "kind": "runtime_profile_path_coverage",
+      "status": "warn",
+      "detail": "approved suite reports do not cover every configured runtime profile path",
+      "metrics": {
+        "configured_profile_paths": 1,
+        "covered_profile_paths": 0,
+        "missing_profile_paths": 1
+      }
+    },
+    {
+      "source": "benchmark",
+      "kind": "runtime_profile_suite_required_profile_coverage",
+      "status": "warn",
+      "detail": "approved suite reports do not cover every required benchmark profile label",
+      "metrics": {
+        "required_profiles": [
+          "m1"
+        ],
+        "covered_required_profiles": [],
+        "missing_required_profiles": [
+          "m1"
+        ]
+      }
+    }
+  ],
+  "missing": [
+    "runtime_profile_path_coverage",
+    "runtime_profile_suite_required_profile_coverage"
+  ],
+  "errors": []
+}

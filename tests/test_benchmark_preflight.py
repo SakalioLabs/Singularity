@@ -4775,6 +4775,83 @@ def test_skill_runtime_default_preflight_requires_approved_family_coverage():
     print("PASS: Skill runtime default preflight requires approved task-family coverage")
 
 
+def test_runtime_profile_suite_preflight_requires_approved_suite_coverage():
+    tmpdir = tempfile.mkdtemp()
+    profile_path = os.path.join(tmpdir, "m1_profile.json")
+    approved_suite_path = os.path.join(tmpdir, "runtime_profile_suite_approved.json")
+    review_suite_path = os.path.join(tmpdir, "runtime_profile_suite_review.json")
+    with open(profile_path, "w", encoding="utf-8") as f:
+        json.dump({"type": "runtime_profile", "name": "m1_safe_profile"}, f)
+    with open(approved_suite_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "runtime_profile_suite_report",
+            "readiness": "approved",
+            "decision": "allow_runtime_profile_suite",
+            "reason": "fixture suite approved",
+            "profile_count": 1,
+            "approved_profile_count": 1,
+            "required_profiles": ["m1"],
+            "missing_required_profiles": [],
+            "profiles": [{
+                "path": profile_path,
+                "name": "m1_safe_profile",
+                "readiness": "approved",
+            }],
+        }, f)
+    with open(review_suite_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "runtime_profile_suite_report",
+            "readiness": "review",
+            "decision": "hold_runtime_profile_suite",
+            "reason": "m2 is missing",
+            "profile_count": 1,
+            "approved_profile_count": 1,
+            "missing_required_profiles": ["m2"],
+            "profiles": [{
+                "path": profile_path,
+                "name": "m1_safe_profile",
+                "readiness": "approved",
+            }],
+        }, f)
+
+    runner = BenchmarkRunner(Config())
+    skipped = runner.run_runtime_profile_suite_preflight(suite="m1")
+    assert skipped["ready"]
+    assert skipped["readiness"] == "not_required"
+
+    missing = runner.run_runtime_profile_suite_preflight(
+        suite="m1",
+        profile_paths=[profile_path],
+        suite_report_paths=[],
+    )
+    assert not missing["ready"]
+    assert missing["readiness"] == "review"
+    assert "runtime_profile_suite_report" in missing["missing"]
+
+    approved = runner.run_runtime_profile_suite_preflight(
+        suite="m1",
+        profile_paths=[profile_path],
+        suite_report_paths=[approved_suite_path],
+    )
+    assert approved["ready"]
+    assert approved["readiness"] == "approved"
+    assert approved["decision"] == "allow_runtime_profile_benchmark"
+    assert approved["covered_profile_paths"] == [profile_path]
+    assert approved["covered_required_profiles"] == ["m1"]
+
+    review = runner.run_runtime_profile_suite_preflight(
+        suite="m1",
+        profile_paths=[profile_path],
+        suite_report_paths=[review_suite_path],
+        required_profiles=["m1", "m2"],
+    )
+    assert not review["ready"]
+    assert review["readiness"] == "review"
+    assert review["decision"] == "hold_runtime_profile_benchmark"
+    assert review["approved_suite_report_count"] == 0
+    print("PASS: Runtime profile suite preflight requires approved suite coverage")
+
+
 def test_action_value_transition_preflight_requires_approved_gate_and_evaluator():
     tmpdir = tempfile.mkdtemp()
     feedback_path = os.path.join(tmpdir, "action_value_feedback.json")
@@ -5261,6 +5338,7 @@ if __name__ == "__main__":
     test_skill_lifecycle_report_tracks_ready_and_refinement_paths()
     test_skill_runtime_default_gate_requires_lifecycle_transfer_and_quality()
     test_skill_runtime_default_preflight_requires_approved_family_coverage()
+    test_runtime_profile_suite_preflight_requires_approved_suite_coverage()
     test_action_value_transition_preflight_requires_approved_gate_and_evaluator()
     test_visual_action_benchmark_ablation_compares_live_suite_modes()
     test_mixed_policy_benchmark_ablation_compares_live_patch_modes()

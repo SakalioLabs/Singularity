@@ -3026,6 +3026,247 @@ class BenchmarkRunner:
         report["ready"] = report["readiness"] in {"approved", "not_required"}
         return report
 
+    def run_runtime_profile_suite_preflight(
+        self,
+        suite: str = "m1",
+        profile_paths: Optional[list[str]] = None,
+        suite_report_paths: Optional[list[str]] = None,
+        required_profiles: Optional[list[str]] = None,
+    ) -> dict:
+        """Require approved runtime-profile suite evidence before profile-assisted benchmarks."""
+        clean_profile_paths = self._dedupe_strings([path for path in (profile_paths or []) if path])
+        clean_report_paths = self._dedupe_strings([path for path in (suite_report_paths or []) if path])
+        required_labels = self._dedupe_strings([
+            str(value or "").strip().lower()
+            for value in (
+                required_profiles
+                if required_profiles
+                else self._runtime_profile_suite_required_profiles_for_suite(suite)
+            )
+            if str(value or "").strip()
+        ])
+        required = bool(clean_profile_paths or clean_report_paths)
+        report = {
+            "required": required,
+            "ready": not required,
+            "readiness": "not_required" if not required else "review",
+            "decision": "skip_runtime_profile_suite_preflight" if not required else "hold_runtime_profile_benchmark",
+            "reason": "no runtime profiles or suite reports configured",
+            "suite": suite,
+            "profile_paths": list(clean_profile_paths),
+            "suite_report_paths": list(clean_report_paths),
+            "required_profiles": required_labels,
+            "suite_report_count": 0,
+            "approved_suite_report_count": 0,
+            "review_suite_report_count": 0,
+            "rejected_suite_report_count": 0,
+            "error_suite_report_count": 0,
+            "covered_profile_paths": [],
+            "missing_profile_paths": [],
+            "covered_required_profiles": [],
+            "missing_required_profiles": [],
+            "suite_reports": [],
+            "checks": [],
+            "missing": [],
+            "errors": [],
+        }
+        if not required:
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "runtime_profile_suite_preflight",
+                "pass",
+                "no runtime profiles are configured for this benchmark",
+                {"profile_paths": 0, "suite_report_paths": 0},
+            ))
+            return report
+        if clean_profile_paths and not clean_report_paths:
+            report["missing"].append("runtime_profile_suite_report")
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "runtime_profile_suite_report",
+                "warn",
+                "runtime profiles are configured without an approved suite report",
+                {"profile_paths": len(clean_profile_paths)},
+            ))
+
+        suite_items = self._load_gate_payloads(
+            [],
+            clean_report_paths,
+            report["errors"],
+            "runtime_profile_suite_report",
+        )
+        report["suite_report_count"] = len(suite_items)
+        if clean_report_paths and not suite_items:
+            report["missing"].append("runtime_profile_suite_report")
+
+        approved_profile_keys = set()
+        approved_profile_labels = set()
+        required_covered = set()
+        report_readinesses = []
+        for source, payload in suite_items:
+            suite_payload = payload.get("runtime_profile_suite_report", payload) if isinstance(payload, dict) else {}
+            if not isinstance(suite_payload, dict):
+                report["errors"].append(f"{source}: runtime_profile_suite_report payload must be a dict")
+                continue
+            if str(suite_payload.get("type") or "").strip() != "runtime_profile_suite_report":
+                report["errors"].append(f"{source}: report type must be runtime_profile_suite_report")
+                continue
+            readiness = str(suite_payload.get("readiness") or "").strip().lower() or "unknown"
+            decision = str(suite_payload.get("decision") or "").strip()
+            suite_summary = {
+                "path": source,
+                "readiness": readiness,
+                "decision": decision,
+                "reason": str(suite_payload.get("reason") or "").strip()[:300],
+                "profile_count": self._gate_int(suite_payload.get("profile_count", 0)),
+                "approved_profile_count": self._gate_int(suite_payload.get("approved_profile_count", 0)),
+                "review_profile_count": self._gate_int(suite_payload.get("review_profile_count", 0)),
+                "rejected_profile_count": self._gate_int(suite_payload.get("rejected_profile_count", 0)),
+                "error_profile_count": self._gate_int(suite_payload.get("error_profile_count", 0)),
+                "required_profiles": self._dedupe_strings([
+                    str(value or "").strip().lower()
+                    for value in suite_payload.get("required_profiles", [])
+                    if str(value or "").strip()
+                ]) if isinstance(suite_payload.get("required_profiles", []), list) else [],
+                "missing_required_profiles": self._dedupe_strings([
+                    str(value or "").strip().lower()
+                    for value in suite_payload.get("missing_required_profiles", [])
+                    if str(value or "").strip()
+                ]) if isinstance(suite_payload.get("missing_required_profiles", []), list) else [],
+            }
+            report["suite_reports"].append(suite_summary)
+            report_readinesses.append(readiness)
+            if readiness == "approved":
+                report["approved_suite_report_count"] += 1
+            elif readiness == "rejected":
+                report["rejected_suite_report_count"] += 1
+            elif readiness == "error":
+                report["error_suite_report_count"] += 1
+            else:
+                report["review_suite_report_count"] += 1
+            status = "pass" if readiness == "approved" else "fail" if readiness in {"rejected", "error"} else "warn"
+            report["checks"].append(self._gate_check(
+                source,
+                "runtime_profile_suite_report",
+                status,
+                suite_summary["reason"] or f"runtime profile suite readiness is {readiness}",
+                {
+                    "profile_count": suite_summary["profile_count"],
+                    "approved_profile_count": suite_summary["approved_profile_count"],
+                    "missing_required_profiles": len(suite_summary["missing_required_profiles"]),
+                },
+            ))
+            if readiness != "approved":
+                continue
+            for profile in suite_payload.get("profiles", []) if isinstance(suite_payload.get("profiles", []), list) else []:
+                if not isinstance(profile, dict):
+                    continue
+                if str(profile.get("readiness") or "").strip().lower() != "approved":
+                    continue
+                path = str(profile.get("path") or "").strip()
+                name = str(profile.get("name") or "").strip()
+                if path:
+                    approved_profile_keys.add(self._runtime_profile_suite_path_key(path))
+                label = self._runtime_profile_suite_label(path, name)
+                if label:
+                    approved_profile_labels.add(label)
+            for label in required_labels:
+                if label and any(label in profile_label for profile_label in approved_profile_labels):
+                    required_covered.add(label)
+
+        requested_profile_keys = {
+            self._runtime_profile_suite_path_key(path)
+            for path in clean_profile_paths
+        }
+        covered_profile_paths = [
+            path for path in clean_profile_paths
+            if self._runtime_profile_suite_path_key(path) in approved_profile_keys
+        ]
+        missing_profile_paths = [
+            path for path in clean_profile_paths
+            if self._runtime_profile_suite_path_key(path) not in approved_profile_keys
+        ]
+        report["covered_profile_paths"] = covered_profile_paths
+        report["missing_profile_paths"] = missing_profile_paths
+        report["covered_required_profiles"] = sorted(required_covered)
+        report["missing_required_profiles"] = [
+            label for label in required_labels
+            if label not in required_covered
+        ]
+        if requested_profile_keys and missing_profile_paths:
+            report["missing"].append("runtime_profile_path_coverage")
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "runtime_profile_path_coverage",
+                "warn",
+                "approved suite reports do not cover every configured runtime profile path",
+                {
+                    "configured_profile_paths": len(clean_profile_paths),
+                    "covered_profile_paths": len(covered_profile_paths),
+                    "missing_profile_paths": len(missing_profile_paths),
+                },
+            ))
+        elif clean_profile_paths:
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "runtime_profile_path_coverage",
+                "pass",
+                "approved suite reports cover every configured runtime profile path",
+                {
+                    "configured_profile_paths": len(clean_profile_paths),
+                    "covered_profile_paths": len(covered_profile_paths),
+                },
+            ))
+        if report["missing_required_profiles"]:
+            report["missing"].append("runtime_profile_suite_required_profile_coverage")
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "runtime_profile_suite_required_profile_coverage",
+                "warn",
+                "approved suite reports do not cover every required benchmark profile label",
+                {
+                    "required_profiles": required_labels,
+                    "covered_required_profiles": report["covered_required_profiles"],
+                    "missing_required_profiles": report["missing_required_profiles"],
+                },
+            ))
+        elif required_labels:
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "runtime_profile_suite_required_profile_coverage",
+                "pass",
+                "approved suite reports cover every required benchmark profile label",
+                {"required_profiles": required_labels},
+            ))
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "block_runtime_profile_benchmark"
+            report["reason"] = "runtime profile suite preflight inputs could not be loaded"
+        elif report["error_suite_report_count"]:
+            report["readiness"] = "error"
+            report["decision"] = "block_runtime_profile_benchmark"
+            report["reason"] = "runtime profile suite report has error readiness"
+        elif report["rejected_suite_report_count"]:
+            report["readiness"] = "rejected"
+            report["decision"] = "block_runtime_profile_benchmark"
+            report["reason"] = "runtime profile suite report rejected profile readiness"
+        elif not report["approved_suite_report_count"]:
+            report["readiness"] = "review"
+            report["decision"] = "hold_runtime_profile_benchmark"
+            report["reason"] = "no approved runtime profile suite report is available"
+        elif report["missing"]:
+            report["readiness"] = "review"
+            report["decision"] = "hold_runtime_profile_benchmark"
+            report["reason"] = "runtime profile suite preflight is missing required evidence"
+        else:
+            report["ready"] = True
+            report["readiness"] = "approved"
+            report["decision"] = "allow_runtime_profile_benchmark"
+            report["reason"] = "approved runtime profile suite evidence covers this benchmark run"
+        report["ready"] = report["readiness"] in {"approved", "not_required"}
+        return report
+
     def run_knowledge_correction_preflight(
         self,
         tasks: Optional[list[BenchmarkTask]] = None,
@@ -8394,6 +8635,29 @@ class BenchmarkRunner:
             "detail": detail,
             "metrics": metrics,
         }
+
+    def _runtime_profile_suite_required_profiles_for_suite(self, suite: str) -> list[str]:
+        suite_key = str(suite or "").strip().lower()
+        if suite_key == "all":
+            return ["m1", "m2"]
+        if suite_key in {"m1", "m2"}:
+            return [suite_key]
+        return [suite_key] if suite_key else []
+
+    def _runtime_profile_suite_path_key(self, path: str) -> str:
+        return os.path.normcase(os.path.abspath(os.path.normpath(str(path or ""))))
+
+    def _runtime_profile_suite_label(self, path: str, name: str = "") -> str:
+        path_text = str(path or "").replace("\\", "/").lower()
+        basename = os.path.basename(path_text)
+        stem = os.path.splitext(basename)[0]
+        parts = [
+            path_text,
+            basename,
+            stem,
+            str(name or "").lower(),
+        ]
+        return " ".join(part for part in parts if part)
 
     def _gate_int(self, value) -> int:
         try:
@@ -15905,6 +16169,23 @@ class BenchmarkRunner:
             json.dump(report, f, indent=2, ensure_ascii=False)
         logger.info(f"Skill-memory quality preflight saved to {path}")
 
+    def save_runtime_profile_suite_preflight_report(
+        self,
+        report: dict,
+        filename: str = "runtime_profile_suite_preflight.json",
+    ):
+        path = filename
+        if not os.path.isabs(path) and not os.path.dirname(path):
+            os.makedirs(self.output_dir, exist_ok=True)
+            path = os.path.join(self.output_dir, path)
+        else:
+            parent = os.path.dirname(path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+        logger.info(f"Runtime profile suite preflight saved to {path}")
+
     def save_action_value_transition_preflight_report(
         self,
         report: dict,
@@ -16122,6 +16403,43 @@ class BenchmarkRunner:
                 f"apps={case.get('quality_policy_application_count', 0)} "
                 f"promoted={len(case.get('promoted', []))} demoted={len(case.get('demoted', []))}"
             )
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+
+    def print_runtime_profile_suite_preflight_report(self, report: dict):
+        print("\nRuntime Profile Suite Benchmark Preflight")
+        print(f"  suite: {report.get('suite', 'm1')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  inputs: "
+            f"profiles={len(report.get('profile_paths', []))}, "
+            f"suite_reports={report.get('approved_suite_report_count', 0)}/"
+            f"{report.get('suite_report_count', 0)} approved"
+        )
+        if report.get("required_profiles"):
+            print(f"  required profiles: {', '.join(report.get('required_profiles', []))}")
+        if report.get("missing_required_profiles"):
+            print(f"  missing required: {', '.join(report.get('missing_required_profiles', []))}")
+        if report.get("missing_profile_paths"):
+            print(f"  missing profile paths: {', '.join(report.get('missing_profile_paths', []))}")
+        for suite_report in report.get("suite_reports", [])[:6]:
+            marker = "+" if suite_report.get("readiness") == "approved" else (
+                "x" if suite_report.get("readiness") in {"rejected", "error"} else "!"
+            )
+            print(
+                f"  [{marker}] suite {suite_report.get('path')}: {suite_report.get('readiness')} "
+                f"profiles={suite_report.get('approved_profile_count', 0)}/"
+                f"{suite_report.get('profile_count', 0)} approved"
+            )
+            if suite_report.get("missing_required_profiles"):
+                print(f"      missing: {', '.join(suite_report.get('missing_required_profiles', []))}")
+            if suite_report.get("reason"):
+                print(f"      {suite_report.get('reason')}")
+        for check in report.get("checks", [])[:12]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
         for error in report.get("errors", []):
             print(f"  error: {error}")
 

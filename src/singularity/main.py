@@ -446,6 +446,10 @@ def main():
     _add_skill_runtime_default_args(bench_parser)
     bench_parser.add_argument("--skill-runtime-default-preflight", action="store_true", help="Run approved runtime-default gate coverage preflight before learned default-skill benchmarks")
     bench_parser.add_argument("--skill-runtime-default-preflight-output", type=str, default="", help="Optional JSON path for the skill runtime-default benchmark preflight report")
+    bench_parser.add_argument("--runtime-profile-suite-report", action="append", default=[], help="Approved runtime-profile-suite-report JSON required before profile-assisted benchmarks")
+    bench_parser.add_argument("--runtime-profile-suite-preflight", action="store_true", help="Run runtime profile suite coverage preflight before profile-assisted benchmarks")
+    bench_parser.add_argument("--runtime-profile-suite-preflight-output", type=str, default="", help="Optional JSON path for the runtime profile suite benchmark preflight report")
+    bench_parser.add_argument("--runtime-profile-suite-required-profile", action="append", default=[], help="Required profile label for this benchmark preflight, such as m1 or m2")
     _add_coaching_args(bench_parser)
     bench_parser.add_argument("--coach-style-ablation", action="append", default=[], help="coach-style-ablation JSON used by benchmark coach-style preflight")
     bench_parser.add_argument("--coach-style-gate", action="append", default=[], help="Approved coach-style-gate JSON required before coach-style benchmark runs")
@@ -4209,6 +4213,24 @@ def main():
             )
             runner.print_preflight(report)
             if not report.ok:
+                sys.exit(1)
+        runtime_profile_suite_paths = getattr(args, "runtime_profile_suite_report", []) or []
+        if (
+            getattr(args, "runtime_profile_suite_preflight", False)
+            or runtime_profile_suite_paths
+            or getattr(args, "runtime_profile", [])
+        ):
+            report = runner.run_runtime_profile_suite_preflight(
+                suite=args.suite,
+                profile_paths=getattr(args, "runtime_profile", []) or [],
+                suite_report_paths=runtime_profile_suite_paths,
+                required_profiles=getattr(args, "runtime_profile_suite_required_profile", []) or [],
+            )
+            runner.print_runtime_profile_suite_preflight_report(report)
+            runtime_profile_suite_preflight_output = getattr(args, "runtime_profile_suite_preflight_output", "") or ""
+            if runtime_profile_suite_preflight_output:
+                runner.save_runtime_profile_suite_preflight_report(report, runtime_profile_suite_preflight_output)
+            if not report.get("ready"):
                 sys.exit(1)
         quality_feedback_paths = config.skill_memory_quality_feedback_paths
         if getattr(args, "skill_memory_quality_preflight", False) or quality_feedback_paths:
