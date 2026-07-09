@@ -113,6 +113,11 @@ class MemorySystem:
         self.l6_research: list[dict] = []    # Paper/repo cards
         self.entries: dict[str, MemoryEntry] = {}
         self.experiences: dict[str, ExperienceRecord] = {}
+        self.memory_attribution_profile = {
+            "enabled": False,
+            "hints_by_id": {},
+            "hint_count": 0,
+        }
         self.entries_path = os.path.join(memory_dir, "memory_entries.jsonl")
         self.experiences_path = os.path.join(memory_dir, "experience_records.jsonl")
         self.causal_events_path = os.path.join(memory_dir, "causal_events.jsonl")
@@ -368,6 +373,8 @@ class MemorySystem:
                 query_words,
                 state_words,
             )
+            attribution = self._attribution_hint_for_id(record.id)
+            score = self._apply_attribution_weight(score, attribution)
             if score < min_score:
                 continue
             ranked.append({
@@ -381,6 +388,8 @@ class MemorySystem:
                 "matched_axes": [axis for axis, value in axis_scores.items() if value > 0],
                 "axis_scores": {axis: round(value, 4) for axis, value in axis_scores.items() if value > 0},
                 "axis_matches": axis_matches,
+                "attribution_weight_delta": attribution.get("weight_delta", 0.0),
+                "attribution_policy": attribution.get("policy", ""),
                 "base_matches": base_matches,
                 "tags": list(record.tags),
                 "causal": dict(record.causal),
@@ -413,6 +422,49 @@ class MemorySystem:
                 mark_recalled=True,
             )
         ]
+
+    def apply_memory_attribution_runtime_gate(self, runtime_gate: dict) -> dict:
+        """Load an approved attribution profile for conservative retrieval weighting."""
+        profile = {
+            "enabled": False,
+            "hint_count": 0,
+            "hints_by_id": {},
+            "reason": "memory attribution gate is not approved",
+        }
+        if not isinstance(runtime_gate, dict):
+            self.memory_attribution_profile = profile
+            return profile
+        if not runtime_gate.get("effective_enable_weighted_memory_retrieval"):
+            profile["reason"] = str(runtime_gate.get("reason") or profile["reason"])
+            self.memory_attribution_profile = profile
+            return profile
+        hints = runtime_gate.get("retrieval_weight_hints", [])
+        if not isinstance(hints, list):
+            hints = []
+        for hint in hints:
+            if not isinstance(hint, dict):
+                continue
+            memory_id = str(hint.get("memory_id") or "").strip()
+            if not memory_id:
+                continue
+            profile["hints_by_id"][memory_id] = {
+                "memory_id": memory_id,
+                "weight_delta": self._bounded_attribution_delta(hint.get("weight_delta")),
+                "policy": str(hint.get("policy") or ""),
+                "reason": str(hint.get("reason") or "")[:160],
+                "supported_read_count": _safe_int(hint.get("supported_read_count", 0)),
+                "conflicting_read_count": _safe_int(hint.get("conflicting_read_count", 0)),
+                "no_result_read_count": _safe_int(hint.get("no_result_read_count", 0)),
+            }
+        profile["hint_count"] = len(profile["hints_by_id"])
+        profile["enabled"] = bool(profile["hint_count"])
+        profile["reason"] = (
+            "approved memory attribution gate loaded retrieval weights"
+            if profile["enabled"]
+            else "approved memory attribution gate did not include memory-id weight hints"
+        )
+        self.memory_attribution_profile = profile
+        return profile
 
     def curate_entries(self, char_limit: Optional[int] = None) -> list[MemoryEntry]:
         """Return the highest-value memories that fit within a character budget."""
@@ -449,17 +501,10 @@ class MemorySystem:
         """Search L2+L3 and transfer records for information relevant to query."""
         parts = []
         query_words = self._keywords(query)
-        recalled_entries = False
-        for entry in self.entries.values():
-            if not self._entry_applicable(entry, current_state):
-                continue
-            entry_words = self._keywords(entry.prompt_line())
-            if query_words & entry_words:
-                self._mark_entry_recalled(entry, query)
-                recalled_entries = True
+        for item in self._rank_memory_entries_for_query(query, current_state=current_state, limit=5, mark_recalled=True):
+            entry = self.entries.get(item["id"])
+            if entry:
                 parts.append(f"Memory: {entry.prompt_line()}")
-        if recalled_entries:
-            self._rewrite_entries()
         for key, fact in self.l3_semantic.items():
             if any(word in key.lower() or word in fact["value"].lower() for word in query.lower().split()[:3]):
                 parts.append(f"Fact: {key} = {fact['value']}")
@@ -983,6 +1028,8 @@ class MemorySystem:
                 + len(tag_matches) * 0.5
                 + entry.importance * entry.confidence
             )
+            attribution = self._attribution_hint_for_id(entry.id)
+            score = self._apply_attribution_weight(score, attribution)
             ranked.append({
                 "id": entry.id,
                 "content": entry.content,
@@ -991,6 +1038,8 @@ class MemorySystem:
                 "tags": list(entry.tags),
                 "score": round(score, 4),
                 "matches": matches[:12],
+                "attribution_weight_delta": attribution.get("weight_delta", 0.0),
+                "attribution_policy": attribution.get("policy", ""),
                 "source": entry.source,
             })
         ranked.sort(key=lambda item: (item["score"], len(item["matches"])), reverse=True)
@@ -1022,6 +1071,26 @@ class MemorySystem:
             recall_queries.append(signature)
         if len(recall_queries) > 20:
             del recall_queries[:-20]
+
+    def _attribution_hint_for_id(self, memory_id: str) -> dict:
+        profile = self.memory_attribution_profile if isinstance(self.memory_attribution_profile, dict) else {}
+        if not profile.get("enabled"):
+            return {}
+        hints = profile.get("hints_by_id", {}) if isinstance(profile.get("hints_by_id", {}), dict) else {}
+        return hints.get(str(memory_id or "").strip(), {}) if hints else {}
+
+    def _apply_attribution_weight(self, score: float, attribution: dict) -> float:
+        if not attribution:
+            return score
+        delta = self._bounded_attribution_delta(attribution.get("weight_delta"))
+        return max(0.0, float(score or 0.0) * (1.0 + delta))
+
+    def _bounded_attribution_delta(self, value) -> float:
+        try:
+            delta = float(value or 0.0)
+        except (TypeError, ValueError):
+            delta = 0.0
+        return max(-0.5, min(0.5, delta))
 
     def _entry_applicable(self, entry: MemoryEntry, current_state: Optional[dict] = None) -> bool:
         return not self._entry_filter_reasons(entry, current_state)
@@ -1358,6 +1427,8 @@ def evaluate_memory_attribution_runtime_gate(
         "gate_readiness": "not_required" if not enable_requested else "missing",
         "gate_approved": not bool(enable_requested),
         "gate_reports": [],
+        "retrieval_weight_hints": [],
+        "retrieval_weight_hint_count": 0,
         "missing": [],
         "errors": [],
     }
@@ -1390,6 +1461,25 @@ def evaluate_memory_attribution_runtime_gate(
                 "no_result_read_count": _safe_int(payload.get("no_result_read_count", 0)),
             }
             report["gate_reports"].append(summary)
+            hints = payload.get("retrieval_weight_hints", [])
+            if isinstance(hints, list):
+                for hint in hints:
+                    if not isinstance(hint, dict):
+                        continue
+                    memory_id = str(hint.get("memory_id") or "").strip()
+                    if not memory_id:
+                        continue
+                    report["retrieval_weight_hints"].append({
+                        "memory_id": memory_id,
+                        "layer": str(hint.get("layer") or "unknown")[:80],
+                        "memory_type": str(hint.get("memory_type") or "unknown")[:80],
+                        "policy": str(hint.get("policy") or "")[:80],
+                        "reason": str(hint.get("reason") or "")[:160],
+                        "weight_delta": max(-0.5, min(0.5, _safe_float(hint.get("weight_delta"), 0.0))),
+                        "supported_read_count": _safe_int(hint.get("supported_read_count", 0)),
+                        "conflicting_read_count": _safe_int(hint.get("conflicting_read_count", 0)),
+                        "no_result_read_count": _safe_int(hint.get("no_result_read_count", 0)),
+                    })
             report["gate_count"] += 1
             readinesses.append(readiness)
             if readiness == "approved":
@@ -1430,6 +1520,8 @@ def evaluate_memory_attribution_runtime_gate(
         report["gate_readiness"] = "review" if readinesses else "missing"
         report["decision"] = "hold_weighted_memory_retrieval"
         report["reason"] = "memory attribution gate is not approved"
+    report["retrieval_weight_hints"] = report["retrieval_weight_hints"][:80]
+    report["retrieval_weight_hint_count"] = len(report["retrieval_weight_hints"])
     return report
 
 
@@ -1448,3 +1540,10 @@ def _safe_int(value) -> int:
         return int(float(value or 0))
     except (TypeError, ValueError):
         return 0
+
+
+def _safe_float(value, default: float = 0.0) -> float:
+    try:
+        return float(value if value not in (None, "") else default)
+    except (TypeError, ValueError):
+        return default

@@ -621,6 +621,19 @@ def test_memory_promptware_runtime_gate_controls_strict_write_enforcement():
 
 def test_memory_attribution_runtime_gate_controls_weighted_retrieval():
     tmpdir = tempfile.mkdtemp()
+    memory = MemorySystem(memory_dir=os.path.join(tmpdir, "profile_memory"), persist=False)
+    baseline = memory.add_memory(
+        "Coal and sticks make torches before night.",
+        tags=["coal", "torch"],
+        importance=0.5,
+        confidence=0.5,
+    )
+    supported = memory.add_memory(
+        "Coal and sticks make torches before night with the verified route.",
+        tags=["coal", "torch"],
+        importance=0.5,
+        confidence=0.5,
+    )
     approved_gate_path = os.path.join(tmpdir, "memory_attribution_gate_approved.json")
     rejected_gate_path = os.path.join(tmpdir, "memory_attribution_gate_rejected.json")
     with open(approved_gate_path, "w", encoding="utf-8") as f:
@@ -634,6 +647,15 @@ def test_memory_attribution_runtime_gate_controls_weighted_retrieval():
             "supported_read_count": 3,
             "conflicting_read_count": 0,
             "no_result_read_count": 0,
+            "retrieval_weight_hints": [{
+                "memory_id": supported.id,
+                "policy": "boost_supported_memory",
+                "reason": "supported downstream outcome after retrieval",
+                "weight_delta": 0.5,
+                "supported_read_count": 3,
+                "conflicting_read_count": 0,
+                "no_result_read_count": 0,
+            }],
         }, f)
     with open(rejected_gate_path, "w", encoding="utf-8") as f:
         json.dump({
@@ -661,6 +683,18 @@ def test_memory_attribution_runtime_gate_controls_weighted_retrieval():
     assert approved["readiness"] == "approved"
     assert approved["gate_approved"] is True
     assert approved["effective_enable_weighted_memory_retrieval"] is True
+    assert approved["retrieval_weight_hint_count"] == 1
+
+    ranked_before = memory._rank_memory_entries_for_query("coal torch night", limit=2)
+    assert ranked_before[0]["id"] == baseline.id
+    profile = memory.apply_memory_attribution_runtime_gate(approved)
+    ranked_after = memory._rank_memory_entries_for_query("coal torch night", limit=2)
+    assert profile["enabled"] is True
+    assert ranked_after[0]["id"] == supported.id
+    assert ranked_after[0]["attribution_weight_delta"] == 0.5
+    assert ranked_after[0]["attribution_policy"] == "boost_supported_memory"
+    relevant = memory.get_relevant_memory("coal torch night")
+    assert relevant.splitlines()[0].endswith(supported.prompt_line())
 
     default_report = evaluate_memory_attribution_runtime_gate([], enable_requested=False)
     assert default_report["readiness"] == "not_required"
@@ -681,6 +715,8 @@ def test_memory_attribution_runtime_gate_controls_weighted_retrieval():
     assert ungated_agent.enable_weighted_memory_retrieval is False
     assert gated_agent.memory_attribution_runtime_gate_report["effective_enable_weighted_memory_retrieval"] is True
     assert gated_agent.enable_weighted_memory_retrieval is True
+    assert gated_agent.memory_attribution_profile["enabled"] is True
+    assert supported.id in gated_agent.memory_attribution_profile["hints_by_id"]
     print("PASS: Memory attribution runtime gate controls weighted retrieval")
 
 

@@ -3482,6 +3482,7 @@ def test_memory_attribution_gate_controls_weighted_retrieval_profile():
                 "memory_type": "relevant_memory",
                 "source": "planner_memory",
                 "query": "craft torch route",
+                "memory_id": "torch_semantic_supported",
                 "result_chars": 200,
                 "has_result": True,
             },
@@ -3493,6 +3494,7 @@ def test_memory_attribution_gate_controls_weighted_retrieval_profile():
                 "memory_type": "task_memory",
                 "source": "planner_task_memory",
                 "query": "torch task setup",
+                "memory_id": "torch_task_supported",
                 "result_chars": 80,
                 "has_result": True,
             },
@@ -3542,6 +3544,12 @@ def test_memory_attribution_gate_controls_weighted_retrieval_profile():
     assert ready_gate["conflicting_read_count"] == 0
     assert ready_gate["attributed_read_rate"] == 1.0
     assert ready_gate["failure_count"] == 0
+    assert ready_gate["retrieval_weight_hint_count"] == 2
+    assert {hint["memory_id"] for hint in ready_gate["retrieval_weight_hints"]} == {
+        "torch_semantic_supported",
+        "torch_task_supported",
+    }
+    assert all(hint["policy"] == "boost_supported_memory" for hint in ready_gate["retrieval_weight_hints"])
     assert "promote_supported_memory_reads_only_after_gate" in ready_gate["policy_hints"]
 
     assert blocked_gate["readiness"] == "rejected"

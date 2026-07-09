@@ -92,6 +92,9 @@ class Agent:
         self.enable_weighted_memory_retrieval = bool(
             self.memory_attribution_runtime_gate_report.get("effective_enable_weighted_memory_retrieval")
         )
+        self.memory_attribution_profile = self.memory.apply_memory_attribution_runtime_gate(
+            self.memory_attribution_runtime_gate_report
+        )
         if getattr(config, "enable_weighted_memory_retrieval", False) and not self.enable_weighted_memory_retrieval:
             logger.warning(
                 "Weighted memory retrieval disabled: "

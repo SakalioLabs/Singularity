@@ -9612,6 +9612,8 @@ class BenchmarkRunner:
             "failure_count": 0,
             "missing": [],
             "policy_hints": [],
+            "retrieval_weight_hints": [],
+            "retrieval_weight_hint_count": 0,
             "checks": [],
             "errors": [],
         }
@@ -9646,6 +9648,8 @@ class BenchmarkRunner:
                 if hint:
                     policy_hints.add(str(hint))
 
+        report["retrieval_weight_hints"] = self._memory_attribution_weight_hints(items)
+        report["retrieval_weight_hint_count"] = len(report["retrieval_weight_hints"])
         total_reads = max(0, report["memory_read_count"])
         attributed_reads = max(0, report["attributed_read_count"])
         report["attributed_read_rate"] = round(attributed_reads / total_reads, 3) if total_reads else 0.0
@@ -9684,6 +9688,77 @@ class BenchmarkRunner:
             report["decision"] = "allow_weighted_memory_retrieval_profile"
             report["reason"] = "memory reads are outcome-attributed with enough supported and low-risk evidence"
         return report
+
+    def _memory_attribution_weight_hints(self, items: list[tuple[str, dict]]) -> list[dict]:
+        buckets = {}
+        for source, payload in items:
+            cases = payload.get("cases", []) if isinstance(payload.get("cases", []), list) else []
+            for case in cases:
+                if not isinstance(case, dict):
+                    continue
+                case_items = case.get("items", []) if isinstance(case.get("items", []), list) else []
+                for item in case_items:
+                    if not isinstance(item, dict):
+                        continue
+                    memory_id = str(item.get("memory_id") or "").strip()
+                    if not memory_id:
+                        continue
+                    bucket = buckets.setdefault(memory_id, {
+                        "memory_id": memory_id,
+                        "layer": str(item.get("layer") or "unknown"),
+                        "memory_type": str(item.get("memory_type") or "unknown"),
+                        "source": str(item.get("source") or source or "unknown")[:100],
+                        "supported_read_count": 0,
+                        "conflicting_read_count": 0,
+                        "review_read_count": 0,
+                        "no_result_read_count": 0,
+                    })
+                    label = str(item.get("quality_label") or "review").strip().lower()
+                    if label == "supported":
+                        bucket["supported_read_count"] += 1
+                    elif label == "conflicting":
+                        bucket["conflicting_read_count"] += 1
+                    elif label == "no_result":
+                        bucket["no_result_read_count"] += 1
+                    else:
+                        bucket["review_read_count"] += 1
+        hints = []
+        for bucket in buckets.values():
+            supported = self._safe_int(bucket.get("supported_read_count", 0))
+            conflicting = self._safe_int(bucket.get("conflicting_read_count", 0))
+            no_result = self._safe_int(bucket.get("no_result_read_count", 0))
+            review = self._safe_int(bucket.get("review_read_count", 0))
+            if conflicting:
+                policy = "demote_conflicting_memory"
+                weight_delta = max(-0.5, -0.25 * conflicting)
+                reason = "conflicting downstream outcome after retrieval"
+            elif no_result:
+                policy = "demote_no_result_memory"
+                weight_delta = max(-0.25, -0.1 * no_result)
+                reason = "retrieval returned no usable result"
+            elif supported:
+                policy = "boost_supported_memory"
+                weight_delta = min(0.5, 0.15 * supported)
+                reason = "supported downstream outcome after retrieval"
+            else:
+                policy = "review_only_memory"
+                weight_delta = 0.0
+                reason = "insufficient decisive retrieval outcome evidence"
+            hints.append({
+                **bucket,
+                "total_read_count": supported + conflicting + no_result + review,
+                "weight_delta": round(weight_delta, 3),
+                "policy": policy,
+                "reason": reason,
+            })
+        hints.sort(
+            key=lambda item: (
+                item.get("policy") != "boost_supported_memory",
+                -abs(float(item.get("weight_delta") or 0.0)),
+                item.get("memory_id", ""),
+            )
+        )
+        return hints[:80]
 
     def _memory_attribution_gate_check(self, source: str, payload: dict, thresholds: dict) -> dict:
         feedback = payload.get("memory_attribution_feedback", payload) if isinstance(payload, dict) else {}
@@ -18651,7 +18726,8 @@ class BenchmarkRunner:
             f"attributed={report.get('attributed_read_count', 0)}, "
             f"supported={report.get('supported_read_count', 0)}, "
             f"conflicting={report.get('conflicting_read_count', 0)}, "
-            f"no_result={report.get('no_result_read_count', 0)}"
+            f"no_result={report.get('no_result_read_count', 0)}, "
+            f"weight_hints={report.get('retrieval_weight_hint_count', 0)}"
         )
         print(
             "  rates: "

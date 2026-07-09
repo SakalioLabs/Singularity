@@ -123,6 +123,7 @@
 - [x] Add MemTier-style `memory-attribution-report` so generic `memory_read` events can be labeled against downstream plan/action/goal outcomes before retrieval weights or durable memories are updated.
 - [x] Add `memory-attribution-gate` so weighted retrieval profiles are approved only after supported outcome-attributed reads are present and conflicting/no-result retrievals stay within thresholds.
 - [x] Wire `memory-attribution-gate` into runtime configs/profiles so `--enable-weighted-memory-retrieval` is ineffective without approved attribution evidence.
+- [x] Let approved `memory-attribution-gate` reports carry memory-id `retrieval_weight_hints` into `MemorySystem` so supported memories are boosted and conflicting/no-result hints can be demoted without raw query text.
 - [ ] Run `memory-attribution-report` on real M1/M2/autonomous logs and compare supported/conflicting reads against memory quality feedback before enabling weighted retrieval updates.
 - [x] Add GovMem-style correlated-evidence and unsafe-scope flags to `MemoryLifecyclePolicy` so shared, copied, stale, out-of-scope, adversarial, or contradicted memory candidates are routed through review before durable promotion.
 - [x] Add provenance/dependency metadata to M7 shared-state memory candidates and summarize GovMem-style false-promotion review counts in collaboration execution reports.
