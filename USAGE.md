@@ -147,6 +147,7 @@ python -m singularity.main task-memory-report --memory-dir workspace/memory --go
 # and feed the latest unresolved ready/blocked/failed tasks back into planner context.
 # Use --no-task-continuity-context on run/autonomous/benchmark/collab-benchmark
 # for baseline runs that should not read or write those checkpoints.
+python -m singularity.main task-continuity-report --memory-dir workspace/memory --goal "Craft torches before night" --current-state-json '{"inventory":{"stick":1},"nearby_blocks":[{"name":"coal_ore"}]}'
 
 # Audit session logs for memory write/read/manage policy gaps
 python -m singularity.main memory-policy-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/memory_policy.json

@@ -833,6 +833,18 @@ def main():
     task_memory_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     task_memory_parser.add_argument("--log-level", type=str, default="INFO")
 
+    task_continuity_parser = subparsers.add_parser(
+        "task-continuity-report",
+        help="Report durable task-continuity checkpoints for resuming unresolved tasks",
+    )
+    task_continuity_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
+    task_continuity_parser.add_argument("--goal", type=str, default="", help="Optional goal query to scope continuity checkpoints")
+    task_continuity_parser.add_argument("--current-state-json", type=str, default="", help="Optional current state JSON object")
+    task_continuity_parser.add_argument("--current-state-file", type=str, default="", help="Optional current state JSON file")
+    task_continuity_parser.add_argument("--limit", type=int, default=10)
+    task_continuity_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    task_continuity_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline memory policy trace report
     memory_policy_parser = subparsers.add_parser("memory-policy-report", help="Report memory write/read/manage policy gaps in session logs")
     memory_policy_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -2246,6 +2258,73 @@ def main():
                 f"axes={axes}: {transfer['task']} -> {transfer['outcome']}"
             )
         if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"  saved: {args.output}")
+        return
+
+    if args.command == "task-continuity-report":
+        from singularity.core.memory import MemorySystem
+
+        current_state = {}
+        if getattr(args, "current_state_file", ""):
+            with open(args.current_state_file, "r", encoding="utf-8-sig") as f:
+                current_state = json.load(f)
+        elif getattr(args, "current_state_json", ""):
+            current_state = json.loads(args.current_state_json)
+        if not isinstance(current_state, dict):
+            print("task-continuity-report current state must be a JSON object")
+            sys.exit(1)
+
+        memory = MemorySystem(memory_dir=getattr(args, "memory_dir", "workspace/memory"))
+        report = memory.task_continuity_report(
+            goal=getattr(args, "goal", ""),
+            current_state=current_state,
+            limit=getattr(args, "limit", 10),
+        )
+        print("\nTask Continuity Report")
+        if report.get("goal"):
+            print(f"  goal: {report.get('goal')}")
+        print(
+            f"  readiness: {report.get('readiness')} "
+            f"decision={report.get('decision')}"
+        )
+        print(
+            f"  records: {report.get('record_count', 0)}/{report.get('total_record_count', 0)}, "
+            f"unresolved={report.get('unresolved_task_count', 0)}, "
+            f"ready/blocked/failed="
+            f"{report.get('ready_task_count', 0)}/"
+            f"{report.get('blocked_task_count', 0)}/"
+            f"{report.get('failed_task_count', 0)}"
+        )
+        if report.get("missing_precondition_counts"):
+            parts = [
+                f"{key}={value}"
+                for key, value in sorted(report.get("missing_precondition_counts", {}).items())
+            ]
+            print(f"  missing preconditions: {', '.join(parts[:8])}")
+        if report.get("blocker_counts"):
+            parts = [f"{key}={value}" for key, value in sorted(report.get("blocker_counts", {}).items())]
+            print(f"  blockers: {', '.join(parts[:6])}")
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', [])[:6])}")
+        for candidate in report.get("resume_candidates", [])[:8]:
+            suffix = ""
+            if candidate.get("missing_preconditions"):
+                suffix = f" missing={json.dumps(candidate.get('missing_preconditions'), ensure_ascii=False)[:120]}"
+            elif candidate.get("blockers"):
+                suffix = f" blockers={'; '.join(str(item) for item in candidate.get('blockers', [])[:2])[:120]}"
+            print(
+                f"  - {candidate.get('status_bucket')} "
+                f"{candidate.get('title')} "
+                f"priority={candidate.get('priority')} from={candidate.get('checkpoint_id')}{suffix}"
+            )
+        for action in report.get("next_actions", [])[:6]:
+            print(f"  next: {action}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"  saved: {args.output}")

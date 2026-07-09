@@ -446,6 +446,78 @@ def test_task_continuity_ledger_persists_resume_context():
     print("PASS: Task continuity ledger persists resume context")
 
 
+def test_task_continuity_report_summarizes_resume_candidates():
+    tmpdir = tempfile.mkdtemp()
+    memory = MemorySystem(memory_dir=tmpdir, persist=True)
+    tasks = TaskSystem()
+    tasks.create_task(
+        "Gather coal for torches",
+        status=TaskStatus.ACCEPTED,
+        priority=1,
+        success_criteria={"inventory": {"coal": 1}},
+        opportunity_triggers=["coal_ore"],
+    )
+    craft = tasks.create_task(
+        "Craft torches",
+        status=TaskStatus.ACCEPTED,
+        priority=2,
+        preconditions={"inventory": {"coal": 1, "stick": 1}},
+        success_criteria={"inventory": {"torch": 4}},
+        tags=["torch", "crafting"],
+    )
+    craft.blockers.append("Missing coal")
+
+    memory.record_task_continuity(
+        "Craft torches before night",
+        task_system=tasks,
+        current_state={"inventory": {}, "nearby_blocks": [{"name": "coal_ore"}]},
+        plan={"status": "planning", "actions": [{"type": "dig", "parameters": {"block": "coal_ore"}}]},
+        source="first_pass",
+    )
+    memory.record_task_continuity(
+        "Craft torches before night",
+        task_system=tasks,
+        current_state={"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}]},
+        plan={"status": "planning", "actions": [{"type": "dig", "parameters": {"block": "coal_ore"}}]},
+        source="second_pass",
+    )
+    unrelated = TaskSystem()
+    shelter = unrelated.create_task(
+        "Build shelter roof",
+        status=TaskStatus.ACCEPTED,
+        priority=1,
+        preconditions={"inventory": {"oak_log": 4}},
+        success_criteria={"flags": ["roof_done"]},
+    )
+    shelter.blockers.append("Missing oak logs")
+    memory.record_task_continuity(
+        "Build a shelter roof",
+        task_system=unrelated,
+        current_state={"inventory": {}, "nearby_blocks": [{"name": "sand"}]},
+        source="unrelated",
+    )
+
+    report = memory.task_continuity_report(
+        goal="Craft torches before night",
+        current_state={"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}]},
+        limit=10,
+    )
+    empty_report = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False).task_continuity_report()
+
+    assert report["type"] == "task_continuity_report"
+    assert report["readiness"] == "resume"
+    assert report["record_count"] == 2
+    assert report["total_record_count"] == 3
+    assert report["missing_precondition_counts"]["inventory.coal"] == 2
+    assert report["missing_precondition_counts"]["inventory.stick"] == 1
+    assert "resolve_hidden_prerequisites_before_retry" in report["policy_hints"]
+    assert any(candidate["title"] == "Craft torches" for candidate in report["resume_candidates"])
+    assert not any(candidate["title"] == "Build shelter roof" for candidate in report["resume_candidates"])
+    assert any("coal_ore" in action for action in report["next_actions"])
+    assert empty_report["readiness"] == "empty"
+    print("PASS: Task continuity report summarizes resume candidates")
+
+
 def test_memory_read_filters_stale_and_conditional_entries():
     memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
     stale = memory.add_memory(
@@ -3107,6 +3179,7 @@ if __name__ == "__main__":
     test_memory_ranks_experiences_by_transfer_axes()
     test_task_memory_profile_scopes_memory_to_active_task()
     test_task_continuity_ledger_persists_resume_context()
+    test_task_continuity_report_summarizes_resume_candidates()
     test_memory_read_filters_stale_and_conditional_entries()
     test_memory_policy_routes_promptware_to_review()
     test_memory_filters_promptware_entries_and_experiences()

@@ -787,6 +787,101 @@ class MemorySystem:
                 lines.append("  next: " + "; ".join(record.next_actions[:4]))
         return "\n".join(lines)
 
+    def task_continuity_report(
+        self,
+        goal: str = "",
+        current_state: Optional[dict] = None,
+        limit: int = 10,
+    ) -> dict:
+        """Build a reviewable resume report from durable task-continuity checkpoints."""
+        current_state = current_state or {}
+        ranked = self._task_continuity_report_matches(goal, current_state, limit=limit)
+        records = [self._task_continuity_report_record(item) for item in ranked]
+        status_counts = {}
+        missing_precondition_counts = {}
+        missing_precondition_totals = {}
+        blocker_counts = {}
+        resume_candidates = []
+        next_actions = []
+
+        for item in ranked:
+            record = item["record"]
+            for status, count in (record.status_counts or {}).items():
+                self._increment_count(status_counts, status, self._safe_int(count))
+            for task in record.ready_tasks:
+                resume_candidates.append(self._task_continuity_resume_candidate(record, task, "ready"))
+            for task in record.blocked_tasks:
+                candidate = self._task_continuity_resume_candidate(record, task, "blocked")
+                resume_candidates.append(candidate)
+                self._accumulate_task_missing_preconditions(
+                    task.get("missing_preconditions", {}),
+                    missing_precondition_counts,
+                    missing_precondition_totals,
+                )
+                for blocker in task.get("blockers", []) or []:
+                    self._increment_count(blocker_counts, str(blocker)[:160])
+            for task in record.failed_tasks:
+                resume_candidates.append(self._task_continuity_resume_candidate(record, task, "failed"))
+            next_actions.extend(record.next_actions or [])
+
+        resume_candidates = self._dedupe_task_continuity_candidates(resume_candidates)
+        next_actions = self._dedupe_text(next_actions)[:12]
+        ready_count = sum(1 for item in resume_candidates if item.get("status_bucket") == "ready")
+        blocked_count = sum(1 for item in resume_candidates if item.get("status_bucket") == "blocked")
+        failed_count = sum(1 for item in resume_candidates if item.get("status_bucket") == "failed")
+        unresolved_count = ready_count + blocked_count + failed_count
+        latest = max(records, key=lambda item: item.get("created_at", 0), default={})
+
+        policy_hints = []
+        recommendations = []
+        if ready_count:
+            policy_hints.append("resume_ready_tasks_before_new_goal_expansion")
+            recommendations.append("continue the highest-priority ready task before decomposing new subtasks")
+        if missing_precondition_counts:
+            policy_hints.append("resolve_hidden_prerequisites_before_retry")
+            recommendations.append("satisfy repeated missing inventory/flag preconditions before retrying blocked tasks")
+        if blocker_counts:
+            policy_hints.append("review_repeated_task_blockers")
+            recommendations.append("inspect recurring blockers and convert stable ones into gated task-precondition feedback")
+        if failed_count:
+            policy_hints.append("replan_failed_tasks_with_transfer_memory")
+            recommendations.append("retrieve transferable experiences before retrying failed tasks")
+        if not records:
+            policy_hints.append("collect_task_continuity_checkpoints")
+            recommendations.append("run an Agent cycle with task-continuity context enabled to create durable resume checkpoints")
+
+        readiness = "resume" if unresolved_count else "monitor" if records else "empty"
+        decision = "resume_unresolved_tasks" if unresolved_count else "no_unresolved_tasks"
+        if not records:
+            decision = "no_task_continuity_records"
+
+        return {
+            "type": "task_continuity_report",
+            "generated_at": round(time.time(), 3),
+            "memory_dir": self.memory_dir,
+            "ledger_path": self.task_continuity_path,
+            "goal": str(goal or ""),
+            "current_state_keys": sorted(str(key) for key in current_state.keys())[:20],
+            "readiness": readiness,
+            "decision": decision,
+            "record_count": len(records),
+            "total_record_count": len(self.task_continuity_records),
+            "status_counts": dict(sorted(status_counts.items())),
+            "ready_task_count": ready_count,
+            "blocked_task_count": blocked_count,
+            "failed_task_count": failed_count,
+            "unresolved_task_count": unresolved_count,
+            "missing_precondition_counts": dict(sorted(missing_precondition_counts.items())),
+            "missing_precondition_totals": dict(sorted(missing_precondition_totals.items())),
+            "blocker_counts": dict(sorted(blocker_counts.items())),
+            "policy_hints": policy_hints,
+            "recommendations": recommendations,
+            "next_actions": next_actions,
+            "latest_checkpoint": latest,
+            "resume_candidates": resume_candidates[:20],
+            "records": records,
+        }
+
     def memory_read_filter_report(self, query: str = "", current_state: Optional[dict] = None) -> dict:
         """Summarize durable memory entries excluded from read-time evidence."""
         report = {
@@ -1515,11 +1610,11 @@ class MemorySystem:
         payloads.sort(key=lambda item: (
             0 if item.get("continuity_ready") else 1,
             self._status_continuity_rank(item.get("status")),
-            int(item.get("priority") or 5),
-            -int(item.get("attempts") or 0),
+            self._safe_int(item.get("priority") or 5),
+            -self._safe_int(item.get("attempts") or 0),
             item.get("title", ""),
         ))
-        return payloads[:max(1, int(max_tasks or 12))]
+        return payloads[:max(1, self._safe_int(max_tasks or 12))]
 
     def _task_continuity_missing_preconditions(self, preconditions: dict, current_state: dict) -> dict:
         if not isinstance(preconditions, dict):
@@ -1633,16 +1728,161 @@ class MemorySystem:
             "time_of_day": current_state.get("time_of_day"),
         }
 
+    def _task_continuity_report_matches(self, goal: str, current_state: dict, limit: int = 10) -> list[dict]:
+        if str(goal or "").strip() or current_state:
+            return self._rank_task_continuity_records(goal, current_state, limit=limit)
+        latest = list(reversed(self.task_continuity_records[-max(1, self._safe_int(limit or 10)):]))
+        return [
+            {
+                "record": record,
+                "score": round(1.0 / max(1, index + 1), 4),
+                "matches": [],
+            }
+            for index, record in enumerate(latest)
+        ]
+
+    def _task_continuity_report_record(self, item: dict) -> dict:
+        record = item["record"]
+        return {
+            "id": record.id,
+            "goal": record.goal,
+            "source": record.source,
+            "summary": record.summary,
+            "score": item.get("score", 0),
+            "matches": item.get("matches", []),
+            "created_at": round(float(record.created_at or 0.0), 3),
+            "age_s": max(0, int(time.time() - record.created_at)),
+            "status_counts": dict(record.status_counts or {}),
+            "ready_task_count": len(record.ready_tasks),
+            "blocked_task_count": len(record.blocked_tasks),
+            "failed_task_count": len(record.failed_tasks),
+            "next_actions": list(record.next_actions or [])[:8],
+            "plan_status": record.plan_status,
+            "plan_reasoning": record.plan_reasoning[:300],
+            "state_summary": dict(record.state_summary or {}),
+        }
+
+    def _task_continuity_resume_candidate(self, record: TaskContinuityRecord, task: dict, bucket: str) -> dict:
+        return {
+            "checkpoint_id": record.id,
+            "checkpoint_goal": record.goal,
+            "checkpoint_source": record.source,
+            "task_id": str(task.get("id") or ""),
+            "title": str(task.get("title") or "")[:160],
+            "type": str(task.get("type") or "general")[:80],
+            "status": str(task.get("status") or "unknown"),
+            "status_bucket": bucket,
+            "priority": task.get("priority"),
+            "attempts": self._safe_int(task.get("attempts", 0)),
+            "missing_preconditions": task.get("missing_preconditions", {}) if isinstance(task.get("missing_preconditions", {}), dict) else {},
+            "blockers": list(task.get("blockers", []) or [])[:5] if isinstance(task.get("blockers", []), list) else [],
+            "depends_on": list(task.get("depends_on", []) or [])[:6] if isinstance(task.get("depends_on", []), list) else [],
+            "tags": list(task.get("tags", []) or [])[:8] if isinstance(task.get("tags", []), list) else [],
+            "rationale": str(task.get("rationale") or "")[:240],
+        }
+
+    def _accumulate_task_missing_preconditions(self, missing: dict, counts: dict, totals: dict):
+        if not isinstance(missing, dict):
+            return
+        for group, value in missing.items():
+            if isinstance(value, dict):
+                for key, amount in value.items():
+                    label = f"{group}.{key}"
+                    self._increment_count(counts, label)
+                    self._increment_count(totals, label, self._safe_int(amount))
+            elif isinstance(value, list):
+                for item in value:
+                    label = f"{group}.{item}"
+                    self._increment_count(counts, label)
+                    self._increment_count(totals, label)
+            elif value:
+                label = f"{group}.{value}"
+                self._increment_count(counts, label)
+                self._increment_count(totals, label)
+
+    def _dedupe_task_continuity_candidates(self, candidates: list[dict]) -> list[dict]:
+        seen = set()
+        result = []
+        for candidate in candidates:
+            key = (
+                candidate.get("status_bucket"),
+                candidate.get("task_id") or candidate.get("title"),
+                json.dumps(candidate.get("missing_preconditions", {}), sort_keys=True, default=str),
+                ";".join(str(item) for item in candidate.get("blockers", [])[:3]),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(candidate)
+        result.sort(key=lambda item: (
+            self._status_continuity_rank(item.get("status")),
+            self._safe_int(item.get("priority") or 5),
+            -self._safe_int(item.get("attempts") or 0),
+            item.get("title", ""),
+        ))
+        return result
+
+    def _task_continuity_tokens(self, text: str) -> set[str]:
+        generic = {
+            "action",
+            "actions",
+            "active",
+            "accepted",
+            "attempts",
+            "block",
+            "blocks",
+            "blocked",
+            "blocker",
+            "blockers",
+            "candidate",
+            "checkpoint",
+            "continuity",
+            "created",
+            "criteria",
+            "current",
+            "depends",
+            "failed",
+            "flags",
+            "general",
+            "goal",
+            "inventory",
+            "missing",
+            "nearby",
+            "nearby_blocks",
+            "nearby_entities",
+            "parameters",
+            "planning",
+            "precondition",
+            "preconditions",
+            "priority",
+            "rationale",
+            "ready",
+            "source",
+            "state",
+            "status",
+            "success",
+            "summary",
+            "task",
+            "tasks",
+            "type",
+            "unknown",
+        }
+        return self._transfer_tokens(text) - generic
+
     def _rank_task_continuity_records(self, goal: str, current_state: dict, limit: int = 3) -> list[dict]:
-        query_words = self._transfer_tokens(goal)
-        state_words = self._transfer_tokens(json.dumps(current_state or {}, default=str))
+        query_words = self._task_continuity_tokens(goal)
+        state_words = self._task_continuity_tokens(json.dumps(current_state or {}, default=str))
         ranked = []
         for index, record in enumerate(self.task_continuity_records):
-            text_words = self._transfer_tokens(record.searchable_text())
-            matches = sorted((query_words & text_words) | (state_words & text_words))
+            text_words = self._task_continuity_tokens(record.searchable_text())
+            query_matches = query_words & text_words
+            state_matches = state_words & text_words
+            if (query_words or state_words) and not query_matches and not state_matches:
+                continue
+            matches = sorted(query_matches | state_matches)
             recency_bonus = min(2.0, 1.0 / max(1, len(self.task_continuity_records) - index))
             unresolved_bonus = 0.8 * (len(record.ready_tasks) + len(record.blocked_tasks) + len(record.failed_tasks))
-            score = len(query_words & text_words) * 1.4 + len(state_words & text_words) * 0.7 + recency_bonus + unresolved_bonus
+            score = len(query_matches) * 1.4 + len(state_matches) * 0.7 + recency_bonus + unresolved_bonus
             if score <= 0:
                 continue
             ranked.append({
@@ -1651,7 +1891,7 @@ class MemorySystem:
                 "matches": matches[:12],
             })
         ranked.sort(key=lambda item: (item["score"], item["record"].created_at), reverse=True)
-        return ranked[:max(1, int(limit or 3))]
+        return ranked[:max(1, self._safe_int(limit or 3))]
 
     def _status_continuity_rank(self, status: str) -> int:
         return {
