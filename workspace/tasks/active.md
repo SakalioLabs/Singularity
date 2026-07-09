@@ -267,13 +267,14 @@
 - [x] Add M7 mixed-policy role-log control-policy summaries for baseline vs patched collaboration runs.
 - [x] Add mixed-policy promotion gate that approves, rejects, or routes patches to review from offline, benchmark, and collaboration ablation evidence.
 - [x] Gate runtime mixed-policy patch loading with approved policy-gate reports when `mixed_policy_gate_paths` is configured.
+- [x] Add reusable `runtime-profile-validate` plus `--runtime-profile` loading for run/autonomous/benchmark/M7 Agent roles, so approved gates and feedback artifacts can be deployed as repeatable profiles without copying long CLI flag sets.
 - [ ] Run live M1/M2/M7 with an approved mixed-policy patch and compare control-policy decisions plus mixed-policy review decisions against baseline.
 - [ ] Use `mixed-initiative-policy-ablation` on approved live-trace patches before running the corresponding patched benchmark suite.
 - [ ] Run `benchmark --mixed-policy-ablation --mixed-policy-patch ...` on M1/M2 once the bridge and Minecraft server are live.
 - [ ] Run Agent-backed `collab-benchmark --mixed-policy-patch ...` on BM-701 and compare role session logs against an unpatched run.
 - [ ] Run Agent-backed `collab-benchmark --mixed-policy-ablation --mixed-policy-patch ...` on BM-701 with live role bridges.
 - [ ] Use `mixed-initiative-policy-gate` on real approved patch reports before making a patch part of default runtime configuration.
-- [ ] Promote real approved gate reports into repeatable runtime profiles for M1/M2/M7.
+- [ ] Fill repeatable runtime profiles for M1/M2/M7 with real approved gate reports and validate them before live runs.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
 - [ ] Run an unknown visual/environment goal with `--goal-critic --goal-critic-gate ...` and inspect `goal_verification_metrics` plus critic evidence in the session log.
 - [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces, build `goal-verification-critic-gate`, and compare completion judgments against manual review.

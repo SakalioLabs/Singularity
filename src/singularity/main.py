@@ -6,6 +6,13 @@ import argparse
 import os
 
 from singularity.core.config import Config, BotConfig, LLMConfig
+from singularity.core.runtime_profile import (
+    build_runtime_profile_report,
+    load_runtime_profiles,
+    merge_arg_profile_list,
+    profile_bool_arg,
+    profile_str_arg,
+)
 
 
 def _llm_config_from_args(args) -> LLMConfig:
@@ -46,6 +53,44 @@ def _add_goal_critic_runtime_gate_args(parser):
         default=[],
         help="Approved goal-verification-critic-gate JSON required before --goal-critic affects runtime completion decisions",
     )
+
+
+def _add_runtime_profile_args(parser):
+    parser.add_argument(
+        "--runtime-profile",
+        action="append",
+        default=[],
+        help="Reusable runtime profile JSON that bundles approved gates, feedback artifacts, and safe switches",
+    )
+
+
+def _print_runtime_profile_report(report: dict):
+    print("\nRuntime Profile Validation")
+    print(f"  readiness: {report.get('readiness', 'unknown')}")
+    print(f"  decision: {report.get('decision', 'unknown')}")
+    print(f"  reason: {report.get('reason', '')}")
+    print(
+        "  inputs: "
+        f"profiles={report.get('profile_count', 0)}, "
+        f"gates={report.get('approved_gate_count', 0)}/{report.get('gate_count', 0)} approved, "
+        f"artifacts={report.get('artifact_count', 0)}"
+    )
+    settings = report.get("settings", {}) if isinstance(report.get("settings", {}), dict) else {}
+    if settings:
+        parts = [f"{key}={value}" for key, value in sorted(settings.items())]
+        print(f"  settings: {', '.join(parts)}")
+    if report.get("missing"):
+        print(f"  missing: {', '.join(report.get('missing', []))}")
+    for gate in report.get("gate_reports", [])[:12]:
+        marker = "+" if gate.get("readiness") == "approved" else "x" if gate.get("readiness") == "rejected" else "!"
+        print(
+            f"  [{marker}] {gate.get('field')} {gate.get('path')}: "
+            f"{gate.get('readiness')} {gate.get('decision', '')}"
+        )
+        if gate.get("reason"):
+            print(f"      {gate.get('reason')}")
+    for error in report.get("errors", []):
+        print(f"  error: {error}")
 
 
 def _add_coaching_args(parser):
@@ -179,6 +224,7 @@ def main():
     # Run goal command
     run_parser = subparsers.add_parser("run", help="Run a single goal")
     run_parser.add_argument("--goal", type=str, default="Gather 3 oak logs", help="Goal in natural language")
+    _add_runtime_profile_args(run_parser)
     run_parser.add_argument("--host", type=str, default="localhost")
     run_parser.add_argument("--port", type=int, default=25565)
     run_parser.add_argument("--username", type=str, default="Singularity")
@@ -213,6 +259,7 @@ def main():
 
     # Autonomous mode (M4 + M5)
     auto_parser = subparsers.add_parser("autonomous", help="Run autonomous survival (M4 + M5)")
+    _add_runtime_profile_args(auto_parser)
     auto_parser.add_argument("--max-goals", type=int, default=10, help="Maximum goals to pursue")
     auto_parser.add_argument("--max-cycles", type=int, default=80, help="Max cycles per goal")
     auto_parser.add_argument("--host", type=str, default="localhost")
@@ -249,6 +296,7 @@ def main():
 
     # Benchmark command
     bench_parser = subparsers.add_parser("benchmark", help="Run benchmarks")
+    _add_runtime_profile_args(bench_parser)
     bench_parser.add_argument("--suite", type=str, default="m1", choices=["m1", "m2", "all"])
     bench_parser.add_argument("--host", type=str, default="localhost")
     bench_parser.add_argument("--port", type=int, default=25565)
@@ -555,6 +603,7 @@ def main():
 
     # M7 collaboration benchmark dry-run/assignment
     collab_parser = subparsers.add_parser("collab-benchmark", help="Prepare an M7 collaboration benchmark")
+    _add_runtime_profile_args(collab_parser)
     collab_parser.add_argument("--spec", type=str, default="workspace/benchmarks/m7_time_sensitive_shelter.json")
     collab_parser.add_argument("--state-path", type=str, default="workspace/multiagent/collab_benchmark_state.json")
     collab_parser.add_argument("--no-reset", action="store_true", help="Keep existing shared-state file")
@@ -677,6 +726,14 @@ def main():
     goal_critic_gate_parser.add_argument("--no-require-label-validation", action="store_true", help="Allow approval without a separate review-label-validate report")
     goal_critic_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
     goal_critic_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
+    runtime_profile_parser = subparsers.add_parser(
+        "runtime-profile-validate",
+        help="Validate reusable runtime profiles before live Agent startup",
+    )
+    runtime_profile_parser.add_argument("--runtime-profile", action="append", default=[], help="Runtime profile JSON to validate")
+    runtime_profile_parser.add_argument("--output", type=str, default="", help="Optional JSON validation report path")
+    runtime_profile_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Offline manual review label templates
     label_template_parser = subparsers.add_parser("review-label-template", help="Generate JSONL manual review label templates from session logs")
@@ -1035,6 +1092,29 @@ def main():
         level=getattr(logging, log_level.upper(), logging.INFO),
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
     )
+
+    runtime_profiles = []
+    runtime_profile_errors = []
+    if getattr(args, "runtime_profile", []):
+        runtime_profiles, runtime_profile_errors = load_runtime_profiles(getattr(args, "runtime_profile", []) or [])
+        if runtime_profile_errors and args.command != "runtime-profile-validate":
+            for error in runtime_profile_errors:
+                print(f"runtime profile error: {error}")
+            sys.exit(1)
+
+    if args.command == "runtime-profile-validate":
+        report = build_runtime_profile_report(getattr(args, "runtime_profile", []) or [])
+        _print_runtime_profile_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"error", "rejected"}:
+            sys.exit(1)
+        return
 
     # Handle skills command (no server needed)
     if args.command == "skills":
@@ -1877,7 +1957,7 @@ def main():
             if run_baseline:
                 print("collab-benchmark --mixed-policy-ablation cannot be combined with --single-agent-baseline")
                 sys.exit(1)
-            if not (getattr(args, "mixed_policy_patch", []) or []):
+            if not merge_arg_profile_list(args, "mixed_policy_patch", runtime_profiles, "mixed_policy_patch_paths"):
                 print("collab-benchmark --mixed-policy-ablation requires at least one --mixed-policy-patch")
                 sys.exit(1)
         if run_baseline and not (getattr(args, "preflight", False) or getattr(args, "execute", False)):
@@ -1961,36 +2041,36 @@ def main():
                         ),
                         base_url=getattr(args, "llm_base_url", "") or os.environ.get("SINGULARITY_LLM_BASE_URL", ""),
                     ),
-                    enable_goal_critic=getattr(args, "goal_critic", False),
-                    goal_critic_gate_paths=getattr(args, "goal_critic_gate", []) or [],
+                    enable_goal_critic=profile_bool_arg(args, "goal_critic", runtime_profiles, "enable_goal_critic", "goal_critic"),
+                    goal_critic_gate_paths=merge_arg_profile_list(args, "goal_critic_gate", runtime_profiles, "goal_critic_gate_paths"),
                     enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
                     enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
-                    coach_style=getattr(args, "coach_style", "") or "",
+                    coach_style=profile_str_arg(args, "coach_style", runtime_profiles, "coach_style", default=""),
                     enable_vision_analysis=not getattr(args, "no_vision_analysis", False),
                     enable_visual_action_grounding=not getattr(args, "no_visual_action_grounding", False),
-                    enable_screenshot_capture=getattr(args, "capture_screenshots", False),
+                    enable_screenshot_capture=profile_bool_arg(args, "capture_screenshots", runtime_profiles, "enable_screenshot_capture", "capture_screenshots"),
                     mixed_policy_patch_paths=list(mixed_policy_patch_paths or []),
-                    mixed_policy_gate_paths=getattr(args, "mixed_policy_gate", []) or [],
-                    self_evolution_feedback_paths=getattr(args, "self_evolution_feedback", []) or [],
-                    world_model_feedback_paths=getattr(args, "world_model_feedback", []) or [],
-                    world_model_gate_paths=getattr(args, "world_model_gate", []) or [],
+                    mixed_policy_gate_paths=merge_arg_profile_list(args, "mixed_policy_gate", runtime_profiles, "mixed_policy_gate_paths"),
+                    self_evolution_feedback_paths=merge_arg_profile_list(args, "self_evolution_feedback", runtime_profiles, "self_evolution_feedback_paths"),
+                    world_model_feedback_paths=merge_arg_profile_list(args, "world_model_feedback", runtime_profiles, "world_model_feedback_paths"),
+                    world_model_gate_paths=merge_arg_profile_list(args, "world_model_gate", runtime_profiles, "world_model_gate_paths"),
                     enable_knowledge_correction_context=not getattr(args, "no_knowledge_correction_context", False),
-                    knowledge_correction_feedback_paths=getattr(args, "knowledge_correction_feedback", []) or [],
-                    knowledge_correction_gate_paths=getattr(args, "knowledge_correction_gate", []) or [],
-                    action_value_feedback_paths=getattr(args, "action_value_feedback", []) or [],
-                    action_value_transition_gate_paths=getattr(args, "action_value_transition_gate", []) or [],
-                    action_value_transition_evaluator_report_paths=getattr(args, "action_value_transition_evaluator_report", []) or [],
-                    skill_memory_quality_feedback_paths=getattr(args, "skill_memory_quality_feedback", []) or [],
-                    skill_memory_quality_gate_paths=getattr(args, "skill_memory_quality_gate", []) or [],
-                    skill_runtime_default_gate_paths=getattr(args, "skill_runtime_default_gate", []) or [],
-                    screenshot_dir=getattr(args, "screenshot_dir", "logs/screenshots"),
+                    knowledge_correction_feedback_paths=merge_arg_profile_list(args, "knowledge_correction_feedback", runtime_profiles, "knowledge_correction_feedback_paths"),
+                    knowledge_correction_gate_paths=merge_arg_profile_list(args, "knowledge_correction_gate", runtime_profiles, "knowledge_correction_gate_paths"),
+                    action_value_feedback_paths=merge_arg_profile_list(args, "action_value_feedback", runtime_profiles, "action_value_feedback_paths"),
+                    action_value_transition_gate_paths=merge_arg_profile_list(args, "action_value_transition_gate", runtime_profiles, "action_value_transition_gate_paths"),
+                    action_value_transition_evaluator_report_paths=merge_arg_profile_list(args, "action_value_transition_evaluator_report", runtime_profiles, "action_value_transition_evaluator_report_paths"),
+                    skill_memory_quality_feedback_paths=merge_arg_profile_list(args, "skill_memory_quality_feedback", runtime_profiles, "skill_memory_quality_feedback_paths"),
+                    skill_memory_quality_gate_paths=merge_arg_profile_list(args, "skill_memory_quality_gate", runtime_profiles, "skill_memory_quality_gate_paths"),
+                    skill_runtime_default_gate_paths=merge_arg_profile_list(args, "skill_runtime_default_gate", runtime_profiles, "skill_runtime_default_gate_paths"),
+                    screenshot_dir=profile_str_arg(args, "screenshot_dir", runtime_profiles, "screenshot_dir", default="logs/screenshots"),
                     screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),
                 ), bridge_port_base=getattr(args, "bridge_port_base", 0) or None, role_bridge_ports=role_bridge_ports)
 
             if run_mixed_policy_ablation:
                 from singularity.evaluation.mixed_initiative import build_mixed_initiative_policy_ablation
 
-                patch_paths = getattr(args, "mixed_policy_patch", []) or []
+                patch_paths = merge_arg_profile_list(args, "mixed_policy_patch", runtime_profiles, "mixed_policy_patch_paths")
                 baseline_executor = make_agent_executor([])
                 patched_executor = make_agent_executor(patch_paths)
                 bridge_launch_plan = patched_executor.bridge_launch_plan(spec)
@@ -2079,7 +2159,7 @@ def main():
                     sys.exit(1)
                 return
 
-            task_executor = make_agent_executor(getattr(args, "mixed_policy_patch", []) or [])
+            task_executor = make_agent_executor(merge_arg_profile_list(args, "mixed_policy_patch", runtime_profiles, "mixed_policy_patch_paths"))
             bridge_launch_plan = task_executor.bridge_launch_plan(spec)
             task_executor.print_bridge_launch_plan(bridge_launch_plan)
             output_payload["agent_bridge_launch_plan"] = task_executor.bridge_launch_plan_to_dict(bridge_launch_plan)
@@ -3751,31 +3831,31 @@ def main():
     config = Config(
         bot=BotConfig(host=host, port=port, username=username, bridge_host=bridge_host, bridge_port=bridge_port),
         llm=_llm_config_from_args(args),
-        enable_goal_critic=getattr(args, "goal_critic", False),
-        goal_critic_gate_paths=getattr(args, "goal_critic_gate", []) or [],
+        enable_goal_critic=profile_bool_arg(args, "goal_critic", runtime_profiles, "enable_goal_critic", "goal_critic"),
+        goal_critic_gate_paths=merge_arg_profile_list(args, "goal_critic_gate", runtime_profiles, "goal_critic_gate_paths"),
         enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
         enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
-        coach_style=getattr(args, "coach_style", "") or "",
-        coach_style_ablation_paths=getattr(args, "coach_style_ablation", []) or [],
-        coach_style_gate_paths=getattr(args, "coach_style_gate", []) or [],
+        coach_style=profile_str_arg(args, "coach_style", runtime_profiles, "coach_style", default=""),
+        coach_style_ablation_paths=merge_arg_profile_list(args, "coach_style_ablation", runtime_profiles, "coach_style_ablation_paths"),
+        coach_style_gate_paths=merge_arg_profile_list(args, "coach_style_gate", runtime_profiles, "coach_style_gate_paths"),
         enable_vision_analysis=not getattr(args, "no_vision_analysis", False),
         enable_visual_action_grounding=not getattr(args, "no_visual_action_grounding", False),
-        mixed_policy_patch_paths=getattr(args, "mixed_policy_patch", []) or [],
-        mixed_policy_gate_paths=getattr(args, "mixed_policy_gate", []) or [],
-        self_evolution_feedback_paths=getattr(args, "self_evolution_feedback", []) or [],
-        world_model_feedback_paths=getattr(args, "world_model_feedback", []) or [],
-        world_model_gate_paths=getattr(args, "world_model_gate", []) or [],
+        mixed_policy_patch_paths=merge_arg_profile_list(args, "mixed_policy_patch", runtime_profiles, "mixed_policy_patch_paths"),
+        mixed_policy_gate_paths=merge_arg_profile_list(args, "mixed_policy_gate", runtime_profiles, "mixed_policy_gate_paths"),
+        self_evolution_feedback_paths=merge_arg_profile_list(args, "self_evolution_feedback", runtime_profiles, "self_evolution_feedback_paths"),
+        world_model_feedback_paths=merge_arg_profile_list(args, "world_model_feedback", runtime_profiles, "world_model_feedback_paths"),
+        world_model_gate_paths=merge_arg_profile_list(args, "world_model_gate", runtime_profiles, "world_model_gate_paths"),
         enable_knowledge_correction_context=not getattr(args, "no_knowledge_correction_context", False),
-        knowledge_correction_feedback_paths=getattr(args, "knowledge_correction_feedback", []) or [],
-        knowledge_correction_gate_paths=getattr(args, "knowledge_correction_gate", []) or [],
-        action_value_feedback_paths=getattr(args, "action_value_feedback", []) or [],
-        action_value_transition_gate_paths=getattr(args, "action_value_transition_gate", []) or [],
-        action_value_transition_evaluator_report_paths=getattr(args, "action_value_transition_evaluator_report", []) or [],
-        skill_memory_quality_feedback_paths=getattr(args, "skill_memory_quality_feedback", []) or [],
-        skill_memory_quality_gate_paths=getattr(args, "skill_memory_quality_gate", []) or [],
-        skill_runtime_default_gate_paths=getattr(args, "skill_runtime_default_gate", []) or [],
-        enable_screenshot_capture=getattr(args, "capture_screenshots", False),
-        screenshot_dir=getattr(args, "screenshot_dir", "logs/screenshots"),
+        knowledge_correction_feedback_paths=merge_arg_profile_list(args, "knowledge_correction_feedback", runtime_profiles, "knowledge_correction_feedback_paths"),
+        knowledge_correction_gate_paths=merge_arg_profile_list(args, "knowledge_correction_gate", runtime_profiles, "knowledge_correction_gate_paths"),
+        action_value_feedback_paths=merge_arg_profile_list(args, "action_value_feedback", runtime_profiles, "action_value_feedback_paths"),
+        action_value_transition_gate_paths=merge_arg_profile_list(args, "action_value_transition_gate", runtime_profiles, "action_value_transition_gate_paths"),
+        action_value_transition_evaluator_report_paths=merge_arg_profile_list(args, "action_value_transition_evaluator_report", runtime_profiles, "action_value_transition_evaluator_report_paths"),
+        skill_memory_quality_feedback_paths=merge_arg_profile_list(args, "skill_memory_quality_feedback", runtime_profiles, "skill_memory_quality_feedback_paths"),
+        skill_memory_quality_gate_paths=merge_arg_profile_list(args, "skill_memory_quality_gate", runtime_profiles, "skill_memory_quality_gate_paths"),
+        skill_runtime_default_gate_paths=merge_arg_profile_list(args, "skill_runtime_default_gate", runtime_profiles, "skill_runtime_default_gate_paths"),
+        enable_screenshot_capture=profile_bool_arg(args, "capture_screenshots", runtime_profiles, "enable_screenshot_capture", "capture_screenshots"),
+        screenshot_dir=profile_str_arg(args, "screenshot_dir", runtime_profiles, "screenshot_dir", default="logs/screenshots"),
         screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),
     )
 
@@ -3812,12 +3892,12 @@ def main():
         runner = BenchmarkRunner(config)
         if getattr(args, "preflight", False):
             report = runner.preflight(
-                check_screenshot_renderer=getattr(args, "capture_screenshots", False),
+                check_screenshot_renderer=config.enable_screenshot_capture,
             )
             runner.print_preflight(report)
             if not report.ok:
                 sys.exit(1)
-        quality_feedback_paths = getattr(args, "skill_memory_quality_feedback", []) or []
+        quality_feedback_paths = config.skill_memory_quality_feedback_paths
         if getattr(args, "skill_memory_quality_preflight", False) or quality_feedback_paths:
             report = runner.run_skill_memory_quality_preflight(suite=args.suite)
             runner.print_skill_memory_quality_preflight_report(report)
@@ -3826,7 +3906,7 @@ def main():
                 runner.save_skill_memory_quality_preflight_report(report, quality_preflight_output)
             if not report.get("ready"):
                 sys.exit(1)
-        runtime_default_gate_paths = getattr(args, "skill_runtime_default_gate", []) or []
+        runtime_default_gate_paths = config.skill_runtime_default_gate_paths
         if getattr(args, "skill_runtime_default_preflight", False) or runtime_default_gate_paths:
             report = runner.run_skill_runtime_default_preflight(suite=args.suite)
             runner.print_skill_runtime_default_preflight_report(report)
@@ -3835,7 +3915,7 @@ def main():
                 runner.save_skill_runtime_default_preflight_report(report, runtime_default_preflight_output)
             if not report.get("ready"):
                 sys.exit(1)
-        knowledge_correction_feedback_paths = getattr(args, "knowledge_correction_feedback", []) or []
+        knowledge_correction_feedback_paths = config.knowledge_correction_feedback_paths
         if getattr(args, "knowledge_correction_preflight", False) or knowledge_correction_feedback_paths:
             report = runner.run_knowledge_correction_preflight(suite=args.suite)
             runner.print_knowledge_correction_preflight_report(report)
@@ -3844,8 +3924,8 @@ def main():
                 runner.save_knowledge_correction_preflight_report(report, knowledge_correction_preflight_output)
             if not report.get("ready"):
                 sys.exit(1)
-        transition_gate_paths = getattr(args, "action_value_transition_gate", []) or []
-        transition_evaluator_paths = getattr(args, "action_value_transition_evaluator_report", []) or []
+        transition_gate_paths = config.action_value_transition_gate_paths
+        transition_evaluator_paths = config.action_value_transition_evaluator_report_paths
         if (
             getattr(args, "action_value_transition_preflight", False)
             or transition_gate_paths
@@ -3861,9 +3941,9 @@ def main():
                 runner.save_action_value_transition_preflight_report(report, transition_preflight_output)
             if not report.get("ready"):
                 sys.exit(1)
-        coach_style_paths = getattr(args, "coach_style_ablation", []) or []
-        coach_gate_paths = getattr(args, "coach_style_gate", []) or []
-        coach_style = getattr(args, "coach_style", "") or ""
+        coach_style_paths = config.coach_style_ablation_paths
+        coach_gate_paths = config.coach_style_gate_paths
+        coach_style = config.coach_style
         if (
             getattr(args, "coach_style_preflight", False)
             or coach_style_paths
@@ -3896,7 +3976,7 @@ def main():
             runner.save_visual_action_benchmark_ablation_report(report, args.output)
             return
         if getattr(args, "mixed_policy_ablation", False):
-            patch_paths = getattr(args, "mixed_policy_patch", []) or []
+            patch_paths = config.mixed_policy_patch_paths
             if not patch_paths:
                 print("benchmark --mixed-policy-ablation requires at least one --mixed-policy-patch")
                 sys.exit(1)

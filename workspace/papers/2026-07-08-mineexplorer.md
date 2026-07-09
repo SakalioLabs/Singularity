@@ -19,5 +19,6 @@
   - `exploration-trace-report` now summarizes visited position spread, path distance, newly observed block/entity/resource types, visual evidence coverage, hazard encounters, multi-step plans, and failed action categories from session logs.
   - `world-model-report` complements coverage metrics by reconstructing visited cells, transitions, resource hotspots, danger cells, and frontier candidates from the same logs, then emits `world_model_feedback` for curriculum reranking.
   - `world-model-feedback-gate` keeps map-derived frontier/hotspot feedback review-only until the report has ready logs and structured actionable cell evidence.
+  - `runtime-profile-validate` can now package approved world-model gates and feedback into repeatable autonomous/M7 runtime profiles, keeping exploration-derived curriculum changes tied to saved evaluation evidence.
   - Long-term: use exploration coverage as a benchmark dimension alongside M1/M2 completion, M6 visual evidence quality, and M7 collaboration overlap.
-**Next Action**: Run the reports and gate on real autonomous logs, then connect approved coverage plus frontier metrics back into curriculum novelty scoring.
+**Next Action**: Run the reports and gate on real autonomous logs, then validate an autonomous runtime profile that loads only approved coverage plus frontier feedback.

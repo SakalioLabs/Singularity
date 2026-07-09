@@ -268,6 +268,34 @@ python -m singularity.main mixed-initiative-policy-gate --policy-ablation logs/b
 python -m singularity.main run --goal "Craft 4 torches" --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json
 python -m singularity.main benchmark --suite m1 --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json
 
+# Bundle approved gates and feedback artifacts into a reusable runtime profile.
+# Keep provider keys in environment variables or CLI only; profile JSON should
+# contain paths and safe runtime switches, not secrets.
+python -m singularity.main runtime-profile-validate --runtime-profile workspace/runtime/m1_visual_profile.json --output logs/benchmarks/runtime_profile_validation.json
+python -m singularity.main benchmark --suite m1 --runtime-profile workspace/runtime/m1_visual_profile.json
+python -m singularity.main collab-benchmark --executor agent --runtime-profile workspace/runtime/m7_roles_profile.json --preflight
+
+```json
+{
+  "type": "runtime_profile",
+  "name": "m1_visual_goal_critic",
+  "settings": {
+    "enable_goal_critic": true,
+    "coach_style": "explorer"
+  },
+  "gates": {
+    "goal_critic": ["logs/benchmarks/goal_critic_gate.json"],
+    "coach_style": ["logs/benchmarks/coach_style_gate.json"],
+    "mixed_policy": ["logs/benchmarks/mixed_policy_gate.json"],
+    "world_model": ["logs/benchmarks/world_model_gate.json"]
+  },
+  "artifacts": {
+    "mixed_policy_patch": ["logs/benchmarks/mixed_policy_patch.json"],
+    "world_model_feedback": ["logs/benchmarks/world_model.json"]
+  }
+}
+```
+
 # Replay held-out paraphrases and optional JSON/JSONL case files before promoting
 # new mixed-initiative templates or changing auto-selection heuristics.
 python -m singularity.main mixed-initiative-variant-report --output logs/benchmarks/mixed_initiative_variants.json
