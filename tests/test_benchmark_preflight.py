@@ -1758,6 +1758,116 @@ def test_plan_act_latency_report_extracts_collab_role_logs_and_overlap():
     print("PASS: Plan-act latency report extracts collab role logs and overlap")
 
 
+def test_plan_act_latency_gate_requires_candidate_and_verifier_evidence():
+    tmpdir = tempfile.mkdtemp()
+    baseline_path = os.path.join(tmpdir, "baseline_plan_act.json")
+    with open(baseline_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "plan_act_latency_report",
+            "session_log_count": 1,
+            "stale_plan_action_count": 4,
+            "interrupt_opportunity_count": 6,
+            "errors": [],
+        }, f)
+
+    runner = BenchmarkRunner(Config())
+    gate = runner.build_plan_act_latency_gate(baseline_report_paths=[baseline_path])
+
+    assert gate["readiness"] == "review"
+    assert gate["decision"] == "collect_plan_act_candidate_evidence"
+    assert "candidate_plan_act_report" in gate["missing"]
+    assert "baseline_verifier_report" in gate["missing"]
+    assert "candidate_verifier_report" in gate["missing"]
+    print("PASS: Plan-act latency gate requires candidate and verifier evidence")
+
+
+def test_plan_act_latency_gate_approves_reduced_stale_without_verifier_regression():
+    tmpdir = tempfile.mkdtemp()
+    baseline_path = os.path.join(tmpdir, "baseline_plan_act.json")
+    candidate_path = os.path.join(tmpdir, "candidate_plan_act.json")
+    baseline_verifier_path = os.path.join(tmpdir, "baseline_verifier.json")
+    candidate_verifier_path = os.path.join(tmpdir, "candidate_verifier.json")
+    with open(baseline_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "plan_act_latency_report",
+            "session_log_count": 2,
+            "stale_plan_action_count": 8,
+            "interrupt_opportunity_count": 14,
+            "errors": [],
+        }, f)
+    with open(candidate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "plan_act_latency_report",
+            "session_log_count": 2,
+            "stale_plan_action_count": 3,
+            "interrupt_opportunity_count": 7,
+            "errors": [],
+        }, f)
+    with open(baseline_verifier_path, "w", encoding="utf-8") as f:
+        json.dump({"type": "action_verification_report", "failure_count": 1}, f)
+    with open(candidate_verifier_path, "w", encoding="utf-8") as f:
+        json.dump({"type": "action_verification_report", "failure_count": 1}, f)
+
+    runner = BenchmarkRunner(Config())
+    gate = runner.build_plan_act_latency_gate(
+        baseline_report_paths=[baseline_path],
+        candidate_report_paths=[candidate_path],
+        baseline_verifier_report_paths=[baseline_verifier_path],
+        candidate_verifier_report_paths=[candidate_verifier_path],
+        min_stale_reduction=2,
+    )
+
+    assert gate["readiness"] == "approved"
+    assert gate["decision"] == "allow_gated_interruptible_plan_act"
+    assert gate["stale_action_delta"] == -5
+    assert gate["verifier_reject_delta"] == 0
+    assert "enable_interruptible_plan_act_behind_runtime_gate" in gate["policy_hints"]
+    print("PASS: Plan-act latency gate approves reduced stale actions without verifier regression")
+
+
+def test_plan_act_latency_gate_rejects_verifier_regression():
+    tmpdir = tempfile.mkdtemp()
+    baseline_path = os.path.join(tmpdir, "baseline_plan_act.json")
+    candidate_path = os.path.join(tmpdir, "candidate_plan_act.json")
+    baseline_verifier_path = os.path.join(tmpdir, "baseline_verifier.json")
+    candidate_verifier_path = os.path.join(tmpdir, "candidate_verifier.json")
+    payloads = {
+        baseline_path: {
+            "type": "plan_act_latency_report",
+            "session_log_count": 2,
+            "stale_plan_action_count": 8,
+            "interrupt_opportunity_count": 14,
+            "errors": [],
+        },
+        candidate_path: {
+            "type": "plan_act_latency_report",
+            "session_log_count": 2,
+            "stale_plan_action_count": 3,
+            "interrupt_opportunity_count": 7,
+            "errors": [],
+        },
+        baseline_verifier_path: {"type": "action_verification_report", "failure_count": 1},
+        candidate_verifier_path: {"type": "action_verification_report", "failure_count": 3},
+    }
+    for path, payload in payloads.items():
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f)
+
+    runner = BenchmarkRunner(Config())
+    gate = runner.build_plan_act_latency_gate(
+        baseline_report_paths=[baseline_path],
+        candidate_report_paths=[candidate_path],
+        baseline_verifier_report_paths=[baseline_verifier_path],
+        candidate_verifier_report_paths=[candidate_verifier_path],
+    )
+
+    assert gate["readiness"] == "rejected"
+    assert gate["decision"] == "keep_interruptible_plan_act_disabled"
+    assert gate["verifier_reject_delta"] == 2
+    assert "reduce_verifier_rejections_before_interrupts" in gate["policy_hints"]
+    print("PASS: Plan-act latency gate rejects verifier regression")
+
+
 def test_terminal_commitment_report_separates_world_completion_from_reporting():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_terminal_commitment.jsonl")
@@ -5107,6 +5217,9 @@ if __name__ == "__main__":
     test_plan_action_compliance_report_tracks_plan_following_gaps()
     test_plan_act_latency_report_counts_interrupt_opportunities()
     test_plan_act_latency_report_extracts_collab_role_logs_and_overlap()
+    test_plan_act_latency_gate_requires_candidate_and_verifier_evidence()
+    test_plan_act_latency_gate_approves_reduced_stale_without_verifier_regression()
+    test_plan_act_latency_gate_rejects_verifier_regression()
     test_terminal_commitment_report_separates_world_completion_from_reporting()
     test_action_verification_report_replays_logged_actions()
     test_action_candidate_report_replays_repairable_rejected_actions()

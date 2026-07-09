@@ -187,6 +187,7 @@ python -m singularity.main plan-action-compliance-report --session-log logs/sess
 # plan suffixes, and cross-role action overlap before trying interruptible plan/act execution.
 python -m singularity.main plan-act-latency-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/plan_act_latency.json
 python -m singularity.main plan-act-latency-report --collab-report logs/benchmarks/bm701_collab_report.json --output logs/benchmarks/bm701_plan_act_latency.json
+python -m singularity.main plan-act-latency-gate --baseline-plan-act-report logs/benchmarks/bm701_baseline_plan_act_latency.json --candidate-plan-act-report logs/benchmarks/bm701_interruptible_plan_act_latency.json --baseline-verifier-report logs/benchmarks/bm701_baseline_action_verification.json --candidate-verifier-report logs/benchmarks/bm701_interruptible_action_verification.json --output logs/benchmarks/bm701_plan_act_latency_gate.json
 # Separate world-state completion from the agent's terminal completion report.
 python -m singularity.main terminal-commitment-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/terminal_commitment.json
 # Replay logged actions through deterministic pre-execution feasibility checks.

@@ -1,0 +1,81 @@
+{
+  "type": "plan_act_latency_gate",
+  "target": "interruptible_plan_act_executor",
+  "readiness": "review",
+  "decision": "collect_plan_act_candidate_evidence",
+  "reason": "missing baseline/candidate plan-act or verifier evidence",
+  "baseline_report_count": 1,
+  "candidate_report_count": 0,
+  "baseline_verifier_report_count": 0,
+  "candidate_verifier_report_count": 0,
+  "min_candidate_logs": 1,
+  "min_stale_reduction": 1,
+  "max_verifier_reject_delta": 0,
+  "baseline_metrics": {
+    "session_log_count": 1,
+    "plan_count": 100,
+    "action_count": 100,
+    "interrupt_opportunity_count": 200,
+    "long_action_count": 100,
+    "stale_plan_action_count": 0,
+    "unfinished_plan_suffix_count": 100,
+    "world_change_while_plan_pending_count": 0,
+    "unplanned_action_count": 0,
+    "actual_peak_parallel_actions": 1,
+    "cross_log_overlapping_action_pairs": 0,
+    "cross_log_overlap_total_s": 0.0,
+    "error_count": 0,
+    "verifier_reject_count": 0
+  },
+  "candidate_metrics": {
+    "session_log_count": 0,
+    "plan_count": 0,
+    "action_count": 0,
+    "interrupt_opportunity_count": 0,
+    "long_action_count": 0,
+    "stale_plan_action_count": 0,
+    "unfinished_plan_suffix_count": 0,
+    "world_change_while_plan_pending_count": 0,
+    "unplanned_action_count": 0,
+    "actual_peak_parallel_actions": 0,
+    "cross_log_overlapping_action_pairs": 0,
+    "cross_log_overlap_total_s": 0.0,
+    "error_count": 0,
+    "verifier_reject_count": 0
+  },
+  "stale_action_delta": 0,
+  "interrupt_opportunity_delta": -200,
+  "verifier_reject_delta": 0,
+  "policy_hints": [
+    "collect_baseline_and_candidate_plan_act_reports"
+  ],
+  "missing": [
+    "candidate_plan_act_report",
+    "baseline_verifier_report",
+    "candidate_verifier_report"
+  ],
+  "checks": [
+    {
+      "kind": "candidate_logs",
+      "status": "fail",
+      "value": 0,
+      "threshold": 1,
+      "detail": "candidate plan-act report covers enough role/session logs; observed 0, required 1"
+    },
+    {
+      "kind": "stale_action_reduction",
+      "status": "fail",
+      "delta": 0,
+      "threshold": -1,
+      "detail": "candidate reduces stale-plan actions; delta 0, required <= -1"
+    },
+    {
+      "kind": "verifier_reject_delta",
+      "status": "pass",
+      "delta": 0,
+      "threshold": 0,
+      "detail": "candidate does not increase verifier rejections"
+    }
+  ],
+  "errors": []
+}

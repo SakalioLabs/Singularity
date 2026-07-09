@@ -16,6 +16,6 @@
   - The design pairs naturally with existing shared-state commits, action verification, and role bridge preflight.
 **Singularity Adaptation**:
   - Added `plan-act-latency-report`, which measures planner wait time, plan-to-action delay, action execution overlap, interrupt opportunity count, stale-plan actions, and unfinished plan suffixes from session logs or saved collaboration reports.
-  - Introduce a gated `parallel_plan_act_mode` only after offline replay shows fewer stale actions without increasing verifier rejections.
+  - Added `plan-act-latency-gate` so any future `parallel_plan_act_mode` needs baseline/candidate latency reports plus verifier reports proving fewer stale actions without more verifier rejections.
   - Keep the acting side constrained by existing action verification and skill gates; planner interrupts should replace only unfinished plan suffixes.
-**Next Action**: Run `plan-act-latency-report --collab-report ...` on live BM-701 role logs, then gate any interruptible role executor on lower stale-action counts without higher verifier rejection.
+**Next Action**: Run baseline and candidate `plan-act-latency-report --collab-report ...` on live BM-701 role logs, then require `plan-act-latency-gate` approval before wiring interruptible role execution.

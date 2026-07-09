@@ -927,6 +927,18 @@ def main():
     plan_act_latency_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     plan_act_latency_parser.add_argument("--log-level", type=str, default="INFO")
 
+    plan_act_gate_parser = subparsers.add_parser("plan-act-latency-gate", help="Gate interruptible plan/act execution with baseline/candidate latency and verifier evidence")
+    plan_act_gate_parser.add_argument("--baseline-plan-act-report", action="append", default=[], help="Baseline plan-act-latency-report JSON")
+    plan_act_gate_parser.add_argument("--candidate-plan-act-report", action="append", default=[], help="Candidate interruptible plan-act-latency-report JSON")
+    plan_act_gate_parser.add_argument("--baseline-verifier-report", action="append", default=[], help="Baseline verifier/action/terminal report JSON")
+    plan_act_gate_parser.add_argument("--candidate-verifier-report", action="append", default=[], help="Candidate verifier/action/terminal report JSON")
+    plan_act_gate_parser.add_argument("--target", type=str, default="interruptible_plan_act_executor", help="Gate target label")
+    plan_act_gate_parser.add_argument("--min-candidate-logs", type=int, default=1, help="Minimum candidate logs required")
+    plan_act_gate_parser.add_argument("--min-stale-reduction", type=int, default=1, help="Minimum stale-plan action reduction required")
+    plan_act_gate_parser.add_argument("--max-verifier-reject-delta", type=int, default=0, help="Maximum allowed increase in verifier rejections")
+    plan_act_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    plan_act_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline terminal commitment trace report
     terminal_commitment_parser = subparsers.add_parser("terminal-commitment-report", help="Report VIGIL-style world completion versus terminal completion claims")
     terminal_commitment_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -2650,6 +2662,32 @@ def main():
                 json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
         if report.get("readiness") == "error":
+            sys.exit(1)
+        return
+
+    if args.command == "plan-act-latency-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        runner = BenchmarkRunner(Config())
+        report = runner.build_plan_act_latency_gate(
+            baseline_report_paths=getattr(args, "baseline_plan_act_report", []) or [],
+            candidate_report_paths=getattr(args, "candidate_plan_act_report", []) or [],
+            baseline_verifier_report_paths=getattr(args, "baseline_verifier_report", []) or [],
+            candidate_verifier_report_paths=getattr(args, "candidate_verifier_report", []) or [],
+            target=getattr(args, "target", "interruptible_plan_act_executor"),
+            min_candidate_logs=getattr(args, "min_candidate_logs", 1),
+            min_stale_reduction=getattr(args, "min_stale_reduction", 1),
+            max_verifier_reject_delta=getattr(args, "max_verifier_reject_delta", 0),
+        )
+        runner.print_plan_act_latency_gate_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"error", "rejected"}:
             sys.exit(1)
         return
 

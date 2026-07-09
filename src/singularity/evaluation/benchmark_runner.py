@@ -6332,6 +6332,131 @@ class BenchmarkRunner:
             report["reason"] = "no plan/act latency opportunities were found in supplied logs"
         return report
 
+    def build_plan_act_latency_gate(
+        self,
+        baseline_report_paths: Optional[list[str]] = None,
+        candidate_report_paths: Optional[list[str]] = None,
+        baseline_verifier_report_paths: Optional[list[str]] = None,
+        candidate_verifier_report_paths: Optional[list[str]] = None,
+        target: str = "interruptible_plan_act_executor",
+        min_candidate_logs: int = 1,
+        min_stale_reduction: int = 1,
+        max_verifier_reject_delta: int = 0,
+    ) -> dict:
+        """Gate interruptible plan/act execution on latency and verifier evidence."""
+        report = {
+            "type": "plan_act_latency_gate",
+            "target": target,
+            "readiness": "review",
+            "decision": "keep_interruptible_plan_act_disabled",
+            "reason": "baseline/candidate plan-act and verifier evidence are required",
+            "baseline_report_count": 0,
+            "candidate_report_count": 0,
+            "baseline_verifier_report_count": 0,
+            "candidate_verifier_report_count": 0,
+            "min_candidate_logs": int(min_candidate_logs),
+            "min_stale_reduction": int(min_stale_reduction),
+            "max_verifier_reject_delta": int(max_verifier_reject_delta),
+            "baseline_metrics": {},
+            "candidate_metrics": {},
+            "stale_action_delta": 0,
+            "interrupt_opportunity_delta": 0,
+            "verifier_reject_delta": 0,
+            "policy_hints": [],
+            "missing": [],
+            "checks": [],
+            "errors": [],
+        }
+        baseline_items = self._load_gate_payloads([], baseline_report_paths or [], report["errors"], "baseline_plan_act_report")
+        candidate_items = self._load_gate_payloads([], candidate_report_paths or [], report["errors"], "candidate_plan_act_report")
+        baseline_verifier_items = self._load_gate_payloads([], baseline_verifier_report_paths or [], report["errors"], "baseline_verifier_report")
+        candidate_verifier_items = self._load_gate_payloads([], candidate_verifier_report_paths or [], report["errors"], "candidate_verifier_report")
+
+        report["baseline_report_count"] = len(baseline_items)
+        report["candidate_report_count"] = len(candidate_items)
+        report["baseline_verifier_report_count"] = len(baseline_verifier_items)
+        report["candidate_verifier_report_count"] = len(candidate_verifier_items)
+        report["baseline_metrics"] = self._aggregate_plan_act_gate_metrics(baseline_items)
+        report["candidate_metrics"] = self._aggregate_plan_act_gate_metrics(candidate_items)
+        baseline_verifier_failures = self._aggregate_plan_act_verifier_failures(baseline_verifier_items)
+        candidate_verifier_failures = self._aggregate_plan_act_verifier_failures(candidate_verifier_items)
+        report["baseline_metrics"]["verifier_reject_count"] = baseline_verifier_failures
+        report["candidate_metrics"]["verifier_reject_count"] = candidate_verifier_failures
+        report["stale_action_delta"] = (
+            int(report["candidate_metrics"].get("stale_plan_action_count", 0))
+            - int(report["baseline_metrics"].get("stale_plan_action_count", 0))
+        )
+        report["interrupt_opportunity_delta"] = (
+            int(report["candidate_metrics"].get("interrupt_opportunity_count", 0))
+            - int(report["baseline_metrics"].get("interrupt_opportunity_count", 0))
+        )
+        report["verifier_reject_delta"] = candidate_verifier_failures - baseline_verifier_failures
+
+        if not baseline_items:
+            report["missing"].append("baseline_plan_act_report")
+        if not candidate_items:
+            report["missing"].append("candidate_plan_act_report")
+        if not baseline_verifier_items:
+            report["missing"].append("baseline_verifier_report")
+        if not candidate_verifier_items:
+            report["missing"].append("candidate_verifier_report")
+
+        report["checks"].extend([
+            self._plan_act_gate_check(
+                "candidate_logs",
+                int(report["candidate_metrics"].get("session_log_count", 0)),
+                int(min_candidate_logs),
+                "candidate plan-act report covers enough role/session logs",
+            ),
+            self._plan_act_delta_check(
+                "stale_action_reduction",
+                report["stale_action_delta"],
+                -int(min_stale_reduction),
+                "candidate reduces stale-plan actions",
+            ),
+            self._plan_act_max_delta_check(
+                "verifier_reject_delta",
+                report["verifier_reject_delta"],
+                int(max_verifier_reject_delta),
+                "candidate does not increase verifier rejections",
+            ),
+        ])
+
+        failed_checks = [check for check in report["checks"] if check.get("status") == "fail"]
+        warning_checks = [check for check in report["checks"] if check.get("status") == "warn"]
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "fix_plan_act_gate_inputs"
+            report["reason"] = "plan-act gate inputs could not be loaded"
+        elif report["missing"]:
+            report["readiness"] = "review"
+            report["decision"] = "collect_plan_act_candidate_evidence"
+            report["reason"] = "missing baseline/candidate plan-act or verifier evidence"
+            report["policy_hints"].append("collect_baseline_and_candidate_plan_act_reports")
+        elif any(check.get("kind") == "verifier_reject_delta" for check in failed_checks):
+            report["readiness"] = "rejected"
+            report["decision"] = "keep_interruptible_plan_act_disabled"
+            report["reason"] = "candidate plan-act mode increases verifier rejections"
+            report["policy_hints"].append("reduce_verifier_rejections_before_interrupts")
+        elif failed_checks:
+            report["readiness"] = "review"
+            report["decision"] = "hold_interruptible_plan_act_for_latency_evidence"
+            report["reason"] = "candidate plan-act mode has not proven enough stale-action reduction"
+            report["policy_hints"].append("collect_candidate_replay_with_lower_stale_actions")
+        elif warning_checks:
+            report["readiness"] = "review"
+            report["decision"] = "hold_interruptible_plan_act_for_more_logs"
+            report["reason"] = "candidate evidence is promising but still thin"
+            report["policy_hints"].append("collect_more_candidate_role_logs")
+        else:
+            report["readiness"] = "approved"
+            report["decision"] = "allow_gated_interruptible_plan_act"
+            report["reason"] = "candidate reduces stale actions without increasing verifier rejections"
+            report["policy_hints"].append("enable_interruptible_plan_act_behind_runtime_gate")
+        report["missing"] = self._dedupe_strings(report["missing"])
+        report["policy_hints"] = self._dedupe_strings(report["policy_hints"])
+        return report
+
     def run_terminal_commitment_report_from_logs(self, session_log_paths: list[str]) -> TerminalCommitmentReport:
         """Summarize VIGIL-style world completion versus terminal completion claims."""
         report = TerminalCommitmentReport()
@@ -10580,6 +10705,126 @@ class BenchmarkRunner:
         if int(report.get("actual_peak_parallel_actions", 0) or 0) > 1:
             hints.append("preserve_role_parallel_dispatch")
         return self._dedupe_strings(hints)
+
+    def _aggregate_plan_act_gate_metrics(self, items: list[tuple[str, dict]]) -> dict:
+        metrics = {
+            "session_log_count": 0,
+            "plan_count": 0,
+            "action_count": 0,
+            "interrupt_opportunity_count": 0,
+            "long_action_count": 0,
+            "stale_plan_action_count": 0,
+            "unfinished_plan_suffix_count": 0,
+            "world_change_while_plan_pending_count": 0,
+            "unplanned_action_count": 0,
+            "actual_peak_parallel_actions": 0,
+            "cross_log_overlapping_action_pairs": 0,
+            "cross_log_overlap_total_s": 0.0,
+            "error_count": 0,
+        }
+        for _, payload in items:
+            for key in (
+                "session_log_count",
+                "plan_count",
+                "action_count",
+                "interrupt_opportunity_count",
+                "long_action_count",
+                "stale_plan_action_count",
+                "unfinished_plan_suffix_count",
+                "world_change_while_plan_pending_count",
+                "unplanned_action_count",
+                "cross_log_overlapping_action_pairs",
+            ):
+                metrics[key] += self._safe_int(payload.get(key, 0))
+            metrics["actual_peak_parallel_actions"] = max(
+                metrics["actual_peak_parallel_actions"],
+                self._safe_int(payload.get("actual_peak_parallel_actions", 0)),
+            )
+            try:
+                metrics["cross_log_overlap_total_s"] += float(payload.get("cross_log_overlap_total_s", 0) or 0)
+            except (TypeError, ValueError):
+                pass
+            errors = payload.get("errors", []) if isinstance(payload.get("errors", []), list) else []
+            metrics["error_count"] += len(errors)
+        metrics["cross_log_overlap_total_s"] = round(metrics["cross_log_overlap_total_s"], 3)
+        return metrics
+
+    def _aggregate_plan_act_verifier_failures(self, items: list[tuple[str, dict]]) -> int:
+        total = 0
+        for _, payload in items:
+            total += self._plan_act_verifier_failure_count(payload)
+        return total
+
+    def _plan_act_verifier_failure_count(self, payload: dict) -> int:
+        if not isinstance(payload, dict):
+            return 1
+        if payload.get("type") == "terminal_commitment_report":
+            return (
+                self._safe_int(payload.get("unsupported_commitment_count", 0))
+                + self._safe_int(payload.get("missed_execution_count", 0))
+            )
+        for key in (
+            "verifier_failure_count",
+            "failure_count",
+            "rejected_count",
+            "rejected_action_count",
+            "unsupported_commitment_count",
+            "missed_execution_count",
+        ):
+            if key in payload:
+                return self._safe_int(payload.get(key, 0))
+        failures = 0
+        cases = payload.get("cases", []) if isinstance(payload.get("cases", []), list) else []
+        for case in cases:
+            if not isinstance(case, dict):
+                continue
+            status = str(
+                case.get("readiness")
+                or case.get("status")
+                or case.get("outcome")
+                or case.get("world_status")
+                or ""
+            ).lower()
+            if status in {"rejected", "fail", "failed", "missed_execution", "unsupported_commitment"}:
+                failures += 1
+            elif case.get("verified") is False or case.get("world_complete") is False:
+                failures += 1
+        return failures
+
+    def _plan_act_gate_check(self, kind: str, value: int, minimum: int, detail: str) -> dict:
+        if value >= minimum:
+            status = "pass"
+        elif value > 0:
+            status = "warn"
+        else:
+            status = "fail"
+        return {
+            "kind": kind,
+            "status": status,
+            "value": value,
+            "threshold": minimum,
+            "detail": detail if status == "pass" else f"{detail}; observed {value}, required {minimum}",
+        }
+
+    def _plan_act_delta_check(self, kind: str, delta: int, maximum: int, detail: str) -> dict:
+        status = "pass" if delta <= maximum else "fail"
+        return {
+            "kind": kind,
+            "status": status,
+            "delta": delta,
+            "threshold": maximum,
+            "detail": detail if status == "pass" else f"{detail}; delta {delta}, required <= {maximum}",
+        }
+
+    def _plan_act_max_delta_check(self, kind: str, delta: int, maximum: int, detail: str) -> dict:
+        status = "pass" if delta <= maximum else "fail"
+        return {
+            "kind": kind,
+            "status": status,
+            "delta": delta,
+            "threshold": maximum,
+            "detail": detail if status == "pass" else f"{detail}; delta {delta}, allowed <= {maximum}",
+        }
 
     def _session_logs_from_collab_report(self, report_path: str) -> list[str]:
         with open(report_path, "r", encoding="utf-8-sig") as f:
@@ -16760,6 +17005,53 @@ class BenchmarkRunner:
                 f"+ {example.get('right_action_type')}@{example.get('right_log')} "
                 f"{example.get('overlap_s')}s"
             )
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+
+    def print_plan_act_latency_gate_report(self, report: dict):
+        print("\nPlan-Act Latency Gate")
+        print(f"  target: {report.get('target', 'interruptible_plan_act_executor')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')} ({report.get('decision', '')})")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  reports: "
+            f"baseline={report.get('baseline_report_count', 0)}, "
+            f"candidate={report.get('candidate_report_count', 0)}, "
+            f"baseline_verifier={report.get('baseline_verifier_report_count', 0)}, "
+            f"candidate_verifier={report.get('candidate_verifier_report_count', 0)}"
+        )
+        print(
+            "  deltas: "
+            f"stale={report.get('stale_action_delta', 0)}, "
+            f"interrupt={report.get('interrupt_opportunity_delta', 0)}, "
+            f"verifier_reject={report.get('verifier_reject_delta', 0)}"
+        )
+        baseline = report.get("baseline_metrics", {}) if isinstance(report.get("baseline_metrics", {}), dict) else {}
+        candidate = report.get("candidate_metrics", {}) if isinstance(report.get("candidate_metrics", {}), dict) else {}
+        print(
+            "  baseline: "
+            f"logs={baseline.get('session_log_count', 0)}, "
+            f"stale={baseline.get('stale_plan_action_count', 0)}, "
+            f"interrupt={baseline.get('interrupt_opportunity_count', 0)}, "
+            f"verifier_reject={baseline.get('verifier_reject_count', 0)}"
+        )
+        print(
+            "  candidate: "
+            f"logs={candidate.get('session_log_count', 0)}, "
+            f"stale={candidate.get('stale_plan_action_count', 0)}, "
+            f"interrupt={candidate.get('interrupt_opportunity_count', 0)}, "
+            f"verifier_reject={candidate.get('verifier_reject_count', 0)}"
+        )
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', []))}")
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for check in report.get("checks", []):
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            value = check.get("value", check.get("delta", ""))
+            print(f"  [{marker}] {check.get('kind')}: {check.get('status')} value={value} threshold={check.get('threshold')}")
+            if check.get("detail"):
+                print(f"      {check.get('detail')}")
         for error in report.get("errors", []):
             print(f"  error: {error}")
 
