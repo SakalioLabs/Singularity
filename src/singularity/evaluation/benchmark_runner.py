@@ -4103,6 +4103,169 @@ class BenchmarkRunner:
         report["review_items"] = report["review_items"][:20]
         return report
 
+    def build_action_value_transition_evaluator_report(
+        self,
+        action_value_reports: list[dict] = None,
+        action_value_report_paths: list[str] = None,
+        session_log_paths: list[str] = None,
+        evaluator=None,
+        limit: int = 40,
+        min_transition_confidence: float = 0.75,
+        min_evaluator_confidence: float = 0.65,
+        min_evaluated_transitions: int = 1,
+        min_label_agreement_rate: float = 0.75,
+        max_avg_score_delta: float = 0.25,
+        max_large_score_delta_rate: float = 0.25,
+    ) -> dict:
+        """Compare deterministic Minecraft transition labels against a state-grounded evaluator."""
+        report = {
+            "type": "action_value_transition_evaluator_report",
+            "readiness": "review",
+            "decision": "hold_for_review",
+            "reason": "state-grounded transition evaluator comparison is incomplete",
+            "evaluator": "llm_state_grounded" if evaluator else "missing",
+            "thresholds": {
+                "limit": int(limit),
+                "min_transition_confidence": float(min_transition_confidence),
+                "min_evaluator_confidence": float(min_evaluator_confidence),
+                "min_evaluated_transitions": int(min_evaluated_transitions),
+                "min_label_agreement_rate": float(min_label_agreement_rate),
+                "max_avg_score_delta": float(max_avg_score_delta),
+                "max_large_score_delta_rate": float(max_large_score_delta_rate),
+            },
+            "source_count": 0,
+            "transition_count": 0,
+            "evaluated_count": 0,
+            "skipped_count": 0,
+            "agreement_count": 0,
+            "conflict_count": 0,
+            "large_score_delta_count": 0,
+            "agreement_rate": 0.0,
+            "conflict_rate": 0.0,
+            "large_score_delta_rate": 0.0,
+            "avg_abs_score_delta": 0.0,
+            "comparison_cases": [],
+            "conflicts": [],
+            "skipped": [],
+            "missing": [],
+            "policy_hints": [],
+            "errors": [],
+        }
+        sources, load_errors = self._action_value_transition_evaluator_sources(
+            action_value_reports=action_value_reports,
+            action_value_report_paths=action_value_report_paths,
+            session_log_paths=session_log_paths,
+        )
+        report["source_count"] = len(sources)
+        report["errors"].extend(load_errors)
+        if not sources:
+            report["missing"].append("action_value_transition_sources")
+        if evaluator is None:
+            report["missing"].append("llm_evaluator")
+
+        transitions = []
+        for source, payload in sources:
+            transitions.extend(self._action_value_transition_items_from_payload(source, payload))
+        report["transition_count"] = len(transitions)
+        if not transitions:
+            report["missing"].append("state_transition_items")
+
+        score_deltas = []
+        max_items = max(0, int(limit))
+        for item in transitions[:max_items or len(transitions)]:
+            skip_reason = self._transition_evaluator_skip_reason(item, min_transition_confidence)
+            if skip_reason:
+                report["skipped_count"] += 1
+                if len(report["skipped"]) < 12:
+                    report["skipped"].append(self._transition_evaluator_skip_record(item, skip_reason))
+                continue
+            if evaluator is None:
+                continue
+            evaluation = self._evaluate_action_value_transition_with_llm(evaluator, item)
+            if evaluation.get("error"):
+                report["skipped_count"] += 1
+                if len(report["skipped"]) < 12:
+                    record = self._transition_evaluator_skip_record(item, "evaluator_error")
+                    record["error"] = evaluation.get("error")
+                    report["skipped"].append(record)
+                continue
+            evaluator_confidence = self._safe_float(evaluation.get("confidence"), 0.0)
+            if evaluator_confidence < float(min_evaluator_confidence):
+                report["skipped_count"] += 1
+                if len(report["skipped"]) < 12:
+                    record = self._transition_evaluator_skip_record(item, "low_evaluator_confidence")
+                    record["evaluator_confidence"] = round(evaluator_confidence, 3)
+                    report["skipped"].append(record)
+                continue
+
+            deterministic_label = self._normalize_transition_label(item.get("transition_label"))
+            evaluator_label = self._normalize_transition_label(evaluation.get("label"))
+            deterministic_score = self._safe_float(item.get("transition_value_score"), 0.5)
+            evaluator_score = max(0.0, min(1.0, self._safe_float(evaluation.get("score"), 0.5)))
+            score_delta = round(abs(deterministic_score - evaluator_score), 3)
+            score_deltas.append(score_delta)
+            agreement = deterministic_label == evaluator_label
+            large_delta = score_delta > float(max_avg_score_delta)
+            report["evaluated_count"] += 1
+            if agreement:
+                report["agreement_count"] += 1
+            else:
+                report["conflict_count"] += 1
+            if large_delta:
+                report["large_score_delta_count"] += 1
+            case = {
+                "source_log": item.get("source_log", ""),
+                "event_index": item.get("event_index"),
+                "signature": item.get("signature", "unknown"),
+                "goal": item.get("goal", ""),
+                "deterministic_label": deterministic_label,
+                "evaluator_label": evaluator_label,
+                "deterministic_score": round(deterministic_score, 3),
+                "evaluator_score": round(evaluator_score, 3),
+                "score_delta": score_delta,
+                "agreement": agreement,
+                "large_score_delta": large_delta,
+                "evaluator_confidence": round(evaluator_confidence, 3),
+                "evaluator_reason": str(evaluation.get("reason") or "")[:240],
+                "deterministic_reasons": item.get("reasons", [])[:8] if isinstance(item.get("reasons", []), list) else [],
+            }
+            if len(report["comparison_cases"]) < 20:
+                report["comparison_cases"].append(case)
+            if (not agreement or large_delta) and len(report["conflicts"]) < 20:
+                report["conflicts"].append(case)
+
+        if report["evaluated_count"]:
+            report["agreement_rate"] = round(report["agreement_count"] / report["evaluated_count"], 3)
+            report["conflict_rate"] = round(report["conflict_count"] / report["evaluated_count"], 3)
+            report["large_score_delta_rate"] = round(report["large_score_delta_count"] / report["evaluated_count"], 3)
+            report["avg_abs_score_delta"] = round(sum(score_deltas) / max(1, len(score_deltas)), 3)
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "reject"
+            report["reason"] = "transition evaluator inputs could not be read"
+        elif evaluator is None:
+            report["reason"] = "state-grounded LLM evaluator is not configured"
+            report["policy_hints"].append("configure_state_grounded_transition_evaluator")
+        elif report["evaluated_count"] < int(min_evaluated_transitions):
+            report["reason"] = "not enough high-confidence transitions were evaluated"
+            report["missing"].append("evaluated_transition_count")
+            report["policy_hints"].append("collect_action_local_transition_windows")
+        elif (
+            report["agreement_rate"] >= float(min_label_agreement_rate)
+            and report["avg_abs_score_delta"] <= float(max_avg_score_delta)
+            and report["large_score_delta_rate"] <= float(max_large_score_delta_rate)
+        ):
+            report["readiness"] = "approved"
+            report["decision"] = "approve_comparison"
+            report["reason"] = "state-grounded evaluator agrees with deterministic transition labels"
+            report["policy_hints"].append("allow_llm_checked_transition_value_review")
+        else:
+            report["reason"] = "state-grounded evaluator found transition-label or score conflicts"
+            report["policy_hints"].append("review_transition_label_conflicts")
+            report["policy_hints"].append("compare_llm_and_deterministic_transition_deltas")
+        return report
+
     def self_evolution_feedback(self, report: SelfEvolutionTraceReport) -> dict:
         """Aggregate execution feedback into reusable self-evolution policy hints."""
         typed_feedback = {}
@@ -7235,6 +7398,186 @@ class BenchmarkRunner:
             return self._gate_check(source, "action_value_transition_gate", "warn", "not enough trusted transition attempts", metrics)
         return self._gate_check(source, "action_value_transition_gate", "pass", "trusted transition-value evidence is available", metrics)
 
+    def _action_value_transition_evaluator_sources(
+        self,
+        action_value_reports: list[dict] = None,
+        action_value_report_paths: list[str] = None,
+        session_log_paths: list[str] = None,
+    ) -> tuple[list[tuple[str, dict]], list[str]]:
+        sources = []
+        errors = []
+        for index, payload in enumerate(action_value_reports or []):
+            if isinstance(payload, ActionValueTraceReport):
+                sources.append((f"inline_report:{index}", {"cases": [asdict(case) for case in payload.cases], "errors": payload.errors}))
+            elif isinstance(payload, dict):
+                sources.append((f"inline:{index}", payload))
+            else:
+                errors.append(f"inline:{index}: unsupported action-value report payload")
+        for path in action_value_report_paths or []:
+            if not path:
+                continue
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    sources.append((path, json.load(f)))
+            except Exception as e:
+                errors.append(f"{path}: {e}")
+        if session_log_paths:
+            try:
+                report = self.run_action_value_report_from_logs(session_log_paths)
+                sources.append(("session_logs", {"cases": [asdict(case) for case in report.cases], "errors": report.errors}))
+            except Exception as e:
+                errors.append(f"session_logs: {e}")
+        return sources, errors
+
+    def _action_value_transition_items_from_payload(self, source: str, payload: dict) -> list[dict]:
+        if not isinstance(payload, dict):
+            return []
+        items = []
+        seen = set()
+        cases = payload.get("cases", []) if isinstance(payload.get("cases", []), list) else []
+        for case in cases:
+            if not isinstance(case, dict):
+                continue
+            for item in case.get("state_transition_items", []) if isinstance(case.get("state_transition_items", []), list) else []:
+                if isinstance(item, dict):
+                    self._append_transition_evaluator_item(items, seen, source, item)
+        if items:
+            return items
+
+        feedback = payload.get("action_value_feedback", payload)
+        if not isinstance(feedback, dict):
+            return []
+        aggregate_items = feedback.get("state_transition_value_items", [])
+        if not isinstance(aggregate_items, list):
+            return []
+        for aggregate in aggregate_items:
+            if not isinstance(aggregate, dict):
+                continue
+            examples = aggregate.get("examples", []) if isinstance(aggregate.get("examples", []), list) else []
+            for item in examples:
+                if isinstance(item, dict):
+                    self._append_transition_evaluator_item(items, seen, source, item)
+        return items
+
+    def _append_transition_evaluator_item(self, items: list[dict], seen: set, source: str, item: dict):
+        record = dict(item)
+        if not record.get("source_log"):
+            record["source_log"] = source
+        key = (
+            str(record.get("source_log") or source),
+            self._gate_int(record.get("event_index")),
+            str(record.get("signature") or ""),
+            str(record.get("transition_label") or ""),
+        )
+        if key in seen:
+            return
+        seen.add(key)
+        items.append(record)
+
+    def _transition_evaluator_skip_reason(self, item: dict, min_transition_confidence: float) -> str:
+        confidence = self._safe_float(item.get("transition_confidence"), 0.0)
+        if confidence < float(min_transition_confidence):
+            return "low_deterministic_transition_confidence"
+        if not item.get("before_state_summary") or not item.get("after_state_summary"):
+            return "missing_state_summary"
+        if not self._normalize_transition_label(item.get("transition_label")):
+            return "missing_deterministic_label"
+        return ""
+
+    def _transition_evaluator_skip_record(self, item: dict, reason: str) -> dict:
+        return {
+            "source_log": item.get("source_log", ""),
+            "event_index": item.get("event_index"),
+            "signature": item.get("signature", "unknown"),
+            "reason": reason,
+            "transition_confidence": item.get("transition_confidence"),
+            "deterministic_label": item.get("transition_label"),
+        }
+
+    def _evaluate_action_value_transition_with_llm(self, evaluator, item: dict) -> dict:
+        prompt_payload = {
+            "goal": item.get("goal", ""),
+            "action": item.get("action", {}),
+            "success": item.get("success"),
+            "before_state": item.get("before_state_summary", {}),
+            "after_state": item.get("after_state_summary", {}),
+            "deterministic_delta_summary": {
+                "inventory_delta": item.get("inventory_delta", {}),
+                "movement_distance": item.get("movement_distance", 0),
+                "health_delta": item.get("health_delta", 0),
+                "new_blocks": item.get("new_blocks", []),
+                "new_resources": item.get("new_resources", []),
+                "hostile_delta": item.get("hostile_delta", 0),
+                "deterministic_reasons": item.get("reasons", []),
+            },
+        }
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are a state-grounded Minecraft transition evaluator. "
+                    "Score whether an action moved the world state toward the stated goal. "
+                    "Use only the provided before/after state summaries and deltas. "
+                    "Return strict JSON."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Choose exactly one label from positive, negative, no_progress. "
+                    "Use score 0.0-1.0 where 0.5 is no useful change, higher is progress, lower is regression. "
+                    "Return JSON with keys label, score, confidence, reason.\n"
+                    + json.dumps(prompt_payload, ensure_ascii=False, default=str)
+                ),
+            },
+        ]
+        try:
+            text = evaluator.chat(messages, response_format={"type": "json_object"})
+            payload = self._parse_transition_evaluator_json(text)
+            label = self._normalize_transition_label(payload.get("label"))
+            if not label:
+                return {"error": "missing_or_invalid_label", "raw": text[:240]}
+            return {
+                "label": label,
+                "score": max(0.0, min(1.0, self._safe_float(payload.get("score"), 0.5))),
+                "confidence": max(0.0, min(1.0, self._safe_float(payload.get("confidence"), 0.0))),
+                "reason": str(payload.get("reason") or "")[:240],
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    def _parse_transition_evaluator_json(self, text: str) -> dict:
+        text = str(text or "").strip()
+        try:
+            payload = json.loads(text)
+            return payload if isinstance(payload, dict) else {}
+        except Exception:
+            start = text.find("{")
+            end = text.rfind("}")
+            if 0 <= start < end:
+                payload = json.loads(text[start:end + 1])
+                return payload if isinstance(payload, dict) else {}
+            raise
+
+    def _normalize_transition_label(self, label) -> str:
+        text = str(label or "").strip().lower().replace("-", "_").replace(" ", "_")
+        mapping = {
+            "progress": "positive",
+            "helpful": "positive",
+            "improvement": "positive",
+            "positive": "positive",
+            "regression": "negative",
+            "harmful": "negative",
+            "worse": "negative",
+            "negative": "negative",
+            "neutral": "no_progress",
+            "none": "no_progress",
+            "unchanged": "no_progress",
+            "no_change": "no_progress",
+            "no_progress": "no_progress",
+        }
+        return mapping.get(text, "")
+
     def _action_embedded_observation(self, action_data: dict, result: dict, before: bool) -> dict:
         key_groups = (
             ("before_observation", "pre_observation", "observation_before", "state_before", "world_state_before", "before")
@@ -7281,6 +7624,33 @@ class BenchmarkRunner:
                 "dangers",
             )
         )
+
+    def _compact_transition_observation_summary(self, observation: dict) -> dict:
+        observation = observation if isinstance(observation, dict) else {}
+        inventory = self._inventory_counts(observation.get("inventory", {}))
+        position = self._position_tuple(observation.get("position"))
+        summary = {
+            "position": (
+                {"x": round(position[0], 2), "y": round(position[1], 2), "z": round(position[2], 2)}
+                if position is not None else {}
+            ),
+            "health": self._safe_float(observation.get("health"), 20.0),
+            "hunger": self._safe_float(observation.get("hunger"), self._safe_float(observation.get("food"), 20.0)),
+            "inventory": {
+                key: inventory[key]
+                for key in sorted(inventory)[:12]
+                if abs(inventory.get(key, 0.0)) > 0.0001
+            },
+            "visible_blocks": sorted(self._named_items_from_record(observation, ["nearby_blocks", "blocks", "visible_blocks"]))[:12],
+            "resources": sorted(self._named_items_from_record(observation, ["grounded_resources", "visual_resources", "resources"]))[:12],
+            "entities": sorted({
+                str(entity.get("name") or entity.get("type") or "")
+                for entity in self._entity_items_from_record(observation)
+                if isinstance(entity, dict) and (entity.get("name") or entity.get("type"))
+            })[:12],
+            "danger_count": len(observation.get("dangers", []) if isinstance(observation.get("dangers", []), list) else []),
+        }
+        return summary
 
     def _action_state_transition_item(
         self,
@@ -7416,6 +7786,8 @@ class BenchmarkRunner:
             "success": success,
             "before_state_value": round(before_state_value, 3),
             "after_state_value": round(after_state_value, 3),
+            "before_state_summary": self._compact_transition_observation_summary(before_observation),
+            "after_state_summary": self._compact_transition_observation_summary(after_observation),
             "absolute_state_delta": round(absolute_state_delta, 3),
             "state_value_delta": round(state_value_delta, 3),
             "transition_value_score": round(max(0.0, min(1.0, 0.5 + state_value_delta / 2.0)), 3),
@@ -11285,6 +11657,45 @@ class BenchmarkRunner:
             print(
                 f"      review {item.get('signature')}: {item.get('reason')} "
                 f"attempts={item.get('attempts')} conf={item.get('avg_transition_confidence')}"
+            )
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+
+    def print_action_value_transition_evaluator_report(self, report: dict):
+        print("\nAction Value Transition Evaluator")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  transitions: "
+            f"total={report.get('transition_count', 0)}, "
+            f"evaluated={report.get('evaluated_count', 0)}, "
+            f"skipped={report.get('skipped_count', 0)}, "
+            f"agreement={report.get('agreement_count', 0)}, "
+            f"conflicts={report.get('conflict_count', 0)}"
+        )
+        print(
+            "  rates: "
+            f"agreement={report.get('agreement_rate', 0.0):.3f}, "
+            f"large_delta={report.get('large_score_delta_rate', 0.0):.3f}, "
+            f"avg_abs_score_delta={report.get('avg_abs_score_delta', 0.0):.3f}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', []))}")
+        for case in report.get("comparison_cases", [])[:6]:
+            marker = "+" if case.get("agreement") and not case.get("large_score_delta") else "!"
+            print(
+                f"  [{marker}] {case.get('signature')} event#{case.get('event_index')}: "
+                f"{case.get('deterministic_label')}->{case.get('evaluator_label')} "
+                f"score {case.get('deterministic_score')}->{case.get('evaluator_score')} "
+                f"delta={case.get('score_delta')}"
+            )
+        for skipped in report.get("skipped", [])[:6]:
+            print(
+                f"      skipped {skipped.get('signature')} event#{skipped.get('event_index')}: "
+                f"{skipped.get('reason')}"
             )
         for error in report.get("errors", []):
             print(f"  error: {error}")

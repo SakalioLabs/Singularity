@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import tempfile
+from dataclasses import asdict
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -76,6 +77,30 @@ class VisualAwareGoalCriticLLM:
             "reason": "missing screenshot evidence for the sealed entrance",
             "missing": ["no screenshot reference"],
             "matched_rules": ["visual_goal_state"],
+        })
+
+
+class StateGroundedTransitionEvaluatorLLM:
+    def __init__(self):
+        self.prompts = []
+        self.response_formats = []
+
+    def chat(self, messages, response_format=None):
+        prompt = messages[-1]["content"]
+        self.prompts.append(prompt)
+        self.response_formats.append(response_format)
+        if '"type": "dig"' in prompt and '"coal"' in prompt:
+            return json.dumps({
+                "label": "positive",
+                "score": 0.82,
+                "confidence": 0.9,
+                "reason": "inventory gained coal after digging coal ore",
+            })
+        return json.dumps({
+            "label": "no_progress",
+            "score": 0.5,
+            "confidence": 0.86,
+            "reason": "before and after summaries are unchanged",
         })
 
 
@@ -1791,6 +1816,8 @@ def test_action_value_report_uses_embedded_action_observation_windows():
     assert transition["avg_transition_confidence"] == 1.0
     assert transition["inventory_gain_count"] == 1
     assert transition["examples"][0]["transition_confidence"] == 1.0
+    assert transition["examples"][0]["before_state_summary"]["inventory"] == {}
+    assert transition["examples"][0]["after_state_summary"]["inventory"]["coal"] == 1.0
     print("PASS: Action value report uses embedded action observation windows")
 
 
@@ -1846,6 +1873,81 @@ def test_action_value_transition_gate_controls_runtime_feedback():
     assert "collect_action_local_transition_windows" in review["policy_hints"]
     assert review["review_items"][0]["reason"] == "low_transition_confidence"
     print("PASS: Action value transition gate controls runtime feedback")
+
+
+def test_action_value_transition_evaluator_compares_state_grounded_labels():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "transition_evaluator_session.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Collect coal"}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "dig", "parameters": {"block": "coal_ore"}},
+                "result": {"success": True},
+                "pre_observation": {
+                    "position": {"x": 0, "y": 64, "z": 0},
+                    "health": 20,
+                    "inventory": {},
+                    "nearby_blocks": [{"name": "coal_ore"}],
+                },
+                "post_observation": {
+                    "position": {"x": 0, "y": 64, "z": 0},
+                    "health": 20,
+                    "inventory": {"coal": 1},
+                    "nearby_blocks": [{"name": "coal_ore"}],
+                },
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "wait", "parameters": {"ticks": 1}},
+                "result": {"success": True},
+                "pre_observation": {
+                    "position": {"x": 0, "y": 64, "z": 0},
+                    "health": 20,
+                    "inventory": {"coal": 1},
+                    "nearby_blocks": [{"name": "coal_ore"}],
+                },
+                "post_observation": {
+                    "position": {"x": 0, "y": 64, "z": 0},
+                    "health": 20,
+                    "inventory": {"coal": 1},
+                    "nearby_blocks": [{"name": "coal_ore"}],
+                },
+            },
+        },
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config())
+    action_report = runner.run_action_value_report_from_logs([session_path])
+    payload = {
+        "cases": [asdict(case) for case in action_report.cases],
+        "action_value_feedback": runner.action_value_feedback(action_report),
+        "errors": action_report.errors,
+    }
+    evaluator = StateGroundedTransitionEvaluatorLLM()
+    report = runner.build_action_value_transition_evaluator_report(
+        action_value_reports=[payload],
+        evaluator=evaluator,
+        limit=5,
+        min_evaluated_transitions=2,
+    )
+
+    assert report["readiness"] == "approved"
+    assert report["decision"] == "approve_comparison"
+    assert report["evaluated_count"] == 2
+    assert report["agreement_count"] == 2
+    assert report["agreement_rate"] == 1.0
+    assert report["conflict_count"] == 0
+    assert "allow_llm_checked_transition_value_review" in report["policy_hints"]
+    assert evaluator.response_formats[0] == {"type": "json_object"}
+    assert "before_state" in evaluator.prompts[0]
+    print("PASS: Action value transition evaluator compares state-grounded labels")
 
 
 def test_self_evolution_gate_requires_verifier_and_counterexamples():
@@ -3722,6 +3824,7 @@ if __name__ == "__main__":
     test_action_value_report_aggregates_outcome_profiles()
     test_action_value_report_uses_embedded_action_observation_windows()
     test_action_value_transition_gate_controls_runtime_feedback()
+    test_action_value_transition_evaluator_compares_state_grounded_labels()
     test_self_evolution_gate_requires_verifier_and_counterexamples()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
     test_discovery_skill_gate_controls_experiment_derived_skill_promotion()

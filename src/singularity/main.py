@@ -566,6 +566,25 @@ def main():
     action_value_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
     action_value_gate_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline state-grounded evaluator comparison for action transition values
+    action_value_eval_parser = subparsers.add_parser("action-value-transition-evaluator-report", help="Compare deterministic ASV transition labels against a state-grounded LLM evaluator")
+    action_value_eval_parser.add_argument("--action-value-report", action="append", default=[], help="Saved action-value-report JSON")
+    action_value_eval_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect directly")
+    action_value_eval_parser.add_argument("--limit", type=int, default=40, help="Maximum transition windows to evaluate")
+    action_value_eval_parser.add_argument("--min-transition-confidence", type=float, default=0.75, help="Minimum deterministic transition confidence")
+    action_value_eval_parser.add_argument("--min-evaluator-confidence", type=float, default=0.65, help="Minimum LLM evaluator confidence")
+    action_value_eval_parser.add_argument("--min-evaluated-transitions", type=int, default=1, help="Minimum evaluated transition windows required")
+    action_value_eval_parser.add_argument("--min-label-agreement-rate", type=float, default=0.75, help="Minimum deterministic-vs-evaluator label agreement")
+    action_value_eval_parser.add_argument("--max-avg-score-delta", type=float, default=0.25, help="Maximum average absolute score delta")
+    action_value_eval_parser.add_argument("--max-large-score-delta-rate", type=float, default=0.25, help="Maximum rate of large score deltas")
+    action_value_eval_parser.add_argument("--llm-evaluator", action="store_true", help="Call the configured LLM as the state-grounded evaluator")
+    action_value_eval_parser.add_argument("--llm-provider", type=str, default="openai")
+    action_value_eval_parser.add_argument("--llm-model", type=str, default="gpt-4o-mini")
+    action_value_eval_parser.add_argument("--llm-base-url", type=str, default="")
+    action_value_eval_parser.add_argument("--api-key", type=str, default="")
+    action_value_eval_parser.add_argument("--output", type=str, default="", help="Optional JSON evaluator report path")
+    action_value_eval_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline self-evolution automatic repair gate
     self_evolution_gate_parser = subparsers.add_parser("self-evolution-gate", help="Gate automatic self-evolution plan repair with verifier and counterexample evidence")
     self_evolution_gate_parser.add_argument("--self-evolution-report", action="append", default=[], help="Saved self-evolution-report JSON")
@@ -2321,6 +2340,43 @@ def main():
             max_item_low_confidence_rate=getattr(args, "max_item_low_confidence_rate", 0.25),
         )
         runner.print_action_value_transition_gate_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"rejected", "error"}:
+            sys.exit(1)
+        return
+
+    if args.command == "action-value-transition-evaluator-report":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        action_value_reports = getattr(args, "action_value_report", []) or []
+        session_logs = getattr(args, "session_log", []) or []
+        if not action_value_reports and not session_logs:
+            print("action-value-transition-evaluator-report requires at least one --action-value-report or --session-log")
+            sys.exit(1)
+        evaluator = None
+        if getattr(args, "llm_evaluator", False):
+            from singularity.llm.provider import LLMProvider
+            evaluator = LLMProvider(_llm_config_from_args(args))
+        runner = BenchmarkRunner(Config(llm=_llm_config_from_args(args)))
+        report = runner.build_action_value_transition_evaluator_report(
+            action_value_report_paths=action_value_reports,
+            session_log_paths=session_logs,
+            evaluator=evaluator,
+            limit=getattr(args, "limit", 40),
+            min_transition_confidence=getattr(args, "min_transition_confidence", 0.75),
+            min_evaluator_confidence=getattr(args, "min_evaluator_confidence", 0.65),
+            min_evaluated_transitions=getattr(args, "min_evaluated_transitions", 1),
+            min_label_agreement_rate=getattr(args, "min_label_agreement_rate", 0.75),
+            max_avg_score_delta=getattr(args, "max_avg_score_delta", 0.25),
+            max_large_score_delta_rate=getattr(args, "max_large_score_delta_rate", 0.25),
+        )
+        runner.print_action_value_transition_evaluator_report(report)
         if getattr(args, "output", ""):
             output_dir = os.path.dirname(args.output)
             if output_dir:
