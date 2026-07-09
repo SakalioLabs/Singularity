@@ -1238,6 +1238,72 @@ def test_world_model_report_builds_cells_frontiers_and_hotspots():
     print("PASS: World model report builds cells, frontiers, and hotspots")
 
 
+def test_world_model_feedback_gate_requires_structured_map_evidence():
+    runner = BenchmarkRunner(Config())
+    approved_report = {
+        "log_count": 1,
+        "ready_log_count": 1,
+        "observation_count": 3,
+        "unique_cell_count": 3,
+        "frontier_count": 2,
+        "resource_hotspot_count": 1,
+        "danger_cell_count": 1,
+        "world_model_feedback": {
+            "frontier_count": 2,
+            "resource_hotspot_count": 1,
+            "danger_cell_count": 1,
+            "suggested_goals": ["Explore east frontier cell (1,0) near x=12, z=4"],
+            "frontiers": [{
+                "cell": {"x": 1, "z": 0},
+                "center": {"x": 12.0, "z": 4.0},
+                "from_cell": {"x": 0, "z": 0},
+                "direction": "east",
+                "nearby_resources": ["coal_ore"],
+                "score": 2.5,
+            }],
+            "resource_hotspots": [{
+                "resource": "coal_ore",
+                "cell": {"x": 1, "z": 0},
+                "center": {"x": 12.0, "z": 4.0},
+                "danger_count": 0,
+                "visit_count": 1,
+            }],
+            "danger_cells": [{
+                "cell": {"x": 1, "z": 1},
+                "center": {"x": 12.0, "z": 12.0},
+                "danger_count": 1,
+            }],
+        },
+        "errors": [],
+        "cases": [{"ready_for_world_model_review": True}],
+    }
+    thin_report = {
+        "log_count": 1,
+        "ready_log_count": 0,
+        "frontier_count": 0,
+        "resource_hotspot_count": 0,
+        "world_model_feedback": {"frontiers": [], "resource_hotspots": [], "suggested_goals": []},
+        "errors": [],
+        "cases": [{"ready_for_world_model_review": False}],
+    }
+
+    approved = runner.build_world_model_feedback_gate(world_model_reports=[approved_report])
+    review = runner.build_world_model_feedback_gate(world_model_reports=[thin_report])
+
+    assert approved["readiness"] == "approved"
+    assert approved["decision"] == "allow_world_model_feedback"
+    assert approved["ready_log_count"] == 1
+    assert approved["structured_frontier_count"] == 1
+    assert approved["structured_hotspot_count"] == 1
+    assert "use_frontier_feedback_for_autonomous_curriculum" in approved["policy_hints"]
+    assert "use_resource_hotspots_with_danger_aware_routes" in approved["policy_hints"]
+    assert review["readiness"] == "review"
+    assert "ready_world_model_logs" in review["missing"]
+    assert "structured_cell_feedback" in review["missing"]
+    assert "keep_world_model_feedback_review_only" in review["policy_hints"]
+    print("PASS: World model feedback gate requires structured map evidence")
+
+
 def test_self_evolution_report_tracks_progress_and_stagnation():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_self_evolution.jsonl")
@@ -3984,6 +4050,7 @@ if __name__ == "__main__":
     test_visual_trace_report_validates_screenshot_files()
     test_exploration_trace_report_counts_open_world_coverage()
     test_world_model_report_builds_cells_frontiers_and_hotspots()
+    test_world_model_feedback_gate_requires_structured_map_evidence()
     test_self_evolution_report_tracks_progress_and_stagnation()
     test_self_evolution_report_flags_zero_action_blocked_plan_failure()
     test_plan_action_compliance_report_tracks_plan_following_gaps()

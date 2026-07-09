@@ -10,6 +10,7 @@ sys.path.insert(0, "src")
 from singularity.core.memory import MemorySystem
 from singularity.core.memory_policy import MemoryLifecyclePolicy, promptware_threat_flags
 from singularity.core.config import Config
+from singularity.core.curriculum import CurriculumManager
 from singularity.core.planner import Planner
 from singularity.core.agent import Agent
 from singularity.core.rule_planner import RuleBasedPlanner
@@ -805,6 +806,73 @@ def test_agent_autonomous_goal_uses_causal_memory_context():
     assert goal == "Craft torches from causal memory"
     assert "coal" in memory.queries[-1]
     print("PASS: Agent autonomous selector uses causal memory context")
+
+
+def test_agent_loads_world_model_feedback_only_with_approved_gate():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = os.path.join(tmpdir, "world_model_feedback.json")
+    approved_gate_path = os.path.join(tmpdir, "world_model_gate.json")
+    with open(feedback_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "world_model_feedback": {
+                "frontier_count": 2,
+                "resource_hotspot_count": 1,
+                "danger_cell_count": 1,
+                "suggested_goals": ["Explore east frontier cell (1,0) near x=12, z=4"],
+                "frontiers": [{
+                    "cell": {"x": 1, "z": 0},
+                    "center": {"x": 12.0, "z": 4.0},
+                    "direction": "east",
+                    "score": 2.5,
+                }],
+                "resource_hotspots": [{
+                    "resource": "coal_ore",
+                    "cell": {"x": 1, "z": 0},
+                    "center": {"x": 12.0, "z": 4.0},
+                    "danger_count": 0,
+                    "visit_count": 1,
+                }],
+                "danger_cells": [{
+                    "cell": {"x": 1, "z": 1},
+                    "center": {"x": 12.0, "z": 12.0},
+                    "danger_count": 1,
+                }],
+            }
+        }, f)
+    with open(approved_gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "readiness": "approved",
+            "decision": "allow_world_model_feedback",
+            "reason": "structured frontier and hotspot evidence is ready",
+            "ready_log_count": 1,
+            "frontier_count": 2,
+            "resource_hotspot_count": 1,
+        }, f)
+
+    ungated = object.__new__(Agent)
+    ungated.config = Config(world_model_feedback_paths=[feedback_path])
+    ungated.curriculum = CurriculumManager()
+    ungated_report = ungated._load_world_model_feedback()
+
+    assert ungated_report["gate_required"]
+    assert not ungated_report["gate_approved"]
+    assert ungated_report["gate_readiness"] == "missing"
+    assert ungated_report["skipped_count"] == 1
+    assert ungated.curriculum.summary()["world_model_feedback"]["frontier_count"] == 0
+
+    gated = object.__new__(Agent)
+    gated.config = Config(world_model_feedback_paths=[feedback_path], world_model_gate_paths=[approved_gate_path])
+    gated.curriculum = CurriculumManager()
+    gated_report = gated._load_world_model_feedback()
+    summary = gated.curriculum.summary()["world_model_feedback"]
+
+    assert gated_report["gate_approved"]
+    assert gated_report["gate_readiness"] == "approved"
+    assert gated_report["loaded_count"] == 1
+    assert summary["frontier_count"] == 2
+    assert summary["resource_hotspot_count"] == 1
+    assert summary["suggested_goals"]
+    print("PASS: Agent loads world-model feedback only with approved gate")
 
 
 def test_agent_logs_memory_lifecycle_events_for_policy_report():
@@ -2338,6 +2406,7 @@ if __name__ == "__main__":
     test_task_system_updates_state_from_action_failure()
     test_agent_autonomous_goal_selects_ready_opportunity_task()
     test_agent_autonomous_goal_uses_causal_memory_context()
+    test_agent_loads_world_model_feedback_only_with_approved_gate()
     test_agent_logs_memory_lifecycle_events_for_policy_report()
     test_agent_memory_policy_can_suppress_noisy_write_when_enforced()
     test_agent_passes_observation_to_memory_retrieval()

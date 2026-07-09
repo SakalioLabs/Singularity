@@ -114,6 +114,8 @@ def main():
     run_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load at runtime")
     run_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading runtime policy patches")
     run_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
+    run_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into autonomous curriculum after approved gate")
+    run_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
     run_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     run_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
     run_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
@@ -144,6 +146,8 @@ def main():
     auto_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load at runtime")
     auto_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading runtime policy patches")
     auto_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
+    auto_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into autonomous curriculum after approved gate")
+    auto_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
     auto_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     auto_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
     auto_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
@@ -173,6 +177,8 @@ def main():
     bench_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load in benchmark agents")
     bench_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading benchmark policy patches")
     bench_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
+    bench_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into autonomous curriculum after approved gate")
+    bench_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
     bench_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     bench_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
     bench_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
@@ -463,6 +469,8 @@ def main():
     collab_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-initiative policy patch JSON to load in Agent executor roles")
     collab_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading Agent executor policy patches")
     collab_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
+    collab_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into Agent executor curriculum after approved gate")
+    collab_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
     collab_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     collab_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
     collab_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
@@ -541,6 +549,18 @@ def main():
     world_model_parser.add_argument("--limit", type=int, default=12, help="Maximum cells/frontiers/hotspots to include per case")
     world_model_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     world_model_parser.add_argument("--log-level", type=str, default="INFO")
+
+    world_model_gate_parser = subparsers.add_parser(
+        "world-model-feedback-gate",
+        help="Gate world-model frontier/resource feedback before runtime curriculum loading",
+    )
+    world_model_gate_parser.add_argument("--world-model-report", action="append", default=[], help="Saved world-model-report JSON")
+    world_model_gate_parser.add_argument("--target", type=str, default="world_model_curriculum_feedback", help="Gate target label")
+    world_model_gate_parser.add_argument("--min-ready-logs", type=int, default=1, help="Minimum ready world-model logs required")
+    world_model_gate_parser.add_argument("--min-frontiers", type=int, default=1, help="Minimum frontier count required")
+    world_model_gate_parser.add_argument("--min-actionable-items", type=int, default=1, help="Minimum structured frontiers, hotspots, or suggested goals required")
+    world_model_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    world_model_gate_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Offline self-evolution trace report
     self_evolution_parser = subparsers.add_parser("self-evolution-report", help="Report execution progress, stagnation, and adaptor hints in session logs")
@@ -1710,6 +1730,8 @@ def main():
                     mixed_policy_patch_paths=list(mixed_policy_patch_paths or []),
                     mixed_policy_gate_paths=getattr(args, "mixed_policy_gate", []) or [],
                     self_evolution_feedback_paths=getattr(args, "self_evolution_feedback", []) or [],
+                    world_model_feedback_paths=getattr(args, "world_model_feedback", []) or [],
+                    world_model_gate_paths=getattr(args, "world_model_gate", []) or [],
                     action_value_feedback_paths=getattr(args, "action_value_feedback", []) or [],
                     action_value_transition_gate_paths=getattr(args, "action_value_transition_gate", []) or [],
                     action_value_transition_evaluator_report_paths=getattr(args, "action_value_transition_evaluator_report", []) or [],
@@ -2157,6 +2179,31 @@ def main():
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "world-model-feedback-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        report_paths = getattr(args, "world_model_report", []) or []
+        if not report_paths:
+            print("world-model-feedback-gate requires at least one --world-model-report")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.build_world_model_feedback_gate(
+            world_model_report_paths=report_paths,
+            target=getattr(args, "target", "world_model_curriculum_feedback"),
+            min_ready_logs=getattr(args, "min_ready_logs", 1),
+            min_frontiers=getattr(args, "min_frontiers", 1),
+            min_actionable_items=getattr(args, "min_actionable_items", 1),
+        )
+        runner.print_world_model_feedback_gate_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
         return
 
@@ -3158,6 +3205,8 @@ def main():
         mixed_policy_patch_paths=getattr(args, "mixed_policy_patch", []) or [],
         mixed_policy_gate_paths=getattr(args, "mixed_policy_gate", []) or [],
         self_evolution_feedback_paths=getattr(args, "self_evolution_feedback", []) or [],
+        world_model_feedback_paths=getattr(args, "world_model_feedback", []) or [],
+        world_model_gate_paths=getattr(args, "world_model_gate", []) or [],
         action_value_feedback_paths=getattr(args, "action_value_feedback", []) or [],
         action_value_transition_gate_paths=getattr(args, "action_value_transition_gate", []) or [],
         action_value_transition_evaluator_report_paths=getattr(args, "action_value_transition_evaluator_report", []) or [],

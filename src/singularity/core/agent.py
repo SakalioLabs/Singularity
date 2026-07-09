@@ -83,6 +83,7 @@ class Agent:
         self.task_system = TaskSystem()
         self.goal_generator = GoalGenerator()
         self.curriculum = CurriculumManager()
+        self.world_model_feedback_report = self._load_world_model_feedback()
         self.goal_verifier = GoalVerifier(skill_library=self.skill_library)
         self.explorer = Explorer()
         self.rule_planner = RuleBasedPlanner()
@@ -460,6 +461,127 @@ class Agent:
             return int(float(value or 0))
         except (TypeError, ValueError):
             return 0
+
+    def _load_world_model_feedback(self) -> dict:
+        """Load gated world-model feedback into autonomous curriculum scoring."""
+        paths = [
+            path for path in (getattr(self.config, "world_model_feedback_paths", []) or [])
+            if path
+        ]
+        gate_report = self._evaluate_world_model_feedback_gate(paths)
+        report = {
+            "paths": list(paths),
+            "loaded_count": 0,
+            "skipped_count": 0,
+            "frontier_count": 0,
+            "resource_hotspot_count": 0,
+            "danger_cell_count": 0,
+            "suggested_goal_count": 0,
+            "advisory_only": True,
+            "errors": [],
+            **gate_report,
+        }
+        if not getattr(self.config, "enable_world_model_curriculum_feedback", True):
+            report["skipped_count"] = len(paths)
+            return report
+        if report["gate_required"] and not report["gate_approved"]:
+            report["skipped_count"] = len(paths)
+            if paths:
+                logger.warning(
+                    "World-model feedback loading skipped: "
+                    f"gate_readiness={report['gate_readiness']}, "
+                    f"gate_paths={len(report['gate_paths'])}, "
+                    f"feedback_paths={len(paths)}"
+                )
+            return report
+
+        for path in paths:
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    payload = json.load(f)
+                feedback = payload.get("world_model_feedback", payload) if isinstance(payload, dict) else {}
+                if not isinstance(feedback, dict):
+                    raise ValueError("world-model feedback JSON must contain an object")
+                self.curriculum.record_world_model_feedback(feedback)
+                report["loaded_count"] += 1
+                report["frontier_count"] += self._small_int(feedback.get("frontier_count", 0))
+                report["resource_hotspot_count"] += self._small_int(feedback.get("resource_hotspot_count", 0))
+                report["danger_cell_count"] += self._small_int(feedback.get("danger_cell_count", 0))
+                report["suggested_goal_count"] += len(
+                    feedback.get("suggested_goals", []) if isinstance(feedback.get("suggested_goals", []), list) else []
+                )
+            except Exception as e:
+                message = f"{path}: {e}"
+                report["errors"].append(message)
+                logger.warning(f"Failed to load world-model feedback {message}")
+        if report["loaded_count"] or report["errors"]:
+            logger.info(
+                "World-model feedback loaded: "
+                f"{report['loaded_count']} files, "
+                f"frontiers={report['frontier_count']}, "
+                f"hotspots={report['resource_hotspot_count']}, "
+                f"gate={report['gate_readiness']}, "
+                f"errors={len(report['errors'])}"
+            )
+        return report
+
+    def _evaluate_world_model_feedback_gate(self, feedback_paths: list[str]) -> dict:
+        """Return whether saved world-model feedback may influence curriculum goals."""
+        gate_paths = [
+            path for path in (getattr(self.config, "world_model_gate_paths", []) or [])
+            if path
+        ]
+        report = {
+            "gate_paths": list(gate_paths),
+            "gate_required": bool(feedback_paths),
+            "gate_approved": not bool(feedback_paths),
+            "gate_readiness": "not_required" if not feedback_paths else "missing",
+            "gate_reports": [],
+        }
+        if not feedback_paths:
+            return report
+        if not gate_paths:
+            return report
+
+        readinesses = []
+        for path in gate_paths:
+            gate_summary = {
+                "path": path,
+                "readiness": "error",
+                "decision": "",
+                "reason": "",
+            }
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    gate = json.load(f)
+                readiness = str(gate.get("readiness", "")).strip().lower() or "unknown"
+                gate_summary.update({
+                    "readiness": readiness,
+                    "decision": str(gate.get("decision", "")).strip(),
+                    "reason": str(gate.get("reason", "")).strip()[:300],
+                    "ready_log_count": self._small_int(gate.get("ready_log_count", 0)),
+                    "frontier_count": self._small_int(gate.get("frontier_count", 0)),
+                    "resource_hotspot_count": self._small_int(gate.get("resource_hotspot_count", 0)),
+                })
+            except Exception as e:
+                readiness = "error"
+                gate_summary["error"] = str(e)
+                logger.warning(f"Failed to load world-model feedback gate {path}: {e}")
+            readinesses.append(readiness)
+            report["gate_reports"].append(gate_summary)
+
+        if any(readiness == "error" for readiness in readinesses):
+            report["gate_readiness"] = "error"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report["gate_readiness"] = "approved"
+            report["gate_approved"] = True
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report["gate_readiness"] = "rejected"
+        elif any(readiness == "review" for readiness in readinesses):
+            report["gate_readiness"] = "review"
+        else:
+            report["gate_readiness"] = "unknown"
+        return report
 
     def _evaluate_mixed_policy_patch_gate(self) -> dict:
         """Return whether runtime policy patches may be loaded under configured gates."""

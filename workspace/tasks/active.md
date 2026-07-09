@@ -178,6 +178,7 @@
 - [x] Wire ASV transition gates into runtime `--action-value-feedback` loading: approved gate/evaluator reports can admit transition scores, while configured review/rejected/unreadable gates suppress only `state_transition_value_items` and keep ordinary outcome-value feedback advisory.
 - [x] Add benchmark-level `--action-value-transition-preflight` so transition-scored live suites require approved transition gates/evaluator reports and trusted transition feedback before spending Minecraft runtime.
 - [x] Add MUSE-style `skill-lifecycle-report` so creation, skill-local memory, governance, evaluation, refinement, and runtime-default candidacy can be audited together before promoting Minecraft skills.
+- [x] Add `world-model-feedback-gate` and gated runtime `--world-model-feedback` loading so frontier/resource/danger map feedback only biases curriculum after structured map evidence is approved.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -209,7 +210,7 @@
 - [x] Convert the highest-count `mixed-initiative-trace-report.template_candidates` into additional task templates beyond oak-log collection and pickaxe retrieval.
 - [ ] Run `exploration-trace-report` on real autonomous session logs, apply `curriculum_feedback`, and compare before/after curriculum candidate rankings.
 - [ ] Run `world-model-report` on real autonomous/M7 session logs and compare suggested frontier goals against subsequent exploration success and stuck-path failures.
-- [ ] Feed `world_model_feedback` from real reports into autonomous curriculum runs and compare frontier/hotspot candidate ranking against generic exploration goals.
+- [ ] Run `world-model-feedback-gate` on real world-model reports, then feed approved `--world-model-feedback --world-model-gate` into autonomous curriculum runs and compare frontier/hotspot candidate ranking against generic exploration goals.
 - [ ] Run `discovery-application-report` on real redstone/building session logs and use `discovery_feedback` to gate experiment-derived skills before runtime use.
 - [ ] Compare approved vs review-blocked discovery skill candidates on held-out redstone/building variants before enabling defaults.
 - [ ] Run `skill-graph-report` after real skill approvals and resolve missing dependencies, ungoverned custom skills, or graph cycles before runtime defaults.

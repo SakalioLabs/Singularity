@@ -157,6 +157,9 @@ python -m singularity.main exploration-trace-report --session-log logs/session_x
 # Build a lightweight world-state map with visited cells, frontiers, resource hotspots, and next exploration goals.
 python -m singularity.main world-model-report --session-log logs/session_xxx.jsonl --cell-size 8 --output logs/benchmarks/world_model.json
 # The saved JSON includes `world_model_feedback` for frontier/resource/danger-aware curriculum reranking.
+# Gate world-model feedback before allowing it to bias autonomous curriculum goals.
+python -m singularity.main world-model-feedback-gate --world-model-report logs/benchmarks/world_model.json --output logs/benchmarks/world_model_gate.json
+python -m singularity.main autonomous --world-model-feedback logs/benchmarks/world_model.json --world-model-gate logs/benchmarks/world_model_gate.json
 
 # Summarize MineEvolve-style execution progress, stagnation, and adaptor hints
 # Successful action returns are discounted unless later observations show state, inventory, or verifier progress.

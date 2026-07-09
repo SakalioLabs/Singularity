@@ -41,6 +41,8 @@ class Config:
     mixed_policy_patch_paths: list[str] = field(default_factory=list)
     mixed_policy_gate_paths: list[str] = field(default_factory=list)
     self_evolution_feedback_paths: list[str] = field(default_factory=list)
+    world_model_feedback_paths: list[str] = field(default_factory=list)
+    world_model_gate_paths: list[str] = field(default_factory=list)
     action_value_feedback_paths: list[str] = field(default_factory=list)
     action_value_transition_gate_paths: list[str] = field(default_factory=list)
     action_value_transition_evaluator_report_paths: list[str] = field(default_factory=list)
@@ -52,6 +54,7 @@ class Config:
     screenshot_min_interval_s: float = 2.0
     enable_goal_verification: bool = True
     enable_goal_critic: bool = False
+    enable_world_model_curriculum_feedback: bool = True
     enable_blocked_plan_rule_fallback: bool = True
     enable_action_verification: bool = True
     enforce_action_verification: bool = True

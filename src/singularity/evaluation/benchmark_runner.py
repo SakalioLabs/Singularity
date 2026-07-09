@@ -4263,6 +4263,172 @@ class BenchmarkRunner:
             curriculum_manager.record_world_model_feedback(feedback)
         return feedback
 
+    def build_world_model_feedback_gate(
+        self,
+        world_model_report_paths: list[str] = None,
+        world_model_reports: list[dict] = None,
+        target: str = "world_model_curriculum_feedback",
+        min_ready_logs: int = 1,
+        min_frontiers: int = 1,
+        min_actionable_items: int = 1,
+    ) -> dict:
+        """Gate world-model feedback before it can bias autonomous curriculum goals."""
+        errors = []
+        report_items = self._load_gate_payloads(
+            world_model_reports or [],
+            world_model_report_paths or [],
+            errors,
+            "world_model_report",
+        )
+        gate = {
+            "type": "world_model_feedback_gate",
+            "target": target,
+            "readiness": "review",
+            "decision": "hold_world_model_feedback",
+            "reason": "world-model feedback needs structured frontier or hotspot evidence",
+            "min_ready_logs": int(min_ready_logs or 0),
+            "min_frontiers": int(min_frontiers or 0),
+            "min_actionable_items": int(min_actionable_items or 0),
+            "source_count": len(report_items),
+            "log_count": 0,
+            "ready_log_count": 0,
+            "observation_count": 0,
+            "unique_cell_count": 0,
+            "frontier_count": 0,
+            "resource_hotspot_count": 0,
+            "danger_cell_count": 0,
+            "suggested_goal_count": 0,
+            "structured_frontier_count": 0,
+            "structured_hotspot_count": 0,
+            "actionable_item_count": 0,
+            "checks": [],
+            "sources": [],
+            "missing": [],
+            "policy_hints": [],
+            "errors": list(errors),
+        }
+        if not report_items:
+            gate["missing"].append("world_model_report")
+            gate["checks"].append(self._gate_check(
+                "world_model_feedback_gate",
+                "world_model_report",
+                "warn",
+                "no world-model-report JSON was provided",
+                {},
+            ))
+        for source, payload in report_items:
+            summary = self._world_model_feedback_gate_source_summary(source, payload)
+            gate["sources"].append(summary)
+            gate["log_count"] += summary["log_count"]
+            gate["ready_log_count"] += summary["ready_log_count"]
+            gate["observation_count"] += summary["observation_count"]
+            gate["unique_cell_count"] += summary["unique_cell_count"]
+            gate["frontier_count"] += summary["frontier_count"]
+            gate["resource_hotspot_count"] += summary["resource_hotspot_count"]
+            gate["danger_cell_count"] += summary["danger_cell_count"]
+            gate["suggested_goal_count"] += summary["suggested_goal_count"]
+            gate["structured_frontier_count"] += summary["structured_frontier_count"]
+            gate["structured_hotspot_count"] += summary["structured_hotspot_count"]
+            gate["actionable_item_count"] += summary["actionable_item_count"]
+            gate["errors"].extend(summary["errors"])
+            status = "pass" if summary["ready"] else "warn"
+            gate["checks"].append(self._gate_check(
+                source,
+                "world_model_report",
+                status,
+                summary["reason"],
+                {
+                    "ready_log_count": summary["ready_log_count"],
+                    "frontier_count": summary["frontier_count"],
+                    "resource_hotspot_count": summary["resource_hotspot_count"],
+                    "actionable_item_count": summary["actionable_item_count"],
+                },
+            ))
+
+        if gate["ready_log_count"] < gate["min_ready_logs"]:
+            gate["missing"].append("ready_world_model_logs")
+        if gate["frontier_count"] < gate["min_frontiers"]:
+            gate["missing"].append("frontier_evidence")
+        if gate["actionable_item_count"] < gate["min_actionable_items"]:
+            gate["missing"].append("actionable_world_model_feedback")
+        if gate["structured_frontier_count"] <= 0 and gate["structured_hotspot_count"] <= 0:
+            gate["missing"].append("structured_cell_feedback")
+
+        if gate["errors"]:
+            gate["readiness"] = "error"
+            gate["decision"] = "block_world_model_feedback"
+            gate["reason"] = "world-model feedback gate inputs could not be loaded"
+        elif gate["missing"]:
+            gate["readiness"] = "review"
+            gate["decision"] = "hold_world_model_feedback"
+            gate["reason"] = "world-model feedback is missing required map evidence"
+        else:
+            gate["readiness"] = "approved"
+            gate["decision"] = "allow_world_model_feedback"
+            gate["reason"] = "structured frontier or hotspot evidence is ready for curriculum feedback"
+
+        if gate["readiness"] != "approved":
+            gate["policy_hints"].append("keep_world_model_feedback_review_only")
+        if gate["missing"]:
+            gate["policy_hints"].append("collect_more_world_model_exploration_traces")
+        if gate["frontier_count"] and gate["structured_frontier_count"]:
+            gate["policy_hints"].append("use_frontier_feedback_for_autonomous_curriculum")
+        if gate["resource_hotspot_count"] and gate["structured_hotspot_count"]:
+            gate["policy_hints"].append("use_resource_hotspots_with_danger_aware_routes")
+        if gate["danger_cell_count"]:
+            gate["policy_hints"].append("preserve_danger_cells_as_route_penalties")
+        return gate
+
+    def _world_model_feedback_gate_source_summary(self, source: str, payload: dict) -> dict:
+        payload = payload if isinstance(payload, dict) else {}
+        feedback = payload.get("world_model_feedback", payload) if isinstance(payload, dict) else {}
+        feedback = feedback if isinstance(feedback, dict) else {}
+        cases = payload.get("cases", []) if isinstance(payload.get("cases", []), list) else []
+        source_errors = payload.get("errors", []) if isinstance(payload.get("errors", []), list) else []
+        frontiers = feedback.get("frontiers", []) if isinstance(feedback.get("frontiers", []), list) else []
+        hotspots = feedback.get("resource_hotspots", []) if isinstance(feedback.get("resource_hotspots", []), list) else []
+        suggested_goals = feedback.get("suggested_goals", []) if isinstance(feedback.get("suggested_goals", []), list) else []
+        structured_frontiers = [
+            frontier for frontier in frontiers
+            if isinstance(frontier, dict)
+            and isinstance(frontier.get("cell"), dict)
+            and isinstance(frontier.get("center"), dict)
+            and str(frontier.get("direction") or "").strip()
+        ]
+        structured_hotspots = [
+            hotspot for hotspot in hotspots
+            if isinstance(hotspot, dict)
+            and isinstance(hotspot.get("cell"), dict)
+            and isinstance(hotspot.get("center"), dict)
+            and str(hotspot.get("resource") or "").strip()
+        ]
+        actionable_count = len(suggested_goals) + len(structured_frontiers) + len(structured_hotspots)
+        ready_logs = self._gate_int(payload.get("ready_log_count", 0))
+        if ready_logs <= 0 and cases:
+            ready_logs = sum(1 for case in cases if isinstance(case, dict) and case.get("ready_for_world_model_review"))
+        frontier_count = self._gate_int(payload.get("frontier_count", 0)) or len(frontiers)
+        hotspot_count = self._gate_int(payload.get("resource_hotspot_count", 0)) or len(hotspots)
+        reason = "world-model report has actionable map feedback" if actionable_count else "world-model report has no actionable frontier or hotspot feedback"
+        if source_errors:
+            reason = "world-model report contains errors"
+        return {
+            "source": source,
+            "ready": bool(ready_logs and actionable_count and not source_errors),
+            "reason": reason,
+            "log_count": self._gate_int(payload.get("log_count", len(cases))),
+            "ready_log_count": ready_logs,
+            "observation_count": self._gate_int(payload.get("observation_count", 0)),
+            "unique_cell_count": self._gate_int(payload.get("unique_cell_count", 0)),
+            "frontier_count": frontier_count,
+            "resource_hotspot_count": hotspot_count,
+            "danger_cell_count": self._gate_int(payload.get("danger_cell_count", 0)),
+            "suggested_goal_count": len(suggested_goals),
+            "structured_frontier_count": len(structured_frontiers),
+            "structured_hotspot_count": len(structured_hotspots),
+            "actionable_item_count": actionable_count,
+            "errors": [str(error) for error in source_errors],
+        }
+
     def run_self_evolution_report_from_logs(self, session_log_paths: list[str]) -> SelfEvolutionTraceReport:
         """Summarize MineEvolve-style monitor/inducer/adaptor signals in session logs."""
         report = SelfEvolutionTraceReport()
@@ -12035,6 +12201,43 @@ class BenchmarkRunner:
             for goal in case.suggested_exploration_goals[:3]:
                 print(f"      next: {goal}")
         for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_world_model_feedback_gate_report(self, report: dict):
+        print("\nWorld Model Feedback Gate")
+        print(f"  target: {report.get('target', 'world_model_curriculum_feedback')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  evidence: "
+            f"sources={report.get('source_count', 0)}, "
+            f"ready_logs={report.get('ready_log_count', 0)}/{report.get('log_count', 0)}, "
+            f"cells={report.get('unique_cell_count', 0)}, "
+            f"frontiers={report.get('frontier_count', 0)}, "
+            f"hotspots={report.get('resource_hotspot_count', 0)}, "
+            f"dangers={report.get('danger_cell_count', 0)}, "
+            f"actionable={report.get('actionable_item_count', 0)}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', []))}")
+        for source in report.get("sources", [])[:8]:
+            marker = "+" if source.get("ready") else "!"
+            print(
+                f"  [{marker}] {source.get('source')}: "
+                f"ready_logs={source.get('ready_log_count', 0)}, "
+                f"frontiers={source.get('frontier_count', 0)}, "
+                f"hotspots={source.get('resource_hotspot_count', 0)}, "
+                f"actionable={source.get('actionable_item_count', 0)}"
+            )
+            if source.get("reason"):
+                print(f"      {source.get('reason')}")
+        for check in report.get("checks", [])[:10]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
+        for error in report.get("errors", []):
             print(f"  error: {error}")
 
     def print_self_evolution_report(self, report: SelfEvolutionTraceReport):
