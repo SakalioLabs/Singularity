@@ -198,6 +198,8 @@ python -m singularity.main knowledge-correction-gate --knowledge-correction-repo
 python -m singularity.main run --goal "Craft torches" --knowledge-correction-feedback logs/benchmarks/knowledge_correction.json --knowledge-correction-gate logs/benchmarks/knowledge_correction_gate.json
 # Before spending live benchmark time, require approved gates plus suite-goal overlap.
 python -m singularity.main benchmark --suite m1 --knowledge-correction-feedback logs/benchmarks/knowledge_correction.json --knowledge-correction-gate logs/benchmarks/knowledge_correction_gate.json --knowledge-correction-preflight-output logs/benchmarks/knowledge_correction_preflight.json
+# Offline context ablation shows which goals actually receive XENON correction hints.
+python -m singularity.main knowledge-correction-ablation --goal "Craft torches" --knowledge-correction-feedback logs/benchmarks/knowledge_correction.json --knowledge-correction-gate logs/benchmarks/knowledge_correction_gate.json --output logs/benchmarks/knowledge_correction_ablation.json
 # Gate any future automatic plan-suffix repair with explicit verifier and counterexample evidence.
 python -m singularity.main self-evolution-gate --self-evolution-report logs/benchmarks/self_evolution.json --verifier-report logs/benchmarks/goal_verification_ablation.json --counterexample-report logs/benchmarks/self_evolution_counterexamples.json --output logs/benchmarks/self_evolution_gate.json
 

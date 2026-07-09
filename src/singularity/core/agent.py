@@ -1581,8 +1581,6 @@ class Agent:
                     amount = 0
                 if amount > 0 and str(name).lower() in text:
                     score += 1
-        if item.get("failed_signature") and str(item.get("failed_signature")).split(":", 1)[0] in text:
-            score += 1
         return score
 
     def _knowledge_correction_item_text(self, item: dict) -> str:

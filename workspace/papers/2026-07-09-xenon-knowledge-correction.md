@@ -20,4 +20,5 @@
   - `knowledge-correction-gate` holds these candidates until enough ready logs and reviewable correction evidence exist.
   - Approved reports can now be passed with `--knowledge-correction-feedback` plus `--knowledge-correction-gate` so the planner receives short advisory dependency and failed-action hints without mutating built-in recipes.
   - `benchmark --knowledge-correction-preflight` verifies approved gates plus selected-suite goal overlap before spending live benchmark time on correction-assisted runs.
-**Next Action**: Run report, gate, and benchmark preflight on fresh M1/M2 retries, then compare gated planner-context runs against the ungated baseline.
+  - `knowledge-correction-ablation` shows exact planner-context changes for suite goals, explicit goals, or case files before live runs.
+**Next Action**: Run report, gate, ablation, and benchmark preflight on fresh M1/M2 retries, then compare gated planner-context runs against the ungated baseline.

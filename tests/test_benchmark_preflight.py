@@ -1988,6 +1988,107 @@ def test_knowledge_correction_preflight_requires_gate_and_suite_overlap():
     print("PASS: Knowledge correction preflight requires gate and suite overlap")
 
 
+def test_knowledge_correction_ablation_reports_context_changes():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = os.path.join(tmpdir, "knowledge_correction.json")
+    gate_path = os.path.join(tmpdir, "knowledge_correction_gate.json")
+    feedback = {
+        "ready_log_count": 1,
+        "dependency_correction_count": 1,
+        "failure_action_memory_count": 1,
+        "dependency_corrections": [
+            {
+                "type": "dependency_correction",
+                "goal": "Craft torches",
+                "failed_signature": "craft:torch",
+                "recovery_signature": "dig:coal_ore",
+                "target_items": ["torch"],
+                "evidence_count": 2,
+                "confidence": 0.85,
+                "correction": "Before retrying craft:torch, collect or expose coal_ore with dig when the goal is Craft torches.",
+                "knowledge_dimensions": {
+                    "attribute": ["crafting", "torch"],
+                    "interaction": ["dig_before_craft"],
+                },
+            },
+        ],
+        "failure_action_memories": [
+            {
+                "type": "failed_action_memory",
+                "signature": "craft:torch",
+                "action_type": "craft",
+                "attempts": 3,
+                "failures": 3,
+                "task_families": {"crafting": 3},
+                "recommendation": "avoid_or_replan_until_preconditions_change",
+                "reason": "repeated_failed_action",
+            },
+        ],
+    }
+    with open(feedback_path, "w", encoding="utf-8") as f:
+        json.dump({"knowledge_correction_feedback": feedback}, f)
+    with open(gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "knowledge_correction_gate",
+            "readiness": "approved",
+            "decision": "allow_reviewed_knowledge_correction_feedback",
+            "reason": "reviewable correction evidence is present",
+            "source_count": 1,
+            "ready_log_count": 1,
+            "correction_count": 2,
+            "dependency_correction_count": 1,
+            "failure_action_memory_count": 1,
+        }, f)
+
+    cases = [
+        {
+            "id": "torch",
+            "goal": "Craft torches",
+            "current_state": {"inventory": {"stick": 1}},
+        },
+        {
+            "id": "travel",
+            "goal": "Travel to a desert village",
+            "current_state": {},
+        },
+    ]
+    approved_runner = BenchmarkRunner(Config(
+        log_dir=os.path.join(tmpdir, "logs"),
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        knowledge_correction_feedback_paths=[feedback_path],
+        knowledge_correction_gate_paths=[gate_path],
+    ))
+    approved = approved_runner.run_knowledge_correction_ablation(cases=cases, suite="m1")
+
+    assert approved["ready"] is True
+    assert approved["readiness"] == "approved"
+    assert approved["changed_count"] == 1
+    assert approved["enabled_context_count"] == 1
+    assert approved["dependency_context_count"] == 1
+    assert approved["failure_memory_context_count"] == 1
+    torch_case = next(case for case in approved["cases"] if case["id"] == "torch")
+    travel_case = next(case for case in approved["cases"] if case["id"] == "travel")
+    assert torch_case["changed"] is True
+    assert "craft:torch" in torch_case["enabled_context_preview"]
+    assert "dig:coal_ore" in torch_case["enabled_context_preview"]
+    assert travel_case["changed"] is False
+
+    ungated_runner = BenchmarkRunner(Config(
+        log_dir=os.path.join(tmpdir, "logs_ungated"),
+        memory_dir=os.path.join(tmpdir, "memory_ungated"),
+        skill_dir=os.path.join(tmpdir, "skills_ungated"),
+        knowledge_correction_feedback_paths=[feedback_path],
+    ))
+    ungated = ungated_runner.run_knowledge_correction_ablation(cases=cases, suite="m1")
+
+    assert ungated["ready"] is False
+    assert ungated["gate_approved"] is False
+    assert ungated["changed_count"] == 0
+    assert all(not case["enabled_context_preview"] for case in ungated["cases"])
+    print("PASS: Knowledge correction ablation reports context changes")
+
+
 def test_action_value_report_uses_embedded_action_observation_windows():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "action_value_embedded_observation_session.jsonl")
@@ -4557,6 +4658,7 @@ if __name__ == "__main__":
     test_action_value_report_aggregates_outcome_profiles()
     test_knowledge_correction_report_mines_failed_actions_and_dependencies()
     test_knowledge_correction_preflight_requires_gate_and_suite_overlap()
+    test_knowledge_correction_ablation_reports_context_changes()
     test_action_value_report_uses_embedded_action_observation_windows()
     test_action_value_transition_gate_controls_runtime_feedback()
     test_action_value_transition_evaluator_compares_state_grounded_labels()

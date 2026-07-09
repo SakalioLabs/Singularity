@@ -131,6 +131,38 @@ def _load_skill_memory_quality_ablation_cases(args) -> list[dict]:
     ]
 
 
+def _load_knowledge_correction_ablation_cases(args) -> list[dict] | None:
+    case_file = getattr(args, "case_file", "") or ""
+    if case_file:
+        with open(case_file, "r", encoding="utf-8-sig") as f:
+            if case_file.lower().endswith(".jsonl"):
+                return [json.loads(line) for line in f if line.strip()]
+            payload = json.load(f)
+        if isinstance(payload, dict) and isinstance(payload.get("cases"), list):
+            return payload["cases"]
+        if isinstance(payload, list):
+            return payload
+        if isinstance(payload, dict):
+            return [payload]
+    goals = getattr(args, "goal", []) or []
+    if goals:
+        current_state = {}
+        state_json = getattr(args, "current_state_json", "") or ""
+        state_file = getattr(args, "current_state_file", "") or ""
+        if state_file:
+            with open(state_file, "r", encoding="utf-8-sig") as f:
+                current_state = json.load(f)
+        elif state_json:
+            current_state = json.loads(state_json)
+        if not isinstance(current_state, dict):
+            current_state = {}
+        return [
+            {"id": f"goal_{index}", "goal": goal, "current_state": current_state}
+            for index, goal in enumerate(goals, start=1)
+        ]
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(description="Singularity Minecraft LLM Agent")
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
@@ -716,6 +748,17 @@ def main():
     knowledge_correction_gate_parser.add_argument("--min-corrections", type=int, default=1, help="Minimum correction candidates required")
     knowledge_correction_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
     knowledge_correction_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
+    knowledge_correction_ablation_parser = subparsers.add_parser("knowledge-correction-ablation", help="Compare planner context with gated knowledge corrections disabled vs enabled")
+    _add_knowledge_correction_args(knowledge_correction_ablation_parser)
+    knowledge_correction_ablation_parser.add_argument("--suite", type=str, default="m1", choices=["m1", "m2", "all"], help="Benchmark suite used when no explicit --goal or --case-file is supplied")
+    knowledge_correction_ablation_parser.add_argument("--goal", action="append", default=[], help="Goal/query to compare; repeat for multiple cases")
+    knowledge_correction_ablation_parser.add_argument("--case-file", type=str, default="", help="Optional JSON/JSONL cases with goal and current_state fields")
+    knowledge_correction_ablation_parser.add_argument("--current-state-json", type=str, default="", help="Optional JSON object shared by all --goal cases")
+    knowledge_correction_ablation_parser.add_argument("--current-state-file", type=str, default="", help="Optional JSON file shared by all --goal cases")
+    knowledge_correction_ablation_parser.add_argument("--limit", type=int, default=6, help="Maximum planner-context correction hints per case")
+    knowledge_correction_ablation_parser.add_argument("--output", type=str, default="", help="Optional JSON ablation report path")
+    knowledge_correction_ablation_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Offline action transition value runtime-readiness gate
     action_value_gate_parser = subparsers.add_parser("action-value-transition-gate", help="Gate ASV-style transition-value feedback before runtime use")
@@ -2684,6 +2727,29 @@ def main():
                 os.makedirs(output_dir, exist_ok=True)
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"rejected", "error"}:
+            sys.exit(1)
+        return
+
+    if args.command == "knowledge-correction-ablation":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        cases = _load_knowledge_correction_ablation_cases(args)
+        config = Config(
+            enable_knowledge_correction_context=not getattr(args, "no_knowledge_correction_context", False),
+            knowledge_correction_feedback_paths=getattr(args, "knowledge_correction_feedback", []) or [],
+            knowledge_correction_gate_paths=getattr(args, "knowledge_correction_gate", []) or [],
+        )
+        runner = BenchmarkRunner(config)
+        report = runner.run_knowledge_correction_ablation(
+            cases=cases,
+            suite=getattr(args, "suite", "m1"),
+            limit=getattr(args, "limit", 6),
+        )
+        runner.print_knowledge_correction_ablation_report(report)
+        if getattr(args, "output", ""):
+            runner.save_knowledge_correction_ablation_report(report, getattr(args, "output", ""))
             print(f"\nReport saved to {args.output}")
         if report.get("readiness") in {"rejected", "error"}:
             sys.exit(1)

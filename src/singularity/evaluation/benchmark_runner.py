@@ -3155,6 +3155,164 @@ class BenchmarkRunner:
         report["ready"] = report["readiness"] in {"approved", "not_required"}
         return report
 
+    def run_knowledge_correction_ablation(
+        self,
+        cases: Optional[list[dict]] = None,
+        suite: str = "m1",
+        feedback_paths: Optional[list[str]] = None,
+        gate_paths: Optional[list[str]] = None,
+        limit: int = 6,
+    ) -> dict:
+        """Compare planner context with knowledge-correction feedback disabled vs enabled."""
+        clean_feedback_paths = [
+            path for path in (
+                feedback_paths
+                if feedback_paths is not None
+                else getattr(self.config, "knowledge_correction_feedback_paths", [])
+            ) or []
+            if path
+        ]
+        clean_gate_paths = [
+            path for path in (
+                gate_paths
+                if gate_paths is not None
+                else getattr(self.config, "knowledge_correction_gate_paths", [])
+            ) or []
+            if path
+        ]
+        source_cases = cases if cases is not None else [
+            {
+                "id": task.id,
+                "goal": task.goal,
+                "name": task.name,
+                "current_state": {},
+            }
+            for task in self.tasks_for_suite(suite)
+        ]
+        normalized_cases = [
+            self._normalize_knowledge_correction_ablation_case(case, index)
+            for index, case in enumerate(source_cases or [], start=1)
+        ]
+        preflight_tasks = [
+            BenchmarkTask(
+                str(case.get("id") or f"case_{index}"),
+                str(case.get("name") or case.get("goal") or f"case_{index}"),
+                str(case.get("goal") or ""),
+                suite.upper(),
+            )
+            for index, case in enumerate(normalized_cases, start=1)
+            if str(case.get("goal") or "").strip()
+        ]
+        preflight = self.run_knowledge_correction_preflight(
+            tasks=preflight_tasks,
+            suite=suite,
+            feedback_paths=clean_feedback_paths,
+            gate_paths=clean_gate_paths,
+        )
+        report = {
+            "type": "knowledge_correction_ablation",
+            "suite": suite,
+            "feedback_paths": list(clean_feedback_paths),
+            "gate_paths": list(clean_gate_paths),
+            "preflight": preflight,
+            "case_count": len(normalized_cases),
+            "changed_count": 0,
+            "enabled_context_count": 0,
+            "dependency_context_count": 0,
+            "failure_memory_context_count": 0,
+            "baseline_context_count": 0,
+            "gate_readiness": preflight.get("gate_readiness", "not_required"),
+            "gate_approved": bool(preflight.get("gate_approved", not bool(clean_feedback_paths))),
+            "ready": False,
+            "readiness": "review" if clean_feedback_paths else "not_required",
+            "decision": "hold_knowledge_correction_ablation" if clean_feedback_paths else "skip_knowledge_correction_ablation",
+            "reason": "no knowledge-correction feedback configured",
+            "cases": [],
+            "errors": [],
+        }
+        if not normalized_cases:
+            report["reason"] = "no ablation cases supplied"
+            report["readiness"] = "review" if clean_feedback_paths else "not_required"
+            report["ready"] = report["readiness"] == "not_required"
+            return report
+
+        try:
+            enabled_config = replace(
+                self.config,
+                enable_knowledge_correction_context=getattr(self.config, "enable_knowledge_correction_context", True),
+                knowledge_correction_feedback_paths=list(clean_feedback_paths),
+                knowledge_correction_gate_paths=list(clean_gate_paths),
+            )
+            enabled_agent = Agent(enabled_config)
+            feedback_report = dict(getattr(enabled_agent, "knowledge_correction_feedback_report", {}) or {})
+            report["gate_readiness"] = feedback_report.get("gate_readiness", report["gate_readiness"])
+            report["gate_approved"] = bool(feedback_report.get("gate_approved", report["gate_approved"]))
+            report["feedback_report"] = feedback_report
+        except Exception as e:
+            enabled_agent = None
+            report["errors"].append(f"knowledge_correction_ablation_agent: {e}")
+
+        for case in normalized_cases:
+            baseline_context = ""
+            enabled_context = ""
+            if enabled_agent is not None:
+                try:
+                    enabled_context = enabled_agent._knowledge_correction_context(
+                        str(case.get("goal") or ""),
+                        case.get("current_state", {}) if isinstance(case.get("current_state", {}), dict) else {},
+                        limit=limit,
+                    )
+                except Exception as e:
+                    report["errors"].append(f"{case.get('id')}: {e}")
+            context_lines = [
+                line.strip()
+                for line in enabled_context.splitlines()
+                if line.strip().startswith("- ")
+            ]
+            dependency_count = sum(1 for line in context_lines if "Dependency correction:" in line)
+            failure_count = sum(1 for line in context_lines if "Failed-action memory:" in line)
+            changed = baseline_context != enabled_context
+            report["changed_count"] += 1 if changed else 0
+            report["enabled_context_count"] += 1 if enabled_context else 0
+            report["dependency_context_count"] += dependency_count
+            report["failure_memory_context_count"] += failure_count
+            report["cases"].append({
+                "id": case.get("id"),
+                "goal": case.get("goal"),
+                "current_state": case.get("current_state", {}),
+                "baseline_context_chars": len(baseline_context),
+                "enabled_context_chars": len(enabled_context),
+                "changed": changed,
+                "dependency_context_count": dependency_count,
+                "failure_memory_context_count": failure_count,
+                "enabled_context_preview": enabled_context[:1200],
+            })
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "block_knowledge_correction_ablation"
+            report["reason"] = "knowledge-correction ablation inputs could not be applied"
+        elif clean_feedback_paths and not report["gate_approved"]:
+            report["readiness"] = report["gate_readiness"] or "review"
+            report["decision"] = "block_knowledge_correction_ablation"
+            report["reason"] = "knowledge-correction gate is not approved"
+        elif clean_feedback_paths and not report["changed_count"]:
+            report["readiness"] = "review"
+            report["decision"] = "hold_knowledge_correction_ablation"
+            report["reason"] = "approved feedback produced no planner-context changes for these cases"
+        elif clean_feedback_paths:
+            report["ready"] = True
+            report["readiness"] = "approved"
+            report["decision"] = "allow_knowledge_correction_context_experiment"
+            report["reason"] = "approved feedback changes planner context for at least one case"
+        else:
+            report["ready"] = True
+            report["readiness"] = "not_required"
+            report["decision"] = "skip_knowledge_correction_ablation"
+            report["reason"] = "no knowledge-correction feedback configured"
+        report["ready"] = report["readiness"] in {"approved", "not_required"}
+        return report
+
     def run_skill_runtime_default_preflight(
         self,
         tasks: Optional[list[BenchmarkTask]] = None,
@@ -4307,6 +4465,29 @@ class BenchmarkRunner:
         if key == "policy_hints":
             return str(item.get("knowledge_correction_policy") or item.get("policy") or item)
         return f"{source}|{item}"
+
+    def _normalize_knowledge_correction_ablation_case(self, case: dict, index: int) -> dict:
+        case = case if isinstance(case, dict) else {"goal": str(case or "")}
+        current_state = (
+            case.get("current_state")
+            if "current_state" in case
+            else case.get("world_state")
+            if "world_state" in case
+            else case.get("observation", {})
+        )
+        if isinstance(current_state, str):
+            try:
+                current_state = json.loads(current_state)
+            except json.JSONDecodeError:
+                current_state = {}
+        if not isinstance(current_state, dict):
+            current_state = {}
+        return {
+            "id": str(case.get("id") or case.get("task_id") or f"case_{index}"),
+            "name": str(case.get("name") or case.get("title") or case.get("goal") or f"case_{index}"),
+            "goal": str(case.get("goal") or case.get("query") or ""),
+            "current_state": current_state,
+        }
 
     def _attach_skill_memory_quality_preflight_gates(self, report: dict, gate_items: list[tuple[str, dict]]):
         if not gate_items:
@@ -13816,6 +13997,23 @@ class BenchmarkRunner:
             json.dump(report, f, indent=2, ensure_ascii=False)
         logger.info(f"Knowledge-correction preflight saved to {path}")
 
+    def save_knowledge_correction_ablation_report(
+        self,
+        report: dict,
+        filename: str = "knowledge_correction_ablation.json",
+    ):
+        path = filename
+        if not os.path.isabs(path) and not os.path.dirname(path):
+            os.makedirs(self.output_dir, exist_ok=True)
+            path = os.path.join(self.output_dir, path)
+        else:
+            parent = os.path.dirname(path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+        logger.info(f"Knowledge-correction ablation saved to {path}")
+
     def save_coach_style_preflight_report(
         self,
         report: dict,
@@ -14229,6 +14427,47 @@ class BenchmarkRunner:
                 f"failed_memories={case.get('failure_action_memory_match_count', 0)}"
                 f"{suffix}"
             )
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+
+    def print_knowledge_correction_ablation_report(self, report: dict):
+        print("\nKnowledge Correction Context Ablation")
+        print(f"  suite: {report.get('suite', 'm1')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  inputs: "
+            f"feedback={len(report.get('feedback_paths', []))}, "
+            f"gates={len(report.get('gate_paths', []))}, "
+            f"gate={report.get('gate_readiness', 'unknown')}"
+        )
+        print(
+            "  context changes: "
+            f"changed={report.get('changed_count', 0)}/{report.get('case_count', 0)}, "
+            f"enabled_context={report.get('enabled_context_count', 0)}, "
+            f"dependency_hints={report.get('dependency_context_count', 0)}, "
+            f"failed_action_hints={report.get('failure_memory_context_count', 0)}"
+        )
+        preflight = report.get("preflight", {}) if isinstance(report.get("preflight", {}), dict) else {}
+        if preflight:
+            print(
+                "  preflight: "
+                f"{preflight.get('readiness', 'unknown')} "
+                f"matched={preflight.get('matched_case_count', 0)}/{preflight.get('case_count', 0)}"
+            )
+        for case in report.get("cases", [])[:8]:
+            marker = "+" if case.get("changed") else "="
+            print(
+                f"  [{marker}] {case.get('id')}: "
+                f"enabled_chars={case.get('enabled_context_chars', 0)} "
+                f"dependency={case.get('dependency_context_count', 0)} "
+                f"failed_memories={case.get('failure_memory_context_count', 0)}"
+            )
+            preview = str(case.get("enabled_context_preview", "") or "")
+            if preview:
+                first_line = preview.splitlines()[0] if preview.splitlines() else preview
+                print(f"      {first_line[:220]}")
         for error in report.get("errors", []):
             print(f"  error: {error}")
 
