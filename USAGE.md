@@ -191,6 +191,9 @@ python -m singularity.main action-candidate-report --session-log logs/session_xx
 # Aggregate action outcome values and failure-correction pairs for candidate scoring.
 python -m singularity.main action-value-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/action_value.json
 python -m singularity.main run --goal "Craft torches" --action-value-feedback logs/benchmarks/action_value.json
+# Mine XENON-style knowledge corrections from failed actions and successful recovery steps.
+python -m singularity.main knowledge-correction-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/knowledge_correction.json
+python -m singularity.main knowledge-correction-gate --knowledge-correction-report logs/benchmarks/knowledge_correction.json --output logs/benchmarks/knowledge_correction_gate.json
 # Gate any future automatic plan-suffix repair with explicit verifier and counterexample evidence.
 python -m singularity.main self-evolution-gate --self-evolution-report logs/benchmarks/self_evolution.json --verifier-report logs/benchmarks/goal_verification_ablation.json --counterexample-report logs/benchmarks/self_evolution_counterexamples.json --output logs/benchmarks/self_evolution_gate.json
 

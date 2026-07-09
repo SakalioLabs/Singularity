@@ -74,6 +74,20 @@ Singularity adaptation:
 - Store failed action plus corrected action together for future contrastive prompts.
 - Use `action-value-report` as the lightweight non-parametric staging layer before any LoRA/MoE internalization: it aggregates action signatures, outcome values, and failed-action -> recovery-action pairs.
 
+### XENON: Experience-based Knowledge Correction for Robust Planning
+
+Source: https://openreview.net/forum?id=N22lDHYrXe
+
+Core idea:
+- Robust Minecraft planning needs explicit correction for wrong or missing dependency/action knowledge.
+- Failed-action memory and dependency-graph correction should be separated.
+- Corrections should come from grounded experience, not unreviewed self-edits.
+
+Singularity adaptation:
+- Mine failed-action -> successful-recovery pairs from session logs.
+- Keep correction candidates as reviewable JSON artifacts before planner/runtime use.
+- Preserve Echo-style transfer dimensions so corrected knowledge can be retrieved by structure, process, function, and interaction.
+
 ### WISE: Why-Which Reasoning for Long-Horizon Minecraft Agents
 
 Source: https://arxiv.org/abs/2606.12852
@@ -492,6 +506,7 @@ User-authored Minecraft requests need a benchmark layer between free-form chat a
 - Added a confidence gate for ASV feedback consumption. `ActionValueProfile.merge_feedback()` loads only trusted `state_transition_value_items` into runtime scoring, skips low-confidence/shared-window transition values with explicit reasons, and blends trusted transition scores conservatively with outcome success rates.
 - Added an offline `action-value-transition-gate` so saved ASV feedback artifacts have an explicit runtime-readiness decision. The gate aggregates trusted transition signatures, trusted attempts, and low-confidence rates across one or more `action-value-report` JSON files, approving only high-confidence action-local evidence and otherwise returning review hints to collect tighter transition windows.
 - Added `action-value-transition-evaluator-report`, a state-grounded evaluator comparison layer for ASV traces. `action-value-report` transition items now carry compact before/after state summaries, and the evaluator report can call a configured LLM to compare deterministic Minecraft transition labels/scores against state-grounded judgments before any automatic policy-update path is opened.
+- Added XENON-style knowledge correction staging. `knowledge-correction-report` mines repeated failed/no-progress actions plus failed-action -> successful-recovery pairs into reviewable failed-action memories and dependency-correction candidates with Echo-style transfer dimensions; `knowledge-correction-gate` requires ready logs and correction candidates before these artifacts can be treated as planner/runtime feedback.
 - Wired ASV transition readiness into runtime action-value feedback loading. `Config.action_value_transition_gate_paths` and `Config.action_value_transition_evaluator_report_paths` let live runs require approved transition/evaluator reports before `state_transition_value_items` enter `ActionValueProfile`; review, rejected, unknown, or unreadable gates suppress only transition scores while preserving ordinary action-outcome values and failure-correction pairs.
 - Added benchmark-level ASV transition preflight. `benchmark --action-value-transition-preflight` checks saved `--action-value-feedback`, `--action-value-transition-gate`, and optional `--action-value-transition-evaluator-report` inputs before live Minecraft tasks run, requiring trusted transition items plus approved gates when transition scoring is intended.
 - Added a MUSE-style skill lifecycle audit. `skill-lifecycle-report` joins skill definitions, skill-local memories, dependency/governance gates, postcondition/evaluation evidence, failure-refinement signals, and transfer readiness into one ready/review/blocked report before any task-family skill is treated as a runtime-default candidate.

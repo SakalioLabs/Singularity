@@ -177,6 +177,7 @@
 - [x] Add `action-value-transition-evaluator-report` so ASV-style transition labels can be compared against a state-grounded LLM evaluator before any automatic policy update path is considered.
 - [x] Wire ASV transition gates into runtime `--action-value-feedback` loading: approved gate/evaluator reports can admit transition scores, while configured review/rejected/unreadable gates suppress only `state_transition_value_items` and keep ordinary outcome-value feedback advisory.
 - [x] Add benchmark-level `--action-value-transition-preflight` so transition-scored live suites require approved transition gates/evaluator reports and trusted transition feedback before spending Minecraft runtime.
+- [x] Add XENON-style `knowledge-correction-report` and `knowledge-correction-gate` so repeated failed actions plus successful recovery steps become reviewable dependency and failed-action correction candidates before planner/runtime use.
 - [x] Add MUSE-style `skill-lifecycle-report` so creation, skill-local memory, governance, evaluation, refinement, and runtime-default candidacy can be audited together before promoting Minecraft skills.
 - [x] Add `world-model-feedback-gate` and gated runtime `--world-model-feedback` loading so frontier/resource/danger map feedback only biases curriculum after structured map evidence is approved.
 - [x] Add Coachable Agents-style `CoachPolicy` so `--coach-style` can bias LLM planner context and autonomous curriculum ranking without bypassing tasks, verifier checks, safety gates, or memory gates.
@@ -234,6 +235,7 @@
 - [ ] Re-run `action-verification-report` on live M1/M2 retries and compare reject/review rates plus `failed_without_reject` against `logs/benchmarks/action_verification_m1_2026-07-09.json`.
 - [ ] Re-run `action-candidate-report` on live M1/M2 retries and compare original rejects, repaired rejects, unchanged rejects, and changed selections against `logs/benchmarks/action_candidate_m1_2026-07-09.json`.
 - [ ] Re-run `action-value-report` on live M1/M2 retries and compare high-value signatures plus failure-correction pairs against `logs/benchmarks/action_value_m1_2026-07-09.json`, then pass approved feedback with `--action-value-feedback`.
+- [ ] Run `knowledge-correction-report` and `knowledge-correction-gate` on fresh M1/M2 retries, then review dependency corrections before injecting them into planner knowledge context.
 - [ ] Re-run `action-value-report` on fresh logs produced after action-level pre/post observation logging and confirm low-confidence transition windows fall before feeding ASV scores into runtime action ranking.
 - [ ] Run `action-value-transition-gate` on fresh M1/M2 action-value reports and pass approved reports with `--action-value-transition-gate` before allowing ASV transition scores through `--action-value-feedback`.
 - [ ] Investigate why the current M1 action-value baseline reports 200/200 successful actions but mostly no-progress state transitions, then compare against live M1/M2 retries before feeding transition values into runtime action ranking.

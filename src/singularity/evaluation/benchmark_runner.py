@@ -1453,6 +1453,65 @@ class ActionValueTraceReport:
 
 
 @dataclass
+class KnowledgeCorrectionTraceCase:
+    source_log: str
+    event_count: int = 0
+    goal_count: int = 0
+    action_count: int = 0
+    failure_action_count: int = 0
+    repeated_failure_signature_count: int = 0
+    recovery_pair_count: int = 0
+    dependency_correction_count: int = 0
+    failure_action_memory_count: int = 0
+    low_confidence_transition_count: int = 0
+    dependency_corrections: list[dict] = field(default_factory=list)
+    failure_action_memories: list[dict] = field(default_factory=list)
+    ready_for_knowledge_correction_review: bool = False
+
+
+@dataclass
+class KnowledgeCorrectionTraceReport:
+    cases: list[KnowledgeCorrectionTraceCase] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def log_count(self) -> int:
+        return len(self.cases)
+
+    @property
+    def ready_log_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_knowledge_correction_review)
+
+    @property
+    def action_count(self) -> int:
+        return sum(case.action_count for case in self.cases)
+
+    @property
+    def failure_action_count(self) -> int:
+        return sum(case.failure_action_count for case in self.cases)
+
+    @property
+    def repeated_failure_signature_count(self) -> int:
+        return sum(case.repeated_failure_signature_count for case in self.cases)
+
+    @property
+    def recovery_pair_count(self) -> int:
+        return sum(case.recovery_pair_count for case in self.cases)
+
+    @property
+    def dependency_correction_count(self) -> int:
+        return sum(case.dependency_correction_count for case in self.cases)
+
+    @property
+    def failure_action_memory_count(self) -> int:
+        return sum(case.failure_action_memory_count for case in self.cases)
+
+    @property
+    def low_confidence_transition_count(self) -> int:
+        return sum(case.low_confidence_transition_count for case in self.cases)
+
+
+@dataclass
 class DiscoveryApplicationTraceCase:
     source_log: str
     event_count: int = 0
@@ -5837,6 +5896,180 @@ class BenchmarkRunner:
             "policy_hints": policy_hints,
         }
 
+    def run_knowledge_correction_report_from_logs(
+        self,
+        session_log_paths: list[str],
+        min_failure_repeats: int = 2,
+        max_failure_value_score: float = 0.35,
+    ) -> KnowledgeCorrectionTraceReport:
+        """Mine XENON-style dependency and failed-action knowledge corrections from session logs."""
+        report = KnowledgeCorrectionTraceReport()
+        for path in session_log_paths:
+            try:
+                events = self._load_session_events(path)
+                action_value_case = self._action_value_trace_case(path, events)
+                report.cases.append(self._knowledge_correction_case_from_action_value(
+                    action_value_case,
+                    min_failure_repeats=min_failure_repeats,
+                    max_failure_value_score=max_failure_value_score,
+                ))
+            except Exception as e:
+                report.errors.append(f"{path}: {e}")
+        return report
+
+    def knowledge_correction_feedback(self, report: KnowledgeCorrectionTraceReport) -> dict:
+        """Convert correction candidates into reviewable knowledge-memory feedback."""
+        dependency_corrections = [
+            item for case in report.cases for item in case.dependency_corrections
+        ]
+        failure_action_memories = [
+            item for case in report.cases for item in case.failure_action_memories
+        ]
+        policy_hints = []
+        if dependency_corrections:
+            policy_hints.append({
+                "knowledge_correction_policy": "review_dependency_graph_corrections",
+                "priority": "high",
+                "reason": "failed action followed by successful recovery suggests a missing prerequisite or ordering edge",
+                "count": len(dependency_corrections),
+            })
+        if failure_action_memories:
+            policy_hints.append({
+                "knowledge_correction_policy": "review_failed_action_memories",
+                "priority": "high",
+                "reason": "repeated failed or no-progress actions should become avoid/replan memories before replay",
+                "count": len(failure_action_memories),
+            })
+        if report.low_confidence_transition_count:
+            policy_hints.append({
+                "knowledge_correction_policy": "collect_action_local_state_windows",
+                "priority": "medium",
+                "reason": "some candidate knowledge corrections depend on low-confidence before/after state windows",
+                "count": report.low_confidence_transition_count,
+            })
+        return {
+            "log_count": report.log_count,
+            "ready_log_count": report.ready_log_count,
+            "action_count": report.action_count,
+            "failure_action_count": report.failure_action_count,
+            "repeated_failure_signature_count": report.repeated_failure_signature_count,
+            "recovery_pair_count": report.recovery_pair_count,
+            "dependency_correction_count": report.dependency_correction_count,
+            "failure_action_memory_count": report.failure_action_memory_count,
+            "low_confidence_transition_count": report.low_confidence_transition_count,
+            "dependency_corrections": dependency_corrections[:40],
+            "failure_action_memories": failure_action_memories[:40],
+            "policy_hints": policy_hints,
+        }
+
+    def build_knowledge_correction_gate(
+        self,
+        knowledge_correction_reports: Optional[list[dict]] = None,
+        knowledge_correction_report_paths: Optional[list[str]] = None,
+        target: str = "planner_knowledge_correction_feedback",
+        min_ready_logs: int = 1,
+        min_corrections: int = 1,
+    ) -> dict:
+        """Gate XENON-style knowledge-correction reports before planner/runtime use."""
+        report = {
+            "type": "knowledge_correction_gate",
+            "target": target,
+            "readiness": "review",
+            "decision": "hold_knowledge_corrections_for_review",
+            "reason": "knowledge corrections require enough reviewable evidence",
+            "thresholds": {
+                "min_ready_logs": int(min_ready_logs),
+                "min_corrections": int(min_corrections),
+            },
+            "source_count": 0,
+            "log_count": 0,
+            "ready_log_count": 0,
+            "action_count": 0,
+            "failure_action_count": 0,
+            "dependency_correction_count": 0,
+            "failure_action_memory_count": 0,
+            "correction_count": 0,
+            "policy_hints": [],
+            "sources": [],
+            "checks": [],
+            "missing": [],
+            "errors": [],
+        }
+        items = self._load_gate_payloads(
+            knowledge_correction_reports or [],
+            knowledge_correction_report_paths or [],
+            report["errors"],
+            "knowledge_correction_report",
+        )
+        report["source_count"] = len(items)
+        if not items:
+            report["missing"].append("knowledge_correction_report")
+
+        for source, payload in items:
+            current = payload.get("knowledge_correction_feedback", payload) if isinstance(payload, dict) else {}
+            if not isinstance(current, dict):
+                report["errors"].append(f"{source}: knowledge correction report must be a JSON object")
+                continue
+            ready_logs = self._gate_int(current.get("ready_log_count", 0))
+            dependency_count = self._gate_int(current.get("dependency_correction_count", 0))
+            failure_memory_count = self._gate_int(current.get("failure_action_memory_count", 0))
+            correction_count = dependency_count + failure_memory_count
+            source_summary = {
+                "source": source,
+                "log_count": self._gate_int(current.get("log_count", 0)),
+                "ready_log_count": ready_logs,
+                "action_count": self._gate_int(current.get("action_count", 0)),
+                "failure_action_count": self._gate_int(current.get("failure_action_count", 0)),
+                "dependency_correction_count": dependency_count,
+                "failure_action_memory_count": failure_memory_count,
+                "correction_count": correction_count,
+            }
+            report["sources"].append(source_summary)
+            report["log_count"] += source_summary["log_count"]
+            report["ready_log_count"] += ready_logs
+            report["action_count"] += source_summary["action_count"]
+            report["failure_action_count"] += source_summary["failure_action_count"]
+            report["dependency_correction_count"] += dependency_count
+            report["failure_action_memory_count"] += failure_memory_count
+            report["correction_count"] += correction_count
+            status = "pass" if ready_logs and correction_count else "warn"
+            detail = (
+                "knowledge correction report has reviewable corrections"
+                if status == "pass"
+                else "knowledge correction report lacks ready logs or correction candidates"
+            )
+            report["checks"].append(self._gate_check(
+                source,
+                "knowledge_correction_report",
+                status,
+                detail,
+                source_summary,
+            ))
+
+        if report["ready_log_count"] < int(min_ready_logs):
+            report["missing"].append("ready_knowledge_correction_logs")
+        if report["correction_count"] < int(min_corrections):
+            report["missing"].append("knowledge_correction_candidates")
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "do_not_load_knowledge_corrections"
+            report["reason"] = "knowledge correction inputs could not be loaded"
+        elif report["missing"]:
+            report["readiness"] = "review"
+            report["decision"] = "hold_knowledge_corrections_for_review"
+            report["reason"] = "knowledge correction evidence is incomplete"
+            report["policy_hints"].append("collect_more_failed_action_and_recovery_traces")
+        else:
+            report["readiness"] = "approved"
+            report["decision"] = "allow_reviewed_knowledge_correction_feedback"
+            report["reason"] = "reviewable dependency and failed-action correction evidence is present"
+            report["policy_hints"].extend([
+                "review_dependency_graph_corrections",
+                "review_failed_action_memories",
+            ])
+        return report
+
     def build_action_value_transition_gate(
         self,
         action_value_reports: list[dict] = None,
@@ -9173,6 +9406,260 @@ class BenchmarkRunner:
                 "examples": record["examples"],
             })
         return sorted(items, key=lambda item: (-item["attempts"], item["signature"]))
+
+    def _knowledge_correction_case_from_action_value(
+        self,
+        case: ActionValueTraceCase,
+        min_failure_repeats: int = 2,
+        max_failure_value_score: float = 0.35,
+    ) -> KnowledgeCorrectionTraceCase:
+        temp_report = ActionValueTraceReport(cases=[case])
+        action_items = self._aggregate_action_value_items(temp_report)
+        transition_items = self._aggregate_action_state_transition_items(temp_report)
+        failure_action_memories = self._knowledge_failure_action_memories(
+            case.source_log,
+            action_items,
+            transition_items,
+            min_failure_repeats=min_failure_repeats,
+            max_failure_value_score=max_failure_value_score,
+        )
+        dependency_corrections = self._knowledge_dependency_corrections(case)
+        repeated_failure_signatures = sum(
+            1
+            for item in action_items
+            if self._gate_int(item.get("failures", 0)) >= int(min_failure_repeats)
+        )
+        ready = bool(failure_action_memories or dependency_corrections)
+        return KnowledgeCorrectionTraceCase(
+            source_log=case.source_log,
+            event_count=case.event_count,
+            goal_count=case.goal_count,
+            action_count=case.action_count,
+            failure_action_count=case.failure_count,
+            repeated_failure_signature_count=repeated_failure_signatures,
+            recovery_pair_count=len(case.failure_correction_pairs),
+            dependency_correction_count=len(dependency_corrections),
+            failure_action_memory_count=len(failure_action_memories),
+            low_confidence_transition_count=case.low_confidence_transition_count,
+            dependency_corrections=dependency_corrections,
+            failure_action_memories=failure_action_memories,
+            ready_for_knowledge_correction_review=ready,
+        )
+
+    def _knowledge_failure_action_memories(
+        self,
+        source_log: str,
+        action_items: list[dict],
+        transition_items: list[dict],
+        min_failure_repeats: int = 2,
+        max_failure_value_score: float = 0.35,
+    ) -> list[dict]:
+        transition_by_signature = {
+            str(item.get("signature") or ""): item
+            for item in transition_items
+            if item.get("signature")
+        }
+        memories = []
+        for item in action_items:
+            signature = str(item.get("signature") or "")
+            if not signature:
+                continue
+            attempts = self._gate_int(item.get("attempts", 0))
+            failures = self._gate_int(item.get("failures", 0))
+            value_score = self._safe_float(item.get("value_score"), 0.5)
+            transition = transition_by_signature.get(signature, {})
+            no_progress = self._gate_int(transition.get("no_progress_transitions", 0))
+            negative = self._gate_int(transition.get("negative_transitions", 0))
+            failure_evidence = failures >= int(min_failure_repeats) and value_score <= float(max_failure_value_score)
+            stagnation_evidence = (negative + no_progress) >= int(min_failure_repeats) and (
+                self._safe_float(transition.get("avg_state_value_delta"), 0.0) <= 0.0
+            )
+            if not (failure_evidence or stagnation_evidence):
+                continue
+            reasons = []
+            if failure_evidence:
+                reasons.append("repeated_failed_action")
+            if negative:
+                reasons.append("negative_state_transition")
+            if no_progress:
+                reasons.append("no_progress_state_transition")
+            memories.append({
+                "type": "failed_action_memory",
+                "source_log": source_log,
+                "signature": signature,
+                "action_type": str(item.get("action_type") or signature.split(":", 1)[0] or "unknown"),
+                "attempts": attempts,
+                "failures": failures,
+                "successes": self._gate_int(item.get("successes", 0)),
+                "failure_rate": item.get("failure_rate", 0.0),
+                "value_score": value_score,
+                "negative_transitions": negative,
+                "no_progress_transitions": no_progress,
+                "avg_state_value_delta": transition.get("avg_state_value_delta", 0.0),
+                "task_families": dict(item.get("task_families", {})) if isinstance(item.get("task_families", {}), dict) else {},
+                "recommendation": "avoid_or_replan_until_preconditions_change",
+                "reason": ", ".join(reasons),
+                "knowledge_dimensions": self._knowledge_transfer_dimensions(
+                    signature=signature,
+                    goal="",
+                    action=item,
+                    role="failed_action_memory",
+                ),
+            })
+        return sorted(memories, key=lambda item: (-item["failures"], item["signature"]))[:20]
+
+    def _knowledge_dependency_corrections(self, case: ActionValueTraceCase) -> list[dict]:
+        grouped = {}
+        for pair in case.failure_correction_pairs:
+            if not isinstance(pair, dict):
+                continue
+            failed_signature = str(pair.get("failed_signature") or "")
+            recovery_signature = str(pair.get("recovery_signature") or "")
+            if not failed_signature or not recovery_signature:
+                continue
+            key = (failed_signature, recovery_signature)
+            record = grouped.setdefault(key, {
+                "type": "dependency_correction",
+                "source_logs": set(),
+                "goal": str(pair.get("goal") or ""),
+                "failed_signature": failed_signature,
+                "recovery_signature": recovery_signature,
+                "failed_action": pair.get("failed_action", {}) if isinstance(pair.get("failed_action", {}), dict) else {},
+                "recovery_action": pair.get("recovery_action", {}) if isinstance(pair.get("recovery_action", {}), dict) else {},
+                "failed_errors": set(),
+                "evidence_count": 0,
+                "examples": [],
+            })
+            source = str(pair.get("source_log") or case.source_log or "")
+            if source:
+                record["source_logs"].add(source)
+            error = str(pair.get("failed_error") or "").strip()
+            if error:
+                record["failed_errors"].add(error[:160])
+            record["evidence_count"] += 1
+            if len(record["examples"]) < 3:
+                record["examples"].append({
+                    "failed_event_index": pair.get("failed_event_index"),
+                    "recovery_event_index": pair.get("recovery_event_index"),
+                    "failed_error": error[:160],
+                })
+
+        corrections = []
+        for record in grouped.values():
+            failed_action = record["failed_action"]
+            recovery_action = record["recovery_action"]
+            correction = self._knowledge_dependency_text(
+                record["failed_signature"],
+                record["recovery_signature"],
+                failed_action,
+                recovery_action,
+                record["goal"],
+            )
+            corrections.append({
+                "type": "dependency_correction",
+                "source_logs": sorted(record["source_logs"])[:8],
+                "goal": record["goal"],
+                "failed_signature": record["failed_signature"],
+                "recovery_signature": record["recovery_signature"],
+                "failed_action": failed_action,
+                "recovery_action": recovery_action,
+                "target_items": self._knowledge_goal_targets(record["goal"], failed_action),
+                "prerequisite_actions": [recovery_action] if recovery_action else [],
+                "failed_errors": sorted(record["failed_errors"])[:5],
+                "evidence_count": record["evidence_count"],
+                "confidence": round(min(0.95, 0.45 + 0.2 * record["evidence_count"]), 3),
+                "recommendation": "add_reviewed_prerequisite_or_ordering_edge",
+                "correction": correction,
+                "knowledge_dimensions": self._knowledge_transfer_dimensions(
+                    signature=record["failed_signature"],
+                    goal=record["goal"],
+                    action=failed_action,
+                    recovery_action=recovery_action,
+                    role="dependency_correction",
+                ),
+                "examples": record["examples"],
+            })
+        return sorted(corrections, key=lambda item: (-item["evidence_count"], item["failed_signature"]))[:20]
+
+    def _knowledge_dependency_text(
+        self,
+        failed_signature: str,
+        recovery_signature: str,
+        failed_action: dict,
+        recovery_action: dict,
+        goal: str,
+    ) -> str:
+        failed_subject = self._knowledge_action_subject(failed_action) or failed_signature
+        recovery_subject = self._knowledge_action_subject(recovery_action) or recovery_signature
+        recovery_type = str(recovery_action.get("type") or recovery_signature.split(":", 1)[0] or "action")
+        if failed_signature.startswith("craft:") and recovery_signature.startswith("dig:"):
+            return f"Before retrying {failed_signature}, collect or expose {recovery_subject} with {recovery_type} when the goal is {goal or failed_subject}."
+        if failed_signature.startswith("craft:") and recovery_signature.startswith("craft:"):
+            return f"Before retrying {failed_signature}, craft prerequisite {recovery_subject} first."
+        return f"Before replaying {failed_signature}, prefer recovery step {recovery_signature} when the same failure context appears."
+
+    def _knowledge_goal_targets(self, goal: str, failed_action: dict = None) -> list[str]:
+        failed_action = failed_action if isinstance(failed_action, dict) else {}
+        targets = set()
+        params = failed_action.get("parameters", {}) if isinstance(failed_action.get("parameters", {}), dict) else {}
+        for key in ("item", "block", "target", "entity"):
+            value = str(params.get(key) or "").strip().lower()
+            if value:
+                targets.add(value)
+        text = str(goal or "").lower().replace("_", " ")
+        try:
+            from singularity.data.knowledge_base import KnowledgeBase
+            kb = KnowledgeBase()
+            known_items = set(kb.list_recipes()) | set(getattr(kb, "graph", None).nodes if getattr(kb, "graph", None) else set())
+        except Exception:
+            known_items = set()
+        for item in known_items:
+            normalized = str(item or "").lower()
+            spaced = normalized.replace("_", " ")
+            parts = [part for part in spaced.split() if part]
+            if spaced and spaced in text:
+                targets.add(normalized)
+            elif parts and all(part in text for part in parts):
+                targets.add(normalized)
+        return sorted(targets)[:8]
+
+    def _knowledge_action_subject(self, action: dict) -> str:
+        action = action if isinstance(action, dict) else {}
+        params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
+        for key in ("item", "block", "target", "entity", "name"):
+            value = str(params.get(key) or "").strip().lower()
+            if value:
+                return value
+        return ""
+
+    def _knowledge_transfer_dimensions(
+        self,
+        signature: str,
+        goal: str,
+        action: dict,
+        recovery_action: Optional[dict] = None,
+        role: str = "",
+    ) -> dict:
+        action = action if isinstance(action, dict) else {}
+        recovery_action = recovery_action if isinstance(recovery_action, dict) else {}
+        subject = self._knowledge_action_subject(action) or signature.split(":", 1)[-1]
+        recovery_subject = self._knowledge_action_subject(recovery_action)
+        action_type = str(action.get("type") or signature.split(":", 1)[0] or "unknown")
+        recovery_type = str(recovery_action.get("type") or "")
+        return {
+            "structure": [item for item in (subject, recovery_subject) if item and item != "-"][:4],
+            "attribute": [self._knowledge_task_family(goal, action), action_type],
+            "process": [item for item in (action_type, recovery_type) if item],
+            "function": [role or "knowledge_correction", f"goal:{self._short_text(goal, 80)}" if goal else ""],
+            "interaction": [f"{recovery_type or 'review'}_before_{action_type}"] if role == "dependency_correction" else ["avoid_repeated_replay"],
+        }
+
+    def _knowledge_task_family(self, goal: str, action: dict = None) -> str:
+        try:
+            from singularity.core.skill_library import SkillLibrary
+            return SkillLibrary(persist=False).infer_task_family(goal, action or {})
+        except Exception:
+            return "general"
 
     def _action_value_transition_gate_check(self, source: str, payload: dict, thresholds: dict) -> dict:
         if not isinstance(payload, dict):
@@ -14025,6 +14512,81 @@ class BenchmarkRunner:
                     f"{pair.get('recovery_signature')}"
                 )
         for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_knowledge_correction_report(self, report: KnowledgeCorrectionTraceReport):
+        print("\nKnowledge Correction Trace")
+        print(f"  logs ready for correction review: {report.ready_log_count}/{report.log_count}")
+        print(
+            "  evidence: "
+            f"actions={report.action_count}, failed={report.failure_action_count}, "
+            f"repeated_failures={report.repeated_failure_signature_count}, "
+            f"recovery_pairs={report.recovery_pair_count}"
+        )
+        print(
+            "  candidates: "
+            f"dependency_corrections={report.dependency_correction_count}, "
+            f"failed_action_memories={report.failure_action_memory_count}, "
+            f"low_confidence_windows={report.low_confidence_transition_count}"
+        )
+        feedback = self.knowledge_correction_feedback(report)
+        if feedback["policy_hints"]:
+            hints = [
+                f"{hint['knowledge_correction_policy']}({hint['priority']})"
+                for hint in feedback["policy_hints"][:6]
+            ]
+            print(f"  policy hints: {', '.join(hints)}")
+        for item in feedback["dependency_corrections"][:6]:
+            print(
+                f"  dependency {item.get('failed_signature')} -> {item.get('recovery_signature')}: "
+                f"evidence={item.get('evidence_count')} confidence={item.get('confidence')}"
+            )
+            if item.get("correction"):
+                print(f"      {item.get('correction')}")
+        for item in feedback["failure_action_memories"][:6]:
+            print(
+                f"  failed action {item.get('signature')}: "
+                f"failures={item.get('failures')}/{item.get('attempts')} "
+                f"value={item.get('value_score')} reason={item.get('reason')}"
+            )
+        for case in report.cases:
+            marker = "+" if case.ready_for_knowledge_correction_review else "~"
+            print(f"  [{marker}] {case.source_log}")
+            print(
+                f"      actions={case.action_count}, failed={case.failure_action_count}, "
+                f"pairs={case.recovery_pair_count}, dependency={case.dependency_correction_count}, "
+                f"failed_memories={case.failure_action_memory_count}"
+            )
+        for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_knowledge_correction_gate_report(self, report: dict):
+        print("\nKnowledge Correction Gate")
+        print(f"  target: {report.get('target', 'planner_knowledge_correction_feedback')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  evidence: "
+            f"sources={report.get('source_count', 0)}, "
+            f"ready_logs={report.get('ready_log_count', 0)}/{report.get('log_count', 0)}, "
+            f"dependency={report.get('dependency_correction_count', 0)}, "
+            f"failed_memories={report.get('failure_action_memory_count', 0)}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', []))}")
+        for source in report.get("sources", [])[:8]:
+            print(
+                f"  source {source.get('source')}: "
+                f"ready_logs={source.get('ready_log_count', 0)}, "
+                f"corrections={source.get('correction_count', 0)}"
+            )
+        for check in report.get("checks", [])[:10]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
+        for error in report.get("errors", []):
             print(f"  error: {error}")
 
     def print_action_value_transition_gate_report(self, report: dict):

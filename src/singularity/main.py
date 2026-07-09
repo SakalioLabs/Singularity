@@ -675,6 +675,22 @@ def main():
     action_value_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     action_value_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline XENON-style knowledge correction report
+    knowledge_correction_parser = subparsers.add_parser("knowledge-correction-report", help="Mine dependency and failed-action knowledge corrections from session logs")
+    knowledge_correction_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    knowledge_correction_parser.add_argument("--min-failure-repeats", type=int, default=2, help="Minimum repeated failed/no-progress attempts before emitting a correction candidate")
+    knowledge_correction_parser.add_argument("--max-failure-value-score", type=float, default=0.35, help="Maximum action value score considered a failed-action memory")
+    knowledge_correction_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    knowledge_correction_parser.add_argument("--log-level", type=str, default="INFO")
+
+    knowledge_correction_gate_parser = subparsers.add_parser("knowledge-correction-gate", help="Gate knowledge-correction reports before planner/runtime use")
+    knowledge_correction_gate_parser.add_argument("--knowledge-correction-report", action="append", default=[], help="Saved knowledge-correction-report JSON")
+    knowledge_correction_gate_parser.add_argument("--target", type=str, default="planner_knowledge_correction_feedback", help="Gate target label")
+    knowledge_correction_gate_parser.add_argument("--min-ready-logs", type=int, default=1, help="Minimum ready logs required")
+    knowledge_correction_gate_parser.add_argument("--min-corrections", type=int, default=1, help="Minimum correction candidates required")
+    knowledge_correction_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    knowledge_correction_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline action transition value runtime-readiness gate
     action_value_gate_parser = subparsers.add_parser("action-value-transition-gate", help="Gate ASV-style transition-value feedback before runtime use")
     action_value_gate_parser.add_argument("--action-value-report", action="append", default=[], help="Saved action-value-report JSON")
@@ -2581,6 +2597,67 @@ def main():
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "knowledge-correction-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("knowledge-correction-report requires at least one --session-log")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.run_knowledge_correction_report_from_logs(
+            session_logs,
+            min_failure_repeats=getattr(args, "min_failure_repeats", 2),
+            max_failure_value_score=getattr(args, "max_failure_value_score", 0.35),
+        )
+        runner.print_knowledge_correction_report(report)
+        knowledge_correction_feedback = runner.knowledge_correction_feedback(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "log_count": report.log_count,
+                    "ready_log_count": report.ready_log_count,
+                    "action_count": report.action_count,
+                    "failure_action_count": report.failure_action_count,
+                    "repeated_failure_signature_count": report.repeated_failure_signature_count,
+                    "recovery_pair_count": report.recovery_pair_count,
+                    "dependency_correction_count": report.dependency_correction_count,
+                    "failure_action_memory_count": report.failure_action_memory_count,
+                    "low_confidence_transition_count": report.low_confidence_transition_count,
+                    "knowledge_correction_feedback": knowledge_correction_feedback,
+                    "errors": report.errors,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "knowledge-correction-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        knowledge_correction_reports = getattr(args, "knowledge_correction_report", []) or []
+        if not knowledge_correction_reports:
+            print("knowledge-correction-gate requires at least one --knowledge-correction-report")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.build_knowledge_correction_gate(
+            knowledge_correction_report_paths=knowledge_correction_reports,
+            target=getattr(args, "target", "planner_knowledge_correction_feedback"),
+            min_ready_logs=getattr(args, "min_ready_logs", 1),
+            min_corrections=getattr(args, "min_corrections", 1),
+        )
+        runner.print_knowledge_correction_gate_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"rejected", "error"}:
+            sys.exit(1)
         return
 
     if args.command == "action-value-transition-gate":

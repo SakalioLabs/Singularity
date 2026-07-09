@@ -1841,6 +1841,58 @@ def test_action_value_report_aggregates_outcome_profiles():
     print("PASS: Action value report aggregates outcome profiles and repair pairs")
 
 
+def test_knowledge_correction_report_mines_failed_actions_and_dependencies():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "knowledge_correction_session.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {"type": "observation", "data": {"position": {"x": 0, "y": 64, "z": 0}, "health": 20, "inventory": {}, "nearby_blocks": [{"name": "coal_ore"}]}},
+        {"type": "action", "data": {"action": {"type": "craft", "parameters": {"item": "torch"}}, "result": {"success": False, "error": "Missing coal"}}},
+        {"type": "observation", "data": {"position": {"x": 0, "y": 64, "z": 0}, "health": 20, "inventory": {}, "nearby_blocks": [{"name": "coal_ore"}]}},
+        {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "coal_ore"}}, "result": {"success": True}}},
+        {"type": "observation", "data": {"position": {"x": 0, "y": 64, "z": 0}, "health": 20, "inventory": {"coal": 1}, "nearby_blocks": [{"name": "coal_ore"}]}},
+        {"type": "action", "data": {"action": {"type": "craft", "parameters": {"item": "torch"}}, "result": {"success": False, "error": "Missing coal"}}},
+        {"type": "observation", "data": {"position": {"x": 0, "y": 64, "z": 0}, "health": 20, "inventory": {"coal": 1}, "nearby_blocks": [{"name": "coal_ore"}]}},
+        {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "coal_ore"}}, "result": {"success": True}}},
+        {"type": "observation", "data": {"position": {"x": 0, "y": 64, "z": 0}, "health": 20, "inventory": {"coal": 2}, "nearby_blocks": [{"name": "coal_ore"}]}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config())
+    report = runner.run_knowledge_correction_report_from_logs([session_path])
+    feedback = runner.knowledge_correction_feedback(report)
+    dependencies = {
+        (item["failed_signature"], item["recovery_signature"]): item
+        for item in feedback["dependency_corrections"]
+    }
+    failed_memories = {item["signature"]: item for item in feedback["failure_action_memories"]}
+    policies = {hint["knowledge_correction_policy"] for hint in feedback["policy_hints"]}
+
+    assert report.ready_log_count == 1
+    assert report.dependency_correction_count == 1
+    assert report.failure_action_memory_count == 1
+    assert ("craft:torch", "dig:coal_ore") in dependencies
+    assert dependencies[("craft:torch", "dig:coal_ore")]["evidence_count"] == 2
+    assert "torch" in dependencies[("craft:torch", "dig:coal_ore")]["target_items"]
+    assert dependencies[("craft:torch", "dig:coal_ore")]["knowledge_dimensions"]["interaction"] == ["dig_before_craft"]
+    assert failed_memories["craft:torch"]["failures"] == 2
+    assert failed_memories["craft:torch"]["recommendation"] == "avoid_or_replan_until_preconditions_change"
+    assert "review_dependency_graph_corrections" in policies
+    assert "review_failed_action_memories" in policies
+
+    gate = runner.build_knowledge_correction_gate(
+        knowledge_correction_reports=[feedback],
+        min_ready_logs=1,
+        min_corrections=2,
+    )
+    assert gate["readiness"] == "approved"
+    assert gate["decision"] == "allow_reviewed_knowledge_correction_feedback"
+    assert gate["correction_count"] == 2
+    print("PASS: Knowledge correction report mines failed actions and dependencies")
+
+
 def test_action_value_report_uses_embedded_action_observation_windows():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "action_value_embedded_observation_session.jsonl")
@@ -4408,6 +4460,7 @@ if __name__ == "__main__":
     test_action_verification_report_replays_logged_actions()
     test_action_candidate_report_replays_repairable_rejected_actions()
     test_action_value_report_aggregates_outcome_profiles()
+    test_knowledge_correction_report_mines_failed_actions_and_dependencies()
     test_action_value_report_uses_embedded_action_observation_windows()
     test_action_value_transition_gate_controls_runtime_feedback()
     test_action_value_transition_evaluator_compares_state_grounded_labels()

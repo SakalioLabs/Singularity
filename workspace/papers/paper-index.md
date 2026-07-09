@@ -1272,6 +1272,21 @@
 - **Reproduction Priority**: P2
 - **Card**: `2026-07-09-memp-procedural-memory.md`
 
+### P-070: XENON Knowledge Correction
+
+- **Title**: Experience-based Knowledge Correction for Robust Planning in LLM-based Agents
+- **Source**: https://openreview.net/forum?id=N22lDHYrXe
+- **Year**: 2026
+- **Type**: Minecraft agent planning and experience-based knowledge correction
+- **Task Type**: Robust long-horizon Minecraft planning under missing or wrong dependency/action knowledge
+- **Core Method**: Splits experience-based correction into dependency-graph updates and failed-action memories
+- **Memory**: Failure traces plus successful recovery actions become reviewable correction candidates
+- **Key Results**: Positions correction as trace-grounded planning knowledge rather than unstructured reflection
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Supports `knowledge-correction-report` and `knowledge-correction-gate` before planner knowledge is updated from live failures
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-xenon-knowledge-correction.md`
+
 ---
 
 ## Summary Table
@@ -1347,3 +1362,4 @@
 | P-067 | LLM-in-Sandbox | 2026 | R4/N5/R3/E5 | P2 |
 | P-068 | AFTER Procedural Memory | 2026 | R5/N5/R4/E5 | P1 |
 | P-069 | Mem^p Procedural Memory | 2025 | R4/N5/R4/E4 | P2 |
+| P-070 | XENON Knowledge Correction | 2026 | R5/N5/R4/E5 | P1 |
