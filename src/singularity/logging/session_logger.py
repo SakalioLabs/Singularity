@@ -44,8 +44,22 @@ class SessionLogger:
     def log_plan(self, plan: dict):
         self.log("plan", plan)
 
-    def log_action(self, action: dict, result: dict):
-        self.log("action", {"action": action, "result": result})
+    def log_action(
+        self,
+        action: dict,
+        result: dict,
+        pre_observation: dict = None,
+        post_observation: dict = None,
+        context: dict = None,
+    ):
+        payload = {"action": action, "result": result}
+        if pre_observation:
+            payload["pre_observation"] = pre_observation
+        if post_observation:
+            payload["post_observation"] = post_observation
+        if context:
+            payload["action_context"] = context
+        self.log("action", payload)
 
     def log_reflection(self, reflection: dict):
         self.log("reflection", reflection)

@@ -552,9 +552,15 @@ class Agent:
                     if action_selection:
                         result["action_candidate_selection"] = action_selection
                     self._record_action_value(action, result, goal, action_verification)
-                    self.session_logger.log_action(action, result)
-                    self._write_memory_episode("action", {"action": action, "result": result}, source="goal_action")
                     observation = self._apply_action_feedback(action, result, observation, {"cycle": cycle, "goal": goal})
+                    self._log_action_event(
+                        action,
+                        result,
+                        pre_observation=before_action_observation,
+                        post_observation=observation,
+                        context={"cycle": cycle, "goal": goal, "mode": "goal"},
+                    )
+                    self._write_memory_episode("action", {"action": action, "result": result}, source="goal_action")
 
                     if result.get("success"):
                         self._record_skill_usage(action, True)
@@ -763,17 +769,23 @@ class Agent:
                         if action_selection:
                             result["action_candidate_selection"] = action_selection
                         self._record_action_value(action, result, goal, action_verification)
-                        self.session_logger.log_action(action, result)
-                        self._write_memory_episode(
-                            "action",
-                            {"action": action, "result": result},
-                            source="autonomous_action",
-                        )
                         observation = self._apply_action_feedback(
                             action,
                             result,
                             observation,
                             {"cycle": total_cycles, "goal": goal, "mode": "autonomous"},
+                        )
+                        self._log_action_event(
+                            action,
+                            result,
+                            pre_observation=before_action_observation,
+                            post_observation=observation,
+                            context={"cycle": total_cycles, "goal": goal, "mode": "autonomous"},
+                        )
+                        self._write_memory_episode(
+                            "action",
+                            {"action": action, "result": result},
+                            source="autonomous_action",
                         )
 
                         if result.get("success"):
@@ -1672,8 +1684,8 @@ class Agent:
                 })
                 return False, current_observation
 
+            before_correction_observation = current_observation
             result = self.action_controller.execute(correction_action, current_observation)
-            self.session_logger.log_action(correction_action, result)
             self._write_memory_episode("failure_correction_action", {
                 "skill": skill.name,
                 "action": correction_action,
@@ -1691,6 +1703,19 @@ class Agent:
                 result,
                 current_observation,
                 {**(context or {}), "goal": goal, "correction_skill": skill.name, "correction_index": idx},
+            )
+            self._log_action_event(
+                correction_action,
+                result,
+                pre_observation=before_correction_observation,
+                post_observation=current_observation,
+                context={
+                    **(context or {}),
+                    "goal": goal,
+                    "mode": "failure_correction",
+                    "correction_skill": skill.name,
+                    "correction_index": idx,
+                },
             )
 
             self._record_skill_usage(correction_action, bool(result.get("success")))
@@ -2007,6 +2032,86 @@ class Agent:
         if hasattr(self, "visual_memory") and self.visual_memory:
             self.visual_memory.add(payload, "observation")
 
+    def _log_action_event(
+        self,
+        action: dict,
+        result: dict,
+        pre_observation: dict = None,
+        post_observation: dict = None,
+        context: dict = None,
+    ):
+        """Log an action with compact pre/post state snapshots for ASV-style replay."""
+        payload = {"action": action, "result": result}
+        pre_snapshot = self._action_observation_snapshot(pre_observation)
+        post_snapshot = self._action_observation_snapshot(post_observation)
+        if pre_snapshot:
+            payload["pre_observation"] = pre_snapshot
+        if post_snapshot:
+            payload["post_observation"] = post_snapshot
+        if context:
+            payload["action_context"] = self._bounded_log_value(context, depth=0)
+
+        session_logger = getattr(self, "session_logger", None)
+        if hasattr(session_logger, "log"):
+            session_logger.log("action", payload)
+            return
+        if hasattr(session_logger, "log_action"):
+            try:
+                session_logger.log_action(action, result, pre_snapshot, post_snapshot, context or {})
+            except TypeError:
+                session_logger.log_action(action, result)
+
+    def _action_observation_snapshot(self, observation: dict) -> dict:
+        if not isinstance(observation, dict):
+            return {}
+        keys = (
+            "position",
+            "inventory",
+            "inventory_count",
+            "health",
+            "hunger",
+            "equipment",
+            "nearby_blocks",
+            "blocks",
+            "visible_blocks",
+            "grounded_resources",
+            "visual_resources",
+            "resources",
+            "nearby_entities",
+            "entities",
+            "dangers",
+            "flags",
+            "biome",
+            "time",
+        )
+        snapshot = {}
+        for key in keys:
+            value = observation.get(key)
+            if value not in (None, "", [], {}):
+                snapshot[key] = self._bounded_log_value(value, depth=0)
+        return snapshot
+
+    def _bounded_log_value(self, value, depth: int = 0):
+        if depth > 4:
+            return str(value)[:160]
+        if isinstance(value, dict):
+            result = {}
+            for index, (key, item) in enumerate(value.items()):
+                if index >= 32:
+                    break
+                key_text = str(key)
+                if key_text.lower() in {"image", "image_bytes", "screenshot_bytes", "raw_pixels"}:
+                    continue
+                result[key_text] = self._bounded_log_value(item, depth + 1)
+            return result
+        if isinstance(value, list):
+            return [self._bounded_log_value(item, depth + 1) for item in value[:12]]
+        if isinstance(value, tuple):
+            return [self._bounded_log_value(item, depth + 1) for item in value[:12]]
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            return value
+        return str(value)[:160]
+
     def _visual_memory_context(self, goal: str = "", limit: int = 3) -> str:
         if not hasattr(self, "visual_memory") or not self.visual_memory:
             return ""
@@ -2097,14 +2202,21 @@ class Agent:
         self._write_memory_episode("runtime_interrupt", payload, source="runtime")
 
         if decision.emergency_action:
+            before_emergency_observation = observation
             result = self.action_controller.execute(decision.emergency_action, observation)
-            self.session_logger.log_action(decision.emergency_action, result)
             self._write_memory_episode(
                 "runtime_emergency_action",
                 {"action": decision.emergency_action, "result": result},
                 source="runtime",
             )
             observation = self._apply_action_feedback(decision.emergency_action, result, observation, context or {})
+            self._log_action_event(
+                decision.emergency_action,
+                result,
+                pre_observation=before_emergency_observation,
+                post_observation=observation,
+                context={**(context or {}), "goal": goal, "mode": "runtime_interrupt"},
+            )
 
         return True, observation
 

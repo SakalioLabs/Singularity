@@ -19,4 +19,5 @@
   - `ActionValueProfile` can reload those pairs into `ActionCandidateSelector` as conservative `value_repair` candidates.
   - `action-value-report` now emits deterministic ASV-style `state_transition_value_items` when session logs contain before/after observations, labeling positive, negative, and no-progress transitions from inventory, movement, visible-resource, health, and danger deltas.
   - The current M1 baseline marks all transition windows as low-confidence because old logs often share one after-observation across multiple actions; this is useful audit evidence, not yet a runtime policy update signal.
-**Next Action**: Run the transition-value report on richer live M1/M2 logs, then compare deterministic deltas against a state-grounded LLM evaluator before allowing transition scores to directly update runtime action ranking.
+  - Runtime action events now carry compact action-local `pre_observation` and `post_observation` snapshots so new live logs can produce high-confidence transition values.
+**Next Action**: Run the transition-value report on fresh M1/M2 logs, then compare deterministic deltas against a state-grounded LLM evaluator before allowing transition scores to directly update runtime action ranking.

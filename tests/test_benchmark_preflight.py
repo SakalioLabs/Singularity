@@ -1734,8 +1734,10 @@ def test_action_value_report_aggregates_outcome_profiles():
     assert report.state_transition_count == 6
     assert report.positive_transition_count == 4
     assert report.negative_transition_count == 2
+    assert report.low_confidence_transition_count == 0
     assert feedback["failure_correction_pairs"][0]["source_log"] == session_path
     assert feedback["state_transition_count"] == 6
+    assert feedback["low_confidence_transition_count"] == 0
     assert items["dig:coal_ore"]["attempts"] == 4
     assert items["dig:coal_ore"]["value_score"] >= 0.7
     assert items["craft:torch"]["failures"] == 2
@@ -1746,6 +1748,50 @@ def test_action_value_report_aggregates_outcome_profiles():
     assert "mine_failure_correction_pairs_for_repair_candidates" in policies
     assert "score_actions_by_state_transition_value" in policies
     print("PASS: Action value report aggregates outcome profiles and repair pairs")
+
+
+def test_action_value_report_uses_embedded_action_observation_windows():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "action_value_embedded_observation_session.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Collect coal"}},
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "dig", "parameters": {"block": "coal_ore"}},
+                "result": {"success": True},
+                "pre_observation": {
+                    "position": {"x": 0, "y": 64, "z": 0},
+                    "health": 20,
+                    "inventory": {},
+                    "nearby_blocks": [{"name": "coal_ore"}],
+                },
+                "post_observation": {
+                    "position": {"x": 0, "y": 64, "z": 0},
+                    "health": 20,
+                    "inventory": {"coal": 1},
+                    "nearby_blocks": [{"name": "coal_ore"}],
+                },
+            },
+        },
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config())
+    report = runner.run_action_value_report_from_logs([session_path])
+    feedback = runner.action_value_feedback(report)
+    transition = feedback["state_transition_value_items"][0]
+
+    assert report.state_transition_count == 1
+    assert report.positive_transition_count == 1
+    assert report.low_confidence_transition_count == 0
+    assert transition["signature"] == "dig:coal_ore"
+    assert transition["avg_transition_confidence"] == 1.0
+    assert transition["inventory_gain_count"] == 1
+    assert transition["examples"][0]["transition_confidence"] == 1.0
+    print("PASS: Action value report uses embedded action observation windows")
 
 
 def test_self_evolution_gate_requires_verifier_and_counterexamples():
@@ -3620,6 +3666,7 @@ if __name__ == "__main__":
     test_action_verification_report_replays_logged_actions()
     test_action_candidate_report_replays_repairable_rejected_actions()
     test_action_value_report_aggregates_outcome_profiles()
+    test_action_value_report_uses_embedded_action_observation_windows()
     test_self_evolution_gate_requires_verifier_and_counterexamples()
     test_discovery_application_report_tracks_hypothesis_to_application_loop()
     test_discovery_skill_gate_controls_experiment_derived_skill_promotion()

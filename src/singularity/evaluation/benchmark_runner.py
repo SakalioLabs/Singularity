@@ -6869,7 +6869,7 @@ class BenchmarkRunner:
                     state_transition_items.append(self._action_state_transition_item(
                         source_log=source_log,
                         event_index=index,
-                        before_observation_index=latest_observation_index,
+                        before_observation_index=latest_observation_index if latest_observation_index >= 0 else index,
                         after_observation_index=index,
                         observation_gap=0,
                         goal=current_goal,

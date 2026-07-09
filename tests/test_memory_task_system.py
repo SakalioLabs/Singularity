@@ -2181,6 +2181,42 @@ def test_agent_records_action_value_after_execution():
     print("PASS: Agent records action-value evidence after execution")
 
 
+def test_agent_logs_action_with_compact_pre_post_observations():
+    agent = object.__new__(Agent)
+    agent.session_logger = FakeSessionLogger()
+
+    pre = {
+        "position": {"x": 0, "y": 64, "z": 0},
+        "health": 20,
+        "inventory": {},
+        "nearby_blocks": [{"name": "coal_ore"}],
+        "screenshot_bytes": "not logged",
+    }
+    post = {
+        "position": {"x": 0, "y": 64, "z": 0},
+        "health": 20,
+        "inventory": {"coal": 1},
+        "nearby_blocks": [{"name": "coal_ore"}],
+    }
+
+    agent._log_action_event(
+        {"type": "dig", "parameters": {"block": "coal_ore"}},
+        {"success": True},
+        pre_observation=pre,
+        post_observation=post,
+        context={"cycle": 1, "goal": "Collect coal"},
+    )
+
+    event = agent.session_logger.events[-1]
+    data = event["data"]
+    assert event["type"] == "action"
+    assert data["pre_observation"]["position"]["x"] == 0
+    assert data["post_observation"]["inventory"]["coal"] == 1
+    assert "screenshot_bytes" not in data["pre_observation"]
+    assert data["action_context"]["goal"] == "Collect coal"
+    print("PASS: Agent logs compact action pre/post observations")
+
+
 def test_agent_visual_action_grounding_prepends_danger_retreat():
     agent = object.__new__(Agent)
     agent.config = Config(enable_visual_action_grounding=True)
@@ -2338,6 +2374,7 @@ if __name__ == "__main__":
     test_agent_action_verification_blocks_rejected_actions()
     test_agent_action_candidate_selection_repairs_rejected_action()
     test_agent_records_action_value_after_execution()
+    test_agent_logs_action_with_compact_pre_post_observations()
     test_agent_visual_action_grounding_prepends_danger_retreat()
     test_agent_visual_action_grounding_prepends_resource_approach()
     test_agent_visual_action_grounding_prepends_resource_focus()

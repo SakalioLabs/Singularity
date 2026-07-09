@@ -171,6 +171,7 @@
 - [x] Feed `action-value-report.failure_correction_pairs` back into `ActionCandidateSelector` as provenance-preserving repair candidates, and add ASV as the next step-value reference for state-transition scoring.
 - [x] Extend `action-value-report` with deterministic ASV-style before/after state-transition value items, including positive/negative/no-progress labels from inventory, movement, resource-visibility, health, and danger deltas.
 - [x] Regenerate `logs/benchmarks/action_value_m1_2026-07-09.json` with state-transition values; the current M1 trace still has 200/200 action success but 0 positive transitions, 2 negative transitions, 196 no-progress transitions, and 198 low-confidence shared-observation windows.
+- [x] Add action-level pre/post observation logging for goal, autonomous, runtime-interrupt, and failure-correction actions, using compact state snapshots so ASV-style transition values can use high-confidence local windows.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -216,7 +217,7 @@
 - [ ] Re-run `action-verification-report` on live M1/M2 retries and compare reject/review rates plus `failed_without_reject` against `logs/benchmarks/action_verification_m1_2026-07-09.json`.
 - [ ] Re-run `action-candidate-report` on live M1/M2 retries and compare original rejects, repaired rejects, unchanged rejects, and changed selections against `logs/benchmarks/action_candidate_m1_2026-07-09.json`.
 - [ ] Re-run `action-value-report` on live M1/M2 retries and compare high-value signatures plus failure-correction pairs against `logs/benchmarks/action_value_m1_2026-07-09.json`, then pass approved feedback with `--action-value-feedback`.
-- [ ] Add action-level pre/post observation logging or narrower observation windows so ASV-style transition values do not depend on low-confidence shared-observation attribution.
+- [ ] Re-run `action-value-report` on fresh logs produced after action-level pre/post observation logging and confirm low-confidence transition windows fall before feeding ASV scores into runtime action ranking.
 - [ ] Investigate why the current M1 action-value baseline reports 200/200 successful actions but mostly no-progress state transitions, then compare against live M1/M2 retries before feeding transition values into runtime action ranking.
 - [ ] Add a gated state-grounded LLM evaluator for ASV-style transition labels, then compare evaluator deltas against deterministic Minecraft deltas before enabling automatic policy updates.
 - [ ] Run `self-evolution-gate` on real self-evolution, verifier, and counterexample reports; only then design a guarded runtime plan-suffix repair path.
