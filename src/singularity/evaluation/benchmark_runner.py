@@ -2993,6 +2993,168 @@ class BenchmarkRunner:
         report["ready"] = report["readiness"] in {"approved", "not_required"}
         return report
 
+    def run_knowledge_correction_preflight(
+        self,
+        tasks: Optional[list[BenchmarkTask]] = None,
+        suite: str = "m1",
+        feedback_paths: Optional[list[str]] = None,
+        gate_paths: Optional[list[str]] = None,
+    ) -> dict:
+        """Check knowledge-correction gates and suite coverage before live benchmarks."""
+        from singularity.core.skill_library import SkillLibrary
+
+        clean_feedback_paths = [
+            path for path in (
+                feedback_paths
+                if feedback_paths is not None
+                else getattr(self.config, "knowledge_correction_feedback_paths", [])
+            ) or []
+            if path
+        ]
+        clean_gate_paths = [
+            path for path in (
+                gate_paths
+                if gate_paths is not None
+                else getattr(self.config, "knowledge_correction_gate_paths", [])
+            ) or []
+            if path
+        ]
+        report = {
+            "type": "knowledge_correction_preflight",
+            "required": bool(clean_feedback_paths),
+            "ready": not bool(clean_feedback_paths),
+            "readiness": "not_required" if not clean_feedback_paths else "review",
+            "decision": "skip_knowledge_correction_preflight" if not clean_feedback_paths else "hold_knowledge_correction_benchmark",
+            "reason": "no knowledge-correction feedback configured",
+            "suite": suite,
+            "feedback_paths": list(clean_feedback_paths),
+            "gate_paths": list(clean_gate_paths),
+            "feedback_count": 0,
+            "gate_count": 0,
+            "gate_readiness": "not_required",
+            "gate_approved": not bool(clean_feedback_paths),
+            "dependency_correction_count": 0,
+            "failure_action_memory_count": 0,
+            "policy_hint_count": 0,
+            "case_count": 0,
+            "matched_case_count": 0,
+            "matched_dependency_correction_count": 0,
+            "matched_failure_action_memory_count": 0,
+            "coverage_rate": 0.0,
+            "cases": [],
+            "gate_reports": [],
+            "checks": [],
+            "missing": [],
+            "errors": [],
+        }
+        if not clean_feedback_paths:
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "knowledge_correction_preflight",
+                "pass",
+                "no knowledge-correction feedback is configured for this benchmark",
+                {"feedback_paths": 0},
+            ))
+            return report
+
+        if not getattr(self.config, "enable_knowledge_correction_context", True):
+            report["missing"].append("knowledge_correction_context_enabled")
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "knowledge_correction_context",
+                "warn",
+                "knowledge-correction context is disabled, so feedback cannot affect planner prompts",
+                {"enabled": 0},
+            ))
+
+        feedback_items = self._load_gate_payloads(
+            [],
+            clean_feedback_paths,
+            report["errors"],
+            "knowledge_correction_feedback",
+        )
+        report["feedback_count"] = len(feedback_items)
+        feedback = self._merge_knowledge_correction_feedback_items(feedback_items)
+        dependency_corrections = feedback.get("dependency_corrections", [])
+        failure_memories = feedback.get("failure_action_memories", [])
+        report["dependency_correction_count"] = len(dependency_corrections)
+        report["failure_action_memory_count"] = len(failure_memories)
+        report["policy_hint_count"] = len(feedback.get("policy_hints", []))
+        if not feedback_items:
+            report["missing"].append("knowledge_correction_feedback")
+        if not dependency_corrections and not failure_memories:
+            report["missing"].append("actionable_knowledge_corrections")
+
+        gate_items = self._load_gate_payloads(
+            [],
+            clean_gate_paths,
+            report["errors"],
+            "knowledge_correction_gate",
+        )
+        report["gate_count"] = len(gate_items)
+        self._attach_knowledge_correction_preflight_gates(report, gate_items)
+
+        try:
+            skill_library = SkillLibrary(storage_path=getattr(self.config, "skill_dir", "workspace/skills"), persist=True)
+            source_tasks = tasks if tasks is not None else self.tasks_for_suite(suite)
+            cases = self._knowledge_correction_preflight_cases(source_tasks, feedback, skill_library)
+            report["cases"] = cases
+            report["case_count"] = len(cases)
+            report["matched_case_count"] = sum(1 for case in cases if case.get("matched"))
+            report["matched_dependency_correction_count"] = sum(
+                int(case.get("dependency_correction_match_count", 0) or 0)
+                for case in cases
+            )
+            report["matched_failure_action_memory_count"] = sum(
+                int(case.get("failure_action_memory_match_count", 0) or 0)
+                for case in cases
+            )
+            if cases:
+                report["coverage_rate"] = round(report["matched_case_count"] / len(cases), 3)
+            else:
+                report["missing"].append("benchmark_cases")
+            status = "pass" if report["matched_case_count"] else "warn"
+            detail = (
+                "knowledge corrections overlap at least one benchmark goal"
+                if report["matched_case_count"]
+                else "knowledge corrections do not overlap the selected benchmark suite"
+            )
+            report["checks"].append(self._gate_check(
+                "knowledge_correction_suite_coverage",
+                "benchmark_suite_overlap",
+                status,
+                detail,
+                {
+                    "case_count": report["case_count"],
+                    "matched_case_count": report["matched_case_count"],
+                    "coverage_rate": report["coverage_rate"],
+                },
+            ))
+            if not report["matched_case_count"]:
+                report["missing"].append("benchmark_suite_knowledge_correction_overlap")
+        except Exception as e:
+            report["errors"].append(f"knowledge_correction_preflight: {e}")
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "block_knowledge_correction_benchmark"
+            report["reason"] = "knowledge-correction preflight inputs could not be loaded"
+        elif report["missing"]:
+            report["readiness"] = "review"
+            report["decision"] = "hold_knowledge_correction_benchmark"
+            report["reason"] = "knowledge-correction preflight is missing required evidence"
+        elif not report["gate_approved"]:
+            report["readiness"] = report["gate_readiness"] or "review"
+            report["decision"] = "block_knowledge_correction_benchmark"
+            report["reason"] = "knowledge-correction gate is not approved"
+        else:
+            report["ready"] = True
+            report["readiness"] = "approved"
+            report["decision"] = "allow_knowledge_correction_benchmark"
+            report["reason"] = "approved gate and benchmark-suite correction coverage are present"
+        report["ready"] = report["readiness"] in {"approved", "not_required"}
+        return report
+
     def run_skill_runtime_default_preflight(
         self,
         tasks: Optional[list[BenchmarkTask]] = None,
@@ -3956,6 +4118,195 @@ class BenchmarkRunner:
                 if isinstance(values, list):
                     feedback[key].extend(item for item in values if isinstance(item, dict))
         return feedback
+
+    def _merge_knowledge_correction_feedback_items(self, items: list[tuple[str, dict]]) -> dict:
+        feedback = {
+            "dependency_corrections": [],
+            "failure_action_memories": [],
+            "policy_hints": [],
+        }
+        seen = {key: set() for key in feedback}
+        for source, payload in items:
+            current = payload.get("knowledge_correction_feedback", payload) if isinstance(payload, dict) else {}
+            if not isinstance(current, dict):
+                continue
+            for key in ("dependency_corrections", "failure_action_memories", "policy_hints"):
+                values = current.get(key, [])
+                if not isinstance(values, list):
+                    continue
+                for item in values:
+                    if not isinstance(item, dict):
+                        continue
+                    identity = self._knowledge_correction_preflight_identity(key, item, source)
+                    if identity in seen[key]:
+                        continue
+                    entry = dict(item)
+                    entry.setdefault("source", source)
+                    feedback[key].append(entry)
+                    seen[key].add(identity)
+        return feedback
+
+    def _attach_knowledge_correction_preflight_gates(self, report: dict, gate_items: list[tuple[str, dict]]):
+        if not gate_items:
+            report["missing"].append("knowledge_correction_gate")
+            report["gate_readiness"] = "missing"
+            report["gate_approved"] = False
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "knowledge_correction_gate",
+                "warn",
+                "knowledge-correction feedback benchmarks require an approved knowledge-correction-gate report",
+                {"gate_reports": 0},
+            ))
+            return
+
+        readinesses = []
+        for source, payload in gate_items:
+            readiness = str(payload.get("readiness") or "").strip().lower() or "unknown"
+            summary = {
+                "path": source,
+                "readiness": readiness,
+                "decision": str(payload.get("decision") or "").strip(),
+                "reason": str(payload.get("reason") or "").strip()[:300],
+                "source_count": self._gate_int(payload.get("source_count", 0)),
+                "ready_log_count": self._gate_int(payload.get("ready_log_count", 0)),
+                "correction_count": self._gate_int(payload.get("correction_count", 0)),
+                "dependency_correction_count": self._gate_int(payload.get("dependency_correction_count", 0)),
+                "failure_action_memory_count": self._gate_int(payload.get("failure_action_memory_count", 0)),
+            }
+            report["gate_reports"].append(summary)
+            readinesses.append(readiness)
+            status = "pass" if readiness == "approved" else "fail" if readiness in {"rejected", "error"} else "warn"
+            report["checks"].append(self._gate_check(
+                source,
+                "knowledge_correction_gate",
+                status,
+                summary["reason"] or f"gate readiness is {readiness}",
+                {
+                    "ready_log_count": summary["ready_log_count"],
+                    "correction_count": summary["correction_count"],
+                    "dependency_correction_count": summary["dependency_correction_count"],
+                    "failure_action_memory_count": summary["failure_action_memory_count"],
+                },
+            ))
+
+        report["gate_approved"] = False
+        if any(readiness == "error" for readiness in readinesses):
+            report["gate_readiness"] = "error"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report["gate_readiness"] = "approved"
+            report["gate_approved"] = True
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report["gate_readiness"] = "rejected"
+        elif any(readiness == "review" for readiness in readinesses):
+            report["gate_readiness"] = "review"
+        else:
+            report["gate_readiness"] = "unknown"
+
+    def _knowledge_correction_preflight_cases(
+        self,
+        tasks: list[BenchmarkTask],
+        feedback: dict,
+        skill_library,
+    ) -> list[dict]:
+        cases = []
+        dependency_items = feedback.get("dependency_corrections", [])
+        failure_items = feedback.get("failure_action_memories", [])
+        for index, task in enumerate(tasks or [], start=1):
+            goal = str(getattr(task, "goal", "") or "").strip()
+            task_id = str(getattr(task, "id", "") or getattr(task, "task_id", "") or f"task_{index}")
+            try:
+                task_family = skill_library.infer_task_family(goal)
+            except Exception:
+                task_family = ""
+            dependency_matches = [
+                item for item in dependency_items
+                if self._knowledge_correction_preflight_matches(item, goal, task_family)
+            ]
+            failure_matches = [
+                item for item in failure_items
+                if self._knowledge_correction_preflight_matches(item, goal, task_family)
+            ]
+            matched_signatures = []
+            for item in dependency_matches[:3]:
+                failed = str(item.get("failed_signature") or "")
+                recovery = str(item.get("recovery_signature") or "")
+                matched_signatures.append(f"{failed}->{recovery}" if recovery else failed)
+            for item in failure_matches[:3]:
+                signature = str(item.get("signature") or "")
+                if signature:
+                    matched_signatures.append(signature)
+            cases.append({
+                "id": task_id,
+                "goal": goal,
+                "task_family": task_family,
+                "matched": bool(dependency_matches or failure_matches),
+                "dependency_correction_match_count": len(dependency_matches),
+                "failure_action_memory_match_count": len(failure_matches),
+                "matched_signatures": self._dedupe_strings(matched_signatures)[:8],
+            })
+        return cases
+
+    def _knowledge_correction_preflight_matches(self, item: dict, goal: str, task_family: str) -> bool:
+        if not isinstance(item, dict):
+            return False
+        text = self._knowledge_correction_preflight_text(item)
+        tokens = self._knowledge_correction_preflight_tokens(goal)
+        if tokens and any(token in text for token in tokens):
+            return True
+        if task_family and task_family in text:
+            return True
+        return False
+
+    def _knowledge_correction_preflight_text(self, item: dict) -> str:
+        parts = []
+        for key in (
+            "goal",
+            "signature",
+            "failed_signature",
+            "recovery_signature",
+            "correction",
+            "recommendation",
+            "reason",
+        ):
+            value = item.get(key)
+            if value:
+                parts.append(str(value))
+        for key in ("target_items", "failed_errors"):
+            values = item.get(key, [])
+            if isinstance(values, list):
+                parts.extend(str(value) for value in values)
+        task_families = item.get("task_families", {})
+        if isinstance(task_families, dict):
+            parts.extend(str(key) for key in task_families)
+        dimensions = item.get("knowledge_dimensions", {})
+        if isinstance(dimensions, dict):
+            for values in dimensions.values():
+                if isinstance(values, list):
+                    parts.extend(str(value) for value in values)
+                elif values:
+                    parts.append(str(values))
+        return " ".join(parts).lower().replace("_", " ")
+
+    def _knowledge_correction_preflight_tokens(self, value: str) -> set[str]:
+        normalized = "".join(ch.lower() if ch.isalnum() else " " for ch in str(value or ""))
+        return {token for token in normalized.split() if len(token) >= 3}
+
+    def _knowledge_correction_preflight_identity(self, key: str, item: dict, source: str) -> str:
+        if key == "dependency_corrections":
+            return "|".join([
+                str(item.get("failed_signature", "")),
+                str(item.get("recovery_signature", "")),
+                str(item.get("goal", "")),
+            ])
+        if key == "failure_action_memories":
+            return "|".join([
+                str(item.get("signature", "")),
+                str(item.get("reason", "")),
+            ])
+        if key == "policy_hints":
+            return str(item.get("knowledge_correction_policy") or item.get("policy") or item)
+        return f"{source}|{item}"
 
     def _attach_skill_memory_quality_preflight_gates(self, report: dict, gate_items: list[tuple[str, dict]]):
         if not gate_items:
@@ -13448,6 +13799,23 @@ class BenchmarkRunner:
             json.dump(report, f, indent=2, ensure_ascii=False)
         logger.info(f"Action-value transition preflight saved to {path}")
 
+    def save_knowledge_correction_preflight_report(
+        self,
+        report: dict,
+        filename: str = "knowledge_correction_preflight.json",
+    ):
+        path = filename
+        if not os.path.isabs(path) and not os.path.dirname(path):
+            os.makedirs(self.output_dir, exist_ok=True)
+            path = os.path.join(self.output_dir, path)
+        else:
+            parent = os.path.dirname(path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+        logger.info(f"Knowledge-correction preflight saved to {path}")
+
     def save_coach_style_preflight_report(
         self,
         report: dict,
@@ -13810,6 +14178,57 @@ class BenchmarkRunner:
         for check in report.get("checks", [])[:10]:
             marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
             print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+
+    def print_knowledge_correction_preflight_report(self, report: dict):
+        print("\nKnowledge Correction Benchmark Preflight")
+        print(f"  suite: {report.get('suite', 'm1')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  inputs: "
+            f"feedback={report.get('feedback_count', 0)}, "
+            f"gates={report.get('gate_count', 0)}, "
+            f"cases={report.get('case_count', 0)}"
+        )
+        print(
+            "  corrections: "
+            f"dependency={report.get('dependency_correction_count', 0)}, "
+            f"failed_memories={report.get('failure_action_memory_count', 0)}, "
+            f"policy_hints={report.get('policy_hint_count', 0)}"
+        )
+        print(
+            "  coverage: "
+            f"matched_cases={report.get('matched_case_count', 0)}/{report.get('case_count', 0)}, "
+            f"rate={report.get('coverage_rate', 0.0)}, "
+            f"matched_dependency={report.get('matched_dependency_correction_count', 0)}, "
+            f"matched_failed_memories={report.get('matched_failure_action_memory_count', 0)}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for gate in report.get("gate_reports", [])[:6]:
+            marker = "+" if gate.get("readiness") == "approved" else "x" if gate.get("readiness") == "rejected" else "!"
+            print(
+                f"  [{marker}] gate {gate.get('path')}: {gate.get('readiness')} "
+                f"ready_logs={gate.get('ready_log_count', 0)} corrections={gate.get('correction_count', 0)}"
+            )
+            if gate.get("reason"):
+                print(f"      {gate.get('reason')}")
+        for check in report.get("checks", [])[:10]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
+        for case in report.get("cases", [])[:8]:
+            marker = "+" if case.get("matched") else "="
+            signatures = ", ".join(case.get("matched_signatures", [])[:4])
+            suffix = f" signatures={signatures}" if signatures else ""
+            print(
+                f"  [{marker}] {case.get('id')}: family={case.get('task_family') or 'unknown'} "
+                f"dependency={case.get('dependency_correction_match_count', 0)} "
+                f"failed_memories={case.get('failure_action_memory_match_count', 0)}"
+                f"{suffix}"
+            )
         for error in report.get("errors", []):
             print(f"  error: {error}")
 

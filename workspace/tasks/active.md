@@ -188,6 +188,7 @@
 - [x] Wire approved `skill-runtime-default-gate` reports into Agent startup so learned policy skills, failure corrections, and skill-memory hints are task-family filtered at runtime while built-in primitive skills remain available.
 - [x] Add benchmark-level `--skill-runtime-default-preflight` so live suites using learned default-skill profiles require approved gates and task-family overlap before execution.
 - [x] Wire approved `knowledge-correction-gate` reports into Agent planner context as advisory dependency and failed-action hints without mutating built-in Minecraft knowledge.
+- [x] Add benchmark-level `--knowledge-correction-preflight` so knowledge-correction-assisted live suites require approved gates and selected-suite goal overlap before execution.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -236,7 +237,7 @@
 - [ ] Re-run `action-verification-report` on live M1/M2 retries and compare reject/review rates plus `failed_without_reject` against `logs/benchmarks/action_verification_m1_2026-07-09.json`.
 - [ ] Re-run `action-candidate-report` on live M1/M2 retries and compare original rejects, repaired rejects, unchanged rejects, and changed selections against `logs/benchmarks/action_candidate_m1_2026-07-09.json`.
 - [ ] Re-run `action-value-report` on live M1/M2 retries and compare high-value signatures plus failure-correction pairs against `logs/benchmarks/action_value_m1_2026-07-09.json`, then pass approved feedback with `--action-value-feedback`.
-- [ ] Run `knowledge-correction-report` and `knowledge-correction-gate` on fresh M1/M2 retries, then compare runs with `--knowledge-correction-feedback --knowledge-correction-gate` against the ungated planner baseline.
+- [ ] Run `knowledge-correction-report`, `knowledge-correction-gate`, and `benchmark --knowledge-correction-preflight-output` on fresh M1/M2 retries, then compare gated planner-context runs against the ungated baseline.
 - [ ] Re-run `action-value-report` on fresh logs produced after action-level pre/post observation logging and confirm low-confidence transition windows fall before feeding ASV scores into runtime action ranking.
 - [ ] Run `action-value-transition-gate` on fresh M1/M2 action-value reports and pass approved reports with `--action-value-transition-gate` before allowing ASV transition scores through `--action-value-feedback`.
 - [ ] Investigate why the current M1 action-value baseline reports 200/200 successful actions but mostly no-progress state transitions, then compare against live M1/M2 retries before feeding transition values into runtime action ranking.

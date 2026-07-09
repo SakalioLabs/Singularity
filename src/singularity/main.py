@@ -229,6 +229,8 @@ def main():
     bench_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into autonomous curriculum after approved gate")
     bench_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
     _add_knowledge_correction_args(bench_parser)
+    bench_parser.add_argument("--knowledge-correction-preflight", action="store_true", help="Run approved gate and suite-coverage preflight before knowledge-correction-assisted benchmarks")
+    bench_parser.add_argument("--knowledge-correction-preflight-output", type=str, default="", help="Optional JSON path for the knowledge-correction benchmark preflight report")
     bench_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     bench_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
     bench_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
@@ -3554,6 +3556,15 @@ def main():
             runtime_default_preflight_output = getattr(args, "skill_runtime_default_preflight_output", "") or ""
             if runtime_default_preflight_output:
                 runner.save_skill_runtime_default_preflight_report(report, runtime_default_preflight_output)
+            if not report.get("ready"):
+                sys.exit(1)
+        knowledge_correction_feedback_paths = getattr(args, "knowledge_correction_feedback", []) or []
+        if getattr(args, "knowledge_correction_preflight", False) or knowledge_correction_feedback_paths:
+            report = runner.run_knowledge_correction_preflight(suite=args.suite)
+            runner.print_knowledge_correction_preflight_report(report)
+            knowledge_correction_preflight_output = getattr(args, "knowledge_correction_preflight_output", "") or ""
+            if knowledge_correction_preflight_output:
+                runner.save_knowledge_correction_preflight_report(report, knowledge_correction_preflight_output)
             if not report.get("ready"):
                 sys.exit(1)
         transition_gate_paths = getattr(args, "action_value_transition_gate", []) or []

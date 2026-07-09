@@ -1893,6 +1893,101 @@ def test_knowledge_correction_report_mines_failed_actions_and_dependencies():
     print("PASS: Knowledge correction report mines failed actions and dependencies")
 
 
+def test_knowledge_correction_preflight_requires_gate_and_suite_overlap():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = os.path.join(tmpdir, "knowledge_correction.json")
+    gate_path = os.path.join(tmpdir, "knowledge_correction_gate.json")
+    feedback = {
+        "log_count": 1,
+        "ready_log_count": 1,
+        "dependency_correction_count": 1,
+        "failure_action_memory_count": 1,
+        "dependency_corrections": [
+            {
+                "type": "dependency_correction",
+                "goal": "Craft torches",
+                "failed_signature": "craft:torch",
+                "recovery_signature": "dig:coal_ore",
+                "target_items": ["torch"],
+                "evidence_count": 2,
+                "confidence": 0.85,
+                "correction": "Before retrying craft:torch, collect or expose coal_ore with dig when the goal is Craft torches.",
+                "knowledge_dimensions": {
+                    "attribute": ["crafting", "torch"],
+                    "interaction": ["dig_before_craft"],
+                },
+            },
+        ],
+        "failure_action_memories": [
+            {
+                "type": "failed_action_memory",
+                "signature": "craft:torch",
+                "action_type": "craft",
+                "attempts": 3,
+                "failures": 3,
+                "task_families": {"crafting": 3},
+                "recommendation": "avoid_or_replan_until_preconditions_change",
+                "reason": "repeated_failed_action",
+            },
+        ],
+        "policy_hints": [
+            {
+                "knowledge_correction_policy": "review_dependency_graph_corrections",
+                "priority": "high",
+                "count": 1,
+            },
+        ],
+    }
+    with open(feedback_path, "w", encoding="utf-8") as f:
+        json.dump({"knowledge_correction_feedback": feedback}, f)
+    with open(gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "knowledge_correction_gate",
+            "readiness": "approved",
+            "decision": "allow_reviewed_knowledge_correction_feedback",
+            "reason": "reviewable correction evidence is present",
+            "source_count": 1,
+            "ready_log_count": 1,
+            "correction_count": 2,
+            "dependency_correction_count": 1,
+            "failure_action_memory_count": 1,
+        }, f)
+
+    task = BenchmarkTask("BM-KC", "Craft torches", "Craft torches", "M1")
+    approved_runner = BenchmarkRunner(Config(
+        knowledge_correction_feedback_paths=[feedback_path],
+        knowledge_correction_gate_paths=[gate_path],
+    ))
+    approved = approved_runner.run_knowledge_correction_preflight(tasks=[task], suite="m1")
+
+    assert approved["ready"] is True
+    assert approved["readiness"] == "approved"
+    assert approved["decision"] == "allow_knowledge_correction_benchmark"
+    assert approved["gate_approved"] is True
+    assert approved["dependency_correction_count"] == 1
+    assert approved["failure_action_memory_count"] == 1
+    assert approved["matched_case_count"] == 1
+    assert approved["coverage_rate"] == 1.0
+    assert approved["cases"][0]["matched"] is True
+    assert "craft:torch->dig:coal_ore" in approved["cases"][0]["matched_signatures"]
+
+    ungated_runner = BenchmarkRunner(Config(knowledge_correction_feedback_paths=[feedback_path]))
+    ungated = ungated_runner.run_knowledge_correction_preflight(tasks=[task], suite="m1")
+
+    assert ungated["ready"] is False
+    assert ungated["gate_approved"] is False
+    assert ungated["gate_readiness"] == "missing"
+    assert "knowledge_correction_gate" in ungated["missing"]
+
+    no_overlap_task = BenchmarkTask("BM-NAV", "Navigate away", "Travel to a desert village", "M1")
+    no_overlap = approved_runner.run_knowledge_correction_preflight(tasks=[no_overlap_task], suite="m1")
+
+    assert no_overlap["ready"] is False
+    assert no_overlap["matched_case_count"] == 0
+    assert "benchmark_suite_knowledge_correction_overlap" in no_overlap["missing"]
+    print("PASS: Knowledge correction preflight requires gate and suite overlap")
+
+
 def test_action_value_report_uses_embedded_action_observation_windows():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "action_value_embedded_observation_session.jsonl")
@@ -4461,6 +4556,7 @@ if __name__ == "__main__":
     test_action_candidate_report_replays_repairable_rejected_actions()
     test_action_value_report_aggregates_outcome_profiles()
     test_knowledge_correction_report_mines_failed_actions_and_dependencies()
+    test_knowledge_correction_preflight_requires_gate_and_suite_overlap()
     test_action_value_report_uses_embedded_action_observation_windows()
     test_action_value_transition_gate_controls_runtime_feedback()
     test_action_value_transition_evaluator_compares_state_grounded_labels()
