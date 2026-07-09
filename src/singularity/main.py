@@ -39,6 +39,20 @@ def _goal_critic_from_args(args):
     return GoalVerificationCritic(LLMProvider(_llm_config_from_args(args)))
 
 
+def _add_coaching_args(parser):
+    parser.add_argument(
+        "--coach-style",
+        type=str,
+        default="",
+        help="Advisory runtime coaching style for planner/curriculum bias: safe, explorer, efficient, resourceful, builder",
+    )
+    parser.add_argument(
+        "--no-coaching-policy",
+        action="store_true",
+        help="Disable advisory runtime coaching even when --coach-style is supplied",
+    )
+
+
 def _merge_skill_memory_quality_feedback_paths(paths: list[str]) -> dict:
     feedback = {
         "quality_label_counts": {},
@@ -121,6 +135,7 @@ def main():
     run_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
     run_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     run_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
+    _add_coaching_args(run_parser)
     run_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Autonomous mode (M4 + M5)
@@ -153,6 +168,7 @@ def main():
     auto_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
     auto_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     auto_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
+    _add_coaching_args(auto_parser)
     auto_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Benchmark command
@@ -189,6 +205,7 @@ def main():
     bench_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     bench_parser.add_argument("--skill-memory-quality-preflight", action="store_true", help="Run gate and offline ranking preflight before quality-feedback-assisted benchmarks")
     bench_parser.add_argument("--skill-memory-quality-preflight-output", type=str, default="", help="Optional JSON path for the skill-memory quality benchmark preflight report")
+    _add_coaching_args(bench_parser)
     bench_parser.add_argument("--log-level", type=str, default="INFO")
     bench_parser.add_argument("--output", type=str, default="benchmark_results.json")
     bench_parser.add_argument("--preflight", action="store_true", help="Run readiness checks before benchmarks")
@@ -476,6 +493,7 @@ def main():
     collab_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
     collab_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     collab_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
+    _add_coaching_args(collab_parser)
     collab_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     collab_parser.add_argument("--log-level", type=str, default="INFO")
 
@@ -1724,6 +1742,8 @@ def main():
                     ),
                     enable_goal_critic=getattr(args, "goal_critic", False),
                     enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
+                    enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
+                    coach_style=getattr(args, "coach_style", "") or "",
                     enable_vision_analysis=not getattr(args, "no_vision_analysis", False),
                     enable_visual_action_grounding=not getattr(args, "no_visual_action_grounding", False),
                     enable_screenshot_capture=getattr(args, "capture_screenshots", False),
@@ -3200,6 +3220,8 @@ def main():
         llm=_llm_config_from_args(args),
         enable_goal_critic=getattr(args, "goal_critic", False),
         enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
+        enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
+        coach_style=getattr(args, "coach_style", "") or "",
         enable_vision_analysis=not getattr(args, "no_vision_analysis", False),
         enable_visual_action_grounding=not getattr(args, "no_visual_action_grounding", False),
         mixed_policy_patch_paths=getattr(args, "mixed_policy_patch", []) or [],

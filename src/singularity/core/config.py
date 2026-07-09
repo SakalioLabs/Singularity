@@ -36,6 +36,8 @@ class Config:
     enable_task_memory_context: bool = True
     enable_skill_memory_context: bool = True
     enforce_memory_write_gate: bool = False
+    enable_coaching_policy: bool = True
+    coach_style: str = ""
     enable_vision_analysis: bool = True
     enable_visual_action_grounding: bool = True
     mixed_policy_patch_paths: list[str] = field(default_factory=list)

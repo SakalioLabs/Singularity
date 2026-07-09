@@ -17,6 +17,7 @@ from singularity.core.memory_policy import MemoryLifecyclePolicy, MemoryPolicyDe
 from singularity.core.skill_library import SkillLibrary
 from singularity.core.task_system import TaskSystem, TaskStatus
 from singularity.core.goal_generator import GoalGenerator
+from singularity.core.coach import CoachPolicy
 from singularity.core.curriculum import CurriculumManager
 from singularity.core.goal_verifier import GoalVerifier
 from singularity.core.explorer import Explorer
@@ -65,6 +66,7 @@ class Agent:
         self.mixed_policy_patch_report = self._load_mixed_policy_patches()
         self.self_evolution_policy = SelfEvolutionPolicy()
         self.self_evolution_feedback_report = self._load_self_evolution_feedback()
+        self.coach_policy = CoachPolicy.from_style(getattr(config, "coach_style", ""))
         self.action_controller = ActionController(self.bot, config, action_policy=self.action_policy)
         self.running = False
         self.session_log: list[dict] = []
@@ -1132,6 +1134,7 @@ class Agent:
         try:
             visual_context = self._visual_memory_context(goal)
             visual_action_context = self._visual_action_context(goal, observation)
+            coach_context = self._coach_context(goal, observation)
             self_evolution_context = self._self_evolution_context(goal, observation)
             skill_memory_context = self._skill_memory_context(goal, observation)
             combined_memory = "\n".join(part for part in (
@@ -1140,6 +1143,7 @@ class Agent:
                 context_window,
                 visual_context,
                 visual_action_context,
+                coach_context,
                 self_evolution_context,
                 skill_memory_context,
                 skill_hint,
@@ -1150,6 +1154,24 @@ class Agent:
             self.session_logger.log_error(f"LLM call failed: {e}")
             plan = {"status": "error", "actions": [], "reasoning": str(e)}
         return plan
+
+    def _coach_context(self, goal: str, current_state: dict = None) -> str:
+        """Retrieve advisory runtime coaching instructions for planner context."""
+        coach_policy = self._active_coach_policy()
+        if not coach_policy:
+            return ""
+        context = coach_policy.planner_context(goal, current_state or {})
+        if not context:
+            return ""
+        payload = {
+            "goal": goal,
+            "policy": "coach",
+            "coach": coach_policy.summary(),
+        }
+        if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("coach_policy_hint", payload)
+        self._log_policy_intervention("hint", payload)
+        return context
 
     def _skill_memory_context(self, goal: str, current_state: dict = None, limit: int = 5) -> str:
         """Retrieve skill-local replay/failure notes for the current task family."""
@@ -2107,12 +2129,20 @@ class Agent:
             getattr(getattr(self, "config", None), "enable_autocurriculum", True)
             and hasattr(self, "curriculum")
         ):
-            goal = self.curriculum.next_goal(
-                observation,
-                fallback_goal,
-                getattr(self, "memory", None),
-                getattr(self, "skill_library", None),
-            )
+            coach_policy = self._active_coach_policy()
+            if coach_policy:
+                goal = self._select_coached_curriculum_goal(
+                    observation,
+                    fallback_goal,
+                    coach_policy,
+                )
+            else:
+                goal = self.curriculum.next_goal(
+                    observation,
+                    fallback_goal,
+                    getattr(self, "memory", None),
+                    getattr(self, "skill_library", None),
+                )
             if hasattr(self, "memory") and goal != fallback_goal:
                 self._write_memory_episode("curriculum_goal", {
                     "fallback": fallback_goal,
@@ -2121,6 +2151,41 @@ class Agent:
                 }, source="curriculum")
             return goal
         return fallback_goal
+
+    def _active_coach_policy(self):
+        """Return the configured advisory coach if the runtime policy is enabled."""
+        if not getattr(getattr(self, "config", None), "enable_coaching_policy", True):
+            return None
+        coach_policy = getattr(self, "coach_policy", None)
+        if coach_policy is None:
+            coach_policy = CoachPolicy.from_style(getattr(getattr(self, "config", None), "coach_style", ""))
+            self.coach_policy = coach_policy
+        return coach_policy if coach_policy.active else None
+
+    def _select_coached_curriculum_goal(
+        self,
+        observation: dict,
+        fallback_goal: str,
+        coach_policy,
+    ) -> str:
+        """Apply advisory coach bias to curriculum candidates without bypassing tasks."""
+        candidates = self.curriculum.propose_goals(
+            observation,
+            fallback_goal,
+            getattr(self, "memory", None),
+            getattr(self, "skill_library", None),
+        )
+        if not candidates:
+            return fallback_goal
+        ranked = coach_policy.rank_curriculum_candidates(candidates, observation, fallback_goal)
+        best = ranked[0] if ranked else candidates[0]
+        self.curriculum.last_decision = {
+            "selected": best.title,
+            "fallback": fallback_goal,
+            "coach": coach_policy.summary(),
+            "candidates": [self.curriculum._candidate_dict(candidate) for candidate in ranked[:5]],
+        }
+        return best.title
 
     def _state_with_causal_context(self, observation: dict, goal: str = "") -> dict:
         """Augment world state with compact causal event tags for scheduling."""

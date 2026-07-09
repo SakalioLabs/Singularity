@@ -179,6 +179,7 @@
 - [x] Add benchmark-level `--action-value-transition-preflight` so transition-scored live suites require approved transition gates/evaluator reports and trusted transition feedback before spending Minecraft runtime.
 - [x] Add MUSE-style `skill-lifecycle-report` so creation, skill-local memory, governance, evaluation, refinement, and runtime-default candidacy can be audited together before promoting Minecraft skills.
 - [x] Add `world-model-feedback-gate` and gated runtime `--world-model-feedback` loading so frontier/resource/danger map feedback only biases curriculum after structured map evidence is approved.
+- [x] Add Coachable Agents-style `CoachPolicy` so `--coach-style` can bias LLM planner context and autonomous curriculum ranking without bypassing tasks, verifier checks, safety gates, or memory gates.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.

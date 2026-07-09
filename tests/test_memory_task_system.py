@@ -1032,6 +1032,30 @@ def test_agent_injects_skill_memory_context_for_planner():
     print("PASS: Agent injects skill memory context for planner")
 
 
+def test_agent_injects_coach_context_as_advisory_policy_hint():
+    agent = object.__new__(Agent)
+    agent.config = Config(coach_style="safe")
+    agent.session_logger = FakeSessionLogger()
+
+    context = agent._coach_context(
+        "Explore a cave",
+        {"health": 8, "time_of_day": 13000, "nearby_entities": [{"hostile": True, "distance": 5}]},
+    )
+
+    assert "Coach policy" in context
+    assert "advisory only" in context
+    assert "verifier" in context
+    assert "safe" in context
+    assert any(event["type"] == "coach_policy_hint" for event in agent.session_logger.events)
+    policy_events = [event for event in agent.session_logger.events if event["type"] == "policy_hint"]
+    assert policy_events[-1]["data"]["policy"] == "coach"
+    assert policy_events[-1]["data"]["coach"]["styles"] == ["safe"]
+
+    agent.config = Config(coach_style="safe", enable_coaching_policy=False)
+    assert agent._coach_context("Explore a cave", {}) == ""
+    print("PASS: Agent injects coach context as advisory policy hint")
+
+
 def test_memory_policy_routes_correlated_evidence_to_review():
     content = {
         "claim": "Coal near spawn is always safe.",
@@ -2412,6 +2436,7 @@ if __name__ == "__main__":
     test_agent_passes_observation_to_memory_retrieval()
     test_agent_injects_task_memory_context_for_planner()
     test_agent_injects_skill_memory_context_for_planner()
+    test_agent_injects_coach_context_as_advisory_policy_hint()
     test_memory_policy_routes_correlated_evidence_to_review()
     test_memory_policy_routes_state_revisions_to_review()
     test_planner_preserves_task_scheduling_hints()

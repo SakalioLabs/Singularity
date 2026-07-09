@@ -161,6 +161,11 @@ python -m singularity.main world-model-report --session-log logs/session_xxx.jso
 python -m singularity.main world-model-feedback-gate --world-model-report logs/benchmarks/world_model.json --output logs/benchmarks/world_model_gate.json
 python -m singularity.main autonomous --world-model-feedback logs/benchmarks/world_model.json --world-model-gate logs/benchmarks/world_model_gate.json
 
+# Bias runtime planning and autonomous curriculum with an advisory coaching style.
+# Styles affect planner context and curriculum ranking only; action verification and safety gates still apply.
+python -m singularity.main autonomous --coach-style explorer
+python -m singularity.main run --goal "Explore the nearby cave and return safely" --coach-style safe
+
 # Summarize MineEvolve-style execution progress, stagnation, and adaptor hints
 # Successful action returns are discounted unless later observations show state, inventory, or verifier progress.
 # Blocked or empty plans that reach goal failure before any action are reported as zero-action failures.

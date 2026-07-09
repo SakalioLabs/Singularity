@@ -1208,6 +1208,24 @@
 
 ---
 
+## P-066: Coachable Agents
+
+- **Title**: Coachable agents for interactive gameplay
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2607.00642
+- **Type**: Runtime style control for game and embodied agents
+- **Task Type**: Interactive gameplay with user-selectable execution style
+- **Core Method**: Style-conditioned policies using UVFA-style conditioning, training scenarios, algorithms, and augmentation
+- **Action Space**: Game and humanoid control policies; adapted here as planner and curriculum preferences
+- **Memory**: Style preference state and outcome traces can feed later runtime policy audits
+- **Key Results**: Demonstrates coherent runtime style requests while maintaining the main task in multiple interactive domains
+- **Scores**: R=4, N=5, R=3, E=5
+- **Value to Project**: Motivates `CoachPolicy`, which lets Singularity bias planner context and autonomous curriculum style without bypassing verifier, safety, task, or memory gates
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-coachable-agents.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1277,3 +1295,4 @@
 | P-063 | VeGAS Action Verification | 2026 | R5/N5/R4/E5 | P1 |
 | P-064 | SVA Action Evaluation | 2026 | R4/N5/R3/E5 | P1 |
 | P-065 | Agent Step Value | 2026 | R5/N5/R4/E5 | P1 |
+| P-066 | Coachable Agents | 2026 | R4/N5/R3/E5 | P2 |
