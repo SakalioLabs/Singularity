@@ -479,6 +479,32 @@ def test_task_continuity_ledger_persists_resume_context():
     print("PASS: Task continuity ledger persists resume context")
 
 
+def test_task_continuity_records_spatial_precondition_gaps():
+    tmpdir = tempfile.mkdtemp()
+    memory = MemorySystem(memory_dir=tmpdir, persist=False)
+    tasks = TaskSystem()
+    tasks.create_task(
+        "Inspect frontier coal",
+        status=TaskStatus.ACCEPTED,
+        priority=1,
+        preconditions={"nearby_block_present": ["coal_ore"]},
+        success_criteria={"observed": "coal_ore"},
+        opportunity_triggers=["coal_ore"],
+    )
+
+    record = memory.record_task_continuity(
+        "Explore east frontier",
+        task_system=tasks,
+        current_state={"nearby_blocks": [{"name": "stone"}]},
+        source="spatial_test",
+    )
+    blocked = next(task for task in record.blocked_tasks if task["title"] == "Inspect frontier coal")
+
+    assert blocked["missing_preconditions"]["nearby_block_present"] == ["coal_ore"]
+    assert any("nearby_block_present" in item for item in record.next_actions)
+    print("PASS: Task continuity records spatial precondition gaps")
+
+
 def test_task_continuity_report_summarizes_resume_candidates():
     tmpdir = tempfile.mkdtemp()
     memory = MemorySystem(memory_dir=tmpdir, persist=True)
@@ -1199,6 +1225,61 @@ def test_task_system_dependency_and_opportunity_scheduler():
     assert next_task.id in {craft.id, urgent.id}
     assert craft in tasks.get_ready_tasks(world)
     print(f"PASS: Task scheduler selected {next_task.title}")
+
+
+def test_task_system_reports_readiness_blockers():
+    tasks = TaskSystem()
+    navigate = tasks.create_task(
+        "Navigate to east frontier",
+        status=TaskStatus.ACCEPTED,
+        priority=1,
+        success_criteria={"position_near": {"x": 10, "z": 0, "radius": 3}},
+    )
+    inspect = tasks.create_task(
+        "Inspect frontier coal",
+        status=TaskStatus.ACCEPTED,
+        priority=2,
+        depends_on=[navigate.id],
+        preconditions={
+            "inventory": {"torch": 1},
+            "flags": ["safe_route"],
+            "nearby_block_present": ["coal_ore"],
+        },
+        success_criteria={"observed": "coal_ore"},
+    )
+
+    blocked_report = tasks.task_readiness_report({
+        "inventory": {},
+        "flags": [],
+        "nearby_blocks": [{"name": "stone"}],
+    })
+    inspect_report = next(item for item in blocked_report["tasks"] if item["id"] == inspect.id)
+
+    assert blocked_report["task_count"] == 2
+    assert blocked_report["ready_count"] == 1
+    assert inspect_report["ready"] is False
+    assert inspect_report["missing_dependencies"][0]["id"] == navigate.id
+    assert inspect_report["missing_preconditions"]["inventory"]["torch"] == 1
+    assert inspect_report["missing_preconditions"]["flags"] == ["safe_route"]
+    assert inspect_report["missing_preconditions"]["nearby_block_present"] == ["coal_ore"]
+
+    tasks.complete_task(navigate.id)
+    ready_report = tasks.task_readiness_report({
+        "inventory": {"torch": 1},
+        "flags": ["safe_route"],
+        "nearby_blocks": [{"name": "coal_ore"}],
+    })
+    ready_inspect = next(item for item in ready_report["tasks"] if item["id"] == inspect.id)
+
+    assert ready_inspect["ready"] is True
+    assert ready_inspect["missing_dependencies"] == []
+    assert ready_inspect["missing_preconditions"] == {}
+    assert tasks.get_next_task({
+        "inventory": {"torch": 1},
+        "flags": ["safe_route"],
+        "nearby_blocks": [{"name": "coal_ore"}],
+    }).id == inspect.id
+    print("PASS: TaskSystem reports readiness blockers")
 
 
 def test_task_system_uses_causal_opportunity_tags():
@@ -3379,6 +3460,7 @@ if __name__ == "__main__":
     test_memory_ranks_experiences_by_transfer_axes()
     test_task_memory_profile_scopes_memory_to_active_task()
     test_task_continuity_ledger_persists_resume_context()
+    test_task_continuity_records_spatial_precondition_gaps()
     test_task_continuity_report_summarizes_resume_candidates()
     test_task_continuity_import_from_session_log()
     test_memory_read_filters_stale_and_conditional_entries()
@@ -3392,6 +3474,7 @@ if __name__ == "__main__":
     test_memory_persists_entries_and_experiences()
     test_memory_records_and_retrieves_causal_events()
     test_task_system_dependency_and_opportunity_scheduler()
+    test_task_system_reports_readiness_blockers()
     test_task_system_uses_causal_opportunity_tags()
     test_task_system_can_disable_causal_opportunity_scoring()
     test_task_system_updates_state_from_action_success()

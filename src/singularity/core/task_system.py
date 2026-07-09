@@ -86,6 +86,60 @@ class TaskSystem:
         ready.sort(key=lambda t: self._task_score(t, world_state or {}))
         return ready
 
+    def task_readiness_report(self, world_state: Optional[dict] = None) -> dict:
+        """Explain which runnable-state tasks are ready and what blocks the rest."""
+        world_state = world_state or {}
+        candidates = [
+            t for t in self.tasks.values()
+            if t.status in (TaskStatus.ACCEPTED, TaskStatus.ACTIVE)
+        ]
+        task_reports = []
+        ready_count = 0
+        for task in candidates:
+            missing_dependencies = self._missing_dependencies(task)
+            missing_preconditions = self._missing_preconditions(task, world_state)
+            inherited_blockers = [str(item) for item in (task.blockers or []) if item]
+            blockers = []
+            if missing_dependencies:
+                blockers.append("missing_dependencies")
+            if missing_preconditions:
+                blockers.append("missing_preconditions")
+            blockers.extend(inherited_blockers[:5])
+            ready = not missing_dependencies and not missing_preconditions
+            if ready:
+                ready_count += 1
+            task_reports.append({
+                "id": task.id,
+                "title": task.title,
+                "type": task.type,
+                "status": task.status.value,
+                "priority": task.priority,
+                "attempts": task.attempts,
+                "ready": ready,
+                "score": round(self._task_score(task, world_state), 3),
+                "missing_dependencies": missing_dependencies,
+                "missing_preconditions": missing_preconditions,
+                "blockers": blockers,
+                "tags": list(task.tags or [])[:8],
+                "opportunity_triggers": list(task.opportunity_triggers or [])[:8],
+                "rationale": task.rationale,
+            })
+        task_reports.sort(key=lambda item: (
+            0 if item["ready"] else 1,
+            item["score"],
+            item["priority"],
+            item["title"],
+        ))
+        return {
+            "type": "task_readiness_report",
+            "task_count": len(task_reports),
+            "ready_count": ready_count,
+            "blocked_count": len(task_reports) - ready_count,
+            "accepted_count": sum(1 for task in candidates if task.status == TaskStatus.ACCEPTED),
+            "active_count": sum(1 for task in candidates if task.status == TaskStatus.ACTIVE),
+            "tasks": task_reports,
+        }
+
     def get_next_task(self, world_state: Optional[dict] = None) -> Optional[Task]:
         """Return the best next task using priority plus opportunistic context."""
         ready = self.get_ready_tasks(world_state)
@@ -152,25 +206,51 @@ class TaskSystem:
         return task
 
     def _dependencies_satisfied(self, task: Task) -> bool:
+        return not self._missing_dependencies(task)
+
+    def _missing_dependencies(self, task: Task) -> list[dict]:
+        missing = []
         for dep_id in task.depends_on:
             dep = self.tasks.get(dep_id)
             if not dep or dep.status != TaskStatus.COMPLETED:
-                return False
-        return True
+                missing.append({
+                    "id": dep_id,
+                    "title": dep.title if dep else "",
+                    "status": dep.status.value if dep else "missing",
+                })
+        return missing
 
     def _preconditions_satisfied(self, task: Task, world_state: dict) -> bool:
-        inventory = world_state.get("inventory", {})
-        for item, count in task.preconditions.get("inventory", {}).items():
-            if inventory.get(item, 0) < count:
-                return False
-        flags = set(world_state.get("flags", []))
-        for flag in task.preconditions.get("flags", []):
-            if flag not in flags:
-                return False
-        nearby_required = task.preconditions.get("nearby_block_present", [])
-        if nearby_required and not self._observed_names_satisfy(nearby_required, world_state):
-            return False
-        return True
+        return not self._missing_preconditions(task, world_state)
+
+    def _missing_preconditions(self, task: Task, world_state: dict) -> dict:
+        missing = {}
+        preconditions = task.preconditions or {}
+        inventory = world_state.get("inventory", {}) if isinstance(world_state.get("inventory", {}), dict) else {}
+        inventory_requirements = preconditions.get("inventory", {}) if isinstance(preconditions.get("inventory", {}), dict) else {}
+        inventory_missing = {}
+        for item, count in inventory_requirements.items():
+            required_count = self._safe_count(count)
+            available_count = self._safe_count(inventory.get(item, 0))
+            if available_count < required_count:
+                inventory_missing[str(item)] = self._compact_count(required_count - available_count)
+        if inventory_missing:
+            missing["inventory"] = dict(sorted(inventory_missing.items()))
+        world_flags = world_state.get("flags", []) if isinstance(world_state.get("flags", []), list) else []
+        flags = {str(flag) for flag in world_flags}
+        required_flags = preconditions.get("flags", []) if isinstance(preconditions.get("flags", []), list) else []
+        missing_flags = [
+            str(flag)
+            for flag in required_flags
+            if str(flag) not in flags
+        ]
+        if missing_flags:
+            missing["flags"] = missing_flags
+        nearby_required = preconditions.get("nearby_block_present", [])
+        missing_nearby = self._missing_observed_names(nearby_required, world_state)
+        if missing_nearby:
+            missing["nearby_block_present"] = missing_nearby
+        return missing
 
     def _task_score(self, task: Task, world_state: dict) -> float:
         """Lower score means higher urgency."""
@@ -312,6 +392,13 @@ class TaskSystem:
         observed = self._observed_name_set(world_state or {}, result or {})
         return all(name in observed for name in required_names)
 
+    def _missing_observed_names(self, required, world_state: dict, result: dict = None) -> list[str]:
+        required_names = self._required_name_set(required)
+        if not required_names:
+            return []
+        observed = self._observed_name_set(world_state or {}, result or {})
+        return sorted(name for name in required_names if name not in observed)
+
     def _required_name_set(self, required) -> set[str]:
         if isinstance(required, str):
             return {required.lower()} if required else set()
@@ -375,6 +462,17 @@ class TaskSystem:
             elif actual.get(key) != value:
                 return False
         return True
+
+    def _safe_count(self, value) -> float:
+        try:
+            return float(value or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _compact_count(self, value):
+        if float(value).is_integer():
+            return int(value)
+        return round(float(value), 3)
 
     def _compact_world_state(self, world_state: dict) -> dict:
         return {

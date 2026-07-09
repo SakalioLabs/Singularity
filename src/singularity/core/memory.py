@@ -1887,11 +1887,59 @@ class MemorySystem:
         if inventory_missing:
             missing["inventory"] = dict(sorted(inventory_missing.items()))
         required_flags = preconditions.get("flags", []) if isinstance(preconditions.get("flags", []), list) else []
-        flags = set(current_state.get("flags", [])) if isinstance(current_state.get("flags", []), list) else set()
-        flag_missing = [str(flag) for flag in required_flags if flag not in flags]
+        flags = {str(flag) for flag in current_state.get("flags", [])} if isinstance(current_state.get("flags", []), list) else set()
+        flag_missing = [str(flag) for flag in required_flags if str(flag) not in flags]
         if flag_missing:
             missing["flags"] = flag_missing
+        nearby_required = preconditions.get("nearby_block_present", [])
+        nearby_missing = self._task_continuity_missing_observed_names(nearby_required, current_state or {})
+        if nearby_missing:
+            missing["nearby_block_present"] = nearby_missing
         return missing
+
+    def _task_continuity_missing_observed_names(self, required, current_state: dict) -> list[str]:
+        required_names = self._task_continuity_required_names(required)
+        if not required_names:
+            return []
+        observed = self._task_continuity_observed_names(current_state or {})
+        return sorted(name for name in required_names if name not in observed)
+
+    def _task_continuity_required_names(self, required) -> set[str]:
+        if isinstance(required, str):
+            return {required.lower()} if required else set()
+        if isinstance(required, dict):
+            return {
+                str(value).lower()
+                for value in required.values()
+                if value
+            }
+        if isinstance(required, list):
+            return {
+                str(value).lower()
+                for value in required
+                if value
+            }
+        return set()
+
+    def _task_continuity_observed_names(self, current_state: dict) -> set[str]:
+        names = set()
+        for key in ("nearby_blocks", "grounded_resources", "trees_found", "nearby_entities", "landmarks"):
+            values = current_state.get(key, []) if isinstance(current_state, dict) else []
+            if not isinstance(values, list):
+                continue
+            for item in values:
+                if isinstance(item, str):
+                    names.add(item.lower())
+                    continue
+                if not isinstance(item, dict):
+                    continue
+                for field_name in ("name", "type", "block", "resource", "drop", "entity"):
+                    value = item.get(field_name)
+                    if value:
+                        names.add(str(value).lower())
+        if isinstance(current_state, dict) and current_state.get("landmarks"):
+            names.add("landmark")
+        return names
 
     def _task_continuity_plan_actions(self, plan: dict) -> list[str]:
         actions = plan.get("actions", []) if isinstance(plan, dict) else []
