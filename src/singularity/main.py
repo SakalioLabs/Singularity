@@ -918,6 +918,15 @@ def main():
     plan_action_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     plan_action_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline plan/act latency report for Parallelized Planning-Acting evidence
+    plan_act_latency_parser = subparsers.add_parser("plan-act-latency-report", help="Report planner wait, stale actions, and interrupt opportunities from Agent logs")
+    plan_act_latency_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    plan_act_latency_parser.add_argument("--collab-report", action="append", default=[], help="Saved collab-benchmark JSON whose role session logs should be inspected")
+    plan_act_latency_parser.add_argument("--stale-plan-s", type=float, default=5.0, help="Plan age threshold before an action is counted as stale")
+    plan_act_latency_parser.add_argument("--long-action-s", type=float, default=2.0, help="Action duration threshold for interrupt opportunities")
+    plan_act_latency_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    plan_act_latency_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline terminal commitment trace report
     terminal_commitment_parser = subparsers.add_parser("terminal-commitment-report", help="Report VIGIL-style world completion versus terminal completion claims")
     terminal_commitment_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -2606,6 +2615,33 @@ def main():
             require_label_validation=not getattr(args, "no_require_label_validation", False),
         )
         runner.print_goal_verification_critic_gate_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") == "error":
+            sys.exit(1)
+        return
+
+    if args.command == "plan-act-latency-report":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        session_logs = getattr(args, "session_log", []) or []
+        collab_reports = getattr(args, "collab_report", []) or []
+        if not session_logs and not collab_reports:
+            print("plan-act-latency-report requires at least one --session-log or --collab-report")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.build_plan_act_latency_report(
+            session_log_paths=session_logs,
+            collab_report_paths=collab_reports,
+            stale_plan_s=getattr(args, "stale_plan_s", 5.0),
+            long_action_s=getattr(args, "long_action_s", 2.0),
+        )
+        runner.print_plan_act_latency_report(report)
         if getattr(args, "output", ""):
             output_dir = os.path.dirname(args.output)
             if output_dir:

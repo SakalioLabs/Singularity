@@ -15,7 +15,7 @@
   - Time-sensitive shelter/resource tasks can benefit from interruptible action execution when another role discovers danger, missing dependencies, or a better opportunity.
   - The design pairs naturally with existing shared-state commits, action verification, and role bridge preflight.
 **Singularity Adaptation**:
-  - Add an M7 `plan_act_latency_report` that measures planner wait time, action execution overlap, interrupt opportunity count, and stale-plan action count from role logs.
+  - Added `plan-act-latency-report`, which measures planner wait time, plan-to-action delay, action execution overlap, interrupt opportunity count, stale-plan actions, and unfinished plan suffixes from session logs or saved collaboration reports.
   - Introduce a gated `parallel_plan_act_mode` only after offline replay shows fewer stale actions without increasing verifier rejections.
   - Keep the acting side constrained by existing action verification and skill gates; planner interrupts should replace only unfinished plan suffixes.
-**Next Action**: Build an offline M7 plan/act latency report from collaboration and Agent role logs, then use it to decide where interruptible execution would help before changing live role dispatch.
+**Next Action**: Run `plan-act-latency-report --collab-report ...` on live BM-701 role logs, then gate any interruptible role executor on lower stale-action counts without higher verifier rejection.

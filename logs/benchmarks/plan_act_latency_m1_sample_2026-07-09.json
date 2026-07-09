@@ -1,0 +1,236 @@
+{
+  "type": "plan_act_latency_report",
+  "readiness": "review",
+  "decision": "review_interruptible_execution_candidates",
+  "reason": "logs show plan/act latency or unfinished-suffix opportunities",
+  "stale_plan_threshold_s": 5.0,
+  "long_action_threshold_s": 2.0,
+  "session_log_count": 1,
+  "collab_report_count": 0,
+  "collab_sources": [],
+  "event_count": 403,
+  "plan_count": 100,
+  "action_count": 100,
+  "observation_count": 100,
+  "planner_wait_total_s": 0.127,
+  "planner_wait_avg_s": 0.001,
+  "planner_wait_p95_s": 0.002,
+  "plan_to_action_delay_avg_s": 0.002,
+  "plan_to_action_delay_p95_s": 0.003,
+  "action_execution_total_s": 362.718,
+  "long_action_count": 100,
+  "stale_plan_action_count": 0,
+  "world_change_while_plan_pending_count": 0,
+  "unfinished_plan_suffix_count": 100,
+  "unplanned_action_count": 0,
+  "interrupt_opportunity_count": 200,
+  "actual_peak_parallel_actions": 1,
+  "cross_log_overlapping_action_pairs": 0,
+  "cross_log_overlap_total_s": 0.0,
+  "policy_hints": [
+    "allow_interrupts_for_long_running_actions",
+    "replace_unfinished_plan_suffix_on_replan"
+  ],
+  "cases": [
+    {
+      "source_log": "logs/session_18afca4f-925.jsonl",
+      "event_count": 403,
+      "plan_count": 100,
+      "action_count": 100,
+      "observation_count": 100,
+      "planner_wait_samples_s": [
+        0.006,
+        0.001,
+        0.001,
+        0.002,
+        0.001,
+        0.001,
+        0.002,
+        0.002
+      ],
+      "planner_wait_avg_s": 0.001,
+      "planner_wait_p95_s": 0.002,
+      "plan_to_action_delay_samples_s": [
+        0.001,
+        0.001,
+        0.007,
+        0.001,
+        0.015,
+        0.001,
+        0.0,
+        0.0
+      ],
+      "plan_to_action_delay_avg_s": 0.002,
+      "plan_to_action_delay_p95_s": 0.003,
+      "action_execution_total_s": 362.718,
+      "long_action_count": 100,
+      "stale_plan_action_count": 0,
+      "world_change_while_plan_pending_count": 0,
+      "unfinished_plan_suffix_count": 100,
+      "unplanned_action_count": 0,
+      "interrupt_opportunity_count": 200,
+      "action_type_counts": {
+        "move_to": 100
+      },
+      "long_action_examples": [
+        {
+          "source_log": "logs/session_18afca4f-925.jsonl",
+          "action_index": 1,
+          "action_type": "move_to",
+          "start_ts": 1783447812.714,
+          "end_ts": 1783447816.725,
+          "duration_s": 4.011,
+          "time_basis": "ts",
+          "signature": "move_to"
+        },
+        {
+          "source_log": "logs/session_18afca4f-925.jsonl",
+          "action_index": 2,
+          "action_type": "move_to",
+          "start_ts": 1783447817.273,
+          "end_ts": 1783447820.78,
+          "duration_s": 3.507,
+          "time_basis": "ts",
+          "signature": "move_to"
+        },
+        {
+          "source_log": "logs/session_18afca4f-925.jsonl",
+          "action_index": 3,
+          "action_type": "move_to",
+          "start_ts": 1783447821.369,
+          "end_ts": 1783447825.399,
+          "duration_s": 4.03,
+          "time_basis": "ts",
+          "signature": "move_to"
+        },
+        {
+          "source_log": "logs/session_18afca4f-925.jsonl",
+          "action_index": 4,
+          "action_type": "move_to",
+          "start_ts": 1783447826.291,
+          "end_ts": 1783447829.803,
+          "duration_s": 3.512,
+          "time_basis": "ts",
+          "signature": "move_to"
+        },
+        {
+          "source_log": "logs/session_18afca4f-925.jsonl",
+          "action_index": 5,
+          "action_type": "move_to",
+          "start_ts": 1783447830.396,
+          "end_ts": 1783447834.31,
+          "duration_s": 3.914,
+          "time_basis": "ts",
+          "signature": "move_to"
+        },
+        {
+          "source_log": "logs/session_18afca4f-925.jsonl",
+          "action_index": 6,
+          "action_type": "move_to",
+          "start_ts": 1783447834.857,
+          "end_ts": 1783447838.488,
+          "duration_s": 3.631,
+          "time_basis": "ts",
+          "signature": "move_to"
+        },
+        {
+          "source_log": "logs/session_18afca4f-925.jsonl",
+          "action_index": 7,
+          "action_type": "move_to",
+          "start_ts": 1783447839.018,
+          "end_ts": 1783447842.965,
+          "duration_s": 3.947,
+          "time_basis": "ts",
+          "signature": "move_to"
+        },
+        {
+          "source_log": "logs/session_18afca4f-925.jsonl",
+          "action_index": 8,
+          "action_type": "move_to",
+          "start_ts": 1783447843.529,
+          "end_ts": 1783447847.533,
+          "duration_s": 4.004,
+          "time_basis": "ts",
+          "signature": "move_to"
+        }
+      ],
+      "stale_action_examples": [],
+      "unfinished_plan_examples": [
+        {
+          "plan_index": 1,
+          "event_index": 7,
+          "reason": "next_plan",
+          "remaining_action_count": 1,
+          "remaining_actions": [
+            "wait"
+          ]
+        },
+        {
+          "plan_index": 2,
+          "event_index": 11,
+          "reason": "next_plan",
+          "remaining_action_count": 1,
+          "remaining_actions": [
+            "wait"
+          ]
+        },
+        {
+          "plan_index": 3,
+          "event_index": 15,
+          "reason": "next_plan",
+          "remaining_action_count": 1,
+          "remaining_actions": [
+            "wait"
+          ]
+        },
+        {
+          "plan_index": 4,
+          "event_index": 19,
+          "reason": "next_plan",
+          "remaining_action_count": 1,
+          "remaining_actions": [
+            "wait"
+          ]
+        },
+        {
+          "plan_index": 5,
+          "event_index": 23,
+          "reason": "next_plan",
+          "remaining_action_count": 1,
+          "remaining_actions": [
+            "wait"
+          ]
+        },
+        {
+          "plan_index": 6,
+          "event_index": 27,
+          "reason": "next_plan",
+          "remaining_action_count": 1,
+          "remaining_actions": [
+            "wait"
+          ]
+        },
+        {
+          "plan_index": 7,
+          "event_index": 31,
+          "reason": "next_plan",
+          "remaining_action_count": 1,
+          "remaining_actions": [
+            "wait"
+          ]
+        },
+        {
+          "plan_index": 8,
+          "event_index": 35,
+          "reason": "next_plan",
+          "remaining_action_count": 1,
+          "remaining_actions": [
+            "wait"
+          ]
+        }
+      ]
+    }
+  ],
+  "overlap_examples": [],
+  "errors": []
+}

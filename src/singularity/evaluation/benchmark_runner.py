@@ -6210,6 +6210,128 @@ class BenchmarkRunner:
             "policy_hints": policy_hints,
         }
 
+    def build_plan_act_latency_report(
+        self,
+        session_log_paths: Optional[list[str]] = None,
+        collab_report_paths: Optional[list[str]] = None,
+        stale_plan_s: float = 5.0,
+        long_action_s: float = 2.0,
+    ) -> dict:
+        """Estimate Parallelized Planning-Acting opportunities from role/session logs."""
+        errors = []
+        session_logs = list(session_log_paths or [])
+        collab_sources = []
+        for report_path in collab_report_paths or []:
+            try:
+                extracted = self._session_logs_from_collab_report(report_path)
+                collab_sources.append({
+                    "path": report_path,
+                    "session_log_count": len(extracted),
+                })
+                session_logs.extend(extracted)
+            except Exception as exc:
+                errors.append(f"{report_path}: {exc}")
+        session_logs = self._dedupe_strings(session_logs)
+        stale_plan_s = max(0.0, float(stale_plan_s or 0.0))
+        long_action_s = max(0.0, float(long_action_s or 0.0))
+
+        report = {
+            "type": "plan_act_latency_report",
+            "readiness": "review",
+            "decision": "review_parallel_plan_act_candidates",
+            "reason": "plan/act latency evidence should be reviewed before enabling interruptible execution",
+            "stale_plan_threshold_s": stale_plan_s,
+            "long_action_threshold_s": long_action_s,
+            "session_log_count": len(session_logs),
+            "collab_report_count": len(collab_report_paths or []),
+            "collab_sources": collab_sources,
+            "event_count": 0,
+            "plan_count": 0,
+            "action_count": 0,
+            "observation_count": 0,
+            "planner_wait_total_s": 0.0,
+            "planner_wait_avg_s": 0.0,
+            "planner_wait_p95_s": 0.0,
+            "plan_to_action_delay_avg_s": 0.0,
+            "plan_to_action_delay_p95_s": 0.0,
+            "action_execution_total_s": 0.0,
+            "long_action_count": 0,
+            "stale_plan_action_count": 0,
+            "world_change_while_plan_pending_count": 0,
+            "unfinished_plan_suffix_count": 0,
+            "unplanned_action_count": 0,
+            "interrupt_opportunity_count": 0,
+            "actual_peak_parallel_actions": 0,
+            "cross_log_overlapping_action_pairs": 0,
+            "cross_log_overlap_total_s": 0.0,
+            "policy_hints": [],
+            "cases": [],
+            "overlap_examples": [],
+            "errors": errors,
+        }
+        wait_samples = []
+        action_delay_samples = []
+        intervals = []
+        for path in session_logs:
+            try:
+                events = self._load_session_events(path)
+                case = self._plan_act_latency_case(
+                    path,
+                    events,
+                    stale_plan_s=stale_plan_s,
+                    long_action_s=long_action_s,
+                )
+                intervals.extend(case.pop("_action_intervals", []))
+                wait_samples.extend(case.pop("_planner_wait_samples_all", []))
+                action_delay_samples.extend(case.pop("_plan_to_action_delay_samples_all", []))
+                report["cases"].append(case)
+                report["event_count"] += case["event_count"]
+                report["plan_count"] += case["plan_count"]
+                report["action_count"] += case["action_count"]
+                report["observation_count"] += case["observation_count"]
+                report["action_execution_total_s"] += case["action_execution_total_s"]
+                report["long_action_count"] += case["long_action_count"]
+                report["stale_plan_action_count"] += case["stale_plan_action_count"]
+                report["world_change_while_plan_pending_count"] += case["world_change_while_plan_pending_count"]
+                report["unfinished_plan_suffix_count"] += case["unfinished_plan_suffix_count"]
+                report["unplanned_action_count"] += case["unplanned_action_count"]
+            except Exception as exc:
+                report["errors"].append(f"{path}: {exc}")
+
+        report["planner_wait_total_s"] = round(sum(wait_samples), 3)
+        report["planner_wait_avg_s"] = self._latency_average(wait_samples)
+        report["planner_wait_p95_s"] = self._latency_percentile(wait_samples, 95)
+        report["plan_to_action_delay_avg_s"] = self._latency_average(action_delay_samples)
+        report["plan_to_action_delay_p95_s"] = self._latency_percentile(action_delay_samples, 95)
+        report["action_execution_total_s"] = round(report["action_execution_total_s"], 3)
+        overlap = self._plan_act_overlap_summary(intervals)
+        report.update(overlap)
+        report["interrupt_opportunity_count"] = (
+            report["long_action_count"]
+            + report["stale_plan_action_count"]
+            + report["world_change_while_plan_pending_count"]
+            + report["unfinished_plan_suffix_count"]
+        )
+        report["policy_hints"] = self._plan_act_policy_hints(report)
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "fix_plan_act_report_inputs"
+            report["reason"] = "some plan/act latency inputs could not be loaded"
+        elif not report["session_log_count"]:
+            report["readiness"] = "review"
+            report["decision"] = "collect_role_session_logs"
+            report["reason"] = "no session logs were supplied"
+            report["policy_hints"].append("collect_m7_role_session_logs")
+        elif report["interrupt_opportunity_count"]:
+            report["readiness"] = "review"
+            report["decision"] = "review_interruptible_execution_candidates"
+            report["reason"] = "logs show plan/act latency or unfinished-suffix opportunities"
+        else:
+            report["readiness"] = "approved"
+            report["decision"] = "keep_current_plan_act_loop"
+            report["reason"] = "no plan/act latency opportunities were found in supplied logs"
+        return report
+
     def run_terminal_commitment_report_from_logs(self, session_log_paths: list[str]) -> TerminalCommitmentReport:
         """Summarize VIGIL-style world completion versus terminal completion claims."""
         report = TerminalCommitmentReport()
@@ -10196,6 +10318,297 @@ class BenchmarkRunner:
             mismatch_examples=mismatch_examples,
             ready_for_plan_action_review=ready,
         )
+
+    def _plan_act_latency_case(
+        self,
+        source_log: str,
+        events: list[dict],
+        stale_plan_s: float,
+        long_action_s: float,
+        limit: int = 8,
+    ) -> dict:
+        current_plan = None
+        last_input_ts = None
+        planner_wait_samples = []
+        plan_to_action_delay_samples = []
+        action_intervals = []
+        action_type_counts = {}
+        long_action_examples = []
+        stale_action_examples = []
+        unfinished_examples = []
+        plan_count = 0
+        action_count = 0
+        observation_count = 0
+        long_action_count = 0
+        stale_plan_action_count = 0
+        world_change_while_plan_pending_count = 0
+        unfinished_plan_suffix_count = 0
+        unplanned_action_count = 0
+        action_execution_total_s = 0.0
+
+        def finish_plan(reason: str, event_index: int):
+            nonlocal current_plan, unfinished_plan_suffix_count
+            if not current_plan:
+                return
+            remaining = max(0, len(current_plan["actions"]) - int(current_plan.get("executed_count", 0)))
+            if remaining:
+                unfinished_plan_suffix_count += remaining
+                if len(unfinished_examples) < limit:
+                    unfinished_examples.append({
+                        "plan_index": current_plan["plan_number"],
+                        "event_index": event_index,
+                        "reason": reason,
+                        "remaining_action_count": remaining,
+                        "remaining_actions": current_plan["actions"][int(current_plan.get("executed_count", 0)):][:6],
+                    })
+            current_plan = None
+
+        for index, event in enumerate(events):
+            event_type = event.get("type")
+            event_ts, time_basis = self._event_time(event, index)
+            if event_type == "observation":
+                observation_count += 1
+                last_input_ts = event_ts
+                if current_plan and event_ts > current_plan["ts"]:
+                    current_plan["observation_after_plan"] = True
+                continue
+            if event_type == "goal_start":
+                last_input_ts = event_ts
+                continue
+            if event_type == "plan" and isinstance(event.get("data", {}), dict):
+                finish_plan("next_plan", index)
+                plan_count += 1
+                if last_input_ts is not None:
+                    planner_wait_samples.append(round(max(0.0, event_ts - last_input_ts), 3))
+                data = event.get("data", {})
+                actions = [
+                    self._plan_action_signature(action)
+                    for action in (data.get("actions", []) if isinstance(data.get("actions", []), list) else [])
+                    if isinstance(action, dict)
+                ]
+                current_plan = {
+                    "plan_number": plan_count,
+                    "event_index": index,
+                    "ts": event_ts,
+                    "time_basis": time_basis,
+                    "actions": actions,
+                    "executed_count": 0,
+                    "observation_after_plan": False,
+                    "status": str(data.get("status") or ""),
+                }
+                continue
+            if event_type != "action" or not isinstance(event.get("data", {}), dict):
+                continue
+
+            action_count += 1
+            data = event.get("data", {})
+            action = self._action_from_action_event(event)
+            signature = self._plan_action_signature(action)
+            action_type = self._plan_action_type(signature)
+            self._increment(action_type_counts, action_type)
+            duration_s = self._action_duration_s(event)
+            action_execution_total_s += duration_s
+            action_end_ts = event_ts
+            action_start_ts = max(0.0, action_end_ts - duration_s)
+            interval = {
+                "source_log": source_log,
+                "action_index": action_count,
+                "action_type": action_type,
+                "start_ts": round(action_start_ts, 3),
+                "end_ts": round(action_end_ts, 3),
+                "duration_s": round(duration_s, 3),
+                "time_basis": time_basis,
+            }
+            action_intervals.append(interval)
+
+            if duration_s >= long_action_s:
+                long_action_count += 1
+                if len(long_action_examples) < limit:
+                    long_action_examples.append(dict(interval, signature=signature))
+
+            if current_plan:
+                plan_age_s = round(max(0.0, action_start_ts - current_plan["ts"]), 3)
+                plan_to_action_delay_samples.append(plan_age_s)
+                remaining = current_plan["actions"][int(current_plan.get("executed_count", 0)):]
+                if signature in remaining:
+                    match_offset = remaining.index(signature)
+                    current_plan["executed_count"] = int(current_plan.get("executed_count", 0)) + match_offset + 1
+                elif remaining:
+                    unplanned_action_count += 1
+                if plan_age_s > stale_plan_s:
+                    stale_plan_action_count += 1
+                    if len(stale_action_examples) < limit:
+                        stale_action_examples.append({
+                            "action_index": action_count,
+                            "plan_index": current_plan["plan_number"],
+                            "signature": signature,
+                            "plan_age_s": plan_age_s,
+                            "threshold_s": stale_plan_s,
+                        })
+                if current_plan.get("observation_after_plan"):
+                    world_change_while_plan_pending_count += 1
+            else:
+                unplanned_action_count += 1
+            last_input_ts = event_ts
+
+        finish_plan("end_of_log", len(events))
+        return {
+            "source_log": source_log,
+            "event_count": len(events),
+            "plan_count": plan_count,
+            "action_count": action_count,
+            "observation_count": observation_count,
+            "planner_wait_samples_s": planner_wait_samples[:limit],
+            "planner_wait_avg_s": self._latency_average(planner_wait_samples),
+            "planner_wait_p95_s": self._latency_percentile(planner_wait_samples, 95),
+            "plan_to_action_delay_samples_s": plan_to_action_delay_samples[:limit],
+            "plan_to_action_delay_avg_s": self._latency_average(plan_to_action_delay_samples),
+            "plan_to_action_delay_p95_s": self._latency_percentile(plan_to_action_delay_samples, 95),
+            "action_execution_total_s": round(action_execution_total_s, 3),
+            "long_action_count": long_action_count,
+            "stale_plan_action_count": stale_plan_action_count,
+            "world_change_while_plan_pending_count": world_change_while_plan_pending_count,
+            "unfinished_plan_suffix_count": unfinished_plan_suffix_count,
+            "unplanned_action_count": unplanned_action_count,
+            "interrupt_opportunity_count": (
+                long_action_count
+                + stale_plan_action_count
+                + world_change_while_plan_pending_count
+                + unfinished_plan_suffix_count
+            ),
+            "action_type_counts": dict(sorted(action_type_counts.items())),
+            "long_action_examples": long_action_examples,
+            "stale_action_examples": stale_action_examples,
+            "unfinished_plan_examples": unfinished_examples,
+            "_action_intervals": action_intervals,
+            "_planner_wait_samples_all": planner_wait_samples,
+            "_plan_to_action_delay_samples_all": plan_to_action_delay_samples,
+        }
+
+    def _event_time(self, event: dict, index: int) -> tuple[float, str]:
+        for key in ("ts", "elapsed_s"):
+            value = event.get(key)
+            try:
+                return float(value), key
+            except (TypeError, ValueError):
+                continue
+        return float(index), "index"
+
+    def _action_duration_s(self, event: dict) -> float:
+        data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+        result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+        for key in ("duration_ms", "elapsed_ms"):
+            if result.get(key) not in (None, ""):
+                try:
+                    return max(0.0, float(result.get(key)) / 1000.0)
+                except (TypeError, ValueError):
+                    pass
+        for key in ("duration_s", "elapsed_s"):
+            if result.get(key) not in (None, ""):
+                try:
+                    return max(0.0, float(result.get(key)))
+                except (TypeError, ValueError):
+                    pass
+        return 0.0
+
+    def _latency_average(self, values: list[float]) -> float:
+        if not values:
+            return 0.0
+        return round(sum(float(value) for value in values) / len(values), 3)
+
+    def _latency_percentile(self, values: list[float], percentile: float) -> float:
+        if not values:
+            return 0.0
+        ordered = sorted(float(value) for value in values)
+        rank = max(0, min(len(ordered) - 1, math.ceil((float(percentile) / 100.0) * len(ordered)) - 1))
+        return round(ordered[rank], 3)
+
+    def _plan_act_overlap_summary(self, intervals: list[dict], limit: int = 12) -> dict:
+        absolute_intervals = [
+            interval for interval in intervals
+            if interval.get("time_basis") == "ts" and interval.get("end_ts", 0) > interval.get("start_ts", 0)
+        ]
+        events = []
+        for interval in absolute_intervals:
+            events.append((float(interval["start_ts"]), 1))
+            events.append((float(interval["end_ts"]), -1))
+        active = 0
+        peak = 0
+        for _, delta in sorted(events, key=lambda item: (item[0], -item[1])):
+            active += delta
+            peak = max(peak, active)
+
+        pair_count = 0
+        total_overlap = 0.0
+        examples = []
+        for i, left in enumerate(absolute_intervals):
+            for right in absolute_intervals[i + 1:]:
+                if left.get("source_log") == right.get("source_log"):
+                    continue
+                overlap = min(float(left["end_ts"]), float(right["end_ts"])) - max(float(left["start_ts"]), float(right["start_ts"]))
+                if overlap <= 0:
+                    continue
+                pair_count += 1
+                total_overlap += overlap
+                if len(examples) < limit:
+                    examples.append({
+                        "left_log": left.get("source_log", ""),
+                        "left_action_index": left.get("action_index"),
+                        "left_action_type": left.get("action_type", ""),
+                        "right_log": right.get("source_log", ""),
+                        "right_action_index": right.get("action_index"),
+                        "right_action_type": right.get("action_type", ""),
+                        "overlap_s": round(overlap, 3),
+                    })
+        return {
+            "actual_peak_parallel_actions": peak,
+            "cross_log_overlapping_action_pairs": pair_count,
+            "cross_log_overlap_total_s": round(total_overlap, 3),
+            "overlap_examples": examples,
+        }
+
+    def _plan_act_policy_hints(self, report: dict) -> list[str]:
+        hints = []
+        if int(report.get("long_action_count", 0) or 0):
+            hints.append("allow_interrupts_for_long_running_actions")
+        if int(report.get("stale_plan_action_count", 0) or 0):
+            hints.append("reduce_plan_to_action_lag")
+        if int(report.get("world_change_while_plan_pending_count", 0) or 0):
+            hints.append("interrupt_on_fresh_observation_before_acting")
+        if int(report.get("unfinished_plan_suffix_count", 0) or 0):
+            hints.append("replace_unfinished_plan_suffix_on_replan")
+        if int(report.get("actual_peak_parallel_actions", 0) or 0) > 1:
+            hints.append("preserve_role_parallel_dispatch")
+        return self._dedupe_strings(hints)
+
+    def _session_logs_from_collab_report(self, report_path: str) -> list[str]:
+        with open(report_path, "r", encoding="utf-8-sig") as f:
+            payload = json.load(f)
+        paths = []
+        self._collect_session_log_paths(payload, paths)
+        base_dir = os.path.dirname(report_path)
+        resolved = []
+        for path in paths:
+            text = str(path or "").strip()
+            if not text.lower().endswith(".jsonl"):
+                continue
+            candidates = [text]
+            if base_dir and not os.path.isabs(text):
+                candidates.append(os.path.join(base_dir, text))
+            existing = next((candidate for candidate in candidates if os.path.exists(candidate)), text)
+            resolved.append(existing)
+        return self._dedupe_strings(resolved)
+
+    def _collect_session_log_paths(self, value, paths: list[str]):
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if str(key) in {"session_log_path", "log_path", "session_log"} and isinstance(child, str):
+                    paths.append(child)
+                else:
+                    self._collect_session_log_paths(child, paths)
+        elif isinstance(value, list):
+            for child in value:
+                self._collect_session_log_paths(child, paths)
 
     def _action_from_action_event(self, event: dict) -> dict:
         data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
@@ -16289,6 +16702,65 @@ class BenchmarkRunner:
                     f"order_violations={example['order_violations']}"
                 )
         for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_plan_act_latency_report(self, report: dict):
+        print("\nPlan-Act Latency Trace")
+        print(f"  readiness: {report.get('readiness', 'unknown')} ({report.get('decision', '')})")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  logs/events: "
+            f"logs={report.get('session_log_count', 0)}, "
+            f"events={report.get('event_count', 0)}, "
+            f"plans={report.get('plan_count', 0)}, "
+            f"actions={report.get('action_count', 0)}, "
+            f"observations={report.get('observation_count', 0)}"
+        )
+        print(
+            "  latency: "
+            f"planner_wait_avg={report.get('planner_wait_avg_s', 0)}s "
+            f"p95={report.get('planner_wait_p95_s', 0)}s, "
+            f"plan_to_action_avg={report.get('plan_to_action_delay_avg_s', 0)}s "
+            f"p95={report.get('plan_to_action_delay_p95_s', 0)}s"
+        )
+        print(
+            "  opportunities: "
+            f"interrupt={report.get('interrupt_opportunity_count', 0)}, "
+            f"long_actions={report.get('long_action_count', 0)}, "
+            f"stale_actions={report.get('stale_plan_action_count', 0)}, "
+            f"fresh_obs_pending={report.get('world_change_while_plan_pending_count', 0)}, "
+            f"unfinished_suffix={report.get('unfinished_plan_suffix_count', 0)}"
+        )
+        print(
+            "  parallelism: "
+            f"peak_actions={report.get('actual_peak_parallel_actions', 0)}, "
+            f"cross_log_pairs={report.get('cross_log_overlapping_action_pairs', 0)}, "
+            f"overlap_s={report.get('cross_log_overlap_total_s', 0)}"
+        )
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', []))}")
+        for case in report.get("cases", [])[:8]:
+            print(f"  - {case.get('source_log')}")
+            print(
+                f"      plans={case.get('plan_count', 0)}, actions={case.get('action_count', 0)}, "
+                f"wait_avg={case.get('planner_wait_avg_s', 0)}s, "
+                f"delay_avg={case.get('plan_to_action_delay_avg_s', 0)}s, "
+                f"interrupt={case.get('interrupt_opportunity_count', 0)}"
+            )
+            if case.get("action_type_counts"):
+                print(f"      action types: {self._format_counts(case.get('action_type_counts', {}))}")
+            for example in case.get("stale_action_examples", [])[:2]:
+                print(
+                    f"      stale action#{example.get('action_index')}: "
+                    f"{example.get('signature')} age={example.get('plan_age_s')}s"
+                )
+        for example in report.get("overlap_examples", [])[:5]:
+            print(
+                f"  overlap: {example.get('left_action_type')}@{example.get('left_log')} "
+                f"+ {example.get('right_action_type')}@{example.get('right_log')} "
+                f"{example.get('overlap_s')}s"
+            )
+        for error in report.get("errors", []):
             print(f"  error: {error}")
 
     def print_terminal_commitment_report(self, report: TerminalCommitmentReport):

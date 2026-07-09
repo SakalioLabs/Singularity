@@ -1635,6 +1635,129 @@ def test_plan_action_compliance_report_tracks_plan_following_gaps():
     print("PASS: Plan-action compliance report tracks plan-following gaps")
 
 
+def test_plan_act_latency_report_counts_interrupt_opportunities():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "plan_act.jsonl")
+    events = [
+        {"ts": 100.0, "type": "goal_start", "data": {"goal": "Gather wood"}},
+        {"ts": 101.0, "type": "observation", "data": {"inventory": {}}},
+        {
+            "ts": 102.0,
+            "type": "plan",
+            "data": {
+                "status": "in_progress",
+                "actions": [
+                    {"type": "move_to", "parameters": {"target": "oak_tree"}},
+                    {"type": "dig", "parameters": {"block": "oak_log"}},
+                ],
+            },
+        },
+        {
+            "ts": 110.0,
+            "type": "action",
+            "data": {
+                "action": {"type": "move_to", "parameters": {"target": "oak_tree"}},
+                "result": {"success": True, "duration_ms": 6000},
+            },
+        },
+        {"ts": 111.0, "type": "observation", "data": {"nearby_blocks": [{"name": "oak_log"}]}},
+        {
+            "ts": 112.0,
+            "type": "plan",
+            "data": {
+                "status": "in_progress",
+                "actions": [{"type": "dig", "parameters": {"block": "oak_log"}}],
+            },
+        },
+        {
+            "ts": 113.0,
+            "type": "action",
+            "data": {
+                "action": {"type": "dig", "parameters": {"block": "oak_log"}},
+                "result": {"success": True, "duration_ms": 500},
+            },
+        },
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config())
+    report = runner.build_plan_act_latency_report(
+        session_log_paths=[session_path],
+        stale_plan_s=1.0,
+        long_action_s=2.0,
+    )
+
+    assert report["type"] == "plan_act_latency_report"
+    assert report["readiness"] == "review"
+    assert report["session_log_count"] == 1
+    assert report["plan_count"] == 2
+    assert report["action_count"] == 2
+    assert report["long_action_count"] == 1
+    assert report["stale_plan_action_count"] == 1
+    assert report["unfinished_plan_suffix_count"] == 1
+    assert report["interrupt_opportunity_count"] >= 3
+    assert "allow_interrupts_for_long_running_actions" in report["policy_hints"]
+    assert "replace_unfinished_plan_suffix_on_replan" in report["policy_hints"]
+    case = report["cases"][0]
+    assert case["planner_wait_avg_s"] == 1.0
+    assert case["plan_to_action_delay_avg_s"] > 0
+    print("PASS: Plan-act latency report counts interrupt opportunities")
+
+
+def test_plan_act_latency_report_extracts_collab_role_logs_and_overlap():
+    tmpdir = tempfile.mkdtemp()
+    left_log = os.path.join(tmpdir, "role_left.jsonl")
+    right_log = os.path.join(tmpdir, "role_right.jsonl")
+
+    def write_log(path, action_type, end_ts):
+        events = [
+            {"ts": end_ts - 4.5, "type": "observation", "data": {}},
+            {"ts": end_ts - 4.0, "type": "plan", "data": {"actions": [{"type": action_type}]}},
+            {
+                "ts": end_ts,
+                "type": "action",
+                "data": {
+                    "action": {"type": action_type},
+                    "result": {"success": True, "duration_ms": 3000},
+                },
+            },
+        ]
+        with open(path, "w", encoding="utf-8") as f:
+            for event in events:
+                f.write(json.dumps(event) + "\n")
+
+    write_log(left_log, "gather", 205.0)
+    write_log(right_log, "build", 206.0)
+    collab_report = os.path.join(tmpdir, "collab.json")
+    with open(collab_report, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "collaboration_benchmark",
+            "execution": {
+                "task_results": [
+                    {"result": {"agent_result": {"summary": {"log_path": left_log}}}},
+                    {"result": {"session_log_path": right_log}},
+                ]
+            },
+        }, f)
+
+    runner = BenchmarkRunner(Config())
+    report = runner.build_plan_act_latency_report(
+        collab_report_paths=[collab_report],
+        long_action_s=2.0,
+    )
+
+    assert report["collab_report_count"] == 1
+    assert report["session_log_count"] == 2
+    assert report["action_count"] == 2
+    assert report["actual_peak_parallel_actions"] == 2
+    assert report["cross_log_overlapping_action_pairs"] == 1
+    assert report["cross_log_overlap_total_s"] == 2.0
+    assert "preserve_role_parallel_dispatch" in report["policy_hints"]
+    print("PASS: Plan-act latency report extracts collab role logs and overlap")
+
+
 def test_terminal_commitment_report_separates_world_completion_from_reporting():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_terminal_commitment.jsonl")
@@ -4982,6 +5105,8 @@ if __name__ == "__main__":
     test_self_evolution_report_tracks_progress_and_stagnation()
     test_self_evolution_report_flags_zero_action_blocked_plan_failure()
     test_plan_action_compliance_report_tracks_plan_following_gaps()
+    test_plan_act_latency_report_counts_interrupt_opportunities()
+    test_plan_act_latency_report_extracts_collab_role_logs_and_overlap()
     test_terminal_commitment_report_separates_world_completion_from_reporting()
     test_action_verification_report_replays_logged_actions()
     test_action_candidate_report_replays_repairable_rejected_actions()

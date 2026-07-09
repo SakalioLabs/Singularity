@@ -275,7 +275,8 @@
 - [ ] Run `benchmark --mixed-policy-ablation --mixed-policy-patch ...` on M1/M2 once the bridge and Minecraft server are live.
 - [ ] Run Agent-backed `collab-benchmark --mixed-policy-patch ...` on BM-701 and compare role session logs against an unpatched run.
 - [ ] Run Agent-backed `collab-benchmark --mixed-policy-ablation --mixed-policy-patch ...` on BM-701 with live role bridges.
-- [ ] Add an M7 `plan-act-latency-report` inspired by Parallelized Planning-Acting to measure planner wait time, stale-plan actions, overlap, and interrupt opportunities before enabling interruptible role execution.
+- [x] Add an M7 `plan-act-latency-report` inspired by Parallelized Planning-Acting to measure planner wait time, stale-plan actions, overlap, and interrupt opportunities before enabling interruptible role execution.
+- [ ] Run `plan-act-latency-report --collab-report ...` on live BM-701 role logs and gate any interruptible plan/act executor on reduced stale actions without more verifier rejects.
 - [ ] Use `mixed-initiative-policy-gate` on real approved patch reports before making a patch part of default runtime configuration.
 - [ ] Fill repeatable runtime profiles for M1/M2/M7 with real approved gate reports and validate them before live runs.
 - [x] Seed `workspace/runtime/m1_observed_action_value_profile.json` from real M1 action-value feedback and save approved validation/security reports.
