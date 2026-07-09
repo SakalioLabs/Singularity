@@ -1289,6 +1289,23 @@
 
 ---
 
+## P-071: When Claws Remember: Stealthy and Persistent Memory Injections in OpenClaw Agents
+
+- **Title**: When Claws Remember: Stealthy and Persistent Memory Injections in OpenClaw Agents
+- **Source**: https://arxiv.org/abs/2607.05189
+- **Year**: 2026
+- **Type**: Agent memory security / persistent attack paper
+- **Task Type**: Persistent memory, tool use, autonomous agents
+- **Core Method**: Demonstrates stealthy indirect memory injection attacks that persist across sessions in OpenClaw-style agents
+- **Memory**: Shows durable memory as an attack surface when user-controlled content can be saved and recalled later
+- **Key Results**: Positions persistent memory injection as a long-lived risk for agents with memory, tool use, and closed-loop autonomy
+- **Scores**: R=5, N=5, R=3, E=5
+- **Value to Project**: Reinforces promptware scanning, gate-reviewed feedback artifacts, and runtime-profile packaging that avoids raw memory/prompts/secrets
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-openclaw-memory-injection.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1363,3 +1380,4 @@
 | P-068 | AFTER Procedural Memory | 2026 | R5/N5/R4/E5 | P1 |
 | P-069 | Mem^p Procedural Memory | 2025 | R4/N5/R4/E4 | P2 |
 | P-070 | XENON Knowledge Correction | 2026 | R5/N5/R4/E5 | P1 |
+| P-071 | OpenClaw Memory Injection | 2026 | R5/N5/R3/E5 | P1 |

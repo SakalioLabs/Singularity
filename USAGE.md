@@ -271,6 +271,7 @@ python -m singularity.main benchmark --suite m1 --mixed-policy-patch logs/benchm
 # Bundle approved gates and feedback artifacts into a reusable runtime profile.
 # Keep provider keys in environment variables or CLI only; profile JSON should
 # contain paths and safe runtime switches, not secrets.
+python -m singularity.main runtime-profile-build --name m1_visual_goal_critic --enable-goal-critic --goal-critic-gate logs/benchmarks/goal_critic_gate.json --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json --output workspace/runtime/m1_visual_profile.json
 python -m singularity.main runtime-profile-validate --runtime-profile workspace/runtime/m1_visual_profile.json --output logs/benchmarks/runtime_profile_validation.json
 python -m singularity.main benchmark --suite m1 --runtime-profile workspace/runtime/m1_visual_profile.json
 python -m singularity.main collab-benchmark --executor agent --runtime-profile workspace/runtime/m7_roles_profile.json --preflight

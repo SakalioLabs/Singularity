@@ -7,7 +7,9 @@ import os
 
 from singularity.core.config import Config, BotConfig, LLMConfig
 from singularity.core.runtime_profile import (
+    build_runtime_profile_payload,
     build_runtime_profile_report,
+    build_runtime_profile_report_from_profiles,
     load_runtime_profiles,
     merge_arg_profile_list,
     profile_bool_arg,
@@ -91,6 +93,42 @@ def _print_runtime_profile_report(report: dict):
             print(f"      {gate.get('reason')}")
     for error in report.get("errors", []):
         print(f"  error: {error}")
+
+
+def _runtime_profile_payload_from_args(args) -> dict:
+    settings = {}
+    if getattr(args, "enable_goal_critic", False):
+        settings["enable_goal_critic"] = True
+    if getattr(args, "coach_style", ""):
+        settings["coach_style"] = getattr(args, "coach_style", "")
+    if getattr(args, "capture_screenshots", False):
+        settings["enable_screenshot_capture"] = True
+    if getattr(args, "screenshot_dir", ""):
+        settings["screenshot_dir"] = getattr(args, "screenshot_dir", "")
+    path_fields = {
+        "goal_critic_gate_paths": getattr(args, "goal_critic_gate", []) or [],
+        "mixed_policy_patch_paths": getattr(args, "mixed_policy_patch", []) or [],
+        "mixed_policy_gate_paths": getattr(args, "mixed_policy_gate", []) or [],
+        "self_evolution_feedback_paths": getattr(args, "self_evolution_feedback", []) or [],
+        "world_model_feedback_paths": getattr(args, "world_model_feedback", []) or [],
+        "world_model_gate_paths": getattr(args, "world_model_gate", []) or [],
+        "knowledge_correction_feedback_paths": getattr(args, "knowledge_correction_feedback", []) or [],
+        "knowledge_correction_gate_paths": getattr(args, "knowledge_correction_gate", []) or [],
+        "action_value_feedback_paths": getattr(args, "action_value_feedback", []) or [],
+        "action_value_transition_gate_paths": getattr(args, "action_value_transition_gate", []) or [],
+        "action_value_transition_evaluator_report_paths": getattr(args, "action_value_transition_evaluator_report", []) or [],
+        "skill_memory_quality_feedback_paths": getattr(args, "skill_memory_quality_feedback", []) or [],
+        "skill_memory_quality_gate_paths": getattr(args, "skill_memory_quality_gate", []) or [],
+        "skill_runtime_default_gate_paths": getattr(args, "skill_runtime_default_gate", []) or [],
+        "coach_style_ablation_paths": getattr(args, "coach_style_ablation", []) or [],
+        "coach_style_gate_paths": getattr(args, "coach_style_gate", []) or [],
+    }
+    return build_runtime_profile_payload(
+        name=getattr(args, "name", "") or "",
+        description=getattr(args, "description", "") or "",
+        settings=settings,
+        path_fields=path_fields,
+    )
 
 
 def _add_coaching_args(parser):
@@ -735,6 +773,35 @@ def main():
     runtime_profile_parser.add_argument("--output", type=str, default="", help="Optional JSON validation report path")
     runtime_profile_parser.add_argument("--log-level", type=str, default="INFO")
 
+    runtime_profile_build_parser = subparsers.add_parser(
+        "runtime-profile-build",
+        help="Build a reusable runtime profile JSON from approved gates and feedback artifacts",
+    )
+    runtime_profile_build_parser.add_argument("--name", type=str, default="", help="Profile name")
+    runtime_profile_build_parser.add_argument("--description", type=str, default="", help="Profile description")
+    runtime_profile_build_parser.add_argument("--enable-goal-critic", action="store_true", help="Set enable_goal_critic in profile settings")
+    runtime_profile_build_parser.add_argument("--coach-style", type=str, default="", help="Set coach_style in profile settings")
+    runtime_profile_build_parser.add_argument("--capture-screenshots", action="store_true", help="Set enable_screenshot_capture in profile settings")
+    runtime_profile_build_parser.add_argument("--screenshot-dir", type=str, default="", help="Set screenshot_dir in profile settings")
+    runtime_profile_build_parser.add_argument("--goal-critic-gate", action="append", default=[], help="Approved goal-verification-critic-gate JSON")
+    runtime_profile_build_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-policy patch JSON")
+    runtime_profile_build_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON")
+    runtime_profile_build_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution feedback JSON")
+    runtime_profile_build_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model feedback JSON")
+    runtime_profile_build_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model gate JSON")
+    runtime_profile_build_parser.add_argument("--knowledge-correction-feedback", action="append", default=[], help="knowledge-correction feedback JSON")
+    runtime_profile_build_parser.add_argument("--knowledge-correction-gate", action="append", default=[], help="Approved knowledge-correction gate JSON")
+    runtime_profile_build_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value feedback JSON")
+    runtime_profile_build_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value transition gate JSON")
+    runtime_profile_build_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value evaluator report JSON")
+    runtime_profile_build_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory quality feedback JSON")
+    runtime_profile_build_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory quality gate JSON")
+    runtime_profile_build_parser.add_argument("--skill-runtime-default-gate", action="append", default=[], help="Approved skill runtime-default gate JSON")
+    runtime_profile_build_parser.add_argument("--coach-style-ablation", action="append", default=[], help="coach-style ablation JSON")
+    runtime_profile_build_parser.add_argument("--coach-style-gate", action="append", default=[], help="Approved coach-style gate JSON")
+    runtime_profile_build_parser.add_argument("--output", type=str, default="", help="Optional runtime profile JSON path")
+    runtime_profile_build_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline manual review label templates
     label_template_parser = subparsers.add_parser("review-label-template", help="Generate JSONL manual review label templates from session logs")
     label_template_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to convert into review label templates")
@@ -1112,6 +1179,24 @@ def main():
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"error", "rejected"}:
+            sys.exit(1)
+        return
+
+    if args.command == "runtime-profile-build":
+        payload = _runtime_profile_payload_from_args(args)
+        profile_label = getattr(args, "output", "") or f"inline:{payload.get('name', 'runtime_profile')}"
+        report = build_runtime_profile_report_from_profiles([payload], profile_paths=[profile_label])
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2, ensure_ascii=False)
+            print(f"Runtime profile saved to {args.output}")
+        else:
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+        _print_runtime_profile_report(report)
         if report.get("readiness") in {"error", "rejected"}:
             sys.exit(1)
         return

@@ -8,7 +8,9 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from singularity.core.runtime_profile import (
+    build_runtime_profile_payload,
     build_runtime_profile_report,
+    build_runtime_profile_report_from_profiles,
     load_runtime_profiles,
     merge_arg_profile_list,
     profile_bool_arg,
@@ -111,8 +113,52 @@ def test_runtime_profile_rejects_rejected_gate():
     print("PASS: Runtime profile rejects rejected gate")
 
 
+def test_runtime_profile_builder_groups_gates_and_artifacts():
+    tmpdir = tempfile.mkdtemp()
+    goal_gate = os.path.join(tmpdir, "goal_gate.json")
+    mixed_gate = os.path.join(tmpdir, "mixed_gate.json")
+    patch_path = os.path.join(tmpdir, "mixed_patch.json")
+    _write_json(goal_gate, {
+        "type": "goal_verification_critic_gate",
+        "readiness": "approved",
+        "decision": "allow_goal_critic_runtime_use",
+    })
+    _write_json(mixed_gate, {
+        "type": "mixed_policy_gate",
+        "readiness": "approved",
+        "decision": "allow_policy_patch_runtime_use",
+    })
+    _write_json(patch_path, {"type": "mixed_policy_patch", "patches": []})
+
+    profile = build_runtime_profile_payload(
+        name="m1_mixed_goal_profile",
+        description="fixture profile",
+        settings={"enable_goal_critic": True},
+        path_fields={
+            "goal_critic_gate_paths": [goal_gate],
+            "mixed_policy_gate_paths": [mixed_gate],
+            "mixed_policy_patch_paths": [patch_path],
+        },
+    )
+    report = build_runtime_profile_report_from_profiles(
+        [profile],
+        profile_paths=["inline:m1_mixed_goal_profile"],
+    )
+
+    assert profile["type"] == "runtime_profile"
+    assert profile["settings"]["enable_goal_critic"] is True
+    assert profile["gates"]["goal_critic"] == [goal_gate]
+    assert profile["gates"]["mixed_policy"] == [mixed_gate]
+    assert profile["artifacts"]["mixed_policy_patch"] == [patch_path]
+    assert report["readiness"] == "approved"
+    assert report["approved_gate_count"] == 2
+    assert report["artifact_count"] == 1
+    print("PASS: Runtime profile builder groups gates and artifacts")
+
+
 if __name__ == "__main__":
     test_runtime_profile_validates_approved_goal_critic_gate()
     test_runtime_profile_requires_gate_for_patch_artifacts()
     test_runtime_profile_rejects_rejected_gate()
+    test_runtime_profile_builder_groups_gates_and_artifacts()
     print("\nRuntime profile tests PASSED")

@@ -57,6 +57,11 @@ GATE_FIELDS = {
 ARTIFACT_FIELDS = set(LIST_FIELDS) - GATE_FIELDS
 
 
+def _canonical_profile_key(field: str) -> tuple[str, str]:
+    section, keys = LIST_FIELDS[field]
+    return section, keys[0]
+
+
 def dedupe(values: list[str]) -> list[str]:
     seen = set()
     result = []
@@ -163,15 +168,61 @@ def profile_str_arg(args, attr: str, profiles: list[dict], *keys: str, default: 
     return str(setting)
 
 
+def build_runtime_profile_payload(
+    name: str = "",
+    description: str = "",
+    settings: dict = None,
+    path_fields: dict = None,
+) -> dict:
+    """Build a reusable runtime profile from canonical gate/artifact fields."""
+    payload = {"type": "runtime_profile"}
+    if name:
+        payload["name"] = str(name)
+    if description:
+        payload["description"] = str(description)
+    cleaned_settings = {
+        str(key): value
+        for key, value in (settings or {}).items()
+        if value not in (None, "", [], {})
+    }
+    if cleaned_settings:
+        payload["settings"] = cleaned_settings
+    sections = {"gates": {}, "artifacts": {}}
+    for field, values in (path_fields or {}).items():
+        if field not in LIST_FIELDS:
+            continue
+        cleaned = dedupe(_as_list(values))
+        if not cleaned:
+            continue
+        section, key = _canonical_profile_key(field)
+        sections[section][key] = cleaned
+    for section, values in sections.items():
+        if values:
+            payload[section] = values
+    return payload
+
+
 def build_runtime_profile_report(profile_paths: list[str]) -> dict:
     profiles, errors = load_runtime_profiles(profile_paths)
+    return build_runtime_profile_report_from_profiles(
+        profiles,
+        profile_paths=profile_paths,
+        load_errors=errors,
+    )
+
+
+def build_runtime_profile_report_from_profiles(
+    profiles: list[dict],
+    profile_paths: list[str] = None,
+    load_errors: list[str] = None,
+) -> dict:
     report = {
         "type": "runtime_profile_validation",
         "readiness": "review",
         "decision": "hold_runtime_profile",
         "reason": "runtime profile needs approved gate evidence",
         "profile_paths": list(profile_paths or []),
-        "profile_count": len(profiles),
+        "profile_count": len(profiles or []),
         "gate_count": 0,
         "approved_gate_count": 0,
         "artifact_count": 0,
@@ -179,7 +230,7 @@ def build_runtime_profile_report(profile_paths: list[str]) -> dict:
         "gate_reports": [],
         "settings": {},
         "missing": [],
-        "errors": list(errors),
+        "errors": list(load_errors or []),
     }
     if not profile_paths:
         report["missing"].append("runtime_profile")

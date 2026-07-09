@@ -99,6 +99,7 @@
 - [x] Add OpenClaw-style recall diversity tracking for memory entries and transferable experiences, plus `memory-consolidation-report` to identify reviewable consolidation candidates.
 - [x] Add MineExplorer to the paper index as the next open-world autonomous exploration evaluation reference.
 - [x] Add SciCrafter and WhisperBench to the paper index for discovery-to-application tasks and persistent-memory/patch gate hardening.
+- [x] Add the 2026 OpenClaw persistent memory-injection paper as a runtime-profile and memory-security reference.
 - [x] Add offline `exploration-trace-report` for MineExplorer-style autonomous/open-world coverage: visited position spread, newly observed blocks/entities/resources, visual evidence, hazards, multi-step plans, and action failure categories.
 - [x] Add a curriculum feedback bridge from `exploration-trace-report`: reports now emit `curriculum_feedback`, and `CurriculumManager.record_exploration_feedback()` uses discovered resources, low-movement logs, and failure categories to adjust future exploration candidates.
 - [x] Add AGI-Maze-style `world-model-report` that reconstructs visited X/Z cells, cell transitions, resource hotspots, danger cells, unexplored frontiers, and next exploration goals from session logs.
@@ -268,6 +269,7 @@
 - [x] Add mixed-policy promotion gate that approves, rejects, or routes patches to review from offline, benchmark, and collaboration ablation evidence.
 - [x] Gate runtime mixed-policy patch loading with approved policy-gate reports when `mixed_policy_gate_paths` is configured.
 - [x] Add reusable `runtime-profile-validate` plus `--runtime-profile` loading for run/autonomous/benchmark/M7 Agent roles, so approved gates and feedback artifacts can be deployed as repeatable profiles without copying long CLI flag sets.
+- [x] Add `runtime-profile-build` so approved gates, patches, feedback artifacts, and safe switches can be packaged into profile JSON through a validating CLI instead of hand-written deployment files.
 - [ ] Run live M1/M2/M7 with an approved mixed-policy patch and compare control-policy decisions plus mixed-policy review decisions against baseline.
 - [ ] Use `mixed-initiative-policy-ablation` on approved live-trace patches before running the corresponding patched benchmark suite.
 - [ ] Run `benchmark --mixed-policy-ablation --mixed-policy-patch ...` on M1/M2 once the bridge and Minecraft server are live.
@@ -275,6 +277,7 @@
 - [ ] Run Agent-backed `collab-benchmark --mixed-policy-ablation --mixed-policy-patch ...` on BM-701 with live role bridges.
 - [ ] Use `mixed-initiative-policy-gate` on real approved patch reports before making a patch part of default runtime configuration.
 - [ ] Fill repeatable runtime profiles for M1/M2/M7 with real approved gate reports and validate them before live runs.
+- [ ] Add runtime-profile security audit for referenced memory/correction artifacts so persistent promptware cannot enter live profiles through approved-looking paths.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
 - [ ] Run an unknown visual/environment goal with `--goal-critic --goal-critic-gate ...` and inspect `goal_verification_metrics` plus critic evidence in the session log.
 - [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces, build `goal-verification-critic-gate`, and compare completion judgments against manual review.
