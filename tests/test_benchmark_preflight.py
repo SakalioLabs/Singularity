@@ -1826,9 +1826,14 @@ def test_action_value_report_aggregates_outcome_profiles():
     assert report.positive_transition_count == 4
     assert report.negative_transition_count == 2
     assert report.low_confidence_transition_count == 0
+    assert report.action_local_transition_count == 0
+    assert report.next_observation_transition_count == 6
+    assert report.shared_observation_transition_count == 0
     assert feedback["failure_correction_pairs"][0]["source_log"] == session_path
     assert feedback["state_transition_count"] == 6
     assert feedback["low_confidence_transition_count"] == 0
+    assert feedback["transition_window_diagnostics"]["transition_coverage_rate"] == 1.0
+    assert feedback["transition_window_diagnostics"]["next_observation_transition_count"] == 6
     assert items["dig:coal_ore"]["attempts"] == 4
     assert items["dig:coal_ore"]["value_score"] >= 0.7
     assert items["craft:torch"]["failures"] == 2
@@ -2233,13 +2238,52 @@ def test_action_value_report_uses_embedded_action_observation_windows():
     assert report.state_transition_count == 1
     assert report.positive_transition_count == 1
     assert report.low_confidence_transition_count == 0
+    assert report.action_local_transition_count == 1
     assert transition["signature"] == "dig:coal_ore"
     assert transition["avg_transition_confidence"] == 1.0
+    assert transition["action_local_transitions"] == 1
     assert transition["inventory_gain_count"] == 1
     assert transition["examples"][0]["transition_confidence"] == 1.0
+    assert transition["examples"][0]["transition_window"] == "action_local"
     assert transition["examples"][0]["before_state_summary"]["inventory"] == {}
     assert transition["examples"][0]["after_state_summary"]["inventory"]["coal"] == 1.0
     print("PASS: Action value report uses embedded action observation windows")
+
+
+def test_action_value_report_flags_shared_transition_windows():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "action_value_shared_windows.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Gather oak logs"}},
+        {"type": "observation", "data": {"position": {"x": 0, "y": 64, "z": 0}, "health": 20, "inventory": {}, "nearby_blocks": [{"name": "oak_log"}]}},
+        {"type": "action", "data": {"action": {"type": "move_to", "parameters": {"x": 3, "z": 0}}, "result": {"success": True}}},
+        {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "oak_log"}}, "result": {"success": True}}},
+        {"type": "observation", "data": {"position": {"x": 3, "y": 64, "z": 0}, "health": 20, "inventory": {"oak_log": 1}, "nearby_blocks": [{"name": "oak_log"}]}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config())
+    report = runner.run_action_value_report_from_logs([session_path])
+    feedback = runner.action_value_feedback(report)
+    diagnostics = feedback["transition_window_diagnostics"]
+    gate = runner.build_action_value_transition_gate(action_value_reports=[{"action_value_feedback": feedback}])
+
+    assert report.action_count == 2
+    assert report.state_transition_count == 2
+    assert report.low_confidence_transition_count == 2
+    assert report.shared_observation_transition_count == 2
+    assert diagnostics["readiness"] == "review"
+    assert diagnostics["shared_observation_transition_count"] == 2
+    assert diagnostics["action_local_transition_count"] == 0
+    assert "avoid_shared_transition_credit_assignment" in {
+        hint["action_value_policy"] for hint in diagnostics["policy_hints"]
+    }
+    assert gate["readiness"] == "review"
+    assert gate["transition_window_diagnostics"]["shared_observation_transition_count"] == 2
+    assert gate["review_items"][0]["reason"] == "missing_action_local_transition_windows"
+    print("PASS: Action value report flags shared transition windows")
 
 
 def test_action_value_transition_gate_controls_runtime_feedback():
@@ -2256,6 +2300,7 @@ def test_action_value_transition_gate_controls_runtime_feedback():
                     "avg_transition_value_score": 0.82,
                     "avg_transition_confidence": 1.0,
                     "low_confidence_transitions": 0,
+                    "action_local_transitions": 4,
                 }
             ],
         },
@@ -2273,6 +2318,7 @@ def test_action_value_transition_gate_controls_runtime_feedback():
                     "avg_transition_value_score": 0.2,
                     "avg_transition_confidence": 0.5,
                     "low_confidence_transitions": 4,
+                    "action_local_transitions": 4,
                 }
             ],
         },
@@ -4768,6 +4814,7 @@ if __name__ == "__main__":
     test_knowledge_correction_ablation_reports_context_changes()
     test_knowledge_correction_review_labels_emit_approved_feedback()
     test_action_value_report_uses_embedded_action_observation_windows()
+    test_action_value_report_flags_shared_transition_windows()
     test_action_value_transition_gate_controls_runtime_feedback()
     test_action_value_transition_evaluator_compares_state_grounded_labels()
     test_self_evolution_gate_requires_verifier_and_counterexamples()

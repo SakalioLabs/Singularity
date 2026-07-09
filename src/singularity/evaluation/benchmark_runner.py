@@ -1379,6 +1379,11 @@ class ActionValueTraceCase:
     negative_transition_count: int = 0
     no_progress_transition_count: int = 0
     low_confidence_transition_count: int = 0
+    action_local_transition_count: int = 0
+    next_observation_transition_count: int = 0
+    shared_observation_transition_count: int = 0
+    wide_observation_gap_transition_count: int = 0
+    missing_transition_window_count: int = 0
     state_transition_items: list[dict] = field(default_factory=list)
     ready_for_action_value_review: bool = False
 
@@ -1439,6 +1444,34 @@ class ActionValueTraceReport:
     @property
     def low_confidence_transition_count(self) -> int:
         return sum(case.low_confidence_transition_count for case in self.cases)
+
+    @property
+    def action_local_transition_count(self) -> int:
+        return sum(case.action_local_transition_count for case in self.cases)
+
+    @property
+    def next_observation_transition_count(self) -> int:
+        return sum(case.next_observation_transition_count for case in self.cases)
+
+    @property
+    def shared_observation_transition_count(self) -> int:
+        return sum(case.shared_observation_transition_count for case in self.cases)
+
+    @property
+    def wide_observation_gap_transition_count(self) -> int:
+        return sum(case.wide_observation_gap_transition_count for case in self.cases)
+
+    @property
+    def missing_transition_window_count(self) -> int:
+        return sum(case.missing_transition_window_count for case in self.cases)
+
+    @property
+    def transition_coverage_rate(self) -> float:
+        return self._ratio(self.state_transition_count, self.action_count)
+
+    @property
+    def low_confidence_transition_rate(self) -> float:
+        return self._ratio(self.low_confidence_transition_count, self.state_transition_count)
 
     @property
     def success_rate(self) -> float:
@@ -6354,6 +6387,7 @@ class BenchmarkRunner:
         """Convert action outcome profiles into reusable candidate scoring feedback."""
         items = self._aggregate_action_value_items(report)
         transition_items = self._aggregate_action_state_transition_items(report)
+        transition_window_diagnostics = self.action_value_transition_window_diagnostics(report)
         high_value = [item for item in items if item.get("attempts", 0) >= 2 and item.get("value_score", 0) >= 0.7]
         low_value = [item for item in items if item.get("attempts", 0) >= 2 and item.get("value_score", 1) <= 0.35]
         positive_transitions = [
@@ -6400,6 +6434,13 @@ class BenchmarkRunner:
                 "reason": "some transition values rely on shared or wide observation windows and should not drive runtime ranking yet",
                 "count": report.low_confidence_transition_count,
             })
+        if transition_window_diagnostics.get("readiness") == "review":
+            for hint in transition_window_diagnostics.get("policy_hints", []):
+                if isinstance(hint, dict) and not any(
+                    existing.get("action_value_policy") == hint.get("action_value_policy")
+                    for existing in policy_hints
+                ):
+                    policy_hints.append(hint)
         return {
             "log_count": report.log_count,
             "ready_log_count": report.ready_log_count,
@@ -6416,6 +6457,14 @@ class BenchmarkRunner:
             "negative_transition_count": report.negative_transition_count,
             "no_progress_transition_count": report.no_progress_transition_count,
             "low_confidence_transition_count": report.low_confidence_transition_count,
+            "action_local_transition_count": report.action_local_transition_count,
+            "next_observation_transition_count": report.next_observation_transition_count,
+            "shared_observation_transition_count": report.shared_observation_transition_count,
+            "wide_observation_gap_transition_count": report.wide_observation_gap_transition_count,
+            "missing_transition_window_count": report.missing_transition_window_count,
+            "transition_coverage_rate": report.transition_coverage_rate,
+            "low_confidence_transition_rate": report.low_confidence_transition_rate,
+            "transition_window_diagnostics": transition_window_diagnostics,
             "action_value_items": items,
             "high_value_items": high_value[:20],
             "low_value_items": low_value[:20],
@@ -6426,6 +6475,94 @@ class BenchmarkRunner:
             "positive_state_transition_items": positive_transitions[:20],
             "negative_state_transition_items": negative_transitions[:20],
             "policy_hints": policy_hints,
+        }
+
+    def action_value_transition_window_diagnostics(self, report: ActionValueTraceReport) -> dict:
+        """Summarize whether action-value transition windows are trustworthy enough to reuse."""
+        def ratio(numerator: int, denominator: int) -> float:
+            return round(numerator / denominator, 3) if denominator else 0.0
+
+        transition_count = report.state_transition_count
+        low_confidence_rate = report.low_confidence_transition_rate
+        action_local_rate = ratio(report.action_local_transition_count, transition_count)
+        shared_rate = ratio(report.shared_observation_transition_count, transition_count)
+        coverage_rate = report.transition_coverage_rate
+        cases = []
+        for case in report.cases:
+            cases.append({
+                "source_log": case.source_log,
+                "action_count": case.action_count,
+                "state_transition_count": case.state_transition_count,
+                "transition_coverage_rate": ratio(case.state_transition_count, case.action_count),
+                "low_confidence_transition_count": case.low_confidence_transition_count,
+                "low_confidence_transition_rate": ratio(case.low_confidence_transition_count, case.state_transition_count),
+                "action_local_transition_count": case.action_local_transition_count,
+                "next_observation_transition_count": case.next_observation_transition_count,
+                "shared_observation_transition_count": case.shared_observation_transition_count,
+                "wide_observation_gap_transition_count": case.wide_observation_gap_transition_count,
+                "missing_transition_window_count": case.missing_transition_window_count,
+            })
+
+        policy_hints = []
+        missing_windows = report.missing_transition_window_count
+        if missing_windows:
+            policy_hints.append({
+                "action_value_policy": "log_action_pre_post_observations",
+                "priority": "high",
+                "reason": "some action events cannot be paired with a before/after state window",
+                "count": missing_windows,
+            })
+        if report.shared_observation_transition_count or report.wide_observation_gap_transition_count:
+            policy_hints.append({
+                "action_value_policy": "avoid_shared_transition_credit_assignment",
+                "priority": "high",
+                "reason": "some transition labels are attributed through shared or wide observation windows",
+                "count": report.shared_observation_transition_count + report.wide_observation_gap_transition_count,
+            })
+        if transition_count and action_local_rate < 0.75:
+            policy_hints.append({
+                "action_value_policy": "collect_action_local_transition_windows",
+                "priority": "high",
+                "reason": "most transition values do not have action-local pre/post observations",
+                "count": transition_count - report.action_local_transition_count,
+            })
+
+        if report.action_count <= 0:
+            readiness = "missing"
+            reason = "no actions were found"
+        elif transition_count <= 0:
+            readiness = "review"
+            reason = "no state-transition windows were found"
+        elif coverage_rate < 0.8:
+            readiness = "review"
+            reason = "too many actions lack transition windows"
+        elif low_confidence_rate > 0.25:
+            readiness = "review"
+            reason = "too many transition windows are low confidence"
+        elif action_local_rate < 0.75:
+            readiness = "review"
+            reason = "too few transition windows are action-local"
+        else:
+            readiness = "ready"
+            reason = "transition windows are sufficiently local and covered for review"
+
+        return {
+            "readiness": readiness,
+            "reason": reason,
+            "action_count": report.action_count,
+            "state_transition_count": transition_count,
+            "transition_coverage_rate": coverage_rate,
+            "low_confidence_transition_count": report.low_confidence_transition_count,
+            "low_confidence_transition_rate": low_confidence_rate,
+            "action_local_transition_count": report.action_local_transition_count,
+            "action_local_transition_rate": action_local_rate,
+            "next_observation_transition_count": report.next_observation_transition_count,
+            "shared_observation_transition_count": report.shared_observation_transition_count,
+            "shared_observation_transition_rate": shared_rate,
+            "wide_observation_gap_transition_count": report.wide_observation_gap_transition_count,
+            "missing_transition_window_count": missing_windows,
+            "policy_hints": policy_hints,
+            "cases": cases[:20],
         }
 
     def run_knowledge_correction_report_from_logs(
@@ -6950,6 +7087,7 @@ class BenchmarkRunner:
             "low_confidence_rate": 0.0,
             "trusted_items": [],
             "review_items": [],
+            "transition_window_diagnostics": {},
             "checks": [],
             "missing": [],
             "policy_hints": [],
@@ -6989,6 +7127,7 @@ class BenchmarkRunner:
                 report["low_confidence_transition_count"] / max(1, report["state_transition_count"]),
                 3,
             )
+        report["transition_window_diagnostics"] = self._combine_action_value_transition_window_diagnostics(report["checks"])
 
         failed_checks = [check for check in report["checks"] if check.get("status") == "fail"]
         warn_checks = [check for check in report["checks"] if check.get("status") == "warn"]
@@ -7031,6 +7170,34 @@ class BenchmarkRunner:
         report["trusted_items"] = report["trusted_items"][:20]
         report["review_items"] = report["review_items"][:20]
         return report
+
+    def _combine_action_value_transition_window_diagnostics(self, checks: list[dict]) -> dict:
+        totals = {
+            "state_transition_count": 0,
+            "low_confidence_transition_count": 0,
+            "action_local_transition_count": 0,
+            "next_observation_transition_count": 0,
+            "shared_observation_transition_count": 0,
+            "wide_observation_gap_transition_count": 0,
+            "missing_transition_window_count": 0,
+        }
+        for check in checks or []:
+            metrics = check.get("metrics", {}) if isinstance(check, dict) and isinstance(check.get("metrics", {}), dict) else {}
+            diagnostics = metrics.get("transition_window_diagnostics", {})
+            if not isinstance(diagnostics, dict):
+                continue
+            for key in totals:
+                totals[key] += self._gate_int(diagnostics.get(key, 0))
+        transitions = totals["state_transition_count"]
+        totals["low_confidence_transition_rate"] = round(
+            totals["low_confidence_transition_count"] / max(1, transitions),
+            3,
+        ) if transitions else 0.0
+        totals["action_local_transition_rate"] = round(
+            totals["action_local_transition_count"] / max(1, transitions),
+            3,
+        ) if transitions else 0.0
+        return totals
 
     def build_action_value_transition_evaluator_report(
         self,
@@ -10118,6 +10285,19 @@ class BenchmarkRunner:
         low_confidence_transitions = sum(
             1 for item in state_transition_items if self._safe_float(item.get("transition_confidence"), 1.0) < 0.75
         )
+        action_local_transitions = sum(
+            1 for item in state_transition_items if item.get("transition_window") == "action_local"
+        )
+        next_observation_transitions = sum(
+            1 for item in state_transition_items if item.get("transition_window") == "next_observation"
+        )
+        shared_observation_transitions = sum(
+            1 for item in state_transition_items if item.get("transition_window") == "shared_observation"
+        )
+        wide_gap_transitions = sum(
+            1 for item in state_transition_items if item.get("transition_window") == "wide_observation_gap"
+        )
+        missing_transition_windows = max(0, action_count - len(state_transition_items))
         return ActionValueTraceCase(
             source_log=source_log,
             event_count=len(events),
@@ -10138,6 +10318,11 @@ class BenchmarkRunner:
             negative_transition_count=negative_transitions,
             no_progress_transition_count=no_progress_transitions,
             low_confidence_transition_count=low_confidence_transitions,
+            action_local_transition_count=action_local_transitions,
+            next_observation_transition_count=next_observation_transitions,
+            shared_observation_transition_count=shared_observation_transitions,
+            wide_observation_gap_transition_count=wide_gap_transitions,
+            missing_transition_window_count=missing_transition_windows,
             state_transition_items=state_transition_items[:200],
             ready_for_action_value_review=bool(action_count),
         )
@@ -10191,6 +10376,12 @@ class BenchmarkRunner:
                         "movement_distance_sum": 0.0,
                         "transition_confidence_sum": 0.0,
                         "low_confidence_transitions": 0,
+                        "action_local_transitions": 0,
+                        "next_observation_transitions": 0,
+                        "shared_observation_transitions": 0,
+                        "wide_observation_gap_transitions": 0,
+                        "observation_gap_sum": 0,
+                        "max_observation_gap": 0,
                         "inventory_gain_count": 0,
                         "inventory_loss_count": 0,
                         "new_resource_count": 0,
@@ -10217,6 +10408,26 @@ class BenchmarkRunner:
                 record["transition_confidence_sum"] += confidence
                 if confidence < 0.75:
                     record["low_confidence_transitions"] += 1
+                window = str(item.get("transition_window") or "")
+                if window == "action_local":
+                    record["action_local_transitions"] += 1
+                elif window == "shared_observation":
+                    record["shared_observation_transitions"] += 1
+                elif window == "wide_observation_gap":
+                    record["wide_observation_gap_transitions"] += 1
+                elif window == "next_observation":
+                    record["next_observation_transitions"] += 1
+                elif item.get("shared_after_observation"):
+                    record["shared_observation_transitions"] += 1
+                elif self._gate_int(item.get("observation_gap", 0)) > 2:
+                    record["wide_observation_gap_transitions"] += 1
+                elif self._gate_int(item.get("observation_gap", 0)) > 0:
+                    record["next_observation_transitions"] += 1
+                else:
+                    record["action_local_transitions"] += 1
+                gap = max(0, self._gate_int(item.get("observation_gap", 0)))
+                record["observation_gap_sum"] += gap
+                record["max_observation_gap"] = max(record["max_observation_gap"], gap)
                 record["inventory_gain_count"] += len(item.get("gained_items", []) if isinstance(item.get("gained_items", []), list) else [])
                 record["inventory_loss_count"] += len(item.get("lost_items", []) if isinstance(item.get("lost_items", []), list) else [])
                 record["new_resource_count"] += len(item.get("new_resources", []) if isinstance(item.get("new_resources", []), list) else [])
@@ -10246,6 +10457,12 @@ class BenchmarkRunner:
                 "avg_movement_distance": round(record["movement_distance_sum"] / attempts, 3),
                 "avg_transition_confidence": round(record["transition_confidence_sum"] / attempts, 3),
                 "low_confidence_transitions": record["low_confidence_transitions"],
+                "action_local_transitions": record["action_local_transitions"],
+                "next_observation_transitions": record["next_observation_transitions"],
+                "shared_observation_transitions": record["shared_observation_transitions"],
+                "wide_observation_gap_transitions": record["wide_observation_gap_transitions"],
+                "avg_observation_gap": round(record["observation_gap_sum"] / attempts, 3),
+                "max_observation_gap": record["max_observation_gap"],
                 "inventory_gain_count": record["inventory_gain_count"],
                 "inventory_loss_count": record["inventory_loss_count"],
                 "new_resource_count": record["new_resource_count"],
@@ -10508,12 +10725,52 @@ class BenchmarkRunner:
         except Exception:
             return "general"
 
+    def _action_value_transition_window_diagnostics_from_feedback(self, feedback: dict) -> dict:
+        if not isinstance(feedback, dict):
+            return {}
+        diagnostics = feedback.get("transition_window_diagnostics")
+        if isinstance(diagnostics, dict):
+            return diagnostics
+        items = feedback.get("state_transition_value_items", [])
+        if not isinstance(items, list):
+            items = []
+        state_transition_count = self._gate_int(feedback.get("state_transition_count", 0))
+        low_confidence_count = self._gate_int(feedback.get("low_confidence_transition_count", 0))
+        action_local = self._gate_int(feedback.get("action_local_transition_count", 0))
+        next_observation = self._gate_int(feedback.get("next_observation_transition_count", 0))
+        shared = self._gate_int(feedback.get("shared_observation_transition_count", 0))
+        wide = self._gate_int(feedback.get("wide_observation_gap_transition_count", 0))
+        missing = self._gate_int(feedback.get("missing_transition_window_count", 0))
+        if not any((state_transition_count, action_local, next_observation, shared, wide, missing)) and items:
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                attempts = max(0, self._gate_int(item.get("attempts", 0)))
+                state_transition_count += attempts
+                low_confidence_count += max(0, self._gate_int(item.get("low_confidence_transitions", 0)))
+                action_local += max(0, self._gate_int(item.get("action_local_transitions", 0)))
+                next_observation += max(0, self._gate_int(item.get("next_observation_transitions", 0)))
+                shared += max(0, self._gate_int(item.get("shared_observation_transitions", 0)))
+                wide += max(0, self._gate_int(item.get("wide_observation_gap_transitions", 0)))
+        return {
+            "state_transition_count": state_transition_count,
+            "low_confidence_transition_count": low_confidence_count,
+            "low_confidence_transition_rate": round(low_confidence_count / max(1, state_transition_count), 3) if state_transition_count else 0.0,
+            "action_local_transition_count": action_local,
+            "action_local_transition_rate": round(action_local / max(1, state_transition_count), 3) if state_transition_count else 0.0,
+            "next_observation_transition_count": next_observation,
+            "shared_observation_transition_count": shared,
+            "wide_observation_gap_transition_count": wide,
+            "missing_transition_window_count": missing,
+        }
+
     def _action_value_transition_gate_check(self, source: str, payload: dict, thresholds: dict) -> dict:
         if not isinstance(payload, dict):
             return self._gate_check(source, "action_value_transition_gate", "fail", "payload is not a JSON object", {})
         feedback = payload.get("action_value_feedback", payload)
         if not isinstance(feedback, dict):
             return self._gate_check(source, "action_value_transition_gate", "fail", "missing action_value_feedback object", {})
+        window_diagnostics = self._action_value_transition_window_diagnostics_from_feedback(feedback)
         items = feedback.get("state_transition_value_items", [])
         if not isinstance(items, list):
             items = []
@@ -10534,15 +10791,29 @@ class BenchmarkRunner:
             confidence = 0.0 if confidence is None else confidence
             low_confidence = max(0, self._gate_int(item.get("low_confidence_transitions")))
             low_rate = round(low_confidence / max(1, attempts), 3)
+            action_local = max(0, self._gate_int(item.get("action_local_transitions")))
+            shared_windows = max(0, self._gate_int(item.get("shared_observation_transitions")))
+            wide_windows = max(0, self._gate_int(item.get("wide_observation_gap_transitions")))
             record = {
                 "signature": str(item.get("signature") or "unknown"),
                 "attempts": attempts,
                 "avg_transition_confidence": round(confidence, 3),
                 "low_confidence_rate": low_rate,
+                "action_local_transitions": action_local,
+                "shared_observation_transitions": shared_windows,
+                "wide_observation_gap_transitions": wide_windows,
                 "avg_transition_value_score": item.get("avg_transition_value_score"),
             }
             if attempts <= 0:
                 record["reason"] = "no_transition_attempts"
+                review_items.append(record)
+                continue
+            if action_local <= 0:
+                record["reason"] = "missing_action_local_transition_windows"
+                review_items.append(record)
+                continue
+            if (shared_windows + wide_windows) / max(1, attempts) > float(thresholds.get("max_item_low_confidence_rate", 0.25)):
+                record["reason"] = "shared_or_wide_transition_windows"
                 review_items.append(record)
                 continue
             if confidence < float(thresholds.get("min_transition_confidence", 0.75)):
@@ -10570,6 +10841,7 @@ class BenchmarkRunner:
             "review_item_count": len(review_items),
             "trusted_items": trusted_items[:8],
             "review_items": review_items[:8],
+            "transition_window_diagnostics": window_diagnostics,
         }
         if state_transition_count <= 0:
             return self._gate_check(source, "action_value_transition_gate", "warn", "no transition-value evidence found", metrics)
@@ -10954,12 +11226,22 @@ class BenchmarkRunner:
         if not reasons:
             reasons.append("no_observed_state_delta")
 
+        if shared_after_observation:
+            transition_window = "shared_observation"
+        elif observation_gap > 2:
+            transition_window = "wide_observation_gap"
+        elif observation_gap > 0:
+            transition_window = "next_observation"
+        else:
+            transition_window = "action_local"
+
         return {
             "source_log": source_log,
             "event_index": event_index,
             "before_observation_index": before_observation_index,
             "after_observation_index": after_observation_index,
             "observation_gap": observation_gap,
+            "transition_window": transition_window,
             "shared_after_observation": bool(shared_after_observation),
             "goal": str(goal or ""),
             "task_family": task_family_from_goal(goal),
@@ -15451,6 +15733,17 @@ class BenchmarkRunner:
             f"low_confidence={report.low_confidence_transition_count}"
         )
         feedback = self.action_value_feedback(report)
+        diagnostics = feedback.get("transition_window_diagnostics", {})
+        if diagnostics:
+            print(
+                "  transition windows: "
+                f"readiness={diagnostics.get('readiness', 'unknown')}, "
+                f"coverage={diagnostics.get('transition_coverage_rate', 0.0):.3f}, "
+                f"action_local={diagnostics.get('action_local_transition_count', 0)}, "
+                f"shared={diagnostics.get('shared_observation_transition_count', 0)}, "
+                f"wide_gap={diagnostics.get('wide_observation_gap_transition_count', 0)}, "
+                f"missing={diagnostics.get('missing_transition_window_count', 0)}"
+            )
         if feedback["policy_hints"]:
             hints = [
                 f"{hint['action_value_policy']}({hint['priority']})"
@@ -15477,7 +15770,8 @@ class BenchmarkRunner:
             print(
                 f"      actions={case.action_count}, success={case.success_count}, "
                 f"failure={case.failure_count}, signatures={case.signature_count}, "
-                f"pairs={len(case.failure_correction_pairs)}, transitions={case.state_transition_count}"
+                f"pairs={len(case.failure_correction_pairs)}, transitions={case.state_transition_count}, "
+                f"action_local={case.action_local_transition_count}, shared={case.shared_observation_transition_count}"
             )
             for pair in case.failure_correction_pairs[:3]:
                 print(
@@ -15575,6 +15869,16 @@ class BenchmarkRunner:
             f"low_confidence={report.get('low_confidence_transition_count', 0)} "
             f"rate={report.get('low_confidence_rate', 0.0):.3f}"
         )
+        diagnostics = report.get("transition_window_diagnostics", {})
+        if isinstance(diagnostics, dict) and diagnostics:
+            print(
+                "  transition windows: "
+                f"action_local={diagnostics.get('action_local_transition_count', 0)}, "
+                f"shared={diagnostics.get('shared_observation_transition_count', 0)}, "
+                f"wide_gap={diagnostics.get('wide_observation_gap_transition_count', 0)}, "
+                f"missing={diagnostics.get('missing_transition_window_count', 0)}, "
+                f"action_local_rate={diagnostics.get('action_local_transition_rate', 0.0):.3f}"
+            )
         if report.get("missing"):
             print(f"  missing: {', '.join(report.get('missing', []))}")
         if report.get("policy_hints"):
