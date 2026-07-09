@@ -176,6 +176,7 @@ class MemorySystem:
         self.entries: dict[str, MemoryEntry] = {}
         self.experiences: dict[str, ExperienceRecord] = {}
         self.task_continuity_records: list[TaskContinuityRecord] = []
+        self.last_task_continuity_capsule_trace: dict = {}
         self.memory_attribution_profile = {
             "enabled": False,
             "hints_by_id": {},
@@ -971,6 +972,201 @@ class MemorySystem:
                     f"status={record.branch_status}/{record.validation_status} "
                     f"summary={record.summary[:180]}"
                 )
+        return "\n".join(lines)
+
+    def task_continuity_capsule(
+        self,
+        goal: str,
+        current_state: Optional[dict] = None,
+        limit: int = 3,
+        char_budget: int = 600,
+    ) -> str:
+        """Build a budgeted active-path capsule without mutating the durable ledger."""
+        budget = max(0, self._safe_int(char_budget))
+        self.last_task_continuity_capsule_trace = {
+            "schema_version": 1,
+            "profile": "goal_frontier_capsule_v1",
+            "char_budget": budget,
+            "result_chars": 0,
+            "full_context_chars": 0,
+            "truncated": False,
+            "required_lines_complete": False,
+            "frontier_available": False,
+            "frontier_injected": False,
+            "next_actions_available": False,
+            "next_actions_injected": False,
+            "active_branch_count": 0,
+            "mode": "empty",
+            "path_checkpoint_count": 0,
+            "nonselected_branch_count": 0,
+        }
+        if budget <= 0:
+            return ""
+        matches = self._rank_task_continuity_records(
+            goal,
+            current_state or {},
+            limit=max(len(self.task_continuity_records), self._safe_int(limit or 3)),
+        )
+        active_path, _branch_hints = self._task_continuity_context_paths(matches, limit=limit)
+        if not active_path:
+            return ""
+
+        path_records = [item["record"] for item in active_path]
+        leaf = path_records[-1]
+        active_branch_count = self._task_continuity_active_branch_count(matches)
+        if active_branch_count > 1:
+            mode = "review_required"
+        elif leaf.branch_status in {"", "active"}:
+            mode = "active"
+        else:
+            mode = "retained"
+        path_bits = [
+            f"{str(record.id)[:32]}:{str(record.operation or 'grow')[:10]}/"
+            f"{str(record.validation_status or 'unverified')[:12]}"
+            for record in path_records
+        ]
+        required_lines = [
+            "Task state capsule:",
+            (
+                f"leaf={str(leaf.id)[:32]} branch={str(leaf.branch_id or 'legacy')[:32]} "
+                f"mode={mode} active_branches={active_branch_count}"
+            ),
+            "path=" + ">".join(path_bits),
+            f"goal={str(leaf.goal or goal)[:100]}",
+        ]
+        optional_lines = []
+        frontier = self._task_continuity_capsule_frontier(path_records)
+        if frontier:
+            optional_lines.append("frontier=" + " | ".join(frontier))
+        next_actions = self._task_continuity_capsule_next_actions(path_records)
+        if next_actions:
+            optional_lines.append("next=" + "; ".join(next_actions))
+        if leaf.summary and not frontier and not next_actions:
+            optional_lines.append(f"state={str(leaf.summary)[:140]}")
+        path_ids = {record.id for record in path_records}
+        selected_branch_ids = {
+            self._task_continuity_effective_branch_id(record) for record in path_records
+        }
+        nonselected_branch_count = len({
+            self._task_continuity_effective_branch_id(item["record"])
+            for item in matches
+            if item["record"].id not in path_ids
+            and self._task_continuity_effective_branch_id(item["record"]) not in selected_branch_ids
+        })
+        if nonselected_branch_count:
+            optional_lines.append(
+                f"other_branches={nonselected_branch_count} omitted=true"
+            )
+        full_context = "\n".join(required_lines + optional_lines)
+        capsule = self._task_continuity_pack_capsule(required_lines, optional_lines, budget)
+        capsule_lines = set(capsule.splitlines())
+        self.last_task_continuity_capsule_trace = {
+            "schema_version": 1,
+            "profile": "goal_frontier_capsule_v1",
+            "char_budget": budget,
+            "result_chars": len(capsule),
+            "full_context_chars": len(full_context),
+            "truncated": len(capsule) < len(full_context),
+            "required_lines_complete": all(line in capsule_lines for line in required_lines),
+            "frontier_available": bool(frontier),
+            "frontier_injected": bool(frontier) and any(line.startswith("frontier=") for line in capsule_lines),
+            "next_actions_available": bool(next_actions),
+            "next_actions_injected": bool(next_actions) and any(line.startswith("next=") for line in capsule_lines),
+            "active_branch_count": active_branch_count,
+            "mode": mode,
+            "path_checkpoint_count": len(path_records),
+            "nonselected_branch_count": nonselected_branch_count,
+        }
+        return capsule
+
+    def get_last_task_continuity_capsule_trace(self) -> dict:
+        return dict(self.last_task_continuity_capsule_trace)
+
+    def _task_continuity_active_branch_count(self, matches: list[dict]) -> int:
+        branch_ids = {
+            self._task_continuity_effective_branch_id(item["record"])
+            for item in matches
+            if isinstance(item, dict) and item.get("record") is not None
+        }
+        latest_by_branch = {}
+        for record in self.task_continuity_records:
+            branch_id = self._task_continuity_effective_branch_id(record)
+            if branch_id in branch_ids:
+                latest_by_branch[branch_id] = record
+        return sum(
+            1 for record in latest_by_branch.values()
+            if record.branch_status in {"", "active"}
+        )
+
+    def _task_continuity_capsule_frontier(self, path_records: list[TaskContinuityRecord]) -> list[str]:
+        frontier = []
+        seen = set()
+        for record in reversed(path_records):
+            for label, tasks in (
+                ("ready", record.ready_tasks),
+                ("active", record.active_tasks),
+                ("blocked", record.blocked_tasks),
+            ):
+                if not isinstance(tasks, list):
+                    continue
+                for task in tasks[:3]:
+                    if not isinstance(task, dict):
+                        continue
+                    title = str(task.get("title") or task.get("id") or "task")[:64]
+                    key = (label, title.casefold())
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    bit = f"{label}:{title}"
+                    missing = task.get("missing_preconditions", {})
+                    if missing:
+                        compact_missing = json.dumps(
+                            missing,
+                            ensure_ascii=True,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                            default=str,
+                        )
+                        bit += f" missing={compact_missing[:100]}"
+                    blockers = task.get("blockers", [])
+                    if isinstance(blockers, list) and blockers:
+                        bit += " blockers=" + ",".join(str(value)[:48] for value in blockers[:2])
+                    frontier.append(bit)
+                    if len(frontier) >= 4:
+                        return frontier
+        return frontier
+
+    def _task_continuity_capsule_next_actions(self, path_records: list[TaskContinuityRecord]) -> list[str]:
+        for record in reversed(path_records):
+            if isinstance(record.next_actions, list) and record.next_actions:
+                return [str(action)[:80] for action in record.next_actions[:3] if str(action).strip()]
+        return []
+
+    def _task_continuity_pack_capsule(
+        self,
+        required_lines: list[str],
+        optional_lines: list[str],
+        char_budget: int,
+    ) -> str:
+        lines = []
+        used = 0
+        for required, source_lines in ((True, required_lines), (False, optional_lines)):
+            for line in source_lines:
+                text = str(line or "").strip()
+                if not text:
+                    continue
+                separator = 1 if lines else 0
+                available = char_budget - used - separator
+                if available <= 0:
+                    continue
+                if len(text) <= available:
+                    lines.append(text)
+                    used += separator + len(text)
+                    continue
+                if required and available >= 16:
+                    clipped = text[:max(1, available - 3)].rstrip() + "..."
+                    lines.append(clipped)
+                    used += separator + len(clipped)
         return "\n".join(lines)
 
     def task_continuity_report(

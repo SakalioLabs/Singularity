@@ -29,8 +29,9 @@ Current report outcome:
 - Rule and LLM planning cycles now retrieve typed memory through strict per-read and per-decision character budgets, emit a schema-v2 contract, and exclude non-planning causal reads from bounded-context evidence. Rule selection remains world-state-driven and reports that memory has not yet influenced its action choice.
 - Autonomous runs now emit observations, plans, selected goals, and terminal subgoal outcomes as non-nested machine-checkable events; queued tasks no longer silently replace the goal whose plan is being executed.
 - Task continuity now uses schema-v2 execution-state records with session, branch, parent/root checkpoint, depth, validation, and revision provenance. Planner context follows one active root-to-current path and labels failed/proposed branches as hints; revision commands remain review-only and cannot restore world state.
-- Added a MemGym-style fixed-control lineage ablation plus a verifier-backed shadow-restoration report and gate. Built-in lineage fixtures reduce failed-branch contamination from 2 to 0 with 2/3 review-ready cases, but they are synthetic, candidate context is currently longer than the flat baseline, and built-ins cannot approve the gate.
+- Added a MemGym-style fixed-control lineage ablation plus a verifier-backed shadow-restoration report and gate. Built-in lineage fixtures reduce failed-branch contamination from 2 to 0 with 2/3 review-ready cases; they remain synthetic and cannot approve the gate.
 - Player observations and action snapshots now preserve dimension, hunger, saturation, oxygen, XP, game mode, and selected slot so future shadow comparisons can reject hidden state rollback rather than comparing inventory and position alone.
+- Replaced planner-facing rich task-continuity injection with a budgeted Goal Frontier Capsule while retaining the full durable ledger. Built-in cases preserve all identity/frontier/continuation probes, keep failed checkpoint IDs out of the capsule, and reduce fair flat-baseline context by 103, 74, and 86 characters respectively (87.7 average). Bounded-context replay now cross-checks the declared budget, observed characters, and sanitized trace while allowing a valid empty capsule before the first checkpoint; these remain offline fixture results, not a live token-cost claim.
 
 ## Evidence That Still Matters
 
@@ -43,7 +44,7 @@ Current report outcome:
 - No live BM-701 multi-agent execution report is available.
 - M3, M5, and M6 acceptance is machine-checkable; all 37 existing sessions were ingested and none qualifies.
 - The bounded-memory and autonomous-event fixes apply only to future sessions. They do not upgrade or rewrite the historical evidence above.
-- Execution-state lineage and shadow-state invariants are offline-verified but have no live Minecraft ablation or restoration evidence. The gate can only authorize shadow revision selection after repeated eligible evidence and always emits `automatic_restore_allowed=false`.
+- Execution-state lineage, capsule probes, and shadow-state invariants are offline-verified but have no live Minecraft ablation or restoration evidence. The gate now requires positive context reduction in eligible cases and can only authorize shadow revision selection after repeated evidence; it always emits `automatic_restore_allowed=false`.
 
 ## Research Direction
 
@@ -54,6 +55,8 @@ Current report outcome:
 - SelfMem: memory-policy variants should be optimized offline from retrieval cost and downstream outcomes, then promoted only through existing gates.
 - MAGE execution-state memory: active task paths, completed checkpoints, failed branches, and revision boundaries should be represented separately before automatic rollback is enabled.
 - MemGym: execution-state memory must be evaluated with the planner and action backend held fixed so memory gains are not confounded with reasoning or tool improvements.
+- Goal-Oriented Graphs: planner-facing memory should preserve the active goal-to-prerequisite frontier rather than return disconnected relevant checkpoints.
+- OpenClaw and Hermes compression: keep the complete durable record outside the prompt, budget only the injected projection, and verify recall/artifact/continuation/decision retention with probes before promotion.
 - OpenClaw and Hermes: durable memory, procedural skills, maintenance passes, and workspace separation are useful only when action authority and promotion gates remain explicit.
 
 ## Immediate Sequence
@@ -63,4 +66,4 @@ Current report outcome:
 3. Promote no capability until the ledger reports `repeat_verified`.
 4. Re-run M3/M5 with the new bounded-memory and autonomous-event contracts, then collect three distinct qualifying sessions for each adapter; M6 still requires screenshot-backed visual interventions.
 5. Continue research-driven improvements only with baseline/candidate traces and regression gates.
-6. Collect fixed-control live lineage and shadow-restoration traces on at least three distinct candidate sessions; keep automatic restoration disabled even if shadow selection is approved.
+6. Collect fixed-control live lineage and shadow-restoration traces on at least three distinct candidate sessions, verifying `goal_frontier_capsule_v1` memory-read events and actual token/latency deltas; keep automatic restoration disabled even if shadow selection is approved.

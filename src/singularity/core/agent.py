@@ -2799,13 +2799,30 @@ class Agent:
         query = str(goal or "")
         decision = self._memory_read_decision(query, "task", "task_continuity", "retrieve")
         result = ""
+        used_capsule = False
+        capsule_trace = {}
+        capsule_budget = 600 if max_chars is None else max(0, self._small_int(max_chars))
         if decision.should_retrieve and hasattr(self, "memory") and self.memory and hasattr(self.memory, "task_continuity_context"):
             try:
-                result = self.memory.task_continuity_context(
-                    goal,
-                    current_state=current_state or {},
-                    limit=3,
-                )
+                capsule_reader = getattr(self.memory, "task_continuity_capsule", None)
+                if callable(capsule_reader):
+                    used_capsule = True
+                    result = capsule_reader(
+                        goal,
+                        current_state=current_state or {},
+                        limit=3,
+                        char_budget=capsule_budget,
+                    )
+                    trace_reader = getattr(self.memory, "get_last_task_continuity_capsule_trace", None)
+                    if callable(trace_reader):
+                        trace = trace_reader()
+                        capsule_trace = trace if isinstance(trace, dict) else {}
+                else:
+                    result = self.memory.task_continuity_context(
+                        goal,
+                        current_state=current_state or {},
+                        limit=3,
+                    )
             except Exception as e:
                 logger.warning(f"Task continuity context failed: {e}")
         result = self._bounded_memory_text(result, max_chars)
@@ -2818,6 +2835,9 @@ class Agent:
             source="planner_task_continuity",
             decision=decision,
             planning_context=True,
+            context_profile="goal_frontier_capsule_v1" if used_capsule else "legacy_task_continuity",
+            context_budget_chars=capsule_budget if used_capsule else None,
+            context_trace=capsule_trace,
         )
         return result
 
@@ -3181,6 +3201,9 @@ class Agent:
         read_filter_report: dict = None,
         retrieval_trace: dict = None,
         planning_context: bool = True,
+        context_profile: str = "",
+        context_budget_chars: Optional[int] = None,
+        context_trace: dict = None,
     ):
         if not hasattr(self, "session_logger") or not hasattr(self.session_logger, "log"):
             return
@@ -3195,6 +3218,35 @@ class Agent:
             "has_result": bool(text.strip()),
             "planning_context": bool(planning_context),
         }
+        if context_profile:
+            payload["context_profile"] = str(context_profile)[:80]
+        if context_budget_chars is not None:
+            budget = max(0, self._small_int(context_budget_chars))
+            payload["context_budget_chars"] = budget
+            payload["context_within_budget"] = len(text) <= budget
+        if context_trace:
+            allowed_trace_keys = {
+                "schema_version",
+                "profile",
+                "char_budget",
+                "result_chars",
+                "full_context_chars",
+                "truncated",
+                "required_lines_complete",
+                "frontier_available",
+                "frontier_injected",
+                "next_actions_available",
+                "next_actions_injected",
+                "active_branch_count",
+                "mode",
+                "path_checkpoint_count",
+                "nonselected_branch_count",
+            }
+            payload["context_trace"] = {
+                key: context_trace.get(key)
+                for key in allowed_trace_keys
+                if key in context_trace
+            }
         if decision is not None:
             payload["policy_decision"] = decision.as_dict()
         if read_filter_report:

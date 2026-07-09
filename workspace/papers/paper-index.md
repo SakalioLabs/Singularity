@@ -1459,6 +1459,40 @@
 
 ---
 
+## P-081: Goal-Oriented Graphs for Minecraft
+
+- **Title**: From Entity-Centric to Goal-Oriented Graphs: Enhancing LLM Knowledge Retrieval in Minecraft
+- **Source**: https://arxiv.org/abs/2505.18607 and https://doi.org/10.1016/j.knosys.2026.115706
+- **Year**: 2025 preprint / 2026 journal
+- **Type**: Goal-dependency graph and procedural retrieval framework
+- **Task Type**: Multi-step Minecraft planning from wiki and recipe knowledge
+- **Core Method**: Represents goals as nodes and prerequisite/subgoal relations as edges, then recursively retrieves one coherent goal-to-prerequisite path
+- **Memory**: Preserves procedural dependencies instead of returning fragmented entity-centric facts
+- **Key Results**: Reports significant procedural-reasoning improvements over GraphRAG and other retrieval baselines in Minecraft
+- **Scores**: R=5, N=4, R=4, E=5
+- **Value to Project**: Defines the information-retention contract for a compact task-state capsule: active goal, execution leaf, unresolved prerequisite frontier, and continuation action
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-10-goal-oriented-graphs-minecraft.md`
+
+---
+
+## P-082: Active Context Compression
+
+- **Title**: Active Context Compression: Autonomous Memory Management in LLM Agents
+- **Source**: https://arxiv.org/abs/2601.07190
+- **Year**: 2026
+- **Type**: Agent-controlled intra-trajectory context compression
+- **Task Type**: Long-horizon software-engineering exploration and implementation
+- **Core Method**: Consolidates a focus phase into structured knowledge and withdraws the superseded raw interaction span
+- **Memory**: Keeps a compact knowledge block while pruning stale trial-and-error context
+- **Key Results**: Reports 22.7% aggregate token reduction with unchanged 3/5 success on five tasks, but one task incurs 110% token overhead
+- **Scores**: R=4, N=4, R=3, E=4
+- **Value to Project**: Motivates per-case context accounting and correctness probes instead of assuming compression is universally beneficial
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-10-active-context-compression.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1543,3 +1577,5 @@
 | P-078 | SelfMem | 2026 | R4/N5/R4/E4 | P2 |
 | P-079 | MAGE Execution-State Memory | 2026 | R5/N5/R4/E5 | P1 |
 | P-080 | MemGym | 2026 | R4/N5/R4/E4 | P2 |
+| P-081 | Goal-Oriented Graphs for Minecraft | 2025/2026 | R5/N4/R4/E5 | P1 |
+| P-082 | Active Context Compression | 2026 | R4/N4/R3/E4 | P2 |

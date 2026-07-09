@@ -96,6 +96,9 @@ class TaskContinuityLineageAblationCase:
     current_state: dict = field(default_factory=dict)
     expected_active_checkpoint_id: str = ""
     context_limit: int = 3
+    capsule_char_budget: int = 600
+    required_context_terms: list[str] = field(default_factory=list)
+    forbidden_context_terms: list[str] = field(default_factory=list)
     planner_id: str = ""
     action_backend: str = ""
     verifier_id: str = ""
@@ -128,7 +131,21 @@ class TaskContinuityLineageAblationResult:
     candidate_failed_hint_count: int = 0
     baseline_context_chars: int = 0
     candidate_context_chars: int = 0
+    rich_candidate_context_chars: int = 0
     context_char_delta: int = 0
+    context_char_reduction: int = 0
+    context_reduction_ratio: float = 0.0
+    capsule_char_budget: int = 0
+    capsule_within_budget: bool = False
+    capsule_required_probe_count: int = 0
+    capsule_required_probe_hit_count: int = 0
+    capsule_forbidden_probe_count: int = 0
+    capsule_forbidden_probe_violation_count: int = 0
+    capsule_all_probes_pass: bool = False
+    required_context_terms: list[str] = field(default_factory=list)
+    missing_required_context_terms: list[str] = field(default_factory=list)
+    forbidden_context_terms: list[str] = field(default_factory=list)
+    present_forbidden_context_terms: list[str] = field(default_factory=list)
     active_branch_count: int = 0
     lineage_issue_count: int = 0
     non_memory_modules_fixed: bool = False
@@ -187,6 +204,18 @@ class TaskContinuityLineageAblationReport:
     @property
     def average_precision_gain(self) -> float:
         return _average_optional([case.precision_gain for case in self.cases]) or 0.0
+
+    @property
+    def average_context_char_reduction(self) -> float:
+        return _average_optional([case.context_char_reduction for case in self.cases]) or 0.0
+
+    @property
+    def capsule_probe_failure_count(self) -> int:
+        return sum(1 for case in self.cases if not case.capsule_all_probes_pass)
+
+    @property
+    def capsule_budget_violation_count(self) -> int:
+        return sum(1 for case in self.cases if not case.capsule_within_budget)
 
 
 @dataclass
@@ -2009,6 +2038,13 @@ class BoundedPlanningContextCycle:
     contract_enabled: bool = False
     contract_bounded_ok: bool = False
     contract_total_context_chars: int = 0
+    task_continuity_capsule_read_count: int = 0
+    capsule_trace_missing_count: int = 0
+    capsule_truncated_count: int = 0
+    capsule_budget_violation_count: int = 0
+    capsule_required_line_failure_count: int = 0
+    capsule_frontier_omission_count: int = 0
+    capsule_next_action_omission_count: int = 0
     issues: list[str] = field(default_factory=list)
     bounded_ok: bool = False
 
@@ -2026,6 +2062,13 @@ class BoundedPlanningContextCase:
     oversized_cycle_count: int = 0
     raw_context_cycle_count: int = 0
     low_diversity_cycle_count: int = 0
+    task_continuity_capsule_read_count: int = 0
+    capsule_trace_missing_count: int = 0
+    capsule_truncated_count: int = 0
+    capsule_budget_violation_count: int = 0
+    capsule_required_line_failure_count: int = 0
+    capsule_frontier_omission_count: int = 0
+    capsule_next_action_omission_count: int = 0
     max_cycle_result_chars: int = 0
     total_result_chars: int = 0
     read_layers: dict = field(default_factory=dict)
@@ -2082,6 +2125,34 @@ class BoundedPlanningContextReport:
     @property
     def low_diversity_cycle_count(self) -> int:
         return sum(case.low_diversity_cycle_count for case in self.cases)
+
+    @property
+    def task_continuity_capsule_read_count(self) -> int:
+        return sum(case.task_continuity_capsule_read_count for case in self.cases)
+
+    @property
+    def capsule_trace_missing_count(self) -> int:
+        return sum(case.capsule_trace_missing_count for case in self.cases)
+
+    @property
+    def capsule_truncated_count(self) -> int:
+        return sum(case.capsule_truncated_count for case in self.cases)
+
+    @property
+    def capsule_budget_violation_count(self) -> int:
+        return sum(case.capsule_budget_violation_count for case in self.cases)
+
+    @property
+    def capsule_required_line_failure_count(self) -> int:
+        return sum(case.capsule_required_line_failure_count for case in self.cases)
+
+    @property
+    def capsule_frontier_omission_count(self) -> int:
+        return sum(case.capsule_frontier_omission_count for case in self.cases)
+
+    @property
+    def capsule_next_action_omission_count(self) -> int:
+        return sum(case.capsule_next_action_omission_count for case in self.cases)
 
     @property
     def read_layers(self) -> dict:
@@ -2475,10 +2546,13 @@ TASK_CONTINUITY_LINEAGE_ABLATION_CASES = [
             {"id": "old-root", "goal": "Build a safe shelter", "schema_version": 2, "operation": "grow", "execution_id": "old-run", "branch_id": "branch-old", "root_checkpoint_id": "old-root", "depth": 0, "lineage_status": "root", "validation_status": "unverified", "branch_status": "active", "created_at": 1.0},
             {"id": "old-ok", "goal": "Build a safe shelter", "schema_version": 2, "operation": "maintain", "execution_id": "old-run", "branch_id": "branch-old", "parent_checkpoint_id": "old-root", "root_checkpoint_id": "old-root", "depth": 1, "lineage_status": "linked", "validation_status": "verified", "validation_evidence": {"task": "foundation"}, "branch_status": "active", "created_at": 2.0},
             {"id": "old-fail", "goal": "Build a safe shelter", "schema_version": 2, "operation": "maintain", "execution_id": "old-run", "branch_id": "branch-old", "parent_checkpoint_id": "old-ok", "root_checkpoint_id": "old-root", "depth": 2, "lineage_status": "linked", "validation_status": "failed", "validation_evidence": {"task": "roof"}, "branch_status": "failed", "failed_tasks": [{"id": "roof", "title": "Build roof", "status": "failed"}], "created_at": 3.0},
-            {"id": "new-root", "goal": "Build a safe shelter", "schema_version": 2, "operation": "grow", "execution_id": "new-run", "branch_id": "branch-new", "root_checkpoint_id": "new-root", "depth": 0, "lineage_status": "root", "validation_status": "unverified", "branch_status": "active", "created_at": 4.0},
+            {"id": "new-root", "goal": "Build a safe shelter", "schema_version": 2, "operation": "grow", "execution_id": "new-run", "branch_id": "branch-new", "root_checkpoint_id": "new-root", "depth": 0, "lineage_status": "root", "validation_status": "unverified", "branch_status": "active", "summary": "New shelter attempt is active near the spawn clearing.", "ready_tasks": [{"id": "gather", "title": "Gather oak logs", "status": "accepted"}], "blocked_tasks": [{"id": "walls", "title": "Build shelter walls", "status": "blocked", "missing_preconditions": {"inventory": {"oak_log": 6}}}], "next_actions": ["Gather oak logs", "Build shelter walls"], "created_at": 4.0},
         ],
         expected_active_checkpoint_id="new-root",
         context_limit=2,
+        capsule_char_budget=480,
+        required_context_terms=["new-root", "Gather oak logs", "Build shelter walls", "oak_log"],
+        forbidden_context_terms=["old-fail"],
         planner_id="fixed-rule-planner-v1",
         action_backend="memory-selection-only",
         verifier_id="explicit-branch-status-v1",
@@ -2492,10 +2566,13 @@ TASK_CONTINUITY_LINEAGE_ABLATION_CASES = [
         records=[
             {"id": "mine-failed", "goal": "Mine iron safely", "schema_version": 2, "operation": "maintain", "execution_id": "old-mine", "branch_id": "mine-old", "root_checkpoint_id": "mine-failed", "depth": 0, "lineage_status": "root", "validation_status": "failed", "branch_status": "failed", "failed_tasks": [{"id": "dig", "title": "Unsafe dig", "status": "failed"}], "created_at": 1.0},
             {"id": "mine-root", "goal": "Mine iron safely", "schema_version": 2, "operation": "grow", "execution_id": "new-mine", "branch_id": "mine-new", "root_checkpoint_id": "mine-root", "depth": 0, "lineage_status": "root", "validation_status": "unverified", "branch_status": "active", "created_at": 2.0},
-            {"id": "mine-leaf", "goal": "Mine iron safely", "schema_version": 2, "operation": "maintain", "execution_id": "new-mine", "branch_id": "mine-new", "parent_checkpoint_id": "mine-root", "root_checkpoint_id": "mine-root", "depth": 1, "lineage_status": "linked", "validation_status": "verified", "validation_evidence": {"task": "craft pickaxe"}, "branch_status": "active", "created_at": 3.0},
+            {"id": "mine-leaf", "goal": "Mine iron safely", "schema_version": 2, "operation": "maintain", "execution_id": "new-mine", "branch_id": "mine-new", "parent_checkpoint_id": "mine-root", "root_checkpoint_id": "mine-root", "depth": 1, "lineage_status": "linked", "validation_status": "verified", "validation_evidence": {"task": "craft pickaxe"}, "branch_status": "active", "summary": "Stone pickaxe is verified and the safe iron route is ready.", "active_tasks": [{"id": "mine", "title": "Mine visible iron vein", "status": "active"}], "blocked_tasks": [{"id": "smelt", "title": "Smelt iron ingots", "status": "blocked", "missing_preconditions": {"inventory": {"raw_iron": 3}}}], "next_actions": ["Mine visible iron vein", "Return to furnace"], "created_at": 3.0},
         ],
         expected_active_checkpoint_id="mine-leaf",
         context_limit=2,
+        capsule_char_budget=480,
+        required_context_terms=["mine-leaf", "Mine visible iron vein", "Smelt iron ingots", "raw_iron"],
+        forbidden_context_terms=["mine-failed"],
         planner_id="fixed-rule-planner-v1",
         action_backend="memory-selection-only",
         verifier_id="explicit-branch-status-v1",
@@ -2508,10 +2585,12 @@ TASK_CONTINUITY_LINEAGE_ABLATION_CASES = [
         goal="Explore east frontier",
         records=[
             {"id": "east-old", "goal": "Explore east frontier", "schema_version": 2, "operation": "grow", "execution_id": "crashed", "branch_id": "east-a", "root_checkpoint_id": "east-old", "depth": 0, "lineage_status": "root", "validation_status": "unverified", "branch_status": "active", "created_at": 1.0},
-            {"id": "east-new", "goal": "Explore east frontier", "schema_version": 2, "operation": "grow", "execution_id": "current", "branch_id": "east-b", "root_checkpoint_id": "east-new", "depth": 0, "lineage_status": "root", "validation_status": "unverified", "branch_status": "active", "created_at": 2.0},
+            {"id": "east-new", "goal": "Explore east frontier", "schema_version": 2, "operation": "grow", "execution_id": "current", "branch_id": "east-b", "root_checkpoint_id": "east-new", "depth": 0, "lineage_status": "root", "validation_status": "unverified", "branch_status": "active", "summary": "Current east-frontier scan has not selected between two live roots.", "ready_tasks": [{"id": "scan", "title": "Scan east frontier", "status": "accepted"}], "next_actions": ["Review active branches before moving"], "created_at": 2.0},
         ],
         expected_active_checkpoint_id="east-new",
         context_limit=2,
+        capsule_char_budget=360,
+        required_context_terms=["east-new", "Scan east frontier", "review_required"],
         planner_id="fixed-rule-planner-v1",
         action_backend="memory-selection-only",
         verifier_id="explicit-branch-status-v1",
@@ -10863,6 +10942,26 @@ class BenchmarkRunner:
                 "reason": "planning cycles rely on too few typed context layers for ablation-friendly decisions",
                 "count": report.low_diversity_cycle_count,
             })
+        if report.capsule_trace_missing_count:
+            policy_hints.append({
+                "bounded_context_policy": "instrument_task_capsule_trace",
+                "priority": "high",
+                "reason": "goal-frontier capsule reads lack sanitized completeness traces",
+                "count": report.capsule_trace_missing_count,
+            })
+        capsule_omissions = (
+            report.capsule_required_line_failure_count
+            + report.capsule_frontier_omission_count
+            + report.capsule_next_action_omission_count
+            + report.capsule_budget_violation_count
+        )
+        if capsule_omissions:
+            policy_hints.append({
+                "bounded_context_policy": "preserve_task_capsule_contract",
+                "priority": "high",
+                "reason": "goal-frontier capsule omitted required identity, frontier, or continuation fields",
+                "count": capsule_omissions,
+            })
         return {
             "log_count": report.log_count,
             "ready_log_count": report.ready_log_count,
@@ -10874,6 +10973,13 @@ class BenchmarkRunner:
             "oversized_cycle_count": report.oversized_cycle_count,
             "raw_context_cycle_count": report.raw_context_cycle_count,
             "low_diversity_cycle_count": report.low_diversity_cycle_count,
+            "task_continuity_capsule_read_count": report.task_continuity_capsule_read_count,
+            "capsule_trace_missing_count": report.capsule_trace_missing_count,
+            "capsule_truncated_count": report.capsule_truncated_count,
+            "capsule_budget_violation_count": report.capsule_budget_violation_count,
+            "capsule_required_line_failure_count": report.capsule_required_line_failure_count,
+            "capsule_frontier_omission_count": report.capsule_frontier_omission_count,
+            "capsule_next_action_omission_count": report.capsule_next_action_omission_count,
             "max_read_chars": report.max_read_chars,
             "max_cycle_chars": report.max_cycle_chars,
             "read_layers": dict(sorted(report.read_layers.items())),
@@ -11113,6 +11219,13 @@ class BenchmarkRunner:
             oversized_cycle_count=sum(1 for cycle in cycles if "oversized_planning_context" in cycle.issues),
             raw_context_cycle_count=sum(1 for cycle in cycles if "raw_context_risk" in cycle.issues),
             low_diversity_cycle_count=sum(1 for cycle in cycles if "low_retrieval_diversity" in cycle.issues),
+            task_continuity_capsule_read_count=sum(cycle.task_continuity_capsule_read_count for cycle in cycles),
+            capsule_trace_missing_count=sum(cycle.capsule_trace_missing_count for cycle in cycles),
+            capsule_truncated_count=sum(cycle.capsule_truncated_count for cycle in cycles),
+            capsule_budget_violation_count=sum(cycle.capsule_budget_violation_count for cycle in cycles),
+            capsule_required_line_failure_count=sum(cycle.capsule_required_line_failure_count for cycle in cycles),
+            capsule_frontier_omission_count=sum(cycle.capsule_frontier_omission_count for cycle in cycles),
+            capsule_next_action_omission_count=sum(cycle.capsule_next_action_omission_count for cycle in cycles),
             max_cycle_result_chars=max((cycle.total_result_chars for cycle in cycles), default=0),
             total_result_chars=sum(cycle.total_result_chars for cycle in cycles),
             read_layers=dict(sorted(read_layers.items())),
@@ -11143,6 +11256,13 @@ class BenchmarkRunner:
         has_task_memory = False
         has_context_window = False
         raw_context_risk = False
+        capsule_read_count = 0
+        capsule_trace_missing_count = 0
+        capsule_truncated_count = 0
+        capsule_budget_violation_count = 0
+        capsule_required_line_failure_count = 0
+        capsule_frontier_omission_count = 0
+        capsule_next_action_omission_count = 0
         for event in read_events:
             data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
             layer = str(data.get("layer") or "unknown")
@@ -11165,6 +11285,82 @@ class BenchmarkRunner:
                 raw_context_risk = True
             if memory_type == "context_window" and result_chars > max_read_chars:
                 raw_context_risk = True
+            if (
+                memory_type == "task_continuity"
+                and data.get("context_profile") == "goal_frontier_capsule_v1"
+            ):
+                capsule_read_count += 1
+                trace = data.get("context_trace", {})
+                trace_is_dict = isinstance(trace, dict)
+                trace_int_keys = (
+                    "schema_version",
+                    "char_budget",
+                    "result_chars",
+                    "full_context_chars",
+                    "active_branch_count",
+                    "path_checkpoint_count",
+                    "nonselected_branch_count",
+                )
+                trace_bool_keys = (
+                    "truncated",
+                    "required_lines_complete",
+                    "frontier_available",
+                    "frontier_injected",
+                    "next_actions_available",
+                    "next_actions_injected",
+                )
+                trace_integrity_ok = bool(
+                    trace_is_dict
+                    and trace.get("profile") == "goal_frontier_capsule_v1"
+                    and trace.get("schema_version") == 1
+                    and all(
+                        isinstance(trace.get(key), int) and not isinstance(trace.get(key), bool)
+                        for key in trace_int_keys
+                    )
+                    and all(isinstance(trace.get(key), bool) for key in trace_bool_keys)
+                    and isinstance(trace.get("mode"), str)
+                    and trace.get("char_budget", -1) >= 0
+                    and trace.get("result_chars", -1) >= 0
+                    and trace.get("full_context_chars", -1) >= trace.get("result_chars", 0)
+                )
+                if not trace_integrity_ok:
+                    capsule_trace_missing_count += 1
+                if trace_is_dict:
+                    capsule_truncated_count += int(trace.get("truncated") is True)
+                    capsule_has_content = bool(
+                        result_chars > 0
+                        or self._safe_int(trace.get("path_checkpoint_count"), default=0) > 0
+                    )
+                    capsule_required_line_failure_count += int(
+                        capsule_has_content and trace.get("required_lines_complete") is not True
+                    )
+                    capsule_frontier_omission_count += int(
+                        trace.get("frontier_available") is True
+                        and trace.get("frontier_injected") is not True
+                    )
+                    capsule_next_action_omission_count += int(
+                        trace.get("next_actions_available") is True
+                        and trace.get("next_actions_injected") is not True
+                    )
+                declared_budget = data.get("context_budget_chars")
+                declared_budget_valid = bool(
+                    isinstance(declared_budget, int)
+                    and not isinstance(declared_budget, bool)
+                    and declared_budget >= 0
+                )
+                budget_consistent = bool(
+                    declared_budget_valid
+                    and data.get("context_within_budget") is True
+                    and result_chars <= declared_budget
+                )
+                if trace_integrity_ok:
+                    budget_consistent = bool(
+                        budget_consistent
+                        and trace.get("char_budget") == declared_budget
+                        and trace.get("result_chars") == result_chars
+                        and trace.get("result_chars") <= trace.get("char_budget")
+                    )
+                capsule_budget_violation_count += int(not budget_consistent)
 
         contract = contract if isinstance(contract, dict) else {}
         contract_present = bool(contract)
@@ -11195,6 +11391,16 @@ class BenchmarkRunner:
             issues.append("bounded_contract_disabled")
         if contract_present and not contract_bounded_ok:
             issues.append("bounded_contract_violation")
+        if capsule_trace_missing_count:
+            issues.append("task_capsule_trace_missing")
+        if capsule_budget_violation_count:
+            issues.append("task_capsule_budget_violation")
+        if capsule_required_line_failure_count:
+            issues.append("task_capsule_required_fields_missing")
+        if capsule_frontier_omission_count:
+            issues.append("task_capsule_frontier_missing")
+        if capsule_next_action_omission_count:
+            issues.append("task_capsule_next_actions_missing")
 
         hard_issues = {
             "missing_memory_read_trace",
@@ -11203,6 +11409,11 @@ class BenchmarkRunner:
             "raw_context_risk",
             "bounded_contract_disabled",
             "bounded_contract_violation",
+            "task_capsule_trace_missing",
+            "task_capsule_budget_violation",
+            "task_capsule_required_fields_missing",
+            "task_capsule_frontier_missing",
+            "task_capsule_next_actions_missing",
         }
         return BoundedPlanningContextCycle(
             cycle_index=cycle_index,
@@ -11223,6 +11434,13 @@ class BenchmarkRunner:
             contract_enabled=contract_enabled,
             contract_bounded_ok=contract_bounded_ok,
             contract_total_context_chars=contract_total_context_chars,
+            task_continuity_capsule_read_count=capsule_read_count,
+            capsule_trace_missing_count=capsule_trace_missing_count,
+            capsule_truncated_count=capsule_truncated_count,
+            capsule_budget_violation_count=capsule_budget_violation_count,
+            capsule_required_line_failure_count=capsule_required_line_failure_count,
+            capsule_frontier_omission_count=capsule_frontier_omission_count,
+            capsule_next_action_omission_count=capsule_next_action_omission_count,
             issues=sorted(set(issues)),
             bounded_ok=not any(issue in hard_issues for issue in issues),
         )
@@ -16661,6 +16879,7 @@ class BenchmarkRunner:
         memory_dirs: Optional[list[str]] = None,
         goals: Optional[list[str]] = None,
         context_limit: int = 3,
+        capsule_char_budget: int = 600,
         planner_id: str = "",
         action_backend: str = "",
         verifier_id: str = "",
@@ -16691,6 +16910,7 @@ class BenchmarkRunner:
                     goal=goal,
                     records=records,
                     context_limit=max(1, int(context_limit or 3)),
+                    capsule_char_budget=max(1, int(capsule_char_budget or 600)),
                     planner_id=planner_id,
                     action_backend=action_backend,
                     verifier_id=verifier_id,
@@ -16723,6 +16943,13 @@ class BenchmarkRunner:
             current_state=record.get("current_state", {}) if isinstance(record.get("current_state", {}), dict) else {},
             expected_active_checkpoint_id=str(record.get("expected_active_checkpoint_id") or ""),
             context_limit=max(1, self._gate_int(record.get("context_limit", 3))),
+            capsule_char_budget=max(1, self._gate_int(record.get("capsule_char_budget", 600))),
+            required_context_terms=self._dedupe_strings([
+                str(value) for value in record.get("required_context_terms", [])
+            ]) if isinstance(record.get("required_context_terms", []), list) else [],
+            forbidden_context_terms=self._dedupe_strings([
+                str(value) for value in record.get("forbidden_context_terms", [])
+            ]) if isinstance(record.get("forbidden_context_terms", []), list) else [],
             planner_id=str(record.get("planner_id") or ""),
             action_backend=str(record.get("action_backend") or ""),
             verifier_id=str(record.get("verifier_id") or ""),
@@ -16775,10 +17002,17 @@ class BenchmarkRunner:
                 memory, hint_records, expected_set, failed_branches
             )
             baseline_context = self._flat_task_continuity_context(baseline_records)
-            candidate_context = memory.task_continuity_context(
+            rich_candidate_context = memory.task_continuity_context(
                 case.goal,
                 case.current_state,
                 limit=limit,
+            )
+            capsule_budget = max(1, int(case.capsule_char_budget or 600))
+            candidate_context = memory.task_continuity_capsule(
+                case.goal,
+                case.current_state,
+                limit=limit,
+                char_budget=capsule_budget,
             )
             active_branches = [
                 branch_id for branch_id, record in latest_by_branch.items()
@@ -16810,6 +17044,24 @@ class BenchmarkRunner:
             expected_id = expected_leaf.id if expected_leaf is not None else ""
             baseline_leaf_hit = bool(expected_id and expected_id in baseline_ids)
             candidate_leaf_hit = bool(expected_id and expected_id in candidate_ids)
+            required_terms, forbidden_terms = self._task_continuity_capsule_probe_terms(
+                case,
+                memory,
+                expected_leaf,
+                expected_path,
+                failed_branches,
+            )
+            candidate_context_folded = candidate_context.casefold()
+            missing_required_terms = [
+                term for term in required_terms if term.casefold() not in candidate_context_folded
+            ]
+            present_forbidden_terms = [
+                term for term in forbidden_terms if term.casefold() in candidate_context_folded
+            ]
+            capsule_probe_pass = bool(
+                required_terms and not missing_required_terms and not present_forbidden_terms
+            )
+            capsule_within_budget = len(candidate_context) <= capsule_budget
             issues = []
             if not ranked:
                 issues.append("no_matching_checkpoints")
@@ -16827,11 +17079,22 @@ class BenchmarkRunner:
                 issues.append("candidate_missed_active_leaf")
             if candidate_contamination:
                 issues.append("candidate_failed_branch_contamination")
+            if not capsule_within_budget:
+                issues.append("candidate_capsule_budget_violation")
+            if not capsule_probe_pass:
+                issues.append("candidate_capsule_probe_failure")
             precision_gain = round(candidate_precision - baseline_precision, 3)
+            context_char_reduction = len(baseline_context) - len(candidate_context)
+            context_reduction_ratio = round(
+                context_char_reduction / len(baseline_context),
+                3,
+            ) if baseline_context else 0.0
             candidate_regressed = bool(
                 candidate_precision < baseline_precision
                 or candidate_contamination > baseline_contamination
                 or (baseline_leaf_hit and not candidate_leaf_hit)
+                or not capsule_within_budget
+                or not capsule_probe_pass
             )
             candidate_helped = bool(
                 not candidate_regressed
@@ -16840,6 +17103,8 @@ class BenchmarkRunner:
                 and explicit_active_consistent
                 and controls_fixed
                 and not lineage_issues
+                and capsule_within_budget
+                and capsule_probe_pass
                 and (
                     candidate_precision > baseline_precision
                     or candidate_contamination < baseline_contamination
@@ -16854,6 +17119,8 @@ class BenchmarkRunner:
                 and not lineage_issues
                 and candidate_leaf_hit
                 and candidate_contamination == 0
+                and capsule_within_budget
+                and capsule_probe_pass
             )
             return TaskContinuityLineageAblationResult(
                 case_id=case.id,
@@ -16877,7 +17144,21 @@ class BenchmarkRunner:
                 candidate_failed_hint_count=candidate_failed_hints,
                 baseline_context_chars=len(baseline_context),
                 candidate_context_chars=len(candidate_context),
+                rich_candidate_context_chars=len(rich_candidate_context),
                 context_char_delta=len(candidate_context) - len(baseline_context),
+                context_char_reduction=context_char_reduction,
+                context_reduction_ratio=context_reduction_ratio,
+                capsule_char_budget=capsule_budget,
+                capsule_within_budget=capsule_within_budget,
+                capsule_required_probe_count=len(required_terms),
+                capsule_required_probe_hit_count=len(required_terms) - len(missing_required_terms),
+                capsule_forbidden_probe_count=len(forbidden_terms),
+                capsule_forbidden_probe_violation_count=len(present_forbidden_terms),
+                capsule_all_probes_pass=capsule_probe_pass,
+                required_context_terms=required_terms,
+                missing_required_context_terms=missing_required_terms,
+                forbidden_context_terms=forbidden_terms,
+                present_forbidden_context_terms=present_forbidden_terms,
                 active_branch_count=len(active_branches),
                 lineage_issue_count=len(lineage_issues),
                 non_memory_modules_fixed=controls_fixed,
@@ -16959,9 +17240,72 @@ class BenchmarkRunner:
         for record in records:
             lines.append(
                 f"- {record.id} branch={record.branch_id or 'legacy'} "
-                f"status={record.branch_status}/{record.validation_status} {record.summary[:180]}"
+                f"status={record.branch_status}/{record.validation_status} goal={str(record.goal)[:100]}"
             )
+            if record.summary:
+                lines.append(f"  state: {str(record.summary)[:180]}")
+            for label, tasks in (
+                ("ready", record.ready_tasks),
+                ("active", record.active_tasks),
+                ("blocked", record.blocked_tasks),
+                ("failed", record.failed_tasks),
+            ):
+                if not isinstance(tasks, list):
+                    continue
+                task_bits = []
+                for task in tasks[:3]:
+                    if not isinstance(task, dict):
+                        continue
+                    bit = str(task.get("title") or task.get("id") or "task")[:80]
+                    missing = task.get("missing_preconditions", {})
+                    if missing:
+                        bit += " missing=" + json.dumps(
+                            missing,
+                            ensure_ascii=True,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                            default=str,
+                        )[:120]
+                    task_bits.append(bit)
+                if task_bits:
+                    lines.append(f"  {label}: " + " | ".join(task_bits))
+            if isinstance(record.next_actions, list) and record.next_actions:
+                lines.append("  next: " + "; ".join(str(value)[:80] for value in record.next_actions[:3]))
         return "\n".join(lines) if records else ""
+
+    def _task_continuity_capsule_probe_terms(
+        self,
+        case: TaskContinuityLineageAblationCase,
+        memory,
+        expected_leaf,
+        expected_path: list,
+        failed_branches: set[str],
+    ) -> tuple[list[str], list[str]]:
+        required = list(case.required_context_terms or []) if isinstance(case.required_context_terms, list) else []
+        if expected_leaf is not None:
+            required.append(str(expected_leaf.id))
+        if not case.required_context_terms:
+            for record in reversed(expected_path):
+                tasks = []
+                for values in (record.ready_tasks, record.active_tasks, record.blocked_tasks):
+                    if isinstance(values, list):
+                        tasks.extend(values)
+                task = next((value for value in tasks if isinstance(value, dict)), None)
+                if task:
+                    required.append(str(task.get("title") or task.get("id") or ""))
+                    break
+            for record in reversed(expected_path):
+                if isinstance(record.next_actions, list) and record.next_actions:
+                    required.append(str(record.next_actions[0]))
+                    break
+        forbidden = list(case.forbidden_context_terms or []) if isinstance(case.forbidden_context_terms, list) else []
+        forbidden.extend(
+            str(record.id)
+            for record in memory.task_continuity_records
+            if memory._task_continuity_effective_branch_id(record) in failed_branches
+            and record not in expected_path
+        )
+        return self._dedupe_strings(required), self._dedupe_strings(forbidden)
 
     def task_continuity_lineage_ablation_payload(
         self,
@@ -16969,7 +17313,7 @@ class BenchmarkRunner:
     ) -> dict:
         return {
             "type": "task_continuity_lineage_ablation",
-            "schema_version": 2,
+            "schema_version": 3,
             "case_count": len(report.cases),
             "ready_case_count": report.ready_case_count,
             "non_builtin_ready_case_count": report.non_builtin_ready_case_count,
@@ -16979,6 +17323,9 @@ class BenchmarkRunner:
             "baseline_failed_contamination_count": report.baseline_failed_contamination_count,
             "candidate_failed_contamination_count": report.candidate_failed_contamination_count,
             "average_precision_gain": report.average_precision_gain,
+            "average_context_char_reduction": report.average_context_char_reduction,
+            "capsule_probe_failure_count": report.capsule_probe_failure_count,
+            "capsule_budget_violation_count": report.capsule_budget_violation_count,
             "cases": [asdict(case) for case in report.cases],
             "errors": list(report.errors),
         }
@@ -17350,6 +17697,7 @@ class BenchmarkRunner:
         min_restoration_cases: int = 3,
         min_distinct_candidate_sessions: int = 3,
         min_precision_gain: float = 0.0,
+        min_context_char_reduction: float = 1.0,
         max_candidate_contamination: int = 0,
         max_lineage_regressions: int = 0,
         max_unreachable_cases: int = 0,
@@ -17364,6 +17712,7 @@ class BenchmarkRunner:
             "min_restoration_cases": max(1, int(min_restoration_cases or 1)),
             "min_distinct_candidate_sessions": max(1, int(min_distinct_candidate_sessions or 1)),
             "min_precision_gain": float(min_precision_gain or 0.0),
+            "min_context_char_reduction": float(min_context_char_reduction or 0.0),
             "max_candidate_contamination": max(0, int(max_candidate_contamination or 0)),
             "max_lineage_regressions": max(0, int(max_lineage_regressions or 0)),
             "max_unreachable_cases": max(0, int(max_unreachable_cases or 0)),
@@ -17391,6 +17740,9 @@ class BenchmarkRunner:
             "lineage_integrity_failure_count": 0,
             "candidate_failed_contamination_count": 0,
             "average_precision_gain": None,
+            "average_context_char_reduction": None,
+            "capsule_probe_failure_count": 0,
+            "capsule_budget_violation_count": 0,
             "restoration_case_count": 0,
             "eligible_restoration_case_count": 0,
             "unreachable_count": 0,
@@ -17426,6 +17778,7 @@ class BenchmarkRunner:
             report["missing"].append("task_continuity_restoration_report")
 
         precision_values = []
+        context_reduction_values = []
         candidate_sessions = set()
         for source, payload in lineage_items:
             check = self._task_continuity_lineage_gate_check(source, payload, thresholds)
@@ -17440,6 +17793,11 @@ class BenchmarkRunner:
             value = self._gate_float_or_none(metrics.get("average_precision_gain"))
             if value is not None:
                 precision_values.append(value)
+            context_value = self._gate_float_or_none(metrics.get("average_context_char_reduction"))
+            if context_value is not None:
+                context_reduction_values.append(context_value)
+            report["capsule_probe_failure_count"] += self._gate_int(metrics.get("capsule_probe_failure_count"))
+            report["capsule_budget_violation_count"] += self._gate_int(metrics.get("capsule_budget_violation_count"))
         for source, payload in restoration_items:
             check = self._task_continuity_restoration_gate_check(source, payload, thresholds)
             report["checks"].append(check)
@@ -17454,6 +17812,7 @@ class BenchmarkRunner:
                 if session_id:
                     candidate_sessions.add(str(session_id))
         report["average_precision_gain"] = _average_optional(precision_values)
+        report["average_context_char_reduction"] = _average_optional(context_reduction_values)
         report["distinct_candidate_session_count"] = len(candidate_sessions)
         report["evidence_count"] = sum(1 for check in report["checks"] if check.get("status") == "pass")
         report["warning_count"] = sum(1 for check in report["checks"] if check.get("status") == "warn")
@@ -17463,6 +17822,10 @@ class BenchmarkRunner:
             report["policy_hints"].append("isolate_failed_task_branches")
         if report["lineage_integrity_failure_count"]:
             report["policy_hints"].append("repair_lineage_report_integrity")
+        if report["capsule_probe_failure_count"]:
+            report["policy_hints"].append("preserve_goal_frontier_capsule_probes")
+        if report["capsule_budget_violation_count"]:
+            report["policy_hints"].append("enforce_task_state_capsule_budget")
         if report["state_rollback_count"]:
             report["policy_hints"].append("preserve_current_world_state_during_shadow_selection")
         if report["unreachable_count"]:
@@ -17527,6 +17890,11 @@ class BenchmarkRunner:
             for case in relevant
             if isinstance(case.get("precision_gain"), (int, float))
         ]
+        context_reduction_values = [
+            float(case.get("context_char_reduction"))
+            for case in eligible
+            if isinstance(case.get("context_char_reduction"), (int, float))
+        ]
         integrity_failure_count = sum(
             1 for case in eligible
             if not (
@@ -17535,6 +17903,8 @@ class BenchmarkRunner:
                 and self._gate_int(case.get("active_branch_count")) == 1
                 and self._gate_int(case.get("lineage_issue_count")) == 0
                 and self._gate_int(case.get("candidate_failed_contamination_count")) == 0
+                and case.get("capsule_within_budget") is True
+                and case.get("capsule_all_probes_pass") is True
             )
         )
         metrics = {
@@ -17547,19 +17917,30 @@ class BenchmarkRunner:
             "helped_count": sum(1 for case in relevant if case.get("candidate_helped")),
             "regression_count": sum(1 for case in relevant if case.get("candidate_regressed")),
             "integrity_failure_count": integrity_failure_count,
+            "capsule_probe_failure_count": sum(
+                1 for case in relevant if case.get("capsule_all_probes_pass") is not True
+            ),
+            "capsule_budget_violation_count": sum(
+                1 for case in relevant if case.get("capsule_within_budget") is not True
+            ),
             "candidate_failed_contamination_count": sum(
                 self._gate_int(case.get("candidate_failed_contamination_count", 0))
                 for case in relevant
             ),
             "average_precision_gain": _average_optional(precision_values),
+            "average_context_char_reduction": _average_optional(context_reduction_values),
         }
         errors = payload.get("errors", []) if isinstance(payload.get("errors", []), list) else []
-        if payload.get("type") != "task_continuity_lineage_ablation" or self._gate_int(payload.get("schema_version")) != 2:
+        if payload.get("type") != "task_continuity_lineage_ablation" or self._gate_int(payload.get("schema_version")) != 3:
             return self._gate_check(source, "task_continuity_lineage_ablation", "fail", "lineage ablation type or schema is invalid", metrics)
         if errors:
             return self._gate_check(source, "task_continuity_lineage_ablation", "fail", "lineage ablation contains errors", metrics)
         if metrics["integrity_failure_count"]:
             return self._gate_check(source, "task_continuity_lineage_ablation", "fail", "lineage report readiness contradicts its case evidence", metrics)
+        if metrics["capsule_probe_failure_count"]:
+            return self._gate_check(source, "task_continuity_lineage_ablation", "fail", "task-state capsule loses required recall, continuation, or decision probes", metrics)
+        if metrics["capsule_budget_violation_count"]:
+            return self._gate_check(source, "task_continuity_lineage_ablation", "fail", "task-state capsule exceeds its declared character budget", metrics)
         if metrics["regression_count"] > thresholds["max_lineage_regressions"]:
             return self._gate_check(source, "task_continuity_lineage_ablation", "fail", "lineage candidate regresses against the flat baseline", metrics)
         if metrics["candidate_failed_contamination_count"] > thresholds["max_candidate_contamination"]:
@@ -17567,6 +17948,9 @@ class BenchmarkRunner:
         precision_gain = metrics["average_precision_gain"]
         if precision_gain is None or precision_gain < thresholds["min_precision_gain"]:
             return self._gate_check(source, "task_continuity_lineage_ablation", "warn", "lineage precision gain is missing or below threshold", metrics)
+        context_reduction = metrics["average_context_char_reduction"]
+        if context_reduction is None or context_reduction < thresholds["min_context_char_reduction"]:
+            return self._gate_check(source, "task_continuity_lineage_ablation", "warn", "task-state capsule does not reduce context enough", metrics)
         if (
             len(eligible) < thresholds["min_lineage_cases"]
             or fixed_controls < len(eligible)
@@ -20940,6 +21324,20 @@ class BenchmarkRunner:
             f"max_read_chars={report.max_read_chars}, "
             f"max_cycle_chars={report.max_cycle_chars}"
         )
+        if report.task_continuity_capsule_read_count:
+            capsule_omissions = (
+                report.capsule_required_line_failure_count
+                + report.capsule_frontier_omission_count
+                + report.capsule_next_action_omission_count
+            )
+            print(
+                "  task capsules: "
+                f"reads={report.task_continuity_capsule_read_count}, "
+                f"trace_missing={report.capsule_trace_missing_count}, "
+                f"truncated={report.capsule_truncated_count}, "
+                f"budget_violations={report.capsule_budget_violation_count}, "
+                f"contract_omissions={capsule_omissions}"
+            )
         if report.read_types:
             print(f"  read types: {self._format_counts(report.read_types)}")
         feedback = self.bounded_context_feedback(report)

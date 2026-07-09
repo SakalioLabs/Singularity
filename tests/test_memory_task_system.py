@@ -518,6 +518,11 @@ def test_task_continuity_ledger_persists_resume_context():
         "Craft torches before night",
         {"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}]},
     )
+    capsule = memory.task_continuity_capsule(
+        "Craft torches before night",
+        {"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}]},
+        char_budget=300,
+    )
     reloaded = MemorySystem(memory_dir=tmpdir, persist=True)
     reloaded_context = reloaded.task_continuity_context("Craft torches before night", {"inventory": {"stick": 1}})
 
@@ -531,6 +536,20 @@ def test_task_continuity_ledger_persists_resume_context():
     assert "Task continuity ledger" in context
     assert "Gather coal for torches" in context
     assert "Craft torches" in reloaded_context
+    assert len(capsule) <= 300
+    assert "Task state capsule" in capsule
+    assert record.id in capsule
+    assert "Gather coal for torches" in capsule
+    assert 'missing={"inventory":{"coal":1}}' in capsule
+    capsule_trace = memory.get_last_task_continuity_capsule_trace()
+    assert capsule_trace["result_chars"] == len(capsule)
+    assert capsule_trace["char_budget"] == 300
+    assert capsule_trace["truncated"] is True
+    assert capsule_trace["required_lines_complete"] is True
+    assert capsule_trace["frontier_available"] is True
+    assert capsule_trace["frontier_injected"] is True
+    assert capsule_trace["next_actions_available"] is True
+    assert capsule_trace["next_actions_injected"] is False
     assert os.path.exists(os.path.join(tmpdir, "task_continuity.jsonl"))
     print("PASS: Task continuity ledger persists resume context")
 
@@ -2120,11 +2139,16 @@ def test_agent_records_and_reads_task_continuity_context():
     assert record.operation == "maintain"
     assert record.execution_id == "agent-continuity-session"
     assert record.validation_status == "verified"
-    assert "Task continuity ledger" in context
+    assert "Task state capsule" in context
     assert "Craft torches" in context
     assert "missing" in context
     assert write_event["data"]["operation"] == "record_task_continuity"
     assert read_event["data"]["has_result"] is True
+    assert read_event["data"]["context_profile"] == "goal_frontier_capsule_v1"
+    assert read_event["data"]["context_budget_chars"] == 600
+    assert read_event["data"]["context_within_budget"] is True
+    assert read_event["data"]["context_trace"]["required_lines_complete"] is True
+    assert read_event["data"]["context_trace"]["frontier_injected"] is True
     assert checkpoint_event["data"]["ready_count"] == 0
     assert checkpoint_event["data"]["branch_id"] == record.branch_id
     assert checkpoint_event["data"]["validation_status"] == "verified"

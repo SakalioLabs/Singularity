@@ -332,7 +332,8 @@
 - [x] Add a memory-isolated execution-lineage ablation with fixed planner/action backends, following MemGym's separation of memory value from reasoning/tool value.
 - [x] Add a verifier-backed shadow-restoration gate covering route-bounded reachability, critical player-state preservation, branch isolation, evidence integrity, and baseline non-regression while keeping automatic restoration disabled.
 - [ ] Collect at least three distinct live candidate sessions for both lineage and shadow-restoration reports; built-in and offline fixtures must remain ineligible under the default gate.
-- [ ] Reduce lineage candidate context cost without reintroducing failed-branch contamination; current built-ins improve precision but produce longer context than the flat baseline.
+- [x] Reduce lineage candidate context cost without reintroducing failed-branch contamination by injecting a budgeted Goal Frontier Capsule and gating identity/frontier/continuation probes plus per-case context reduction.
+- [ ] Confirm `goal_frontier_capsule_v1` on fresh live planner cycles and compare actual input tokens, planner latency, verifier outcomes, and task completion against the rich-context baseline.
 - [ ] Run schema-v2 task continuity on fresh M1/M3/M5 sessions and inspect lineage issues, active paths, revision candidates, and terminal checkpoint validity.
 - [ ] Compare SelfMem-style planning-memory budget/layer variants offline, then promote only variants with held-out transfer and runtime-cost evidence.
 

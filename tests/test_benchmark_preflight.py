@@ -3793,6 +3793,37 @@ def test_bounded_context_report_audits_typed_planner_context():
         {
             "type": "memory_read",
             "data": {
+                "layer": "task",
+                "memory_type": "task_continuity",
+                "source": "planner_task_continuity",
+                "query": "Craft torches",
+                "result_chars": 260,
+                "has_result": True,
+                "context_profile": "goal_frontier_capsule_v1",
+                "context_budget_chars": 600,
+                "context_within_budget": True,
+                "context_trace": {
+                    "schema_version": 1,
+                    "profile": "goal_frontier_capsule_v1",
+                    "char_budget": 600,
+                    "result_chars": 260,
+                    "full_context_chars": 260,
+                    "truncated": False,
+                    "required_lines_complete": True,
+                    "frontier_available": True,
+                    "frontier_injected": True,
+                    "next_actions_available": True,
+                    "next_actions_injected": True,
+                    "active_branch_count": 1,
+                    "mode": "active",
+                    "path_checkpoint_count": 2,
+                    "nonselected_branch_count": 1,
+                },
+            },
+        },
+        {
+            "type": "memory_read",
+            "data": {
                 "layer": "context",
                 "memory_type": "context_window",
                 "source": "planner_context",
@@ -3837,6 +3868,11 @@ def test_bounded_context_report_audits_typed_planner_context():
     assert report.oversized_read_cycle_count == 1
     assert report.oversized_cycle_count == 1
     assert report.raw_context_cycle_count == 1
+    assert report.task_continuity_capsule_read_count == 1
+    assert report.capsule_trace_missing_count == 0
+    assert report.capsule_required_line_failure_count == 0
+    assert report.capsule_frontier_omission_count == 0
+    assert report.capsule_next_action_omission_count == 0
     assert case.cycles[0].bounded_ok is True
     assert case.cycles[0].has_relevant_memory is True
     assert case.cycles[0].has_task_memory is True
@@ -3852,6 +3888,131 @@ def test_bounded_context_report_audits_typed_planner_context():
     assert policies["replace_raw_transcript_with_typed_retrieval"]["count"] == 1
     assert "increase_typed_retrieval_diversity" in policies
     print("PASS: Bounded context report audits typed planner context")
+
+
+def test_bounded_context_report_rejects_incomplete_task_capsule():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_incomplete_capsule.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "mixed",
+                "memory_type": "relevant_memory",
+                "source": "planner_goal",
+                "result_chars": 100,
+            },
+        },
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "task",
+                "memory_type": "task_continuity",
+                "source": "planner_task_continuity",
+                "result_chars": 121,
+                "context_profile": "goal_frontier_capsule_v1",
+                "context_budget_chars": 120,
+                "context_within_budget": True,
+                "context_trace": {
+                    "profile": "goal_frontier_capsule_v1",
+                    "truncated": True,
+                    "required_lines_complete": False,
+                    "frontier_available": True,
+                    "frontier_injected": False,
+                    "next_actions_available": True,
+                    "next_actions_injected": False,
+                },
+            },
+        },
+        {"type": "plan", "data": {"status": "in_progress", "actions": [{"type": "craft"}]}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_bounded_context_report_from_logs([session_path])
+    cycle = report.cases[0].cycles[0]
+    feedback = runner.bounded_context_feedback(report)
+    policies = {hint["bounded_context_policy"] for hint in feedback["policy_hints"]}
+
+    assert cycle.bounded_ok is False
+    assert report.task_continuity_capsule_read_count == 1
+    assert report.capsule_truncated_count == 1
+    assert report.capsule_trace_missing_count == 1
+    assert report.capsule_budget_violation_count == 1
+    assert report.capsule_required_line_failure_count == 1
+    assert report.capsule_frontier_omission_count == 1
+    assert report.capsule_next_action_omission_count == 1
+    assert "task_capsule_trace_missing" in cycle.issues
+    assert "task_capsule_budget_violation" in cycle.issues
+    assert "task_capsule_required_fields_missing" in cycle.issues
+    assert "task_capsule_frontier_missing" in cycle.issues
+    assert "task_capsule_next_actions_missing" in cycle.issues
+    assert "preserve_task_capsule_contract" in policies
+    print("PASS: Bounded context report rejects incomplete task capsule")
+
+
+def test_bounded_context_report_allows_empty_task_capsule():
+    tmpdir = tempfile.mkdtemp()
+    session_path = os.path.join(tmpdir, "session_empty_capsule.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Explore spawn"}},
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "mixed",
+                "memory_type": "relevant_memory",
+                "source": "planner_goal",
+                "result_chars": 80,
+            },
+        },
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "task",
+                "memory_type": "task_continuity",
+                "source": "planner_task_continuity",
+                "result_chars": 0,
+                "context_profile": "goal_frontier_capsule_v1",
+                "context_budget_chars": 600,
+                "context_within_budget": True,
+                "context_trace": {
+                    "schema_version": 1,
+                    "profile": "goal_frontier_capsule_v1",
+                    "char_budget": 600,
+                    "result_chars": 0,
+                    "full_context_chars": 0,
+                    "truncated": False,
+                    "required_lines_complete": False,
+                    "frontier_available": False,
+                    "frontier_injected": False,
+                    "next_actions_available": False,
+                    "next_actions_injected": False,
+                    "active_branch_count": 0,
+                    "mode": "empty",
+                    "path_checkpoint_count": 0,
+                    "nonselected_branch_count": 0,
+                },
+            },
+        },
+        {"type": "plan", "data": {"status": "in_progress", "actions": [{"type": "move"}]}},
+    ]
+    with open(session_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    report = runner.run_bounded_context_report_from_logs([session_path])
+    cycle = report.cases[0].cycles[0]
+
+    assert cycle.bounded_ok is True
+    assert report.task_continuity_capsule_read_count == 1
+    assert report.capsule_trace_missing_count == 0
+    assert report.capsule_budget_violation_count == 0
+    assert report.capsule_required_line_failure_count == 0
+    print("PASS: Bounded context report allows empty task capsule")
 
 
 def test_bounded_context_gate_controls_planner_contract():
@@ -3957,6 +4118,7 @@ def test_task_continuity_lineage_ablation_isolates_failed_branches():
     by_id = {case.case_id: case for case in report.cases}
 
     assert payload["type"] == "task_continuity_lineage_ablation"
+    assert payload["schema_version"] == 3
     assert payload["case_count"] == 3
     assert payload["ready_case_count"] == 2
     assert payload["non_builtin_ready_case_count"] == 0
@@ -3965,10 +4127,19 @@ def test_task_continuity_lineage_ablation_isolates_failed_branches():
     assert payload["baseline_failed_contamination_count"] == 2
     assert payload["candidate_failed_contamination_count"] == 0
     assert payload["average_precision_gain"] > 0
+    assert payload["average_context_char_reduction"] > 0
+    assert payload["capsule_probe_failure_count"] == 0
+    assert payload["capsule_budget_violation_count"] == 0
     assert by_id["TC-LIN-001"].baseline_failed_contamination_count == 1
     assert by_id["TC-LIN-001"].candidate_failed_contamination_count == 0
     assert by_id["TC-LIN-001"].candidate_active_leaf_hit is True
     assert by_id["TC-LIN-001"].expected_active_checkpoint_consistent is True
+    assert by_id["TC-LIN-001"].candidate_context_chars < by_id["TC-LIN-001"].baseline_context_chars
+    assert by_id["TC-LIN-001"].candidate_context_chars < by_id["TC-LIN-001"].rich_candidate_context_chars
+    assert by_id["TC-LIN-001"].capsule_all_probes_pass is True
+    assert by_id["TC-LIN-001"].capsule_within_budget is True
+    assert by_id["TC-LIN-001"].missing_required_context_terms == []
+    assert by_id["TC-LIN-001"].present_forbidden_context_terms == []
     assert by_id["TC-LIN-003"].ready_for_lineage_review is False
     assert "ambiguous_active_branches" in by_id["TC-LIN-003"].issues
 
@@ -3981,6 +4152,18 @@ def test_task_continuity_lineage_ablation_isolates_failed_branches():
     assert stale_result.expected_active_checkpoint_consistent is False
     assert stale_result.inferred_active_checkpoint_ids == ["mine-leaf"]
     assert "explicit_active_leaf_mismatch" in stale_result.issues
+
+    tight_budget_payload = asdict(benchmark_module.TASK_CONTINUITY_LINEAGE_ABLATION_CASES[0])
+    tight_budget_payload["id"] = "TC-LIN-TIGHT-BUDGET"
+    tight_budget_payload["capsule_char_budget"] = 120
+    tight_budget_case = benchmark_module.TaskContinuityLineageAblationCase(**tight_budget_payload)
+    tight_budget = runner.run_task_continuity_lineage_ablation([tight_budget_case]).cases[0]
+    assert tight_budget.candidate_context_chars <= 120
+    assert tight_budget.capsule_within_budget is True
+    assert tight_budget.capsule_all_probes_pass is False
+    assert tight_budget.candidate_regressed is True
+    assert tight_budget.ready_for_lineage_review is False
+    assert "candidate_capsule_probe_failure" in tight_budget.issues
     print("PASS: Task continuity lineage ablation isolates failed branches")
 
 
@@ -4072,7 +4255,7 @@ def test_task_continuity_restoration_gate_allows_shadow_only():
         lineage_cases.append(case)
     live_lineage = {
         "type": "task_continuity_lineage_ablation",
-        "schema_version": 2,
+        "schema_version": 3,
         "cases": lineage_cases,
         "errors": [],
     }
@@ -4103,6 +4286,7 @@ def test_task_continuity_restoration_gate_allows_shadow_only():
     assert approved["shadow_revision_selection_allowed"] is True
     assert approved["automatic_restore_allowed"] is False
     assert approved["distinct_candidate_session_count"] == 3
+    assert approved["average_context_char_reduction"] > 0
 
     regressed = json.loads(json.dumps(live_restoration))
     regressed["cases"][0]["state_preserved_before_action"] = False
@@ -4134,6 +4318,27 @@ def test_task_continuity_restoration_gate_allows_shadow_only():
     assert invalid_lineage_gate["readiness"] == "rejected"
     assert invalid_lineage_gate["lineage_integrity_failure_count"] == 1
     assert invalid_lineage_gate["automatic_restore_allowed"] is False
+
+    invalid_capsule = json.loads(json.dumps(live_lineage))
+    invalid_capsule["cases"][0]["capsule_all_probes_pass"] = False
+    invalid_capsule_gate = runner.build_task_continuity_restoration_gate(
+        lineage_ablation_reports=[invalid_capsule],
+        restoration_reports=[live_restoration],
+    )
+    assert invalid_capsule_gate["readiness"] == "rejected"
+    assert invalid_capsule_gate["capsule_probe_failure_count"] == 1
+    assert invalid_capsule_gate["automatic_restore_allowed"] is False
+
+    no_context_savings = json.loads(json.dumps(live_lineage))
+    for case in no_context_savings["cases"]:
+        case["context_char_reduction"] = 0
+    no_context_savings_gate = runner.build_task_continuity_restoration_gate(
+        lineage_ablation_reports=[no_context_savings],
+        restoration_reports=[live_restoration],
+    )
+    assert no_context_savings_gate["readiness"] == "review"
+    assert no_context_savings_gate["shadow_revision_selection_allowed"] is False
+    assert no_context_savings_gate["automatic_restore_allowed"] is False
     print("PASS: Task continuity restoration gate allows shadow only")
 
 
@@ -5945,6 +6150,8 @@ if __name__ == "__main__":
     test_memory_attribution_gate_controls_weighted_retrieval_profile()
     test_memory_lifecycle_policy_uses_task_stream_transfer_gate()
     test_bounded_context_report_audits_typed_planner_context()
+    test_bounded_context_report_rejects_incomplete_task_capsule()
+    test_bounded_context_report_allows_empty_task_capsule()
     test_bounded_context_gate_controls_planner_contract()
     test_task_continuity_lineage_ablation_isolates_failed_branches()
     test_task_continuity_restoration_report_rejects_state_rollback()

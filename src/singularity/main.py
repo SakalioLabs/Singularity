@@ -919,6 +919,12 @@ def main():
     task_continuity_lineage_ablation_parser.add_argument("--goal", action="append", default=[], help="Goal to scope each memory directory")
     task_continuity_lineage_ablation_parser.add_argument("--include-builtins", action="store_true", help="Include deterministic smoke-test fixtures")
     task_continuity_lineage_ablation_parser.add_argument("--context-limit", type=int, default=3)
+    task_continuity_lineage_ablation_parser.add_argument(
+        "--capsule-char-budget",
+        type=int,
+        default=None,
+        help="Override the capsule character budget for every selected case",
+    )
     task_continuity_lineage_ablation_parser.add_argument("--planner-id", type=str, default="")
     task_continuity_lineage_ablation_parser.add_argument("--action-backend", type=str, default="")
     task_continuity_lineage_ablation_parser.add_argument("--verifier-id", type=str, default="")
@@ -949,6 +955,7 @@ def main():
     task_continuity_restoration_gate_parser.add_argument("--min-restoration-cases", type=int, default=3)
     task_continuity_restoration_gate_parser.add_argument("--min-distinct-candidate-sessions", type=int, default=3)
     task_continuity_restoration_gate_parser.add_argument("--min-precision-gain", type=float, default=0.0)
+    task_continuity_restoration_gate_parser.add_argument("--min-context-char-reduction", type=float, default=1.0)
     task_continuity_restoration_gate_parser.add_argument("--max-candidate-contamination", type=int, default=0)
     task_continuity_restoration_gate_parser.add_argument("--max-lineage-regressions", type=int, default=0)
     task_continuity_restoration_gate_parser.add_argument("--max-unreachable-cases", type=int, default=0)
@@ -2549,11 +2556,13 @@ def main():
 
         runner = BenchmarkRunner(Config())
         cases = list(TASK_CONTINUITY_LINEAGE_ABLATION_CASES) if getattr(args, "include_builtins", False) else []
+        capsule_budget_override = getattr(args, "capsule_char_budget", None)
         loaded = runner.load_task_continuity_lineage_ablation_cases(
             case_files=getattr(args, "case_file", []) or [],
             memory_dirs=getattr(args, "memory_dir", []) or [],
             goals=getattr(args, "goal", []) or [],
             context_limit=getattr(args, "context_limit", 3),
+            capsule_char_budget=600 if capsule_budget_override is None else capsule_budget_override,
             planner_id=getattr(args, "planner_id", ""),
             action_backend=getattr(args, "action_backend", ""),
             verifier_id=getattr(args, "verifier_id", ""),
@@ -2561,6 +2570,9 @@ def main():
             seed=getattr(args, "seed", ""),
             evidence_kind=getattr(args, "evidence_kind", "offline_replay"),
         )
+        if capsule_budget_override is not None:
+            for case in cases + loaded:
+                case.capsule_char_budget = max(1, int(capsule_budget_override))
         for case in loaded:
             case.planner_id = case.planner_id or getattr(args, "planner_id", "")
             case.action_backend = case.action_backend or getattr(args, "action_backend", "")
@@ -2583,11 +2595,17 @@ def main():
             f"candidate={payload.get('candidate_failed_contamination_count', 0)}, "
             f"precision_gain={float(payload.get('average_precision_gain') or 0.0):.3f}"
         )
+        print(
+            f"  context reduction: avg_chars={float(payload.get('average_context_char_reduction') or 0.0):.1f}, "
+            f"probe_failures={payload.get('capsule_probe_failure_count', 0)}, "
+            f"budget_violations={payload.get('capsule_budget_violation_count', 0)}"
+        )
         for case in report.cases[:8]:
             marker = "+" if case.ready_for_lineage_review and not case.candidate_regressed else "!"
             print(
                 f"  [{marker}] {case.case_id}: precision={case.baseline_path_precision:.2f}->{case.candidate_path_precision:.2f}, "
                 f"contamination={case.baseline_failed_contamination_count}->{case.candidate_failed_contamination_count}, "
+                f"context={case.baseline_context_chars}->{case.candidate_context_chars}, "
                 f"active_branches={case.active_branch_count}"
             )
             if case.issues:
@@ -2658,6 +2676,7 @@ def main():
             min_restoration_cases=getattr(args, "min_restoration_cases", 3),
             min_distinct_candidate_sessions=getattr(args, "min_distinct_candidate_sessions", 3),
             min_precision_gain=getattr(args, "min_precision_gain", 0.0),
+            min_context_char_reduction=getattr(args, "min_context_char_reduction", 1.0),
             max_candidate_contamination=getattr(args, "max_candidate_contamination", 0),
             max_lineage_regressions=getattr(args, "max_lineage_regressions", 0),
             max_unreachable_cases=getattr(args, "max_unreachable_cases", 0),
@@ -2672,6 +2691,11 @@ def main():
             f"  eligible lineage/restoration: {report.get('eligible_lineage_case_count', 0)}/"
             f"{report.get('eligible_restoration_case_count', 0)}, "
             f"candidate_sessions={report.get('distinct_candidate_session_count', 0)}"
+        )
+        print(
+            f"  lineage context reduction={report.get('average_context_char_reduction')}, "
+            f"probe_failures={report.get('capsule_probe_failure_count', 0)}, "
+            f"budget_violations={report.get('capsule_budget_violation_count', 0)}"
         )
         print(
             f"  shadow_allowed={report.get('shadow_revision_selection_allowed', False)}, "
@@ -2869,6 +2893,13 @@ def main():
                     "oversized_cycle_count": report.oversized_cycle_count,
                     "raw_context_cycle_count": report.raw_context_cycle_count,
                     "low_diversity_cycle_count": report.low_diversity_cycle_count,
+                    "task_continuity_capsule_read_count": report.task_continuity_capsule_read_count,
+                    "capsule_trace_missing_count": report.capsule_trace_missing_count,
+                    "capsule_truncated_count": report.capsule_truncated_count,
+                    "capsule_budget_violation_count": report.capsule_budget_violation_count,
+                    "capsule_required_line_failure_count": report.capsule_required_line_failure_count,
+                    "capsule_frontier_omission_count": report.capsule_frontier_omission_count,
+                    "capsule_next_action_omission_count": report.capsule_next_action_omission_count,
                     "max_read_chars": report.max_read_chars,
                     "max_cycle_chars": report.max_cycle_chars,
                     "read_layers": report.read_layers,
