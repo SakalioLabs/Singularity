@@ -758,6 +758,22 @@ def main():
     memory_report_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     memory_report_parser.add_argument("--log-level", type=str, default="INFO")
 
+    memory_maintenance_parser = subparsers.add_parser(
+        "memory-maintenance-report",
+        help="Report review-only memory management skill candidates",
+    )
+    memory_maintenance_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
+    memory_maintenance_parser.add_argument("--query", type=str, default="", help="Optional retrieval query to scope promptware/filter checks")
+    memory_maintenance_parser.add_argument("--current-state-json", type=str, default="", help="Optional current state JSON object")
+    memory_maintenance_parser.add_argument("--current-state-file", type=str, default="", help="Optional current state JSON file")
+    memory_maintenance_parser.add_argument("--memory-attribution-gate", action="append", default=[], help="Optional saved memory-attribution-gate JSON")
+    memory_maintenance_parser.add_argument("--min-consolidation-score", type=float, default=0.65)
+    memory_maintenance_parser.add_argument("--min-recall-count", type=int, default=2)
+    memory_maintenance_parser.add_argument("--min-unique-queries", type=int, default=2)
+    memory_maintenance_parser.add_argument("--limit", type=int, default=80)
+    memory_maintenance_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    memory_maintenance_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Echo-style transfer memory report
     transfer_memory_parser = subparsers.add_parser("transfer-memory-report", help="Report transfer-axis experience matches for a query")
     transfer_memory_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
@@ -2027,6 +2043,56 @@ def main():
                 f"queries={candidate['unique_query_count']}: {label[:120]}"
             )
         if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"  saved: {args.output}")
+        return
+
+    if args.command == "memory-maintenance-report":
+        from singularity.core.memory import MemorySystem
+
+        current_state = {}
+        if getattr(args, "current_state_file", ""):
+            with open(args.current_state_file, "r", encoding="utf-8-sig") as f:
+                current_state = json.load(f)
+        elif getattr(args, "current_state_json", ""):
+            current_state = json.loads(args.current_state_json)
+        if not isinstance(current_state, dict):
+            print("memory-maintenance-report current state must be a JSON object")
+            sys.exit(1)
+
+        memory = MemorySystem(memory_dir=getattr(args, "memory_dir", "workspace/memory"))
+        report = memory.memory_maintenance_report(
+            query=getattr(args, "query", ""),
+            current_state=current_state,
+            attribution_gate_paths=getattr(args, "memory_attribution_gate", []) or [],
+            min_consolidation_score=getattr(args, "min_consolidation_score", 0.65),
+            min_recall_count=getattr(args, "min_recall_count", 2),
+            min_unique_queries=getattr(args, "min_unique_queries", 2),
+            limit=getattr(args, "limit", 80),
+        )
+        print("\nMemory Maintenance Report")
+        print(f"  candidates: {report.get('candidate_count', 0)}/{report.get('total_candidate_count', 0)}")
+        if report.get("operation_counts"):
+            parts = [f"{key}={value}" for key, value in sorted(report.get("operation_counts", {}).items())]
+            print(f"  operations: {', '.join(parts)}")
+        if report.get("recommended_skill_counts"):
+            parts = [f"{key}={value}" for key, value in sorted(report.get("recommended_skill_counts", {}).items())]
+            print(f"  skills: {', '.join(parts)}")
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', []))}")
+        for candidate in report.get("candidates", [])[:10]:
+            print(
+                f"  - {candidate.get('priority', 'review')} "
+                f"{candidate.get('operation', 'unknown')} "
+                f"{candidate.get('memory_id', '')} "
+                f"skill={candidate.get('recommended_skill', 'unknown')} "
+                f"score={float(candidate.get('score') or 0.0):.2f}"
+            )
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"  saved: {args.output}")

@@ -821,6 +821,271 @@ class MemorySystem:
         )
         return candidates[:limit] if limit and limit > 0 else candidates
 
+    def memory_maintenance_report(
+        self,
+        query: str = "",
+        current_state: Optional[dict] = None,
+        attribution_gate_paths: Optional[list[str]] = None,
+        min_consolidation_score: float = 0.65,
+        min_recall_count: int = 2,
+        min_unique_queries: int = 2,
+        limit: int = 80,
+    ) -> dict:
+        """Build review-only memory-management skill candidates.
+
+        This keeps memory evolution auditable: the report proposes consolidate,
+        quarantine, prune/revise, and retrieval-weight maintenance actions, but
+        does not mutate durable memory.
+        """
+        current_state = current_state or {}
+        candidates = []
+        errors = []
+
+        for item in self.memory_consolidation_candidates(
+            min_score=min_consolidation_score,
+            min_recall_count=min_recall_count,
+            min_unique_queries=min_unique_queries,
+            limit=0,
+        ):
+            candidates.append(self._maintenance_consolidation_candidate(item))
+
+        promptware_report = self.memory_promptware_report(query=query, current_state=current_state)
+        for item in promptware_report.get("flagged_entries", []):
+            candidates.append(self._maintenance_promptware_candidate(item, "memory_entry"))
+        for item in promptware_report.get("flagged_experiences", []):
+            candidates.append(self._maintenance_promptware_candidate(item, "experience_record"))
+
+        for entry in self.entries.values():
+            reasons = self._entry_filter_reasons(entry, current_state)
+            if not reasons:
+                continue
+            candidates.append(self._maintenance_filtered_entry_candidate(entry, reasons))
+
+        attribution_report = evaluate_memory_attribution_runtime_gate(
+            attribution_gate_paths or [],
+            enable_requested=bool(attribution_gate_paths),
+        )
+        errors.extend(attribution_report.get("errors", []))
+        for hint in attribution_report.get("retrieval_weight_hints", []):
+            candidates.append(self._maintenance_attribution_candidate(hint, attribution_report))
+
+        deduped = self._dedupe_maintenance_candidates(candidates)
+        deduped.sort(
+            key=lambda item: (
+                self._maintenance_priority_rank(item.get("priority")),
+                float(item.get("score") or 0.0),
+                str(item.get("operation") or ""),
+                str(item.get("memory_id") or ""),
+            ),
+            reverse=True,
+        )
+        selected = deduped[:limit] if limit and limit > 0 else deduped
+        operation_counts = {}
+        priority_counts = {}
+        skill_counts = {}
+        for item in selected:
+            self._increment_count(operation_counts, item.get("operation", "unknown"))
+            self._increment_count(priority_counts, item.get("priority", "review"))
+            self._increment_count(skill_counts, item.get("recommended_skill", "unknown"))
+
+        policy_hints = []
+        recommendations = []
+        if operation_counts.get("quarantine_promptware_memory") or operation_counts.get("quarantine_promptware_experience"):
+            policy_hints.append("review_or_quarantine_promptware_memories")
+            recommendations.append("run_promptware_gate_before_memory_write_enforcement")
+        if operation_counts.get("revise_or_prune_filtered_memory"):
+            policy_hints.append("revise_or_prune_filtered_memories")
+            recommendations.append("review_stale_superseded_or_conditional_memories_before_retrieval")
+        if operation_counts.get("consolidate_memory_entry") or operation_counts.get("consolidate_experience_record"):
+            policy_hints.append("run_memory_consolidation_skill_on_recalled_items")
+            recommendations.append("merge_recalled_memory_into_verified_task_or_semantic_entries")
+        if operation_counts.get("promote_supported_retrieval_weight"):
+            policy_hints.append("keep_supported_retrieval_weights_gate_controlled")
+            recommendations.append("apply_positive_weight_hints_only_from_approved_attribution_gates")
+        if operation_counts.get("repair_or_demote_retrieval_weight"):
+            policy_hints.append("review_conflicting_retrievals_before_reuse")
+            recommendations.append("route_conflicting_weight_hints_to_memory_repair_or_demotion")
+
+        return {
+            "type": "memory_maintenance_report",
+            "generated_at": round(time.time(), 3),
+            "memory_dir": self.memory_dir,
+            "query_signature": self._query_hash(query),
+            "current_state_keys": sorted(str(key) for key in current_state.keys())[:20],
+            "total_entries": len(self.entries),
+            "total_experiences": len(self.experiences),
+            "candidate_count": len(selected),
+            "total_candidate_count": len(deduped),
+            "operation_counts": dict(sorted(operation_counts.items())),
+            "priority_counts": dict(sorted(priority_counts.items())),
+            "recommended_skill_counts": dict(sorted(skill_counts.items())),
+            "policy_hints": policy_hints,
+            "recommendations": recommendations,
+            "attribution_gate_summary": {
+                "gate_count": attribution_report.get("gate_count", 0),
+                "gate_readiness": attribution_report.get("gate_readiness", "not_required"),
+                "retrieval_weight_hint_count": attribution_report.get("retrieval_weight_hint_count", 0),
+            },
+            "promptware_summary": {
+                "flagged_entry_count": promptware_report.get("flagged_entry_count", 0),
+                "flagged_experience_count": promptware_report.get("flagged_experience_count", 0),
+                "reason_counts": promptware_report.get("reason_counts", {}),
+            },
+            "candidates": selected,
+            "errors": errors,
+        }
+
+    def _maintenance_consolidation_candidate(self, item: dict) -> dict:
+        kind = str(item.get("kind") or "memory_entry")
+        operation = "consolidate_experience_record" if kind == "experience_record" else "consolidate_memory_entry"
+        recommended_skill = (
+            "memory_consolidate_transfer_experience"
+            if kind == "experience_record"
+            else "memory_consolidate_recalled_evidence"
+        )
+        score = float(item.get("score") or 0.0)
+        return {
+            "operation": operation,
+            "recommended_skill": recommended_skill,
+            "priority": "high" if score >= 0.8 else "medium",
+            "kind": kind,
+            "memory_id": str(item.get("id") or ""),
+            "score": round(score, 4),
+            "review_status": "review_only",
+            "reason": "memory or experience was recalled often from diverse queries",
+            "evidence": {
+                "recall_count": _safe_int(item.get("recall_count", 0)),
+                "unique_query_count": _safe_int(item.get("unique_query_count", 0)),
+                "tags": list(item.get("tags", []))[:12] if isinstance(item.get("tags", []), list) else [],
+                "source": str(item.get("source") or "")[:120],
+                "payload_hash": self._maintenance_item_hash(item),
+            },
+        }
+
+    def _maintenance_promptware_candidate(self, item: dict, kind: str) -> dict:
+        operation = "quarantine_promptware_experience" if kind == "experience_record" else "quarantine_promptware_memory"
+        return {
+            "operation": operation,
+            "recommended_skill": "memory_quarantine_promptware_payload",
+            "priority": "critical",
+            "kind": kind,
+            "memory_id": str(item.get("id") or ""),
+            "score": 1.0,
+            "review_status": "review_only",
+            "reason": "durable memory payload matched promptware or memory-injection threat patterns",
+            "evidence": {
+                "flags": list(item.get("flags", []))[:12] if isinstance(item.get("flags", []), list) else [],
+                "read_filter_reasons": list(item.get("read_filter_reasons", []))[:12]
+                if isinstance(item.get("read_filter_reasons", []), list)
+                else [],
+                "payload_hash": str(item.get("payload_hash") or "")[:80],
+                "tags": list(item.get("tags", []))[:12] if isinstance(item.get("tags", []), list) else [],
+            },
+        }
+
+    def _maintenance_filtered_entry_candidate(self, entry: MemoryEntry, reasons: list[str]) -> dict:
+        high_reasons = {"stale", "superseded", "contradicted", "invalidated", "adversarial", "promptware_threat"}
+        priority = "high" if high_reasons & set(reasons) else "medium"
+        return {
+            "operation": "revise_or_prune_filtered_memory",
+            "recommended_skill": "memory_revise_or_prune_filtered_entry",
+            "priority": priority,
+            "kind": "memory_entry",
+            "memory_id": entry.id,
+            "score": round(self._memory_consolidation_score(entry), 4),
+            "review_status": "review_only",
+            "reason": "memory is excluded or risky under current read-time filters",
+            "evidence": {
+                "read_filter_reasons": list(reasons)[:12],
+                "layer": entry.layer,
+                "memory_type": entry.memory_type,
+                "tags": list(entry.tags)[:12],
+                "source": entry.source[:120],
+                "payload_hash": self._payload_fingerprint(self._entry_security_payload(entry)),
+            },
+        }
+
+    def _maintenance_attribution_candidate(self, hint: dict, attribution_report: dict) -> dict:
+        memory_id = str(hint.get("memory_id") or "").strip()
+        delta = self._bounded_attribution_delta(hint.get("weight_delta"))
+        if delta < 0:
+            operation = "repair_or_demote_retrieval_weight"
+            recommended_skill = "memory_repair_conflicting_retrieval"
+            priority = "high"
+            reason = "retrieval hint has conflicting or no-result outcome evidence"
+        elif delta > 0:
+            operation = "promote_supported_retrieval_weight"
+            recommended_skill = "memory_apply_supported_retrieval_weight"
+            priority = "medium"
+            reason = "retrieval hint has supported downstream outcome evidence"
+        else:
+            operation = "review_retrieval_weight_hint"
+            recommended_skill = "memory_review_attribution_hint"
+            priority = "low"
+            reason = "retrieval hint needs more decisive outcome evidence"
+        return {
+            "operation": operation,
+            "recommended_skill": recommended_skill,
+            "priority": priority,
+            "kind": self._memory_id_kind(memory_id),
+            "memory_id": memory_id,
+            "score": round(abs(delta), 4),
+            "review_status": "review_only",
+            "reason": reason,
+            "evidence": {
+                "policy": str(hint.get("policy") or "")[:100],
+                "reason": str(hint.get("reason") or "")[:160],
+                "weight_delta": delta,
+                "supported_read_count": _safe_int(hint.get("supported_read_count", 0)),
+                "conflicting_read_count": _safe_int(hint.get("conflicting_read_count", 0)),
+                "no_result_read_count": _safe_int(hint.get("no_result_read_count", 0)),
+                "gate_readiness": attribution_report.get("gate_readiness", "unknown"),
+            },
+        }
+
+    def _memory_id_kind(self, memory_id: str) -> str:
+        if memory_id in self.entries:
+            return "memory_entry"
+        if memory_id in self.experiences:
+            return "experience_record"
+        return "unknown_memory_id"
+
+    def _maintenance_item_hash(self, item: dict) -> str:
+        payload = {
+            key: item.get(key)
+            for key in ("kind", "id", "layer", "memory_type", "tags", "source", "goal", "task", "outcome", "causal")
+            if key in item
+        }
+        return self._payload_fingerprint(payload)
+
+    def _dedupe_maintenance_candidates(self, candidates: list[dict]) -> list[dict]:
+        deduped = {}
+        for item in candidates:
+            if not isinstance(item, dict):
+                continue
+            key = (
+                str(item.get("operation") or ""),
+                str(item.get("kind") or ""),
+                str(item.get("memory_id") or ""),
+            )
+            existing = deduped.get(key)
+            if existing and self._maintenance_priority_rank(existing.get("priority")) >= self._maintenance_priority_rank(item.get("priority")):
+                continue
+            deduped[key] = item
+        return list(deduped.values())
+
+    def _maintenance_priority_rank(self, priority: str) -> int:
+        return {
+            "critical": 4,
+            "high": 3,
+            "medium": 2,
+            "low": 1,
+        }.get(str(priority or "").lower(), 0)
+
+    def _increment_count(self, counts: dict, key: str, amount: int = 1):
+        key = str(key or "unknown")
+        counts[key] = counts.get(key, 0) + amount
+
     def save_session(self, session_id: str):
         """Save episodic memory to daily journal file."""
         date_str = time.strftime("%Y-%m-%d")

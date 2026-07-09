@@ -137,6 +137,8 @@ python -m singularity.main skill-candidates --session logs/session_xxx.jsonl --f
 
 # Report repeatedly recalled memories/experiences that are worth consolidation review
 python -m singularity.main memory-consolidation-report --memory-dir workspace/memory --min-recall-count 2 --min-unique-queries 2
+# Queue review-only memory management skills: consolidate, quarantine, prune/revise, and gated retrieval reweighting.
+python -m singularity.main memory-maintenance-report --memory-dir workspace/memory --memory-attribution-gate logs/benchmarks/memory_attribution_gate.json --output logs/benchmarks/memory_maintenance.json
 # Audit Echo-style transfer-axis matches from stored experience records
 python -m singularity.main transfer-memory-report --memory-dir workspace/memory --query "Craft a stone pickaxe from cobblestone and sticks"
 # Audit task-centric memory context for a goal plus active task metadata
