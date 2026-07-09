@@ -1744,6 +1744,7 @@ class Agent:
             visual_context = self._visual_memory_context(goal)
             visual_action_context = self._visual_action_context(goal, observation)
             coach_context = self._coach_context(goal, observation)
+            curriculum_context = self._curriculum_context(goal, observation)
             self_evolution_context = self._self_evolution_context(goal, observation)
             knowledge_correction_context = self._knowledge_correction_context(goal, observation)
             task_precondition_context = self._task_precondition_context(goal, observation)
@@ -1756,6 +1757,7 @@ class Agent:
                 visual_context,
                 visual_action_context,
                 coach_context,
+                curriculum_context,
                 self_evolution_context,
                 knowledge_correction_context,
                 task_precondition_context,
@@ -1843,6 +1845,59 @@ class Agent:
         if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
             self.session_logger.log("coach_policy_hint", payload)
         self._log_policy_intervention("hint", payload)
+        return context
+
+    def _curriculum_context(self, goal: str, current_state: dict = None, limit: int = 3) -> str:
+        """Expose the latest autonomous curriculum decision as selective planner context."""
+        if not getattr(getattr(self, "config", None), "enable_curriculum_planner_context", True):
+            return ""
+        curriculum = getattr(self, "curriculum", None)
+        decision = getattr(curriculum, "last_decision", {}) if curriculum is not None else {}
+        if not isinstance(decision, dict) or not decision.get("selected"):
+            return ""
+        selected = str(decision.get("selected") or "")
+        if goal and selected and selected.lower() != str(goal).lower():
+            return ""
+        candidates = [
+            candidate for candidate in decision.get("candidates", []) or []
+            if isinstance(candidate, dict)
+        ][: max(1, min(5, limit or 3))]
+        if not candidates:
+            return ""
+        lines = [
+            "Autonomous curriculum decision (advisory selective foresight; verify before acting):",
+            f"- selected: {selected[:120]}",
+        ]
+        fallback = str(decision.get("fallback") or "")
+        if fallback and fallback != selected:
+            lines.append(f"- fallback goal: {fallback[:120]}")
+        coach = decision.get("coach", {}) if isinstance(decision.get("coach", {}), dict) else {}
+        styles = coach.get("styles", []) if isinstance(coach.get("styles", []), list) else []
+        if styles:
+            lines.append(f"- coach styles: {', '.join(str(style) for style in styles[:3])}")
+        for candidate in candidates:
+            title = str(candidate.get("title") or "")[:100]
+            category = str(candidate.get("category") or "goal")
+            score = candidate.get("score", 0)
+            reasons = ", ".join(str(reason) for reason in candidate.get("reasons", [])[:6])
+            targets = ", ".join(str(item) for item in candidate.get("target_items", [])[:4])
+            required = candidate.get("required_items", {}) if isinstance(candidate.get("required_items", {}), dict) else {}
+            bit = f"- candidate[{category} score={score}]: {title}"
+            if targets:
+                bit += f" targets={targets}"
+            if required:
+                bit += f" requires={json.dumps(required, default=str)[:120]}"
+            if reasons:
+                bit += f" reasons={reasons}"
+            lines.append(bit)
+        context = "\n".join(lines)
+        if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("curriculum_planner_context", {
+                "goal": goal,
+                "selected": selected,
+                "candidate_count": len(candidates),
+                "has_coach": bool(styles),
+            })
         return context
 
     def _skill_memory_context(self, goal: str, current_state: dict = None, limit: int = 5) -> str:

@@ -1647,6 +1647,55 @@ def test_agent_injects_coach_context_as_advisory_policy_hint():
     print("PASS: Agent injects coach context as advisory policy hint")
 
 
+def test_agent_injects_curriculum_context_for_planner():
+    agent = object.__new__(Agent)
+    agent.config = Config(enable_curriculum_planner_context=True)
+    agent.session_logger = FakeSessionLogger()
+    agent.curriculum = CurriculumManager()
+    agent.curriculum.last_decision = {
+        "selected": "Explore east frontier cell (1,0) near x=12, z=4",
+        "fallback": "Explore surroundings and gather resources",
+        "candidates": [
+            {
+                "title": "Explore east frontier cell (1,0) near x=12, z=4",
+                "category": "world_model_frontier",
+                "score": 61.5,
+                "reasons": [
+                    "structured_frontier_feedback",
+                    "frontier_transfer_success",
+                    "frontier_resource_opportunity",
+                ],
+                "target_items": ["coal_ore"],
+                "required_items": {},
+                "skill_targets": ["navigate_to_target", "move_to"],
+            },
+            {
+                "title": "Scout safer route around mapped danger cells",
+                "category": "world_model_safety",
+                "score": 42.0,
+                "reasons": ["world_model_danger_feedback"],
+                "target_items": ["landmark"],
+            },
+        ],
+    }
+
+    context = agent._curriculum_context(
+        "Explore east frontier cell (1,0) near x=12, z=4",
+        {"inventory": {"wooden_pickaxe": 1}},
+    )
+
+    assert "Autonomous curriculum decision" in context
+    assert "selected: Explore east frontier cell" in context
+    assert "frontier_transfer_success" in context
+    assert "targets=coal_ore" in context
+    assert agent.session_logger.events[-1]["type"] == "curriculum_planner_context"
+    assert agent._curriculum_context("Craft torches", {}) == ""
+
+    agent.config = Config(enable_curriculum_planner_context=False)
+    assert agent._curriculum_context("Explore east frontier cell (1,0) near x=12, z=4", {}) == ""
+    print("PASS: Agent injects curriculum context for planner")
+
+
 def test_memory_policy_routes_correlated_evidence_to_review():
     content = {
         "claim": "Coal near spawn is always safe.",
@@ -3277,6 +3326,7 @@ if __name__ == "__main__":
     test_agent_records_and_reads_task_continuity_context()
     test_agent_injects_skill_memory_context_for_planner()
     test_agent_injects_coach_context_as_advisory_policy_hint()
+    test_agent_injects_curriculum_context_for_planner()
     test_memory_policy_routes_correlated_evidence_to_review()
     test_memory_policy_routes_state_revisions_to_review()
     test_planner_preserves_task_scheduling_hints()

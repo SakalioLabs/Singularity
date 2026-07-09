@@ -36,6 +36,7 @@ class Config:
     enable_task_memory_context: bool = True
     enable_task_continuity_context: bool = True
     enable_skill_memory_context: bool = True
+    enable_curriculum_planner_context: bool = True
     enable_knowledge_correction_context: bool = True
     enable_plan_cache: bool = False
     plan_cache_paths: list[str] = field(default_factory=list)
