@@ -17,4 +17,5 @@
   - Extend `discovery-application-report` and `causal_index` with contrastive experiment markers: intervention, control, outcome, confounder, and measurement-risk fields.
   - Add counterexample-aware checks before promoting mined causal summaries into skills or runtime memory.
   - Compare causal explanations against later verifier/action-value evidence so false causal shortcuts are routed to review.
-**Next Action**: Add a CausalGame-style causal-evidence audit over session logs after the current module-comparison layer has been exercised on fresh Minecraft runs.
+  - `causal-evidence-report` now audits session logs for hypothesis/intervention/outcome protocols, contrast controls, selection/measurement/confounder risk mitigation, causal-memory writes, and unresolved counterexamples.
+**Next Action**: Run `causal-evidence-report` on fresh discovery/redstone/autonomous logs before approving causal-summary skills, causal memories, or discovery-derived knowledge corrections.

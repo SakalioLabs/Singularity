@@ -230,6 +230,7 @@
 - [ ] Run `world-model-report` on real autonomous/M7 session logs and compare suggested frontier goals against subsequent exploration success and stuck-path failures.
 - [ ] Run `world-model-feedback-gate` on real world-model reports, then feed approved `--world-model-feedback --world-model-gate` into autonomous curriculum runs and compare frontier/hotspot candidate ranking against generic exploration goals.
 - [ ] Run `discovery-application-report` on real redstone/building session logs and use `discovery_feedback` to gate experiment-derived skills before runtime use.
+- [ ] Run `causal-evidence-report` on the same discovery/redstone/autonomous logs and block causal memory or causal-summary skill promotion when contrast controls, bias mitigation, or counterexample resolution are missing.
 - [ ] Compare approved vs review-blocked discovery skill candidates on held-out redstone/building variants before enabling defaults.
 - [ ] Run `skill-graph-report` after real skill approvals and resolve missing dependencies, ungoverned custom skills, or graph cycles before runtime defaults.
 - [ ] Run `skill-contract-report` after real skill approvals and compare ready/review/blocked skill retrieval against planner choices on held-out crafting, mining, and building goals.
@@ -293,6 +294,7 @@
 - [x] Add AgenticCache-style `plan-cache-report` plus default-off runtime `--enable-plan-cache --plan-cache ...` reuse, with cache artifacts scanned through runtime profiles and action/goal verification preserved on cached plans.
 - [x] Add `plan-cache-runtime-report` and `plan-cache-gate` so plan-cache artifacts require approved hit-safety evidence before runtime profiles or Agents can load cached transitions.
 - [x] Add Orak-style `agent-module-comparison-report` so baseline vs candidate session logs can compare completion, action failures, empty plans, and active module signals across plan cache, visual grounding, action verification, skill memory, memory policy, goal verification, and control policy before runtime-profile promotion.
+- [x] Add CausalGame-style `causal-evidence-report` so causal memories and repeated causal-summary skills can be audited for hypothesis/intervention/outcome protocol evidence, contrast controls, bias-risk mitigation, and unresolved counterexamples before promotion.
 - [ ] Re-run `runtime-profile-suite-report --required-profile m1 --required-profile m2 --required-profile m7` after M2/M7 profiles exist and require an approved suite before live profile-assisted benchmarks.
 - [ ] Run `runtime-profile-security-audit` on real M1/M2/M7 runtime profiles and inspect any rejected artifacts before live runs.
 - [ ] Add M2/M7 runtime profiles once their approved gate reports and feedback artifacts exist, then run `runtime-profile-validate` plus `runtime-profile-security-audit`.

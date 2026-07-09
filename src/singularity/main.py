@@ -229,6 +229,55 @@ def _print_agent_module_comparison_report(report: dict):
         print(f"  next: {recommendation}")
 
 
+def _print_causal_evidence_report(report: dict):
+    print("\nCausal Evidence Audit")
+    print(f"  readiness: {report.get('readiness', 'unknown')}")
+    print(f"  decision: {report.get('decision', 'unknown')}")
+    print(f"  reason: {report.get('reason', '')}")
+    print(
+        "  logs: "
+        f"readable={report.get('readable_log_count', 0)}/{report.get('session_log_count', 0)}, "
+        f"ready={report.get('ready_log_count', 0)}"
+    )
+    print(
+        "  protocol: "
+        f"hypotheses={report.get('hypothesis_count', 0)}, "
+        f"experiments={report.get('experiment_count', 0)}, "
+        f"interventions={report.get('intervention_count', 0)}, "
+        f"outcomes={report.get('outcome_measure_count', 0)}, "
+        f"controls={report.get('contrast_control_count', 0)}"
+    )
+    print(
+        "  claims: "
+        f"causal={report.get('causal_claim_count', 0)}, "
+        f"causal_memory={report.get('causal_memory_write_count', 0)}, "
+        f"counterexamples={report.get('counterexample_count', 0)}, "
+        f"unresolved={report.get('unresolved_counterexample_count', 0)}"
+    )
+    print(f"  score: {report.get('average_causal_evidence_score', 0)}")
+    if report.get("bias_risk_counts"):
+        parts = [f"{key}={value}" for key, value in sorted(report.get("bias_risk_counts", {}).items())]
+        print(f"  bias risks: {', '.join(parts)}")
+    for check in report.get("checks", [])[:12]:
+        marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+        print(f"  [{marker}] {check.get('name')}: {check.get('detail')}")
+    for hint in report.get("policy_hints", [])[:8]:
+        print(f"  hint: {hint}")
+    for case in report.get("cases", [])[:6]:
+        marker = "+" if case.get("ready_for_causal_evidence_review") and not case.get("issues") else "!"
+        print(
+            f"  [{marker}] {case.get('source_log')}: "
+            f"score={case.get('causal_evidence_score', 0)}, "
+            f"claims={case.get('causal_claim_count', 0)}, "
+            f"controls={case.get('contrast_control_count', 0)}, "
+            f"unresolved={case.get('unresolved_counterexample_count', 0)}"
+        )
+        if case.get("issues"):
+            print(f"      issues: {', '.join(case.get('issues', [])[:8])}")
+    for error in report.get("errors", []):
+        print(f"  error: {error}")
+
+
 def _runtime_profile_payload_from_args(args) -> dict:
     settings = {}
     if getattr(args, "enable_goal_critic", False):
@@ -1068,6 +1117,18 @@ def main():
     exploration_trace_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
     exploration_trace_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     exploration_trace_parser.add_argument("--log-level", type=str, default="INFO")
+
+    # Offline CausalGame-style causal evidence audit
+    causal_evidence_parser = subparsers.add_parser(
+        "causal-evidence-report",
+        help="Audit contrastive causal evidence, bias risks, and counterexamples in session logs",
+    )
+    causal_evidence_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
+    causal_evidence_parser.add_argument("--min-contrast-count", type=int, default=1, help="Minimum contrast/control trials required for causal claims")
+    causal_evidence_parser.add_argument("--max-unresolved-counterexamples", type=int, default=0, help="Maximum unresolved counterexamples allowed")
+    causal_evidence_parser.add_argument("--no-require-bias-mitigation", action="store_true", help="Do not reject claims solely for unmitigated selection/measurement/confounder risks")
+    causal_evidence_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    causal_evidence_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Offline world-model trace report
     world_model_parser = subparsers.add_parser("world-model-report", help="Build AGI-Maze-style world-state cells and exploration frontiers from session logs")
@@ -3859,6 +3920,28 @@ def main():
                     "errors": report.errors,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "causal-evidence-report":
+        from singularity.evaluation.causal_evidence import (
+            build_causal_evidence_report,
+            write_causal_evidence_report,
+        )
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("causal-evidence-report requires at least one --session-log")
+            sys.exit(1)
+        report = build_causal_evidence_report(
+            session_log_paths=session_logs,
+            min_contrast_count=getattr(args, "min_contrast_count", 1),
+            max_unresolved_counterexamples=getattr(args, "max_unresolved_counterexamples", 0),
+            require_bias_mitigation=not getattr(args, "no_require_bias_mitigation", False),
+        )
+        _print_causal_evidence_report(report)
+        if getattr(args, "output", ""):
+            write_causal_evidence_report(report, args.output)
             print(f"\nReport saved to {args.output}")
         return
 

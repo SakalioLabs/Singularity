@@ -229,6 +229,11 @@ python -m singularity.main self-evolution-gate --self-evolution-report logs/benc
 # Summarize SciCrafter-style discovery-to-application evidence from session logs
 python -m singularity.main discovery-application-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/discovery_application.json
 # The saved JSON includes `discovery_feedback` for experiment-derived memory, task, and skill gates.
+# Audit CausalGame-style contrastive evidence, bias risks, and unresolved
+# counterexamples before promoting causal memories or causal-summary skills.
+python -m singularity.main causal-evidence-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/causal_evidence.json
+# Use --no-require-bias-mitigation for exploratory triage; default audit mode
+# rejects causal claims when logged selection/measurement/confounder risks are not mitigated.
 
 # Summarize canonical actions, backend mappings, and low-level control candidates
 python -m singularity.main action-abstraction-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/action_abstraction.json
