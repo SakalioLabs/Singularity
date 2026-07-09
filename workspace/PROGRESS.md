@@ -13,7 +13,7 @@ Current report outcome:
 - Supported completion claims: 1 (M0 research baseline)
 - Contradicted completion claims: 0 after status correction
 - Unsupported completion claims: 0 after status correction
-- Failing live phases: 1 (M1)
+- Failing live phases: 4 (M1, M3, M5, M6)
 - Repeat-verified runtime phases: 0
 
 ## Engineering Delivered
@@ -25,15 +25,18 @@ Current report outcome:
 - Vision analysis, optional screenshot plumbing, visual action grounding, and screenshot evidence validation.
 - Multi-agent shared state, role execution, bridge preflight, schedule comparison, and single-agent baseline machinery.
 - Evidence and ablation tooling for action verification/value, memory policy, plan cache, mixed initiative, coaching, visual review, and runtime profiles.
+- Machine-checkable M3/M5/M6 live adapters with distinct-session deduplication and transfer/world-model/visual-action support gates.
 
 ## Evidence That Still Matters
 
 - Latest tracked M1 benchmark file records BM-001..005 as failures with empty inventories.
 - No tracked successful M2 benchmark suite is available.
 - No three-run first-night survival evidence is available.
-- No verified screenshot-backed live session is available.
+- Existing M3 traces show no memory reads or writes, no completed goals, and 2,601 unbounded context cycles.
+- Existing M5 traces cover 22 moving sessions and pass the world-model feedback gate, but complete 0 of 27 goals.
+- Existing M6 traces contain no verified screenshots and no live-source visual-action interventions.
 - No live BM-701 multi-agent execution report is available.
-- M3, M5, and M6 still need explicit machine-checkable live acceptance mappings in the capability ledger.
+- M3, M5, and M6 acceptance is machine-checkable; all 37 existing sessions were ingested and none qualifies.
 
 ## Research Direction
 
@@ -48,5 +51,5 @@ Current report outcome:
 1. Restore a healthy Minecraft server and bridge runtime.
 2. Re-run M1 and use the new readiness recovery path on missing-resource failures.
 3. Promote no capability until the ledger reports `repeat_verified`.
-4. Add live evidence adapters for cross-session memory, exploration, and screenshot/VLM behavior.
+4. Fix the failed M3/M5/M6 trace criteria, then collect three distinct qualifying sessions for each adapter.
 5. Continue research-driven improvements only with baseline/candidate traces and regression gates.

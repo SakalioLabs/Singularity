@@ -676,6 +676,9 @@ def main():
         help="Compare M0-M7 completion claims against source, live, and repeated benchmark evidence",
     )
     capability_parser.add_argument("--benchmark-results", action="append", default=[], help="Benchmark result JSON to include; defaults to logs/benchmarks/benchmark_results.json")
+    capability_parser.add_argument("--m3-evidence", action="append", default=[], help="Continual-learning report or task-stream transfer gate JSON; repeat for multiple files; defaults to current artifacts when available")
+    capability_parser.add_argument("--m5-evidence", action="append", default=[], help="Exploration report or world-model feedback gate JSON; repeat for multiple files; defaults to current artifacts when available")
+    capability_parser.add_argument("--m6-evidence", action="append", default=[], help="Visual trace or non-builtin visual-action ablation JSON; repeat for multiple files; defaults to current artifacts when available")
     capability_parser.add_argument("--status-file", type=str, default="workspace/STATUS.md", help="Markdown phase status table to audit")
     capability_parser.add_argument("--source-root", type=str, default=".", help="Repository root for source-presence checks")
     capability_parser.add_argument("--min-repeats", type=int, default=3, help="Distinct successful executions required for a capability claim")
@@ -2648,6 +2651,8 @@ def main():
         if getattr(args, "output", ""):
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump({
+                    "type": "continual_learning_report",
+                    "schema_version": 1,
                     "log_count": report.log_count,
                     "ready_log_count": report.ready_log_count,
                     "event_count": report.event_count,
@@ -2687,6 +2692,8 @@ def main():
         if getattr(args, "output", ""):
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump({
+                    "type": "task_stream_transfer_report",
+                    "schema_version": 1,
                     "stream_count": report.stream_count,
                     "ready_stream_count": report.ready_stream_count,
                     "task_count": report.task_count,
@@ -3820,6 +3827,8 @@ def main():
         if getattr(args, "output", ""):
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump({
+                    "type": "visual_trace_report",
+                    "schema_version": 1,
                     "log_count": report.log_count,
                     "ready_log_count": report.ready_log_count,
                     "screenshot_log_count": report.screenshot_log_count,
@@ -3851,6 +3860,8 @@ def main():
         if getattr(args, "output", ""):
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump({
+                    "type": "exploration_trace_report",
+                    "schema_version": 1,
                     "log_count": report.log_count,
                     "ready_log_count": report.ready_log_count,
                     "observation_count": report.observation_count,
@@ -3890,6 +3901,8 @@ def main():
         if getattr(args, "output", ""):
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump({
+                    "type": "world_model_report",
+                    "schema_version": 1,
                     "log_count": report.log_count,
                     "ready_log_count": report.ready_log_count,
                     "observation_count": report.observation_count,
@@ -5156,6 +5169,8 @@ def main():
         if getattr(args, "output", ""):
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump({
+                    "type": "visual_action_ablation_report",
+                    "schema_version": 1,
                     "passed_count": report.passed_count,
                     "changed_count": report.changed_count,
                     "helped_count": report.helped_count,
@@ -5229,12 +5244,37 @@ def main():
         benchmark_paths = getattr(args, "benchmark_results", []) or []
         if not benchmark_paths and os.path.isfile("logs/benchmarks/benchmark_results.json"):
             benchmark_paths = ["logs/benchmarks/benchmark_results.json"]
+        phase_evidence_paths = {
+            "M3": getattr(args, "m3_evidence", []) or [],
+            "M5": getattr(args, "m5_evidence", []) or [],
+            "M6": getattr(args, "m6_evidence", []) or [],
+        }
+        default_phase_evidence_paths = {
+            "M3": [
+                "logs/benchmarks/continual_learning_current.json",
+                "logs/benchmarks/task_stream_transfer_gate_current.json",
+            ],
+            "M5": [
+                "logs/benchmarks/exploration_trace_current.json",
+                "logs/benchmarks/world_model_gate_current.json",
+            ],
+            "M6": [
+                "logs/benchmarks/visual_trace_current.json",
+                "logs/benchmarks/visual_action_ablation_current.json",
+            ],
+        }
+        for phase_id, default_paths in default_phase_evidence_paths.items():
+            if not phase_evidence_paths[phase_id]:
+                phase_evidence_paths[phase_id] = [
+                    path for path in default_paths if os.path.isfile(path)
+                ]
         report = build_capability_evidence_report(
             benchmark_result_paths=benchmark_paths,
             status_path=getattr(args, "status_file", "workspace/STATUS.md"),
             source_root=getattr(args, "source_root", "."),
             min_repeats=getattr(args, "min_repeats", 3),
             runtime_evidence=runtime_evidence,
+            phase_evidence_paths=phase_evidence_paths,
         )
         print_capability_evidence_report(report)
         if getattr(args, "output", ""):

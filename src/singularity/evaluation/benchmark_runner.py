@@ -6066,6 +6066,7 @@ class BenchmarkRunner:
         )
         gate = {
             "type": "world_model_feedback_gate",
+            "schema_version": 1,
             "target": target,
             "readiness": "review",
             "decision": "hold_world_model_feedback",
@@ -11296,6 +11297,8 @@ class BenchmarkRunner:
     ) -> dict:
         """Gate memory/skill promotion with controlled task-stream transfer evidence."""
         report = {
+            "type": "task_stream_transfer_gate",
+            "schema_version": 1,
             "required": True,
             "target": target,
             "readiness": "review",

@@ -1,0 +1,62 @@
+{
+  "type": "world_model_feedback_gate",
+  "schema_version": 1,
+  "target": "world_model_curriculum_feedback",
+  "readiness": "approved",
+  "decision": "allow_world_model_feedback",
+  "reason": "structured frontier or hotspot evidence is ready for curriculum feedback",
+  "min_ready_logs": 1,
+  "min_frontiers": 1,
+  "min_actionable_items": 1,
+  "source_count": 1,
+  "log_count": 37,
+  "ready_log_count": 28,
+  "observation_count": 2601,
+  "unique_cell_count": 162,
+  "frontier_count": 274,
+  "resource_hotspot_count": 0,
+  "danger_cell_count": 30,
+  "suggested_goal_count": 12,
+  "structured_frontier_count": 12,
+  "structured_hotspot_count": 0,
+  "actionable_item_count": 24,
+  "checks": [
+    {
+      "source": "logs\\benchmarks\\world_model_current.json",
+      "kind": "world_model_report",
+      "status": "pass",
+      "detail": "world-model report has actionable map feedback",
+      "metrics": {
+        "ready_log_count": 28,
+        "frontier_count": 274,
+        "resource_hotspot_count": 0,
+        "actionable_item_count": 24
+      }
+    }
+  ],
+  "sources": [
+    {
+      "source": "logs\\benchmarks\\world_model_current.json",
+      "ready": true,
+      "reason": "world-model report has actionable map feedback",
+      "log_count": 37,
+      "ready_log_count": 28,
+      "observation_count": 2601,
+      "unique_cell_count": 162,
+      "frontier_count": 274,
+      "resource_hotspot_count": 0,
+      "danger_cell_count": 30,
+      "suggested_goal_count": 12,
+      "structured_frontier_count": 12,
+      "structured_hotspot_count": 0,
+      "actionable_item_count": 24,
+      "errors": []
+    }
+  ],
+  "missing": [],
+  "policy_hints": [
+    "use_frontier_feedback_for_autonomous_curriculum",
+    "preserve_danger_cells_as_route_penalties"
+  ],
+  "errors": []
+}

@@ -1348,6 +1348,8 @@ def test_world_model_feedback_gate_requires_structured_map_evidence():
     approved = runner.build_world_model_feedback_gate(world_model_reports=[approved_report])
     review = runner.build_world_model_feedback_gate(world_model_reports=[thin_report])
 
+    assert approved["type"] == "world_model_feedback_gate"
+    assert approved["schema_version"] == 1
     assert approved["readiness"] == "approved"
     assert approved["decision"] == "allow_world_model_feedback"
     assert approved["ready_log_count"] == 1
@@ -4254,6 +4256,8 @@ def test_task_stream_transfer_gate_controls_promotion():
         transfer_reports=[approved_payload],
         target="skill:craft_stone_pickaxe",
     )
+    assert approved["type"] == "task_stream_transfer_gate"
+    assert approved["schema_version"] == 1
     assert approved["readiness"] == "approved"
     assert approved["decision"] == "allow_candidate_promotion"
     assert approved["evidence_count"] == 1

@@ -99,6 +99,19 @@ python -m singularity.main preflight
 # Audit M0-M7 claims against tracked live and repeated execution evidence
 python -m singularity.main capability-evidence-report --check-runtime --output workspace/evals/capability_evidence_current.json
 
+# Add machine-checkable M3, M5, and M6 evidence. Each option is repeatable.
+# M3 requires continual-learning traces plus an approved held-out transfer gate.
+# M5 requires autonomous exploration traces plus an approved world-model gate.
+# M6 requires screenshot-backed traces matched to non-builtin visual-action ablations.
+python -m singularity.main capability-evidence-report `
+  --m3-evidence logs/benchmarks/continual_learning.json `
+  --m3-evidence logs/benchmarks/task_stream_transfer_gate.json `
+  --m5-evidence logs/benchmarks/exploration_trace.json `
+  --m5-evidence logs/benchmarks/world_model_gate.json `
+  --m6-evidence logs/benchmarks/visual_trace_report.json `
+  --m6-evidence logs/benchmarks/visual_action_ablation.json `
+  --output workspace/evals/capability_evidence_current.json
+
 # CI/release gate: exits nonzero until the full ledger is repeat-verified
 python -m singularity.main capability-evidence-report --strict
 

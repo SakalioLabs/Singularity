@@ -1,7 +1,7 @@
 {
   "type": "capability_evidence_report",
-  "schema_version": 1,
-  "generated_at": "2026-07-09T21:04:22.082204+00:00",
+  "schema_version": 2,
+  "generated_at": "2026-07-09T21:35:52.014459+00:00",
   "readiness": "rejected",
   "claim_readiness": "approved",
   "system_status": "incomplete",
@@ -10,14 +10,32 @@
     "min_repeats": 3,
     "source_presence_is_capability_evidence": false,
     "unit_tests_are_live_capability_evidence": false,
-    "completion_requires_repeat_verified_execution": true
+    "completion_requires_repeat_verified_execution": true,
+    "live_phase_acceptance": {
+      "M3": "three distinct successful continual-learning sessions plus an approved held-out transfer gate",
+      "M5": "three distinct autonomous exploration sessions covering at least 16 blocks plus an approved world-model gate",
+      "M6": "three distinct screenshot-backed sessions with matching non-builtin visual-action ablations"
+    }
   },
   "inputs": {
     "status_path": "workspace/STATUS.md",
     "source_root": ".",
     "benchmark_result_paths": [
       "logs/benchmarks/benchmark_results.json"
-    ]
+    ],
+    "phase_evidence_paths": {
+      "M3": [
+        "logs/benchmarks/continual_learning_current.json"
+      ],
+      "M5": [
+        "logs/benchmarks/exploration_trace_current.json",
+        "logs/benchmarks/world_model_gate_current.json"
+      ],
+      "M6": [
+        "logs/benchmarks/visual_trace_current.json",
+        "logs/benchmarks/visual_action_ablation_current.json"
+      ]
+    }
   },
   "runtime_evidence": {
     "ok": false,
@@ -86,7 +104,7 @@
     "unsupported_completion_count": 0,
     "repeat_verified_phase_count": 0,
     "live_observed_phase_count": 0,
-    "failing_phase_count": 1,
+    "failing_phase_count": 4,
     "system_complete": false
   },
   "contradicted_phases": [],
@@ -136,6 +154,9 @@
       "live_observed_benchmark_count": 0,
       "repeat_verified_benchmark_count": 0,
       "benchmarks": [],
+      "live_evidence": {},
+      "required_live_execution_count": 0,
+      "live_observed_execution_count": 0,
       "missing_evidence": []
     },
     {
@@ -230,6 +251,9 @@
           ]
         }
       ],
+      "live_evidence": {},
+      "required_live_execution_count": 0,
+      "live_observed_execution_count": 0,
       "missing_evidence": [
         "BM-001:needs_3_more_successes",
         "BM-002:needs_3_more_successes",
@@ -316,6 +340,9 @@
           "evidence_refs": []
         }
       ],
+      "live_evidence": {},
+      "required_live_execution_count": 0,
+      "live_observed_execution_count": 0,
       "missing_evidence": [
         "BM-006:needs_3_more_successes",
         "BM-007:needs_3_more_successes",
@@ -327,13 +354,13 @@
     {
       "id": "M3",
       "name": "Skill Library and Memory",
-      "evidence_kind": "unmapped_live",
-      "status": "unverified",
+      "evidence_kind": "live_report",
+      "status": "failing",
       "completion_claim_allowed": false,
       "declared": {
         "name": "Skill Library & Memory",
-        "status": "Evidence pending",
-        "progress": "Cross-session live acceptance is not yet mapped"
+        "status": "Live failing",
+        "progress": "0/37 sessions qualify; no memory reads/writes and 2,601 unbounded context cycles"
       },
       "declared_complete": false,
       "claim_assessment": "not_claimed_complete",
@@ -356,8 +383,709 @@
       "live_observed_benchmark_count": 0,
       "repeat_verified_benchmark_count": 0,
       "benchmarks": [],
+      "live_evidence": {
+        "phase_id": "M3",
+        "primary_evidence_type": "continual_learning_report",
+        "support_evidence_type": "task_stream_transfer_gate",
+        "status": "failing",
+        "repeats_required": 3,
+        "loaded_report_count": 1,
+        "primary_report_count": 1,
+        "support_report_count": 0,
+        "attempts": 37,
+        "primary_successes": 0,
+        "verified_successes": 0,
+        "failures": 37,
+        "support_approved": false,
+        "evidence_refs": [],
+        "primary_cases": [
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_135514aa-b34.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_continual_learning_review",
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "progress_signal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 0,
+              "unbounded_context_cycle_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_18afca4f-925.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 24,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_210b278f-f2c.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 235,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_22497e5a-3d1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 233,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_23eb9fce-5df.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 2,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_2818ff2a-612.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 207,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_340cb717-ed4.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 12,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_3466f191-696.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 203,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_363c6651-e39.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 69,
+              "unbounded_context_cycle_count": 33
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_4138b270-949.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 2,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_4907f85d-989.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 224,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_5420f1b3-f9a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_continual_learning_review",
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "progress_signal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 0,
+              "unbounded_context_cycle_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_5815bb56-2d7.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 271,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_67ba45ce-2e1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 1,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_6fd20cb9-d9d.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_continual_learning_review",
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "progress_signal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 0,
+              "unbounded_context_cycle_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_732da4ca-ff1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_continual_learning_review",
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "progress_signal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 0,
+              "unbounded_context_cycle_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_7c91318c-3c8.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 213,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_832d447f-c65.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 235,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_90e0fccd-e62.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 272,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_9357fe3f-acb.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 117,
+              "unbounded_context_cycle_count": 50
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_99210dd0-e96.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_continual_learning_review",
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "progress_signal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 0,
+              "unbounded_context_cycle_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_b41c7b4a-e6d.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 6,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_b58cacbf-817.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_continual_learning_review",
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "progress_signal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 0,
+              "unbounded_context_cycle_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_bab1505b-cfd.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 139,
+              "unbounded_context_cycle_count": 65
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_bae74597-6ed.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_continual_learning_review",
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "progress_signal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 0,
+              "unbounded_context_cycle_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_bcd06511-00a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 3,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_bd269eb6-268.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 3,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_c2ce7263-285.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 76,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_d2e4d4a6-058.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_continual_learning_review",
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "progress_signal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 0,
+              "unbounded_context_cycle_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_d320a4eb-afb.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 2,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_dc8fff18-00b.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 4,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_f01b520e-7df.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 4,
+              "unbounded_context_cycle_count": 53
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_f4652ae8-2b0.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 215,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_f4d6e1d7-396.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 266,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_f8b769d4-961.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_continual_learning_review",
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "progress_signal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 0,
+              "unbounded_context_cycle_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_fbee086b-fe8.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 247,
+              "unbounded_context_cycle_count": 100
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/continual_learning_current.json",
+            "source_ref": "logs/session_fd0b126a-d4a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "memory_read",
+              "memory_write",
+              "bounded_context"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "progress_event_count": 96,
+              "unbounded_context_cycle_count": 100
+            }
+          }
+        ],
+        "support_evidence": [],
+        "missing": [
+          "needs_3_more_distinct_successful_sessions",
+          "approved_heldout_task_stream_transfer_gate_required"
+        ]
+      },
+      "required_live_execution_count": 3,
+      "live_observed_execution_count": 0,
       "missing_evidence": [
-        "machine_checkable_live_acceptance_not_mapped"
+        "needs_3_more_distinct_successful_sessions",
+        "approved_heldout_task_stream_transfer_gate_required"
       ]
     },
     {
@@ -429,6 +1157,9 @@
           "evidence_refs": []
         }
       ],
+      "live_evidence": {},
+      "required_live_execution_count": 0,
+      "live_observed_execution_count": 0,
       "missing_evidence": [
         "BM-011:needs_3_more_successes",
         "BM-012:needs_3_more_successes",
@@ -439,13 +1170,13 @@
     {
       "id": "M5",
       "name": "Open-World Exploration",
-      "evidence_kind": "unmapped_live",
-      "status": "unverified",
+      "evidence_kind": "live_report",
+      "status": "failing",
       "completion_claim_allowed": false,
       "declared": {
         "name": "Open-World Exploration",
-        "status": "Evidence pending",
-        "progress": "Machine-checkable live acceptance is not yet mapped"
+        "status": "Live failing",
+        "progress": "0/37 sessions qualify; world-model gate passes, but 0/27 goals completed"
       },
       "declared_complete": false,
       "claim_assessment": "not_claimed_complete",
@@ -464,20 +1195,749 @@
       "live_observed_benchmark_count": 0,
       "repeat_verified_benchmark_count": 0,
       "benchmarks": [],
+      "live_evidence": {
+        "phase_id": "M5",
+        "primary_evidence_type": "exploration_trace_report",
+        "support_evidence_type": "world_model_feedback_gate",
+        "status": "failing",
+        "repeats_required": 3,
+        "loaded_report_count": 2,
+        "primary_report_count": 1,
+        "support_report_count": 1,
+        "attempts": 37,
+        "primary_successes": 0,
+        "verified_successes": 0,
+        "failures": 37,
+        "support_approved": true,
+        "evidence_refs": [],
+        "primary_cases": [
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_135514aa-b34.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_18afca4f-925.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 24,
+              "path_distance": 69.8,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 3
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_210b278f-f2c.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 41,
+              "path_distance": 231.3,
+              "plan_signal_count": 96,
+              "autonomous_goal_count": 0,
+              "discovery_count": 18
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_22497e5a-3d1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 35,
+              "path_distance": 71.35,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 4
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_23eb9fce-5df.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 1,
+              "path_distance": 0.0,
+              "plan_signal_count": 99,
+              "autonomous_goal_count": 0,
+              "discovery_count": 6
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_2818ff2a-612.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 4,
+              "path_distance": 40.47,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 18
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_340cb717-ed4.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 12,
+              "path_distance": 67.9,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 3
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_3466f191-696.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 1,
+              "path_distance": 0.0,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 12
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_363c6651-e39.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 4,
+              "path_distance": 78.74,
+              "plan_signal_count": 33,
+              "autonomous_goal_count": 0,
+              "discovery_count": 7
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_4138b270-949.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 1,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 11
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_4907f85d-989.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 65,
+              "path_distance": 104.54,
+              "plan_signal_count": 62,
+              "autonomous_goal_count": 0,
+              "discovery_count": 15
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_5420f1b3-f9a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_5815bb56-2d7.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 76,
+              "path_distance": 184.14,
+              "plan_signal_count": 96,
+              "autonomous_goal_count": 0,
+              "discovery_count": 16
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_67ba45ce-2e1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 1,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 11
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_6fd20cb9-d9d.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_732da4ca-ff1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_7c91318c-3c8.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 17,
+              "path_distance": 83.91,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 3
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_832d447f-c65.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 36,
+              "path_distance": 67.19,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 3
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_90e0fccd-e62.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 77,
+              "path_distance": 705.44,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 20
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_9357fe3f-acb.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 24,
+              "path_distance": 133.01,
+              "plan_signal_count": 50,
+              "autonomous_goal_count": 0,
+              "discovery_count": 4
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_99210dd0-e96.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_b41c7b4a-e6d.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "minimum_path_distance",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 4,
+              "path_distance": 0.98,
+              "plan_signal_count": 99,
+              "autonomous_goal_count": 0,
+              "discovery_count": 10
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_b58cacbf-817.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_bab1505b-cfd.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 28,
+              "path_distance": 92.05,
+              "plan_signal_count": 48,
+              "autonomous_goal_count": 0,
+              "discovery_count": 13
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_bae74597-6ed.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_bcd06511-00a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 1,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 13
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_bd269eb6-268.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "minimum_path_distance",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 3,
+              "path_distance": 1.63,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 7
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_c2ce7263-285.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 19,
+              "path_distance": 32.83,
+              "plan_signal_count": 94,
+              "autonomous_goal_count": 0,
+              "discovery_count": 12
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_d2e4d4a6-058.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_d320a4eb-afb.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 2,
+              "path_distance": 0.61,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 6
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_dc8fff18-00b.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 1,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 13
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_f01b520e-7df.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 4,
+              "path_distance": 38.4,
+              "plan_signal_count": 53,
+              "autonomous_goal_count": 0,
+              "discovery_count": 3
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_f4652ae8-2b0.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 16,
+              "path_distance": 69.36,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 4
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_f4d6e1d7-396.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 70,
+              "path_distance": 149.13,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 13
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_f8b769d4-961.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_fbee086b-fe8.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 48,
+              "path_distance": 136.05,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 17
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_fd0b126a-d4a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 15,
+              "path_distance": 40.93,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 23
+            }
+          }
+        ],
+        "support_evidence": [
+          {
+            "report_path": "logs/benchmarks/world_model_gate_current.json",
+            "approved": true,
+            "failed_criteria": [],
+            "readiness": "approved",
+            "decision": "allow_world_model_feedback",
+            "ready_log_count": 28,
+            "actionable_item_count": 24,
+            "structured_map_evidence_count": 12
+          }
+        ],
+        "missing": [
+          "needs_3_more_distinct_successful_sessions"
+        ]
+      },
+      "required_live_execution_count": 3,
+      "live_observed_execution_count": 0,
       "missing_evidence": [
-        "machine_checkable_live_acceptance_not_mapped"
+        "needs_3_more_distinct_successful_sessions"
       ]
     },
     {
       "id": "M6",
       "name": "Vision and Multimodal",
-      "evidence_kind": "unmapped_live",
-      "status": "unverified",
+      "evidence_kind": "live_report",
+      "status": "failing",
       "completion_claim_allowed": false,
       "declared": {
         "name": "Vision & Multimodal",
-        "status": "Evidence pending",
-        "progress": "No verified screenshot-backed live session"
+        "status": "Live failing",
+        "progress": "0/37 sessions qualify; no verified screenshots or live-source visual-action interventions"
       },
       "declared_complete": false,
       "claim_assessment": "not_claimed_complete",
@@ -500,8 +1960,701 @@
       "live_observed_benchmark_count": 0,
       "repeat_verified_benchmark_count": 0,
       "benchmarks": [],
+      "live_evidence": {
+        "phase_id": "M6",
+        "primary_evidence_type": "visual_trace_report",
+        "support_evidence_type": "visual_action_ablation",
+        "status": "failing",
+        "repeats_required": 3,
+        "loaded_report_count": 2,
+        "primary_report_count": 1,
+        "support_report_count": 1,
+        "attempts": 37,
+        "primary_successes": 0,
+        "verified_successes": 0,
+        "failures": 37,
+        "support_approved": false,
+        "evidence_refs": [],
+        "primary_cases": [
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_135514aa-b34.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_18afca4f-925.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_210b278f-f2c.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_22497e5a-3d1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_23eb9fce-5df.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_2818ff2a-612.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_340cb717-ed4.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_3466f191-696.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_363c6651-e39.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_4138b270-949.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_4907f85d-989.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_5420f1b3-f9a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_5815bb56-2d7.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_67ba45ce-2e1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_6fd20cb9-d9d.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_732da4ca-ff1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_7c91318c-3c8.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_832d447f-c65.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_90e0fccd-e62.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_9357fe3f-acb.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_99210dd0-e96.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_b41c7b4a-e6d.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_b58cacbf-817.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_bab1505b-cfd.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_bae74597-6ed.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_bcd06511-00a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_bd269eb6-268.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_c2ce7263-285.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_d2e4d4a6-058.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_d320a4eb-afb.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_dc8fff18-00b.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_f01b520e-7df.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_f4652ae8-2b0.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_f4d6e1d7-396.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_f8b769d4-961.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_fbee086b-fe8.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_fd0b126a-d4a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          }
+        ],
+        "support_evidence": [
+          {
+            "approved": false,
+            "live_attempts": 0,
+            "live_successes": 0,
+            "live_failures": 0,
+            "evidence_refs": [],
+            "ignored_builtin_case_count": 0,
+            "cases": []
+          }
+        ],
+        "missing": [
+          "needs_3_more_distinct_successful_sessions",
+          "matching_non_builtin_visual_action_ablation_required"
+        ],
+        "ignored_builtin_support_case_count": 0,
+        "visual_action_success_count": 0
+      },
+      "required_live_execution_count": 3,
+      "live_observed_execution_count": 0,
       "missing_evidence": [
-        "machine_checkable_live_acceptance_not_mapped"
+        "needs_3_more_distinct_successful_sessions",
+        "matching_non_builtin_visual_action_ablation_required"
       ]
     },
     {
@@ -546,6 +2699,9 @@
           "evidence_refs": []
         }
       ],
+      "live_evidence": {},
+      "required_live_execution_count": 0,
+      "live_observed_execution_count": 0,
       "missing_evidence": [
         "BM-701:needs_3_more_successes"
       ]
@@ -556,10 +2712,10 @@
     "restore_live_minecraft_preflight_before_new_capability_claims",
     "diagnose_and_rerun_m1_benchmarks",
     "run_m2_benchmarks",
-    "define_machine_checkable_m3_live_acceptance",
+    "diagnose_and_rerun_m3_live_evidence",
     "run_m4_benchmarks",
-    "define_machine_checkable_m5_live_acceptance",
-    "define_machine_checkable_m6_live_acceptance",
+    "diagnose_and_rerun_m5_live_evidence",
+    "diagnose_and_rerun_m6_live_evidence",
     "run_m7_benchmarks"
   ]
 }

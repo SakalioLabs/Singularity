@@ -17,10 +17,10 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M0 | Research Baseline | **Complete (source verified)** | Research deliverables present |
 | M1 | Minimum Viable Bot | **Live failing** | BM-001..005: 0/5 successful in latest tracked run |
 | M2 | LLM Task Planning | **Evidence pending** | BM-006..010: no tracked execution evidence |
-| M3 | Skill Library & Memory | **Evidence pending** | Cross-session live acceptance is not yet mapped |
+| M3 | Skill Library & Memory | **Live failing** | 0/37 sessions qualify; no memory reads/writes and 2,601 unbounded context cycles |
 | M4 | Autonomous Survival | **Evidence pending** | BM-011..014: no tracked execution evidence |
-| M5 | Open-World Exploration | **Evidence pending** | Machine-checkable live acceptance is not yet mapped |
-| M6 | Vision & Multimodal | **Evidence pending** | No verified screenshot-backed live session |
+| M5 | Open-World Exploration | **Live failing** | 0/37 sessions qualify; world-model gate passes, but 0/27 goals completed |
+| M6 | Vision & Multimodal | **Live failing** | 0/37 sessions qualify; no verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Evidence pending** | BM-701: no tracked live execution |
 
 Source is present and relevant offline suites pass for M1-M7, but those facts do not change the live statuses above.
@@ -38,11 +38,13 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 - Preserved critical health, nearby-hostile, and night-survival goals ahead of scheduled work.
 - Added knowledge-backed tool checks and grounded-coordinate checks to generic mining fallback.
 - Added `capability-evidence-report` to reject unsupported M0-M7 completion claims from benchmark and runtime evidence.
+- Added machine-checkable M3/M5/M6 adapters with distinct-session counting and independent mechanism gates.
+- Generated tracked M3/M5/M6 evidence from all 37 existing sessions instead of treating missing reports as missing runs.
 
 ## Next Acceptance Work
 
 1. Provision a Minecraft 1.20.4 test server after explicit EULA acceptance and restart the bridge.
 2. Re-run BM-001..005, diagnose failures, and collect three successful runs per task.
 3. Run BM-006..010 only after M1 is live-observed.
-4. Define machine-checkable live acceptance adapters for M3, M5, and M6.
+4. Re-run M3/M5/M6 after restoring goal completion, bounded memory events, screenshot capture, and visual-action interventions.
 5. Start distinct M7 role bridges and run BM-701 against the single-agent baseline.

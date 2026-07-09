@@ -1,0 +1,8 @@
+{
+  "type": "visual_action_ablation_report",
+  "schema_version": 1,
+  "passed_count": 0,
+  "changed_count": 0,
+  "helped_count": 0,
+  "cases": []
+}
