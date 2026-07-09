@@ -193,6 +193,8 @@ python -m singularity.main action-value-report --session-log logs/session_xxx.js
 python -m singularity.main run --goal "Craft torches" --action-value-feedback logs/benchmarks/action_value.json
 # Mine XENON-style knowledge corrections from failed actions and successful recovery steps.
 python -m singularity.main knowledge-correction-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/knowledge_correction.json
+python -m singularity.main knowledge-correction-review-template --knowledge-correction-report logs/benchmarks/knowledge_correction.json --output workspace/reviews/knowledge_correction_labels.jsonl
+python -m singularity.main knowledge-correction-review-validate --label-file workspace/reviews/knowledge_correction_labels.jsonl --knowledge-correction-report logs/benchmarks/knowledge_correction.json --output logs/benchmarks/knowledge_correction_review.json
 python -m singularity.main knowledge-correction-gate --knowledge-correction-report logs/benchmarks/knowledge_correction.json --output logs/benchmarks/knowledge_correction_gate.json
 # Load only approved correction feedback into planner context; this remains advisory and does not mutate built-in recipes.
 python -m singularity.main run --goal "Craft torches" --knowledge-correction-feedback logs/benchmarks/knowledge_correction.json --knowledge-correction-gate logs/benchmarks/knowledge_correction_gate.json

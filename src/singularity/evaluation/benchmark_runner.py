@@ -6602,6 +6602,321 @@ class BenchmarkRunner:
             ])
         return report
 
+    def build_knowledge_correction_review_templates(
+        self,
+        knowledge_correction_reports: Optional[list[dict]] = None,
+        knowledge_correction_report_paths: Optional[list[str]] = None,
+    ) -> list[dict]:
+        """Build JSONL manual-review templates for individual XENON correction items."""
+        errors = []
+        items = self._load_gate_payloads(
+            knowledge_correction_reports or [],
+            knowledge_correction_report_paths or [],
+            errors,
+            "knowledge_correction_report",
+        )
+        templates = []
+        seen = set()
+        for source, payload in items:
+            feedback = payload.get("knowledge_correction_feedback", payload) if isinstance(payload, dict) else {}
+            if not isinstance(feedback, dict):
+                continue
+            for correction_type, values in (
+                ("dependency_correction", feedback.get("dependency_corrections", [])),
+                ("failed_action_memory", feedback.get("failure_action_memories", [])),
+            ):
+                if not isinstance(values, list):
+                    continue
+                for index, item in enumerate(values, start=1):
+                    if not isinstance(item, dict):
+                        continue
+                    key = self._knowledge_correction_review_key(source, correction_type, item)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    templates.append(self._knowledge_correction_review_template(source, correction_type, item, index, key))
+        for error in errors:
+            templates.append({
+                "type": "error",
+                "source_report": "",
+                "key": f"knowledge_correction_error::{len(templates) + 1}",
+                "readiness": "rejected",
+                "error": error,
+            })
+        return templates
+
+    def validate_knowledge_correction_review_labels(
+        self,
+        label_path: str,
+        knowledge_correction_reports: Optional[list[dict]] = None,
+        knowledge_correction_report_paths: Optional[list[str]] = None,
+    ) -> dict:
+        """Validate item-level knowledge-correction labels and emit approved feedback."""
+        report = {
+            "type": "knowledge_correction_review_validation",
+            "label_path": label_path,
+            "ok": False,
+            "label_count": 0,
+            "valid_count": 0,
+            "approved_count": 0,
+            "review_count": 0,
+            "rejected_count": 0,
+            "unknown_count": 0,
+            "invalid_readiness_count": 0,
+            "missing_match_count": 0,
+            "duplicate_key_count": 0,
+            "approved_dependency_correction_count": 0,
+            "approved_failure_action_memory_count": 0,
+            "cases": [],
+            "errors": [],
+            "knowledge_correction_feedback": {
+                "log_count": 0,
+                "ready_log_count": 0,
+                "dependency_correction_count": 0,
+                "failure_action_memory_count": 0,
+                "dependency_corrections": [],
+                "failure_action_memories": [],
+                "policy_hints": [],
+                "review_label_count": 0,
+                "approved_review_label_count": 0,
+            },
+        }
+        try:
+            records = self._load_manual_label_records(label_path)
+        except Exception as e:
+            report["errors"].append(str(e))
+            return report
+
+        templates = self.build_knowledge_correction_review_templates(
+            knowledge_correction_reports=knowledge_correction_reports,
+            knowledge_correction_report_paths=knowledge_correction_report_paths,
+        ) if (knowledge_correction_reports or knowledge_correction_report_paths) else []
+        for template in templates:
+            if isinstance(template, dict) and template.get("type") == "error":
+                report["errors"].append(str(template.get("error") or "knowledge correction report could not be loaded"))
+        template_by_key = {
+            str(template.get("key") or ""): template
+            for template in templates
+            if isinstance(template, dict) and template.get("type") == "knowledge_correction_review"
+        }
+        expect_template_match = bool(knowledge_correction_reports or knowledge_correction_report_paths)
+        seen_keys = set()
+        approved_dependency = []
+        approved_failure = []
+        for index, record in enumerate(records, start=1):
+            case = self._validate_knowledge_correction_review_record(record, index, template_by_key, expect_template_match)
+            report["cases"].append(case)
+            report["label_count"] += 1
+            key = case.get("key", "")
+            if key:
+                if key in seen_keys:
+                    case["errors"].append("duplicate_key")
+                    report["duplicate_key_count"] += 1
+                    case["ok"] = False
+                seen_keys.add(key)
+            if not case["readiness"]:
+                report["invalid_readiness_count"] += 1
+            elif case["readiness"] == "approved":
+                report["approved_count"] += 1
+            elif case["readiness"] == "rejected":
+                report["rejected_count"] += 1
+            elif case["readiness"] == "review":
+                report["review_count"] += 1
+            elif case["readiness"] == "unknown":
+                report["unknown_count"] += 1
+            if "missing_review_target" in case["errors"]:
+                report["missing_match_count"] += 1
+            if case["ok"]:
+                report["valid_count"] += 1
+            if case["ok"] and case["readiness"] == "approved":
+                item = dict(case.get("item", {}))
+                item["review_readiness"] = "approved"
+                item["review_notes"] = case.get("notes", "")
+                item["review_key"] = key
+                if case.get("correction_type") == "dependency_correction":
+                    approved_dependency.append(item)
+                elif case.get("correction_type") == "failed_action_memory":
+                    approved_failure.append(item)
+
+        feedback = report["knowledge_correction_feedback"]
+        report["approved_dependency_correction_count"] = len(approved_dependency)
+        report["approved_failure_action_memory_count"] = len(approved_failure)
+        feedback["review_label_count"] = report["label_count"]
+        feedback["approved_review_label_count"] = len(approved_dependency) + len(approved_failure)
+        feedback["dependency_corrections"] = approved_dependency
+        feedback["failure_action_memories"] = approved_failure
+        feedback["dependency_correction_count"] = len(approved_dependency)
+        feedback["failure_action_memory_count"] = len(approved_failure)
+        feedback["ready_log_count"] = 1 if (approved_dependency or approved_failure) else 0
+        feedback["policy_hints"] = self._knowledge_correction_review_policy_hints(report)
+        report["ok"] = (
+            not report["errors"]
+            and report["valid_count"] == report["label_count"]
+            and report["invalid_readiness_count"] == 0
+            and report["duplicate_key_count"] == 0
+        )
+        return report
+
+    def _knowledge_correction_review_template(
+        self,
+        source: str,
+        correction_type: str,
+        item: dict,
+        index: int,
+        key: str,
+    ) -> dict:
+        record = {
+            "type": "knowledge_correction_review",
+            "key": key,
+            "source_report": source,
+            "item_index": index,
+            "correction_type": correction_type,
+            "readiness": "unknown",
+            "reviewer": "",
+            "notes": "",
+            "approved_values": ["approved", "rejected", "review"],
+            "review_questions": [
+                "Is the correction grounded in the evidence and applicable to the stated goal?",
+                "Would loading this item into planner context reduce repeated invalid planning without bypassing verification?",
+            ],
+        }
+        if correction_type == "dependency_correction":
+            record.update({
+                "goal": item.get("goal", ""),
+                "failed_signature": item.get("failed_signature", ""),
+                "recovery_signature": item.get("recovery_signature", ""),
+                "correction": item.get("correction", ""),
+                "evidence_count": self._gate_int(item.get("evidence_count", 0)),
+                "confidence": item.get("confidence", 0),
+                "target_items": item.get("target_items", []),
+                "failed_errors": item.get("failed_errors", []),
+            })
+        else:
+            record.update({
+                "goal": item.get("goal", ""),
+                "signature": item.get("signature", ""),
+                "action_type": item.get("action_type", ""),
+                "recommendation": item.get("recommendation", ""),
+                "reason": item.get("reason", ""),
+                "attempts": self._gate_int(item.get("attempts", 0)),
+                "failures": self._gate_int(item.get("failures", 0)),
+                "task_families": item.get("task_families", {}),
+            })
+        record["item"] = item
+        return record
+
+    def _validate_knowledge_correction_review_record(
+        self,
+        record: dict,
+        index: int,
+        template_by_key: dict,
+        expect_template_match: bool = False,
+    ) -> dict:
+        if not isinstance(record, dict):
+            return {
+                "index": index,
+                "ok": False,
+                "key": "",
+                "readiness": "",
+                "correction_type": "",
+                "errors": ["record_not_object"],
+                "warnings": [],
+                "item": {},
+            }
+        key = str(record.get("key") or "")
+        readiness = self._normalize_knowledge_correction_review_readiness(
+            record.get("readiness", record.get("label", record.get("status", record.get("decision"))))
+        )
+        template = template_by_key.get(key, {}) if template_by_key else {}
+        correction_type = str(record.get("correction_type") or template.get("correction_type") or "").strip()
+        item = record.get("item") if isinstance(record.get("item"), dict) else template.get("item", {})
+        case = {
+            "index": index,
+            "ok": True,
+            "key": key,
+            "source_report": str(record.get("source_report") or template.get("source_report") or ""),
+            "correction_type": correction_type,
+            "readiness": readiness,
+            "raw_readiness": str(record.get("readiness", record.get("label", record.get("status", record.get("decision", "")))) or ""),
+            "notes": str(record.get("notes", record.get("reason", "")) or ""),
+            "errors": [],
+            "warnings": [],
+            "item": item if isinstance(item, dict) else {},
+        }
+        if not key:
+            case["errors"].append("missing_key")
+        if not readiness:
+            case["errors"].append("invalid_readiness")
+        elif readiness in {"unknown", "review"}:
+            case["warnings"].append("readiness_not_approved")
+        if expect_template_match and key not in template_by_key:
+            case["errors"].append("missing_review_target")
+        if correction_type not in {"dependency_correction", "failed_action_memory"}:
+            case["errors"].append("invalid_correction_type")
+        if not case["item"]:
+            case["errors"].append("missing_item_payload")
+        case["ok"] = not case["errors"]
+        return case
+
+    def _normalize_knowledge_correction_review_readiness(self, value) -> str:
+        if isinstance(value, bool):
+            return "approved" if value else "rejected"
+        text = str(value or "").strip().lower()
+        if text in {"approved", "approve", "pass", "passed", "true", "yes"}:
+            return "approved"
+        if text in {"rejected", "reject", "fail", "failed", "false", "no"}:
+            return "rejected"
+        if text in {"review", "needs_review", "manual_review", "hold"}:
+            return "review"
+        if text in {"unknown", "uncertain", "ambiguous", "skip", ""}:
+            return "unknown"
+        return ""
+
+    def _knowledge_correction_review_key(self, source: str, correction_type: str, item: dict) -> str:
+        if correction_type == "dependency_correction":
+            parts = [
+                "knowledge_correction",
+                correction_type,
+                os.path.basename(str(source or "")) or str(source or ""),
+                str(item.get("failed_signature", "")),
+                str(item.get("recovery_signature", "")),
+                str(item.get("goal", "")),
+            ]
+        else:
+            parts = [
+                "knowledge_correction",
+                correction_type,
+                os.path.basename(str(source or "")) or str(source or ""),
+                str(item.get("signature", "")),
+                str(item.get("reason", "")),
+            ]
+        return "::".join(part.replace("\n", " ").strip() for part in parts)
+
+    def _knowledge_correction_review_policy_hints(self, report: dict) -> list[dict]:
+        hints = []
+        if report.get("approved_dependency_correction_count"):
+            hints.append({
+                "knowledge_correction_policy": "review_dependency_graph_corrections",
+                "priority": "high",
+                "reason": "manual review approved dependency-correction items for planner context",
+                "count": report.get("approved_dependency_correction_count", 0),
+            })
+        if report.get("approved_failure_action_memory_count"):
+            hints.append({
+                "knowledge_correction_policy": "review_failed_action_memories",
+                "priority": "high",
+                "reason": "manual review approved failed-action memories for planner context",
+                "count": report.get("approved_failure_action_memory_count", 0),
+            })
+        if report.get("review_count") or report.get("unknown_count"):
+            hints.append({
+                "knowledge_correction_policy": "keep_unreviewed_knowledge_corrections_gated",
+                "priority": "medium",
+                "reason": "some knowledge-correction labels remain review or unknown",
+                "count": int(report.get("review_count", 0) or 0) + int(report.get("unknown_count", 0) or 0),
+            })
+        return hints
+
     def build_action_value_transition_gate(
         self,
         action_value_reports: list[dict] = None,

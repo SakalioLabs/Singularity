@@ -18,7 +18,8 @@
   - `knowledge-correction-report` mines repeated failed/no-progress action signatures and failed-action -> successful-recovery pairs from session logs.
   - Candidate corrections include Echo-style structure, attribute, process, function, and interaction dimensions for later transfer retrieval.
   - `knowledge-correction-gate` holds these candidates until enough ready logs and reviewable correction evidence exist.
+  - `knowledge-correction-review-template` and `knowledge-correction-review-validate` add item-level manual review and emit approved-only feedback before gate/runtime use.
   - Approved reports can now be passed with `--knowledge-correction-feedback` plus `--knowledge-correction-gate` so the planner receives short advisory dependency and failed-action hints without mutating built-in recipes.
   - `benchmark --knowledge-correction-preflight` verifies approved gates plus selected-suite goal overlap before spending live benchmark time on correction-assisted runs.
   - `knowledge-correction-ablation` shows exact planner-context changes for suite goals, explicit goals, or case files before live runs.
-**Next Action**: Run report, gate, ablation, and benchmark preflight on fresh M1/M2 retries, then compare gated planner-context runs against the ungated baseline.
+**Next Action**: Run report, review labels, gate, ablation, and benchmark preflight on fresh M1/M2 retries, then compare gated planner-context runs against the ungated baseline.

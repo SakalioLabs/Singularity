@@ -190,6 +190,7 @@
 - [x] Wire approved `knowledge-correction-gate` reports into Agent planner context as advisory dependency and failed-action hints without mutating built-in Minecraft knowledge.
 - [x] Add benchmark-level `--knowledge-correction-preflight` so knowledge-correction-assisted live suites require approved gates and selected-suite goal overlap before execution.
 - [x] Add offline `knowledge-correction-ablation` so approved XENON feedback can be inspected for actual planner-context changes before live runs.
+- [x] Add item-level `knowledge-correction-review-template` and `knowledge-correction-review-validate` so only manually approved XENON correction items are repackaged as runtime feedback.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -238,7 +239,7 @@
 - [ ] Re-run `action-verification-report` on live M1/M2 retries and compare reject/review rates plus `failed_without_reject` against `logs/benchmarks/action_verification_m1_2026-07-09.json`.
 - [ ] Re-run `action-candidate-report` on live M1/M2 retries and compare original rejects, repaired rejects, unchanged rejects, and changed selections against `logs/benchmarks/action_candidate_m1_2026-07-09.json`.
 - [ ] Re-run `action-value-report` on live M1/M2 retries and compare high-value signatures plus failure-correction pairs against `logs/benchmarks/action_value_m1_2026-07-09.json`, then pass approved feedback with `--action-value-feedback`.
-- [ ] Run `knowledge-correction-report`, `knowledge-correction-gate`, `knowledge-correction-ablation`, and `benchmark --knowledge-correction-preflight-output` on fresh M1/M2 retries, then compare gated planner-context runs against the ungated baseline.
+- [ ] Run `knowledge-correction-report`, `knowledge-correction-review-template/validate`, `knowledge-correction-gate`, `knowledge-correction-ablation`, and `benchmark --knowledge-correction-preflight-output` on fresh M1/M2 retries, then compare gated planner-context runs against the ungated baseline.
 - [ ] Re-run `action-value-report` on fresh logs produced after action-level pre/post observation logging and confirm low-confidence transition windows fall before feeding ASV scores into runtime action ranking.
 - [ ] Run `action-value-transition-gate` on fresh M1/M2 action-value reports and pass approved reports with `--action-value-transition-gate` before allowing ASV transition scores through `--action-value-feedback`.
 - [ ] Investigate why the current M1 action-value baseline reports 200/200 successful actions but mostly no-progress state transitions, then compare against live M1/M2 retries before feeding transition values into runtime action ranking.

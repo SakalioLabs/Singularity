@@ -2089,6 +2089,113 @@ def test_knowledge_correction_ablation_reports_context_changes():
     print("PASS: Knowledge correction ablation reports context changes")
 
 
+def test_knowledge_correction_review_labels_emit_approved_feedback():
+    tmpdir = tempfile.mkdtemp()
+    report_path = os.path.join(tmpdir, "knowledge_correction.json")
+    label_path = os.path.join(tmpdir, "knowledge_correction_labels.jsonl")
+    feedback = {
+        "log_count": 1,
+        "ready_log_count": 1,
+        "dependency_correction_count": 1,
+        "failure_action_memory_count": 1,
+        "dependency_corrections": [
+            {
+                "type": "dependency_correction",
+                "goal": "Craft torches",
+                "failed_signature": "craft:torch",
+                "recovery_signature": "dig:coal_ore",
+                "target_items": ["torch"],
+                "evidence_count": 2,
+                "confidence": 0.85,
+                "correction": "Before retrying craft:torch, collect or expose coal_ore with dig when the goal is Craft torches.",
+                "knowledge_dimensions": {"attribute": ["crafting", "torch"]},
+            },
+        ],
+        "failure_action_memories": [
+            {
+                "type": "failed_action_memory",
+                "signature": "craft:torch",
+                "action_type": "craft",
+                "attempts": 3,
+                "failures": 3,
+                "task_families": {"crafting": 3},
+                "recommendation": "avoid_or_replan_until_preconditions_change",
+                "reason": "repeated_failed_action",
+            },
+        ],
+    }
+    with open(report_path, "w", encoding="utf-8") as f:
+        json.dump({"knowledge_correction_feedback": feedback}, f)
+
+    runner = BenchmarkRunner(Config())
+    templates = runner.build_knowledge_correction_review_templates(
+        knowledge_correction_report_paths=[report_path],
+    )
+    assert len(templates) == 2
+    assert {template["correction_type"] for template in templates} == {
+        "dependency_correction",
+        "failed_action_memory",
+    }
+    assert all(template["readiness"] == "unknown" for template in templates)
+    assert all(template["item"] for template in templates)
+
+    filled = []
+    for template in templates:
+        record = dict(template)
+        record["readiness"] = "approved" if template["correction_type"] == "dependency_correction" else "review"
+        record["notes"] = "manual check"
+        filled.append(record)
+    with open(label_path, "w", encoding="utf-8") as f:
+        for record in filled:
+            f.write(json.dumps(record) + "\n")
+
+    validation = runner.validate_knowledge_correction_review_labels(
+        label_path=label_path,
+        knowledge_correction_report_paths=[report_path],
+    )
+    approved_feedback = validation["knowledge_correction_feedback"]
+
+    assert validation["ok"] is True
+    assert validation["label_count"] == 2
+    assert validation["approved_count"] == 1
+    assert validation["review_count"] == 1
+    assert validation["approved_dependency_correction_count"] == 1
+    assert validation["approved_failure_action_memory_count"] == 0
+    assert approved_feedback["dependency_correction_count"] == 1
+    assert approved_feedback["failure_action_memory_count"] == 0
+    assert approved_feedback["ready_log_count"] == 1
+    assert approved_feedback["dependency_corrections"][0]["review_readiness"] == "approved"
+    assert approved_feedback["dependency_corrections"][0]["review_notes"] == "manual check"
+    policies = {hint["knowledge_correction_policy"] for hint in approved_feedback["policy_hints"]}
+    assert "review_dependency_graph_corrections" in policies
+    assert "keep_unreviewed_knowledge_corrections_gated" in policies
+
+    invalid_path = os.path.join(tmpdir, "invalid_knowledge_correction_labels.jsonl")
+    bad = dict(filled[0])
+    bad["readiness"] = "maybe"
+    with open(invalid_path, "w", encoding="utf-8") as f:
+        f.write(json.dumps(bad) + "\n")
+    invalid = runner.validate_knowledge_correction_review_labels(
+        label_path=invalid_path,
+        knowledge_correction_report_paths=[report_path],
+    )
+    assert invalid["ok"] is False
+    assert invalid["invalid_readiness_count"] == 1
+
+    missing_path = os.path.join(tmpdir, "missing_knowledge_correction_labels.jsonl")
+    missing = dict(filled[0])
+    missing["key"] = "knowledge_correction::dependency_correction::missing"
+    with open(missing_path, "w", encoding="utf-8") as f:
+        f.write(json.dumps(missing) + "\n")
+    missing_validation = runner.validate_knowledge_correction_review_labels(
+        label_path=missing_path,
+        knowledge_correction_report_paths=[report_path],
+    )
+    assert missing_validation["ok"] is False
+    assert missing_validation["missing_match_count"] == 1
+    print("PASS: Knowledge correction review labels emit approved feedback")
+
+
 def test_action_value_report_uses_embedded_action_observation_windows():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "action_value_embedded_observation_session.jsonl")
@@ -4659,6 +4766,7 @@ if __name__ == "__main__":
     test_knowledge_correction_report_mines_failed_actions_and_dependencies()
     test_knowledge_correction_preflight_requires_gate_and_suite_overlap()
     test_knowledge_correction_ablation_reports_context_changes()
+    test_knowledge_correction_review_labels_emit_approved_feedback()
     test_action_value_report_uses_embedded_action_observation_windows()
     test_action_value_transition_gate_controls_runtime_feedback()
     test_action_value_transition_evaluator_compares_state_grounded_labels()

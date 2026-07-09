@@ -749,6 +749,17 @@ def main():
     knowledge_correction_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
     knowledge_correction_gate_parser.add_argument("--log-level", type=str, default="INFO")
 
+    knowledge_correction_review_template_parser = subparsers.add_parser("knowledge-correction-review-template", help="Generate JSONL item-level review templates for knowledge corrections")
+    knowledge_correction_review_template_parser.add_argument("--knowledge-correction-report", action="append", default=[], help="Saved knowledge-correction-report JSON")
+    knowledge_correction_review_template_parser.add_argument("--output", type=str, default="", help="Optional JSONL label template path")
+    knowledge_correction_review_template_parser.add_argument("--log-level", type=str, default="INFO")
+
+    knowledge_correction_review_validate_parser = subparsers.add_parser("knowledge-correction-review-validate", help="Validate item-level knowledge-correction review labels and emit approved feedback")
+    knowledge_correction_review_validate_parser.add_argument("--label-file", type=str, required=True, help="Filled knowledge-correction review labels JSON/JSONL")
+    knowledge_correction_review_validate_parser.add_argument("--knowledge-correction-report", action="append", default=[], help="Original knowledge-correction-report JSON for target matching")
+    knowledge_correction_review_validate_parser.add_argument("--output", type=str, default="", help="Optional JSON validation report path")
+    knowledge_correction_review_validate_parser.add_argument("--log-level", type=str, default="INFO")
+
     knowledge_correction_ablation_parser = subparsers.add_parser("knowledge-correction-ablation", help="Compare planner context with gated knowledge corrections disabled vs enabled")
     _add_knowledge_correction_args(knowledge_correction_ablation_parser)
     knowledge_correction_ablation_parser.add_argument("--suite", type=str, default="m1", choices=["m1", "m2", "all"], help="Benchmark suite used when no explicit --goal or --case-file is supplied")
@@ -2729,6 +2740,88 @@ def main():
                 json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
         if report.get("readiness") in {"rejected", "error"}:
+            sys.exit(1)
+        return
+
+    if args.command == "knowledge-correction-review-template":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        report_paths = getattr(args, "knowledge_correction_report", []) or []
+        if not report_paths:
+            print("knowledge-correction-review-template requires at least one --knowledge-correction-report")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        templates = runner.build_knowledge_correction_review_templates(
+            knowledge_correction_report_paths=report_paths,
+        )
+        error_count = sum(1 for template in templates if template.get("type") == "error")
+        print("\nKnowledge Correction Review Template")
+        print(f"  labels: {len(templates) - error_count}")
+        print(f"  errors: {error_count}")
+        for template in templates[:8]:
+            if template.get("type") == "error":
+                print(f"  [x] {template.get('error', '')}")
+                continue
+            print(
+                f"  [?] {template.get('correction_type')} {template.get('key')} "
+                f"readiness={template.get('readiness')}"
+            )
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                for template in templates:
+                    f.write(json.dumps(template, ensure_ascii=False) + "\n")
+            print(f"\nReview template saved to {args.output}")
+        return
+
+    if args.command == "knowledge-correction-review-validate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        runner = BenchmarkRunner(Config())
+        report = runner.validate_knowledge_correction_review_labels(
+            label_path=getattr(args, "label_file", ""),
+            knowledge_correction_report_paths=getattr(args, "knowledge_correction_report", []) or [],
+        )
+        print("\nKnowledge Correction Review Validation")
+        print(f"  labels: {report.get('valid_count', 0)}/{report.get('label_count', 0)} valid")
+        print(
+            "  readiness: "
+            f"approved={report.get('approved_count', 0)}, "
+            f"review={report.get('review_count', 0)}, "
+            f"rejected={report.get('rejected_count', 0)}, "
+            f"unknown={report.get('unknown_count', 0)}"
+        )
+        print(
+            "  approved feedback: "
+            f"dependency={report.get('approved_dependency_correction_count', 0)}, "
+            f"failed_memories={report.get('approved_failure_action_memory_count', 0)}"
+        )
+        if report.get("invalid_readiness_count"):
+            print(f"  invalid readiness: {report.get('invalid_readiness_count')}")
+        if report.get("missing_match_count"):
+            print(f"  missing targets: {report.get('missing_match_count')}")
+        if report.get("duplicate_key_count"):
+            print(f"  duplicate keys: {report.get('duplicate_key_count')}")
+        for case in report.get("cases", [])[:8]:
+            marker = "+" if case.get("ok") else "x"
+            print(
+                f"  [{marker}] {case.get('index')} {case.get('correction_type') or 'unknown'} "
+                f"{case.get('key', '')}: {case.get('readiness') or 'invalid'}"
+            )
+            if case.get("errors"):
+                print(f"      errors: {', '.join(case.get('errors', []))}")
+            if case.get("warnings"):
+                print(f"      warnings: {', '.join(case.get('warnings', []))}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nValidation report saved to {args.output}")
+        if not report.get("ok"):
             sys.exit(1)
         return
 
