@@ -148,6 +148,8 @@ python -m singularity.main memory-policy-report --session-log logs/session_xxx.j
 # Attribute generic memory reads to downstream plan/action/goal outcomes before retrieval weights are tuned.
 python -m singularity.main memory-attribution-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/memory_attribution.json
 python -m singularity.main memory-attribution-gate --memory-attribution-report logs/benchmarks/memory_attribution.json --output logs/benchmarks/memory_attribution_gate.json
+# Runtime weighted retrieval stays disabled unless this gate is approved.
+python -m singularity.main run --goal "Craft torches" --enable-weighted-memory-retrieval --memory-attribution-gate logs/benchmarks/memory_attribution_gate.json
 # New Agent runs log `memory_write`, `memory_read`, and `memory_manage` events plus summary metrics.
 # `MemoryLifecyclePolicy` is advisory by default; strict suppression also requires an approved memory-promptware gate.
 # Audit durable memory entries that would be excluded at read time.
@@ -298,7 +300,7 @@ python -m singularity.main benchmark --suite m1 --mixed-policy-patch logs/benchm
 # Bundle approved gates and feedback artifacts into a reusable runtime profile.
 # Keep provider keys in environment variables or CLI only; profile JSON should
 # contain paths and safe runtime switches, not secrets.
-python -m singularity.main runtime-profile-build --name m1_visual_goal_critic --enable-goal-critic --goal-critic-gate logs/benchmarks/goal_critic_gate.json --enable-plan-cache --plan-cache logs/benchmarks/plan_cache.json --plan-cache-gate logs/benchmarks/plan_cache_gate.json --enforce-memory-write-gate --memory-promptware-gate logs/benchmarks/memory_promptware_gate.json --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json --output workspace/runtime/m1_visual_profile.json
+python -m singularity.main runtime-profile-build --name m1_visual_goal_critic --enable-goal-critic --goal-critic-gate logs/benchmarks/goal_critic_gate.json --enable-plan-cache --plan-cache logs/benchmarks/plan_cache.json --plan-cache-gate logs/benchmarks/plan_cache_gate.json --enable-weighted-memory-retrieval --memory-attribution-gate logs/benchmarks/memory_attribution_gate.json --enforce-memory-write-gate --memory-promptware-gate logs/benchmarks/memory_promptware_gate.json --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json --output workspace/runtime/m1_visual_profile.json
 python -m singularity.main runtime-profile-validate --runtime-profile workspace/runtime/m1_visual_profile.json --output logs/benchmarks/runtime_profile_validation.json
 python -m singularity.main runtime-profile-security-audit --runtime-profile workspace/runtime/m1_visual_profile.json --output logs/benchmarks/runtime_profile_security.json
 python -m singularity.main runtime-profile-suite-report --runtime-dir workspace/runtime --required-profile m1 --required-profile m2 --required-profile m7 --output logs/benchmarks/runtime_profile_suite.json

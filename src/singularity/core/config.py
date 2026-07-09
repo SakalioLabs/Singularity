@@ -40,6 +40,8 @@ class Config:
     plan_cache_paths: list[str] = field(default_factory=list)
     plan_cache_gate_paths: list[str] = field(default_factory=list)
     plan_cache_min_confidence: float = 0.75
+    enable_weighted_memory_retrieval: bool = False
+    memory_attribution_gate_paths: list[str] = field(default_factory=list)
     enforce_memory_write_gate: bool = False
     memory_promptware_gate_paths: list[str] = field(default_factory=list)
     enable_coaching_policy: bool = True

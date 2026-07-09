@@ -111,6 +111,24 @@ def test_runtime_profile_requires_promptware_gate_for_strict_memory_writes():
     print("PASS: Runtime profile requires promptware gate for strict memory writes")
 
 
+def test_runtime_profile_requires_attribution_gate_for_weighted_memory_retrieval():
+    tmpdir = tempfile.mkdtemp()
+    profile_path = os.path.join(tmpdir, "runtime_profile_weighted_memory.json")
+    _write_json(profile_path, {
+        "type": "runtime_profile",
+        "settings": {
+            "enable_weighted_memory_retrieval": True,
+        },
+    })
+
+    report = build_runtime_profile_report([profile_path])
+    assert report["readiness"] == "review"
+    assert report["decision"] == "hold_runtime_profile"
+    assert "memory_attribution_gate_paths" in report["missing"]
+    assert report["settings"]["enable_weighted_memory_retrieval"] is True
+    print("PASS: Runtime profile requires attribution gate for weighted memory retrieval")
+
+
 def test_runtime_profile_rejects_rejected_gate():
     tmpdir = tempfile.mkdtemp()
     gate_path = os.path.join(tmpdir, "skill_runtime_default_gate.json")
@@ -140,6 +158,7 @@ def test_runtime_profile_builder_groups_gates_and_artifacts():
     goal_gate = os.path.join(tmpdir, "goal_gate.json")
     mixed_gate = os.path.join(tmpdir, "mixed_gate.json")
     memory_gate = os.path.join(tmpdir, "memory_promptware_gate.json")
+    attribution_gate = os.path.join(tmpdir, "memory_attribution_gate.json")
     patch_path = os.path.join(tmpdir, "mixed_patch.json")
     _write_json(goal_gate, {
         "type": "goal_verification_critic_gate",
@@ -156,17 +175,27 @@ def test_runtime_profile_builder_groups_gates_and_artifacts():
         "readiness": "approved",
         "decision": "allow_strict_memory_promptware_enforcement",
     })
+    _write_json(attribution_gate, {
+        "type": "memory_attribution_gate",
+        "readiness": "approved",
+        "decision": "allow_weighted_memory_retrieval_profile",
+    })
     _write_json(patch_path, {"type": "mixed_policy_patch", "patches": []})
 
     profile = build_runtime_profile_payload(
         name="m1_mixed_goal_profile",
         description="fixture profile",
-        settings={"enable_goal_critic": True, "enforce_memory_write_gate": True},
+        settings={
+            "enable_goal_critic": True,
+            "enforce_memory_write_gate": True,
+            "enable_weighted_memory_retrieval": True,
+        },
         path_fields={
             "goal_critic_gate_paths": [goal_gate],
             "mixed_policy_gate_paths": [mixed_gate],
             "mixed_policy_patch_paths": [patch_path],
             "memory_promptware_gate_paths": [memory_gate],
+            "memory_attribution_gate_paths": [attribution_gate],
         },
     )
     report = build_runtime_profile_report_from_profiles(
@@ -177,12 +206,14 @@ def test_runtime_profile_builder_groups_gates_and_artifacts():
     assert profile["type"] == "runtime_profile"
     assert profile["settings"]["enable_goal_critic"] is True
     assert profile["settings"]["enforce_memory_write_gate"] is True
+    assert profile["settings"]["enable_weighted_memory_retrieval"] is True
     assert profile["gates"]["goal_critic"] == [goal_gate]
     assert profile["gates"]["mixed_policy"] == [mixed_gate]
     assert profile["gates"]["memory_promptware"] == [memory_gate]
+    assert profile["gates"]["memory_attribution"] == [attribution_gate]
     assert profile["artifacts"]["mixed_policy_patch"] == [patch_path]
     assert report["readiness"] == "approved"
-    assert report["approved_gate_count"] == 3
+    assert report["approved_gate_count"] == 4
     assert report["artifact_count"] == 1
     print("PASS: Runtime profile builder groups gates and artifacts")
 
@@ -422,6 +453,7 @@ if __name__ == "__main__":
     test_runtime_profile_validates_approved_goal_critic_gate()
     test_runtime_profile_requires_gate_for_patch_artifacts()
     test_runtime_profile_requires_promptware_gate_for_strict_memory_writes()
+    test_runtime_profile_requires_attribution_gate_for_weighted_memory_retrieval()
     test_runtime_profile_rejects_rejected_gate()
     test_runtime_profile_builder_groups_gates_and_artifacts()
     test_runtime_profile_security_audit_accepts_safe_artifact()

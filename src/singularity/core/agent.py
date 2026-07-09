@@ -12,7 +12,11 @@ from typing import Optional
 
 from singularity.core.config import Config
 from singularity.core.runtime import RuntimeSupervisor
-from singularity.core.memory import MemorySystem, evaluate_memory_promptware_runtime_gate
+from singularity.core.memory import (
+    MemorySystem,
+    evaluate_memory_attribution_runtime_gate,
+    evaluate_memory_promptware_runtime_gate,
+)
 from singularity.core.memory_policy import MemoryLifecyclePolicy, MemoryPolicyDecision
 from singularity.core.skill_library import SkillLibrary
 from singularity.core.task_system import TaskSystem, TaskStatus
@@ -81,6 +85,19 @@ class Agent:
 
         # Integrated modules
         self.memory = MemorySystem(memory_dir=config.memory_dir)
+        self.memory_attribution_runtime_gate_report = evaluate_memory_attribution_runtime_gate(
+            getattr(config, "memory_attribution_gate_paths", []),
+            enable_requested=getattr(config, "enable_weighted_memory_retrieval", False),
+        )
+        self.enable_weighted_memory_retrieval = bool(
+            self.memory_attribution_runtime_gate_report.get("effective_enable_weighted_memory_retrieval")
+        )
+        if getattr(config, "enable_weighted_memory_retrieval", False) and not self.enable_weighted_memory_retrieval:
+            logger.warning(
+                "Weighted memory retrieval disabled: "
+                f"gate_readiness={self.memory_attribution_runtime_gate_report.get('gate_readiness')}, "
+                f"gate_paths={len(self.memory_attribution_runtime_gate_report.get('gate_paths', []))}"
+            )
         self.memory_promptware_runtime_gate_report = evaluate_memory_promptware_runtime_gate(
             getattr(config, "memory_promptware_gate_paths", []),
             enforce_requested=getattr(config, "enforce_memory_write_gate", False),

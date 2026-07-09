@@ -1335,6 +1335,104 @@ def evaluate_memory_promptware_runtime_gate(
     return report
 
 
+def evaluate_memory_attribution_runtime_gate(
+    gate_paths: list[str] = None,
+    enable_requested: bool = False,
+) -> dict:
+    """Evaluate saved memory-attribution-gate reports before weighted retrieval."""
+    clean_paths = [str(path or "").strip() for path in (gate_paths or []) if str(path or "").strip()]
+    report = {
+        "type": "memory_attribution_runtime_gate",
+        "required": bool(enable_requested),
+        "requested_enable_weighted_memory_retrieval": bool(enable_requested),
+        "effective_enable_weighted_memory_retrieval": False,
+        "readiness": "not_required" if not enable_requested else "review",
+        "decision": "skip_memory_attribution_runtime_gate" if not enable_requested else "hold_weighted_memory_retrieval",
+        "reason": "weighted memory retrieval is not requested",
+        "gate_paths": clean_paths,
+        "gate_count": 0,
+        "approved_gate_count": 0,
+        "review_gate_count": 0,
+        "rejected_gate_count": 0,
+        "error_gate_count": 0,
+        "gate_readiness": "not_required" if not enable_requested else "missing",
+        "gate_approved": not bool(enable_requested),
+        "gate_reports": [],
+        "missing": [],
+        "errors": [],
+    }
+    if not enable_requested:
+        return report
+    if not clean_paths:
+        report["reason"] = "weighted memory retrieval requires approved memory attribution gate reports"
+        report["missing"].append("memory_attribution_gate")
+        return report
+
+    readinesses = []
+    for path in clean_paths:
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                payload = json.load(f)
+            if not isinstance(payload, dict):
+                raise ValueError("memory attribution gate must be a JSON object")
+            if str(payload.get("type") or "").strip() != "memory_attribution_gate":
+                raise ValueError("report type must be memory_attribution_gate")
+            readiness = str(payload.get("readiness") or "").strip().lower() or "unknown"
+            summary = {
+                "path": path,
+                "readiness": readiness,
+                "decision": str(payload.get("decision") or "").strip(),
+                "reason": str(payload.get("reason") or "").strip()[:300],
+                "memory_read_count": _safe_int(payload.get("memory_read_count", 0)),
+                "attributed_read_count": _safe_int(payload.get("attributed_read_count", 0)),
+                "supported_read_count": _safe_int(payload.get("supported_read_count", 0)),
+                "conflicting_read_count": _safe_int(payload.get("conflicting_read_count", 0)),
+                "no_result_read_count": _safe_int(payload.get("no_result_read_count", 0)),
+            }
+            report["gate_reports"].append(summary)
+            report["gate_count"] += 1
+            readinesses.append(readiness)
+            if readiness == "approved":
+                report["approved_gate_count"] += 1
+            elif readiness == "rejected":
+                report["rejected_gate_count"] += 1
+            elif readiness == "error":
+                report["error_gate_count"] += 1
+            else:
+                report["review_gate_count"] += 1
+        except Exception as exc:
+            report["errors"].append(f"{path}: {exc}")
+
+    if report["errors"]:
+        report["readiness"] = "error"
+        report["gate_readiness"] = "error"
+        report["decision"] = "disable_weighted_memory_retrieval"
+        report["reason"] = "memory attribution runtime gate inputs could not be loaded"
+    elif any(readiness == "error" for readiness in readinesses):
+        report["readiness"] = "error"
+        report["gate_readiness"] = "error"
+        report["decision"] = "disable_weighted_memory_retrieval"
+        report["reason"] = "memory attribution gate has error readiness"
+    elif any(readiness == "rejected" for readiness in readinesses):
+        report["readiness"] = "rejected"
+        report["gate_readiness"] = "rejected"
+        report["decision"] = "disable_weighted_memory_retrieval"
+        report["reason"] = "memory attribution gate rejected weighted retrieval"
+    elif readinesses and all(readiness == "approved" for readiness in readinesses):
+        report["readiness"] = "approved"
+        report["gate_readiness"] = "approved"
+        report["gate_approved"] = True
+        report["effective_enable_weighted_memory_retrieval"] = True
+        report["decision"] = "enable_weighted_memory_retrieval"
+        report["reason"] = "approved memory attribution gates allow weighted memory retrieval"
+    else:
+        report["readiness"] = "review"
+        report["gate_readiness"] = "review" if readinesses else "missing"
+        report["decision"] = "hold_weighted_memory_retrieval"
+        report["reason"] = "memory attribution gate is not approved"
+    return report
+
+
 def _memory_promptware_gate_check(source: str, status: str, detail: str, metrics: dict) -> dict:
     return {
         "source": source,

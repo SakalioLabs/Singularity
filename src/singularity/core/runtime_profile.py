@@ -18,6 +18,7 @@ LIST_FIELDS = {
     "knowledge_correction_gate_paths": ("gates", ("knowledge_correction", "knowledge_correction_gate", "knowledge_correction_gate_paths")),
     "plan_cache_paths": ("artifacts", ("plan_cache", "plan_transition_cache", "plan_cache_paths")),
     "plan_cache_gate_paths": ("gates", ("plan_cache", "plan_cache_gate", "plan_cache_gate_paths")),
+    "memory_attribution_gate_paths": ("gates", ("memory_attribution", "memory_attribution_gate", "memory_attribution_gate_paths")),
     "action_value_feedback_paths": ("artifacts", ("action_value_feedback", "action_value_feedback_paths")),
     "action_value_transition_gate_paths": ("gates", ("action_value_transition", "action_value_transition_gate", "action_value_transition_gate_paths")),
     "action_value_transition_evaluator_report_paths": (
@@ -46,6 +47,7 @@ REQUIRED_GATES = {
     "coach_style_gate_paths": ("coach_style", "coach_style_ablation_paths"),
     "memory_promptware_gate_paths": ("enforce_memory_write_gate",),
     "plan_cache_gate_paths": ("enable_plan_cache", "plan_cache_paths"),
+    "memory_attribution_gate_paths": ("enable_weighted_memory_retrieval", "weighted_memory_retrieval"),
 }
 
 
@@ -59,6 +61,7 @@ GATE_FIELDS = {
     "skill_memory_quality_gate_paths",
     "skill_runtime_default_gate_paths",
     "memory_promptware_gate_paths",
+    "memory_attribution_gate_paths",
     "plan_cache_gate_paths",
     "coach_style_gate_paths",
 }
@@ -274,6 +277,7 @@ def build_runtime_profile_report_from_profiles(
     settings = {
         "enable_goal_critic": _truthy(profile_setting(profiles, "enable_goal_critic", "goal_critic")),
         "enable_plan_cache": _truthy(profile_setting(profiles, "enable_plan_cache", "plan_cache")),
+        "enable_weighted_memory_retrieval": _truthy(profile_setting(profiles, "enable_weighted_memory_retrieval", "weighted_memory_retrieval")),
         "enforce_memory_write_gate": _truthy(profile_setting(profiles, "enforce_memory_write_gate", "memory_write_gate")),
         "coach_style": str(profile_setting(profiles, "coach_style") or ""),
     }
