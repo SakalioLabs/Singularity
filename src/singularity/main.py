@@ -760,6 +760,10 @@ def main():
     collab_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     collab_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     _add_skill_runtime_default_args(collab_parser)
+    collab_parser.add_argument("--runtime-profile-suite-report", action="append", default=[], help="Approved runtime-profile-suite-report JSON required before profile-assisted M7 Agent collaboration")
+    collab_parser.add_argument("--runtime-profile-suite-preflight", action="store_true", help="Run runtime profile suite coverage preflight before M7 Agent collaboration")
+    collab_parser.add_argument("--runtime-profile-suite-preflight-output", type=str, default="", help="Optional JSON path for the runtime profile suite M7 preflight report")
+    collab_parser.add_argument("--runtime-profile-suite-required-profile", action="append", default=[], help="Required profile label for M7 preflight, defaults to m7")
     _add_coaching_args(collab_parser)
     collab_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     collab_parser.add_argument("--log-level", type=str, default="INFO")
@@ -2250,6 +2254,7 @@ def main():
             "single_agent_baseline_schedule_execution_comparison": None,
             "agent_bridge_launch_plan": None,
             "single_agent_baseline_bridge_launch_plan": None,
+            "runtime_profile_suite_preflight": None,
             "preflight": None,
             "single_agent_baseline_preflight": None,
             "dry_run": None,
@@ -2264,6 +2269,32 @@ def main():
             print(f"\nSchedule Comparison")
             print(f"  makespan delta: {comparison['makespan_s_delta']}s")
             print(f"  speedup: {comparison['speedup']}x")
+        runtime_profile_suite_paths = getattr(args, "runtime_profile_suite_report", []) or []
+        if (
+            getattr(args, "runtime_profile_suite_preflight", False)
+            or runtime_profile_suite_paths
+            or getattr(args, "runtime_profile", [])
+        ):
+            from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+            profile_suite_runner = BenchmarkRunner(Config())
+            profile_suite_report = profile_suite_runner.run_runtime_profile_suite_preflight(
+                suite="m7",
+                profile_paths=getattr(args, "runtime_profile", []) or [],
+                suite_report_paths=runtime_profile_suite_paths,
+                required_profiles=getattr(args, "runtime_profile_suite_required_profile", []) or [],
+            )
+            profile_suite_runner.print_runtime_profile_suite_preflight_report(profile_suite_report)
+            output_payload["runtime_profile_suite_preflight"] = profile_suite_report
+            profile_suite_preflight_output = getattr(args, "runtime_profile_suite_preflight_output", "") or ""
+            if profile_suite_preflight_output:
+                profile_suite_runner.save_runtime_profile_suite_preflight_report(
+                    profile_suite_report,
+                    profile_suite_preflight_output,
+                )
+            if not profile_suite_report.get("ready"):
+                runner.save_json_report(output_payload, output_path)
+                sys.exit(1)
         if executor_mode == "agent":
             from singularity.evaluation.collaboration_executor import AgentCollaborationExecutor
 

@@ -1,0 +1,201 @@
+{
+  "type": "collaboration_benchmark",
+  "spec_path": "workspace/benchmarks/m7_time_sensitive_shelter.json",
+  "state_path": "workspace/multiagent/collab_benchmark_state.json",
+  "executor": "agent",
+  "schedule_analysis": {
+    "type": "collaboration_schedule_analysis",
+    "spec_id": "BM-701",
+    "ok": true,
+    "makespan_s": 275.0,
+    "max_duration_s": 420,
+    "benchmark_deadline_s": 420,
+    "benchmark_deadline_missed": false,
+    "deadline_misses": 0,
+    "role_busy_s": {
+      "leader_builder": 110.0,
+      "resource_runner": 255.0
+    },
+    "role_idle_s": {
+      "leader_builder": 165.0,
+      "resource_runner": 20.0
+    },
+    "role_utilization": {
+      "leader_builder": 0.4,
+      "resource_runner": 0.927
+    },
+    "task_schedule": [
+      {
+        "task_id": "gather_logs",
+        "role_id": "resource_runner",
+        "start_s": 0.0,
+        "finish_s": 90.0,
+        "duration_s": 90.0,
+        "priority": 1,
+        "deadline_s": 150,
+        "deadline_missed": false,
+        "depends_on": []
+      },
+      {
+        "task_id": "deliver_wood",
+        "role_id": "resource_runner",
+        "start_s": 90.0,
+        "finish_s": 135.0,
+        "duration_s": 45.0,
+        "priority": 1,
+        "deadline_s": 210,
+        "deadline_missed": false,
+        "depends_on": [
+          "gather_logs"
+        ]
+      },
+      {
+        "task_id": "build_frame",
+        "role_id": "leader_builder",
+        "start_s": 135.0,
+        "finish_s": 225.0,
+        "duration_s": 90.0,
+        "priority": 2,
+        "deadline_s": 330,
+        "deadline_missed": false,
+        "depends_on": [
+          "deliver_wood"
+        ]
+      },
+      {
+        "task_id": "prepare_torch",
+        "role_id": "resource_runner",
+        "start_s": 135.0,
+        "finish_s": 255.0,
+        "duration_s": 120.0,
+        "priority": 2,
+        "deadline_s": 360,
+        "deadline_missed": false,
+        "depends_on": []
+      },
+      {
+        "task_id": "verify_shelter",
+        "role_id": "leader_builder",
+        "start_s": 255.0,
+        "finish_s": 275.0,
+        "duration_s": 20.0,
+        "priority": 1,
+        "deadline_s": 410,
+        "deadline_missed": false,
+        "depends_on": [
+          "build_frame",
+          "prepare_torch"
+        ]
+      }
+    ],
+    "errors": []
+  },
+  "single_agent_baseline_schedule": null,
+  "schedule_comparison": null,
+  "execution_schedule_comparison": null,
+  "single_agent_baseline_schedule_execution_comparison": null,
+  "agent_bridge_launch_plan": null,
+  "single_agent_baseline_bridge_launch_plan": null,
+  "runtime_profile_suite_preflight": {
+    "required": true,
+    "ready": false,
+    "readiness": "review",
+    "decision": "hold_runtime_profile_benchmark",
+    "reason": "no approved runtime profile suite report is available",
+    "suite": "m7",
+    "profile_paths": [
+      "workspace/runtime/m1_observed_action_value_profile.json"
+    ],
+    "suite_report_paths": [
+      "logs/benchmarks/runtime_profile_suite_m1_2026-07-09.json"
+    ],
+    "required_profiles": [
+      "m7"
+    ],
+    "suite_report_count": 1,
+    "approved_suite_report_count": 0,
+    "review_suite_report_count": 1,
+    "rejected_suite_report_count": 0,
+    "error_suite_report_count": 0,
+    "covered_profile_paths": [],
+    "missing_profile_paths": [
+      "workspace/runtime/m1_observed_action_value_profile.json"
+    ],
+    "covered_required_profiles": [],
+    "missing_required_profiles": [
+      "m7"
+    ],
+    "suite_reports": [
+      {
+        "path": "logs/benchmarks/runtime_profile_suite_m1_2026-07-09.json",
+        "readiness": "review",
+        "decision": "hold_runtime_profile_suite",
+        "reason": "runtime profile suite is missing required profile coverage",
+        "profile_count": 1,
+        "approved_profile_count": 1,
+        "review_profile_count": 0,
+        "rejected_profile_count": 0,
+        "error_profile_count": 0,
+        "required_profiles": [
+          "m1",
+          "m2",
+          "m7"
+        ],
+        "missing_required_profiles": [
+          "m2",
+          "m7"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "source": "logs/benchmarks/runtime_profile_suite_m1_2026-07-09.json",
+        "kind": "runtime_profile_suite_report",
+        "status": "warn",
+        "detail": "runtime profile suite is missing required profile coverage",
+        "metrics": {
+          "profile_count": 1,
+          "approved_profile_count": 1,
+          "missing_required_profiles": 2
+        }
+      },
+      {
+        "source": "benchmark",
+        "kind": "runtime_profile_path_coverage",
+        "status": "warn",
+        "detail": "approved suite reports do not cover every configured runtime profile path",
+        "metrics": {
+          "configured_profile_paths": 1,
+          "covered_profile_paths": 0,
+          "missing_profile_paths": 1
+        }
+      },
+      {
+        "source": "benchmark",
+        "kind": "runtime_profile_suite_required_profile_coverage",
+        "status": "warn",
+        "detail": "approved suite reports do not cover every required benchmark profile label",
+        "metrics": {
+          "required_profiles": [
+            "m7"
+          ],
+          "covered_required_profiles": [],
+          "missing_required_profiles": [
+            "m7"
+          ]
+        }
+      }
+    ],
+    "missing": [
+      "runtime_profile_path_coverage",
+      "runtime_profile_suite_required_profile_coverage"
+    ],
+    "errors": []
+  },
+  "preflight": null,
+  "single_agent_baseline_preflight": null,
+  "dry_run": null,
+  "execution": null,
+  "single_agent_baseline": null,
+  "baseline_comparison": null
+}

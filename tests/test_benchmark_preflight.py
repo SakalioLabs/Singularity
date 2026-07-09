@@ -4839,6 +4839,16 @@ def test_runtime_profile_suite_preflight_requires_approved_suite_coverage():
     assert approved["covered_profile_paths"] == [profile_path]
     assert approved["covered_required_profiles"] == ["m1"]
 
+    m7_missing = runner.run_runtime_profile_suite_preflight(
+        suite="m7",
+        profile_paths=[profile_path],
+        suite_report_paths=[approved_suite_path],
+    )
+    assert not m7_missing["ready"]
+    assert m7_missing["readiness"] == "review"
+    assert m7_missing["required_profiles"] == ["m7"]
+    assert m7_missing["missing_required_profiles"] == ["m7"]
+
     review = runner.run_runtime_profile_suite_preflight(
         suite="m1",
         profile_paths=[profile_path],
