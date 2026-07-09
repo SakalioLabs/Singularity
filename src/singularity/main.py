@@ -671,6 +671,23 @@ def main():
     bench_parser.add_argument("--visual-action-ablation", action="store_true", help="Run suite twice with visual action grounding disabled and enabled")
     bench_parser.add_argument("--mixed-policy-ablation", action="store_true", help="Run suite twice without and with approved mixed-policy patches")
 
+    capability_parser = subparsers.add_parser(
+        "capability-evidence-report",
+        help="Compare M0-M7 completion claims against source, live, and repeated benchmark evidence",
+    )
+    capability_parser.add_argument("--benchmark-results", action="append", default=[], help="Benchmark result JSON to include; defaults to logs/benchmarks/benchmark_results.json")
+    capability_parser.add_argument("--status-file", type=str, default="workspace/STATUS.md", help="Markdown phase status table to audit")
+    capability_parser.add_argument("--source-root", type=str, default=".", help="Repository root for source-presence checks")
+    capability_parser.add_argument("--min-repeats", type=int, default=3, help="Distinct successful executions required for a capability claim")
+    capability_parser.add_argument("--check-runtime", action="store_true", help="Include current benchmark preflight evidence")
+    capability_parser.add_argument("--host", type=str, default="localhost")
+    capability_parser.add_argument("--port", type=int, default=25565)
+    capability_parser.add_argument("--bridge-host", type=str, default="127.0.0.1")
+    capability_parser.add_argument("--bridge-port", type=int, default=3000)
+    capability_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    capability_parser.add_argument("--strict", action="store_true", help="Exit nonzero until the full capability ledger is repeat-verified")
+    capability_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Benchmark preflight command
     preflight_parser = subparsers.add_parser("preflight", help="Check benchmark readiness without running tasks")
     preflight_parser.add_argument("--host", type=str, default="localhost")
@@ -5196,7 +5213,37 @@ def main():
         screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),
     )
 
-    if args.command == "preflight":
+    if args.command == "capability-evidence-report":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+        from singularity.evaluation.capability_evidence import (
+            build_capability_evidence_report,
+            print_capability_evidence_report,
+            write_capability_evidence_report,
+        )
+
+        runtime_evidence = {}
+        if getattr(args, "check_runtime", False):
+            preflight_report = BenchmarkRunner(config).preflight(check_network=True)
+            runtime_evidence = {**asdict(preflight_report), "ok": preflight_report.ok}
+        benchmark_paths = getattr(args, "benchmark_results", []) or []
+        if not benchmark_paths and os.path.isfile("logs/benchmarks/benchmark_results.json"):
+            benchmark_paths = ["logs/benchmarks/benchmark_results.json"]
+        report = build_capability_evidence_report(
+            benchmark_result_paths=benchmark_paths,
+            status_path=getattr(args, "status_file", "workspace/STATUS.md"),
+            source_root=getattr(args, "source_root", "."),
+            min_repeats=getattr(args, "min_repeats", 3),
+            runtime_evidence=runtime_evidence,
+        )
+        print_capability_evidence_report(report)
+        if getattr(args, "output", ""):
+            write_capability_evidence_report(report, args.output)
+            print(f"\nReport saved to {args.output}")
+        if getattr(args, "strict", False) and report.get("readiness") != "approved":
+            sys.exit(1)
+
+    elif args.command == "preflight":
         from singularity.evaluation.benchmark_runner import BenchmarkRunner
         runner = BenchmarkRunner(config)
         report = runner.preflight(

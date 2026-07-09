@@ -1,38 +1,48 @@
-﻿# STATUS.md | Last updated: 2026-07-08
+# STATUS.md | Last updated: 2026-07-10
 
-## Phase Completion Status
+## Evidence Policy
+
+Capability status is derived from `workspace/evals/capability_evidence_current.json`.
+
+- `source present`: implementation files exist; this is not runtime evidence.
+- `offline passing`: deterministic/unit tests pass; this is not Minecraft capability evidence.
+- `live observed`: every required benchmark has at least one successful in-world execution.
+- `repeat verified`: every required benchmark has at least three distinct successful executions.
+- M1-M7 completion claims require `repeat verified` evidence. M0 is a research deliverable and can be source-verified.
+
+## Phase Evidence
 
 | Phase | Name | Status | Progress |
 |-------|------|--------|----------|
-| M0 | Research Baseline | **Complete** | 100% |
-| M1 | Minimum Viable Bot | **Complete** | 100% |
-| M2 | LLM Task Planning | **Complete** | 100% |
-| M3 | Skill Library & Memory | **Complete** | 100% |
-| M4 | Autonomous Survival | **Complete** | 100% |
-| M5 | Open-World Exploration | **Complete** | 100% |
-| M6 | Vision & Multimodal | **Complete** | 100% |
-| M7 | Multi-Agent Collab | **Complete** | 100% |
+| M0 | Research Baseline | **Complete (source verified)** | Research deliverables present |
+| M1 | Minimum Viable Bot | **Live failing** | BM-001..005: 0/5 successful in latest tracked run |
+| M2 | LLM Task Planning | **Evidence pending** | BM-006..010: no tracked execution evidence |
+| M3 | Skill Library & Memory | **Evidence pending** | Cross-session live acceptance is not yet mapped |
+| M4 | Autonomous Survival | **Evidence pending** | BM-011..014: no tracked execution evidence |
+| M5 | Open-World Exploration | **Evidence pending** | Machine-checkable live acceptance is not yet mapped |
+| M6 | Vision & Multimodal | **Evidence pending** | No verified screenshot-backed live session |
+| M7 | Multi-Agent Collaboration | **Evidence pending** | BM-701: no tracked live execution |
 
-## Source Code Inventory
-- **core**: agent.py, config.py, planner.py, reflector.py, rule_planner.py, task_system.py, skill_library.py, memory.py, skill_extractor.py, goal_generator.py, explorer.py
-- **llm**: provider.py (OpenAI/Anthropic/Ollama)
-- **observation**: observer.py (32-block scanning)
-- **action**: controller.py (10 action types)
-- **bot**: bridge.py (auto-reconnect, multi-response parsing)
-- **logging**: session_logger.py (JSONL)
-- **data**: knowledge_base.py, crafting_recipes.json
-- **evaluation**: benchmark_runner.py (M1/M2 suites)
-- **vision**: analyzer.py, visual_memory.py (M6)
-- **multiagent**: protocol.py, coordinator.py (M7)
-- **bot_server.js**: Mineflayer bridge (tree scanner, walk_to, auto-reconnect)
+Source is present and relevant offline suites pass for M1-M7, but those facts do not change the live statuses above.
 
-## Test Suite
-| File | Tests | Status |
-|------|-------|--------|
-| test_comprehensive.py | 82 | ALL PASS |
-| test_goal_generator.py | 6 | ALL PASS |
-| test_m2_integration.py | 1 | SKIP (no API key) |
-| test_m2_comprehensive.py | 31 | ALL PASS |
-| test_vision.py | 21 | ALL PASS |
-| test_multiagent.py | 21 | ALL PASS |
-| **Total** | **162** | **ALL PASS** |
+## Current Runtime Readiness
+
+- Python, Node.js, npm, and Mineflayer dependencies pass local preflight.
+- `localhost:25565` is unavailable; no Minecraft server assets are present in the repository workspace.
+- Port `3000` is reachable, but the existing bridge returns an empty `health` response.
+- Ports `3001` and `3002` required for the current M7 role plan are not running.
+
+## Latest Verified Engineering Changes
+
+- Added task-readiness recovery that turns inventory blockers into concrete prerequisite goals.
+- Preserved critical health, nearby-hostile, and night-survival goals ahead of scheduled work.
+- Added knowledge-backed tool checks and grounded-coordinate checks to generic mining fallback.
+- Added `capability-evidence-report` to reject unsupported M0-M7 completion claims from benchmark and runtime evidence.
+
+## Next Acceptance Work
+
+1. Provision a Minecraft 1.20.4 test server after explicit EULA acceptance and restart the bridge.
+2. Re-run BM-001..005, diagnose failures, and collect three successful runs per task.
+3. Run BM-006..010 only after M1 is live-observed.
+4. Define machine-checkable live acceptance adapters for M3, M5, and M6.
+5. Start distinct M7 role bridges and run BM-701 against the single-agent baseline.

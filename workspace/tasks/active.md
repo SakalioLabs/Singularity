@@ -1,7 +1,10 @@
 # Active Tasks
-> Last updated: 2026-07-09
+> Last updated: 2026-07-10
 
 ## Completed This Pass
+- [x] Add `capability-evidence-report` so M0-M7 completion claims are separated into source, live, and repeated evidence and contradicted by tracked failures when appropriate.
+- [x] Generate `workspace/evals/capability_evidence_current.json`; current readiness is rejected because M1 live benchmarks fail and M2-M7 lack repeat-verified evidence.
+- [x] Add WorldLines and Agent Memory System Characterization paper cards for visibility-aware state memory and phase-aware memory systems profiling.
 - [x] Review general agent memory/skill systems: Hermes Agent and OpenClaw.
 - [x] Search recent Minecraft/game-agent papers with emphasis on 2025-2026 sandbox AGI work.
 - [x] Draft implementation-facing upgrade notes in `workspace/architecture/agent-memory-task-upgrade-2026-07-08.md`.

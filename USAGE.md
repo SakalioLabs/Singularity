@@ -96,6 +96,12 @@ python -m singularity.main run --goal "Gather 3 oak logs" --bridge-port 3000
 python -m singularity.main preflight --skip-network
 python -m singularity.main preflight
 
+# Audit M0-M7 claims against tracked live and repeated execution evidence
+python -m singularity.main capability-evidence-report --check-runtime --output workspace/evals/capability_evidence_current.json
+
+# CI/release gate: exits nonzero until the full ledger is repeat-verified
+python -m singularity.main capability-evidence-report --strict
+
 # M1 benchmarks (basic actions)
 python -m singularity.main benchmark --suite m1 --preflight
 

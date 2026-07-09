@@ -3,11 +3,13 @@
 > An evolving modular agent system that drives a Minecraft Java Edition player through natural-language goals, progressing from basic connectivity to autonomous multi-agent collaboration.
 
 [![M0: Research](https://img.shields.io/badge/M0-Complete-brightgreen)]()
-[![M1: MVB](https://img.shields.io/badge/M1-Complete-brightgreen)]()
-[![M2: LLM](https://img.shields.io/badge/M2-Integration-yellow)]()
-[![M3: Memory](https://img.shields.io/badge/M3-Integration-yellow)]()
-[![M4: Survival](https://img.shields.io/badge/M4-Integration-yellow)]()
-[![M5: Explore](https://img.shields.io/badge/M5-Integration-yellow)]()
+[![M1: MVB](https://img.shields.io/badge/M1-Live%20Failing-critical)]()
+[![M2: LLM](https://img.shields.io/badge/M2-Evidence%20Pending-yellow)]()
+[![M3: Memory](https://img.shields.io/badge/M3-Evidence%20Pending-yellow)]()
+[![M4: Survival](https://img.shields.io/badge/M4-Evidence%20Pending-yellow)]()
+[![M5: Explore](https://img.shields.io/badge/M5-Evidence%20Pending-yellow)]()
+[![M6: Vision](https://img.shields.io/badge/M6-Evidence%20Pending-yellow)]()
+[![M7: Multi--Agent](https://img.shields.io/badge/M7-Evidence%20Pending-yellow)]()
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.20.4-green)]()
 [![Python](https://img.shields.io/badge/Python-3.12-blue)]()
 [![Tests](https://img.shields.io/badge/Tests-core%20passing-brightgreen)]()
@@ -72,7 +74,7 @@ User Goal / Autonomous GoalGenerator
 ```bash
 git clone https://github.com/SakalioLabs/Singularity.git
 cd Singularity
-pip install -r requirements.txt
+python -m pip install -e .
 npm install
 ```
 
@@ -97,6 +99,7 @@ python -m singularity.main autonomous --max-goals 10
 # Run benchmarks
 python -m singularity.main preflight --skip-network
 python -m singularity.main preflight
+python -m singularity.main capability-evidence-report --check-runtime --output workspace/evals/capability_evidence_current.json
 python -m singularity.main benchmark --suite m1 --preflight
 python -m singularity.main benchmark --suite m1 --ingest
 python -m singularity.main benchmark --suite m1 --ingest --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
@@ -198,14 +201,14 @@ Singularity/
 │   │   └── main.py               # CLI entry point
 │   └── bot/bot_server.js         # Node.js Mineflayer server
 ├── tests/
-│   ├── test_comprehensive.py     # 82 unit tests (all modules)
+│   ├── test_comprehensive.py     # 89 unit tests (all modules)
 │   ├── test_goal_generator.py    # 6 goal generator tests
 │   └── test_m2_integration.py    # M2 planner integration test
 ├── workspace/                    # Research knowledge base (70+ docs)
 │   ├── STATUS.md                 # Current phase status
 │   ├── PROGRESS.md               # Detailed progress tracking
 │   ├── ROADMAP.md                # M0-M7 phase roadmap
-│   ├── papers/                   # 17 paper cards
+│   ├── papers/                   # 75+ paper cards
 │   ├── architecture/             # Module designs and deep analyses
 │   ├── benchmarks/               # 5 benchmark suites
 │   ├── implementation/           # 15+ technical notes
@@ -215,7 +218,7 @@ Singularity/
 
 ## Research Foundation
 
-- **17 papers** analyzed: Voyager, MineDojo, JARVIS-1, GITM, DEPS, STEVE-1, OmniJARVIS, Mindcraft, Optimus-1, Genie, ReAct, Reflexion, Code-as-Policies, Tree of Thoughts, Toolformer, SkillForge, Multi-Agent MC
+- **75+ papers** analyzed across Minecraft, game agents, memory, skills, world models, evaluation, safety, and multi-agent execution
 - **4 key repos** evaluated: Mindcraft, Mineflayer, Baritone, MineDojo
 - **10 research questions** identified and tracked (RQ1-RQ10)
 

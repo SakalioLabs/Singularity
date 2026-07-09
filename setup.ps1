@@ -3,9 +3,9 @@
 
 Write-Host "=== Singularity Minecraft LLM Agent Setup ===" -ForegroundColor Cyan
 
-# 1. Python dependencies
-Write-Host "`n[1/3] Installing Python dependencies..." -ForegroundColor Yellow
-pip install -r requirements.txt
+# 1. Python package and dependencies
+Write-Host "`n[1/3] Installing the Python package and dependencies..." -ForegroundColor Yellow
+python -m pip install -e .
 
 # 2. Node.js dependencies
 Write-Host "`n[2/3] Installing Node.js dependencies..." -ForegroundColor Yellow
@@ -13,7 +13,7 @@ npm install
 
 # 3. Verify
 Write-Host "`n[3/3] Verifying installation..." -ForegroundColor Yellow
-python -c "import openai; import anthropic; import pydantic; print('Python deps OK')"
+python -c "import singularity; import openai; import anthropic; import pydantic; print('Python package and deps OK')"
 node -e "const m = require('mineflayer'); const p = require('mineflayer-pathfinder'); console.log('Node deps OK')"
 
 Write-Host "`n=== Setup Complete ===" -ForegroundColor Green

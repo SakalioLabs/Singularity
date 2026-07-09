@@ -1374,6 +1374,40 @@
 
 ---
 
+## P-076: WorldLines
+
+- **Title**: WorldLines: Benchmarking and Modeling Long-Horizon Stateful Embodied Agents
+- **Source**: https://arxiv.org/abs/2606.18847
+- **Year**: 2026
+- **Type**: Long-horizon embodied memory benchmark and observer-grounded memory framework
+- **Task Type**: Temporally extended embodied projects with actions, feedback, partial observability, and mutable world state
+- **Core Method**: Evidence-linked traces plus ObsMem visibility-aware memories and action-native state trails
+- **Memory**: Preserves observation scope, state revisions, and action provenance rather than flat textual recall
+- **Key Results**: Reports persistent difficulty with partial observability, overwritten states, and translating long-term memory into embodied plans
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Motivates visibility-aware M3/M5 live acceptance and state-grounded memory claims
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-10-worldlines.md`
+
+---
+
+## P-077: Agent Memory System Characterization
+
+- **Title**: Agent Memory: Characterization and System Implications of Stateful Long-Horizon Workloads
+- **Source**: https://arxiv.org/abs/2606.06448
+- **Year**: 2026
+- **Type**: Systems characterization of stateful long-horizon agent memory
+- **Task Type**: Construction, retrieval, and generation profiling across memory systems and long-horizon benchmarks
+- **Core Method**: Phase-aware profiling of cost, latency, freshness, and maintenance behavior
+- **Memory**: Treats memory as a systems workload whose costs move between write, read, and generation paths
+- **Key Results**: Derives deployment recommendations around scheduling, capability floors, amortization, freshness, and fleet-scale management
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Motivates cost/freshness evidence in M3 acceptance instead of recall quality alone
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-10-agent-memory-characterization.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1453,3 +1487,5 @@
 | P-073 | AgenticCache | 2026 | R4/N5/R4/E5 | P1 |
 | P-074 | Orak | 2025/2026 | R4/N4/R4/E5 | P2 |
 | P-075 | CausalGame | 2026 | R5/N5/R4/E5 | P1 |
+| P-076 | WorldLines | 2026 | R5/N5/R4/E5 | P1 |
+| P-077 | Agent Memory System Characterization | 2026 | R5/N5/R4/E5 | P1 |

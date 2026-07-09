@@ -1,0 +1,565 @@
+{
+  "type": "capability_evidence_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-09T21:04:22.082204+00:00",
+  "readiness": "rejected",
+  "claim_readiness": "approved",
+  "system_status": "incomplete",
+  "system_complete": false,
+  "policy": {
+    "min_repeats": 3,
+    "source_presence_is_capability_evidence": false,
+    "unit_tests_are_live_capability_evidence": false,
+    "completion_requires_repeat_verified_execution": true
+  },
+  "inputs": {
+    "status_path": "workspace/STATUS.md",
+    "source_root": ".",
+    "benchmark_result_paths": [
+      "logs/benchmarks/benchmark_results.json"
+    ]
+  },
+  "runtime_evidence": {
+    "ok": false,
+    "checks": [
+      {
+        "name": "python:pydantic",
+        "status": "pass",
+        "detail": "import available",
+        "remedy": ""
+      },
+      {
+        "name": "python:openai",
+        "status": "pass",
+        "detail": "import available",
+        "remedy": ""
+      },
+      {
+        "name": "python:anthropic",
+        "status": "warn",
+        "detail": "optional provider package missing",
+        "remedy": "pip install anthropic if using this provider"
+      },
+      {
+        "name": "node",
+        "status": "pass",
+        "detail": "v22.16.0",
+        "remedy": ""
+      },
+      {
+        "name": "npm",
+        "status": "pass",
+        "detail": "11.4.2",
+        "remedy": ""
+      },
+      {
+        "name": "node_dependencies",
+        "status": "pass",
+        "detail": "mineflayer dependencies installed",
+        "remedy": ""
+      },
+      {
+        "name": "bot_bridge",
+        "status": "pass",
+        "detail": "127.0.0.1:3000 reachable",
+        "remedy": ""
+      },
+      {
+        "name": "bot_session",
+        "status": "fail",
+        "detail": "Empty response from bot bridge for command 'health'",
+        "remedy": "restart node src/bot/bot_server.js --bridge-port 3000 after the Minecraft server is running"
+      },
+      {
+        "name": "minecraft_server",
+        "status": "fail",
+        "detail": "localhost:25565 unavailable (timed out)",
+        "remedy": "start the Minecraft server and confirm host/port"
+      }
+    ]
+  },
+  "summary": {
+    "phase_count": 8,
+    "declared_complete_count": 1,
+    "supported_completion_count": 1,
+    "contradicted_completion_count": 0,
+    "unsupported_completion_count": 0,
+    "repeat_verified_phase_count": 0,
+    "live_observed_phase_count": 0,
+    "failing_phase_count": 1,
+    "system_complete": false
+  },
+  "contradicted_phases": [],
+  "unsupported_phases": [],
+  "phases": [
+    {
+      "id": "M0",
+      "name": "Research Baseline",
+      "evidence_kind": "source",
+      "status": "source_verified",
+      "completion_claim_allowed": true,
+      "declared": {
+        "name": "Research Baseline",
+        "status": "Complete (source verified)",
+        "progress": "Research deliverables present"
+      },
+      "declared_complete": true,
+      "claim_assessment": "supported",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "workspace/papers/paper-index.md",
+          "exists": true
+        },
+        {
+          "path": "workspace/repos/repo-index.md",
+          "exists": true
+        },
+        {
+          "path": "workspace/benchmarks/benchmark-index.md",
+          "exists": true
+        },
+        {
+          "path": "workspace/ROADMAP.md",
+          "exists": true
+        },
+        {
+          "path": "workspace/OPEN_QUESTIONS.md",
+          "exists": true
+        },
+        {
+          "path": "workspace/DECISIONS.md",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 0,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [],
+      "missing_evidence": []
+    },
+    {
+      "id": "M1",
+      "name": "Minimum Viable Bot",
+      "evidence_kind": "benchmark",
+      "status": "failing",
+      "completion_claim_allowed": false,
+      "declared": {
+        "name": "Minimum Viable Bot",
+        "status": "Live failing",
+        "progress": "BM-001..005: 0/5 successful in latest tracked run"
+      },
+      "declared_complete": false,
+      "claim_assessment": "not_claimed_complete",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/core/agent.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/action/controller.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/observation/observer.py",
+          "exists": true
+        },
+        {
+          "path": "src/bot/bot_server.js",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 5,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [
+        {
+          "task_id": "BM-001",
+          "status": "failing",
+          "attempts": 1,
+          "successes": 0,
+          "failures": 1,
+          "repeats_required": 3,
+          "evidence_refs": [
+            "logs\\session_2818ff2a-612.jsonl"
+          ]
+        },
+        {
+          "task_id": "BM-002",
+          "status": "failing",
+          "attempts": 1,
+          "successes": 0,
+          "failures": 1,
+          "repeats_required": 3,
+          "evidence_refs": [
+            "logs\\session_bcd06511-00a.jsonl"
+          ]
+        },
+        {
+          "task_id": "BM-003",
+          "status": "failing",
+          "attempts": 1,
+          "successes": 0,
+          "failures": 1,
+          "repeats_required": 3,
+          "evidence_refs": [
+            "logs\\session_dc8fff18-00b.jsonl"
+          ]
+        },
+        {
+          "task_id": "BM-004",
+          "status": "failing",
+          "attempts": 1,
+          "successes": 0,
+          "failures": 1,
+          "repeats_required": 3,
+          "evidence_refs": [
+            "logs\\session_4138b270-949.jsonl"
+          ]
+        },
+        {
+          "task_id": "BM-005",
+          "status": "failing",
+          "attempts": 1,
+          "successes": 0,
+          "failures": 1,
+          "repeats_required": 3,
+          "evidence_refs": [
+            "logs\\session_67ba45ce-2e1.jsonl"
+          ]
+        }
+      ],
+      "missing_evidence": [
+        "BM-001:needs_3_more_successes",
+        "BM-002:needs_3_more_successes",
+        "BM-003:needs_3_more_successes",
+        "BM-004:needs_3_more_successes",
+        "BM-005:needs_3_more_successes"
+      ]
+    },
+    {
+      "id": "M2",
+      "name": "LLM Task Planning",
+      "evidence_kind": "benchmark",
+      "status": "not_run",
+      "completion_claim_allowed": false,
+      "declared": {
+        "name": "LLM Task Planning",
+        "status": "Evidence pending",
+        "progress": "BM-006..010: no tracked execution evidence"
+      },
+      "declared_complete": false,
+      "claim_assessment": "not_claimed_complete",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/core/planner.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/task_system.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/reflector.py",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 5,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [
+        {
+          "task_id": "BM-006",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-007",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-008",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-009",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-010",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "repeats_required": 3,
+          "evidence_refs": []
+        }
+      ],
+      "missing_evidence": [
+        "BM-006:needs_3_more_successes",
+        "BM-007:needs_3_more_successes",
+        "BM-008:needs_3_more_successes",
+        "BM-009:needs_3_more_successes",
+        "BM-010:needs_3_more_successes"
+      ]
+    },
+    {
+      "id": "M3",
+      "name": "Skill Library and Memory",
+      "evidence_kind": "unmapped_live",
+      "status": "unverified",
+      "completion_claim_allowed": false,
+      "declared": {
+        "name": "Skill Library & Memory",
+        "status": "Evidence pending",
+        "progress": "Cross-session live acceptance is not yet mapped"
+      },
+      "declared_complete": false,
+      "claim_assessment": "not_claimed_complete",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/core/memory.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/skill_library.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/skill_extractor.py",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 0,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [],
+      "missing_evidence": [
+        "machine_checkable_live_acceptance_not_mapped"
+      ]
+    },
+    {
+      "id": "M4",
+      "name": "Autonomous Survival",
+      "evidence_kind": "benchmark",
+      "status": "not_run",
+      "completion_claim_allowed": false,
+      "declared": {
+        "name": "Autonomous Survival",
+        "status": "Evidence pending",
+        "progress": "BM-011..014: no tracked execution evidence"
+      },
+      "declared_complete": false,
+      "claim_assessment": "not_claimed_complete",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/core/goal_generator.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/curriculum.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/runtime.py",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 4,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [
+        {
+          "task_id": "BM-011",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-012",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-013",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-014",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "repeats_required": 3,
+          "evidence_refs": []
+        }
+      ],
+      "missing_evidence": [
+        "BM-011:needs_3_more_successes",
+        "BM-012:needs_3_more_successes",
+        "BM-013:needs_3_more_successes",
+        "BM-014:needs_3_more_successes"
+      ]
+    },
+    {
+      "id": "M5",
+      "name": "Open-World Exploration",
+      "evidence_kind": "unmapped_live",
+      "status": "unverified",
+      "completion_claim_allowed": false,
+      "declared": {
+        "name": "Open-World Exploration",
+        "status": "Evidence pending",
+        "progress": "Machine-checkable live acceptance is not yet mapped"
+      },
+      "declared_complete": false,
+      "claim_assessment": "not_claimed_complete",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/core/explorer.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/curriculum.py",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 0,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [],
+      "missing_evidence": [
+        "machine_checkable_live_acceptance_not_mapped"
+      ]
+    },
+    {
+      "id": "M6",
+      "name": "Vision and Multimodal",
+      "evidence_kind": "unmapped_live",
+      "status": "unverified",
+      "completion_claim_allowed": false,
+      "declared": {
+        "name": "Vision & Multimodal",
+        "status": "Evidence pending",
+        "progress": "No verified screenshot-backed live session"
+      },
+      "declared_complete": false,
+      "claim_assessment": "not_claimed_complete",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/vision/analyzer.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/vision/visual_memory.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/vision/action_advisor.py",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 0,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [],
+      "missing_evidence": [
+        "machine_checkable_live_acceptance_not_mapped"
+      ]
+    },
+    {
+      "id": "M7",
+      "name": "Multi-Agent Collaboration",
+      "evidence_kind": "benchmark",
+      "status": "not_run",
+      "completion_claim_allowed": false,
+      "declared": {
+        "name": "Multi-Agent Collaboration",
+        "status": "Evidence pending",
+        "progress": "BM-701: no tracked live execution"
+      },
+      "declared_complete": false,
+      "claim_assessment": "not_claimed_complete",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/multiagent/coordinator.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/multiagent/protocol.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/evaluation/collaboration_runner.py",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 1,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [
+        {
+          "task_id": "BM-701",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "repeats_required": 3,
+          "evidence_refs": []
+        }
+      ],
+      "missing_evidence": [
+        "BM-701:needs_3_more_successes"
+      ]
+    }
+  ],
+  "errors": [],
+  "recommendations": [
+    "restore_live_minecraft_preflight_before_new_capability_claims",
+    "diagnose_and_rerun_m1_benchmarks",
+    "run_m2_benchmarks",
+    "define_machine_checkable_m3_live_acceptance",
+    "run_m4_benchmarks",
+    "define_machine_checkable_m5_live_acceptance",
+    "define_machine_checkable_m6_live_acceptance",
+    "run_m7_benchmarks"
+  ]
+}

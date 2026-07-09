@@ -1,68 +1,52 @@
-﻿# PROGRESS.md -- Detailed Progress Tracking
+# PROGRESS.md -- Evidence-Backed Progress
 
-## Overview
-All M0-M7 phases complete. 162 tests passing across all modules.
+## Current Assessment
 
-## Phase Completion
+Singularity has broad source coverage and a large passing offline test surface, but the full Minecraft Agent system is not complete. The authoritative capability report is `workspace/evals/capability_evidence_current.json`.
 
-### M0: Research Baseline (Complete)
-- 17 paper cards, 4 repo cards, 8 architecture docs
-- 5 benchmark suites (14 tasks)
-- 10 research questions, 5 architecture decisions
+Current report outcome:
 
-### M1: Minimum Viable Bot (Complete)
-- Python agent with observe-think-act loop
-- Node.js Mineflayer bridge with auto-reconnect
-- 10 action types with safety checks
-- Observer module, action controller, session logger
-- Benchmark runner with M1/M2 suites
+- Readiness: `rejected`
+- Claim audit: `approved`
+- System status: `incomplete`
+- Declared-complete phases audited: 1 (M0 only)
+- Supported completion claims: 1 (M0 research baseline)
+- Contradicted completion claims: 0 after status correction
+- Unsupported completion claims: 0 after status correction
+- Failing live phases: 1 (M1)
+- Repeat-verified runtime phases: 0
 
-### M2: LLM Task Planning (Complete)
-- Planner with crafting recipes knowledge injection
-- TaskSystem with hierarchical state machine
-- Reflector with failure analysis
-- Mock LLM provider for testing (no API key needed)
-- 31 tests: planner, task system, replan, edge cases
+## Engineering Delivered
 
-### M3: Skill Library & Memory (Complete)
-- 17 builtin skills (primitive/composite/strategic)
-- L0-L6 layered memory system
-- Skill versioning and success rate tracking
+- Mineflayer bridge, structured observations, canonical action control, safety verification, and session logging.
+- Rule and LLM planning, hierarchical tasks, readiness reporting, deterministic prerequisite recovery, reflection, and goal verification.
+- Layered memory, task continuity, typed retrieval, promptware filtering, attribution gates, skill memory, skill lifecycle, and transfer gates.
+- Autonomous curriculum, runtime interrupts, world-model/frontier reports, causal evidence, and controlled self-evolution reports.
+- Vision analysis, optional screenshot plumbing, visual action grounding, and screenshot evidence validation.
+- Multi-agent shared state, role execution, bridge preflight, schedule comparison, and single-agent baseline machinery.
+- Evidence and ablation tooling for action verification/value, memory policy, plan cache, mixed initiative, coaching, visual review, and runtime profiles.
 
-### M4: Autonomous Survival (Complete)
-- GoalGenerator with 6-level priority system
-- Agent.run_autonomous() method
-- Health critical abort, failure reflection
+## Evidence That Still Matters
 
-### M5: Open-World Exploration (Complete)
-- Explorer with landmarks, path history, base return
-- Inventory-full detection, exploration distance check
-- Spiral exploration target generation
+- Latest tracked M1 benchmark file records BM-001..005 as failures with empty inventories.
+- No tracked successful M2 benchmark suite is available.
+- No three-run first-night survival evidence is available.
+- No verified screenshot-backed live session is available.
+- No live BM-701 multi-agent execution report is available.
+- M3, M5, and M6 still need explicit machine-checkable live acceptance mappings in the capability ledger.
 
-### M6: Vision Module (Complete)
-- VisionAnalyzer: resource/danger detection from observations
-- VisualMemory: time-series visual observation storage
-- OpenAI Vision API support (when API key available)
-- 21 tests: analyzer, memory, integration
+## Research Direction
 
-### M7: Multi-Agent (Complete)
-- SharedState: file-based protocol for multi-agent coordination
-- LeaderAgent: task assignment, worker monitoring
-- AgentWorker: task retrieval, completion, failure reporting
-- 21 tests: protocol, leader, worker, edge cases
+- MineExplorer: hidden prerequisite graphs and rule-based milestones should define progress rather than final-text claims.
+- MineNPC-Task: task attempts should be scored against explicit dependencies, bounded knowledge, and machine-checkable validators.
+- AgenticSTS: every planner decision should use bounded typed retrieval instead of accumulating raw transcripts.
+- WorldLines: memory should preserve visibility, state revisions, and action-native evidence under partial observability.
+- OpenClaw and Hermes: durable memory, procedural skills, maintenance passes, and workspace separation are useful only when action authority and promotion gates remain explicit.
 
-## Test Summary (162 passing)
-| Module | Tests | Status |
-|--------|-------|--------|
-| Config | 2 | ALL PASS |
-| GoalGenerator | 14 | ALL PASS |
-| Explorer | 13 | ALL PASS |
-| MemorySystem | 8 | ALL PASS |
-| SkillLibrary | 10 | ALL PASS |
-| TaskSystem | 9 | ALL PASS |
-| RulePlanner | 15 | ALL PASS |
-| KnowledgeBase | 6 | ALL PASS |
-| SessionLogger | 8 | ALL PASS |
-| M2 Planner | 31 | ALL PASS |
-| Vision | 21 | ALL PASS |
-| MultiAgent | 21 | ALL PASS |
+## Immediate Sequence
+
+1. Restore a healthy Minecraft server and bridge runtime.
+2. Re-run M1 and use the new readiness recovery path on missing-resource failures.
+3. Promote no capability until the ledger reports `repeat_verified`.
+4. Add live evidence adapters for cross-session memory, exploration, and screenshot/VLM behavior.
+5. Continue research-driven improvements only with baseline/candidate traces and regression gates.
