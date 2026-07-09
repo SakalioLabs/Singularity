@@ -147,6 +147,7 @@ python -m singularity.main memory-policy-report --session-log logs/session_xxx.j
 # The saved JSON includes `memory_policy_feedback` for future memory-write and retrieval policy tuning.
 # Attribute generic memory reads to downstream plan/action/goal outcomes before retrieval weights are tuned.
 python -m singularity.main memory-attribution-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/memory_attribution.json
+# Reports include retrieval-trace coverage, weighted match counts, and attribution policy distributions when runtime traces are present.
 python -m singularity.main memory-attribution-gate --memory-attribution-report logs/benchmarks/memory_attribution.json --output logs/benchmarks/memory_attribution_gate.json
 # Runtime weighted retrieval stays disabled unless this gate is approved.
 python -m singularity.main run --goal "Craft torches" --enable-weighted-memory-retrieval --memory-attribution-gate logs/benchmarks/memory_attribution_gate.json

@@ -3389,6 +3389,14 @@ def test_memory_attribution_report_labels_retrieval_outcomes_without_raw_queries
                 "memory_id": "memory-supported-1",
                 "result_chars": 200,
                 "has_result": True,
+                "retrieval_trace": {
+                    "weighted_retrieval_enabled": True,
+                    "weighted_memory_match_count": 1,
+                    "weighted_transfer_match_count": 0,
+                    "top_memory_ids": ["memory-supported-1", "memory-supported-extra"],
+                    "top_weighted_memory_ids": ["memory-supported-1"],
+                    "attribution_policy_counts": {"boost_supported_memory": 1},
+                },
             },
         },
         {
@@ -3451,12 +3459,18 @@ def test_memory_attribution_report_labels_retrieval_outcomes_without_raw_queries
     assert report["supported_read_count"] == 2
     assert report["conflicting_read_count"] == 1
     assert report["no_result_read_count"] == 1
+    assert report["memory_id_traced_read_count"] == 3
+    assert report["weighted_retrieval_read_count"] == 1
+    assert report["weighted_memory_match_count"] == 1
+    assert report["attribution_policy_counts"]["boost_supported_memory"] == 1
     assert report["quality_label_counts"]["supported"] == 2
     assert report["read_type_counts"]["relevant_memory"] == 3
     assert report["read_layer_counts"]["semantic"] == 3
     assert {item["quality_label"] for item in items} == {"supported", "conflicting", "no_result"}
     assert items[0]["query_signature"]
     assert "query" not in items[0]
+    assert items[0]["memory_ids"] == ["memory-supported-1", "memory-supported-extra"]
+    assert items[0]["weighted_memory_ids"] == ["memory-supported-1"]
     assert "craft torch route" not in json.dumps(items)
     assert "mine coal route" not in json.dumps(items)
 
@@ -3482,9 +3496,14 @@ def test_memory_attribution_gate_controls_weighted_retrieval_profile():
                 "memory_type": "relevant_memory",
                 "source": "planner_memory",
                 "query": "craft torch route",
-                "memory_id": "torch_semantic_supported",
                 "result_chars": 200,
                 "has_result": True,
+                "retrieval_trace": {
+                    "top_memory_ids": ["torch_semantic_supported"],
+                    "weighted_retrieval_enabled": False,
+                    "weighted_memory_match_count": 0,
+                    "weighted_transfer_match_count": 0,
+                },
             },
         },
         {

@@ -9264,12 +9264,17 @@ class BenchmarkRunner:
             "conflicting_read_count": 0,
             "review_read_count": 0,
             "no_result_read_count": 0,
+            "memory_id_traced_read_count": 0,
+            "weighted_retrieval_read_count": 0,
+            "weighted_memory_match_count": 0,
+            "weighted_transfer_match_count": 0,
             "successful_cycle_count": 0,
             "failed_cycle_count": 0,
             "unknown_cycle_count": 0,
             "quality_label_counts": {},
             "read_type_counts": {},
             "read_layer_counts": {},
+            "attribution_policy_counts": {},
             "policy_hints": [],
             "recommendations": [],
             "cases": [],
@@ -9299,6 +9304,10 @@ class BenchmarkRunner:
                 "conflicting_read_count",
                 "review_read_count",
                 "no_result_read_count",
+                "memory_id_traced_read_count",
+                "weighted_retrieval_read_count",
+                "weighted_memory_match_count",
+                "weighted_transfer_match_count",
                 "successful_cycle_count",
                 "failed_cycle_count",
                 "unknown_cycle_count",
@@ -9307,6 +9316,7 @@ class BenchmarkRunner:
             self._merge_counts(report["quality_label_counts"], case.get("quality_label_counts", {}))
             self._merge_counts(report["read_type_counts"], case.get("read_type_counts", {}))
             self._merge_counts(report["read_layer_counts"], case.get("read_layer_counts", {}))
+            self._merge_counts(report["attribution_policy_counts"], case.get("attribution_policy_counts", {}))
 
         feedback = self.memory_attribution_feedback(report)
         report["policy_hints"] = feedback["policy_hints"]
@@ -9333,6 +9343,15 @@ class BenchmarkRunner:
                 "count": report.get("no_result_read_count", 0),
             })
             recommendations.append("include_has_result_result_chars_and_source_for_memory_reads")
+        decisive_reads = self._safe_int(report.get("supported_read_count", 0)) + self._safe_int(report.get("conflicting_read_count", 0))
+        if decisive_reads and self._safe_int(report.get("memory_id_traced_read_count", 0)) < decisive_reads:
+            policy_hints.append({
+                "memory_attribution_policy": "include_retrieval_memory_ids",
+                "priority": "high",
+                "reason": "some outcome-attributed reads cannot be converted into memory-id weight hints",
+                "count": decisive_reads - self._safe_int(report.get("memory_id_traced_read_count", 0)),
+            })
+            recommendations.append("include_memory_ids_or_retrieval_trace_for_weight_updates")
         if self._safe_int(report.get("supported_read_count", 0)) > 0:
             policy_hints.append({
                 "memory_attribution_policy": "promote_outcome_supported_retrieval",
@@ -9363,9 +9382,14 @@ class BenchmarkRunner:
             "conflicting_read_count": report.get("conflicting_read_count", 0),
             "review_read_count": report.get("review_read_count", 0),
             "no_result_read_count": report.get("no_result_read_count", 0),
+            "memory_id_traced_read_count": report.get("memory_id_traced_read_count", 0),
+            "weighted_retrieval_read_count": report.get("weighted_retrieval_read_count", 0),
+            "weighted_memory_match_count": report.get("weighted_memory_match_count", 0),
+            "weighted_transfer_match_count": report.get("weighted_transfer_match_count", 0),
             "quality_label_counts": dict(sorted(report.get("quality_label_counts", {}).items())),
             "read_type_counts": dict(sorted(report.get("read_type_counts", {}).items())),
             "read_layer_counts": dict(sorted(report.get("read_layer_counts", {}).items())),
+            "attribution_policy_counts": dict(sorted(report.get("attribution_policy_counts", {}).items())),
             "policy_hints": policy_hints,
             "recommendations": self._dedupe_strings(recommendations),
         }
@@ -9401,10 +9425,12 @@ class BenchmarkRunner:
         quality_counts = {}
         type_counts = {}
         layer_counts = {}
+        attribution_policy_counts = {}
         for item in items:
             self._increment(quality_counts, item.get("quality_label", "review"))
             self._increment(type_counts, item.get("memory_type", "unknown"))
             self._increment(layer_counts, item.get("layer", "unknown"))
+            self._merge_counts(attribution_policy_counts, item.get("attribution_policy_counts", {}))
 
         return {
             "source_log": source_log,
@@ -9416,12 +9442,17 @@ class BenchmarkRunner:
             "conflicting_read_count": sum(1 for item in items if item.get("quality_label") == "conflicting"),
             "review_read_count": sum(1 for item in items if item.get("quality_label") == "review"),
             "no_result_read_count": sum(1 for item in items if item.get("quality_label") == "no_result"),
+            "memory_id_traced_read_count": sum(1 for item in items if item.get("memory_id_count", 0) > 0),
+            "weighted_retrieval_read_count": sum(1 for item in items if item.get("weighted_retrieval_enabled")),
+            "weighted_memory_match_count": sum(self._safe_int(item.get("weighted_memory_match_count", 0)) for item in items),
+            "weighted_transfer_match_count": sum(self._safe_int(item.get("weighted_transfer_match_count", 0)) for item in items),
             "successful_cycle_count": sum(1 for cycle in cycles if cycle.get("cycle_outcome") == "success"),
             "failed_cycle_count": sum(1 for cycle in cycles if cycle.get("cycle_outcome") == "failure"),
             "unknown_cycle_count": sum(1 for cycle in cycles if cycle.get("cycle_outcome") == "unknown"),
             "quality_label_counts": dict(sorted(quality_counts.items())),
             "read_type_counts": dict(sorted(type_counts.items())),
             "read_layer_counts": dict(sorted(layer_counts.items())),
+            "attribution_policy_counts": dict(sorted(attribution_policy_counts.items())),
             "cycles": cycles,
             "items": items[:80],
             "ready_for_memory_attribution_review": bool(cycles),
@@ -9542,6 +9573,13 @@ class BenchmarkRunner:
         else:
             label = "review"
             reason = outcome["reason"]
+        retrieval_trace = data.get("retrieval_trace", {}) if isinstance(data.get("retrieval_trace", {}), dict) else {}
+        memory_ids = self._memory_attribution_item_ids(data, retrieval_trace)
+        weighted_memory_ids = self._short_string_list(retrieval_trace.get("top_weighted_memory_ids", []), limit=12)
+        weighted_transfer_ids = self._short_string_list(retrieval_trace.get("top_weighted_transfer_ids", []), limit=12)
+        policy_counts = retrieval_trace.get("attribution_policy_counts", {})
+        if not isinstance(policy_counts, dict):
+            policy_counts = {}
         return {
             "cycle_index": cycle_index,
             "event_index": read_index,
@@ -9550,13 +9588,48 @@ class BenchmarkRunner:
             "memory_type": str(data.get("memory_type") or "unknown"),
             "source": self._short_text(str(data.get("source") or "unknown"), 100),
             "query_signature": self._memory_query_signature(data.get("query")),
-            "memory_id": self._short_text(str(data.get("memory_id") or data.get("entry_id") or data.get("id") or ""), 80),
+            "memory_id": memory_ids[0] if memory_ids else "",
+            "memory_ids": memory_ids,
+            "memory_id_count": len(memory_ids),
             "result_chars": result_chars,
             "has_result": bool(has_result),
+            "weighted_retrieval_enabled": bool(retrieval_trace.get("weighted_retrieval_enabled")),
+            "weighted_memory_match_count": self._safe_int(retrieval_trace.get("weighted_memory_match_count", 0)),
+            "weighted_transfer_match_count": self._safe_int(retrieval_trace.get("weighted_transfer_match_count", 0)),
+            "weighted_memory_ids": weighted_memory_ids,
+            "weighted_transfer_ids": weighted_transfer_ids,
+            "attribution_policy_counts": {str(k): self._safe_int(v, default=1) for k, v in policy_counts.items()},
             "quality_label": label,
             "reason": reason,
             "cycle_outcome": outcome["outcome"],
         }
+
+    def _memory_attribution_item_ids(self, data: dict, retrieval_trace: dict) -> list[str]:
+        ids = []
+        for value in (data.get("memory_id"), data.get("entry_id"), data.get("id")):
+            memory_id = self._short_text(str(value or ""), 80)
+            if memory_id and memory_id not in ids:
+                ids.append(memory_id)
+        if isinstance(retrieval_trace, dict):
+            for key in ("top_memory_ids", "top_transfer_ids", "top_weighted_memory_ids", "top_weighted_transfer_ids"):
+                for memory_id in self._short_string_list(retrieval_trace.get(key, []), limit=12):
+                    if memory_id and memory_id not in ids:
+                        ids.append(memory_id)
+                    if len(ids) >= 16:
+                        return ids
+        return ids
+
+    def _short_string_list(self, value, limit: int = 8) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        result = []
+        for item in value:
+            text = self._short_text(str(item or ""), 80)
+            if text and text not in result:
+                result.append(text)
+            if len(result) >= limit:
+                break
+        return result
 
     def _memory_query_signature(self, query) -> str:
         text = str(query or "").strip().lower()
@@ -9700,28 +9773,32 @@ class BenchmarkRunner:
                 for item in case_items:
                     if not isinstance(item, dict):
                         continue
-                    memory_id = str(item.get("memory_id") or "").strip()
-                    if not memory_id:
-                        continue
-                    bucket = buckets.setdefault(memory_id, {
-                        "memory_id": memory_id,
-                        "layer": str(item.get("layer") or "unknown"),
-                        "memory_type": str(item.get("memory_type") or "unknown"),
-                        "source": str(item.get("source") or source or "unknown")[:100],
-                        "supported_read_count": 0,
-                        "conflicting_read_count": 0,
-                        "review_read_count": 0,
-                        "no_result_read_count": 0,
-                    })
+                    memory_ids = item.get("memory_ids", []) if isinstance(item.get("memory_ids", []), list) else []
+                    if not memory_ids and item.get("memory_id"):
+                        memory_ids = [item.get("memory_id")]
                     label = str(item.get("quality_label") or "review").strip().lower()
-                    if label == "supported":
-                        bucket["supported_read_count"] += 1
-                    elif label == "conflicting":
-                        bucket["conflicting_read_count"] += 1
-                    elif label == "no_result":
-                        bucket["no_result_read_count"] += 1
-                    else:
-                        bucket["review_read_count"] += 1
+                    for memory_id in memory_ids:
+                        memory_id = str(memory_id or "").strip()
+                        if not memory_id:
+                            continue
+                        bucket = buckets.setdefault(memory_id, {
+                            "memory_id": memory_id,
+                            "layer": str(item.get("layer") or "unknown"),
+                            "memory_type": str(item.get("memory_type") or "unknown"),
+                            "source": str(item.get("source") or source or "unknown")[:100],
+                            "supported_read_count": 0,
+                            "conflicting_read_count": 0,
+                            "review_read_count": 0,
+                            "no_result_read_count": 0,
+                        })
+                        if label == "supported":
+                            bucket["supported_read_count"] += 1
+                        elif label == "conflicting":
+                            bucket["conflicting_read_count"] += 1
+                        elif label == "no_result":
+                            bucket["no_result_read_count"] += 1
+                        else:
+                            bucket["review_read_count"] += 1
         hints = []
         for bucket in buckets.values():
             supported = self._safe_int(bucket.get("supported_read_count", 0))
@@ -18671,12 +18748,21 @@ class BenchmarkRunner:
             f"review={report.get('review_read_count', 0)}, "
             f"no_result={report.get('no_result_read_count', 0)}"
         )
+        print(
+            "  retrieval trace: "
+            f"ids={report.get('memory_id_traced_read_count', 0)}, "
+            f"weighted_reads={report.get('weighted_retrieval_read_count', 0)}, "
+            f"weighted_memory_matches={report.get('weighted_memory_match_count', 0)}, "
+            f"weighted_transfer_matches={report.get('weighted_transfer_match_count', 0)}"
+        )
         if report.get("read_type_counts"):
             print(f"  read types: {self._format_counts(report.get('read_type_counts', {}))}")
         if report.get("read_layer_counts"):
             print(f"  read layers: {self._format_counts(report.get('read_layer_counts', {}))}")
         if report.get("quality_label_counts"):
             print(f"  labels: {self._format_counts(report.get('quality_label_counts', {}))}")
+        if report.get("attribution_policy_counts"):
+            print(f"  attribution policies: {self._format_counts(report.get('attribution_policy_counts', {}))}")
         if report.get("policy_hints"):
             hints = [
                 f"{hint.get('memory_attribution_policy', hint.get('policy', 'unknown'))}({hint.get('priority', 'review')})"
@@ -18695,7 +18781,9 @@ class BenchmarkRunner:
                 f"supported={case.get('supported_read_count', 0)}, "
                 f"conflicting={case.get('conflicting_read_count', 0)}, "
                 f"review={case.get('review_read_count', 0)}, "
-                f"no_result={case.get('no_result_read_count', 0)}"
+                f"no_result={case.get('no_result_read_count', 0)}, "
+                f"ids={case.get('memory_id_traced_read_count', 0)}, "
+                f"weighted_reads={case.get('weighted_retrieval_read_count', 0)}"
             )
             if case.get("read_type_counts"):
                 print(f"      read types: {self._format_counts(case.get('read_type_counts', {}))}")

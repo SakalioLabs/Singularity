@@ -118,6 +118,7 @@ class MemorySystem:
             "hints_by_id": {},
             "hint_count": 0,
         }
+        self.last_retrieval_trace: dict = {}
         self.entries_path = os.path.join(memory_dir, "memory_entries.jsonl")
         self.experiences_path = os.path.join(memory_dir, "experience_records.jsonl")
         self.causal_events_path = os.path.join(memory_dir, "causal_events.jsonl")
@@ -500,26 +501,41 @@ class MemorySystem:
     def get_relevant_memory(self, query: str, current_state: Optional[dict] = None) -> str:
         """Search L2+L3 and transfer records for information relevant to query."""
         parts = []
-        query_words = self._keywords(query)
-        for item in self._rank_memory_entries_for_query(query, current_state=current_state, limit=5, mark_recalled=True):
+        memory_matches = self._rank_memory_entries_for_query(query, current_state=current_state, limit=5, mark_recalled=True)
+        for item in memory_matches:
             entry = self.entries.get(item["id"])
             if entry:
                 parts.append(f"Memory: {entry.prompt_line()}")
+        semantic_match_count = 0
         for key, fact in self.l3_semantic.items():
             if any(word in key.lower() or word in fact["value"].lower() for word in query.lower().split()[:3]):
+                semantic_match_count += 1
                 parts.append(f"Fact: {key} = {fact['value']}")
+        episodic_match_count = 0
         for ep in self.l2_episodic[-20:]:
             if any(word in json.dumps(ep, default=str).lower() for word in query.lower().split()[:3]):
+                episodic_match_count += 1
                 parts.append(f"Experience: {ep['type']} - {json.dumps(ep['data'], default=str)[:100]}")
-        for item in self.rank_transfer_experiences(query, current_state=current_state, limit=3, mark_recalled=True):
+        transfer_matches = self.rank_transfer_experiences(query, current_state=current_state, limit=3, mark_recalled=True)
+        for item in transfer_matches:
             axes = ",".join(item["matched_axes"][:5]) or "text"
             why = item["causal"].get("why", "")
             parts.append(
                 f"Transfer[{axes} score={item['score']:.2f}]: "
                 f"{item['task']} -> {item['outcome']}; why={why}"
             )
-        for event in self.retrieve_causal_events(query, limit=3):
+        causal_events = self.retrieve_causal_events(query, limit=3)
+        for event in causal_events:
             parts.append(f"Causal: {event.prompt_line()}")
+        self.last_retrieval_trace = self._build_retrieval_trace(
+            query,
+            memory_matches,
+            transfer_matches,
+            semantic_match_count=semantic_match_count,
+            episodic_match_count=episodic_match_count,
+            causal_match_count=len(causal_events),
+            source="relevant_memory",
+        )
         return "\n".join(parts[:10])
 
     def transfer_memory_report(
@@ -590,6 +606,15 @@ class MemorySystem:
             mark_recalled=mark_recalled,
         )
         read_filter_report = self.memory_read_filter_report(query, current_state=current_state)
+        self.last_retrieval_trace = self._build_retrieval_trace(
+            query,
+            memory_matches,
+            transfer_matches,
+            semantic_match_count=0,
+            episodic_match_count=0,
+            causal_match_count=0,
+            source="task_memory",
+        )
         axis_counts = {}
         for item in transfer_matches:
             for axis in item["matched_axes"]:
@@ -674,6 +699,15 @@ class MemorySystem:
             else:
                 report["usable_entries"] += 1
         return report
+
+    def get_last_retrieval_trace(self) -> dict:
+        """Return the latest retrieval trace without raw query text or memory content."""
+        if not isinstance(self.last_retrieval_trace, dict):
+            return {}
+        try:
+            return json.loads(json.dumps(self.last_retrieval_trace, default=str))
+        except (TypeError, ValueError):
+            return dict(self.last_retrieval_trace)
 
     def memory_promptware_report(self, query: str = "", current_state: Optional[dict] = None) -> dict:
         """Audit durable memories and experiences for promptware-like payloads."""
@@ -1051,6 +1085,93 @@ class MemorySystem:
                     self._mark_entry_recalled(entry, query)
             self._rewrite_entries()
         return selected
+
+    def _build_retrieval_trace(
+        self,
+        query: str,
+        memory_matches: list[dict],
+        transfer_matches: list[dict],
+        semantic_match_count: int = 0,
+        episodic_match_count: int = 0,
+        causal_match_count: int = 0,
+        source: str = "retrieval",
+    ) -> dict:
+        profile = self.memory_attribution_profile if isinstance(self.memory_attribution_profile, dict) else {}
+        memory_matches = memory_matches if isinstance(memory_matches, list) else []
+        transfer_matches = transfer_matches if isinstance(transfer_matches, list) else []
+        weighted_memory_ids = self._weighted_retrieval_ids(memory_matches)
+        weighted_transfer_ids = self._weighted_retrieval_ids(transfer_matches)
+        deltas = []
+        policy_counts = {}
+        for item in memory_matches + transfer_matches:
+            policy = str(item.get("attribution_policy") or "").strip()
+            if policy:
+                policy_counts[policy] = policy_counts.get(policy, 0) + 1
+            delta = self._bounded_attribution_delta(item.get("attribution_weight_delta"))
+            if delta:
+                deltas.append(delta)
+        positive_deltas = [delta for delta in deltas if delta > 0]
+        negative_deltas = [delta for delta in deltas if delta < 0]
+        total_match_count = (
+            len(memory_matches)
+            + len(transfer_matches)
+            + max(0, int(semantic_match_count or 0))
+            + max(0, int(episodic_match_count or 0))
+            + max(0, int(causal_match_count or 0))
+        )
+        return {
+            "trace_version": "weighted_retrieval_v1",
+            "source": str(source or "retrieval"),
+            "query_hash": self._query_hash(query),
+            "weighted_retrieval_enabled": bool(profile.get("enabled")),
+            "attribution_hint_count": _safe_int(profile.get("hint_count", 0)),
+            "total_match_count": total_match_count,
+            "memory_match_count": len(memory_matches),
+            "transfer_match_count": len(transfer_matches),
+            "semantic_match_count": max(0, int(semantic_match_count or 0)),
+            "episodic_match_count": max(0, int(episodic_match_count or 0)),
+            "causal_match_count": max(0, int(causal_match_count or 0)),
+            "weighted_match_count": len(weighted_memory_ids) + len(weighted_transfer_ids),
+            "weighted_memory_match_count": len(weighted_memory_ids),
+            "weighted_transfer_match_count": len(weighted_transfer_ids),
+            "top_memory_ids": self._retrieval_ids(memory_matches),
+            "top_transfer_ids": self._retrieval_ids(transfer_matches),
+            "top_weighted_memory_ids": weighted_memory_ids,
+            "top_weighted_transfer_ids": weighted_transfer_ids,
+            "attribution_policy_counts": dict(sorted(policy_counts.items())),
+            "max_positive_weight_delta": round(max(positive_deltas), 3) if positive_deltas else 0.0,
+            "max_negative_weight_delta": round(min(negative_deltas), 3) if negative_deltas else 0.0,
+            "max_abs_weight_delta": round(max((abs(delta) for delta in deltas), default=0.0), 3),
+        }
+
+    def _retrieval_ids(self, items: list[dict], limit: int = 8) -> list[str]:
+        ids = []
+        for item in (items if isinstance(items, list) else []):
+            memory_id = str(item.get("id") or item.get("memory_id") or "").strip()
+            if memory_id and memory_id not in ids:
+                ids.append(memory_id)
+            if len(ids) >= limit:
+                break
+        return ids
+
+    def _weighted_retrieval_ids(self, items: list[dict], limit: int = 8) -> list[str]:
+        weighted = []
+        for item in (items if isinstance(items, list) else []):
+            delta = self._bounded_attribution_delta(item.get("attribution_weight_delta"))
+            if not delta:
+                continue
+            memory_id = str(item.get("id") or item.get("memory_id") or "").strip()
+            if memory_id and memory_id not in weighted:
+                weighted.append(memory_id)
+            if len(weighted) >= limit:
+                break
+        return weighted
+
+    def _query_hash(self, query: str) -> str:
+        text = str(query or "").strip().lower()
+        if not text:
+            return ""
+        return hashlib.sha256(text.encode("utf-8", errors="ignore")).hexdigest()[:12]
 
     def _mark_entry_recalled(self, entry: MemoryEntry, query: str):
         entry.uses += 1

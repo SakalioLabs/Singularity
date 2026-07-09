@@ -541,6 +541,12 @@ class TestSessionLogger(unittest.TestCase):
             "operation": "retrieve",
             "query": "craft torch",
             "policy_decision": {"decision": "read_instrumented"},
+            "retrieval_trace": {
+                "weighted_retrieval_enabled": True,
+                "weighted_memory_match_count": 1,
+                "weighted_transfer_match_count": 0,
+                "attribution_policy_counts": {"boost_supported_memory": 1},
+            },
             "read_filter_report": {
                 "filtered_entries": 2,
                 "filter_reasons": {"superseded": 1, "conditional_mismatch": 1},
@@ -574,6 +580,10 @@ class TestSessionLogger(unittest.TestCase):
         self.assertEqual(memory["memory_read_filtered_entries"], 2)
         self.assertEqual(memory["memory_read_filter_reasons"]["superseded"], 1)
         self.assertEqual(memory["memory_read_filter_reasons"]["conditional_mismatch"], 1)
+        self.assertEqual(memory["memory_retrieval_trace_event_count"], 1)
+        self.assertEqual(memory["weighted_memory_read_count"], 1)
+        self.assertEqual(memory["weighted_memory_match_count"], 1)
+        self.assertEqual(memory["memory_attribution_policy_counts"]["boost_supported_memory"], 1)
 
     def test_visual_action_summary_metrics(self):
         self.logger.log("visual_action_suggestion", {

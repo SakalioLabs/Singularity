@@ -2003,6 +2003,7 @@ class Agent:
         query = " ".join(part for part in [goal, getattr(task, "title", "")] if part)
         decision = self._memory_read_decision(query or goal, "task", "task_memory", "retrieve")
         result = ""
+        retrieval_trace = {}
         if decision.should_retrieve and hasattr(self, "memory") and self.memory and hasattr(self.memory, "task_memory_context"):
             try:
                 result = self.memory.task_memory_context(
@@ -2011,6 +2012,7 @@ class Agent:
                     current_state=current_state or {},
                     limit=3,
                 )
+                retrieval_trace = self._latest_memory_retrieval_trace()
             except Exception as e:
                 logger.warning(f"Task memory context failed: {e}")
         self._log_memory_read(
@@ -2021,6 +2023,7 @@ class Agent:
             result=result,
             source="planner_task_memory",
             decision=decision,
+            retrieval_trace=retrieval_trace,
         )
         return result
 
@@ -2077,8 +2080,10 @@ class Agent:
         decision = self._memory_read_decision(query, "mixed", "relevant_memory", "retrieve")
         result = ""
         read_filter_report = {}
+        retrieval_trace = {}
         if decision.should_retrieve and hasattr(self, "memory") and self.memory and hasattr(self.memory, "get_relevant_memory"):
             result = self.memory.get_relevant_memory(query, current_state=current_state)
+            retrieval_trace = self._latest_memory_retrieval_trace()
             if hasattr(self.memory, "memory_read_filter_report"):
                 read_filter_report = self.memory.memory_read_filter_report(query, current_state=current_state)
         self._log_memory_read(
@@ -2090,6 +2095,7 @@ class Agent:
             source=source,
             decision=decision,
             read_filter_report=read_filter_report,
+            retrieval_trace=retrieval_trace,
         )
         return result
 
@@ -2195,6 +2201,7 @@ class Agent:
         source: str = "",
         decision: MemoryPolicyDecision = None,
         read_filter_report: dict = None,
+        retrieval_trace: dict = None,
     ):
         if not hasattr(self, "session_logger") or not hasattr(self.session_logger, "log"):
             return
@@ -2212,7 +2219,63 @@ class Agent:
             payload["policy_decision"] = decision.as_dict()
         if read_filter_report:
             payload["read_filter_report"] = read_filter_report
+        trace_payload = self._memory_retrieval_trace_payload(retrieval_trace or {})
+        if trace_payload:
+            payload["retrieval_trace"] = trace_payload
         self.session_logger.log("memory_read", payload)
+
+    def _latest_memory_retrieval_trace(self) -> dict:
+        if not hasattr(self, "memory") or not self.memory:
+            return {}
+        try:
+            if hasattr(self.memory, "get_last_retrieval_trace"):
+                trace = self.memory.get_last_retrieval_trace()
+            else:
+                trace = getattr(self.memory, "last_retrieval_trace", {})
+        except Exception as e:
+            logger.warning(f"Memory retrieval trace unavailable: {e}")
+            return {}
+        return trace if isinstance(trace, dict) else {}
+
+    def _memory_retrieval_trace_payload(self, trace: dict) -> dict:
+        if not isinstance(trace, dict):
+            return {}
+        allowed_keys = {
+            "trace_version",
+            "source",
+            "query_hash",
+            "weighted_retrieval_enabled",
+            "attribution_hint_count",
+            "total_match_count",
+            "memory_match_count",
+            "transfer_match_count",
+            "semantic_match_count",
+            "episodic_match_count",
+            "causal_match_count",
+            "weighted_match_count",
+            "weighted_memory_match_count",
+            "weighted_transfer_match_count",
+            "top_memory_ids",
+            "top_transfer_ids",
+            "top_weighted_memory_ids",
+            "top_weighted_transfer_ids",
+            "attribution_policy_counts",
+            "max_positive_weight_delta",
+            "max_negative_weight_delta",
+            "max_abs_weight_delta",
+        }
+        payload = {}
+        for key in sorted(allowed_keys):
+            if key not in trace:
+                continue
+            value = trace.get(key)
+            if isinstance(value, (str, int, float, bool)) or value is None:
+                payload[key] = value
+            elif isinstance(value, list):
+                payload[key] = [str(item)[:80] for item in value[:12]]
+            elif isinstance(value, dict):
+                payload[key] = {str(k)[:80]: v for k, v in value.items()}
+        return payload
 
     def _log_memory_manage(
         self,

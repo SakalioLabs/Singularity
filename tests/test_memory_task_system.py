@@ -695,6 +695,14 @@ def test_memory_attribution_runtime_gate_controls_weighted_retrieval():
     assert ranked_after[0]["attribution_policy"] == "boost_supported_memory"
     relevant = memory.get_relevant_memory("coal torch night")
     assert relevant.splitlines()[0].endswith(supported.prompt_line())
+    trace = memory.get_last_retrieval_trace()
+    assert trace["weighted_retrieval_enabled"] is True
+    assert trace["attribution_hint_count"] == 1
+    assert trace["weighted_memory_match_count"] == 1
+    assert trace["top_weighted_memory_ids"] == [supported.id]
+    assert trace["attribution_policy_counts"]["boost_supported_memory"] == 1
+    assert trace["query_hash"]
+    assert "coal torch night" not in json.dumps(trace)
 
     default_report = evaluate_memory_attribution_runtime_gate([], enable_requested=False)
     assert default_report["readiness"] == "not_required"
@@ -1132,6 +1140,54 @@ def test_agent_logs_memory_lifecycle_events_for_policy_report():
     assert "Craft torches" in case.read_queries
     assert report.missing_read_trace_count == 0
     print("PASS: Agent logs memory lifecycle events for policy report")
+
+
+def test_agent_logs_weighted_memory_retrieval_trace():
+    tmpdir = tempfile.mkdtemp()
+    agent = object.__new__(Agent)
+    agent.memory = MemorySystem(memory_dir=os.path.join(tmpdir, "memory"), persist=False)
+    agent.memory_policy = MemoryLifecyclePolicy()
+    agent.session_logger = FakeSessionLogger()
+
+    agent.memory.add_memory(
+        "Coal and sticks make torches before night.",
+        tags=["coal", "torch"],
+        importance=0.5,
+        confidence=0.5,
+    )
+    supported = agent.memory.add_memory(
+        "Coal and sticks make torches before night after the verified cave route.",
+        tags=["coal", "torch"],
+        importance=0.5,
+        confidence=0.5,
+    )
+    agent.memory.apply_memory_attribution_runtime_gate({
+        "effective_enable_weighted_memory_retrieval": True,
+        "retrieval_weight_hints": [{
+            "memory_id": supported.id,
+            "policy": "boost_supported_memory",
+            "weight_delta": 0.5,
+            "supported_read_count": 2,
+        }],
+    })
+
+    result = agent._read_relevant_memory(
+        "coal torch night",
+        {"time_of_day": "night"},
+        source="test_weighted_read",
+    )
+
+    event = agent.session_logger.events[-1]
+    trace = event["data"]["retrieval_trace"]
+    assert result
+    assert event["type"] == "memory_read"
+    assert trace["weighted_retrieval_enabled"] is True
+    assert trace["weighted_memory_match_count"] == 1
+    assert trace["top_weighted_memory_ids"] == [supported.id]
+    assert trace["attribution_policy_counts"]["boost_supported_memory"] == 1
+    assert trace["query_hash"]
+    assert "coal torch night" not in json.dumps(trace)
+    print("PASS: Agent logs weighted memory retrieval trace")
 
 
 def test_agent_memory_policy_can_suppress_noisy_write_when_enforced():
@@ -2889,6 +2945,7 @@ if __name__ == "__main__":
     test_agent_autonomous_goal_uses_causal_memory_context()
     test_agent_loads_world_model_feedback_only_with_approved_gate()
     test_agent_logs_memory_lifecycle_events_for_policy_report()
+    test_agent_logs_weighted_memory_retrieval_trace()
     test_agent_memory_policy_can_suppress_noisy_write_when_enforced()
     test_agent_passes_observation_to_memory_retrieval()
     test_agent_injects_task_memory_context_for_planner()

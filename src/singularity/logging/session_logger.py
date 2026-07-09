@@ -144,6 +144,11 @@ class SessionLogger:
         read_filter_event_count = 0
         read_filtered_entries = 0
         read_filter_reasons = {}
+        memory_trace_event_count = 0
+        weighted_memory_read_count = 0
+        weighted_memory_match_count = 0
+        weighted_transfer_match_count = 0
+        memory_attribution_policy_counts = {}
 
         for event in writes + reads + manages:
             data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
@@ -163,6 +168,28 @@ class SessionLogger:
             data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
             memory_type = str(data.get("memory_type") or "unknown")
             read_types[memory_type] = read_types.get(memory_type, 0) + 1
+            retrieval_trace = data.get("retrieval_trace", {}) if isinstance(data.get("retrieval_trace", {}), dict) else {}
+            if retrieval_trace:
+                memory_trace_event_count += 1
+                if retrieval_trace.get("weighted_retrieval_enabled"):
+                    weighted_memory_read_count += 1
+                try:
+                    weighted_memory_match_count += int(retrieval_trace.get("weighted_memory_match_count") or 0)
+                except (TypeError, ValueError):
+                    pass
+                try:
+                    weighted_transfer_match_count += int(retrieval_trace.get("weighted_transfer_match_count") or 0)
+                except (TypeError, ValueError):
+                    pass
+                policies = retrieval_trace.get("attribution_policy_counts", {})
+                if isinstance(policies, dict):
+                    for policy, count in policies.items():
+                        policy = str(policy or "unknown")
+                        try:
+                            amount = int(count)
+                        except (TypeError, ValueError):
+                            amount = 1
+                        memory_attribution_policy_counts[policy] = memory_attribution_policy_counts.get(policy, 0) + amount
             filter_report = data.get("read_filter_report", {}) if isinstance(data.get("read_filter_report", {}), dict) else {}
             if filter_report:
                 read_filter_event_count += 1
@@ -194,6 +221,11 @@ class SessionLogger:
             "memory_read_filter_event_count": read_filter_event_count,
             "memory_read_filtered_entries": read_filtered_entries,
             "memory_read_filter_reasons": read_filter_reasons,
+            "memory_retrieval_trace_event_count": memory_trace_event_count,
+            "weighted_memory_read_count": weighted_memory_read_count,
+            "weighted_memory_match_count": weighted_memory_match_count,
+            "weighted_transfer_match_count": weighted_transfer_match_count,
+            "memory_attribution_policy_counts": memory_attribution_policy_counts,
         }
 
     def _intervention_metrics(self) -> dict:
