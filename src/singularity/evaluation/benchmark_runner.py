@@ -20,6 +20,8 @@ from singularity.core.causal_index import (
     CausalEventSummary,
     aggregate_causal_events,
 )
+from singularity.core.coach import CoachPolicy
+from singularity.core.curriculum import CurriculumManager
 from singularity.core.task_system import TaskStatus, TaskSystem
 from singularity.bot.bridge import BotBridge
 from singularity.action.mapping import ActionMapper
@@ -82,6 +84,59 @@ class SchedulingAblationReport:
     @property
     def helped_count(self) -> int:
         return sum(1 for case in self.cases if case.causal_helped)
+
+
+@dataclass
+class CoachStyleAblationCase:
+    id: str
+    name: str
+    observation: dict
+    fallback_goal: str = "Explore surroundings and gather resources"
+    styles: list[str] = field(default_factory=list)
+    exploration_feedback: dict = field(default_factory=dict)
+    world_model_feedback: dict = field(default_factory=dict)
+    source: str = ""
+
+
+@dataclass
+class CoachStyleAblationResult:
+    case_id: str
+    case_name: str
+    style: str
+    baseline_goal: str
+    styled_goal: str
+    changed: bool
+    baseline_score: float = 0.0
+    styled_score: float = 0.0
+    score_delta: float = 0.0
+    baseline_category: str = ""
+    styled_category: str = ""
+    styled_reasons: list[str] = field(default_factory=list)
+    baseline_candidates: list[dict] = field(default_factory=list)
+    styled_candidates: list[dict] = field(default_factory=list)
+    fallback_goal: str = ""
+    source: str = ""
+
+
+@dataclass
+class CoachStyleAblationReport:
+    cases: list[CoachStyleAblationResult] = field(default_factory=list)
+
+    @property
+    def changed_count(self) -> int:
+        return sum(1 for case in self.cases if case.changed)
+
+    @property
+    def score_changed_count(self) -> int:
+        return sum(1 for case in self.cases if abs(case.score_delta) > 0.0001)
+
+    @property
+    def style_changed_counts(self) -> dict:
+        counts = {}
+        for case in self.cases:
+            if case.changed:
+                counts[case.style] = counts.get(case.style, 0) + 1
+        return counts
 
 
 @dataclass
@@ -2173,6 +2228,54 @@ SCHEDULING_ABLATION_CASES = [
             },
         ],
         expected_causal_task="Explore surroundings",
+    ),
+]
+
+
+COACH_STYLE_ABLATION_CASES = [
+    CoachStyleAblationCase(
+        id="AB-COACH-001",
+        name="Explorer style promotes a mapped frontier over local resource grind",
+        observation={
+            "health": 20,
+            "time_of_day": 4000,
+            "inventory": {"crafting_table": 1, "wooden_pickaxe": 1, "oak_log": 4},
+            "nearby_entities": [],
+            "nearby_blocks": [],
+        },
+        fallback_goal="Explore surroundings and gather resources",
+        styles=["safe", "explorer", "resourceful"],
+        world_model_feedback={
+            "frontier_count": 0,
+            "suggested_goals": ["Explore east frontier cell (1,0) near x=12, z=4"],
+            "frontiers": [{"cell": {"x": 1, "z": 0}, "direction": "east"}],
+        },
+    ),
+    CoachStyleAblationCase(
+        id="AB-COACH-002",
+        name="Safe style reinforces torch preparation under danger pressure",
+        observation={
+            "health": 8,
+            "time_of_day": 13000,
+            "inventory": {"crafting_table": 1, "wooden_pickaxe": 1, "coal": 1, "stick": 1, "oak_log": 4},
+            "nearby_entities": [{"name": "zombie", "hostile": True, "distance": 6}],
+            "nearby_blocks": [],
+        },
+        fallback_goal="Explore nearby cave",
+        styles=["safe", "explorer"],
+    ),
+    CoachStyleAblationCase(
+        id="AB-COACH-003",
+        name="Efficient style favors immediate tool progression",
+        observation={
+            "health": 20,
+            "time_of_day": 4000,
+            "inventory": {"crafting_table": 1, "cobblestone": 3, "stick": 2, "oak_log": 4},
+            "nearby_entities": [],
+            "nearby_blocks": [],
+        },
+        fallback_goal="Explore surroundings and gather resources",
+        styles=["efficient", "builder"],
     ),
 ]
 
@@ -10932,6 +11035,169 @@ class BenchmarkRunner:
                 "metrics": summary.get("intervention_metrics", {}),
             }
 
+    def run_coach_style_ablation(
+        self,
+        cases: Optional[list[CoachStyleAblationCase]] = None,
+        styles: Optional[list[str]] = None,
+    ) -> CoachStyleAblationReport:
+        """Compare baseline curriculum ranking against advisory coach styles."""
+        report = CoachStyleAblationReport()
+        source_cases = COACH_STYLE_ABLATION_CASES if cases is None else cases
+        for case in source_cases:
+            manager = self._curriculum_for_coach_case(case)
+            baseline_candidates = manager.propose_goals(
+                case.observation,
+                case.fallback_goal,
+                memory_system=None,
+                skill_library=None,
+            )
+            baseline = baseline_candidates[0] if baseline_candidates else None
+            baseline_goal = baseline.title if baseline else case.fallback_goal
+            baseline_score = float(baseline.score if baseline else 0.0)
+            baseline_category = baseline.category if baseline else ""
+            baseline_dicts = [manager._candidate_dict(candidate) for candidate in baseline_candidates[:5]]
+            for style in self._coach_styles_for_case(case, styles):
+                coach = CoachPolicy.from_style(style)
+                styled_candidates = (
+                    coach.rank_curriculum_candidates(baseline_candidates, case.observation, case.fallback_goal)
+                    if coach.active
+                    else list(baseline_candidates)
+                )
+                styled = styled_candidates[0] if styled_candidates else baseline
+                styled_goal = styled.title if styled else case.fallback_goal
+                styled_score = float(styled.score if styled else 0.0)
+                report.cases.append(CoachStyleAblationResult(
+                    case_id=case.id,
+                    case_name=case.name,
+                    style=",".join(coach.style_names) if coach.active else str(style or "none"),
+                    baseline_goal=baseline_goal,
+                    styled_goal=styled_goal,
+                    changed=baseline_goal != styled_goal,
+                    baseline_score=round(baseline_score, 3),
+                    styled_score=round(styled_score, 3),
+                    score_delta=round(styled_score - baseline_score, 3),
+                    baseline_category=baseline_category,
+                    styled_category=styled.category if styled else "",
+                    styled_reasons=list(styled.reasons if styled else []),
+                    baseline_candidates=baseline_dicts,
+                    styled_candidates=[manager._candidate_dict(candidate) for candidate in styled_candidates[:5]],
+                    fallback_goal=case.fallback_goal,
+                    source=case.source,
+                ))
+        return report
+
+    def load_coach_style_ablation_cases(self, case_files: list[str]) -> list[CoachStyleAblationCase]:
+        """Load coach ablation cases from JSON or JSONL files."""
+        cases = []
+        for path in case_files or []:
+            for index, record in enumerate(self._load_case_records(path), start=1):
+                case = self._coach_style_case_from_record(record, source=path, index=index)
+                if case:
+                    cases.append(case)
+        return cases
+
+    def coach_style_ablation_cases_from_logs(
+        self,
+        session_log_paths: list[str],
+        max_cases_per_log: int = 20,
+        fallback_goal: str = "Explore surroundings and gather resources",
+        styles: Optional[list[str]] = None,
+    ) -> list[CoachStyleAblationCase]:
+        """Extract observation snapshots from session logs for style replay."""
+        cases = []
+        for path in session_log_paths or []:
+            events = self._load_session_events(path)
+            active_goal = fallback_goal
+            emitted = 0
+            for event in events:
+                event_type = event.get("type")
+                data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+                if event_type in {"goal_start", "auto_goal"}:
+                    active_goal = str(data.get("goal") or data.get("selected") or active_goal or fallback_goal)
+                    continue
+                if event_type == "curriculum_goal":
+                    active_goal = str(data.get("fallback") or data.get("selected") or active_goal or fallback_goal)
+                    continue
+                if event_type != "observation":
+                    continue
+                observation = data
+                if not isinstance(observation, dict) or not self._coach_observation_has_signal(observation):
+                    continue
+                emitted += 1
+                cases.append(CoachStyleAblationCase(
+                    id=f"LOG-COACH-{len(cases) + 1:03d}",
+                    name=f"{os.path.basename(path)} observation {emitted}",
+                    observation=observation,
+                    fallback_goal=active_goal or fallback_goal,
+                    styles=list(styles or []),
+                    source=path,
+                ))
+                if emitted >= max_cases_per_log:
+                    break
+        return cases
+
+    def _coach_styles_for_case(self, case: CoachStyleAblationCase, styles: Optional[list[str]] = None) -> list[str]:
+        requested = [style for style in (styles or case.styles or []) if style]
+        return requested or list(CoachPolicy.PROFILES.keys())
+
+    def _curriculum_for_coach_case(self, case: CoachStyleAblationCase) -> CurriculumManager:
+        manager = CurriculumManager()
+        if case.exploration_feedback:
+            manager.record_exploration_feedback(case.exploration_feedback)
+        if case.world_model_feedback:
+            manager.record_world_model_feedback(case.world_model_feedback)
+        return manager
+
+    def _load_case_records(self, path: str) -> list[dict]:
+        with open(path, "r", encoding="utf-8-sig") as f:
+            if path.lower().endswith(".jsonl"):
+                return [json.loads(line) for line in f if line.strip()]
+            payload = json.load(f)
+        if isinstance(payload, dict) and isinstance(payload.get("cases"), list):
+            return [record for record in payload["cases"] if isinstance(record, dict)]
+        if isinstance(payload, list):
+            return [record for record in payload if isinstance(record, dict)]
+        if isinstance(payload, dict):
+            return [payload]
+        return []
+
+    def _coach_style_case_from_record(self, record: dict, source: str = "", index: int = 1) -> Optional[CoachStyleAblationCase]:
+        observation = (
+            record.get("observation")
+            or record.get("world_state")
+            or record.get("current_state")
+            or record.get("state")
+        )
+        if not isinstance(observation, dict):
+            return None
+        raw_styles = record.get("styles", record.get("style", []))
+        if isinstance(raw_styles, str):
+            styles = [raw_styles]
+        elif isinstance(raw_styles, list):
+            styles = [str(style) for style in raw_styles if style]
+        else:
+            styles = []
+        return CoachStyleAblationCase(
+            id=str(record.get("id") or f"FILE-COACH-{index:03d}"),
+            name=str(record.get("name") or record.get("title") or f"Coach style case {index}"),
+            observation=observation,
+            fallback_goal=str(record.get("fallback_goal") or record.get("goal") or "Explore surroundings and gather resources"),
+            styles=styles,
+            exploration_feedback=record.get("exploration_feedback", {}) if isinstance(record.get("exploration_feedback", {}), dict) else {},
+            world_model_feedback=record.get("world_model_feedback", {}) if isinstance(record.get("world_model_feedback", {}), dict) else {},
+            source=source,
+        )
+
+    def _coach_observation_has_signal(self, observation: dict) -> bool:
+        return any(key in observation for key in (
+            "inventory",
+            "nearby_blocks",
+            "grounded_resources",
+            "nearby_entities",
+            "health",
+            "time_of_day",
+        ))
+
     def run_scheduling_ablation(self, cases: Optional[list[SchedulingAblationCase]] = None) -> SchedulingAblationReport:
         """Compare direct-observation scheduling with causal-opportunity scheduling."""
         report = SchedulingAblationReport()
@@ -12061,6 +12327,27 @@ class BenchmarkRunner:
             print(f"      causal-on:   {case.causal_enabled_task or 'none'}")
             if case.causal_tags:
                 print(f"      causal tags: {', '.join(case.causal_tags)}")
+
+    def print_coach_style_ablation_report(self, report: CoachStyleAblationReport):
+        total = len(report.cases)
+        print("\nCoach Style Ablation")
+        print(f"  changed top goal: {report.changed_count}/{total}")
+        print(f"  changed score: {report.score_changed_count}/{total}")
+        if report.style_changed_counts:
+            print(
+                "  changed by style: "
+                + ", ".join(f"{style}={count}" for style, count in sorted(report.style_changed_counts.items()))
+            )
+        for case in report.cases:
+            marker = "+" if case.changed else "~" if case.score_delta else "="
+            print(f"  [{marker}] {case.case_id} {case.case_name} style={case.style}")
+            if case.source:
+                print(f"      source: {case.source}")
+            print(f"      baseline: {case.baseline_goal or 'none'} ({case.baseline_category}, {case.baseline_score:.2f})")
+            print(f"      styled:   {case.styled_goal or 'none'} ({case.styled_category}, {case.styled_score:.2f}, delta={case.score_delta:.2f})")
+            coach_reasons = [reason for reason in case.styled_reasons if str(reason).startswith("coach:")]
+            if coach_reasons:
+                print(f"      coach reasons: {', '.join(coach_reasons[:5])}")
 
     def print_visual_trace_report(self, report: VisualTraceCoverageReport):
         total = report.log_count

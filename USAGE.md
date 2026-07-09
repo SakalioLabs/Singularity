@@ -165,6 +165,9 @@ python -m singularity.main autonomous --world-model-feedback logs/benchmarks/wor
 # Styles affect planner context and curriculum ranking only; action verification and safety gates still apply.
 python -m singularity.main autonomous --coach-style explorer
 python -m singularity.main run --goal "Explore the nearby cave and return safely" --coach-style safe
+# Compare baseline curriculum choices with style-biased choices before spending live runtime.
+python -m singularity.main coach-style-ablation --style safe --style explorer --output logs/benchmarks/coach_style_ablation.json
+python -m singularity.main coach-style-ablation --session-log logs/session_xxx.jsonl --style explorer --output logs/benchmarks/coach_style_from_log.json
 
 # Summarize MineEvolve-style execution progress, stagnation, and adaptor hints
 # Successful action returns are discounted unless later observations show state, inventory, or verifier progress.

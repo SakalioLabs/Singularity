@@ -23,9 +23,9 @@ The paper frames runtime control as a style layer: the user can choose how an ag
 - Added `Config.coach_style`, `Config.enable_coaching_policy`, and CLI `--coach-style`.
 - Wired advisory coach context into `Agent._think_llm()`.
 - Wired coach-biased curriculum reranking into autonomous goal selection only after ready tasks are considered.
+- Added `coach-style-ablation` so style-biased curriculum changes can be replayed from default cases, JSON/JSONL case files, or session-log observations before live autonomous runs.
 
 ## Next Experiments
 
-- Add a coaching ablation report that compares baseline versus style-biased curriculum choices over saved observations.
 - Add per-style session metrics: survival risk, exploration coverage, resource readiness, and plan compliance.
 - Promote styles from static weights to learned preference profiles only after enough verifier-checked episodes exist.

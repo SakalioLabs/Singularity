@@ -1226,6 +1226,24 @@
 
 ---
 
+## P-067: LLM-in-Sandbox
+
+- **Title**: LLM-in-Sandbox Elicits General Agentic Intelligence
+- **Year**: 2026
+- **Link**: https://arxiv.org/abs/2601.16206
+- **Type**: General agentic intelligence via minimal computer sandbox
+- **Task Type**: Broad non-code and code tasks with externalized file/script workflows
+- **Core Method**: Provides an LLM with file management, script execution, and resource access so it can externalize reasoning, store intermediate artifacts, and verify work
+- **Action Space**: Computer sandbox operations; adapted here as offline replay reports and gated promotion artifacts
+- **Memory**: Files, scripts, and generated artifacts act as inspectable external memory for long-horizon work
+- **Key Results**: Reports that sandbox access elicits broader agentic capabilities than prompt-only interaction in multiple task categories
+- **Scores**: R=4, N=5, R=3, E=5
+- **Value to Project**: Motivates making Minecraft policy updates pass through explicit offline report files, replay scripts, and gates before runtime mutation or live-server spending
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-llm-in-sandbox.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1296,3 +1314,4 @@
 | P-064 | SVA Action Evaluation | 2026 | R4/N5/R3/E5 | P1 |
 | P-065 | Agent Step Value | 2026 | R5/N5/R4/E5 | P1 |
 | P-066 | Coachable Agents | 2026 | R4/N5/R3/E5 | P2 |
+| P-067 | LLM-in-Sandbox | 2026 | R4/N5/R3/E5 | P2 |

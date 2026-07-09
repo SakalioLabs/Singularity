@@ -4029,6 +4029,56 @@ def test_scheduling_ablation_replays_session_logs():
     print("PASS: Scheduling ablation replays successful and failed session logs")
 
 
+def test_coach_style_ablation_compares_curriculum_styles():
+    runner = BenchmarkRunner(Config())
+    report = runner.run_coach_style_ablation(styles=["safe", "explorer"])
+
+    explorer_case = next(
+        case for case in report.cases
+        if case.case_id == "AB-COACH-001" and case.style == "explorer"
+    )
+
+    assert report.changed_count >= 1
+    assert report.score_changed_count >= 1
+    assert explorer_case.changed
+    assert explorer_case.baseline_goal != explorer_case.styled_goal
+    assert explorer_case.styled_goal.startswith("Explore east frontier cell")
+    assert any(reason.startswith("coach:explorer") for reason in explorer_case.styled_reasons)
+    assert explorer_case.baseline_candidates
+    assert explorer_case.styled_candidates
+
+    tmpdir = tempfile.mkdtemp()
+    case_path = os.path.join(tmpdir, "coach_cases.json")
+    with open(case_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "cases": [{
+                "id": "FILE-COACH-001",
+                "name": "case file frontier preference",
+                "fallback_goal": "Explore surroundings",
+                "styles": ["explorer"],
+                "observation": {
+                    "health": 20,
+                    "time_of_day": 4000,
+                    "inventory": {"crafting_table": 1, "wooden_pickaxe": 1, "oak_log": 4},
+                    "nearby_entities": [],
+                },
+                "world_model_feedback": {
+                    "suggested_goals": ["Explore north frontier cell (0,-1)"],
+                    "frontiers": [{"cell": {"x": 0, "z": -1}, "direction": "north"}],
+                },
+            }]
+        }, f)
+
+    loaded = runner.load_coach_style_ablation_cases([case_path])
+    file_report = runner.run_coach_style_ablation(cases=loaded)
+
+    assert len(loaded) == 1
+    assert file_report.cases[0].source == case_path
+    assert file_report.cases[0].style == "explorer"
+    assert file_report.cases[0].styled_goal.startswith("Explore north frontier cell")
+    print("PASS: Coach style ablation compares curriculum styles and case files")
+
+
 if __name__ == "__main__":
     test_preflight_report_without_network()
     test_bot_session_preflight_check()
@@ -4092,4 +4142,5 @@ if __name__ == "__main__":
     test_mixed_policy_benchmark_ablation_compares_live_patch_modes()
     test_scheduling_ablation_report_compares_causal_switch()
     test_scheduling_ablation_replays_session_logs()
+    test_coach_style_ablation_compares_curriculum_styles()
     print("\nBenchmark preflight tests PASSED")

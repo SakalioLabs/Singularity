@@ -505,6 +505,19 @@ def main():
     scheduling_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     scheduling_parser.add_argument("--log-level", type=str, default="INFO")
 
+    # Offline runtime coaching ablation
+    coach_ablation_parser = subparsers.add_parser(
+        "coach-style-ablation",
+        help="Compare baseline curriculum ranking against advisory coaching styles",
+    )
+    coach_ablation_parser.add_argument("--style", action="append", default=[], help="Coach style to compare; repeat for multiple styles")
+    coach_ablation_parser.add_argument("--case-file", action="append", default=[], help="JSON/JSONL cases with observation/current_state and fallback_goal fields")
+    coach_ablation_parser.add_argument("--session-log", action="append", default=[], help="Replay observation snapshots from session JSONL logs")
+    coach_ablation_parser.add_argument("--fallback-goal", type=str, default="Explore surroundings and gather resources", help="Fallback goal for session-log observations")
+    coach_ablation_parser.add_argument("--max-cases-per-log", type=int, default=20)
+    coach_ablation_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    coach_ablation_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline promotion review visual ablation
     review_parser = subparsers.add_parser("promotion-review-ablation", help="Compare skill promotion review with and without visual evidence")
     review_parser.add_argument("--session-log", action="append", default=[], help="Replay a session JSONL log into promotion review ablation")
@@ -1967,6 +1980,43 @@ def main():
                 json.dump({
                     "changed_count": report.changed_count,
                     "helped_count": report.helped_count,
+                    "cases": [asdict(case) for case in report.cases],
+                }, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "coach-style-ablation":
+        from dataclasses import asdict
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        runner = BenchmarkRunner(Config())
+        styles = getattr(args, "style", []) or []
+        cases = []
+        case_files = getattr(args, "case_file", []) or []
+        session_logs = getattr(args, "session_log", []) or []
+        if case_files:
+            cases.extend(runner.load_coach_style_ablation_cases(case_files))
+        if session_logs:
+            cases.extend(runner.coach_style_ablation_cases_from_logs(
+                session_logs,
+                max_cases_per_log=getattr(args, "max_cases_per_log", 20),
+                fallback_goal=getattr(args, "fallback_goal", "Explore surroundings and gather resources"),
+                styles=styles,
+            ))
+        report = runner.run_coach_style_ablation(
+            cases=cases if cases else None,
+            styles=styles or None,
+        )
+        runner.print_coach_style_ablation_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump({
+                    "changed_count": report.changed_count,
+                    "score_changed_count": report.score_changed_count,
+                    "style_changed_counts": report.style_changed_counts,
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
