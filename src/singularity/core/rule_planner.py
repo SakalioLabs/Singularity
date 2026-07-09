@@ -1,6 +1,7 @@
 ﻿"""Rule-based fallback planner for M1 benchmarks - no LLM required."""
 import math
 import logging
+import re
 
 logger = logging.getLogger("singularity.rule_planner")
 
@@ -20,7 +21,9 @@ class RuleBasedPlanner:
         pos = world_state.get("position", {})
 
         # More specific matches first
-        if "craft" in goal_lower and "pickaxe" in goal_lower and "stone" in goal_lower:
+        if "explore" in goal_lower and "frontier" in goal_lower:
+            return self._plan_explore_frontier(goal, world_state, pos)
+        elif "craft" in goal_lower and "pickaxe" in goal_lower and "stone" in goal_lower:
             return self._plan_craft_stone_pickaxe(inv, trees, pos)
         elif "craft" in goal_lower and "pickaxe" in goal_lower and "wooden" in goal_lower:
             return self._plan_craft_wooden_pickaxe(inv, trees, pos)
@@ -31,6 +34,114 @@ class RuleBasedPlanner:
         elif "cobblestone" in goal_lower or ("mine" in goal_lower and "stone" in goal_lower):
             return self._plan_mine_cobblestone(inv, trees, pos)
         return {"status": "blocked", "reasoning": f"No rule for goal: {goal}", "actions": []}
+
+    def _plan_explore_frontier(self, goal: str, world_state: dict, pos: dict) -> dict:
+        target = self._frontier_target(goal, pos)
+        resource = self._frontier_resource(goal)
+        dist = self._flat_distance(pos, target)
+        actions = []
+        if dist > 4.0:
+            actions.append({"type": "move_to", "parameters": {"x": round(target["x"]), "z": round(target["z"])}})
+        look_target = self._visible_resource_position(resource, world_state) if resource else {}
+        if not look_target:
+            look_target = {"x": target["x"], "y": pos.get("y", 64), "z": target["z"]}
+        actions.append({
+            "type": "look_at",
+            "parameters": {
+                "x": round(look_target.get("x", target["x"])),
+                "y": round(look_target.get("y", pos.get("y", 64))),
+                "z": round(look_target.get("z", target["z"])),
+            },
+        })
+        actions.append({"type": "wait", "parameters": {"ms": 600}})
+        resource_text = f" and inspect {resource}" if resource else ""
+        return {
+            "status": "in_progress",
+            "reasoning": (
+                f"Following mapped frontier evidence toward x={round(target['x'])}, "
+                f"z={round(target['z'])}{resource_text}"
+            ),
+            "subtasks": [
+                {
+                    "title": "Navigate to mapped frontier",
+                    "type": "exploration",
+                    "priority": 1,
+                    "success_criteria": {"position_near": {"x": round(target["x"]), "z": round(target["z"])}},
+                    "opportunity_triggers": ["frontier"],
+                    "tags": ["frontier", "navigation"],
+                    "rationale": "Use structured world-model frontier feedback before random exploration",
+                },
+                {
+                    "title": f"Inspect frontier {resource or 'landmarks'}",
+                    "type": "exploration",
+                    "priority": 2,
+                    "success_criteria": {"observed": resource or "landmark"},
+                    "depends_on": ["Navigate to mapped frontier"],
+                    "opportunity_triggers": [resource] if resource else ["landmark"],
+                    "tags": ["frontier", "inspection"],
+                    "rationale": "Record visible resources and risk before interacting",
+                },
+            ],
+            "actions": actions,
+        }
+
+    def _frontier_target(self, goal: str, pos: dict) -> dict:
+        coord_match = re.search(
+            r"near\s+x\s*=\s*(-?\d+(?:\.\d+)?)\s*,\s*z\s*=\s*(-?\d+(?:\.\d+)?)",
+            goal,
+            flags=re.IGNORECASE,
+        )
+        if coord_match:
+            return {"x": float(coord_match.group(1)), "z": float(coord_match.group(2))}
+        direction = self._frontier_direction(goal)
+        offsets = {
+            "east": (24, 0),
+            "west": (-24, 0),
+            "south": (0, 24),
+            "north": (0, -24),
+            "southeast": (18, 18),
+            "southwest": (-18, 18),
+            "northeast": (18, -18),
+            "northwest": (-18, -18),
+        }
+        dx, dz = offsets.get(direction, (20, 20))
+        return {"x": float(pos.get("x", 0) or 0) + dx, "z": float(pos.get("z", 0) or 0) + dz}
+
+    def _frontier_direction(self, goal: str) -> str:
+        text = goal.lower()
+        for direction in ("southeast", "southwest", "northeast", "northwest", "east", "west", "south", "north"):
+            if direction in text:
+                return direction
+        return ""
+
+    def _frontier_resource(self, goal: str) -> str:
+        match = re.search(r"(?:inspect|check|observe)\s+([a-zA-Z0-9_]+)", goal)
+        if match:
+            return match.group(1).lower()
+        return ""
+
+    def _visible_resource_position(self, resource: str, world_state: dict) -> dict:
+        if not resource:
+            return {}
+        for key in ("nearby_blocks", "grounded_resources"):
+            for item in world_state.get(key, []) or []:
+                if isinstance(item, str) or not isinstance(item, dict):
+                    continue
+                name = str(item.get("name") or item.get("type") or item.get("block") or item.get("resource") or "").lower()
+                if name != resource:
+                    continue
+                position = item.get("position", {}) if isinstance(item.get("position", {}), dict) else item
+                return {
+                    "x": position.get("x", 0),
+                    "y": position.get("y", world_state.get("position", {}).get("y", 64)),
+                    "z": position.get("z", 0),
+                }
+        return {}
+
+    def _flat_distance(self, a: dict, b: dict) -> float:
+        dx = float(a.get("x", 0) or 0) - float(b.get("x", 0) or 0)
+        dz = float(a.get("z", 0) or 0) - float(b.get("z", 0) or 0)
+        return math.sqrt(dx * dx + dz * dz)
 
     def _plan_gather_wood(self, inv: dict, trees: list, pos: dict) -> dict:
         oak_logs = inv.get("oak_log", 0)

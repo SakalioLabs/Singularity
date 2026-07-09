@@ -391,6 +391,31 @@ class TestRulePlanner(unittest.TestCase):
         plan = self.planner.plan_from_goal("Gather 3 oak logs", obs)
         self.assertEqual(plan["status"], "in_progress")
 
+    def test_explore_frontier_uses_world_model_coordinates(self):
+        obs = {
+            "inventory": {"wooden_pickaxe": 1},
+            "position": {"x": 0, "y": 64, "z": 0},
+            "nearby_blocks": [{"name": "coal_ore", "position": {"x": 11, "y": 63, "z": 5}}],
+        }
+        plan = self.planner.plan_from_goal(
+            "Explore east frontier cell (1,0) near x=12, z=4 to inspect coal_ore",
+            obs,
+        )
+        self.assertEqual(plan["status"], "in_progress")
+        self.assertEqual(plan["actions"][0]["type"], "move_to")
+        self.assertEqual(plan["actions"][0]["parameters"], {"x": 12, "z": 4})
+        self.assertEqual(plan["actions"][1]["type"], "look_at")
+        self.assertEqual(plan["actions"][1]["parameters"]["x"], 11)
+        self.assertIn("coal_ore", plan["reasoning"])
+        self.assertEqual(plan["subtasks"][1]["success_criteria"]["observed"], "coal_ore")
+
+    def test_explore_frontier_direction_fallback(self):
+        obs = {"inventory": {}, "position": {"x": 5, "y": 64, "z": 7}}
+        plan = self.planner.plan_from_goal("Explore west frontier cell (-1,0)", obs)
+        self.assertEqual(plan["status"], "in_progress")
+        self.assertEqual(plan["actions"][0]["type"], "move_to")
+        self.assertEqual(plan["actions"][0]["parameters"], {"x": -19, "z": 7})
+
     def test_craft_workbench_complete(self):
         obs = {"inventory": {"crafting_table": 1}}
         plan = self.planner.plan_from_goal("Craft a crafting table", obs)
