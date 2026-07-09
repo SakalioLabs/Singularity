@@ -3469,6 +3469,90 @@ def test_memory_attribution_report_labels_retrieval_outcomes_without_raw_queries
     print("PASS: Memory attribution report labels retrieval outcomes without raw queries")
 
 
+def test_memory_attribution_gate_controls_weighted_retrieval_profile():
+    tmpdir = tempfile.mkdtemp()
+    ready_path = os.path.join(tmpdir, "session_memory_attribution_ready.jsonl")
+    blocked_path = os.path.join(tmpdir, "session_memory_attribution_blocked.jsonl")
+    ready_events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "semantic",
+                "memory_type": "relevant_memory",
+                "source": "planner_memory",
+                "query": "craft torch route",
+                "result_chars": 200,
+                "has_result": True,
+            },
+        },
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "task",
+                "memory_type": "task_memory",
+                "source": "planner_task_memory",
+                "query": "torch task setup",
+                "result_chars": 80,
+                "has_result": True,
+            },
+        },
+        {"type": "plan", "data": {"status": "in_progress", "actions": [{"type": "craft", "parameters": {"item": "torch"}}]}},
+        {"type": "action", "data": {"action": {"type": "craft", "parameters": {"item": "torch"}}, "result": {"success": True}}},
+    ]
+    blocked_events = [
+        {"type": "goal_start", "data": {"goal": "Mine coal"}},
+        {
+            "type": "memory_read",
+            "data": {
+                "layer": "semantic",
+                "memory_type": "relevant_memory",
+                "source": "planner_memory",
+                "query": "mine coal route",
+                "result_chars": 160,
+                "has_result": True,
+            },
+        },
+        {"type": "plan", "data": {"status": "in_progress", "actions": [{"type": "dig", "parameters": {"block": "coal_ore"}}]}},
+        {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "coal_ore"}}, "result": {"success": False, "error": "need stone pickaxe"}}},
+    ]
+    for path, events in ((ready_path, ready_events), (blocked_path, blocked_events)):
+        with open(path, "w", encoding="utf-8") as f:
+            for event in events:
+                f.write(json.dumps(event) + "\n")
+
+    runner = BenchmarkRunner(Config(memory_dir=os.path.join(tmpdir, "memory")))
+    ready_report = runner.run_memory_attribution_report_from_logs([ready_path])
+    ready_report_path = os.path.join(tmpdir, "memory_attribution_ready.json")
+    with open(ready_report_path, "w", encoding="utf-8") as f:
+        json.dump(ready_report, f)
+    ready_gate = runner.build_memory_attribution_gate(
+        memory_attribution_report_paths=[ready_report_path],
+    )
+
+    blocked_report = runner.run_memory_attribution_report_from_logs([blocked_path])
+    blocked_gate = runner.build_memory_attribution_gate(
+        memory_attribution_reports=[blocked_report],
+    )
+
+    assert ready_gate["readiness"] == "approved"
+    assert ready_gate["decision"] == "allow_weighted_memory_retrieval_profile"
+    assert ready_gate["memory_attribution_report_count"] == 1
+    assert ready_gate["supported_read_count"] == 2
+    assert ready_gate["conflicting_read_count"] == 0
+    assert ready_gate["attributed_read_rate"] == 1.0
+    assert ready_gate["failure_count"] == 0
+    assert "promote_supported_memory_reads_only_after_gate" in ready_gate["policy_hints"]
+
+    assert blocked_gate["readiness"] == "rejected"
+    assert blocked_gate["decision"] == "do_not_enable_weighted_memory_retrieval"
+    assert blocked_gate["conflicting_read_count"] == 1
+    assert blocked_gate["conflicting_read_rate"] == 1.0
+    assert blocked_gate["failure_count"] == 1
+    assert "route_conflicting_memory_reads_to_review_before_weight_update" in blocked_gate["policy_hints"]
+    print("PASS: Memory attribution gate controls weighted retrieval profile")
+
+
 def test_memory_lifecycle_policy_uses_task_stream_transfer_gate():
     approved_gate = {
         "required": True,
@@ -5518,6 +5602,7 @@ if __name__ == "__main__":
     test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates()
     test_memory_policy_report_counts_write_read_manage_gaps_and_feedback()
     test_memory_attribution_report_labels_retrieval_outcomes_without_raw_queries()
+    test_memory_attribution_gate_controls_weighted_retrieval_profile()
     test_memory_lifecycle_policy_uses_task_stream_transfer_gate()
     test_bounded_context_report_audits_typed_planner_context()
     test_bounded_context_gate_controls_planner_contract()

@@ -790,6 +790,21 @@ def main():
     memory_attribution_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     memory_attribution_parser.add_argument("--log-level", type=str, default="INFO")
 
+    memory_attribution_gate_parser = subparsers.add_parser(
+        "memory-attribution-gate",
+        help="Gate weighted retrieval on outcome-attributed memory-read evidence",
+    )
+    memory_attribution_gate_parser.add_argument("--memory-attribution-report", action="append", default=[], help="Saved memory-attribution-report JSON")
+    memory_attribution_gate_parser.add_argument("--target", type=str, default="weighted_memory_retrieval", help="Gate target label")
+    memory_attribution_gate_parser.add_argument("--min-ready-logs", type=int, default=1, help="Minimum ready logs required")
+    memory_attribution_gate_parser.add_argument("--min-attributed-reads", type=int, default=1, help="Minimum supported/conflicting reads required")
+    memory_attribution_gate_parser.add_argument("--min-supported-reads", type=int, default=1, help="Minimum supported reads required")
+    memory_attribution_gate_parser.add_argument("--min-attributed-read-rate", type=float, default=0.5, help="Minimum attributed reads divided by total reads")
+    memory_attribution_gate_parser.add_argument("--max-conflicting-read-rate", type=float, default=0.0, help="Maximum conflicting reads divided by attributed reads")
+    memory_attribution_gate_parser.add_argument("--max-no-result-read-rate", type=float, default=0.2, help="Maximum no-result reads divided by total reads")
+    memory_attribution_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    memory_attribution_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline bounded planner context report
     bounded_context_parser = subparsers.add_parser("bounded-context-report", help="Audit bounded typed retrieval context before planner calls")
     bounded_context_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -2148,6 +2163,29 @@ def main():
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "memory-attribution-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        runner = BenchmarkRunner(Config())
+        report = runner.build_memory_attribution_gate(
+            memory_attribution_report_paths=getattr(args, "memory_attribution_report", []) or [],
+            target=getattr(args, "target", "weighted_memory_retrieval"),
+            min_ready_logs=getattr(args, "min_ready_logs", 1),
+            min_attributed_reads=getattr(args, "min_attributed_reads", 1),
+            min_supported_reads=getattr(args, "min_supported_reads", 1),
+            min_attributed_read_rate=getattr(args, "min_attributed_read_rate", 0.5),
+            max_conflicting_read_rate=getattr(args, "max_conflicting_read_rate", 0.0),
+            max_no_result_read_rate=getattr(args, "max_no_result_read_rate", 0.2),
+        )
+        runner.print_memory_attribution_gate_report(report)
+        if getattr(args, "output", ""):
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") != "approved":
+            sys.exit(2)
         return
 
     if args.command == "bounded-context-report":

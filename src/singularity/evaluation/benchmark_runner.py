@@ -9564,6 +9564,177 @@ class BenchmarkRunner:
             return ""
         return hashlib.sha256(text.encode("utf-8", errors="ignore")).hexdigest()[:12]
 
+    def build_memory_attribution_gate(
+        self,
+        memory_attribution_reports: Optional[list[dict]] = None,
+        memory_attribution_report_paths: Optional[list[str]] = None,
+        target: str = "weighted_memory_retrieval",
+        min_ready_logs: int = 1,
+        min_attributed_reads: int = 1,
+        min_supported_reads: int = 1,
+        min_attributed_read_rate: float = 0.5,
+        max_conflicting_read_rate: float = 0.0,
+        max_no_result_read_rate: float = 0.2,
+    ) -> dict:
+        """Gate weighted memory retrieval on outcome-attributed read evidence."""
+        thresholds = {
+            "min_ready_logs": max(0, int(min_ready_logs or 0)),
+            "min_attributed_reads": max(0, int(min_attributed_reads or 0)),
+            "min_supported_reads": max(0, int(min_supported_reads or 0)),
+            "min_attributed_read_rate": max(0.0, min(1.0, float(min_attributed_read_rate or 0.0))),
+            "max_conflicting_read_rate": max(0.0, min(1.0, float(max_conflicting_read_rate or 0.0))),
+            "max_no_result_read_rate": max(0.0, min(1.0, float(max_no_result_read_rate or 0.0))),
+        }
+        report = {
+            "type": "memory_attribution_gate",
+            "required": True,
+            "target": target,
+            "readiness": "review",
+            "decision": "hold_weighted_memory_retrieval",
+            "reason": "outcome-attributed memory retrieval evidence is required",
+            "thresholds": thresholds,
+            "memory_attribution_report_count": 0,
+            "log_count": 0,
+            "ready_log_count": 0,
+            "planning_cycle_count": 0,
+            "memory_read_count": 0,
+            "attributed_read_count": 0,
+            "supported_read_count": 0,
+            "conflicting_read_count": 0,
+            "review_read_count": 0,
+            "no_result_read_count": 0,
+            "attributed_read_rate": 0.0,
+            "supported_read_rate": 0.0,
+            "conflicting_read_rate": 0.0,
+            "no_result_read_rate": 0.0,
+            "evidence_count": 0,
+            "warning_count": 0,
+            "failure_count": 0,
+            "missing": [],
+            "policy_hints": [],
+            "checks": [],
+            "errors": [],
+        }
+        items = self._load_gate_payloads(
+            memory_attribution_reports or [],
+            memory_attribution_report_paths or [],
+            report["errors"],
+            "memory_attribution_report",
+        )
+        report["memory_attribution_report_count"] = len(items)
+        if not items:
+            report["missing"].append("memory_attribution_report")
+
+        policy_hints = set()
+        for source, payload in items:
+            check = self._memory_attribution_gate_check(source, payload, thresholds)
+            report["checks"].append(check)
+            metrics = check.get("metrics", {})
+            for key in (
+                "log_count",
+                "ready_log_count",
+                "planning_cycle_count",
+                "memory_read_count",
+                "attributed_read_count",
+                "supported_read_count",
+                "conflicting_read_count",
+                "review_read_count",
+                "no_result_read_count",
+            ):
+                report[key] += self._gate_int(metrics.get(key, 0))
+            for hint in metrics.get("policy_hints", []) if isinstance(metrics.get("policy_hints", []), list) else []:
+                if hint:
+                    policy_hints.add(str(hint))
+
+        total_reads = max(0, report["memory_read_count"])
+        attributed_reads = max(0, report["attributed_read_count"])
+        report["attributed_read_rate"] = round(attributed_reads / total_reads, 3) if total_reads else 0.0
+        report["supported_read_rate"] = round(report["supported_read_count"] / total_reads, 3) if total_reads else 0.0
+        report["conflicting_read_rate"] = round(report["conflicting_read_count"] / attributed_reads, 3) if attributed_reads else 0.0
+        report["no_result_read_rate"] = round(report["no_result_read_count"] / total_reads, 3) if total_reads else 0.0
+        report["policy_hints"] = sorted(policy_hints)
+        report["evidence_count"] = sum(1 for check in report["checks"] if check.get("status") == "pass")
+        report["warning_count"] = sum(1 for check in report["checks"] if check.get("status") == "warn")
+        report["failure_count"] = sum(1 for check in report["checks"] if check.get("status") == "fail")
+
+        if report["conflicting_read_rate"] > thresholds["max_conflicting_read_rate"] or report["conflicting_read_count"]:
+            report["policy_hints"].append("route_conflicting_memory_reads_to_review_before_weight_update")
+        if report["no_result_read_rate"] > thresholds["max_no_result_read_rate"] or report["no_result_read_count"]:
+            report["policy_hints"].append("include_retrieval_result_metadata_before_weight_update")
+        if report["attributed_read_count"] < thresholds["min_attributed_reads"] or report["supported_read_count"] < thresholds["min_supported_reads"]:
+            report["policy_hints"].append("collect_more_outcome_attributed_retrievals")
+        if report["supported_read_count"]:
+            report["policy_hints"].append("promote_supported_memory_reads_only_after_gate")
+        report["policy_hints"] = self._dedupe_strings(report["policy_hints"])
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "do_not_enable_weighted_memory_retrieval"
+            report["reason"] = "memory-attribution gate inputs could not be loaded"
+        elif report["failure_count"]:
+            report["readiness"] = "rejected"
+            report["decision"] = "do_not_enable_weighted_memory_retrieval"
+            report["reason"] = "memory retrieval attribution contains conflicting or missing-result evidence"
+        elif report["missing"] or report["warning_count"] or not report["evidence_count"]:
+            report["readiness"] = "review"
+            report["decision"] = "hold_weighted_memory_retrieval"
+            report["reason"] = "memory attribution evidence is missing, thin, or needs outcome review"
+        else:
+            report["readiness"] = "approved"
+            report["decision"] = "allow_weighted_memory_retrieval_profile"
+            report["reason"] = "memory reads are outcome-attributed with enough supported and low-risk evidence"
+        return report
+
+    def _memory_attribution_gate_check(self, source: str, payload: dict, thresholds: dict) -> dict:
+        feedback = payload.get("memory_attribution_feedback", payload) if isinstance(payload, dict) else {}
+        if not isinstance(feedback, dict):
+            feedback = {}
+        report_errors = payload.get("errors", []) if isinstance(payload.get("errors", []), list) else []
+        policy_hints = []
+        for hint in feedback.get("policy_hints", []) if isinstance(feedback.get("policy_hints", []), list) else []:
+            if isinstance(hint, dict):
+                name = hint.get("memory_attribution_policy") or hint.get("policy")
+                if name:
+                    policy_hints.append(str(name))
+            elif str(hint or "").strip():
+                policy_hints.append(str(hint))
+        metrics = {
+            "log_count": self._gate_int(payload.get("log_count", feedback.get("log_count", 0))),
+            "ready_log_count": self._gate_int(payload.get("ready_log_count", feedback.get("ready_log_count", 0))),
+            "planning_cycle_count": self._gate_int(payload.get("planning_cycle_count", feedback.get("planning_cycle_count", 0))),
+            "memory_read_count": self._gate_int(payload.get("memory_read_count", feedback.get("memory_read_count", 0))),
+            "attributed_read_count": self._gate_int(payload.get("attributed_read_count", feedback.get("attributed_read_count", 0))),
+            "supported_read_count": self._gate_int(payload.get("supported_read_count", feedback.get("supported_read_count", 0))),
+            "conflicting_read_count": self._gate_int(payload.get("conflicting_read_count", feedback.get("conflicting_read_count", 0))),
+            "review_read_count": self._gate_int(payload.get("review_read_count", feedback.get("review_read_count", 0))),
+            "no_result_read_count": self._gate_int(payload.get("no_result_read_count", feedback.get("no_result_read_count", 0))),
+            "policy_hints": self._dedupe_strings(policy_hints),
+        }
+        total_reads = max(0, metrics["memory_read_count"])
+        attributed_reads = max(0, metrics["attributed_read_count"])
+        metrics["attributed_read_rate"] = round(attributed_reads / total_reads, 3) if total_reads else 0.0
+        metrics["supported_read_rate"] = round(metrics["supported_read_count"] / total_reads, 3) if total_reads else 0.0
+        metrics["conflicting_read_rate"] = round(metrics["conflicting_read_count"] / attributed_reads, 3) if attributed_reads else 0.0
+        metrics["no_result_read_rate"] = round(metrics["no_result_read_count"] / total_reads, 3) if total_reads else 0.0
+        hard_issues = (
+            metrics["conflicting_read_rate"] > thresholds["max_conflicting_read_rate"]
+            or metrics["no_result_read_rate"] > thresholds["max_no_result_read_rate"]
+        )
+        thin_evidence = (
+            metrics["ready_log_count"] < thresholds["min_ready_logs"]
+            or total_reads <= 0
+            or metrics["attributed_read_count"] < thresholds["min_attributed_reads"]
+            or metrics["supported_read_count"] < thresholds["min_supported_reads"]
+            or metrics["attributed_read_rate"] < thresholds["min_attributed_read_rate"]
+        )
+        if report_errors:
+            return self._gate_check(source, "memory_attribution_report", "fail", "memory-attribution report contains errors", metrics)
+        if hard_issues:
+            return self._gate_check(source, "memory_attribution_report", "fail", "retrieval outcomes exceed conflict or no-result thresholds", metrics)
+        if thin_evidence:
+            return self._gate_check(source, "memory_attribution_report", "warn", "not enough supported outcome-attributed memory reads", metrics)
+        return self._gate_check(source, "memory_attribution_report", "pass", "memory attribution evidence supports gated weighted retrieval", metrics)
+
     def run_bounded_context_report_from_logs(
         self,
         session_log_paths: list[str],
@@ -18461,6 +18632,51 @@ class BenchmarkRunner:
                     f"layer={item.get('layer')} "
                     f"query={item.get('query_signature')} "
                     f"reason={item.get('reason')}"
+                )
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+
+    def print_memory_attribution_gate_report(self, report: dict):
+        print("\nMemory Attribution Gate")
+        print(f"  target: {report.get('target', 'weighted_memory_retrieval')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  evidence: "
+            f"reports={report.get('memory_attribution_report_count', 0)}, "
+            f"logs={report.get('ready_log_count', 0)}/{report.get('log_count', 0)}, "
+            f"cycles={report.get('planning_cycle_count', 0)}, "
+            f"reads={report.get('memory_read_count', 0)}, "
+            f"attributed={report.get('attributed_read_count', 0)}, "
+            f"supported={report.get('supported_read_count', 0)}, "
+            f"conflicting={report.get('conflicting_read_count', 0)}, "
+            f"no_result={report.get('no_result_read_count', 0)}"
+        )
+        print(
+            "  rates: "
+            f"attributed={float(report.get('attributed_read_rate') or 0.0):.2f}, "
+            f"supported={float(report.get('supported_read_rate') or 0.0):.2f}, "
+            f"conflicting={float(report.get('conflicting_read_rate') or 0.0):.2f}, "
+            f"no_result={float(report.get('no_result_read_rate') or 0.0):.2f}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', []))}")
+        for check in report.get("checks", [])[:8]:
+            print(
+                f"  [{check.get('status', '?')}] {check.get('source', '')}: "
+                f"{check.get('detail', '')}"
+            )
+            metrics = check.get("metrics", {})
+            if isinstance(metrics, dict):
+                print(
+                    f"      reads={metrics.get('memory_read_count', 0)}, "
+                    f"attributed={metrics.get('attributed_read_count', 0)}, "
+                    f"supported={metrics.get('supported_read_count', 0)}, "
+                    f"conflicting_rate={float(metrics.get('conflicting_read_rate') or 0.0):.2f}, "
+                    f"no_result_rate={float(metrics.get('no_result_read_rate') or 0.0):.2f}"
                 )
         for error in report.get("errors", []):
             print(f"  error: {error}")
