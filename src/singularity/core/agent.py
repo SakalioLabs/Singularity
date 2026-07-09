@@ -81,6 +81,7 @@ class Agent:
             else None
         )
         self.skill_library = SkillLibrary(storage_path=config.skill_dir, persist=True)
+        self.skill_runtime_default_gate_report = self._load_skill_runtime_default_gates()
         self.skill_memory_quality_feedback_report = self._load_skill_memory_quality_feedback()
         self.task_system = TaskSystem()
         self.goal_generator = GoalGenerator()
@@ -456,6 +457,95 @@ class Agent:
             report["gate_readiness"] = "review"
         else:
             report["gate_readiness"] = "unknown"
+        return report
+
+    def _load_skill_runtime_default_gates(self) -> dict:
+        """Load task-family runtime-default skill gates into the skill library."""
+        gate_paths = [
+            path for path in (getattr(self.config, "skill_runtime_default_gate_paths", []) or [])
+            if path
+        ]
+        report = {
+            "gate_paths": list(gate_paths),
+            "gate_required": bool(gate_paths),
+            "gate_approved": True,
+            "gate_readiness": "not_required",
+            "loaded_count": 0,
+            "skipped_count": 0,
+            "approved_skill_count": 0,
+            "gate_reports": [],
+            "errors": [],
+        }
+        if not gate_paths:
+            return report
+
+        readinesses = []
+        loaded_gates = []
+        for path in gate_paths:
+            summary = {
+                "path": path,
+                "readiness": "error",
+                "decision": "",
+                "reason": "",
+                "approved_candidate_count": 0,
+                "target_task_family": "",
+            }
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    gate = json.load(f)
+                readiness = str(gate.get("readiness", "")).strip().lower() or "unknown"
+                summary.update({
+                    "readiness": readiness,
+                    "decision": str(gate.get("decision", "")).strip(),
+                    "reason": str(gate.get("reason", "")).strip()[:300],
+                    "approved_candidate_count": self._small_int(gate.get("approved_candidate_count", 0)),
+                    "target_task_family": str(gate.get("target_task_family", "")).strip().lower(),
+                })
+                loaded_gates.append(gate)
+            except Exception as e:
+                readiness = "error"
+                summary["error"] = str(e)
+                report["errors"].append(f"{path}: {e}")
+                logger.warning(f"Failed to load skill runtime-default gate {path}: {e}")
+            readinesses.append(readiness)
+            report["gate_reports"].append(summary)
+
+        report["gate_approved"] = False
+        if any(readiness == "error" for readiness in readinesses):
+            report["gate_readiness"] = "error"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report["gate_readiness"] = "approved"
+            report["gate_approved"] = True
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report["gate_readiness"] = "rejected"
+        elif any(readiness == "review" for readiness in readinesses):
+            report["gate_readiness"] = "review"
+        else:
+            report["gate_readiness"] = "unknown"
+
+        if not report["gate_approved"]:
+            self.skill_library.record_skill_runtime_default_gate({
+                "readiness": report["gate_readiness"],
+                "decision": "keep_runtime_default_review_only",
+                "reason": "configured runtime-default gate is not approved",
+                "paths": gate_paths,
+                "candidates": [],
+            })
+            report["skipped_count"] = len(gate_paths)
+            logger.warning(
+                "Skill runtime-default gate loading skipped: "
+                f"gate_readiness={report['gate_readiness']}, gate_paths={len(gate_paths)}"
+            )
+            return report
+
+        for gate in loaded_gates:
+            applied = self.skill_library.record_skill_runtime_default_gate(gate)
+            report["loaded_count"] += 1
+            report["approved_skill_count"] += int(applied or 0)
+        logger.info(
+            "Skill runtime-default gates loaded: "
+            f"{report['loaded_count']} files, approved_skills={report['approved_skill_count']}"
+        )
         return report
 
     def _small_int(self, value) -> int:

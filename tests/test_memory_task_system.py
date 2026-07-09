@@ -1621,6 +1621,68 @@ def test_skill_library_recommends_policy_skills_and_corrections():
     print("PASS: SkillLibrary recommends policy skills and corrections")
 
 
+def test_skill_library_runtime_default_gate_filters_learned_skills():
+    skills = SkillLibrary()
+    implementation = {
+        "type": "failure_correction_skill",
+        "avoid_action_template": {"type": "craft", "parameters": {"item": "torch"}},
+        "primary_correction": {"type": "dig", "parameters": {"block": "coal_ore"}},
+        "correction_sequence": [{"type": "dig", "parameters": {"block": "coal_ore"}}],
+        "evidence": {"failure_why": "Missing coal"},
+    }
+    skills.create_skill(
+        "correct_craft_torch_via_dig_coal_ore",
+        "Correct missing coal before crafting torches",
+        json.dumps(implementation),
+    )
+    world_state = {
+        "inventory": {"stick": 1},
+        "nearby_blocks": [{"name": "coal_ore"}],
+        "nearby_entities": [],
+    }
+
+    skills.record_skill_runtime_default_gate({
+        "readiness": "review",
+        "decision": "keep_runtime_default_review_only",
+        "candidates": [],
+    })
+    assert skills.get_policy_skill_hints("Craft torches", world_state) == []
+    assert skills.find_failure_correction(
+        {"type": "craft", "parameters": {"item": "torch"}},
+        {"success": False, "error": "Missing coal"},
+        world_state,
+    ) is None
+
+    approved = SkillLibrary()
+    approved.create_skill(
+        "correct_craft_torch_via_dig_coal_ore",
+        "Correct missing coal before crafting torches",
+        json.dumps(implementation),
+    )
+    applied = approved.record_skill_runtime_default_gate({
+        "readiness": "approved",
+        "decision": "allow_task_family_runtime_default_skills",
+        "target_task_family": "crafting",
+        "candidates": [{
+            "skill": "correct_craft_torch_via_dig_coal_ore",
+            "task_family": "crafting",
+            "candidate_readiness": "approved",
+        }],
+    })
+    hints = approved.get_policy_skill_hints("Craft torches", world_state)
+    match = approved.find_failure_correction(
+        {"type": "craft", "parameters": {"item": "torch"}},
+        {"success": False, "error": "Missing coal"},
+        world_state,
+    )
+
+    assert applied == 1
+    assert hints and "dig:coal_ore" in hints[0]
+    assert match and match[0].name == "correct_craft_torch_via_dig_coal_ore"
+    assert approved.skill_runtime_default_profile()["approved_skill_families"]["correct_craft_torch_via_dig_coal_ore"] == ["crafting"]
+    print("PASS: SkillLibrary runtime-default gate filters learned skills")
+
+
 def test_skill_library_reports_skill_graph_governance():
     tmpdir = tempfile.mkdtemp()
     skills = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=True)
@@ -2084,6 +2146,83 @@ def test_agent_loads_reviewed_policy_skills_from_configured_storage():
     print("PASS: Agent loads reviewed policy skills from configured storage")
 
 
+def test_agent_loads_skill_runtime_default_gate_from_configured_storage():
+    tmpdir = tempfile.mkdtemp()
+    skill_dir = os.path.join(tmpdir, "skills")
+    implementation = {
+        "type": "failure_correction_skill",
+        "avoid_action_template": {"type": "craft", "parameters": {"item": "torch"}},
+        "primary_correction": {"type": "dig", "parameters": {"block": "coal_ore"}},
+        "correction_sequence": [{"type": "dig", "parameters": {"block": "coal_ore"}}],
+        "evidence": {"failure_why": "Missing coal"},
+    }
+    writer = SkillLibrary(storage_path=skill_dir, persist=True)
+    writer.create_skill(
+        "correct_craft_torch_via_dig_coal_ore",
+        "Correct missing coal before crafting torches",
+        json.dumps(implementation),
+    )
+    gate_path = os.path.join(tmpdir, "skill_runtime_default_gate.json")
+    with open(gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "readiness": "approved",
+            "decision": "allow_task_family_runtime_default_skills",
+            "target_task_family": "crafting",
+            "approved_candidate_count": 1,
+            "candidates": [{
+                "skill": "correct_craft_torch_via_dig_coal_ore",
+                "task_family": "crafting",
+                "candidate_readiness": "approved",
+            }],
+        }, f)
+
+    agent = Agent(Config(
+        memory_dir=os.path.join(tmpdir, "memory"),
+        log_dir=os.path.join(tmpdir, "logs"),
+        skill_dir=skill_dir,
+        skill_runtime_default_gate_paths=[gate_path],
+    ))
+    report = agent.skill_runtime_default_gate_report
+    match = agent.skill_library.find_failure_correction(
+        {"type": "craft", "parameters": {"item": "torch"}},
+        {"success": False, "error": "Missing coal"},
+        {"nearby_blocks": [{"name": "coal_ore"}], "inventory": {"stick": 1}},
+    )
+
+    assert report["gate_required"] is True
+    assert report["gate_approved"] is True
+    assert report["gate_readiness"] == "approved"
+    assert report["loaded_count"] == 1
+    assert report["approved_skill_count"] == 1
+    assert match and match[0].name == "correct_craft_torch_via_dig_coal_ore"
+
+    rejected_gate_path = os.path.join(tmpdir, "skill_runtime_default_gate_review.json")
+    with open(rejected_gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "readiness": "review",
+            "decision": "keep_runtime_default_review_only",
+            "reason": "not enough approved runtime-default skill candidates",
+            "candidates": [],
+        }, f)
+    blocked_agent = Agent(Config(
+        memory_dir=os.path.join(tmpdir, "memory_blocked"),
+        log_dir=os.path.join(tmpdir, "logs_blocked"),
+        skill_dir=skill_dir,
+        skill_runtime_default_gate_paths=[rejected_gate_path],
+    ))
+    blocked_match = blocked_agent.skill_library.find_failure_correction(
+        {"type": "craft", "parameters": {"item": "torch"}},
+        {"success": False, "error": "Missing coal"},
+        {"nearby_blocks": [{"name": "coal_ore"}], "inventory": {"stick": 1}},
+    )
+
+    assert blocked_agent.skill_runtime_default_gate_report["gate_approved"] is False
+    assert blocked_agent.skill_runtime_default_gate_report["gate_readiness"] == "review"
+    assert blocked_agent.skill_runtime_default_gate_report["skipped_count"] == 1
+    assert blocked_match is None
+    print("PASS: Agent loads skill runtime-default gate from configured storage")
+
+
 def test_agent_observe_enriches_and_logs_structured_vision():
     agent = object.__new__(Agent)
     agent.config = Config()
@@ -2452,6 +2591,7 @@ if __name__ == "__main__":
     test_skill_extractor_promotes_repeated_causal_summary_candidate()
     test_skill_extractor_promotes_failure_correction_candidate()
     test_skill_library_recommends_policy_skills_and_corrections()
+    test_skill_library_runtime_default_gate_filters_learned_skills()
     test_skill_library_reports_skill_graph_governance()
     test_skill_library_reports_contract_readiness_and_recommends_matches()
     test_skill_library_records_skill_level_memory_and_transfer_report()
@@ -2461,6 +2601,7 @@ if __name__ == "__main__":
     test_agent_runs_approved_failure_correction_sequence()
     test_agent_records_failed_failure_correction_skill_memory()
     test_agent_loads_reviewed_policy_skills_from_configured_storage()
+    test_agent_loads_skill_runtime_default_gate_from_configured_storage()
     test_agent_observe_enriches_and_logs_structured_vision()
     test_agent_visual_memory_context_summarizes_recent_evidence()
     test_agent_observe_captures_screenshot_for_visual_pipeline()

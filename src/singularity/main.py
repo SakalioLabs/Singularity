@@ -53,6 +53,15 @@ def _add_coaching_args(parser):
     )
 
 
+def _add_skill_runtime_default_args(parser):
+    parser.add_argument(
+        "--skill-runtime-default-gate",
+        action="append",
+        default=[],
+        help="Approved skill-runtime-default-gate JSON required before learned skills act as task-family defaults",
+    )
+
+
 def _merge_skill_memory_quality_feedback_paths(paths: list[str]) -> dict:
     feedback = {
         "quality_label_counts": {},
@@ -135,6 +144,7 @@ def main():
     run_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
     run_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     run_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
+    _add_skill_runtime_default_args(run_parser)
     _add_coaching_args(run_parser)
     run_parser.add_argument("--log-level", type=str, default="INFO")
 
@@ -168,6 +178,7 @@ def main():
     auto_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
     auto_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     auto_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
+    _add_skill_runtime_default_args(auto_parser)
     _add_coaching_args(auto_parser)
     auto_parser.add_argument("--log-level", type=str, default="INFO")
 
@@ -205,6 +216,7 @@ def main():
     bench_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     bench_parser.add_argument("--skill-memory-quality-preflight", action="store_true", help="Run gate and offline ranking preflight before quality-feedback-assisted benchmarks")
     bench_parser.add_argument("--skill-memory-quality-preflight-output", type=str, default="", help="Optional JSON path for the skill-memory quality benchmark preflight report")
+    _add_skill_runtime_default_args(bench_parser)
     _add_coaching_args(bench_parser)
     bench_parser.add_argument("--coach-style-ablation", action="append", default=[], help="coach-style-ablation JSON used by benchmark coach-style preflight")
     bench_parser.add_argument("--coach-style-gate", action="append", default=[], help="Approved coach-style-gate JSON required before coach-style benchmark runs")
@@ -511,6 +523,7 @@ def main():
     collab_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
     collab_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     collab_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
+    _add_skill_runtime_default_args(collab_parser)
     _add_coaching_args(collab_parser)
     collab_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     collab_parser.add_argument("--log-level", type=str, default="INFO")
@@ -1827,6 +1840,7 @@ def main():
                     action_value_transition_evaluator_report_paths=getattr(args, "action_value_transition_evaluator_report", []) or [],
                     skill_memory_quality_feedback_paths=getattr(args, "skill_memory_quality_feedback", []) or [],
                     skill_memory_quality_gate_paths=getattr(args, "skill_memory_quality_gate", []) or [],
+                    skill_runtime_default_gate_paths=getattr(args, "skill_runtime_default_gate", []) or [],
                     screenshot_dir=getattr(args, "screenshot_dir", "logs/screenshots"),
                     screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),
                 ), bridge_port_base=getattr(args, "bridge_port_base", 0) or None, role_bridge_ports=role_bridge_ports)
@@ -3371,6 +3385,7 @@ def main():
         action_value_transition_evaluator_report_paths=getattr(args, "action_value_transition_evaluator_report", []) or [],
         skill_memory_quality_feedback_paths=getattr(args, "skill_memory_quality_feedback", []) or [],
         skill_memory_quality_gate_paths=getattr(args, "skill_memory_quality_gate", []) or [],
+        skill_runtime_default_gate_paths=getattr(args, "skill_runtime_default_gate", []) or [],
         enable_screenshot_capture=getattr(args, "capture_screenshots", False),
         screenshot_dir=getattr(args, "screenshot_dir", "logs/screenshots"),
         screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),

@@ -42,6 +42,7 @@ class SkillLibrary:
         self._skill_memory_quality_feedback: dict = {}
         self._skill_memory_quality_policies: dict[str, dict] = {}
         self._skill_memory_quality_items: dict[tuple[str, str, str], dict] = {}
+        self._runtime_default_gate_profile: dict = self._empty_runtime_default_gate_profile()
         os.makedirs(storage_path, exist_ok=True)
         self._load_builtin_skills()
         if self.persist:
@@ -139,7 +140,11 @@ class SkillLibrary:
     def get_recommended_skills(self, goal: str, world_state: dict) -> list[Skill]:
         """Return skills that match the current context, sorted by success rate and policy relevance."""
         scored: dict[str, tuple[float, Skill]] = {}
+        builtin_names = self._builtin_skill_names()
+        task_family = self.infer_task_family(goal, {})
         for skill in self.skills.values():
+            if not self._runtime_default_skill_allowed(skill.name, task_family, built_in=skill.name in builtin_names):
+                continue
             if skill.total_uses > 0:
                 scored[skill.name] = (skill.success_rate + min(1.0, skill.total_uses * 0.05), skill)
         for skill in self._policy_skills(goal, world_state):
@@ -152,6 +157,8 @@ class SkillLibrary:
                 continue
             skill = self.skills.get(profile["name"])
             if not skill:
+                continue
+            if not self._runtime_default_skill_allowed(skill.name, task_family, built_in=skill.name in builtin_names):
                 continue
             previous = scored.get(skill.name)
             if previous is None or profile["score"] > previous[0]:
@@ -269,6 +276,123 @@ class SkillLibrary:
             "hint_quality_items": list(self._skill_memory_quality_items.values()),
         }
 
+    def record_skill_runtime_default_gate(self, gate: dict) -> int:
+        """Load a runtime-default gate profile for learned skill influence."""
+        if not isinstance(gate, dict):
+            return 0
+        readiness = str(gate.get("readiness") or "").strip().lower() or "unknown"
+        profile = self._runtime_default_gate_profile
+        if not profile.get("gate_required"):
+            profile = self._empty_runtime_default_gate_profile()
+            profile["gate_required"] = True
+            profile["gate_approved"] = True
+            profile["gate_readiness"] = "approved"
+        profile["paths"].extend(str(path) for path in gate.get("paths", []) if path)
+        profile["target_task_family"] = (
+            str(gate.get("target_task_family") or profile.get("target_task_family") or "")
+            .strip()
+            .lower()
+        )
+        profile["decision"] = str(gate.get("decision") or profile.get("decision") or "").strip()
+        profile["reason"] = str(gate.get("reason") or profile.get("reason") or "").strip()
+        if readiness != "approved":
+            profile["gate_approved"] = False
+            profile["gate_readiness"] = readiness
+            self._runtime_default_gate_profile = profile
+            return 0
+
+        added = 0
+        for candidate in gate.get("candidates", []) if isinstance(gate.get("candidates", []), list) else []:
+            if not isinstance(candidate, dict):
+                continue
+            candidate_readiness = str(candidate.get("candidate_readiness") or candidate.get("readiness") or "").lower()
+            if candidate_readiness != "approved":
+                bucket = "rejected_skills" if candidate_readiness == "rejected" else "review_skills"
+                name = str(candidate.get("skill") or "").strip()
+                if name and name not in profile[bucket]:
+                    profile[bucket].append(name)
+                continue
+            name = str(candidate.get("skill") or "").strip()
+            if not name:
+                continue
+            family = str(candidate.get("task_family") or gate.get("target_task_family") or "").strip().lower()
+            if name not in profile["approved_skills"]:
+                profile["approved_skills"].append(name)
+                added += 1
+            families = profile["approved_skill_families"].setdefault(name, [])
+            if family not in families:
+                families.append(family)
+            family_skills = profile["approved_family_skills"].setdefault(family, [])
+            if name not in family_skills:
+                family_skills.append(name)
+
+        profile["gate_readiness"] = "approved" if profile.get("gate_approved", True) else profile.get("gate_readiness", "review")
+        for key in ("approved_skills", "review_skills", "rejected_skills"):
+            profile[key] = sorted(profile.get(key, []))
+        for key in ("approved_skill_families", "approved_family_skills"):
+            profile[key] = {
+                name: sorted(values)
+                for name, values in sorted(profile.get(key, {}).items())
+            }
+        self._runtime_default_gate_profile = profile
+        return added
+
+    def skill_runtime_default_profile(self) -> dict:
+        """Return the active runtime-default gate profile."""
+        profile = self._runtime_default_gate_profile
+        return {
+            "gate_required": bool(profile.get("gate_required", False)),
+            "gate_approved": bool(profile.get("gate_approved", True)),
+            "gate_readiness": str(profile.get("gate_readiness", "not_required")),
+            "target_task_family": str(profile.get("target_task_family", "")),
+            "approved_skills": list(profile.get("approved_skills", [])),
+            "approved_skill_families": {
+                name: list(values)
+                for name, values in profile.get("approved_skill_families", {}).items()
+            },
+            "approved_family_skills": {
+                family: list(values)
+                for family, values in profile.get("approved_family_skills", {}).items()
+            },
+            "review_skills": list(profile.get("review_skills", [])),
+            "rejected_skills": list(profile.get("rejected_skills", [])),
+            "decision": str(profile.get("decision", "")),
+            "reason": str(profile.get("reason", "")),
+        }
+
+    def _empty_runtime_default_gate_profile(self) -> dict:
+        return {
+            "gate_required": False,
+            "gate_approved": True,
+            "gate_readiness": "not_required",
+            "target_task_family": "",
+            "decision": "",
+            "reason": "",
+            "paths": [],
+            "approved_skills": [],
+            "approved_skill_families": {},
+            "approved_family_skills": {},
+            "review_skills": [],
+            "rejected_skills": [],
+        }
+
+    def _runtime_default_skill_allowed(self, skill_name: str, task_family: str = "", built_in: bool = False) -> bool:
+        if built_in:
+            return True
+        profile = self._runtime_default_gate_profile
+        if not profile.get("gate_required"):
+            return True
+        if not profile.get("gate_approved"):
+            return False
+        name = str(skill_name or "").strip()
+        if not name:
+            return False
+        families = profile.get("approved_skill_families", {}).get(name, [])
+        if not families:
+            return False
+        family = str(task_family or "").strip().lower()
+        return "" in families or family in families
+
     def _skill_memory_hint_candidates(self, goal: str = "", task_family: str = "") -> list[dict]:
         family_filter = str(task_family or "").strip().lower()
         goal_tokens = self._keywords(goal)
@@ -282,6 +406,12 @@ class SkillLibrary:
                     continue
                 memory_family = str(memory.get("task_family") or "").strip().lower()
                 if family_filter and memory_family != family_filter:
+                    continue
+                if not self._runtime_default_skill_allowed(
+                    skill.name,
+                    memory_family or family_filter,
+                    built_in=skill.name in builtin_names,
+                ):
                     continue
                 hint_type = self._skill_memory_hint_type(memory, governance)
                 confidence = float(memory.get("confidence", 0.0) or 0.0)
@@ -584,9 +714,12 @@ class SkillLibrary:
     def find_failure_correction(self, action: dict, result: dict = None, world_state: dict = None) -> Optional[tuple[Skill, dict]]:
         """Find an approved failure-correction skill for a failed action."""
         matches = []
+        task_family = self.infer_task_family("", action)
         for skill in self.skills.values():
             payload = self._implementation_payload(skill)
             if payload.get("type") != "failure_correction_skill":
+                continue
+            if not self._runtime_default_skill_allowed(skill.name, task_family):
                 continue
             avoid = payload.get("avoid_action_template", {})
             if not self._action_matches_template(action, avoid):
@@ -918,9 +1051,12 @@ class SkillLibrary:
 
     def _policy_skills(self, goal: str, world_state: dict) -> list[Skill]:
         scored = []
+        task_family = self.infer_task_family(goal, {})
         for skill in self.skills.values():
             payload = self._implementation_payload(skill)
             if payload.get("type") not in {"causal_summary_skill", "failure_correction_skill"}:
+                continue
+            if not self._runtime_default_skill_allowed(skill.name, task_family):
                 continue
             score = self._policy_relevance_score(skill, goal, world_state)
             if score > 0:

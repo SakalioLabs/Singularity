@@ -17,4 +17,5 @@
 **Singularity Adaptation**:
   - Skill-local memories are typed as `REUSE`, `AVOID`, and `REVIEW_ONLY`.
   - `skill-memory-quality-report`, `skill-memory-quality-gate`, and `skill-runtime-default-gate` keep procedural memories review-gated until localized outcome evidence supports reuse.
+  - Runtime Agent startup now applies approved `skill-runtime-default-gate` profiles before learned skill-memory hints or failure-correction skills can influence planner/action behavior by default.
 **Next Action**: Compare default-off versus gated-default skill profiles on live M1/M2 and autonomous logs, then demote any procedure whose quality labels conflict with later failures.
