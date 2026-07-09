@@ -268,6 +268,7 @@ class CurriculumManager:
                 for candidate in self._world_model_goal_candidates(
                     observation,
                     discovered,
+                    memory_system,
                     skill_library,
                 ):
                     candidates.append(candidate)
@@ -559,6 +560,7 @@ class CurriculumManager:
         self,
         observation: dict,
         discovered: set[str],
+        memory_system=None,
         skill_library=None,
     ) -> list[CurriculumGoalCandidate]:
         candidates = []
@@ -578,6 +580,47 @@ class CurriculumManager:
                 reasons=["world_model_frontier_feedback"],
                 opportunity=self._world_model_frontier_bonus(),
                 novelty_override=3.0,
+            ))
+
+        for frontier in self.world_model_feedback.get("frontiers", [])[:6]:
+            if not isinstance(frontier, dict):
+                continue
+            title = self._structured_frontier_title(frontier)
+            if not title:
+                continue
+            resources = self._frontier_resources(frontier)
+            transfer = self._frontier_transfer_signal(memory_system, frontier, resources)
+            risk = self._frontier_risk_penalty(frontier, observation)
+            reasons = ["structured_frontier_feedback"]
+            if resources:
+                reasons.append("frontier_resource_opportunity")
+            novel_resources = [resource for resource in resources if resource not in discovered]
+            if novel_resources:
+                reasons.append("frontier_novel_resource")
+            if transfer["success_bonus"]:
+                reasons.append("frontier_transfer_success")
+            if transfer["failure_penalty"]:
+                reasons.append("frontier_failure_memory_penalty")
+            if risk:
+                reasons.append("frontier_danger_penalty")
+            candidates.append(self._candidate(
+                title,
+                "world_model_frontier",
+                43.0,
+                observation,
+                discovered,
+                skill_library,
+                target_items=resources[:3] or ["landmark"],
+                skill_targets=["navigate_to_target", "move_to"],
+                reasons=reasons,
+                opportunity=(
+                    self._world_model_frontier_bonus()
+                    + self._frontier_resource_bonus(resources, discovered)
+                    + transfer["success_bonus"]
+                    - transfer["failure_penalty"]
+                    - risk
+                ),
+                novelty_override=min(6.0, 2.0 + len(novel_resources) * 2.0) if novel_resources else 2.0,
             ))
 
         for hotspot in self.world_model_feedback.get("resource_hotspots", [])[:3]:
@@ -629,6 +672,82 @@ class CurriculumManager:
         if frontier_count <= 0:
             return 0.0
         return min(10.0, 2.0 + frontier_count * 0.5)
+
+    def _structured_frontier_title(self, frontier: dict) -> str:
+        cell = frontier.get("cell", {}) if isinstance(frontier.get("cell", {}), dict) else {}
+        if not cell:
+            return ""
+        direction = str(frontier.get("direction") or "mapped").strip().lower()
+        title = f"Explore {direction} frontier cell ({cell.get('x')},{cell.get('z')})"
+        center = frontier.get("center", {}) if isinstance(frontier.get("center", {}), dict) else {}
+        if center:
+            title += f" near x={center.get('x')}, z={center.get('z')}"
+        resources = self._frontier_resources(frontier)
+        if resources:
+            title += f" to inspect {', '.join(resources[:3])}"
+        return title
+
+    def _frontier_resources(self, frontier: dict) -> list[str]:
+        resources = []
+        for key in ("nearby_resources", "resources", "resource_types"):
+            raw = frontier.get(key, [])
+            if not isinstance(raw, list):
+                continue
+            for item in raw:
+                if isinstance(item, str):
+                    name = item
+                elif isinstance(item, dict):
+                    name = item.get("name") or item.get("type") or item.get("resource")
+                else:
+                    name = ""
+                name = str(name or "").strip().lower()
+                if name and name not in resources:
+                    resources.append(name)
+        return resources[:6]
+
+    def _frontier_resource_bonus(self, resources: list[str], discovered: set[str]) -> float:
+        score = 0.0
+        for resource in resources[:4]:
+            score += 4.0 if resource not in discovered else 1.5
+        return min(9.0, score)
+
+    def _frontier_transfer_signal(self, memory_system, frontier: dict, resources: list[str]) -> dict:
+        if not memory_system:
+            return {"success_bonus": 0.0, "failure_penalty": 0.0}
+        specific_tokens = {str(frontier.get("direction") or "").lower(), *resources}
+        cell = frontier.get("cell", {}) if isinstance(frontier.get("cell", {}), dict) else {}
+        if cell:
+            specific_tokens.add(f"cell:{cell.get('x')},{cell.get('z')}")
+        specific_tokens = {token for token in specific_tokens if token}
+        query_tokens = specific_tokens or {"frontier", "explore", "navigation"}
+
+        success_hits = 0
+        failure_hits = 0
+        for record in getattr(memory_system, "experiences", {}).values():
+            text = ""
+            if hasattr(record, "searchable_text"):
+                text = record.searchable_text()
+            else:
+                text = " ".join(str(getattr(record, field_name, "")) for field_name in ("goal", "task", "outcome", "correction"))
+            if not any(token in text for token in query_tokens):
+                continue
+            if getattr(record, "success", False):
+                success_hits += 1
+            else:
+                failure_hits += 1
+        return {
+            "success_bonus": min(8.0, success_hits * 4.0),
+            "failure_penalty": min(7.0, failure_hits * 3.5),
+        }
+
+    def _frontier_risk_penalty(self, frontier: dict, observation: dict) -> float:
+        danger_count = int(frontier.get("nearby_danger_count", frontier.get("danger_count", 0)) or 0)
+        hostiles = [
+            entity for entity in observation.get("nearby_entities", []) or []
+            if isinstance(entity, dict) and entity.get("hostile")
+        ]
+        close_hostiles = sum(1 for entity in hostiles if float(entity.get("distance", 999) or 999) < 16)
+        return min(12.0, danger_count * 3.0 + close_hostiles * 2.0)
 
     def _merge_feedback_records(self, current, incoming, limit: int = 20) -> list:
         records = list(current) if isinstance(current, list) else []

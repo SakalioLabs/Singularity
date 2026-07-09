@@ -109,6 +109,76 @@ def test_curriculum_uses_exploration_feedback_for_goal_ranking():
     print("PASS: Curriculum uses exploration feedback for goal ranking")
 
 
+def test_curriculum_scores_structured_frontiers_with_transfer_memory():
+    manager = CurriculumManager()
+    memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
+    memory.record_experience(
+        goal="Explore mapped coal frontier",
+        task="Navigate east frontier and mine coal_ore",
+        outcome="Reached the frontier safely and collected coal",
+        actions=[{"type": "move", "parameters": {"target": "east frontier"}}],
+        dimensions={
+            "process": "approach visible frontier before mining",
+            "interaction": "coal_ore requires close positioning before dig",
+        },
+        tags=["frontier", "coal_ore", "navigation"],
+        success=True,
+    )
+    memory.record_experience(
+        goal="Explore hostile cave frontier",
+        task="Navigate west frontier",
+        outcome="Retreated after hostile pressure blocked the route",
+        correction="bring torches and scout a safer route first",
+        tags=["frontier", "hostile", "west"],
+        success=False,
+    )
+    manager.record_world_model_feedback({
+        "frontier_count": 2,
+        "frontiers": [
+            {
+                "cell": {"x": 1, "z": 0},
+                "center": {"x": 12, "z": 4},
+                "direction": "east",
+                "nearby_resources": ["coal_ore"],
+                "nearby_danger_count": 0,
+            },
+            {
+                "cell": {"x": -1, "z": 0},
+                "center": {"x": -12, "z": 2},
+                "direction": "west",
+                "nearby_resources": ["cave"],
+                "nearby_danger_count": 2,
+            },
+        ],
+    })
+    obs = {
+        "health": 20,
+        "time_of_day": 4000,
+        "inventory": {"crafting_table": 1, "wooden_pickaxe": 1, "oak_log": 4},
+        "nearby_entities": [],
+        "nearby_blocks": [],
+    }
+
+    goals = manager.propose_goals(
+        obs,
+        "Explore surroundings and gather resources",
+        memory_system=memory,
+        skill_library=SkillLibrary(persist=False),
+    )
+    frontier_goals = [candidate for candidate in goals if candidate.category == "world_model_frontier"]
+    east = next(candidate for candidate in frontier_goals if "east frontier" in candidate.title)
+    west = next(candidate for candidate in frontier_goals if "west frontier" in candidate.title)
+
+    assert east.score > west.score
+    assert "structured_frontier_feedback" in east.reasons
+    assert "frontier_transfer_success" in east.reasons
+    assert "frontier_resource_opportunity" in east.reasons
+    assert "frontier_failure_memory_penalty" in west.reasons
+    assert "frontier_danger_penalty" in west.reasons
+    assert east.target_items == ["coal_ore"]
+    print("PASS: Curriculum scores structured frontiers with transfer memory")
+
+
 def test_curriculum_penalizes_repeated_failures():
     manager = CurriculumManager()
     obs = {
@@ -227,6 +297,7 @@ if __name__ == "__main__":
     test_curriculum_promotes_ready_crafting_progression()
     test_curriculum_uses_visible_novel_resource_when_stable()
     test_curriculum_uses_exploration_feedback_for_goal_ranking()
+    test_curriculum_scores_structured_frontiers_with_transfer_memory()
     test_curriculum_penalizes_repeated_failures()
     test_agent_autonomous_selector_uses_curriculum_when_no_ready_task()
     test_coach_policy_biases_curriculum_candidates_without_mutating_inputs()
