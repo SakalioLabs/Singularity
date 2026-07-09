@@ -1484,6 +1484,103 @@ def test_agent_autonomous_goal_uses_causal_memory_context():
     print("PASS: Agent autonomous selector uses causal memory context")
 
 
+def test_agent_autonomous_goal_creates_readiness_recovery_task():
+    tmpdir = tempfile.mkdtemp()
+    agent = object.__new__(Agent)
+    agent.config = Config(enable_task_readiness_recovery=True)
+    agent.task_system = TaskSystem()
+    agent.session_logger = FakeSessionLogger()
+    agent.memory = MemorySystem(memory_dir=tmpdir, persist=False)
+    agent.memory_policy = MemoryLifecyclePolicy()
+    agent.knowledge_base = KnowledgeBase()
+    agent.task_system.create_task(
+        "Craft torches",
+        status=TaskStatus.ACCEPTED,
+        priority=2,
+        preconditions={"inventory": {"coal": 1, "stick": 1}},
+        success_criteria={"inventory": {"torch": 4}},
+        opportunity_triggers=["coal"],
+    )
+
+    goal = agent._select_autonomous_goal(
+        {
+            "inventory": {"stick": 1},
+            "nearby_blocks": [{"name": "coal_ore", "position": {"x": 3, "y": 63, "z": 0}}],
+            "nearby_entities": [],
+        },
+        "Explore surroundings",
+    )
+    recovery_tasks = [
+        task for task in agent.task_system.tasks.values()
+        if "readiness_recovery" in task.tags
+    ]
+    repeated = agent._select_autonomous_goal(
+        {
+            "inventory": {"stick": 1},
+            "nearby_blocks": [{"name": "coal_ore", "position": {"x": 3, "y": 63, "z": 0}}],
+            "nearby_entities": [],
+        },
+        "Explore surroundings",
+    )
+
+    assert goal == "Mine coal_ore to obtain coal for Craft torches"
+    assert repeated == goal
+    assert len(recovery_tasks) == 1
+    assert recovery_tasks[0].status == TaskStatus.ACCEPTED
+    assert recovery_tasks[0].success_criteria["inventory"]["coal"] == 1
+    assert "coal_ore" in recovery_tasks[0].opportunity_triggers
+    event = next(event for event in agent.session_logger.events if event["type"] == "task_readiness_recovery_goal")
+    assert event["data"]["reason"] == "missing_inventory"
+    assert event["data"]["created_task"] is True
+    assert agent.memory.l2_episodic[-1]["type"] == "task_readiness_recovery_goal"
+
+    agent.config = Config(enable_task_readiness_recovery=False)
+    assert agent._task_readiness_recovery_goal({"inventory": {"stick": 1}}, "Explore") == ""
+    print("PASS: Agent autonomous selector creates readiness recovery task")
+
+
+def test_agent_autonomous_goal_preserves_emergency_over_tasks():
+    agent = object.__new__(Agent)
+    agent.config = Config(enable_task_readiness_recovery=True)
+    agent.task_system = TaskSystem()
+    agent.task_system.create_task(
+        "Mine coal for torches",
+        status=TaskStatus.ACCEPTED,
+        priority=0,
+    )
+
+    goal = agent._select_autonomous_goal(
+        {
+            "health": 4,
+            "inventory": {"bread": 1},
+            "nearby_entities": [],
+            "time_of_day": 5000,
+        },
+        "Eat food to restore health",
+    )
+
+    assert goal == "Eat food to restore health"
+    assert not any("readiness_recovery" in task.tags for task in agent.task_system.tasks.values())
+    print("PASS: Agent autonomous selector preserves emergency over tasks")
+
+
+def test_agent_readiness_recovery_uses_real_dependencies_and_skips_opaque_flags():
+    agent = object.__new__(Agent)
+    dependency = agent._recovery_goal_for_blocked_task({
+        "title": "Craft torches",
+        "missing_dependencies": [{"id": "abc123", "title": "Gather coal"}],
+    }, {})
+    opaque_flag = agent._recovery_goal_for_blocked_task({
+        "title": "Enter cave",
+        "missing_preconditions": {"flags": ["safe_route"]},
+    }, {})
+
+    assert dependency["goal"] == "Gather coal"
+    assert dependency["create_task"] is False
+    assert opaque_flag == {}
+    print("PASS: Agent readiness recovery uses dependencies and skips opaque flags")
+
+
 def test_agent_loads_world_model_feedback_only_with_approved_gate():
     tmpdir = tempfile.mkdtemp()
     feedback_path = os.path.join(tmpdir, "world_model_feedback.json")
@@ -3586,6 +3683,9 @@ if __name__ == "__main__":
     test_task_system_updates_state_from_action_failure()
     test_agent_autonomous_goal_selects_ready_opportunity_task()
     test_agent_autonomous_goal_uses_causal_memory_context()
+    test_agent_autonomous_goal_creates_readiness_recovery_task()
+    test_agent_autonomous_goal_preserves_emergency_over_tasks()
+    test_agent_readiness_recovery_uses_real_dependencies_and_skips_opaque_flags()
     test_agent_loads_world_model_feedback_only_with_approved_gate()
     test_agent_logs_memory_lifecycle_events_for_policy_report()
     test_agent_logs_weighted_memory_retrieval_trace()

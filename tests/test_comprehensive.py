@@ -466,6 +466,61 @@ class TestRulePlanner(unittest.TestCase):
         plan = self.planner.plan_from_goal("Mine cobblestone", obs)
         self.assertEqual(plan["status"], "in_progress")
 
+    def test_mine_visible_goal_resource(self):
+        obs = {
+            "inventory": {"wooden_pickaxe": 1},
+            "position": {"x": 0, "y": 64, "z": 0},
+            "grounded_resources": [{
+                "name": "coal_ore",
+                "drop": "coal",
+                "position": {"x": 6, "y": 63, "z": 0},
+                "distance": 6.0,
+                "can_harvest": True,
+            }],
+        }
+        plan = self.planner.plan_from_goal("Mine coal_ore to obtain coal", obs)
+        self.assertEqual(plan["status"], "in_progress")
+        self.assertEqual([action["type"] for action in plan["actions"]], ["move_to", "look_at", "dig"])
+        self.assertEqual(plan["subtasks"][1]["preconditions"]["nearby_block_present"], ["coal_ore"])
+        self.assertEqual(plan["subtasks"][1]["success_criteria"]["inventory"]["coal"], 1)
+
+    def test_mine_visible_resource_requires_tool_without_vision_metadata(self):
+        obs = {
+            "inventory": {},
+            "position": {"x": 0, "y": 64, "z": 0},
+            "nearby_blocks": [{
+                "name": "coal_ore",
+                "position": {"x": 3, "y": 63, "z": 0},
+                "distance": 3.0,
+            }],
+        }
+        plan = self.planner.plan_from_goal("Mine coal_ore to obtain coal", obs)
+        self.assertEqual(plan["status"], "blocked")
+        self.assertFalse(plan["actions"])
+        self.assertIn("wooden_pickaxe", plan["reasoning"])
+
+    def test_mine_missing_resource_searches_before_digging(self):
+        obs = {
+            "inventory": {"wooden_pickaxe": 1},
+            "position": {"x": 0, "y": 64, "z": 0},
+            "nearby_blocks": [],
+        }
+        plan = self.planner.plan_from_goal("Mine coal_ore to obtain coal", obs)
+        self.assertEqual(plan["status"], "in_progress")
+        self.assertEqual([action["type"] for action in plan["actions"]], ["move_to", "look_at", "wait"])
+        self.assertNotIn("dig", [action["type"] for action in plan["actions"]])
+
+    def test_mine_visible_resource_without_coordinates_is_blocked(self):
+        obs = {
+            "inventory": {"wooden_pickaxe": 1},
+            "position": {"x": 7, "y": 64, "z": 9},
+            "nearby_blocks": ["coal_ore"],
+        }
+        plan = self.planner.plan_from_goal("Mine coal_ore to obtain coal", obs)
+        self.assertEqual(plan["status"], "blocked")
+        self.assertFalse(plan["actions"])
+        self.assertIn("no grounded coordinates", plan["reasoning"])
+
     def test_stone_pickaxe_complete(self):
         obs = {"inventory": {"stone_pickaxe": 1}}
         plan = self.planner.plan_from_goal("Craft a stone pickaxe", obs)

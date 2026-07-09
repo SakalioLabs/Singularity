@@ -3,6 +3,8 @@ import math
 import logging
 import re
 
+from singularity.data.knowledge_base import KnowledgeBase
+
 logger = logging.getLogger("singularity.rule_planner")
 
 TREE_BLOCKS = {"oak_log", "birch_log", "spruce_log", "jungle_log", "acacia_log", "dark_oak_log"}
@@ -11,8 +13,9 @@ TREE_BLOCKS = {"oak_log", "birch_log", "spruce_log", "jungle_log", "acacia_log",
 class RuleBasedPlanner:
     """Simple rule-based planner for basic Minecraft tasks without an LLM."""
 
-    def __init__(self):
+    def __init__(self, knowledge_base=None):
         self._explore_offset = 0
+        self.knowledge_base = knowledge_base or KnowledgeBase()
 
     def plan_from_goal(self, goal: str, world_state: dict) -> dict:
         goal_lower = goal.lower()
@@ -33,6 +36,17 @@ class RuleBasedPlanner:
             return self._plan_gather_wood(inv, trees, pos)
         elif "cobblestone" in goal_lower or ("mine" in goal_lower and "stone" in goal_lower):
             return self._plan_mine_cobblestone(inv, trees, pos)
+        elif "mine" in goal_lower:
+            visible_plan = self._plan_mine_visible_block(goal_lower, world_state, pos)
+            if visible_plan:
+                return visible_plan
+            target = self._mining_target_from_goal(goal_lower)
+            if target:
+                return self._plan_explore_frontier(
+                    f"Explore frontier and inspect {target}",
+                    world_state,
+                    pos,
+                )
         return {"status": "blocked", "reasoning": f"No rule for goal: {goal}", "actions": []}
 
     def _plan_explore_frontier(self, goal: str, world_state: dict, pos: dict) -> dict:
@@ -137,6 +151,115 @@ class RuleBasedPlanner:
                     "z": position.get("z", 0),
                 }
         return {}
+
+    def _plan_mine_visible_block(self, goal_lower: str, world_state: dict, pos: dict) -> dict:
+        target = self._visible_block_named_in_goal(goal_lower, world_state)
+        if not target:
+            return {}
+        name = target["name"]
+        if target.get("can_harvest") is None:
+            metadata = self.knowledge_base.describe_observed_resource(
+                name,
+                world_state.get("inventory", {}) if isinstance(world_state.get("inventory", {}), dict) else {},
+            )
+            target = dict(target)
+            for key, value in metadata.items():
+                if target.get(key) is None or target.get(key) == "":
+                    target[key] = value
+        if target.get("can_harvest") is False:
+            tool = target.get("recommended_tool") or target.get("required_tool") or "better tool"
+            return {
+                "status": "blocked",
+                "reasoning": f"Visible {name} requires {tool} before mining",
+                "actions": [],
+            }
+        tpos = target.get("position", {})
+        if not isinstance(tpos, dict) or "x" not in tpos or "z" not in tpos:
+            return {
+                "status": "blocked",
+                "reasoning": f"Visible {name} has no grounded coordinates; observe it again before mining",
+                "actions": [],
+            }
+        dist = target.get("distance")
+        if dist is None:
+            dist = self._flat_distance(pos or {}, tpos or {})
+        actions = []
+        if dist > 4.0:
+            actions.append({"type": "move_to", "parameters": {"x": round(tpos.get("x", 0)), "z": round(tpos.get("z", 0))}})
+        actions.append({
+            "type": "look_at",
+            "parameters": {
+                "x": round(tpos.get("x", 0)),
+                "y": round(tpos.get("y", (pos or {}).get("y", 64))),
+                "z": round(tpos.get("z", 0)),
+            },
+        })
+        actions.append({
+            "type": "dig",
+            "parameters": {
+                "x": round(tpos.get("x", 0)),
+                "y": round(tpos.get("y", (pos or {}).get("y", 64))),
+                "z": round(tpos.get("z", 0)),
+            },
+        })
+        drop = target.get("drop") or name
+        return {
+            "status": "in_progress",
+            "reasoning": f"Mining visible {name} for {drop}",
+            "subtasks": [
+                {
+                    "title": f"Approach visible {name}",
+                    "type": "navigation",
+                    "priority": 1,
+                    "success_criteria": {"position_near": {"x": round(tpos.get("x", 0)), "z": round(tpos.get("z", 0)), "radius": 4}},
+                    "opportunity_triggers": [name],
+                    "tags": ["resource", "navigation"],
+                },
+                {
+                    "title": f"Mine visible {name}",
+                    "type": "gathering",
+                    "priority": 1,
+                    "depends_on": [f"Approach visible {name}"],
+                    "preconditions": {"nearby_block_present": [name]},
+                    "success_criteria": {"inventory": {drop: 1}},
+                    "opportunity_triggers": [name, drop],
+                    "tags": ["resource", "mining"],
+                },
+            ],
+            "actions": actions,
+        }
+
+    def _visible_block_named_in_goal(self, goal_lower: str, world_state: dict) -> dict:
+        for key in ("grounded_resources", "nearby_blocks"):
+            for item in world_state.get(key, []) or []:
+                if isinstance(item, str):
+                    name = item.lower()
+                    if name and name in goal_lower:
+                        return {"name": name, "position": {}, "distance": None}
+                    continue
+                if not isinstance(item, dict):
+                    continue
+                name = str(item.get("name") or item.get("type") or item.get("block") or item.get("resource") or "").lower()
+                drop = str(item.get("drop") or "").lower()
+                if not name:
+                    continue
+                if name not in goal_lower and (not drop or drop not in goal_lower):
+                    continue
+                position = item.get("position", {}) if isinstance(item.get("position", {}), dict) else item
+                return {
+                    "name": name,
+                    "drop": drop,
+                    "position": position,
+                    "distance": item.get("distance"),
+                    "can_harvest": item.get("can_harvest"),
+                    "recommended_tool": item.get("recommended_tool") or item.get("best_available_tool"),
+                    "required_tool": item.get("required_tool"),
+                }
+        return {}
+
+    def _mining_target_from_goal(self, goal_lower: str) -> str:
+        match = re.search(r"\bmine\s+([a-z0-9_]+)", goal_lower)
+        return match.group(1) if match else ""
 
     def _flat_distance(self, a: dict, b: dict) -> float:
         dx = float(a.get("x", 0) or 0) - float(b.get("x", 0) or 0)

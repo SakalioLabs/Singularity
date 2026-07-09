@@ -27,6 +27,7 @@ from singularity.core.goal_verifier import GoalVerifier
 from singularity.core.explorer import Explorer
 from singularity.core.rule_planner import RuleBasedPlanner
 from singularity.core.self_evolution_policy import SelfEvolutionPolicy
+from singularity.data.knowledge_base import KnowledgeBase
 from singularity.core.plan_cache import (
     START_PLAN_SIGNATURE,
     PlanTransitionCache,
@@ -3522,6 +3523,151 @@ class Agent:
                 return task
         return None
 
+    def _task_readiness_recovery_goal(self, observation: dict, fallback_goal: str = "") -> str:
+        """Turn blocked task readiness evidence into a concrete prerequisite goal."""
+        if not getattr(getattr(self, "config", None), "enable_task_readiness_recovery", True):
+            return ""
+        task_system = getattr(self, "task_system", None)
+        if not task_system or not hasattr(task_system, "task_readiness_report"):
+            return ""
+        try:
+            report = task_system.task_readiness_report(observation or {})
+        except Exception as e:
+            logger.warning(f"Task readiness recovery failed: {e}")
+            return ""
+        blocked = [
+            task for task in report.get("tasks", [])
+            if isinstance(task, dict) and not task.get("ready")
+        ]
+        if not blocked:
+            return ""
+        for task in blocked:
+            recovery = self._recovery_goal_for_blocked_task(task, observation or {})
+            if not recovery:
+                continue
+            if recovery.get("create_task", True):
+                recovery_task, created_task = self._ensure_readiness_recovery_task(recovery, task, observation or {})
+            else:
+                recovery_task, created_task = None, False
+            goal = recovery_task.title if recovery_task else recovery.get("goal", "")
+            payload = {
+                "fallback": fallback_goal,
+                "selected": goal,
+                "blocked_task_id": task.get("id"),
+                "blocked_task_title": task.get("title"),
+                "reason": recovery.get("reason"),
+                "missing": recovery.get("missing"),
+                "created_task": created_task,
+            }
+            if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+                self.session_logger.log("task_readiness_recovery_goal", payload)
+            if hasattr(self, "memory"):
+                self._write_memory_episode("task_readiness_recovery_goal", payload, source="task_readiness")
+            return goal
+        return ""
+
+    def _recovery_goal_for_blocked_task(self, task_report: dict, observation: dict) -> dict:
+        dependencies = task_report.get("missing_dependencies", [])
+        if isinstance(dependencies, list) and dependencies:
+            dep = next((item for item in dependencies if isinstance(item, dict)), {})
+            dep_title = str(dep.get("title") or dep.get("id") or "").strip()
+            if dep_title:
+                return {
+                    "goal": dep_title,
+                    "reason": "missing_dependency",
+                    "missing": {"dependency": dep_title},
+                    "success_criteria": {},
+                    "opportunity_triggers": [],
+                    "create_task": False,
+                }
+        missing = task_report.get("missing_preconditions", {}) if isinstance(task_report.get("missing_preconditions", {}), dict) else {}
+        inventory = missing.get("inventory", {}) if isinstance(missing.get("inventory", {}), dict) else {}
+        if inventory:
+            item, amount = sorted(inventory.items())[0]
+            return self._inventory_recovery_goal(str(item), amount, task_report, observation)
+        nearby = missing.get("nearby_block_present", [])
+        if isinstance(nearby, list) and nearby:
+            block = str(nearby[0])
+            return {
+                "goal": f"Explore frontier and inspect {block} for {task_report.get('title', 'blocked task')}",
+                "reason": "missing_nearby_block",
+                "missing": {"nearby_block_present": [block]},
+                "success_criteria": {"observed": block},
+                "opportunity_triggers": [block],
+            }
+        flags = missing.get("flags", []) if isinstance(missing.get("flags", []), list) else []
+        if flags:
+            return {}
+        return {}
+
+    def _inventory_recovery_goal(self, item: str, amount, task_report: dict, observation: dict) -> dict:
+        amount_int = max(1, self._small_int(amount or 1))
+        target_title = str(task_report.get("title") or "blocked task")
+        kb = self._knowledge_base()
+        goal = f"Acquire {amount_int} {item} for {target_title}"
+        triggers = [item]
+        if kb:
+            try:
+                recipe = kb.get_recipe(item)
+                if recipe:
+                    goal = f"Craft {item} for {target_title}"
+                else:
+                    sources = kb.source_blocks_for_resource(item)
+                    source = next((str(value) for value in sources if value), "")
+                    if source and source != item:
+                        goal = f"Mine {source} to obtain {item} for {target_title}"
+                        triggers = [source, item]
+            except Exception as e:
+                logger.warning(f"Knowledge-backed recovery goal failed for {item}: {e}")
+        inventory = observation.get("inventory", {}) if isinstance(observation.get("inventory", {}), dict) else {}
+        target_count = self._small_int(inventory.get(item, 0)) + amount_int
+        return {
+            "goal": goal,
+            "reason": "missing_inventory",
+            "missing": {"inventory": {item: amount_int}},
+            "success_criteria": {"inventory": {item: target_count}},
+            "opportunity_triggers": triggers,
+        }
+
+    def _ensure_readiness_recovery_task(self, recovery: dict, blocked_task: dict, observation: dict):
+        goal = str(recovery.get("goal") or "").strip()
+        if not goal or not hasattr(self, "task_system") or self.task_system is None:
+            return None, False
+        existing = self._find_existing_plan_task(goal)
+        if existing:
+            return existing, False
+        priority = max(0, self._safe_plan_priority(blocked_task.get("priority", 3)) - 1)
+        task = self.task_system.create_task(
+            title=goal,
+            task_type="recovery",
+            status=TaskStatus.ACCEPTED,
+            priority=priority,
+            success_criteria=recovery.get("success_criteria", {}) if isinstance(recovery.get("success_criteria", {}), dict) else {},
+            tags=["readiness_recovery", str(recovery.get("reason") or "precondition")],
+            opportunity_triggers=(
+                list(recovery.get("opportunity_triggers", []) or [])[:8]
+                if isinstance(recovery.get("opportunity_triggers", []), list)
+                else []
+            ),
+            rationale=(
+                f"Generated from readiness blockers for {blocked_task.get('title', 'blocked task')}: "
+                f"{json.dumps(recovery.get('missing', {}), default=str)[:180]}"
+            ),
+        )
+        return task, True
+
+    def _knowledge_base(self):
+        kb = getattr(self, "knowledge_base", None)
+        if kb is not None:
+            return kb
+        try:
+            kb = KnowledgeBase()
+            self.knowledge_base = kb
+            return kb
+        except Exception as e:
+            logger.warning(f"Could not initialize recovery knowledge base: {e}")
+            return None
+
     def _safe_plan_priority(self, value) -> int:
         try:
             return int(value)
@@ -3538,10 +3684,15 @@ class Agent:
 
     def _select_autonomous_goal(self, observation: dict, fallback_goal: str) -> str:
         """Let ready tasks and open-ended curriculum override generated goals."""
+        if self._should_preserve_autonomous_fallback(observation, fallback_goal):
+            return fallback_goal
         scheduling_state = self._state_with_causal_context(observation, fallback_goal)
         next_task = self.task_system.get_next_task(scheduling_state)
         if next_task:
             return next_task.title
+        recovery_goal = self._task_readiness_recovery_goal(scheduling_state, fallback_goal)
+        if recovery_goal:
+            return recovery_goal
         if (
             getattr(getattr(self, "config", None), "enable_autocurriculum", True)
             and hasattr(self, "curriculum")
@@ -3568,6 +3719,36 @@ class Agent:
                 }, source="curriculum")
             return goal
         return fallback_goal
+
+    def _should_preserve_autonomous_fallback(self, observation: dict, fallback_goal: str) -> bool:
+        """Keep urgent survival goals ahead of scheduled or recovery work."""
+        observation = observation or {}
+        config = getattr(self, "config", None)
+        threshold = getattr(config, "health_critical_threshold", 6)
+        try:
+            if float(observation.get("health", 20)) < float(threshold):
+                return True
+        except (TypeError, ValueError):
+            pass
+
+        for entity in observation.get("nearby_entities", []) or []:
+            if not isinstance(entity, dict) or not entity.get("hostile"):
+                continue
+            try:
+                if float(entity.get("distance", 999)) <= 8:
+                    return True
+            except (TypeError, ValueError):
+                continue
+
+        text = str(fallback_goal or "").lower()
+        if any(token in text for token in ("attack", "flee", "eat", "restore health", "find food")):
+            return True
+        try:
+            time_of_day = float(observation.get("time_of_day", 0))
+        except (TypeError, ValueError):
+            time_of_day = 0
+        night_goal = any(token in text for token in ("shelter", "nightfall", "wait for dawn"))
+        return night_goal and (time_of_day >= 10000 or time_of_day < 1000)
 
     def _active_coach_policy(self):
         """Return the configured advisory coach if the runtime policy is enabled."""
