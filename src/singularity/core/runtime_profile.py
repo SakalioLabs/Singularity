@@ -117,6 +117,21 @@ def load_runtime_profiles(paths: list[str]) -> tuple[list[dict], list[str]]:
     return profiles, errors
 
 
+def discover_runtime_profile_paths(runtime_dir: str) -> list[str]:
+    """Return stable JSON runtime profile paths from a runtime profile directory."""
+    runtime_dir = str(runtime_dir or "").strip()
+    if not runtime_dir or not os.path.isdir(runtime_dir):
+        return []
+    paths = []
+    for name in sorted(os.listdir(runtime_dir)):
+        if name.startswith(".") or not name.lower().endswith(".json"):
+            continue
+        path = os.path.join(runtime_dir, name)
+        if os.path.isfile(path):
+            paths.append(path)
+    return paths
+
+
 def collect_profile_list(profiles: list[dict], field: str) -> list[str]:
     section, keys = LIST_FIELDS.get(field, ("", (field,)))
     values = []
@@ -438,6 +453,153 @@ def build_runtime_profile_security_audit_from_profiles(
         report["decision"] = "allow_runtime_profile_security"
         report["reason"] = "runtime profile artifacts passed promptware audit"
     return report
+
+
+def build_runtime_profile_suite_report(
+    profile_paths: list[str] = None,
+    runtime_dir: str = "",
+    required_profiles: list[str] = None,
+    include_gates: bool = False,
+    max_scan_bytes: int = DEFAULT_SECURITY_SCAN_BYTES,
+    max_findings: int = DEFAULT_SECURITY_MAX_FINDINGS,
+) -> dict:
+    """Aggregate validation and promptware security checks across runtime profiles."""
+    explicit_paths = dedupe(profile_paths or [])
+    discovered_paths = discover_runtime_profile_paths(runtime_dir)
+    paths = dedupe(explicit_paths + discovered_paths)
+    required = dedupe([str(value or "").strip().lower() for value in (required_profiles or [])])
+    report = {
+        "type": "runtime_profile_suite_report",
+        "readiness": "review",
+        "decision": "hold_runtime_profile_suite",
+        "reason": "runtime profile suite needs approved validation and security evidence",
+        "runtime_dir": str(runtime_dir or ""),
+        "explicit_profile_count": len(explicit_paths),
+        "discovered_profile_count": len(discovered_paths),
+        "profile_paths": paths,
+        "profile_count": len(paths),
+        "approved_profile_count": 0,
+        "review_profile_count": 0,
+        "rejected_profile_count": 0,
+        "error_profile_count": 0,
+        "required_profiles": required,
+        "missing_required_profiles": [],
+        "profiles": [],
+        "errors": [],
+    }
+    if not paths:
+        report["missing_required_profiles"] = list(required)
+        report["errors"].append("no runtime profiles found")
+        return report
+
+    for path in paths:
+        validation = build_runtime_profile_report([path])
+        security = build_runtime_profile_security_audit(
+            [path],
+            include_gates=include_gates,
+            max_scan_bytes=max_scan_bytes,
+            max_findings=max_findings,
+        )
+        profiles, load_errors = load_runtime_profiles([path])
+        name = ""
+        description = ""
+        if profiles:
+            name = str(profiles[0].get("name", "") or "")
+            description = str(profiles[0].get("description", "") or "")
+        profile_item = {
+            "path": path,
+            "name": name,
+            "description": description,
+            "validation_readiness": validation.get("readiness", "unknown"),
+            "validation_decision": validation.get("decision", ""),
+            "validation_reason": validation.get("reason", ""),
+            "security_readiness": security.get("readiness", "unknown"),
+            "security_decision": security.get("decision", ""),
+            "security_reason": security.get("reason", ""),
+            "gate_count": validation.get("gate_count", 0),
+            "approved_gate_count": validation.get("approved_gate_count", 0),
+            "artifact_count": validation.get("artifact_count", 0),
+            "scanned_path_count": security.get("scanned_path_count", 0),
+            "finding_count": security.get("finding_count", 0),
+            "high_risk_count": security.get("high_risk_count", 0),
+            "missing": dedupe((validation.get("missing") or []) + (security.get("missing") or [])),
+            "errors": dedupe((validation.get("errors") or []) + (security.get("errors") or []) + load_errors),
+        }
+        profile_item["readiness"] = _runtime_profile_suite_item_readiness(profile_item)
+        profile_item["decision"] = _runtime_profile_suite_item_decision(profile_item)
+        report["profiles"].append(profile_item)
+        if profile_item["readiness"] == "approved":
+            report["approved_profile_count"] += 1
+        elif profile_item["readiness"] == "rejected":
+            report["rejected_profile_count"] += 1
+        elif profile_item["readiness"] == "error":
+            report["error_profile_count"] += 1
+        else:
+            report["review_profile_count"] += 1
+        for error in profile_item["errors"]:
+            report["errors"].append(f"{path}: {error}")
+
+    labels = {_runtime_profile_suite_label(path, item.get("name", "")) for path, item in zip(paths, report["profiles"])}
+    missing_required = []
+    for required_label in required:
+        if not any(required_label in label for label in labels):
+            missing_required.append(required_label)
+    report["missing_required_profiles"] = missing_required
+
+    if report["error_profile_count"]:
+        report["readiness"] = "error"
+        report["decision"] = "reject_runtime_profile_suite"
+        report["reason"] = "one or more runtime profiles could not be loaded or scanned"
+    elif report["rejected_profile_count"]:
+        report["readiness"] = "rejected"
+        report["decision"] = "reject_runtime_profile_suite"
+        report["reason"] = "one or more runtime profiles failed validation or promptware security audit"
+    elif missing_required:
+        report["readiness"] = "review"
+        report["decision"] = "hold_runtime_profile_suite"
+        report["reason"] = "runtime profile suite is missing required profile coverage"
+    elif report["review_profile_count"]:
+        report["readiness"] = "review"
+        report["decision"] = "hold_runtime_profile_suite"
+        report["reason"] = "one or more runtime profiles still need gate or artifact review"
+    elif report["approved_profile_count"] == report["profile_count"]:
+        report["readiness"] = "approved"
+        report["decision"] = "allow_runtime_profile_suite"
+        report["reason"] = "all runtime profiles passed validation and promptware security audit"
+    return report
+
+
+def _runtime_profile_suite_item_readiness(profile_item: dict) -> str:
+    readinesses = {
+        str(profile_item.get("validation_readiness", "") or "unknown"),
+        str(profile_item.get("security_readiness", "") or "unknown"),
+    }
+    if "error" in readinesses:
+        return "error"
+    if "rejected" in readinesses:
+        return "rejected"
+    if readinesses == {"approved"}:
+        return "approved"
+    return "review"
+
+
+def _runtime_profile_suite_item_decision(profile_item: dict) -> str:
+    readiness = profile_item.get("readiness", "review")
+    if readiness == "approved":
+        return "allow_runtime_profile"
+    if readiness in {"error", "rejected"}:
+        return "reject_runtime_profile"
+    return "hold_runtime_profile"
+
+
+def _runtime_profile_suite_label(path: str, name: str = "") -> str:
+    parts = [
+        str(path or "").replace("\\", "/").lower(),
+        os.path.basename(str(path or "")).lower(),
+        os.path.splitext(os.path.basename(str(path or "")))[0].lower(),
+        str(name or "").lower(),
+    ]
+    return " ".join(part for part in parts if part)
 
 
 def _scan_runtime_profile_reference(

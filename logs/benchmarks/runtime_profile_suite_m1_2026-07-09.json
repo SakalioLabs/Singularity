@@ -1,0 +1,50 @@
+{
+  "type": "runtime_profile_suite_report",
+  "readiness": "review",
+  "decision": "hold_runtime_profile_suite",
+  "reason": "runtime profile suite is missing required profile coverage",
+  "runtime_dir": "workspace/runtime",
+  "explicit_profile_count": 0,
+  "discovered_profile_count": 1,
+  "profile_paths": [
+    "workspace/runtime\\m1_observed_action_value_profile.json"
+  ],
+  "profile_count": 1,
+  "approved_profile_count": 1,
+  "review_profile_count": 0,
+  "rejected_profile_count": 0,
+  "error_profile_count": 0,
+  "required_profiles": [
+    "m1",
+    "m2",
+    "m7"
+  ],
+  "missing_required_profiles": [
+    "m2",
+    "m7"
+  ],
+  "profiles": [
+    {
+      "path": "workspace/runtime\\m1_observed_action_value_profile.json",
+      "name": "m1_observed_action_value",
+      "description": "M1 observed action-value feedback from 2026-07-09 offline session logs",
+      "validation_readiness": "approved",
+      "validation_decision": "allow_runtime_profile",
+      "validation_reason": "runtime profile gates and artifact paths are ready",
+      "security_readiness": "approved",
+      "security_decision": "allow_runtime_profile_security",
+      "security_reason": "runtime profile artifacts passed promptware audit",
+      "gate_count": 0,
+      "approved_gate_count": 0,
+      "artifact_count": 1,
+      "scanned_path_count": 1,
+      "finding_count": 0,
+      "high_risk_count": 0,
+      "missing": [],
+      "errors": [],
+      "readiness": "approved",
+      "decision": "allow_runtime_profile"
+    }
+  ],
+  "errors": []
+}

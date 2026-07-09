@@ -279,6 +279,7 @@ python -m singularity.main benchmark --suite m1 --mixed-policy-patch logs/benchm
 python -m singularity.main runtime-profile-build --name m1_visual_goal_critic --enable-goal-critic --goal-critic-gate logs/benchmarks/goal_critic_gate.json --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json --output workspace/runtime/m1_visual_profile.json
 python -m singularity.main runtime-profile-validate --runtime-profile workspace/runtime/m1_visual_profile.json --output logs/benchmarks/runtime_profile_validation.json
 python -m singularity.main runtime-profile-security-audit --runtime-profile workspace/runtime/m1_visual_profile.json --output logs/benchmarks/runtime_profile_security.json
+python -m singularity.main runtime-profile-suite-report --runtime-dir workspace/runtime --required-profile m1 --required-profile m2 --required-profile m7 --output logs/benchmarks/runtime_profile_suite.json
 python -m singularity.main benchmark --suite m1 --runtime-profile workspace/runtime/m1_visual_profile.json
 python -m singularity.main collab-benchmark --executor agent --runtime-profile workspace/runtime/m7_roles_profile.json --preflight
 # Runtime commands that load --runtime-profile automatically reject unreadable
@@ -287,6 +288,7 @@ python -m singularity.main collab-benchmark --executor agent --runtime-profile w
 # Seeded M1 profile from real offline action-value feedback:
 python -m singularity.main runtime-profile-validate --runtime-profile workspace/runtime/m1_observed_action_value_profile.json --output logs/benchmarks/runtime_profile_validation_m1_2026-07-09.json
 python -m singularity.main runtime-profile-security-audit --runtime-profile workspace/runtime/m1_observed_action_value_profile.json --output logs/benchmarks/runtime_profile_security_m1_2026-07-09.json
+python -m singularity.main runtime-profile-suite-report --runtime-dir workspace/runtime --required-profile m1 --required-profile m2 --required-profile m7 --output logs/benchmarks/runtime_profile_suite_m1_2026-07-09.json
 
 ```json
 {

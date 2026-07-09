@@ -13,6 +13,7 @@ from singularity.core.runtime_profile import (
     build_runtime_profile_report_from_profiles,
     build_runtime_profile_security_audit,
     build_runtime_profile_security_audit_from_profiles,
+    build_runtime_profile_suite_report,
     load_runtime_profiles,
     merge_arg_profile_list,
     profile_bool_arg,
@@ -126,6 +127,43 @@ def _print_runtime_profile_security_audit(report: dict):
     if report.get("missing"):
         print(f"  missing: {', '.join(report.get('missing', []))}")
     for error in report.get("errors", []):
+        print(f"  error: {error}")
+
+
+def _print_runtime_profile_suite_report(report: dict):
+    print("\nRuntime Profile Suite")
+    print(f"  readiness: {report.get('readiness', 'unknown')}")
+    print(f"  decision: {report.get('decision', 'unknown')}")
+    print(f"  reason: {report.get('reason', '')}")
+    print(
+        "  inputs: "
+        f"profiles={report.get('approved_profile_count', 0)}/{report.get('profile_count', 0)} approved, "
+        f"review={report.get('review_profile_count', 0)}, "
+        f"rejected={report.get('rejected_profile_count', 0)}, "
+        f"errors={report.get('error_profile_count', 0)}"
+    )
+    if report.get("runtime_dir"):
+        print(f"  runtime_dir: {report.get('runtime_dir')}")
+    if report.get("required_profiles"):
+        print(f"  required: {', '.join(report.get('required_profiles', []))}")
+    if report.get("missing_required_profiles"):
+        print(f"  missing required: {', '.join(report.get('missing_required_profiles', []))}")
+    for item in report.get("profiles", [])[:20]:
+        marker = "+" if item.get("readiness") == "approved" else "x" if item.get("readiness") in {"rejected", "error"} else "!"
+        name = f" ({item.get('name')})" if item.get("name") else ""
+        print(
+            f"  [{marker}] {item.get('path')}{name}: "
+            f"validation={item.get('validation_readiness')} "
+            f"security={item.get('security_readiness')} "
+            f"gates={item.get('approved_gate_count', 0)}/{item.get('gate_count', 0)} "
+            f"artifacts={item.get('artifact_count', 0)} "
+            f"findings={item.get('finding_count', 0)}"
+        )
+        if item.get("missing"):
+            print(f"      missing: {', '.join(item.get('missing', []))}")
+        for error in item.get("errors", [])[:4]:
+            print(f"      error: {error}")
+    for error in report.get("errors", [])[:20]:
         print(f"  error: {error}")
 
 
@@ -818,6 +856,19 @@ def main():
     runtime_profile_security_parser.add_argument("--output", type=str, default="", help="Optional JSON audit report path")
     runtime_profile_security_parser.add_argument("--log-level", type=str, default="INFO")
 
+    runtime_profile_suite_parser = subparsers.add_parser(
+        "runtime-profile-suite-report",
+        help="Validate and promptware-audit a directory of runtime profiles before live suites",
+    )
+    runtime_profile_suite_parser.add_argument("--runtime-profile", action="append", default=[], help="Runtime profile JSON to include")
+    runtime_profile_suite_parser.add_argument("--runtime-dir", type=str, default="workspace/runtime", help="Directory of runtime profile JSON files to include")
+    runtime_profile_suite_parser.add_argument("--required-profile", action="append", default=[], help="Required profile label such as m1, m2, or m7")
+    runtime_profile_suite_parser.add_argument("--include-gates", action="store_true", help="Also promptware-scan referenced gate reports")
+    runtime_profile_suite_parser.add_argument("--max-scan-bytes", type=int, default=DEFAULT_SECURITY_SCAN_BYTES, help="Maximum bytes to scan per referenced file")
+    runtime_profile_suite_parser.add_argument("--max-findings", type=int, default=50, help="Maximum findings to include per profile security audit")
+    runtime_profile_suite_parser.add_argument("--output", type=str, default="", help="Optional JSON suite report path")
+    runtime_profile_suite_parser.add_argument("--log-level", type=str, default="INFO")
+
     runtime_profile_build_parser = subparsers.add_parser(
         "runtime-profile-build",
         help="Build a reusable runtime profile JSON from approved gates and feedback artifacts",
@@ -1230,7 +1281,7 @@ def main():
     runtime_profile_errors = []
     if getattr(args, "runtime_profile", []):
         runtime_profiles, runtime_profile_errors = load_runtime_profiles(getattr(args, "runtime_profile", []) or [])
-        if runtime_profile_errors and args.command not in {"runtime-profile-validate", "runtime-profile-security-audit"}:
+        if runtime_profile_errors and args.command not in {"runtime-profile-validate", "runtime-profile-security-audit", "runtime-profile-suite-report"}:
             for error in runtime_profile_errors:
                 print(f"runtime profile error: {error}")
             sys.exit(1)
@@ -1257,6 +1308,27 @@ def main():
             max_findings=getattr(args, "max_findings", 50),
         )
         _print_runtime_profile_security_audit(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"error", "rejected"}:
+            sys.exit(1)
+        return
+
+    if args.command == "runtime-profile-suite-report":
+        report = build_runtime_profile_suite_report(
+            profile_paths=getattr(args, "runtime_profile", []) or [],
+            runtime_dir=getattr(args, "runtime_dir", "") or "",
+            required_profiles=getattr(args, "required_profile", []) or [],
+            include_gates=getattr(args, "include_gates", False),
+            max_scan_bytes=getattr(args, "max_scan_bytes", DEFAULT_SECURITY_SCAN_BYTES),
+            max_findings=getattr(args, "max_findings", 50),
+        )
+        _print_runtime_profile_suite_report(report)
         if getattr(args, "output", ""):
             output_dir = os.path.dirname(args.output)
             if output_dir:
