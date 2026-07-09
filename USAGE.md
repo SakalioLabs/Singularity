@@ -155,6 +155,9 @@ python -m singularity.main memory-attribution-gate --memory-attribution-report l
 python -m singularity.main run --goal "Craft torches" --enable-weighted-memory-retrieval --memory-attribution-gate logs/benchmarks/memory_attribution_gate.json
 # Mine stalled plans and failed actions for review-only task precondition candidates.
 python -m singularity.main task-precondition-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/task_preconditions.json
+# Gate hidden-prerequisite feedback before letting it influence planner context.
+python -m singularity.main task-precondition-gate --task-precondition-report logs/benchmarks/task_preconditions.json --output logs/benchmarks/task_precondition_gate.json
+python -m singularity.main run --goal "Craft torches then mine iron ore" --task-precondition-feedback logs/benchmarks/task_preconditions.json --task-precondition-gate logs/benchmarks/task_precondition_gate.json
 # New Agent runs log `memory_write`, `memory_read`, and `memory_manage` events plus summary metrics.
 # `MemoryLifecyclePolicy` is advisory by default; strict suppression also requires an approved memory-promptware gate.
 # Audit durable memory entries that would be excluded at read time.

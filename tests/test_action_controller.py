@@ -330,6 +330,85 @@ def _write_knowledge_correction_gate(tmpdir, readiness):
     return gate_path
 
 
+def _write_task_precondition_feedback(tmpdir):
+    feedback_path = os.path.join(tmpdir, "task_preconditions.json")
+    with open(feedback_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "task_precondition_feedback": {
+                "log_count": 1,
+                "ready_log_count": 1,
+                "failed_action_count": 2,
+                "blocked_plan_count": 1,
+                "candidate_count": 2,
+                "candidate_type_counts": {
+                    "inventory_precondition": 1,
+                    "tool_precondition": 1,
+                },
+                "candidates": [
+                    {
+                        "type": "task_precondition_candidate",
+                        "candidate_id": "torch_missing_coal",
+                        "candidate_type": "inventory_precondition",
+                        "task_family": "crafting",
+                        "goal": "Craft torches then mine iron ore",
+                        "goal_signature": "torch_goal",
+                        "action_signature": "craft:torch",
+                        "action_type": "craft",
+                        "target": "torch",
+                        "inferred_preconditions": {"inventory": {"coal": 1, "stick": 1}},
+                        "evidence_count": 2,
+                        "confidence": 0.82,
+                        "recommendation": "Before retrying craft:torch, satisfy inferred inventory prerequisites.",
+                    },
+                    {
+                        "type": "task_precondition_candidate",
+                        "candidate_id": "iron_needs_stone_pickaxe",
+                        "candidate_type": "tool_precondition",
+                        "task_family": "mining",
+                        "goal": "Craft torches then mine iron ore",
+                        "goal_signature": "torch_goal",
+                        "action_signature": "dig:iron_ore",
+                        "action_type": "dig",
+                        "target": "iron_ore",
+                        "inferred_preconditions": {
+                            "inventory": {"stone_pickaxe": 1},
+                            "tool_for": {"iron_ore": "stone_pickaxe"},
+                        },
+                        "evidence_count": 1,
+                        "confidence": 0.7,
+                        "recommendation": "Before retrying dig:iron_ore, insert tool acquisition or upgrade prerequisites.",
+                    },
+                ],
+                "policy_hints": [
+                    {
+                        "task_precondition_policy": "review_task_precondition_candidates",
+                        "priority": "high",
+                        "count": 2,
+                    },
+                ],
+            },
+        }, f)
+    return feedback_path
+
+
+def _write_task_precondition_gate(tmpdir, readiness):
+    gate_path = os.path.join(tmpdir, f"task_precondition_gate_{readiness}.json")
+    with open(gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "task_precondition_gate",
+            "readiness": readiness,
+            "decision": "allow_reviewed_task_precondition_feedback"
+            if readiness == "approved"
+            else "hold_task_precondition_feedback_for_review",
+            "reason": "test task-precondition gate",
+            "source_count": 1,
+            "ready_log_count": 1 if readiness == "approved" else 0,
+            "candidate_count": 2 if readiness == "approved" else 0,
+            "high_confidence_candidate_count": 2 if readiness == "approved" else 0,
+        }, f)
+    return gate_path
+
+
 def test_self_evolution_policy_formats_advisory_context():
     policy = SelfEvolutionPolicy()
     applied = policy.record_self_evolution_feedback({
@@ -773,6 +852,81 @@ def test_agent_skips_knowledge_correction_feedback_without_approved_gate():
     print("PASS: Agent skips knowledge-correction feedback without approved gate")
 
 
+def test_agent_loads_task_precondition_feedback_when_gate_is_approved():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = _write_task_precondition_feedback(tmpdir)
+    gate_path = _write_task_precondition_gate(tmpdir, "approved")
+    config = Config(
+        log_dir=os.path.join(tmpdir, "logs"),
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        task_precondition_feedback_paths=[feedback_path],
+        task_precondition_gate_paths=[gate_path],
+    )
+
+    agent = Agent(config)
+    report = agent.task_precondition_feedback_report
+    context = agent._task_precondition_context(
+        "Craft torches then mine iron ore",
+        {"inventory": {"stick": 1, "wooden_pickaxe": 1}},
+    )
+
+    assert report["gate_required"] is True
+    assert report["gate_approved"] is True
+    assert report["gate_readiness"] == "approved"
+    assert report["loaded_count"] == 1
+    assert report["skipped_count"] == 0
+    assert report["candidate_count"] == 2
+    assert "Task precondition feedback" in context
+    assert "gate-approved, advisory only" in context
+    assert "craft:torch" in context
+    assert "inventory coal=1, stick=1" in context
+    assert "missing now: inventory coal=1" in context
+    assert "dig:iron_ore" in context
+    assert "stone_pickaxe=1" in context
+    assert "tool_for iron_ore->stone_pickaxe" in context
+    print("PASS: Agent loads task-precondition feedback when gate is approved")
+
+
+def test_agent_skips_task_precondition_feedback_without_approved_gate():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = _write_task_precondition_feedback(tmpdir)
+    missing_gate_config = Config(
+        log_dir=os.path.join(tmpdir, "logs_missing"),
+        memory_dir=os.path.join(tmpdir, "memory_missing"),
+        skill_dir=os.path.join(tmpdir, "skills_missing"),
+        task_precondition_feedback_paths=[feedback_path],
+    )
+
+    missing_agent = Agent(missing_gate_config)
+    missing_report = missing_agent.task_precondition_feedback_report
+    assert missing_report["gate_required"] is True
+    assert missing_report["gate_approved"] is False
+    assert missing_report["gate_readiness"] == "missing"
+    assert missing_report["loaded_count"] == 0
+    assert missing_report["skipped_count"] == 1
+    assert missing_agent._task_precondition_context("Craft torches", {}) == ""
+
+    review_gate_path = _write_task_precondition_gate(tmpdir, "review")
+    review_config = Config(
+        log_dir=os.path.join(tmpdir, "logs_review"),
+        memory_dir=os.path.join(tmpdir, "memory_review"),
+        skill_dir=os.path.join(tmpdir, "skills_review"),
+        task_precondition_feedback_paths=[feedback_path],
+        task_precondition_gate_paths=[review_gate_path],
+    )
+
+    review_agent = Agent(review_config)
+    review_report = review_agent.task_precondition_feedback_report
+    assert review_report["gate_required"] is True
+    assert review_report["gate_approved"] is False
+    assert review_report["gate_readiness"] == "review"
+    assert review_report["loaded_count"] == 0
+    assert review_report["skipped_count"] == 1
+    assert review_agent._task_precondition_context("Craft torches", {}) == ""
+    print("PASS: Agent skips task-precondition feedback without approved gate")
+
+
 def test_agent_skips_mixed_policy_patch_when_gate_is_not_approved():
     for readiness in ("review", "rejected"):
         tmpdir = tempfile.mkdtemp()
@@ -994,6 +1148,8 @@ if __name__ == "__main__":
     test_agent_skips_skill_memory_quality_feedback_when_gate_is_not_approved()
     test_agent_loads_knowledge_correction_feedback_when_gate_is_approved()
     test_agent_skips_knowledge_correction_feedback_without_approved_gate()
+    test_agent_loads_task_precondition_feedback_when_gate_is_approved()
+    test_agent_skips_task_precondition_feedback_without_approved_gate()
     test_agent_skips_mixed_policy_patch_when_gate_is_not_approved()
     test_action_verifier_rejects_missing_craft_materials_and_tools()
     test_action_candidate_selector_repairs_rejected_craft_action()

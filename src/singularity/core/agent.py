@@ -126,6 +126,11 @@ class Agent:
             "policy_hints": [],
         }
         self.knowledge_correction_feedback_report = self._load_knowledge_correction_feedback()
+        self.task_precondition_feedback = {
+            "candidates": [],
+            "policy_hints": [],
+        }
+        self.task_precondition_feedback_report = self._load_task_precondition_feedback()
         self.task_system = TaskSystem()
         self.goal_generator = GoalGenerator()
         self.curriculum = CurriculumManager()
@@ -629,6 +634,158 @@ class Agent:
                 f"errors={len(report['errors'])}"
             )
         return report
+
+    def _load_task_precondition_feedback(self) -> dict:
+        """Load gated hidden-prerequisite feedback for planner context."""
+        paths = [
+            path for path in (getattr(self.config, "task_precondition_feedback_paths", []) or [])
+            if path
+        ]
+        gate_report = self._evaluate_task_precondition_gate(paths)
+        report = {
+            "paths": list(paths),
+            "loaded_count": 0,
+            "skipped_count": 0,
+            "candidate_count": 0,
+            "policy_hints_applied": 0,
+            "advisory_only": True,
+            "errors": [],
+            **gate_report,
+        }
+        if not getattr(self.config, "enable_task_precondition_context", True):
+            report["skipped_count"] = len(paths)
+            return report
+        if report["gate_required"] and not report["gate_approved"]:
+            report["skipped_count"] = len(paths)
+            if paths:
+                logger.warning(
+                    "Task-precondition feedback loading skipped: "
+                    f"gate_readiness={report['gate_readiness']}, "
+                    f"gate_paths={len(report['gate_paths'])}, "
+                    f"feedback_paths={len(paths)}"
+                )
+            return report
+
+        for path in paths:
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    payload = json.load(f)
+                feedback = payload.get("task_precondition_feedback", payload) if isinstance(payload, dict) else {}
+                if not isinstance(feedback, dict):
+                    raise ValueError("task-precondition feedback JSON must contain an object")
+                applied = self._record_task_precondition_feedback(feedback)
+                report["loaded_count"] += 1
+                report["candidate_count"] += int(applied.get("candidates", 0) or 0)
+                report["policy_hints_applied"] += int(applied.get("policy_hints", 0) or 0)
+            except Exception as e:
+                message = f"{path}: {e}"
+                report["errors"].append(message)
+                logger.warning(f"Failed to load task-precondition feedback {message}")
+        if report["loaded_count"] or report["errors"]:
+            logger.info(
+                "Task-precondition feedback loaded: "
+                f"{report['loaded_count']} files, "
+                f"candidates={report['candidate_count']}, "
+                f"gate={report['gate_readiness']}, "
+                f"errors={len(report['errors'])}"
+            )
+        return report
+
+    def _evaluate_task_precondition_gate(self, feedback_paths: list[str]) -> dict:
+        """Return whether saved task-precondition candidates may influence planner context."""
+        gate_paths = [
+            path for path in (getattr(self.config, "task_precondition_gate_paths", []) or [])
+            if path
+        ]
+        report = {
+            "gate_paths": list(gate_paths),
+            "gate_required": bool(feedback_paths),
+            "gate_approved": not bool(feedback_paths),
+            "gate_readiness": "not_required" if not feedback_paths else "missing",
+            "gate_reports": [],
+        }
+        if not feedback_paths:
+            return report
+        if not gate_paths:
+            return report
+
+        readinesses = []
+        for path in gate_paths:
+            gate_summary = {
+                "path": path,
+                "readiness": "error",
+                "decision": "",
+                "reason": "",
+            }
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    gate = json.load(f)
+                readiness = str(gate.get("readiness", "")).strip().lower() or "unknown"
+                gate_summary.update({
+                    "readiness": readiness,
+                    "decision": str(gate.get("decision", "")).strip(),
+                    "reason": str(gate.get("reason", "")).strip()[:300],
+                    "source_count": self._small_int(gate.get("source_count", 0)),
+                    "ready_log_count": self._small_int(gate.get("ready_log_count", 0)),
+                    "candidate_count": self._small_int(gate.get("candidate_count", 0)),
+                    "high_confidence_candidate_count": self._small_int(gate.get("high_confidence_candidate_count", 0)),
+                })
+            except Exception as e:
+                readiness = "error"
+                gate_summary["error"] = str(e)
+                logger.warning(f"Failed to load task-precondition gate {path}: {e}")
+            readinesses.append(readiness)
+            report["gate_reports"].append(gate_summary)
+
+        report["gate_approved"] = False
+        if any(readiness == "error" for readiness in readinesses):
+            report["gate_readiness"] = "error"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report["gate_readiness"] = "approved"
+            report["gate_approved"] = True
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report["gate_readiness"] = "rejected"
+        elif any(readiness == "review" for readiness in readinesses):
+            report["gate_readiness"] = "review"
+        else:
+            report["gate_readiness"] = "unknown"
+        return report
+
+    def _record_task_precondition_feedback(self, feedback: dict) -> dict:
+        feedback = feedback if isinstance(feedback, dict) else {}
+        applied = {"candidates": 0, "policy_hints": 0}
+        for key in ("candidates", "policy_hints"):
+            incoming = feedback.get(key, [])
+            if not isinstance(incoming, list):
+                continue
+            existing = self.task_precondition_feedback.setdefault(key, [])
+            seen = {
+                self._task_precondition_identity(key, item)
+                for item in existing
+                if isinstance(item, dict)
+            }
+            for item in incoming:
+                if not isinstance(item, dict):
+                    continue
+                identity = self._task_precondition_identity(key, item)
+                if identity in seen:
+                    continue
+                existing.append(dict(item))
+                seen.add(identity)
+                applied[key] += 1
+        return applied
+
+    def _task_precondition_identity(self, key: str, item: dict) -> str:
+        if key == "candidates":
+            return "|".join([
+                str(item.get("candidate_id", "")),
+                str(item.get("goal_signature", "")),
+                str(item.get("action_signature", "")),
+                json.dumps(item.get("inferred_preconditions", {}), sort_keys=True, default=str),
+            ])
+        if key == "policy_hints":
+            return str(item.get("task_precondition_policy") or item.get("policy") or item)
+        return str(item)
 
     def _evaluate_knowledge_correction_gate(self, feedback_paths: list[str]) -> dict:
         """Return whether saved knowledge corrections may influence planner context."""
@@ -1574,6 +1731,7 @@ class Agent:
             coach_context = self._coach_context(goal, observation)
             self_evolution_context = self._self_evolution_context(goal, observation)
             knowledge_correction_context = self._knowledge_correction_context(goal, observation)
+            task_precondition_context = self._task_precondition_context(goal, observation)
             skill_memory_context = self._skill_memory_context(goal, observation)
             combined_memory = "\n".join(part for part in (
                 memory_context,
@@ -1584,6 +1742,7 @@ class Agent:
                 coach_context,
                 self_evolution_context,
                 knowledge_correction_context,
+                task_precondition_context,
                 skill_memory_context,
                 skill_hint,
             ) if part)
@@ -1768,6 +1927,166 @@ class Agent:
             "(gate-approved, advisory only; verify against current world state before acting):\n"
             + "\n".join(lines[:limit])
         )
+
+    def _task_precondition_context(self, goal: str, current_state: dict = None, limit: int = 6) -> str:
+        """Retrieve approved hidden-prerequisite hints for the planner."""
+        if not getattr(getattr(self, "config", None), "enable_task_precondition_context", True):
+            return ""
+        report = getattr(self, "task_precondition_feedback_report", {}) or {}
+        if report.get("gate_required") and not report.get("gate_approved"):
+            return ""
+        feedback = getattr(self, "task_precondition_feedback", {}) or {}
+        candidates = self._select_task_precondition_items(
+            feedback.get("candidates", []),
+            goal,
+            current_state or {},
+            limit=limit,
+        )
+        if not candidates:
+            return ""
+
+        lines = []
+        for item in candidates:
+            action = str(item.get("action_signature") or "action")
+            candidate_type = str(item.get("candidate_type") or "precondition")
+            evidence = self._small_int(item.get("evidence_count", 0))
+            confidence = self._small_float(item.get("confidence", 0.0))
+            preconditions = item.get("inferred_preconditions", {}) if isinstance(item.get("inferred_preconditions", {}), dict) else {}
+            required = self._format_task_preconditions(preconditions)
+            missing = self._missing_task_preconditions(preconditions, current_state or {})
+            missing_text = self._format_task_preconditions(missing) if missing else "currently satisfied or unknown"
+            recommendation = str(item.get("recommendation") or "").strip()
+            line = (
+                f"- {candidate_type}: before {action}, require {required}; "
+                f"missing now: {missing_text}; evidence={evidence}, confidence={confidence:.2f}"
+            )
+            if recommendation:
+                line += f"; {recommendation}"
+            lines.append(line)
+
+        task_family = self._knowledge_task_family(goal)
+        payload = {
+            "goal": goal,
+            "task_family": task_family,
+            "candidate_count": len(candidates),
+            "gate_readiness": report.get("gate_readiness", "not_required"),
+        }
+        if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("task_precondition_hint", payload)
+        self._log_policy_intervention("hint", {
+            "goal": goal,
+            "policy": "task_precondition",
+            **payload,
+        })
+        return (
+            "Task precondition feedback "
+            "(gate-approved, advisory only; insert missing prerequisite subtasks before retrying):\n"
+            + "\n".join(lines[:limit])
+        )
+
+    def _select_task_precondition_items(
+        self,
+        items: list[dict],
+        goal: str,
+        current_state: dict,
+        limit: int = 6,
+    ) -> list[dict]:
+        if not isinstance(items, list) or limit <= 0:
+            return []
+        task_family = self._knowledge_task_family(goal)
+        scored = []
+        for index, item in enumerate(items):
+            if not isinstance(item, dict):
+                continue
+            score = self._task_precondition_score(item, goal, current_state or {}, task_family)
+            if score <= 0:
+                continue
+            scored.append((score, self._small_int(item.get("evidence_count", 0)), self._small_float(item.get("confidence", 0.0)), -index, item))
+        scored.sort(reverse=True)
+        return [item for _, _, _, _, item in scored[:limit]]
+
+    def _task_precondition_score(self, item: dict, goal: str, current_state: dict, task_family: str) -> int:
+        text = self._task_precondition_item_text(item)
+        tokens = self._knowledge_context_tokens(goal)
+        score = sum(1 for token in tokens if token in text)
+        if task_family and task_family in text:
+            score += 3
+        candidate_type = str(item.get("candidate_type") or "")
+        if candidate_type in {"inventory_precondition", "tool_precondition"}:
+            score += 1
+        missing = self._missing_task_preconditions(
+            item.get("inferred_preconditions", {}) if isinstance(item.get("inferred_preconditions", {}), dict) else {},
+            current_state or {},
+        )
+        if missing:
+            score += 4
+            inventory = missing.get("inventory", {}) if isinstance(missing.get("inventory", {}), dict) else {}
+            score += min(4, len(inventory))
+            flags = missing.get("flags", []) if isinstance(missing.get("flags", []), list) else []
+            score += min(2, len(flags))
+        return score
+
+    def _task_precondition_item_text(self, item: dict) -> str:
+        parts = []
+        for key in (
+            "goal",
+            "candidate_type",
+            "task_family",
+            "action_signature",
+            "action_type",
+            "target",
+            "recommendation",
+        ):
+            value = item.get(key)
+            if value:
+                parts.append(str(value))
+        preconditions = item.get("inferred_preconditions", {})
+        if isinstance(preconditions, dict):
+            parts.append(json.dumps(preconditions, sort_keys=True, default=str))
+        source_blocks = item.get("source_blocks", {})
+        if isinstance(source_blocks, dict):
+            parts.append(json.dumps(source_blocks, sort_keys=True, default=str))
+        return " ".join(parts).lower().replace("_", " ")
+
+    def _missing_task_preconditions(self, preconditions: dict, current_state: dict) -> dict:
+        if not isinstance(preconditions, dict):
+            return {}
+        missing = {}
+        inventory = current_state.get("inventory", {}) if isinstance(current_state, dict) and isinstance(current_state.get("inventory", {}), dict) else {}
+        required_inventory = preconditions.get("inventory", {}) if isinstance(preconditions.get("inventory", {}), dict) else {}
+        inventory_missing = {}
+        for item, count in required_inventory.items():
+            needed = self._small_int(count)
+            have = self._small_int(inventory.get(item, 0))
+            if needed > have:
+                inventory_missing[str(item)] = needed - have
+        if inventory_missing:
+            missing["inventory"] = inventory_missing
+        required_flags = preconditions.get("flags", []) if isinstance(preconditions.get("flags", []), list) else []
+        flags = set(current_state.get("flags", [])) if isinstance(current_state, dict) else set()
+        flag_missing = [str(flag) for flag in required_flags if flag not in flags]
+        if flag_missing:
+            missing["flags"] = flag_missing
+        return missing
+
+    def _format_task_preconditions(self, preconditions: dict) -> str:
+        if not isinstance(preconditions, dict) or not preconditions:
+            return "reviewed prerequisite task"
+        parts = []
+        inventory = preconditions.get("inventory", {}) if isinstance(preconditions.get("inventory", {}), dict) else {}
+        if inventory:
+            parts.append("inventory " + ", ".join(
+                f"{item}={count}" for item, count in sorted(inventory.items())
+            ))
+        tool_for = preconditions.get("tool_for", {}) if isinstance(preconditions.get("tool_for", {}), dict) else {}
+        if tool_for:
+            parts.append("tool_for " + ", ".join(
+                f"{target}->{tool}" for target, tool in sorted(tool_for.items())
+            ))
+        flags = preconditions.get("flags", []) if isinstance(preconditions.get("flags", []), list) else []
+        if flags:
+            parts.append("flags " + ", ".join(str(flag) for flag in flags))
+        return "; ".join(parts) if parts else "reviewed prerequisite task"
 
     def _select_knowledge_correction_items(
         self,

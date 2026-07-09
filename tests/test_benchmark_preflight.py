@@ -2250,6 +2250,65 @@ def test_task_precondition_report_mines_hidden_prerequisites_from_failures():
     print("PASS: Task precondition report mines hidden prerequisites from failures")
 
 
+def test_task_precondition_gate_requires_ready_candidates():
+    runner = BenchmarkRunner(Config())
+    ready_report = {
+        "type": "task_precondition_report",
+        "log_count": 1,
+        "ready_log_count": 1,
+        "failed_action_count": 2,
+        "blocked_plan_count": 1,
+        "empty_plan_count": 0,
+        "candidate_count": 2,
+        "candidate_type_counts": {
+            "inventory_precondition": 1,
+            "tool_precondition": 1,
+        },
+        "candidates": [
+            {
+                "candidate_type": "inventory_precondition",
+                "action_signature": "craft:torch",
+                "confidence": 0.82,
+            },
+            {
+                "candidate_type": "tool_precondition",
+                "action_signature": "dig:iron_ore",
+                "confidence": 0.71,
+            },
+        ],
+    }
+
+    approved = runner.build_task_precondition_gate(
+        task_precondition_reports=[ready_report],
+        min_ready_logs=1,
+        min_candidates=2,
+        min_high_confidence_candidates=2,
+        min_confidence=0.7,
+    )
+    assert approved["readiness"] == "approved"
+    assert approved["decision"] == "allow_reviewed_task_precondition_feedback"
+    assert approved["candidate_count"] == 2
+    assert approved["high_confidence_candidate_count"] == 2
+    assert approved["candidate_type_counts"]["tool_precondition"] == 1
+    assert "load_task_precondition_feedback_with_gate" in approved["policy_hints"]
+
+    review = runner.build_task_precondition_gate(
+        task_precondition_reports=[{
+            "type": "task_precondition_report",
+            "log_count": 1,
+            "ready_log_count": 0,
+            "candidate_count": 0,
+            "candidates": [],
+        }],
+        min_ready_logs=1,
+        min_candidates=1,
+    )
+    assert review["readiness"] == "review"
+    assert "ready_task_precondition_logs" in review["missing"]
+    assert "task_precondition_candidates" in review["missing"]
+    print("PASS: Task precondition gate requires ready candidates")
+
+
 def test_knowledge_correction_preflight_requires_gate_and_suite_overlap():
     tmpdir = tempfile.mkdtemp()
     feedback_path = os.path.join(tmpdir, "knowledge_correction.json")
@@ -5676,6 +5735,7 @@ if __name__ == "__main__":
     test_action_value_report_aggregates_outcome_profiles()
     test_knowledge_correction_report_mines_failed_actions_and_dependencies()
     test_task_precondition_report_mines_hidden_prerequisites_from_failures()
+    test_task_precondition_gate_requires_ready_candidates()
     test_knowledge_correction_preflight_requires_gate_and_suite_overlap()
     test_knowledge_correction_ablation_reports_context_changes()
     test_knowledge_correction_review_labels_emit_approved_feedback()

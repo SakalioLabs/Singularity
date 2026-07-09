@@ -57,6 +57,9 @@ class Config:
     world_model_gate_paths: list[str] = field(default_factory=list)
     knowledge_correction_feedback_paths: list[str] = field(default_factory=list)
     knowledge_correction_gate_paths: list[str] = field(default_factory=list)
+    enable_task_precondition_context: bool = True
+    task_precondition_feedback_paths: list[str] = field(default_factory=list)
+    task_precondition_gate_paths: list[str] = field(default_factory=list)
     action_value_feedback_paths: list[str] = field(default_factory=list)
     action_value_transition_gate_paths: list[str] = field(default_factory=list)
     action_value_transition_evaluator_report_paths: list[str] = field(default_factory=list)

@@ -7242,6 +7242,131 @@ class BenchmarkRunner:
             "recommendations": self._dedupe_strings(recommendations),
         }
 
+    def build_task_precondition_gate(
+        self,
+        task_precondition_reports: Optional[list[dict]] = None,
+        task_precondition_report_paths: Optional[list[str]] = None,
+        target: str = "planner_task_precondition_feedback",
+        min_ready_logs: int = 1,
+        min_candidates: int = 1,
+        min_high_confidence_candidates: int = 0,
+        min_confidence: float = 0.55,
+    ) -> dict:
+        """Gate hidden-prerequisite feedback before planner/runtime use."""
+        report = {
+            "type": "task_precondition_gate",
+            "target": target,
+            "readiness": "review",
+            "decision": "hold_task_precondition_feedback_for_review",
+            "reason": "task precondition feedback requires reviewable stalled-plan or failed-action evidence",
+            "thresholds": {
+                "min_ready_logs": int(min_ready_logs),
+                "min_candidates": int(min_candidates),
+                "min_high_confidence_candidates": int(min_high_confidence_candidates),
+                "min_confidence": float(min_confidence),
+            },
+            "source_count": 0,
+            "log_count": 0,
+            "ready_log_count": 0,
+            "failed_action_count": 0,
+            "blocked_plan_count": 0,
+            "empty_plan_count": 0,
+            "candidate_count": 0,
+            "high_confidence_candidate_count": 0,
+            "candidate_type_counts": {},
+            "policy_hints": [],
+            "sources": [],
+            "checks": [],
+            "missing": [],
+            "errors": [],
+        }
+        items = self._load_gate_payloads(
+            task_precondition_reports or [],
+            task_precondition_report_paths or [],
+            report["errors"],
+            "task_precondition_report",
+        )
+        report["source_count"] = len(items)
+        if not items:
+            report["missing"].append("task_precondition_report")
+
+        for source, payload in items:
+            current = payload.get("task_precondition_feedback", payload) if isinstance(payload, dict) else {}
+            if not isinstance(current, dict):
+                report["errors"].append(f"{source}: task precondition report must be a JSON object")
+                continue
+            candidates = current.get("candidates", [])
+            candidates = candidates if isinstance(candidates, list) else []
+            high_confidence_count = sum(
+                1
+                for candidate in candidates
+                if (self._gate_float_or_none(candidate.get("confidence")) or 0.0) >= float(min_confidence)
+            )
+            candidate_type_counts = current.get("candidate_type_counts", {})
+            if not isinstance(candidate_type_counts, dict):
+                candidate_type_counts = {}
+            source_summary = {
+                "source": source,
+                "log_count": self._gate_int(current.get("log_count", 0)),
+                "ready_log_count": self._gate_int(current.get("ready_log_count", 0)),
+                "failed_action_count": self._gate_int(current.get("failed_action_count", 0)),
+                "blocked_plan_count": self._gate_int(current.get("blocked_plan_count", 0)),
+                "empty_plan_count": self._gate_int(current.get("empty_plan_count", 0)),
+                "candidate_count": self._gate_int(current.get("candidate_count", len(candidates))),
+                "high_confidence_candidate_count": high_confidence_count,
+                "candidate_type_counts": dict(sorted(candidate_type_counts.items())),
+            }
+            report["sources"].append(source_summary)
+            for key in ("log_count", "ready_log_count", "failed_action_count", "blocked_plan_count", "empty_plan_count", "candidate_count"):
+                report[key] += source_summary[key]
+            report["high_confidence_candidate_count"] += high_confidence_count
+            self._merge_counts(report["candidate_type_counts"], candidate_type_counts)
+            status = "pass" if source_summary["ready_log_count"] and source_summary["candidate_count"] else "warn"
+            detail = (
+                "task precondition report has reviewable hidden-prerequisite candidates"
+                if status == "pass"
+                else "task precondition report lacks ready logs or candidates"
+            )
+            report["checks"].append(self._gate_check(
+                source,
+                "task_precondition_report",
+                status,
+                detail,
+                source_summary,
+            ))
+
+        if report["ready_log_count"] < int(min_ready_logs):
+            report["missing"].append("ready_task_precondition_logs")
+        if report["candidate_count"] < int(min_candidates):
+            report["missing"].append("task_precondition_candidates")
+        if report["high_confidence_candidate_count"] < int(min_high_confidence_candidates):
+            report["missing"].append("high_confidence_task_precondition_candidates")
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "do_not_load_task_precondition_feedback"
+            report["reason"] = "task precondition inputs could not be loaded"
+        elif report["missing"]:
+            report["readiness"] = "review"
+            report["decision"] = "hold_task_precondition_feedback_for_review"
+            report["reason"] = "task precondition evidence is incomplete"
+            report["policy_hints"].append("collect_more_hidden_prerequisite_failures")
+        else:
+            report["readiness"] = "approved"
+            report["decision"] = "allow_reviewed_task_precondition_feedback"
+            report["reason"] = "reviewable hidden-prerequisite evidence is present"
+            report["policy_hints"].extend([
+                "load_task_precondition_feedback_with_gate",
+                "insert_missing_prerequisite_subtasks_before_replay",
+            ])
+            if report["candidate_type_counts"].get("tool_precondition"):
+                report["policy_hints"].append("prefer_tool_upgrade_prerequisites_before_mining")
+            if report["candidate_type_counts"].get("inventory_precondition"):
+                report["policy_hints"].append("prefer_inventory_prerequisites_before_crafting")
+        report["policy_hints"] = self._dedupe_strings(report["policy_hints"])
+        report["candidate_type_counts"] = dict(sorted(report["candidate_type_counts"].items()))
+        return report
+
     def _task_precondition_trace_case(self, source_log: str, events: list[dict]) -> dict:
         current_goal = ""
         last_observation = {}
@@ -18958,6 +19083,38 @@ class BenchmarkRunner:
                 f"  source {source.get('source')}: "
                 f"ready_logs={source.get('ready_log_count', 0)}, "
                 f"corrections={source.get('correction_count', 0)}"
+            )
+        for check in report.get("checks", [])[:10]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+
+    def print_task_precondition_gate_report(self, report: dict):
+        print("\nTask Precondition Gate")
+        print(f"  target: {report.get('target', 'planner_task_precondition_feedback')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  evidence: "
+            f"sources={report.get('source_count', 0)}, "
+            f"ready_logs={report.get('ready_log_count', 0)}/{report.get('log_count', 0)}, "
+            f"candidates={report.get('candidate_count', 0)}, "
+            f"high_confidence={report.get('high_confidence_candidate_count', 0)}"
+        )
+        if report.get("candidate_type_counts"):
+            print(f"  candidate types: {self._format_counts(report.get('candidate_type_counts', {}))}")
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', []))}")
+        for source in report.get("sources", [])[:8]:
+            print(
+                f"  source {source.get('source')}: "
+                f"ready_logs={source.get('ready_log_count', 0)}, "
+                f"candidates={source.get('candidate_count', 0)}, "
+                f"high_confidence={source.get('high_confidence_candidate_count', 0)}"
             )
         for check in report.get("checks", [])[:10]:
             marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"

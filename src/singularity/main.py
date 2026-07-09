@@ -342,6 +342,8 @@ def _runtime_profile_payload_from_args(args) -> dict:
         "world_model_gate_paths": getattr(args, "world_model_gate", []) or [],
         "knowledge_correction_feedback_paths": getattr(args, "knowledge_correction_feedback", []) or [],
         "knowledge_correction_gate_paths": getattr(args, "knowledge_correction_gate", []) or [],
+        "task_precondition_feedback_paths": getattr(args, "task_precondition_feedback", []) or [],
+        "task_precondition_gate_paths": getattr(args, "task_precondition_gate", []) or [],
         "plan_cache_paths": getattr(args, "plan_cache", []) or [],
         "plan_cache_gate_paths": getattr(args, "plan_cache_gate", []) or [],
         "action_value_feedback_paths": getattr(args, "action_value_feedback", []) or [],
@@ -403,6 +405,26 @@ def _add_knowledge_correction_args(parser):
         "--no-knowledge-correction-context",
         action="store_true",
         help="Disable gated knowledge-correction hints in planner context",
+    )
+
+
+def _add_task_precondition_args(parser):
+    parser.add_argument(
+        "--task-precondition-feedback",
+        action="append",
+        default=[],
+        help="task-precondition-report JSON to load as gated advisory hidden-prerequisite planner feedback",
+    )
+    parser.add_argument(
+        "--task-precondition-gate",
+        action="append",
+        default=[],
+        help="Approved task-precondition-gate JSON required before loading task-precondition feedback",
+    )
+    parser.add_argument(
+        "--no-task-precondition-context",
+        action="store_true",
+        help="Disable gated task-precondition hints in planner context",
     )
 
 
@@ -521,6 +543,7 @@ def main():
     _add_memory_attribution_runtime_args(run_parser)
     _add_plan_cache_runtime_args(run_parser)
     _add_knowledge_correction_args(run_parser)
+    _add_task_precondition_args(run_parser)
     run_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     run_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
     run_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
@@ -561,6 +584,7 @@ def main():
     _add_memory_attribution_runtime_args(auto_parser)
     _add_plan_cache_runtime_args(auto_parser)
     _add_knowledge_correction_args(auto_parser)
+    _add_task_precondition_args(auto_parser)
     auto_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     auto_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
     auto_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
@@ -600,6 +624,7 @@ def main():
     _add_memory_attribution_runtime_args(bench_parser)
     _add_plan_cache_runtime_args(bench_parser)
     _add_knowledge_correction_args(bench_parser)
+    _add_task_precondition_args(bench_parser)
     bench_parser.add_argument("--knowledge-correction-preflight", action="store_true", help="Run approved gate and suite-coverage preflight before knowledge-correction-assisted benchmarks")
     bench_parser.add_argument("--knowledge-correction-preflight-output", type=str, default="", help="Optional JSON path for the knowledge-correction benchmark preflight report")
     bench_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
@@ -841,6 +866,19 @@ def main():
     task_precondition_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     task_precondition_parser.add_argument("--log-level", type=str, default="INFO")
 
+    task_precondition_gate_parser = subparsers.add_parser(
+        "task-precondition-gate",
+        help="Gate task-precondition reports before planner/runtime use",
+    )
+    task_precondition_gate_parser.add_argument("--task-precondition-report", action="append", default=[], help="Saved task-precondition-report JSON")
+    task_precondition_gate_parser.add_argument("--target", type=str, default="planner_task_precondition_feedback", help="Gate target label")
+    task_precondition_gate_parser.add_argument("--min-ready-logs", type=int, default=1, help="Minimum ready logs required")
+    task_precondition_gate_parser.add_argument("--min-candidates", type=int, default=1, help="Minimum task-precondition candidates required")
+    task_precondition_gate_parser.add_argument("--min-high-confidence-candidates", type=int, default=0, help="Minimum candidates above --min-confidence")
+    task_precondition_gate_parser.add_argument("--min-confidence", type=float, default=0.55, help="Confidence threshold for high-confidence candidates")
+    task_precondition_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    task_precondition_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline bounded planner context report
     bounded_context_parser = subparsers.add_parser("bounded-context-report", help="Audit bounded typed retrieval context before planner calls")
     bounded_context_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -1048,6 +1086,7 @@ def main():
     _add_memory_attribution_runtime_args(collab_parser)
     _add_plan_cache_runtime_args(collab_parser)
     _add_knowledge_correction_args(collab_parser)
+    _add_task_precondition_args(collab_parser)
     collab_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     collab_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
     collab_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
@@ -1192,6 +1231,8 @@ def main():
     runtime_profile_build_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model gate JSON")
     runtime_profile_build_parser.add_argument("--knowledge-correction-feedback", action="append", default=[], help="knowledge-correction feedback JSON")
     runtime_profile_build_parser.add_argument("--knowledge-correction-gate", action="append", default=[], help="Approved knowledge-correction gate JSON")
+    runtime_profile_build_parser.add_argument("--task-precondition-feedback", action="append", default=[], help="task-precondition feedback JSON")
+    runtime_profile_build_parser.add_argument("--task-precondition-gate", action="append", default=[], help="Approved task-precondition gate JSON")
     runtime_profile_build_parser.add_argument("--plan-cache", action="append", default=[], help="Approved plan-transition-cache report JSON")
     runtime_profile_build_parser.add_argument("--plan-cache-gate", action="append", default=[], help="Approved plan-cache gate JSON")
     runtime_profile_build_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value feedback JSON")
@@ -2324,6 +2365,34 @@ def main():
             print(f"\nReport saved to {args.output}")
         return
 
+    if args.command == "task-precondition-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        report_paths = getattr(args, "task_precondition_report", []) or []
+        if not report_paths:
+            print("task-precondition-gate requires at least one --task-precondition-report")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.build_task_precondition_gate(
+            task_precondition_report_paths=report_paths,
+            target=getattr(args, "target", "planner_task_precondition_feedback"),
+            min_ready_logs=getattr(args, "min_ready_logs", 1),
+            min_candidates=getattr(args, "min_candidates", 1),
+            min_high_confidence_candidates=getattr(args, "min_high_confidence_candidates", 0),
+            min_confidence=getattr(args, "min_confidence", 0.55),
+        )
+        runner.print_task_precondition_gate_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") != "approved":
+            sys.exit(2)
+        return
+
     if args.command == "bounded-context-report":
         from dataclasses import asdict
         from singularity.evaluation.benchmark_runner import BenchmarkRunner
@@ -3059,6 +3128,9 @@ def main():
                     enable_knowledge_correction_context=not getattr(args, "no_knowledge_correction_context", False),
                     knowledge_correction_feedback_paths=merge_arg_profile_list(args, "knowledge_correction_feedback", runtime_profiles, "knowledge_correction_feedback_paths"),
                     knowledge_correction_gate_paths=merge_arg_profile_list(args, "knowledge_correction_gate", runtime_profiles, "knowledge_correction_gate_paths"),
+                    enable_task_precondition_context=not getattr(args, "no_task_precondition_context", False),
+                    task_precondition_feedback_paths=merge_arg_profile_list(args, "task_precondition_feedback", runtime_profiles, "task_precondition_feedback_paths"),
+                    task_precondition_gate_paths=merge_arg_profile_list(args, "task_precondition_gate", runtime_profiles, "task_precondition_gate_paths"),
                     action_value_feedback_paths=merge_arg_profile_list(args, "action_value_feedback", runtime_profiles, "action_value_feedback_paths"),
                     action_value_transition_gate_paths=merge_arg_profile_list(args, "action_value_transition_gate", runtime_profiles, "action_value_transition_gate_paths"),
                     action_value_transition_evaluator_report_paths=merge_arg_profile_list(args, "action_value_transition_evaluator_report", runtime_profiles, "action_value_transition_evaluator_report_paths"),
@@ -4955,6 +5027,9 @@ def main():
         enable_knowledge_correction_context=not getattr(args, "no_knowledge_correction_context", False),
         knowledge_correction_feedback_paths=merge_arg_profile_list(args, "knowledge_correction_feedback", runtime_profiles, "knowledge_correction_feedback_paths"),
         knowledge_correction_gate_paths=merge_arg_profile_list(args, "knowledge_correction_gate", runtime_profiles, "knowledge_correction_gate_paths"),
+        enable_task_precondition_context=not getattr(args, "no_task_precondition_context", False),
+        task_precondition_feedback_paths=merge_arg_profile_list(args, "task_precondition_feedback", runtime_profiles, "task_precondition_feedback_paths"),
+        task_precondition_gate_paths=merge_arg_profile_list(args, "task_precondition_gate", runtime_profiles, "task_precondition_gate_paths"),
         action_value_feedback_paths=merge_arg_profile_list(args, "action_value_feedback", runtime_profiles, "action_value_feedback_paths"),
         action_value_transition_gate_paths=merge_arg_profile_list(args, "action_value_transition_gate", runtime_profiles, "action_value_transition_gate_paths"),
         action_value_transition_evaluator_report_paths=merge_arg_profile_list(args, "action_value_transition_evaluator_report", runtime_profiles, "action_value_transition_evaluator_report_paths"),
