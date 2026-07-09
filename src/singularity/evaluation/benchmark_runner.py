@@ -1319,6 +1319,12 @@ class ActionValueTraceCase:
     high_value_items: list[dict] = field(default_factory=list)
     low_value_items: list[dict] = field(default_factory=list)
     failure_correction_pairs: list[dict] = field(default_factory=list)
+    state_transition_count: int = 0
+    positive_transition_count: int = 0
+    negative_transition_count: int = 0
+    no_progress_transition_count: int = 0
+    low_confidence_transition_count: int = 0
+    state_transition_items: list[dict] = field(default_factory=list)
     ready_for_action_value_review: bool = False
 
 
@@ -1358,6 +1364,26 @@ class ActionValueTraceReport:
     @property
     def failure_correction_pair_count(self) -> int:
         return sum(len(case.failure_correction_pairs) for case in self.cases)
+
+    @property
+    def state_transition_count(self) -> int:
+        return sum(case.state_transition_count for case in self.cases)
+
+    @property
+    def positive_transition_count(self) -> int:
+        return sum(case.positive_transition_count for case in self.cases)
+
+    @property
+    def negative_transition_count(self) -> int:
+        return sum(case.negative_transition_count for case in self.cases)
+
+    @property
+    def no_progress_transition_count(self) -> int:
+        return sum(case.no_progress_transition_count for case in self.cases)
+
+    @property
+    def low_confidence_transition_count(self) -> int:
+        return sum(case.low_confidence_transition_count for case in self.cases)
 
     @property
     def success_rate(self) -> float:
@@ -3887,8 +3913,17 @@ class BenchmarkRunner:
     def action_value_feedback(self, report: ActionValueTraceReport) -> dict:
         """Convert action outcome profiles into reusable candidate scoring feedback."""
         items = self._aggregate_action_value_items(report)
+        transition_items = self._aggregate_action_state_transition_items(report)
         high_value = [item for item in items if item.get("attempts", 0) >= 2 and item.get("value_score", 0) >= 0.7]
         low_value = [item for item in items if item.get("attempts", 0) >= 2 and item.get("value_score", 1) <= 0.35]
+        positive_transitions = [
+            item for item in transition_items
+            if item.get("attempts", 0) >= 1 and item.get("avg_state_value_delta", 0) > 0.05
+        ]
+        negative_transitions = [
+            item for item in transition_items
+            if item.get("attempts", 0) >= 1 and item.get("avg_state_value_delta", 0) < -0.05
+        ]
         policy_hints = []
         if high_value:
             policy_hints.append({
@@ -3911,6 +3946,13 @@ class BenchmarkRunner:
                 "reason": "failed actions followed by successful recovery actions can seed future repair candidates",
                 "count": report.failure_correction_pair_count,
             })
+        if transition_items:
+            policy_hints.append({
+                "action_value_policy": "score_actions_by_state_transition_value",
+                "priority": "high" if negative_transitions or report.no_progress_transition_count else "medium",
+                "reason": "before/after observations expose whether accepted actions actually improved world state",
+                "count": len(transition_items),
+            })
         return {
             "log_count": report.log_count,
             "ready_log_count": report.ready_log_count,
@@ -3922,12 +3964,20 @@ class BenchmarkRunner:
             "success_rate": report.success_rate,
             "failure_rate": report.failure_rate,
             "failure_correction_pair_count": report.failure_correction_pair_count,
+            "state_transition_count": report.state_transition_count,
+            "positive_transition_count": report.positive_transition_count,
+            "negative_transition_count": report.negative_transition_count,
+            "no_progress_transition_count": report.no_progress_transition_count,
+            "low_confidence_transition_count": report.low_confidence_transition_count,
             "action_value_items": items,
             "high_value_items": high_value[:20],
             "low_value_items": low_value[:20],
             "failure_correction_pairs": [
                 pair for case in report.cases for pair in case.failure_correction_pairs
             ][:40],
+            "state_transition_value_items": transition_items,
+            "positive_state_transition_items": positive_transitions[:20],
+            "negative_state_transition_items": negative_transitions[:20],
             "policy_hints": policy_hints,
         }
 
@@ -6746,11 +6796,35 @@ class BenchmarkRunner:
         unknown_count = 0
         failure_pairs = []
         pending_failure = None
+        pending_transitions = []
+        latest_observation = None
+        latest_observation_index = -1
+        state_transition_items = []
 
         for index, event in enumerate(events):
             event_type = str(event.get("type") or "")
             data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
-            if event_type == "goal_start":
+            if event_type == "observation":
+                if pending_transitions:
+                    shared_after = len(pending_transitions) > 1
+                    for pending in pending_transitions:
+                        state_transition_items.append(self._action_state_transition_item(
+                            source_log=source_log,
+                            event_index=pending["event_index"],
+                            before_observation_index=pending.get("before_observation_index", -1),
+                            after_observation_index=index,
+                            observation_gap=index - pending["event_index"],
+                            goal=pending.get("goal", ""),
+                            action=pending.get("action", {}),
+                            result=pending.get("result", {}),
+                            before_observation=pending.get("before_observation", {}),
+                            after_observation=data,
+                            shared_after_observation=shared_after,
+                        ))
+                    pending_transitions = []
+                latest_observation = data
+                latest_observation_index = index
+            elif event_type == "goal_start":
                 current_goal = str(data.get("goal") or current_goal)
                 goal_count += 1
             elif event_type == "action":
@@ -6785,10 +6859,51 @@ class BenchmarkRunner:
                     }
                 else:
                     unknown_count += 1
+                before_observation = (
+                    self._action_embedded_observation(data, result, before=True)
+                    or latest_observation
+                    or {}
+                )
+                after_observation = self._action_embedded_observation(data, result, before=False)
+                if before_observation and after_observation:
+                    state_transition_items.append(self._action_state_transition_item(
+                        source_log=source_log,
+                        event_index=index,
+                        before_observation_index=latest_observation_index,
+                        after_observation_index=index,
+                        observation_gap=0,
+                        goal=current_goal,
+                        action=action,
+                        result=result,
+                        before_observation=before_observation,
+                        after_observation=after_observation,
+                        shared_after_observation=False,
+                    ))
+                elif before_observation:
+                    pending_transitions.append({
+                        "event_index": index,
+                        "before_observation_index": latest_observation_index,
+                        "goal": current_goal,
+                        "action": action,
+                        "result": result,
+                        "before_observation": before_observation,
+                    })
 
         feedback = profile.as_feedback(limit=1000)
         high_value = profile.high_value_items()
         low_value = profile.low_value_items()
+        positive_transitions = sum(
+            1 for item in state_transition_items if item.get("transition_label") == "positive"
+        )
+        negative_transitions = sum(
+            1 for item in state_transition_items if item.get("transition_label") == "negative"
+        )
+        no_progress_transitions = sum(
+            1 for item in state_transition_items if item.get("transition_label") == "no_progress"
+        )
+        low_confidence_transitions = sum(
+            1 for item in state_transition_items if self._safe_float(item.get("transition_confidence"), 1.0) < 0.75
+        )
         return ActionValueTraceCase(
             source_log=source_log,
             event_count=len(events),
@@ -6804,6 +6919,12 @@ class BenchmarkRunner:
             high_value_items=high_value[:limit],
             low_value_items=low_value[:limit],
             failure_correction_pairs=failure_pairs,
+            state_transition_count=len(state_transition_items),
+            positive_transition_count=positive_transitions,
+            negative_transition_count=negative_transitions,
+            no_progress_transition_count=no_progress_transitions,
+            low_confidence_transition_count=low_confidence_transitions,
+            state_transition_items=state_transition_items[:200],
             ready_for_action_value_review=bool(action_count),
         )
 
@@ -6832,6 +6953,289 @@ class BenchmarkRunner:
                     stats.task_families[str(family)] = stats.task_families.get(str(family), 0) + self._small_int(count)
         items = [stats.as_dict() for stats in aggregate.values()]
         return sorted(items, key=lambda item: (-item["attempts"], item["signature"]))
+
+    def _aggregate_action_state_transition_items(self, report: ActionValueTraceReport) -> list[dict]:
+        aggregate = {}
+        for case in report.cases:
+            for item in case.state_transition_items:
+                signature = str(item.get("signature") or "")
+                if not signature:
+                    continue
+                record = aggregate.get(signature)
+                if record is None:
+                    record = {
+                        "signature": signature,
+                        "action_type": str(item.get("action_type") or "unknown"),
+                        "attempts": 0,
+                        "successes": 0,
+                        "failures": 0,
+                        "positive_transitions": 0,
+                        "negative_transitions": 0,
+                        "no_progress_transitions": 0,
+                        "state_value_delta_sum": 0.0,
+                        "transition_value_score_sum": 0.0,
+                        "movement_distance_sum": 0.0,
+                        "transition_confidence_sum": 0.0,
+                        "low_confidence_transitions": 0,
+                        "inventory_gain_count": 0,
+                        "inventory_loss_count": 0,
+                        "new_resource_count": 0,
+                        "source_logs": set(),
+                        "examples": [],
+                    }
+                    aggregate[signature] = record
+                record["attempts"] += 1
+                if item.get("success") is True:
+                    record["successes"] += 1
+                elif item.get("success") is False:
+                    record["failures"] += 1
+                label = str(item.get("transition_label") or "")
+                if label == "positive":
+                    record["positive_transitions"] += 1
+                elif label == "negative":
+                    record["negative_transitions"] += 1
+                else:
+                    record["no_progress_transitions"] += 1
+                record["state_value_delta_sum"] += self._safe_float(item.get("state_value_delta"), 0.0)
+                record["transition_value_score_sum"] += self._safe_float(item.get("transition_value_score"), 0.5)
+                record["movement_distance_sum"] += self._safe_float(item.get("movement_distance"), 0.0)
+                confidence = self._safe_float(item.get("transition_confidence"), 1.0)
+                record["transition_confidence_sum"] += confidence
+                if confidence < 0.75:
+                    record["low_confidence_transitions"] += 1
+                record["inventory_gain_count"] += len(item.get("gained_items", []) if isinstance(item.get("gained_items", []), list) else [])
+                record["inventory_loss_count"] += len(item.get("lost_items", []) if isinstance(item.get("lost_items", []), list) else [])
+                record["new_resource_count"] += len(item.get("new_resources", []) if isinstance(item.get("new_resources", []), list) else [])
+                source = str(item.get("source_log") or "")
+                if source:
+                    record["source_logs"].add(source)
+                if len(record["examples"]) < 3:
+                    record["examples"].append(item)
+
+        items = []
+        for record in aggregate.values():
+            attempts = max(1, record["attempts"])
+            items.append({
+                "signature": record["signature"],
+                "action_type": record["action_type"],
+                "attempts": record["attempts"],
+                "successes": record["successes"],
+                "failures": record["failures"],
+                "positive_transitions": record["positive_transitions"],
+                "negative_transitions": record["negative_transitions"],
+                "no_progress_transitions": record["no_progress_transitions"],
+                "positive_transition_rate": round(record["positive_transitions"] / attempts, 3),
+                "negative_transition_rate": round(record["negative_transitions"] / attempts, 3),
+                "no_progress_transition_rate": round(record["no_progress_transitions"] / attempts, 3),
+                "avg_state_value_delta": round(record["state_value_delta_sum"] / attempts, 3),
+                "avg_transition_value_score": round(record["transition_value_score_sum"] / attempts, 3),
+                "avg_movement_distance": round(record["movement_distance_sum"] / attempts, 3),
+                "avg_transition_confidence": round(record["transition_confidence_sum"] / attempts, 3),
+                "low_confidence_transitions": record["low_confidence_transitions"],
+                "inventory_gain_count": record["inventory_gain_count"],
+                "inventory_loss_count": record["inventory_loss_count"],
+                "new_resource_count": record["new_resource_count"],
+                "source_logs": sorted(record["source_logs"])[:8],
+                "examples": record["examples"],
+            })
+        return sorted(items, key=lambda item: (-item["attempts"], item["signature"]))
+
+    def _action_embedded_observation(self, action_data: dict, result: dict, before: bool) -> dict:
+        key_groups = (
+            ("before_observation", "pre_observation", "observation_before", "state_before", "world_state_before", "before")
+            if before else
+            ("after_observation", "post_observation", "observation_after", "state_after", "world_state_after", "after")
+        )
+        containers = [action_data, result]
+        for container in (action_data, result):
+            if isinstance(container, dict):
+                for nested_key in ("evidence", "metadata", "trace", "observation"):
+                    nested = container.get(nested_key)
+                    if isinstance(nested, dict):
+                        containers.append(nested)
+        for container in containers:
+            if not isinstance(container, dict):
+                continue
+            for key in key_groups:
+                value = container.get(key)
+                if isinstance(value, dict) and self._observation_like(value):
+                    return value
+            inventory_key = "before_inventory" if before else "after_inventory"
+            inventory = container.get(inventory_key)
+            if isinstance(inventory, dict):
+                return {"inventory": inventory}
+        return {}
+
+    def _observation_like(self, record: dict) -> bool:
+        if not isinstance(record, dict):
+            return False
+        return any(
+            key in record
+            for key in (
+                "inventory",
+                "position",
+                "health",
+                "nearby_blocks",
+                "blocks",
+                "visible_blocks",
+                "grounded_resources",
+                "visual_resources",
+                "resources",
+                "nearby_entities",
+                "entities",
+                "dangers",
+            )
+        )
+
+    def _action_state_transition_item(
+        self,
+        source_log: str,
+        event_index: int,
+        before_observation_index: int,
+        after_observation_index: int,
+        observation_gap: int,
+        goal: str,
+        action: dict,
+        result: dict,
+        before_observation: dict,
+        after_observation: dict,
+        shared_after_observation: bool = False,
+    ) -> dict:
+        from singularity.action.value import action_signature, task_family_from_goal
+
+        action = action if isinstance(action, dict) else {}
+        result = result if isinstance(result, dict) else {}
+        before_observation = before_observation if isinstance(before_observation, dict) else {}
+        after_observation = after_observation if isinstance(after_observation, dict) else {}
+        signature = action_signature(action)
+        action_type = str(action.get("type") or result.get("action_type") or "unknown").strip() or "unknown"
+        before_inventory = self._inventory_counts(before_observation.get("inventory", {}))
+        after_inventory = self._inventory_counts(after_observation.get("inventory", {}))
+        inventory_delta = {}
+        gained_items = []
+        lost_items = []
+        for item in sorted(set(before_inventory) | set(after_inventory)):
+            delta = after_inventory.get(item, 0.0) - before_inventory.get(item, 0.0)
+            if abs(delta) <= 0.0001:
+                continue
+            inventory_delta[item] = round(delta, 3)
+            if delta > 0:
+                gained_items.append(item)
+            else:
+                lost_items.append(item)
+
+        before_position = self._position_tuple(before_observation.get("position"))
+        after_position = self._position_tuple(after_observation.get("position"))
+        movement_distance = (
+            self._path_distance([before_position, after_position])
+            if before_position is not None and after_position is not None else 0.0
+        )
+        before_health = self._safe_float(before_observation.get("health"), 20.0)
+        after_health = self._safe_float(after_observation.get("health"), before_health)
+        health_delta = after_health - before_health
+
+        before_blocks = self._named_items_from_record(before_observation, ["nearby_blocks", "blocks", "visible_blocks"])
+        after_blocks = self._named_items_from_record(after_observation, ["nearby_blocks", "blocks", "visible_blocks"])
+        before_resources = self._named_items_from_record(before_observation, ["grounded_resources", "visual_resources", "resources"])
+        after_resources = self._named_items_from_record(after_observation, ["grounded_resources", "visual_resources", "resources"])
+        new_blocks = sorted(after_blocks - before_blocks)
+        new_resources = sorted(after_resources - before_resources)
+
+        before_hostiles = len([entity for entity in self._entity_items_from_record(before_observation) if self._is_hostile_entity(entity)])
+        after_hostiles = len([entity for entity in self._entity_items_from_record(after_observation) if self._is_hostile_entity(entity)])
+        hostile_delta = after_hostiles - before_hostiles
+
+        before_state_value = self._absolute_progress_score(before_observation)
+        after_state_value = self._absolute_progress_score(after_observation)
+        absolute_state_delta = after_state_value - before_state_value
+        state_value_delta = absolute_state_delta
+        if movement_distance > 0.75:
+            state_value_delta += min(0.25, movement_distance / 32.0)
+        if new_resources:
+            state_value_delta += min(0.25, len(new_resources) * 0.08)
+        if new_blocks and action_type in {"look_at", "move_to", "walk_to", "wait"}:
+            state_value_delta += min(0.15, len(new_blocks) * 0.04)
+        if hostile_delta > 0:
+            state_value_delta -= min(0.3, hostile_delta * 0.1)
+        success = self._event_success(result)
+        if success is False:
+            state_value_delta -= 0.15
+        transition_confidence = 1.0
+        if shared_after_observation:
+            transition_confidence = min(transition_confidence, 0.5)
+        if observation_gap > 2:
+            transition_confidence = min(transition_confidence, 0.75)
+        if observation_gap > 6:
+            transition_confidence = min(transition_confidence, 0.5)
+        if before_observation_index < 0 or after_observation_index < 0:
+            transition_confidence = min(transition_confidence, 0.75)
+        state_value_delta *= transition_confidence
+
+        inventory_changed = bool(inventory_delta)
+        visible_changed = bool(new_blocks or new_resources)
+        health_changed = abs(health_delta) > 0.01
+        moved = movement_distance > 0.25
+        if state_value_delta > 0.05:
+            transition_label = "positive"
+        elif state_value_delta < -0.05:
+            transition_label = "negative"
+        elif not any((inventory_changed, visible_changed, health_changed, moved)):
+            transition_label = "no_progress"
+        else:
+            transition_label = "no_progress"
+
+        reasons = []
+        if gained_items:
+            reasons.append(f"inventory_gain:{','.join(gained_items[:4])}")
+        if lost_items:
+            reasons.append(f"inventory_loss:{','.join(lost_items[:4])}")
+        if movement_distance > 0.75:
+            reasons.append(f"movement:{movement_distance:.1f}")
+        if new_resources:
+            reasons.append(f"resource_discovery:{','.join(new_resources[:4])}")
+        if health_delta < -0.01:
+            reasons.append(f"health_loss:{abs(health_delta):.1f}")
+        if hostile_delta > 0:
+            reasons.append(f"new_hostiles:{hostile_delta}")
+        if success is False:
+            reasons.append("action_failed")
+        if shared_after_observation:
+            reasons.append("shared_observation_window")
+        if observation_gap > 2:
+            reasons.append(f"wide_observation_gap:{observation_gap}")
+        if not reasons:
+            reasons.append("no_observed_state_delta")
+
+        return {
+            "source_log": source_log,
+            "event_index": event_index,
+            "before_observation_index": before_observation_index,
+            "after_observation_index": after_observation_index,
+            "observation_gap": observation_gap,
+            "shared_after_observation": bool(shared_after_observation),
+            "goal": str(goal or ""),
+            "task_family": task_family_from_goal(goal),
+            "signature": signature,
+            "action_type": action_type,
+            "action": action,
+            "success": success,
+            "before_state_value": round(before_state_value, 3),
+            "after_state_value": round(after_state_value, 3),
+            "absolute_state_delta": round(absolute_state_delta, 3),
+            "state_value_delta": round(state_value_delta, 3),
+            "transition_value_score": round(max(0.0, min(1.0, 0.5 + state_value_delta / 2.0)), 3),
+            "transition_confidence": round(transition_confidence, 3),
+            "transition_label": transition_label,
+            "inventory_delta": inventory_delta,
+            "gained_items": gained_items[:8],
+            "lost_items": lost_items[:8],
+            "movement_distance": round(movement_distance, 3),
+            "health_delta": round(health_delta, 3),
+            "new_blocks": new_blocks[:8],
+            "new_resources": new_resources[:8],
+            "hostile_delta": hostile_delta,
+            "reasons": reasons[:8],
+        }
 
     def _self_evolution_trace_case(self, source_log: str, events: list[dict]) -> SelfEvolutionTraceCase:
         observations = [
@@ -10608,6 +11012,12 @@ class BenchmarkRunner:
             f"success_rate={report.success_rate:.3f}, failure_rate={report.failure_rate:.3f}, "
             f"failure_corrections={report.failure_correction_pair_count}"
         )
+        print(
+            "  transitions: "
+            f"total={report.state_transition_count}, positive={report.positive_transition_count}, "
+            f"negative={report.negative_transition_count}, no_progress={report.no_progress_transition_count}, "
+            f"low_confidence={report.low_confidence_transition_count}"
+        )
         feedback = self.action_value_feedback(report)
         if feedback["policy_hints"]:
             hints = [
@@ -10621,13 +11031,21 @@ class BenchmarkRunner:
                 f"score={item.get('value_score')}, attempts={item.get('attempts')}, "
                 f"success={item.get('successes')}, failure={item.get('failures')}"
             )
+        for item in feedback["state_transition_value_items"][:6]:
+            print(
+                f"  transition {item.get('signature')}: "
+                f"delta={item.get('avg_state_value_delta')}, score={item.get('avg_transition_value_score')}, "
+                f"conf={item.get('avg_transition_confidence')}, "
+                f"+/{item.get('positive_transitions')} -/{item.get('negative_transitions')} "
+                f"~/{item.get('no_progress_transitions')}"
+            )
         for case in report.cases:
             marker = "+" if case.ready_for_action_value_review else "~"
             print(f"  [{marker}] {case.source_log}")
             print(
                 f"      actions={case.action_count}, success={case.success_count}, "
                 f"failure={case.failure_count}, signatures={case.signature_count}, "
-                f"pairs={len(case.failure_correction_pairs)}"
+                f"pairs={len(case.failure_correction_pairs)}, transitions={case.state_transition_count}"
             )
             for pair in case.failure_correction_pairs[:3]:
                 print(

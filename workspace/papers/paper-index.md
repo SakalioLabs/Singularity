@@ -1202,7 +1202,7 @@
 - **Memory**: Step-value traces that can feed action-value memory, repair candidate ranking, and future state-delta skill promotion
 - **Key Results**: Argues final-answer scores hide helpful and harmful intermediate transitions, and introduces ASV as a replayable measurement framework
 - **Scores**: R=5, N=5, R=4, E=5
-- **Value to Project**: Motivates extending `action-value-report` from result success rates to bounded Minecraft before/after state-transition value labels
+- **Value to Project**: Motivates the new `state_transition_value_items` in `action-value-report`, extending result success rates with bounded Minecraft before/after state-transition labels
 - **Reproduction Priority**: P1
 - **Card**: `2026-07-09-agent-step-value.md`
 

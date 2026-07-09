@@ -17,5 +17,6 @@
 **Singularity Adaptation**:
   - Current `action-value-report` is the non-parametric staging layer: it aggregates action signatures, outcomes, verifier statuses, task families, and failure-correction pairs.
   - `ActionValueProfile` can reload those pairs into `ActionCandidateSelector` as conservative `value_repair` candidates.
-  - The next refinement is ASV-style before/after state-transition scoring so high-value feedback is based on progress, not only result success.
-**Next Action**: Add state-delta value labels to `action-value-report` using pre/post observation windows and `GoalVerifier`-style bounded checks.
+  - `action-value-report` now emits deterministic ASV-style `state_transition_value_items` when session logs contain before/after observations, labeling positive, negative, and no-progress transitions from inventory, movement, visible-resource, health, and danger deltas.
+  - The current M1 baseline marks all transition windows as low-confidence because old logs often share one after-observation across multiple actions; this is useful audit evidence, not yet a runtime policy update signal.
+**Next Action**: Run the transition-value report on richer live M1/M2 logs, then compare deterministic deltas against a state-grounded LLM evaluator before allowing transition scores to directly update runtime action ranking.

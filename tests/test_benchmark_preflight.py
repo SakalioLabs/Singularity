@@ -1701,12 +1701,19 @@ def test_action_value_report_aggregates_outcome_profiles():
     session_path = os.path.join(tmpdir, "action_value_session.jsonl")
     events = [
         {"type": "goal_start", "data": {"goal": "Craft torches"}},
+        {"type": "observation", "data": {"position": {"x": 0, "y": 64, "z": 0}, "health": 20, "inventory": {}, "nearby_blocks": [{"name": "coal_ore"}]}},
         {"type": "action", "data": {"action": {"type": "craft", "parameters": {"item": "torch"}}, "result": {"success": False, "error": "Missing coal"}}},
+        {"type": "observation", "data": {"position": {"x": 0, "y": 64, "z": 0}, "health": 20, "inventory": {}, "nearby_blocks": [{"name": "coal_ore"}]}},
         {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "coal_ore"}}, "result": {"success": True}}},
+        {"type": "observation", "data": {"position": {"x": 0, "y": 64, "z": 0}, "health": 20, "inventory": {"coal": 1}, "nearby_blocks": [{"name": "coal_ore"}]}},
         {"type": "action", "data": {"action": {"type": "craft", "parameters": {"item": "torch"}}, "result": {"success": False, "error": "Missing coal"}}},
+        {"type": "observation", "data": {"position": {"x": 0, "y": 64, "z": 0}, "health": 20, "inventory": {"coal": 1}, "nearby_blocks": [{"name": "coal_ore"}]}},
         {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "coal_ore"}}, "result": {"success": True}}},
+        {"type": "observation", "data": {"position": {"x": 0, "y": 64, "z": 0}, "health": 20, "inventory": {"coal": 2}, "nearby_blocks": [{"name": "coal_ore"}]}},
         {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "coal_ore"}}, "result": {"success": True}}},
+        {"type": "observation", "data": {"position": {"x": 0, "y": 64, "z": 0}, "health": 20, "inventory": {"coal": 3}, "nearby_blocks": [{"name": "coal_ore"}]}},
         {"type": "action", "data": {"action": {"type": "dig", "parameters": {"block": "coal_ore"}}, "result": {"success": True}}},
+        {"type": "observation", "data": {"position": {"x": 0, "y": 64, "z": 0}, "health": 20, "inventory": {"coal": 4}, "nearby_blocks": [{"name": "coal_ore"}]}},
     ]
     with open(session_path, "w", encoding="utf-8") as f:
         for event in events:
@@ -1716,6 +1723,7 @@ def test_action_value_report_aggregates_outcome_profiles():
     report = runner.run_action_value_report_from_logs([session_path])
     feedback = runner.action_value_feedback(report)
     items = {item["signature"]: item for item in feedback["action_value_items"]}
+    transition_items = {item["signature"]: item for item in feedback["state_transition_value_items"]}
     policies = {hint["action_value_policy"] for hint in feedback["policy_hints"]}
 
     assert report.ready_log_count == 1
@@ -1723,12 +1731,20 @@ def test_action_value_report_aggregates_outcome_profiles():
     assert report.success_count == 4
     assert report.failure_count == 2
     assert report.failure_correction_pair_count == 2
+    assert report.state_transition_count == 6
+    assert report.positive_transition_count == 4
+    assert report.negative_transition_count == 2
     assert feedback["failure_correction_pairs"][0]["source_log"] == session_path
+    assert feedback["state_transition_count"] == 6
     assert items["dig:coal_ore"]["attempts"] == 4
     assert items["dig:coal_ore"]["value_score"] >= 0.7
     assert items["craft:torch"]["failures"] == 2
+    assert transition_items["dig:coal_ore"]["positive_transitions"] == 4
+    assert transition_items["dig:coal_ore"]["avg_state_value_delta"] > 0
+    assert transition_items["craft:torch"]["negative_transitions"] == 2
     assert "prefer_high_value_action_signatures" in policies
     assert "mine_failure_correction_pairs_for_repair_candidates" in policies
+    assert "score_actions_by_state_transition_value" in policies
     print("PASS: Action value report aggregates outcome profiles and repair pairs")
 
 
