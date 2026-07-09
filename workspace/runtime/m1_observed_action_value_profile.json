@@ -1,0 +1,10 @@
+{
+  "type": "runtime_profile",
+  "name": "m1_observed_action_value",
+  "description": "M1 observed action-value feedback from 2026-07-09 offline session logs",
+  "artifacts": {
+    "action_value_feedback": [
+      "logs/benchmarks/action_value_m1_2026-07-09.json"
+    ]
+  }
+}

@@ -187,6 +187,38 @@ def test_runtime_profile_security_audit_accepts_safe_artifact():
     print("PASS: Runtime profile security audit accepts safe artifact")
 
 
+def test_runtime_profile_security_audit_accepts_realistic_large_artifact():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = os.path.join(tmpdir, "large_action_value.json")
+    profile_path = os.path.join(tmpdir, "runtime_profile.json")
+    large_notes = "safe action outcome evidence " * 10000
+    _write_json(feedback_path, {
+        "type": "action_value_report",
+        "action_value_feedback": {
+            "action_value_items": [
+                {
+                    "signature": "move_to:navigation",
+                    "value_score": 0.8,
+                    "notes": large_notes,
+                }
+            ],
+        },
+    })
+    _write_json(profile_path, {
+        "type": "runtime_profile",
+        "artifacts": {
+            "action_value_feedback": [feedback_path],
+        },
+    })
+
+    assert os.path.getsize(feedback_path) > 200000
+    report = build_runtime_profile_security_audit([profile_path])
+    assert report["readiness"] == "approved"
+    assert report["scanned_path_count"] == 1
+    assert report["finding_count"] == 0
+    print("PASS: Runtime profile security audit accepts realistic large artifact")
+
+
 def test_runtime_profile_security_audit_rejects_promptware_artifact():
     tmpdir = tempfile.mkdtemp()
     feedback_path = os.path.join(tmpdir, "poisoned_correction.json")
@@ -278,6 +310,7 @@ if __name__ == "__main__":
     test_runtime_profile_rejects_rejected_gate()
     test_runtime_profile_builder_groups_gates_and_artifacts()
     test_runtime_profile_security_audit_accepts_safe_artifact()
+    test_runtime_profile_security_audit_accepts_realistic_large_artifact()
     test_runtime_profile_security_audit_rejects_promptware_artifact()
     test_runtime_profile_security_audit_rejects_when_findings_truncated()
     test_runtime_profile_security_audit_errors_on_missing_artifact()

@@ -1,0 +1,22 @@
+{
+  "type": "runtime_profile_validation",
+  "readiness": "approved",
+  "decision": "allow_runtime_profile",
+  "reason": "runtime profile gates and artifact paths are ready",
+  "profile_paths": [
+    "workspace/runtime/m1_observed_action_value_profile.json"
+  ],
+  "profile_count": 1,
+  "gate_count": 0,
+  "approved_gate_count": 0,
+  "artifact_count": 1,
+  "artifact_paths": {
+    "action_value_feedback_paths": [
+      "logs/benchmarks/action_value_m1_2026-07-09.json"
+    ]
+  },
+  "gate_reports": [],
+  "settings": {},
+  "missing": [],
+  "errors": []
+}

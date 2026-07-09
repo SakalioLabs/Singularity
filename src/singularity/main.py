@@ -7,6 +7,7 @@ import os
 
 from singularity.core.config import Config, BotConfig, LLMConfig
 from singularity.core.runtime_profile import (
+    DEFAULT_SECURITY_SCAN_BYTES,
     build_runtime_profile_payload,
     build_runtime_profile_report,
     build_runtime_profile_report_from_profiles,
@@ -812,7 +813,7 @@ def main():
     )
     runtime_profile_security_parser.add_argument("--runtime-profile", action="append", default=[], help="Runtime profile JSON to audit")
     runtime_profile_security_parser.add_argument("--include-gates", action="store_true", help="Also scan referenced gate reports")
-    runtime_profile_security_parser.add_argument("--max-scan-bytes", type=int, default=200000, help="Maximum bytes to scan per referenced file")
+    runtime_profile_security_parser.add_argument("--max-scan-bytes", type=int, default=DEFAULT_SECURITY_SCAN_BYTES, help="Maximum bytes to scan per referenced file")
     runtime_profile_security_parser.add_argument("--max-findings", type=int, default=50, help="Maximum findings to include in the saved report")
     runtime_profile_security_parser.add_argument("--output", type=str, default="", help="Optional JSON audit report path")
     runtime_profile_security_parser.add_argument("--log-level", type=str, default="INFO")
@@ -1231,7 +1232,7 @@ def main():
         report = build_runtime_profile_security_audit(
             getattr(args, "runtime_profile", []) or [],
             include_gates=getattr(args, "include_gates", False),
-            max_scan_bytes=getattr(args, "max_scan_bytes", 200000),
+            max_scan_bytes=getattr(args, "max_scan_bytes", DEFAULT_SECURITY_SCAN_BYTES),
             max_findings=getattr(args, "max_findings", 50),
         )
         _print_runtime_profile_security_audit(report)

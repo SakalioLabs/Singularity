@@ -275,10 +275,13 @@
 - [ ] Run `benchmark --mixed-policy-ablation --mixed-policy-patch ...` on M1/M2 once the bridge and Minecraft server are live.
 - [ ] Run Agent-backed `collab-benchmark --mixed-policy-patch ...` on BM-701 and compare role session logs against an unpatched run.
 - [ ] Run Agent-backed `collab-benchmark --mixed-policy-ablation --mixed-policy-patch ...` on BM-701 with live role bridges.
+- [ ] Add an M7 `plan-act-latency-report` inspired by Parallelized Planning-Acting to measure planner wait time, stale-plan actions, overlap, and interrupt opportunities before enabling interruptible role execution.
 - [ ] Use `mixed-initiative-policy-gate` on real approved patch reports before making a patch part of default runtime configuration.
 - [ ] Fill repeatable runtime profiles for M1/M2/M7 with real approved gate reports and validate them before live runs.
+- [x] Seed `workspace/runtime/m1_observed_action_value_profile.json` from real M1 action-value feedback and save approved validation/security reports.
 - [x] Add runtime-profile security audit for referenced memory/correction artifacts so persistent promptware cannot enter live profiles through approved-looking paths.
 - [ ] Run `runtime-profile-security-audit` on real M1/M2/M7 runtime profiles and inspect any rejected artifacts before live runs.
+- [ ] Add M2/M7 runtime profiles once their approved gate reports and feedback artifacts exist, then run `runtime-profile-validate` plus `runtime-profile-security-audit`.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
 - [ ] Run an unknown visual/environment goal with `--goal-critic --goal-critic-gate ...` and inspect `goal_verification_metrics` plus critic evidence in the session log.
 - [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces, build `goal-verification-critic-gate`, and compare completion judgments against manual review.

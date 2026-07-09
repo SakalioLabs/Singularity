@@ -1306,6 +1306,23 @@
 
 ---
 
+## P-072: Parallelized Planning-Acting for Efficient LLM-based Multi-Agent Systems in Minecraft
+
+- **Title**: Parallelized Planning-Acting for Efficient LLM-based Multi-Agent Systems in Minecraft
+- **Source**: https://arxiv.org/abs/2503.03505
+- **Year**: 2025; revised 2026
+- **Type**: Minecraft multi-agent execution architecture
+- **Task Type**: Real-time collaborative Minecraft tasks with high-latency LLM planning
+- **Core Method**: Separates planning and acting into parallel threads so execution can continue while fresher plans are prepared and interrupt unfinished action suffixes
+- **Memory**: Uses shared memory and communication state as the coordination substrate between planning and acting
+- **Key Results**: Targets better real-time efficiency for Minecraft multi-agent systems under dynamic world changes
+- **Scores**: R=5, N=4, R=3, E=5
+- **Value to Project**: Supports an M7 plan/act latency report and a future gated interruptible execution mode for role agents
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-parallelized-planning-acting.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1381,3 +1398,4 @@
 | P-069 | Mem^p Procedural Memory | 2025 | R4/N5/R4/E4 | P2 |
 | P-070 | XENON Knowledge Correction | 2026 | R5/N5/R4/E5 | P1 |
 | P-071 | OpenClaw Memory Injection | 2026 | R5/N5/R3/E5 | P1 |
+| P-072 | Parallelized Planning-Acting | 2025/2026 | R5/N4/R3/E5 | P2 |

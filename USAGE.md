@@ -279,6 +279,10 @@ python -m singularity.main collab-benchmark --executor agent --runtime-profile w
 # Runtime commands that load --runtime-profile automatically reject unreadable
 # artifacts or promptware-like referenced content before live Agent startup.
 
+# Seeded M1 profile from real offline action-value feedback:
+python -m singularity.main runtime-profile-validate --runtime-profile workspace/runtime/m1_observed_action_value_profile.json --output logs/benchmarks/runtime_profile_validation_m1_2026-07-09.json
+python -m singularity.main runtime-profile-security-audit --runtime-profile workspace/runtime/m1_observed_action_value_profile.json --output logs/benchmarks/runtime_profile_security_m1_2026-07-09.json
+
 ```json
 {
   "type": "runtime_profile",

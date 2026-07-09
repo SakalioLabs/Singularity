@@ -1,0 +1,35 @@
+{
+  "type": "runtime_profile_security_audit",
+  "readiness": "approved",
+  "decision": "allow_runtime_profile_security",
+  "reason": "runtime profile artifacts passed promptware audit",
+  "profile_paths": [
+    "workspace/runtime/m1_observed_action_value_profile.json"
+  ],
+  "profile_count": 1,
+  "include_gates": false,
+  "max_scan_bytes": 2000000,
+  "scanned_path_count": 1,
+  "scanned_record_count": 8686,
+  "finding_count": 0,
+  "included_finding_count": 0,
+  "high_risk_count": 0,
+  "truncated_finding_count": 0,
+  "references": [
+    {
+      "field": "action_value_feedback_paths",
+      "path": "logs/benchmarks/action_value_m1_2026-07-09.json",
+      "scanned": true,
+      "bytes_scanned": 271202,
+      "is_json": true,
+      "scanned_record_count": 8686,
+      "finding_count": 0,
+      "high_risk_count": 0,
+      "findings": [],
+      "errors": []
+    }
+  ],
+  "findings": [],
+  "missing": [],
+  "errors": []
+}
