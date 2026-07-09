@@ -278,6 +278,40 @@ def _print_causal_evidence_report(report: dict):
         print(f"  error: {error}")
 
 
+def _print_causal_evidence_gate(report: dict):
+    print("\nCausal Evidence Gate")
+    print(f"  target: {report.get('target', '')}")
+    print(f"  readiness: {report.get('readiness', 'unknown')}")
+    print(f"  decision: {report.get('decision', 'unknown')}")
+    print(f"  reason: {report.get('reason', '')}")
+    print(
+        "  reports: "
+        f"total={report.get('report_count', 0)}, "
+        f"approved={report.get('approved_report_count', 0)}, "
+        f"review={report.get('review_report_count', 0)}, "
+        f"rejected={report.get('rejected_report_count', 0)}, "
+        f"errors={report.get('error_report_count', 0)}"
+    )
+    print(
+        "  evidence: "
+        f"claims={report.get('causal_claim_count', 0)}, "
+        f"causal_memory={report.get('causal_memory_write_count', 0)}, "
+        f"controls={report.get('contrast_control_count', 0)}, "
+        f"unresolved={report.get('unresolved_counterexample_count', 0)}, "
+        f"unmitigated_bias={report.get('unmitigated_bias_risk_count', 0)}"
+    )
+    print(f"  score: {report.get('average_causal_evidence_score', 0)}")
+    for check in report.get("checks", [])[:12]:
+        marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+        print(f"  [{marker}] {check.get('name')}: {check.get('detail')}")
+    for hint in report.get("policy_hints", [])[:8]:
+        print(f"  hint: {hint}")
+    for missing in report.get("missing", [])[:8]:
+        print(f"  missing: {missing}")
+    for error in report.get("errors", [])[:8]:
+        print(f"  error: {error}")
+
+
 def _runtime_profile_payload_from_args(args) -> dict:
     settings = {}
     if getattr(args, "enable_goal_critic", False):
@@ -862,6 +896,7 @@ def main():
     candidates_parser.add_argument("--promotion-critic", action="store_true", help="Use configured LLM as fallback critic for unknown verifier gates")
     candidates_parser.add_argument("--discovery-skill-gate", action="append", default=[], help="Saved discovery-application-report JSON required before approving experiment-derived skills")
     candidates_parser.add_argument("--task-stream-transfer-gate", action="append", default=[], help="Saved task-stream-transfer-gate JSON required before promoting transfer-tested skills")
+    candidates_parser.add_argument("--causal-evidence-gate", action="append", default=[], help="Saved causal-evidence-report JSON required before approving causal-summary skills")
     candidates_parser.add_argument("--llm-provider", type=str, default="openai")
     candidates_parser.add_argument("--llm-model", type=str, default="gpt-4o-mini")
     candidates_parser.add_argument("--llm-base-url", type=str, default="")
@@ -885,6 +920,7 @@ def main():
     skill_edit_parser.add_argument("--skill-storage-path", type=str, default="workspace/skills")
     skill_edit_parser.add_argument("--discovery-skill-gate", action="append", default=[], help="Saved discovery-application-report JSON to include in candidate validation")
     skill_edit_parser.add_argument("--task-stream-transfer-gate", action="append", default=[], help="Saved task-stream-transfer-gate JSON used as counterfactual probe evidence")
+    skill_edit_parser.add_argument("--causal-evidence-gate", action="append", default=[], help="Saved causal-evidence-report JSON to include in causal-summary validation")
     skill_edit_parser.add_argument("--include-all", action="store_true", help="Include approved/rejected candidates as retain/review records")
     skill_edit_parser.add_argument("--no-require-transfer-gate", action="store_true", help="Allow create/update proposals without approved transfer probe evidence")
     skill_edit_parser.add_argument("--min-score", type=float, default=0.55, help="Minimum candidate score for create/update proposals")
@@ -1129,6 +1165,19 @@ def main():
     causal_evidence_parser.add_argument("--no-require-bias-mitigation", action="store_true", help="Do not reject claims solely for unmitigated selection/measurement/confounder risks")
     causal_evidence_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     causal_evidence_parser.add_argument("--log-level", type=str, default="INFO")
+
+    causal_evidence_gate_parser = subparsers.add_parser(
+        "causal-evidence-gate",
+        help="Gate causal evidence reports before causal-summary skill promotion",
+    )
+    causal_evidence_gate_parser.add_argument("--causal-evidence-report", action="append", default=[], help="Saved causal-evidence-report JSON")
+    causal_evidence_gate_parser.add_argument("--target", type=str, default="causal_summary_skill_promotion", help="Gate target label")
+    causal_evidence_gate_parser.add_argument("--min-approved-reports", type=int, default=1, help="Minimum approved causal evidence reports required")
+    causal_evidence_gate_parser.add_argument("--min-contrast-count", type=int, default=1, help="Minimum contrast/control trials required across reports")
+    causal_evidence_gate_parser.add_argument("--max-unresolved-counterexamples", type=int, default=0, help="Maximum unresolved counterexamples allowed")
+    causal_evidence_gate_parser.add_argument("--max-unmitigated-bias-risks", type=int, default=0, help="Maximum unmitigated bias risks allowed")
+    causal_evidence_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    causal_evidence_gate_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Offline world-model trace report
     world_model_parser = subparsers.add_parser("world-model-report", help="Build AGI-Maze-style world-state cells and exploration frontiers from session logs")
@@ -2472,6 +2521,7 @@ def main():
             skill_storage_path=getattr(args, "skill_storage_path", "workspace/skills"),
             discovery_gate_paths=getattr(args, "discovery_skill_gate", []) or [],
             transfer_gate_paths=getattr(args, "task_stream_transfer_gate", []) or [],
+            causal_evidence_gate_paths=getattr(args, "causal_evidence_gate", []) or [],
             include_all=getattr(args, "include_all", False),
             require_transfer_gate=not getattr(args, "no_require_transfer_gate", False),
             min_score=getattr(args, "min_score", 0.55),
@@ -2520,6 +2570,7 @@ def main():
                 promotion_critic=promotion_critic,
                 discovery_gate_paths=getattr(args, "discovery_skill_gate", []) or [],
                 transfer_gate_paths=getattr(args, "task_stream_transfer_gate", []) or [],
+                causal_evidence_gate_paths=getattr(args, "causal_evidence_gate", []) or [],
             )
             candidates = extractor.extract_skill_candidates(args.session)
             if getattr(args, "causal_summaries", False):
@@ -2555,6 +2606,7 @@ def main():
                 promotion_critic=promotion_critic,
                 discovery_gate_paths=getattr(args, "discovery_skill_gate", []) or [],
                 transfer_gate_paths=getattr(args, "task_stream_transfer_gate", []) or [],
+                causal_evidence_gate_paths=getattr(args, "causal_evidence_gate", []) or [],
             )
             if not candidate:
                 print(f"candidate not found: {args.approve}")
@@ -2594,7 +2646,13 @@ def main():
             transfer_text = ""
             if isinstance(transfer_gate, dict) and transfer_gate.get("required"):
                 transfer_text = f" transfer={transfer_gate.get('readiness', 'unknown')}:{transfer_gate.get('reason', '')}"
-            print(f"- {candidate.id} [{candidate.review_status}] {candidate.name} score={candidate.score}{gate_text}{discovery_text}{transfer_text}: {candidate.description}")
+            causal_gate = report.get("causal_evidence_gate", {}) if isinstance(report, dict) else {}
+            if not causal_gate and isinstance(candidate.signals, dict):
+                causal_gate = candidate.signals.get("causal_evidence_gate", {})
+            causal_text = ""
+            if isinstance(causal_gate, dict) and causal_gate.get("required"):
+                causal_text = f" causal={causal_gate.get('readiness', 'unknown')}:{causal_gate.get('reason', '')}"
+            print(f"- {candidate.id} [{candidate.review_status}] {candidate.name} score={candidate.score}{gate_text}{discovery_text}{transfer_text}{causal_text}: {candidate.description}")
         return
 
     if args.command == "collab-benchmark":
@@ -3943,6 +4001,28 @@ def main():
         if getattr(args, "output", ""):
             write_causal_evidence_report(report, args.output)
             print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "causal-evidence-gate":
+        from singularity.evaluation.causal_evidence import (
+            build_causal_evidence_gate,
+            write_causal_evidence_report,
+        )
+
+        report = build_causal_evidence_gate(
+            causal_evidence_report_paths=getattr(args, "causal_evidence_report", []) or [],
+            target=getattr(args, "target", "causal_summary_skill_promotion"),
+            min_approved_reports=getattr(args, "min_approved_reports", 1),
+            min_contrast_count=getattr(args, "min_contrast_count", 1),
+            max_unresolved_counterexamples=getattr(args, "max_unresolved_counterexamples", 0),
+            max_unmitigated_bias_risks=getattr(args, "max_unmitigated_bias_risks", 0),
+        )
+        _print_causal_evidence_gate(report)
+        if getattr(args, "output", ""):
+            write_causal_evidence_report(report, args.output)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") != "approved":
+            sys.exit(2)
         return
 
     if args.command == "action-abstraction-report":

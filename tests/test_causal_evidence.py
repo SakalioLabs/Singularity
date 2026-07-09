@@ -8,7 +8,7 @@ import tempfile
 
 sys.path.insert(0, "src")
 
-from singularity.evaluation.causal_evidence import build_causal_evidence_report
+from singularity.evaluation.causal_evidence import build_causal_evidence_gate, build_causal_evidence_report
 
 
 def _write_jsonl(path: str, events: list[dict]):
@@ -143,6 +143,40 @@ def test_causal_evidence_report_rejects_uncontrolled_counterexamples():
     print("PASS: Causal evidence report rejects uncontrolled counterexamples")
 
 
+def test_causal_evidence_gate_approves_controlled_report():
+    tmpdir = tempfile.mkdtemp()
+    log_path = os.path.join(tmpdir, "controlled.jsonl")
+    _write_jsonl(log_path, _controlled_causal_events())
+
+    evidence_report = build_causal_evidence_report([log_path])
+    gate = build_causal_evidence_gate(causal_evidence_reports=[evidence_report])
+
+    assert gate["type"] == "causal_evidence_gate"
+    assert gate["readiness"] == "approved"
+    assert gate["decision"] == "allow"
+    assert gate["approved_report_count"] == 1
+    assert gate["contrast_control_count"] >= 1
+    assert gate["unresolved_counterexample_count"] == 0
+    assert "causal_evidence_gate_approved" in gate["policy_hints"]
+    print("PASS: Causal evidence gate approves controlled report")
+
+
+def test_causal_evidence_gate_rejects_unsupported_report():
+    tmpdir = tempfile.mkdtemp()
+    log_path = os.path.join(tmpdir, "unsupported.jsonl")
+    _write_jsonl(log_path, _unsupported_causal_events())
+
+    evidence_report = build_causal_evidence_report([log_path])
+    gate = build_causal_evidence_gate(causal_evidence_reports=[evidence_report])
+
+    assert gate["readiness"] == "rejected"
+    assert gate["decision"] == "reject"
+    assert gate["rejected_report_count"] == 1
+    assert gate["unresolved_counterexample_count"] >= 2
+    assert "block_causal_summary_skill_promotion" in gate["policy_hints"]
+    print("PASS: Causal evidence gate rejects unsupported report")
+
+
 def test_causal_evidence_cli_writes_report():
     tmpdir = tempfile.mkdtemp()
     log_path = os.path.join(tmpdir, "controlled.jsonl")
@@ -178,7 +212,49 @@ def test_causal_evidence_cli_writes_report():
     print("PASS: Causal evidence CLI writes report")
 
 
+def test_causal_evidence_gate_cli_writes_gate():
+    tmpdir = tempfile.mkdtemp()
+    log_path = os.path.join(tmpdir, "controlled.jsonl")
+    report_path = os.path.join(tmpdir, "causal_evidence.json")
+    gate_path = os.path.join(tmpdir, "causal_evidence_gate.json")
+    _write_jsonl(log_path, _controlled_causal_events())
+    evidence_report = build_causal_evidence_report([log_path])
+    with open(report_path, "w", encoding="utf-8") as f:
+        json.dump(evidence_report, f)
+    env = os.environ.copy()
+    env["PYTHONPATH"] = "src"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "singularity.main",
+            "causal-evidence-gate",
+            "--causal-evidence-report",
+            report_path,
+            "--output",
+            gate_path,
+        ],
+        cwd=os.getcwd(),
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr + result.stdout
+    with open(gate_path, "r", encoding="utf-8") as f:
+        gate = json.load(f)
+    assert gate["type"] == "causal_evidence_gate"
+    assert gate["readiness"] == "approved"
+    assert "Causal Evidence Gate" in result.stdout
+    print("PASS: Causal evidence gate CLI writes gate")
+
+
 if __name__ == "__main__":
     test_causal_evidence_report_approves_controlled_claims()
     test_causal_evidence_report_rejects_uncontrolled_counterexamples()
+    test_causal_evidence_gate_approves_controlled_report()
+    test_causal_evidence_gate_rejects_unsupported_report()
     test_causal_evidence_cli_writes_report()
+    test_causal_evidence_gate_cli_writes_gate()

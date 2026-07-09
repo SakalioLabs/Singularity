@@ -230,7 +230,8 @@
 - [ ] Run `world-model-report` on real autonomous/M7 session logs and compare suggested frontier goals against subsequent exploration success and stuck-path failures.
 - [ ] Run `world-model-feedback-gate` on real world-model reports, then feed approved `--world-model-feedback --world-model-gate` into autonomous curriculum runs and compare frontier/hotspot candidate ranking against generic exploration goals.
 - [ ] Run `discovery-application-report` on real redstone/building session logs and use `discovery_feedback` to gate experiment-derived skills before runtime use.
-- [ ] Run `causal-evidence-report` on the same discovery/redstone/autonomous logs and block causal memory or causal-summary skill promotion when contrast controls, bias mitigation, or counterexample resolution are missing.
+- [x] Add `causal-evidence-gate` plus causal-summary skill approval blocking so contrast controls, bias mitigation, and counterexample resolution are required before causal-summary promotion.
+- [ ] Run `causal-evidence-report`/`causal-evidence-gate` on the same discovery/redstone/autonomous logs before approving causal memories or causal-summary skills.
 - [ ] Compare approved vs review-blocked discovery skill candidates on held-out redstone/building variants before enabling defaults.
 - [ ] Run `skill-graph-report` after real skill approvals and resolve missing dependencies, ungoverned custom skills, or graph cycles before runtime defaults.
 - [ ] Run `skill-contract-report` after real skill approvals and compare ready/review/blocked skill retrieval against planner choices on held-out crafting, mining, and building goals.

@@ -53,6 +53,7 @@ class SkillPromotionValidationReport:
     gate: dict = field(default_factory=dict)
     discovery_gate: dict = field(default_factory=dict)
     transfer_gate: dict = field(default_factory=dict)
+    causal_evidence_gate: dict = field(default_factory=dict)
     critic: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
@@ -199,6 +200,7 @@ class SkillCandidateQueue:
         promotion_critic=None,
         discovery_gate_paths: list[str] = None,
         transfer_gate_paths: list[str] = None,
+        causal_evidence_gate_paths: list[str] = None,
     ) -> SkillCandidate | None:
         candidate = self.candidates.get(candidate_id)
         if not candidate:
@@ -208,6 +210,7 @@ class SkillCandidateQueue:
             promotion_critic=promotion_critic,
             discovery_gate_paths=discovery_gate_paths,
             transfer_gate_paths=transfer_gate_paths,
+            causal_evidence_gate_paths=causal_evidence_gate_paths,
         ).approve_candidate(candidate)
         if skill is not None:
             candidate.review_status = "approved"
@@ -461,6 +464,7 @@ def build_skill_edit_proposal_report(
     skill_storage_path: str = "workspace/skills",
     discovery_gate_paths: list[str] = None,
     transfer_gate_paths: list[str] = None,
+    causal_evidence_gate_paths: list[str] = None,
     include_all: bool = False,
     require_transfer_gate: bool = True,
     min_score: float = 0.55,
@@ -478,6 +482,7 @@ def build_skill_edit_proposal_report(
         auto_promote=False,
         discovery_gate_paths=discovery_gate_paths or [],
         transfer_gate_paths=transfer_gate_paths or [],
+        causal_evidence_gate_paths=causal_evidence_gate_paths or [],
     )
     candidates = queue.all() if include_all else queue.pending()
     report = {
@@ -523,6 +528,7 @@ def _skill_edit_candidate_proposal(
     min_score: float,
 ) -> dict:
     transfer_gate = validation.transfer_gate if isinstance(validation.transfer_gate, dict) else {}
+    causal_evidence_gate = validation.causal_evidence_gate if isinstance(validation.causal_evidence_gate, dict) else {}
     reasons = []
     readiness = "review"
     proposal = "review"
@@ -581,6 +587,7 @@ def _skill_edit_candidate_proposal(
         "reason": "; ".join(_dedupe_strings(reasons)),
         "validation": validation.to_dict(),
         "transfer_gate": transfer_gate,
+        "causal_evidence_gate": causal_evidence_gate,
         "postconditions": validation.postconditions,
         "warnings": validation.warnings,
     }
@@ -689,6 +696,7 @@ class SkillExtractor:
         promotion_critic=None,
         discovery_gate_paths: list[str] = None,
         transfer_gate_paths: list[str] = None,
+        causal_evidence_gate_paths: list[str] = None,
     ):
         self.skill_library = skill_library
         self.memory_system = memory_system
@@ -696,6 +704,7 @@ class SkillExtractor:
         self.promotion_critic = promotion_critic
         self.discovery_gate_paths = list(discovery_gate_paths or [])
         self.transfer_gate_paths = list(transfer_gate_paths or [])
+        self.causal_evidence_gate_paths = list(causal_evidence_gate_paths or [])
 
     def extract_from_session(self, session_log_path: str) -> list:
         """Extract skills from a successful session log."""
@@ -820,6 +829,7 @@ class SkillExtractor:
             **candidate.signals,
             "verification_gate": gate,
             "task_stream_transfer_gate": report.transfer_gate,
+            "causal_evidence_gate": report.causal_evidence_gate,
             "promotion_report": report.to_dict(),
         }
         if report.decision == "reject":
@@ -850,6 +860,7 @@ class SkillExtractor:
                 "verification": report.gate,
                 "discovery": report.discovery_gate,
                 "transfer": report.transfer_gate,
+                "causal_evidence": report.causal_evidence_gate,
                 "matched_rules": report.matched_rules,
                 "warnings": report.warnings,
             },
@@ -864,6 +875,7 @@ class SkillExtractor:
         if not skill or not hasattr(self.skill_library, "record_skill_memory"):
             return
         transfer_gate = report.transfer_gate if isinstance(report.transfer_gate, dict) else {}
+        causal_gate = report.causal_evidence_gate if isinstance(report.causal_evidence_gate, dict) else {}
         readiness = str(transfer_gate.get("readiness") or "").lower()
         memory_type = "promotion_transfer" if readiness == "approved" else "promotion"
         task_family = self.skill_library.infer_task_family(
@@ -876,6 +888,11 @@ class SkillExtractor:
             note += " Controlled task-stream transfer gate approved reuse."
         elif transfer_gate.get("required"):
             note += f" Transfer gate readiness is {readiness or 'unknown'}."
+        causal_readiness = str(causal_gate.get("readiness") or "").lower()
+        if causal_readiness == "approved":
+            note += " Causal evidence gate approved contrastive support."
+        elif causal_gate.get("required"):
+            note += f" Causal evidence gate readiness is {causal_readiness or 'unknown'}."
         evidence = {
             "candidate_id": candidate.id,
             "goal": candidate.goal,
@@ -885,6 +902,7 @@ class SkillExtractor:
             "matched_rules": report.matched_rules,
             "postconditions": report.postconditions,
             "transfer_gate": transfer_gate,
+            "causal_evidence_gate": causal_gate,
         }
         tags = self._candidate_memory_tags(candidate, report, task_family)
         try:
@@ -908,6 +926,7 @@ class SkillExtractor:
         gate = self._candidate_verification_gate(candidate)
         discovery_gate = self._candidate_discovery_gate(candidate)
         transfer_gate = self._candidate_transfer_gate(candidate)
+        causal_evidence_gate = self._candidate_causal_evidence_gate(candidate)
         if discovery_gate.get("required"):
             gate = {
                 **gate,
@@ -936,6 +955,20 @@ class SkillExtractor:
                     "status": f"transfer_{transfer_gate.get('readiness', 'review')}",
                     "reason": transfer_gate.get("reason", "task_stream_transfer_gate_requires_review"),
                 })
+        if causal_evidence_gate.get("required"):
+            gate = {
+                **gate,
+                "causal_evidence_gate": causal_evidence_gate,
+                "matched_rules": self._merge_list(gate.get("matched_rules", []), ["causal_evidence_gate"]),
+                "evidence": self._merge_list(gate.get("evidence", []), causal_evidence_gate.get("evidence", [])),
+                "missing": self._merge_list(gate.get("missing", []), causal_evidence_gate.get("missing", [])),
+            }
+            if causal_evidence_gate.get("decision") == "reject":
+                gate.update({
+                    "decision": "reject",
+                    "status": f"causal_evidence_{causal_evidence_gate.get('readiness', 'review')}",
+                    "reason": causal_evidence_gate.get("reason", "causal_evidence_gate_requires_review"),
+                })
         critic = {}
         if gate.get("status") == "unknown" and self.promotion_critic:
             gate, critic = self._apply_promotion_critic(candidate, gate)
@@ -949,6 +982,10 @@ class SkillExtractor:
             warnings.extend(transfer_gate.get("warnings", []))
         if transfer_gate.get("errors"):
             warnings.extend(transfer_gate.get("errors", []))
+        if causal_evidence_gate.get("warnings"):
+            warnings.extend(causal_evidence_gate.get("warnings", []))
+        if causal_evidence_gate.get("errors"):
+            warnings.extend(causal_evidence_gate.get("errors", []))
         if gate.get("status") == "unknown":
             warnings.append("no deterministic verification proof; approval relies on consolidation score and human/operator review")
         if not postconditions:
@@ -981,6 +1018,7 @@ class SkillExtractor:
             gate=gate,
             discovery_gate=discovery_gate,
             transfer_gate=transfer_gate,
+            causal_evidence_gate=causal_evidence_gate,
             critic=critic,
         )
 
@@ -1315,6 +1353,47 @@ class SkillExtractor:
         if isinstance(transfer_gate, dict) and transfer_gate:
             return build_task_stream_transfer_skill_gate(gate=transfer_gate, source=f"candidate:{candidate.id}")
         return build_task_stream_transfer_skill_gate()
+
+    def _candidate_causal_evidence_gate(self, candidate: SkillCandidate) -> dict:
+        from singularity.evaluation.causal_evidence import build_causal_evidence_gate
+
+        required = self._candidate_requires_causal_evidence_gate(candidate)
+        if not required:
+            return build_causal_evidence_gate(required=False)
+        if self.causal_evidence_gate_paths:
+            return build_causal_evidence_gate(causal_evidence_report_paths=self.causal_evidence_gate_paths)
+        gate = candidate.signals.get("causal_evidence_gate", {}) if isinstance(candidate.signals, dict) else {}
+        if isinstance(gate, dict) and gate.get("type") == "causal_evidence_gate":
+            return gate
+        report = candidate.signals.get("causal_evidence_report", {}) if isinstance(candidate.signals, dict) else {}
+        if isinstance(report, dict) and report:
+            return build_causal_evidence_gate(
+                causal_evidence_reports=[report],
+                source=f"candidate:{candidate.id}",
+            )
+        promotion = candidate.signals.get("promotion_report", {}) if isinstance(candidate.signals, dict) else {}
+        promotion_gate = promotion.get("causal_evidence_gate", {}) if isinstance(promotion, dict) else {}
+        if isinstance(promotion_gate, dict) and promotion_gate.get("type") == "causal_evidence_gate":
+            return promotion_gate
+        promotion_report = promotion.get("causal_evidence_report", {}) if isinstance(promotion, dict) else {}
+        if isinstance(promotion_report, dict) and promotion_report:
+            return build_causal_evidence_gate(
+                causal_evidence_reports=[promotion_report],
+                source=f"candidate:{candidate.id}",
+            )
+        return build_causal_evidence_gate()
+
+    def _candidate_requires_causal_evidence_gate(self, candidate: SkillCandidate) -> bool:
+        signals = candidate.signals if isinstance(candidate.signals, dict) else {}
+        if str(signals.get("source") or "").strip().lower() == "causal_summary":
+            return True
+        try:
+            implementation = json.loads(candidate.implementation)
+        except (TypeError, ValueError):
+            implementation = {}
+        if isinstance(implementation, dict) and str(implementation.get("type") or "").lower() == "causal_summary_skill":
+            return True
+        return False
 
     def _candidate_first_action(self, candidate: SkillCandidate) -> dict:
         try:

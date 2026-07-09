@@ -232,6 +232,7 @@ python -m singularity.main discovery-application-report --session-log logs/sessi
 # Audit CausalGame-style contrastive evidence, bias risks, and unresolved
 # counterexamples before promoting causal memories or causal-summary skills.
 python -m singularity.main causal-evidence-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/causal_evidence.json
+python -m singularity.main causal-evidence-gate --causal-evidence-report logs/benchmarks/causal_evidence.json --output logs/benchmarks/causal_evidence_gate.json
 # Use --no-require-bias-mitigation for exploratory triage; default audit mode
 # rejects causal claims when logged selection/measurement/confounder risks are not mitigated.
 
@@ -471,6 +472,7 @@ python -m singularity.main skill-candidates --approve CANDIDATE_ID --promotion-c
 python -m singularity.main discovery-application-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/discovery_application.json
 python -m singularity.main skill-candidates --approve CANDIDATE_ID --discovery-skill-gate logs/benchmarks/discovery_application.json
 python -m singularity.main skill-candidates --approve CANDIDATE_ID --task-stream-transfer-gate logs/benchmarks/task_stream_transfer_gate.json
+python -m singularity.main skill-candidates --approve CANDIDATE_ID --causal-evidence-gate logs/benchmarks/causal_evidence.json
 python -m singularity.main skill-candidates --reject CANDIDATE_ID --reason "too brittle"
 
 # Approved causal/correction skills are loaded from workspace/skills by the agent.

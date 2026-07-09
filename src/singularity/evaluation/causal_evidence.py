@@ -204,6 +204,117 @@ def write_causal_evidence_report(report: dict, output_path: str):
         json.dump(report, f, indent=2, ensure_ascii=False)
 
 
+def build_causal_evidence_gate(
+    causal_evidence_report_paths: list[str] = None,
+    causal_evidence_reports: list[dict] = None,
+    source: str = "",
+    target: str = "causal_summary_skill_promotion",
+    min_approved_reports: int = 1,
+    min_contrast_count: int = 1,
+    max_unresolved_counterexamples: int = 0,
+    max_unmitigated_bias_risks: int = 0,
+    required: bool = True,
+) -> dict:
+    """Build an approve/review/reject gate from causal evidence reports."""
+    thresholds = {
+        "min_approved_reports": max(0, int(min_approved_reports or 0)),
+        "min_contrast_count": max(0, int(min_contrast_count or 0)),
+        "max_unresolved_counterexamples": max(0, int(max_unresolved_counterexamples or 0)),
+        "max_unmitigated_bias_risks": max(0, int(max_unmitigated_bias_risks or 0)),
+    }
+    inputs, load_errors = _load_causal_evidence_gate_inputs(
+        causal_evidence_report_paths or [],
+        causal_evidence_reports or [],
+        source=source,
+    )
+    gate = {
+        "type": "causal_evidence_gate",
+        "generated_at": round(time.time(), 3),
+        "target": target,
+        "required": bool(required),
+        "thresholds": thresholds,
+        "report_count": len(inputs),
+        "approved_report_count": 0,
+        "review_report_count": 0,
+        "rejected_report_count": 0,
+        "error_report_count": 0,
+        "readable_log_count": 0,
+        "ready_log_count": 0,
+        "causal_claim_count": 0,
+        "causal_memory_write_count": 0,
+        "contrast_control_count": 0,
+        "unresolved_counterexample_count": 0,
+        "counterexample_count": 0,
+        "unmitigated_bias_risk_count": 0,
+        "average_causal_evidence_score": 0.0,
+        "sources": [],
+        "readinesses": [],
+        "evidence": [],
+        "missing": [],
+        "warnings": [],
+        "errors": list(load_errors),
+        "checks": [],
+        "policy_hints": [],
+    }
+
+    scores = []
+    for item in inputs:
+        source_name = item["source"]
+        report = item["report"]
+        readiness = str(report.get("readiness") or "unknown").lower()
+        gate["sources"].append(source_name)
+        gate["readinesses"].append(readiness)
+        if readiness == "approved":
+            gate["approved_report_count"] += 1
+            gate["evidence"].append(f"{source_name}: causal evidence report approved")
+        elif readiness == "rejected":
+            gate["rejected_report_count"] += 1
+            gate["missing"].append(f"{source_name}: causal evidence report rejected")
+        elif readiness == "error":
+            gate["error_report_count"] += 1
+            gate["missing"].append(f"{source_name}: causal evidence report errored")
+        else:
+            gate["review_report_count"] += 1
+            gate["missing"].append(f"{source_name}: causal evidence report {readiness}")
+
+        for key in (
+            "readable_log_count",
+            "ready_log_count",
+            "causal_claim_count",
+            "causal_memory_write_count",
+            "contrast_control_count",
+            "unresolved_counterexample_count",
+            "counterexample_count",
+        ):
+            gate[key] += _safe_int(report.get(key, 0))
+        gate["unmitigated_bias_risk_count"] += _unmitigated_bias_count(report)
+        score = _safe_float_or_none(report.get("average_causal_evidence_score"))
+        if score is not None:
+            scores.append(score)
+        if report.get("reason"):
+            gate["warnings"].append(f"{source_name}: {report.get('reason')}")
+        for check in report.get("checks", []) if isinstance(report.get("checks", []), list) else []:
+            if isinstance(check, dict) and check.get("status") in {"warn", "fail"}:
+                gate["warnings"].append(f"{source_name}: {check.get('detail', 'causal evidence check')}")
+        for hint in report.get("policy_hints", []) if isinstance(report.get("policy_hints", []), list) else []:
+            if str(hint or "").strip():
+                gate["policy_hints"].append(str(hint))
+        for recommendation in report.get("recommendations", []) if isinstance(report.get("recommendations", []), list) else []:
+            if str(recommendation or "").strip():
+                gate["warnings"].append(f"{source_name}: {recommendation}")
+        for error in report.get("errors", []) if isinstance(report.get("errors", []), list) else []:
+            if str(error or "").strip():
+                gate["errors"].append(f"{source_name}: {error}")
+
+    gate["average_causal_evidence_score"] = round(sum(scores) / len(scores), 3) if scores else 0.0
+    gate["warnings"] = _dedupe(gate["warnings"])
+    gate["policy_hints"] = _dedupe(gate["policy_hints"])
+    gate["checks"] = _causal_evidence_gate_checks(gate, thresholds)
+    gate["readiness"], gate["decision"], gate["reason"] = _causal_evidence_gate_decision(gate, thresholds)
+    gate["policy_hints"] = _causal_evidence_gate_policy_hints(gate)
+    return gate
+
+
 def _case_from_log(path: str, thresholds: dict) -> dict:
     case = _empty_case(path)
     if not path or not os.path.exists(path):
@@ -521,6 +632,153 @@ def _recommendations(report: dict) -> list[str]:
     return _dedupe(recommendations)
 
 
+def _load_causal_evidence_gate_inputs(paths: list[str], reports: list[dict], source: str = "") -> tuple[list[dict], list[str]]:
+    inputs = []
+    errors = []
+    if isinstance(reports, dict):
+        reports = [reports]
+    for index, payload in enumerate(reports or []):
+        source_name = source or f"inline:{index + 1}"
+        if not isinstance(payload, dict):
+            errors.append(f"{source_name}: causal evidence report must be an object")
+            continue
+        error = _causal_evidence_report_type_error(payload, source_name)
+        if error:
+            errors.append(error)
+            continue
+        inputs.append({"source": source_name, "report": payload})
+    for path in paths or []:
+        if not path:
+            continue
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                payload = json.load(f)
+            if not isinstance(payload, dict):
+                raise ValueError("causal evidence report JSON must be an object")
+            error = _causal_evidence_report_type_error(payload, path)
+            if error:
+                errors.append(error)
+                continue
+            inputs.append({"source": path, "report": payload})
+        except Exception as exc:
+            errors.append(f"{path}: {exc}")
+    return inputs, errors
+
+
+def _causal_evidence_report_type_error(payload: dict, source: str) -> str:
+    payload_type = str(payload.get("type") or "").strip()
+    if payload_type and payload_type != "causal_evidence_report":
+        return f"{source}: expected causal_evidence_report, got {payload_type}"
+    if "readiness" not in payload or "decision" not in payload:
+        return f"{source}: missing causal evidence report decision fields"
+    return ""
+
+
+def _causal_evidence_gate_checks(gate: dict, thresholds: dict) -> list[dict]:
+    checks = []
+    if not gate.get("required"):
+        _add_check(checks, "causal_evidence_gate_required", True, "causal evidence gate not required", "warn")
+        return checks
+    _add_check(
+        checks,
+        "causal_evidence_reports_present",
+        gate.get("report_count", 0) > 0,
+        f"reports={gate.get('report_count', 0)}",
+        "fail",
+    )
+    _add_check(
+        checks,
+        "causal_evidence_reports_approved",
+        gate.get("approved_report_count", 0) >= thresholds["min_approved_reports"],
+        f"approved_reports={gate.get('approved_report_count', 0)}",
+        "fail",
+    )
+    _add_check(
+        checks,
+        "causal_claim_or_memory_present",
+        gate.get("causal_claim_count", 0) > 0 or gate.get("causal_memory_write_count", 0) > 0,
+        f"claims={gate.get('causal_claim_count', 0)} causal_memory={gate.get('causal_memory_write_count', 0)}",
+        "fail",
+    )
+    _add_check(
+        checks,
+        "contrast_controls_present",
+        gate.get("contrast_control_count", 0) >= thresholds["min_contrast_count"],
+        f"contrast_controls={gate.get('contrast_control_count', 0)}",
+        "fail",
+    )
+    _add_check(
+        checks,
+        "counterexamples_resolved",
+        gate.get("unresolved_counterexample_count", 0) <= thresholds["max_unresolved_counterexamples"],
+        f"unresolved_counterexamples={gate.get('unresolved_counterexample_count', 0)}",
+        "fail",
+    )
+    _add_check(
+        checks,
+        "bias_risks_mitigated",
+        gate.get("unmitigated_bias_risk_count", 0) <= thresholds["max_unmitigated_bias_risks"],
+        f"unmitigated_bias_risks={gate.get('unmitigated_bias_risk_count', 0)}",
+        "fail",
+    )
+    _add_check(
+        checks,
+        "causal_evidence_inputs_readable",
+        not gate.get("errors"),
+        f"errors={len(gate.get('errors', []))}",
+        "fail",
+    )
+    return checks
+
+
+def _causal_evidence_gate_decision(gate: dict, thresholds: dict) -> tuple[str, str, str]:
+    if not gate.get("required"):
+        return "not_required", "allow", "no_causal_evidence_gate_required"
+    if gate.get("errors"):
+        return "error", "reject", "causal_evidence_gate_error"
+    if gate.get("report_count", 0) <= 0:
+        return "review", "reject", "causal_evidence_gate_requires_report"
+    if gate.get("rejected_report_count", 0) or gate.get("error_report_count", 0):
+        return "rejected", "reject", "causal_evidence_report_rejected"
+    if gate.get("approved_report_count", 0) < thresholds["min_approved_reports"]:
+        return "review", "reject", "causal_evidence_gate_requires_approved_report"
+    if gate.get("causal_claim_count", 0) <= 0 and gate.get("causal_memory_write_count", 0) <= 0:
+        return "review", "reject", "causal_evidence_gate_requires_causal_claims"
+    if gate.get("contrast_control_count", 0) < thresholds["min_contrast_count"]:
+        return "rejected", "reject", "causal_evidence_gate_requires_contrast_controls"
+    if gate.get("unresolved_counterexample_count", 0) > thresholds["max_unresolved_counterexamples"]:
+        return "rejected", "reject", "causal_evidence_gate_blocks_unresolved_counterexamples"
+    if gate.get("unmitigated_bias_risk_count", 0) > thresholds["max_unmitigated_bias_risks"]:
+        return "rejected", "reject", "causal_evidence_gate_blocks_unmitigated_bias"
+    failures = [check for check in gate.get("checks", []) if check.get("status") == "fail"]
+    if failures:
+        return "rejected", "reject", failures[0].get("detail", "causal evidence gate failed")
+    warnings = [check for check in gate.get("checks", []) if check.get("status") == "warn"]
+    if warnings:
+        return "review", "reject", warnings[0].get("detail", "causal evidence gate requires review")
+    return "approved", "allow", "causal_evidence_gate_approved"
+
+
+def _causal_evidence_gate_policy_hints(gate: dict) -> list[str]:
+    hints = list(gate.get("policy_hints", []) if isinstance(gate.get("policy_hints", []), list) else [])
+    if not gate.get("required"):
+        return _dedupe(hints)
+    readiness = str(gate.get("readiness") or "unknown")
+    if readiness == "approved":
+        hints.append("causal_evidence_gate_approved")
+    elif readiness == "review":
+        hints.append("keep_causal_summary_skill_review_only")
+    elif readiness in {"rejected", "error"}:
+        hints.append("block_causal_summary_skill_promotion")
+    if gate.get("contrast_control_count", 0) <= 0:
+        hints.append("add_contrast_control_before_causal_skill_promotion")
+    if gate.get("unresolved_counterexample_count", 0) > 0:
+        hints.append("resolve_counterexamples_before_causal_skill_promotion")
+    if gate.get("unmitigated_bias_risk_count", 0) > 0:
+        hints.append("mitigate_bias_before_causal_skill_promotion")
+    return _dedupe(hints)
+
+
 def _add_check(checks: list[dict], name: str, passed: bool, detail: str, severity: str):
     checks.append({"name": name, "status": "pass" if passed else severity, "detail": detail})
 
@@ -662,6 +920,22 @@ def _merge_counts(target: dict, source: dict):
         return
     for key, value in source.items():
         target[str(key)] = int(target.get(str(key), 0) or 0) + int(value or 0)
+
+
+def _safe_int(value) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _safe_float_or_none(value):
+    try:
+        if value in (None, ""):
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _increment(counts: dict, key: str, amount: int = 1):

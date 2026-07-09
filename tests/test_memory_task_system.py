@@ -32,6 +32,7 @@ from singularity.action.value import ActionValueProfile
 from singularity.action.verifier import ActionVerifier
 from singularity.data.knowledge_base import KnowledgeBase
 from singularity.evaluation.benchmark_runner import BenchmarkRunner
+from singularity.evaluation.causal_evidence import build_causal_evidence_report
 from singularity.vision.action_advisor import VisualActionAdvisor
 
 
@@ -1653,6 +1654,107 @@ def test_skill_extractor_promotes_repeated_causal_summary_candidate():
     print("PASS: SkillExtractor promotes repeated causal summary candidate")
 
 
+def test_causal_evidence_gate_controls_causal_summary_promotion():
+    tmpdir = tempfile.mkdtemp()
+    skill_dir = os.path.join(tmpdir, "skills")
+    report_path = os.path.join(tmpdir, "causal_evidence.json")
+    verification_gate = {
+        "decision": "allow",
+        "status": "achieved",
+        "reason": "deterministic_verification_achieved",
+        "target_inventory": {"oak_log": 3},
+        "inventory_delta": {"oak_log": 3},
+        "evidence": ["inventory delta gained 3 oak_log"],
+        "matched_rules": ["goal_verifier"],
+    }
+    implementation = json.dumps({
+        "type": "causal_summary_skill",
+        "action_template": {"type": "dig", "parameters": {"block": "oak_log"}},
+    })
+
+    blocked_candidate = SkillCandidate(
+        name="causal_dig_oak_log_missing_evidence",
+        goal="Gather oak logs",
+        description="Repeated causal summary without contrastive evidence",
+        implementation=implementation,
+        score=0.91,
+        signals={"source": "causal_summary", "verification_gate": verification_gate},
+    )
+    blocked_extractor = SkillExtractor(SkillLibrary(storage_path=skill_dir), auto_promote=False)
+    blocked_skill = blocked_extractor.approve_candidate(blocked_candidate)
+
+    assert blocked_skill is None
+    assert blocked_candidate.review_status == "rejected"
+    blocked_report = blocked_candidate.signals["promotion_report"]
+    assert blocked_report["causal_evidence_gate"]["readiness"] == "review"
+    assert blocked_report["reason"] == "causal_evidence_gate_requires_report"
+
+    evidence_log = os.path.join(tmpdir, "controlled_causal.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Discover oak-log collection causal route"}},
+        {"type": "discovery_hypothesis", "data": {"hypothesis": "Digging oak_log should add oak_log to inventory."}},
+        {
+            "type": "discovery_experiment",
+            "data": {
+                "experiment": "Compare dig oak_log against a no-dig control.",
+                "intervention": "Dig an oak_log block.",
+                "control": "Use the same observation window without digging as a negative control.",
+                "outcome": "Inventory gained oak_log only after dig.",
+                "success": True,
+                "bias_risks": ["measurement_error"],
+                "bias_mitigation": "Repeat the trial and verify inventory delta after each action.",
+            },
+        },
+        {
+            "type": "memory_write",
+            "data": {
+                "layer": "causal",
+                "memory_type": "causal_rule",
+                "content": "Digging oak_log causes oak_log inventory to increase when the block is in reach.",
+            },
+        },
+        {
+            "type": "discovery_consolidation",
+            "data": {
+                "rule": "Digging an in-reach oak_log adds oak_log to inventory.",
+                "control": "No-dig control produced no inventory gain.",
+            },
+        },
+        {"type": "discovery_application", "data": {"goal": "Gather 3 oak logs", "success": True}},
+        {"type": "goal_verification", "data": {"achieved": True, "status": "achieved", "context": {"accepted": True}}},
+    ]
+    with open(evidence_log, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+    evidence_report = build_causal_evidence_report([evidence_log])
+    with open(report_path, "w", encoding="utf-8") as f:
+        json.dump(evidence_report, f)
+
+    ready_candidate = SkillCandidate(
+        name="causal_dig_oak_log_supported",
+        goal="Gather oak logs",
+        description="Repeated causal summary with contrastive evidence",
+        implementation=implementation,
+        score=0.91,
+        signals={"source": "causal_summary", "verification_gate": verification_gate},
+    )
+    ready_extractor = SkillExtractor(
+        SkillLibrary(storage_path=skill_dir),
+        auto_promote=False,
+        causal_evidence_gate_paths=[report_path],
+    )
+    ready_skill = ready_extractor.approve_candidate(ready_candidate)
+
+    assert ready_skill is not None
+    assert ready_candidate.review_status == "approved"
+    ready_report = ready_candidate.signals["promotion_report"]
+    assert ready_report["causal_evidence_gate"]["readiness"] == "approved"
+    assert "causal_evidence_gate" in ready_report["matched_rules"]
+    assert ready_skill.gate["causal_evidence"]["readiness"] == "approved"
+    assert ready_skill.skill_memory[0]["evidence"]["causal_evidence_gate"]["readiness"] == "approved"
+    print("PASS: Causal evidence gate controls causal-summary promotion")
+
+
 def test_skill_extractor_promotes_failure_correction_candidate():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "failure_correction.jsonl")
@@ -2702,6 +2804,7 @@ if __name__ == "__main__":
     test_skill_candidate_validation_report_explains_unknown_gate()
     test_skill_candidate_unknown_gate_uses_promotion_critic()
     test_skill_extractor_promotes_repeated_causal_summary_candidate()
+    test_causal_evidence_gate_controls_causal_summary_promotion()
     test_skill_extractor_promotes_failure_correction_candidate()
     test_skill_library_recommends_policy_skills_and_corrections()
     test_skill_library_runtime_default_gate_filters_learned_skills()
