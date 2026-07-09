@@ -388,6 +388,14 @@ def _add_skill_runtime_default_args(parser):
     )
 
 
+def _add_task_continuity_args(parser):
+    parser.add_argument(
+        "--no-task-continuity-context",
+        action="store_true",
+        help="Disable durable task-continuity checkpoints and planner context",
+    )
+
+
 def _add_knowledge_correction_args(parser):
     parser.add_argument(
         "--knowledge-correction-feedback",
@@ -528,6 +536,7 @@ def main():
     run_parser.add_argument("--api-key", type=str, default="")
     run_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
     _add_goal_critic_runtime_gate_args(run_parser)
+    _add_task_continuity_args(run_parser)
     run_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     run_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     run_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
@@ -569,6 +578,7 @@ def main():
     auto_parser.add_argument("--api-key", type=str, default="")
     auto_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
     _add_goal_critic_runtime_gate_args(auto_parser)
+    _add_task_continuity_args(auto_parser)
     auto_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     auto_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     auto_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
@@ -609,6 +619,7 @@ def main():
     bench_parser.add_argument("--api-key", type=str, default="")
     bench_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
     _add_goal_critic_runtime_gate_args(bench_parser)
+    _add_task_continuity_args(bench_parser)
     bench_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     bench_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     bench_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
@@ -1071,6 +1082,7 @@ def main():
     collab_parser.add_argument("--api-key", type=str, default="")
     collab_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
     _add_goal_critic_runtime_gate_args(collab_parser)
+    _add_task_continuity_args(collab_parser)
     collab_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     collab_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     collab_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
@@ -3114,6 +3126,7 @@ def main():
                     plan_cache_paths=merge_arg_profile_list(args, "plan_cache", runtime_profiles, "plan_cache_paths"),
                     plan_cache_gate_paths=merge_arg_profile_list(args, "plan_cache_gate", runtime_profiles, "plan_cache_gate_paths"),
                     plan_cache_min_confidence=getattr(args, "plan_cache_min_confidence", 0.75),
+                    enable_task_continuity_context=not getattr(args, "no_task_continuity_context", False),
                     enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
                     enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
                     coach_style=profile_str_arg(args, "coach_style", runtime_profiles, "coach_style", default=""),
@@ -5012,6 +5025,7 @@ def main():
         plan_cache_paths=merge_arg_profile_list(args, "plan_cache", runtime_profiles, "plan_cache_paths"),
         plan_cache_gate_paths=merge_arg_profile_list(args, "plan_cache_gate", runtime_profiles, "plan_cache_gate_paths"),
         plan_cache_min_confidence=getattr(args, "plan_cache_min_confidence", 0.75),
+        enable_task_continuity_context=not getattr(args, "no_task_continuity_context", False),
         enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
         enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
         coach_style=profile_str_arg(args, "coach_style", runtime_profiles, "coach_style", default=""),

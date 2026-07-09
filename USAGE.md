@@ -143,6 +143,10 @@ python -m singularity.main memory-maintenance-report --memory-dir workspace/memo
 python -m singularity.main transfer-memory-report --memory-dir workspace/memory --query "Craft a stone pickaxe from cobblestone and sticks"
 # Audit task-centric memory context for a goal plus active task metadata
 python -m singularity.main task-memory-report --memory-dir workspace/memory --goal "Upgrade mining tool" --task-json "{\"title\":\"Craft stone pickaxe\",\"preconditions\":{\"inventory\":{\"cobblestone\":3,\"stick\":2}},\"success_criteria\":{\"inventory\":{\"stone_pickaxe\":1}}}"
+# Agent runs persist compact task-continuity checkpoints in `task_continuity.jsonl`
+# and feed the latest unresolved ready/blocked/failed tasks back into planner context.
+# Use --no-task-continuity-context on run/autonomous/benchmark/collab-benchmark
+# for baseline runs that should not read or write those checkpoints.
 
 # Audit session logs for memory write/read/manage policy gaps
 python -m singularity.main memory-policy-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/memory_policy.json

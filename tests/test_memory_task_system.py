@@ -396,6 +396,56 @@ def test_task_memory_profile_scopes_memory_to_active_task():
     print("PASS: Task memory profile scopes memory to active task")
 
 
+def test_task_continuity_ledger_persists_resume_context():
+    tmpdir = tempfile.mkdtemp()
+    memory = MemorySystem(memory_dir=tmpdir, persist=True)
+    tasks = TaskSystem()
+    gather = tasks.create_task(
+        "Gather coal for torches",
+        status=TaskStatus.ACCEPTED,
+        priority=1,
+        success_criteria={"inventory": {"coal": 1}},
+        opportunity_triggers=["coal_ore"],
+    )
+    craft = tasks.create_task(
+        "Craft torches",
+        status=TaskStatus.ACCEPTED,
+        priority=2,
+        preconditions={"inventory": {"coal": 1, "stick": 1}},
+        success_criteria={"inventory": {"torch": 4}},
+        depends_on=[gather.id],
+        tags=["torch", "crafting"],
+    )
+    craft.blockers.append("Missing coal")
+
+    record = memory.record_task_continuity(
+        "Craft torches before night",
+        task_system=tasks,
+        current_state={"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}]},
+        plan={"status": "planning", "reasoning": "Need coal first", "actions": [{"type": "dig", "parameters": {"block": "coal_ore"}}]},
+        source="test_plan",
+    )
+    context = memory.task_continuity_context(
+        "Craft torches before night",
+        {"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}]},
+    )
+    reloaded = MemorySystem(memory_dir=tmpdir, persist=True)
+    reloaded_context = reloaded.task_continuity_context("Craft torches before night", {"inventory": {"stick": 1}})
+
+    assert record.status_counts["accepted"] == 2
+    assert record.ready_tasks[0]["title"] == "Gather coal for torches"
+    blocked_titles = {task["title"] for task in record.blocked_tasks}
+    assert "Craft torches" in blocked_titles
+    craft_record = next(task for task in record.blocked_tasks if task["title"] == "Craft torches")
+    assert craft_record["missing_preconditions"]["inventory"]["coal"] == 1
+    assert any("satisfy missing preconditions" in item for item in record.next_actions)
+    assert "Task continuity ledger" in context
+    assert "Gather coal for torches" in context
+    assert "Craft torches" in reloaded_context
+    assert os.path.exists(os.path.join(tmpdir, "task_continuity.jsonl"))
+    print("PASS: Task continuity ledger persists resume context")
+
+
 def test_memory_read_filters_stale_and_conditional_entries():
     memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
     stale = memory.add_memory(
@@ -1347,6 +1397,52 @@ def test_agent_injects_task_memory_context_for_planner():
     assert event["data"]["memory_type"] == "task_memory"
     assert event["data"]["query"] == "Upgrade mining tool Craft stone pickaxe"
     print("PASS: Agent injects task memory context for planner")
+
+
+def test_agent_records_and_reads_task_continuity_context():
+    tmpdir = tempfile.mkdtemp()
+    agent = object.__new__(Agent)
+    agent.config = Config(enable_task_continuity_context=True)
+    agent.memory = MemorySystem(memory_dir=tmpdir, persist=False)
+    agent.memory_policy = MemoryLifecyclePolicy()
+    agent.session_logger = FakeSessionLogger()
+    agent.task_system = TaskSystem()
+    agent.current_goal = "Craft torches before night"
+    agent.task_system.create_task(
+        "Craft torches",
+        status=TaskStatus.ACCEPTED,
+        priority=1,
+        preconditions={"inventory": {"coal": 1, "stick": 1}},
+        success_criteria={"inventory": {"torch": 4}},
+        blockers=["Missing coal"],
+        tags=["torch"],
+    )
+
+    record = agent._record_task_continuity(
+        "Craft torches before night",
+        {"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}]},
+        {"status": "planning", "reasoning": "mine coal before crafting", "actions": [{"type": "dig", "parameters": {"block": "coal_ore"}}]},
+        source="test_agent",
+    )
+    context = agent._task_continuity_context(
+        "Craft torches before night",
+        {"inventory": {"stick": 1}},
+    )
+    write_event = next(event for event in agent.session_logger.events if event["type"] == "memory_write" and event["data"]["memory_type"] == "task_continuity")
+    read_event = next(event for event in agent.session_logger.events if event["type"] == "memory_read" and event["data"]["memory_type"] == "task_continuity")
+    checkpoint_event = next(event for event in agent.session_logger.events if event["type"] == "task_continuity_checkpoint")
+
+    assert record is not None
+    assert "Task continuity ledger" in context
+    assert "Craft torches" in context
+    assert "missing" in context
+    assert write_event["data"]["operation"] == "record_task_continuity"
+    assert read_event["data"]["has_result"] is True
+    assert checkpoint_event["data"]["ready_count"] == 0
+
+    agent.config = Config(enable_task_continuity_context=False)
+    assert agent._task_continuity_context("Craft torches", {}) == ""
+    print("PASS: Agent records and reads task continuity context")
 
 
 def test_agent_injects_skill_memory_context_for_planner():
@@ -3010,6 +3106,7 @@ if __name__ == "__main__":
     test_memory_curates_and_retrieves_transfer_experience()
     test_memory_ranks_experiences_by_transfer_axes()
     test_task_memory_profile_scopes_memory_to_active_task()
+    test_task_continuity_ledger_persists_resume_context()
     test_memory_read_filters_stale_and_conditional_entries()
     test_memory_policy_routes_promptware_to_review()
     test_memory_filters_promptware_entries_and_experiences()
@@ -3033,6 +3130,7 @@ if __name__ == "__main__":
     test_agent_memory_policy_can_suppress_noisy_write_when_enforced()
     test_agent_passes_observation_to_memory_retrieval()
     test_agent_injects_task_memory_context_for_planner()
+    test_agent_records_and_reads_task_continuity_context()
     test_agent_injects_skill_memory_context_for_planner()
     test_agent_injects_coach_context_as_advisory_policy_hint()
     test_memory_policy_routes_correlated_evidence_to_review()

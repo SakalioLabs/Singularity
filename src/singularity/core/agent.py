@@ -1284,6 +1284,13 @@ class Agent:
                     source="goal_plan",
                 )
                 self._accept_planned_tasks()
+                self._record_task_continuity(
+                    goal,
+                    observation,
+                    plan,
+                    source="goal_plan",
+                    context={"cycle": cycle, "mode": "goal"},
+                )
                 scheduling_state = self._state_with_causal_context(observation, goal)
 
                 verified, verification = self._goal_is_verified(
@@ -1504,6 +1511,13 @@ class Agent:
 
                     plan = self._think(observation, override_goal=goal)
                     self._accept_planned_tasks()
+                    self._record_task_continuity(
+                        goal,
+                        observation,
+                        plan,
+                        source="autonomous_plan",
+                        context={"cycle": total_cycles, "mode": "autonomous"},
+                    )
                     scheduling_state = self._state_with_causal_context(observation, goal)
                     next_task = self.task_system.get_next_task(scheduling_state)
                     if next_task and next_task.title != goal:
@@ -1706,6 +1720,7 @@ class Agent:
         # Gather memory context for planning
         memory_context = self._read_relevant_memory(goal, observation, source="planner_goal")
         task_memory_context = self._task_memory_context(goal, observation)
+        task_continuity_context = self._task_continuity_context(goal, observation)
         context_window = self._read_context_window(source="planner_context")
 
         # Get skill recommendations
@@ -1736,6 +1751,7 @@ class Agent:
             combined_memory = "\n".join(part for part in (
                 memory_context,
                 task_memory_context,
+                task_continuity_context,
                 context_window,
                 visual_context,
                 visual_action_context,
@@ -2345,6 +2361,91 @@ class Agent:
             retrieval_trace=retrieval_trace,
         )
         return result
+
+    def _task_continuity_context(self, goal: str, current_state: dict = None) -> str:
+        if not getattr(getattr(self, "config", None), "enable_task_continuity_context", True):
+            return ""
+        query = str(goal or "")
+        decision = self._memory_read_decision(query, "task", "task_continuity", "retrieve")
+        result = ""
+        if decision.should_retrieve and hasattr(self, "memory") and self.memory and hasattr(self.memory, "task_continuity_context"):
+            try:
+                result = self.memory.task_continuity_context(
+                    goal,
+                    current_state=current_state or {},
+                    limit=3,
+                )
+            except Exception as e:
+                logger.warning(f"Task continuity context failed: {e}")
+        self._log_memory_read(
+            query=query,
+            layer="task",
+            memory_type="task_continuity",
+            operation="retrieve",
+            result=result,
+            source="planner_task_continuity",
+            decision=decision,
+        )
+        return result
+
+    def _record_task_continuity(
+        self,
+        goal: str,
+        current_state: dict = None,
+        plan: dict = None,
+        source: str = "agent",
+        context: dict = None,
+    ):
+        if not getattr(getattr(self, "config", None), "enable_task_continuity_context", True):
+            return None
+        payload_preview = {
+            "goal": goal,
+            "source": source,
+            "plan_status": plan.get("status") if isinstance(plan, dict) else "",
+            "context": context or {},
+        }
+        decision = self._memory_write_decision(
+            layer="task",
+            memory_type="task_continuity",
+            operation="record_task_continuity",
+            content=payload_preview,
+            source=source,
+            confidence=0.82,
+        )
+        record = None
+        if decision.should_persist and hasattr(self, "memory") and self.memory and hasattr(self.memory, "record_task_continuity"):
+            try:
+                record = self.memory.record_task_continuity(
+                    goal,
+                    task_system=getattr(self, "task_system", None),
+                    current_state=current_state or {},
+                    plan=plan or {},
+                    source=source,
+                )
+            except Exception as e:
+                logger.warning(f"Task continuity record failed: {e}")
+        content = asdict(record) if record is not None else payload_preview
+        self._log_memory_write(
+            layer="task",
+            memory_type="task_continuity",
+            operation="record_task_continuity",
+            content=content,
+            source=source,
+            confidence=0.82,
+            decision=decision,
+        )
+        if record is not None and hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("task_continuity_checkpoint", {
+                "goal": goal,
+                "source": source,
+                "record_id": record.id,
+                "summary": record.summary,
+                "status_counts": record.status_counts,
+                "ready_count": len(record.ready_tasks),
+                "blocked_count": len(record.blocked_tasks),
+                "failed_count": len(record.failed_tasks),
+            })
+        return record
 
     def _write_memory_context(self, entry: dict, source: str = "agent_context"):
         decision = self._memory_write_decision(
@@ -3498,6 +3599,13 @@ class Agent:
                 "action": action.get("type"),
                 "success": bool(result.get("success")),
             }, source="task_system")
+            self._record_task_continuity(
+                (context or {}).get("goal", "") or getattr(self, "current_goal", ""),
+                observation,
+                plan=None,
+                source="task_state_update",
+                context=context or {},
+            )
         if hasattr(self.memory, "record_causal_transition"):
             causal_context = dict(context or {})
             if task:

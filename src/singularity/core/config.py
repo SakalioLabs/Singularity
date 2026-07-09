@@ -34,6 +34,7 @@ class Config:
     enable_autocurriculum: bool = True
     enable_memory_policy: bool = True
     enable_task_memory_context: bool = True
+    enable_task_continuity_context: bool = True
     enable_skill_memory_context: bool = True
     enable_knowledge_correction_context: bool = True
     enable_plan_cache: bool = False
