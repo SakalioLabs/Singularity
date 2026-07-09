@@ -211,6 +211,7 @@ class Agent:
             path for path in (getattr(self.config, "action_value_feedback_paths", []) or [])
             if path
         ]
+        transition_gate_report = self._evaluate_action_value_transition_runtime_gate()
         report = {
             "paths": list(paths),
             "loaded_count": 0,
@@ -218,15 +219,18 @@ class Agent:
             "value_items_loaded": 0,
             "transition_values_loaded": 0,
             "transition_values_skipped": 0,
+            "transition_values_suppressed_by_gate": 0,
             "transition_skip_reasons": {},
             "advisory_only": True,
             "errors": [],
+            **transition_gate_report,
         }
         for path in paths:
             try:
                 with open(path, "r", encoding="utf-8-sig") as f:
                     payload = json.load(f)
                 feedback = payload.get("action_value_feedback", payload) if isinstance(payload, dict) else {}
+                feedback = self._action_value_feedback_with_transition_gate(feedback, report)
                 loaded = self.action_value_profile.merge_feedback(feedback)
                 merge_report = dict(getattr(self.action_value_profile, "last_merge_report", {}) or {})
                 report["loaded_count"] += 1
@@ -248,8 +252,101 @@ class Agent:
                 f"items={report['value_items_loaded']}, "
                 f"transitions={report['transition_values_loaded']}, "
                 f"transition_skipped={report['transition_values_skipped']}, "
+                f"transition_gate={report['transition_gate_readiness']}, "
                 f"errors={len(report['errors'])}"
             )
+        return report
+
+    def _action_value_feedback_with_transition_gate(self, feedback: dict, report: dict) -> dict:
+        feedback = feedback if isinstance(feedback, dict) else {}
+        if report.get("transition_gate_approved", True):
+            return feedback
+        transition_items = feedback.get("state_transition_value_items", [])
+        if not transition_items:
+            return feedback
+        transition_items = transition_items if isinstance(transition_items, list) else []
+        gated_feedback = dict(feedback)
+        gated_feedback["state_transition_value_items"] = []
+        skipped = len(transition_items)
+        report["transition_values_skipped"] += skipped
+        report["transition_values_suppressed_by_gate"] += skipped
+        reasons = report.setdefault("transition_skip_reasons", {})
+        reasons["transition_runtime_gate_not_approved"] = (
+            reasons.get("transition_runtime_gate_not_approved", 0) + skipped
+        )
+        return gated_feedback
+
+    def _evaluate_action_value_transition_runtime_gate(self) -> dict:
+        """Return whether ASV transition-value feedback may enter runtime scoring."""
+        transition_gate_paths = [
+            path for path in (getattr(self.config, "action_value_transition_gate_paths", []) or [])
+            if path
+        ]
+        evaluator_report_paths = [
+            path for path in (getattr(self.config, "action_value_transition_evaluator_report_paths", []) or [])
+            if path
+        ]
+        report = {
+            "transition_gate_paths": list(transition_gate_paths),
+            "transition_evaluator_report_paths": list(evaluator_report_paths),
+            "transition_gate_required": bool(transition_gate_paths or evaluator_report_paths),
+            "transition_gate_approved": True,
+            "transition_gate_readiness": "not_required",
+            "transition_gate_reports": [],
+        }
+        if not report["transition_gate_required"]:
+            return report
+
+        report["transition_gate_approved"] = False
+        readinesses = []
+        for kind, paths in (
+            ("transition_gate", transition_gate_paths),
+            ("transition_evaluator", evaluator_report_paths),
+        ):
+            for path in paths:
+                summary = {
+                    "path": path,
+                    "kind": kind,
+                    "readiness": "error",
+                    "decision": "",
+                    "reason": "",
+                }
+                try:
+                    with open(path, "r", encoding="utf-8-sig") as f:
+                        gate = json.load(f)
+                    readiness = str(gate.get("readiness", "")).strip().lower() or "unknown"
+                    summary.update({
+                        "readiness": readiness,
+                        "decision": str(gate.get("decision", "")).strip(),
+                        "reason": str(gate.get("reason", "")).strip()[:300],
+                    })
+                    for key in (
+                        "trusted_item_count",
+                        "trusted_transition_count",
+                        "evaluated_count",
+                        "agreement_rate",
+                        "avg_abs_score_delta",
+                    ):
+                        if key in gate:
+                            summary[key] = gate.get(key)
+                except Exception as e:
+                    readiness = "error"
+                    summary["error"] = str(e)
+                    logger.warning(f"Failed to load action-value transition {kind} {path}: {e}")
+                readinesses.append(readiness)
+                report["transition_gate_reports"].append(summary)
+
+        if any(readiness == "error" for readiness in readinesses):
+            report["transition_gate_readiness"] = "error"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report["transition_gate_readiness"] = "approved"
+            report["transition_gate_approved"] = True
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report["transition_gate_readiness"] = "rejected"
+        elif any(readiness == "review" for readiness in readinesses):
+            report["transition_gate_readiness"] = "review"
+        else:
+            report["transition_gate_readiness"] = "unknown"
         return report
 
     def _load_skill_memory_quality_feedback(self) -> dict:

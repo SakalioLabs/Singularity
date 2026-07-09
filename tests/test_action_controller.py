@@ -140,6 +140,69 @@ def _write_action_value_feedback(tmpdir):
     return feedback_path
 
 
+def _write_trusted_action_value_feedback(tmpdir):
+    feedback_path = os.path.join(tmpdir, "trusted_action_value.json")
+    with open(feedback_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "action_value_feedback": {
+                "action_value_items": [
+                    {
+                        "signature": "dig:coal_ore",
+                        "action_type": "dig",
+                        "attempts": 4,
+                        "successes": 4,
+                        "failures": 0,
+                        "unknown_outcomes": 0,
+                        "verifier_accepts": 4,
+                        "task_families": {"crafting": 4},
+                    }
+                ],
+                "state_transition_value_items": [
+                    {
+                        "signature": "dig:coal_ore",
+                        "action_type": "dig",
+                        "attempts": 4,
+                        "avg_transition_value_score": 0.2,
+                        "avg_transition_confidence": 1.0,
+                        "low_confidence_transitions": 0,
+                    }
+                ],
+            }
+        }, f)
+    return feedback_path
+
+
+def _write_action_value_transition_gate(tmpdir, readiness="approved"):
+    gate_path = os.path.join(tmpdir, f"action_value_transition_gate_{readiness}.json")
+    decision = "approve" if readiness == "approved" else "hold_for_review"
+    with open(gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "action_value_transition_gate",
+            "readiness": readiness,
+            "decision": decision,
+            "reason": "trusted transition values are ready" if readiness == "approved" else "needs review",
+            "trusted_item_count": 1 if readiness == "approved" else 0,
+            "trusted_transition_count": 4 if readiness == "approved" else 0,
+        }, f)
+    return gate_path
+
+
+def _write_action_value_transition_evaluator_report(tmpdir, readiness="approved"):
+    report_path = os.path.join(tmpdir, f"action_value_transition_evaluator_{readiness}.json")
+    decision = "approve_comparison" if readiness == "approved" else "hold_for_review"
+    with open(report_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "action_value_transition_evaluator_report",
+            "readiness": readiness,
+            "decision": decision,
+            "reason": "state-grounded evaluator agrees" if readiness == "approved" else "needs review",
+            "evaluated_count": 2 if readiness == "approved" else 0,
+            "agreement_rate": 1.0 if readiness == "approved" else 0.0,
+            "avg_abs_score_delta": 0.02 if readiness == "approved" else 0.0,
+        }, f)
+    return report_path
+
+
 def _write_skill_memory_quality_feedback(tmpdir):
     feedback_path = os.path.join(tmpdir, "skill_memory_quality.json")
     with open(feedback_path, "w", encoding="utf-8") as f:
@@ -431,6 +494,68 @@ def test_agent_loads_action_value_feedback_into_candidate_selector():
     print("PASS: Agent loads action-value feedback into candidate selector")
 
 
+def test_agent_suppresses_transition_values_without_runtime_gate_approval():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = _write_trusted_action_value_feedback(tmpdir)
+    gate_path = _write_action_value_transition_gate(tmpdir, readiness="review")
+    config = Config(
+        log_dir=os.path.join(tmpdir, "logs"),
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        action_value_feedback_paths=[feedback_path],
+        action_value_transition_gate_paths=[gate_path],
+    )
+
+    agent = Agent(config)
+    report = agent.action_value_feedback_report
+    value = agent.action_candidate_selector.value_profile.score(
+        {"type": "dig", "parameters": {"block": "coal_ore"}},
+        goal="Craft torches",
+    )
+
+    assert report["loaded_count"] == 1
+    assert report["transition_gate_required"] is True
+    assert report["transition_gate_approved"] is False
+    assert report["transition_gate_readiness"] == "review"
+    assert report["transition_values_loaded"] == 0
+    assert report["transition_values_suppressed_by_gate"] == 1
+    assert report["transition_skip_reasons"]["transition_runtime_gate_not_approved"] == 1
+    assert value["attempts"] == 4
+    assert "transition_value_applied" not in value
+    print("PASS: Agent suppresses transition values without runtime gate approval")
+
+
+def test_agent_loads_transition_values_with_gate_and_evaluator_approval():
+    tmpdir = tempfile.mkdtemp()
+    feedback_path = _write_trusted_action_value_feedback(tmpdir)
+    gate_path = _write_action_value_transition_gate(tmpdir, readiness="approved")
+    evaluator_path = _write_action_value_transition_evaluator_report(tmpdir, readiness="approved")
+    config = Config(
+        log_dir=os.path.join(tmpdir, "logs"),
+        memory_dir=os.path.join(tmpdir, "memory"),
+        skill_dir=os.path.join(tmpdir, "skills"),
+        action_value_feedback_paths=[feedback_path],
+        action_value_transition_gate_paths=[gate_path],
+        action_value_transition_evaluator_report_paths=[evaluator_path],
+    )
+
+    agent = Agent(config)
+    report = agent.action_value_feedback_report
+    value = agent.action_candidate_selector.value_profile.score(
+        {"type": "dig", "parameters": {"block": "coal_ore"}},
+        goal="Craft torches",
+    )
+
+    assert report["transition_gate_required"] is True
+    assert report["transition_gate_approved"] is True
+    assert report["transition_gate_readiness"] == "approved"
+    assert report["transition_values_loaded"] == 1
+    assert report["transition_values_suppressed_by_gate"] == 0
+    assert value["transition_value_applied"] is True
+    assert value["transition_value_score"] == 0.2
+    print("PASS: Agent loads transition values with gate and evaluator approval")
+
+
 def test_agent_loads_skill_memory_quality_feedback_into_library():
     tmpdir = tempfile.mkdtemp()
     feedback_path = _write_skill_memory_quality_feedback(tmpdir)
@@ -718,6 +843,8 @@ if __name__ == "__main__":
     test_agent_loads_mixed_policy_patch_when_gate_is_approved()
     test_agent_loads_self_evolution_feedback_into_planner_policy()
     test_agent_loads_action_value_feedback_into_candidate_selector()
+    test_agent_suppresses_transition_values_without_runtime_gate_approval()
+    test_agent_loads_transition_values_with_gate_and_evaluator_approval()
     test_agent_loads_skill_memory_quality_feedback_into_library()
     test_agent_loads_skill_memory_quality_feedback_when_gate_is_approved()
     test_agent_skips_skill_memory_quality_feedback_when_gate_is_not_approved()

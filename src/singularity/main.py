@@ -115,6 +115,8 @@ def main():
     run_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading runtime policy patches")
     run_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
     run_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
+    run_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
+    run_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
     run_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     run_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     run_parser.add_argument("--log-level", type=str, default="INFO")
@@ -143,6 +145,8 @@ def main():
     auto_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading runtime policy patches")
     auto_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
     auto_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
+    auto_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
+    auto_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
     auto_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     auto_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     auto_parser.add_argument("--log-level", type=str, default="INFO")
@@ -170,6 +174,8 @@ def main():
     bench_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading benchmark policy patches")
     bench_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
     bench_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
+    bench_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
+    bench_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
     bench_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     bench_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     bench_parser.add_argument("--skill-memory-quality-preflight", action="store_true", help="Run gate and offline ranking preflight before quality-feedback-assisted benchmarks")
@@ -442,6 +448,8 @@ def main():
     collab_parser.add_argument("--mixed-policy-gate", action="append", default=[], help="Approved mixed-policy gate JSON required before loading Agent executor policy patches")
     collab_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
     collab_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
+    collab_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
+    collab_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value-transition-evaluator-report JSON required before loading ASV transition scores")
     collab_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     collab_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     collab_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
@@ -1670,6 +1678,8 @@ def main():
                     mixed_policy_gate_paths=getattr(args, "mixed_policy_gate", []) or [],
                     self_evolution_feedback_paths=getattr(args, "self_evolution_feedback", []) or [],
                     action_value_feedback_paths=getattr(args, "action_value_feedback", []) or [],
+                    action_value_transition_gate_paths=getattr(args, "action_value_transition_gate", []) or [],
+                    action_value_transition_evaluator_report_paths=getattr(args, "action_value_transition_evaluator_report", []) or [],
                     skill_memory_quality_feedback_paths=getattr(args, "skill_memory_quality_feedback", []) or [],
                     skill_memory_quality_gate_paths=getattr(args, "skill_memory_quality_gate", []) or [],
                     screenshot_dir=getattr(args, "screenshot_dir", "logs/screenshots"),
@@ -3116,6 +3126,8 @@ def main():
         mixed_policy_gate_paths=getattr(args, "mixed_policy_gate", []) or [],
         self_evolution_feedback_paths=getattr(args, "self_evolution_feedback", []) or [],
         action_value_feedback_paths=getattr(args, "action_value_feedback", []) or [],
+        action_value_transition_gate_paths=getattr(args, "action_value_transition_gate", []) or [],
+        action_value_transition_evaluator_report_paths=getattr(args, "action_value_transition_evaluator_report", []) or [],
         skill_memory_quality_feedback_paths=getattr(args, "skill_memory_quality_feedback", []) or [],
         skill_memory_quality_gate_paths=getattr(args, "skill_memory_quality_gate", []) or [],
         enable_screenshot_capture=getattr(args, "capture_screenshots", False),
