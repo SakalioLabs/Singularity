@@ -518,6 +518,76 @@ def test_task_continuity_report_summarizes_resume_candidates():
     print("PASS: Task continuity report summarizes resume candidates")
 
 
+def test_task_continuity_import_from_session_log():
+    tmpdir = tempfile.mkdtemp()
+    log_path = os.path.join(tmpdir, "session_import.jsonl")
+    events = [
+        {"type": "goal_start", "data": {"goal": "Craft torches before night"}},
+        {
+            "type": "observation",
+            "data": {
+                "inventory": {"stick": 1},
+                "nearby_blocks": [{"name": "coal_ore"}],
+                "position": {"x": 1, "y": 64, "z": 2},
+            },
+        },
+        {
+            "type": "plan",
+            "data": {
+                "status": "planning",
+                "reasoning": "Mine coal then craft torches",
+                "subtasks": [
+                    {
+                        "title": "Gather coal for torches",
+                        "priority": 1,
+                        "success_criteria": {"inventory": {"coal": 1}},
+                        "opportunity_triggers": ["coal_ore"],
+                    },
+                    {
+                        "title": "Craft torches",
+                        "priority": 2,
+                        "preconditions": {"inventory": {"coal": 1, "stick": 1}},
+                        "success_criteria": {"inventory": {"torch": 4}},
+                        "tags": ["torch", "crafting"],
+                    },
+                ],
+                "actions": [{"type": "dig", "parameters": {"block": "coal_ore"}}],
+            },
+        },
+        {
+            "type": "action",
+            "data": {
+                "action": {"type": "dig", "parameters": {"block": "coal_ore"}},
+                "result": {"success": False, "error": "Need to move closer", "action_type": "dig"},
+                "post_observation": {"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}]},
+            },
+        },
+    ]
+    with open(log_path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    memory = MemorySystem(memory_dir=tmpdir, persist=True)
+    result = memory.import_task_continuity_from_session_log(log_path)
+    report = MemorySystem(memory_dir=tmpdir, persist=True).task_continuity_report(
+        goal="Craft torches before night",
+        current_state={"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}]},
+    )
+    thin = memory.import_task_continuity_from_session_events([{"type": "memory_read", "data": {}}])
+
+    assert result["imported"] is True
+    assert result["ready_task_count"] == 1
+    assert result["blocked_task_count"] >= 1
+    assert result["failed_task_count"] == 1
+    assert result["record"]["state_summary"]["source_log"] == log_path
+    assert os.path.exists(os.path.join(tmpdir, "task_continuity.jsonl"))
+    assert report["record_count"] == 1
+    assert report["missing_precondition_counts"]["inventory.coal"] == 1
+    assert any(candidate["status_bucket"] == "failed" for candidate in report["resume_candidates"])
+    assert thin["imported"] is False
+    print("PASS: Task continuity import from session log")
+
+
 def test_memory_read_filters_stale_and_conditional_entries():
     memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
     stale = memory.add_memory(
@@ -3180,6 +3250,7 @@ if __name__ == "__main__":
     test_task_memory_profile_scopes_memory_to_active_task()
     test_task_continuity_ledger_persists_resume_context()
     test_task_continuity_report_summarizes_resume_candidates()
+    test_task_continuity_import_from_session_log()
     test_memory_read_filters_stale_and_conditional_entries()
     test_memory_policy_routes_promptware_to_review()
     test_memory_filters_promptware_entries_and_experiences()

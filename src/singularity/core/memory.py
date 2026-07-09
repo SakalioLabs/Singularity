@@ -732,12 +732,63 @@ class MemorySystem:
             source=source,
             max_tasks=max_tasks,
         )
-        self.l1_working["task_continuity"] = asdict(record)
-        self.task_continuity_records.append(record)
-        if len(self.task_continuity_records) > 200:
-            self.task_continuity_records = self.task_continuity_records[-200:]
-        self._append_jsonl(self.task_continuity_path, asdict(record))
+        self._store_task_continuity_record(record)
         return record
+
+    def import_task_continuity_from_session_log(
+        self,
+        session_log_path: str,
+        source: str = "session_import",
+    ) -> dict:
+        """Import a conservative task-continuity checkpoint from a session JSONL log."""
+        try:
+            events = self._read_jsonl(session_log_path)
+        except Exception as e:
+            return {
+                "type": "task_continuity_import",
+                "source_log": session_log_path,
+                "imported": False,
+                "error": str(e),
+            }
+        return self.import_task_continuity_from_session_events(
+            events,
+            source_log=session_log_path,
+            source=source,
+        )
+
+    def import_task_continuity_from_session_events(
+        self,
+        events: list[dict],
+        source_log: str = "",
+        source: str = "session_import",
+    ) -> dict:
+        """Import one durable checkpoint from already-loaded session events."""
+        record = self._build_task_continuity_record_from_session_events(
+            events,
+            source_log=source_log,
+            source=source,
+        )
+        if record is None:
+            return {
+                "type": "task_continuity_import",
+                "source_log": source_log,
+                "imported": False,
+                "event_count": len(events or []),
+                "reason": "session log did not contain enough goal, plan, action, or observation evidence",
+            }
+        self._store_task_continuity_record(record)
+        return {
+            "type": "task_continuity_import",
+            "source_log": source_log,
+            "imported": True,
+            "event_count": len(events or []),
+            "record": asdict(record),
+            "status_counts": record.status_counts,
+            "ready_task_count": len(record.ready_tasks),
+            "blocked_task_count": len(record.blocked_tasks),
+            "failed_task_count": len(record.failed_tasks),
+            "next_actions": list(record.next_actions),
+        }
 
     def task_continuity_context(
         self,
@@ -1306,6 +1357,13 @@ class MemorySystem:
             result.append(text)
         return result
 
+    def _store_task_continuity_record(self, record: TaskContinuityRecord):
+        self.l1_working["task_continuity"] = asdict(record)
+        self.task_continuity_records.append(record)
+        if len(self.task_continuity_records) > 200:
+            self.task_continuity_records = self.task_continuity_records[-200:]
+        self._append_jsonl(self.task_continuity_path, asdict(record))
+
     def save_session(self, session_id: str):
         """Save episodic memory to daily journal file."""
         date_str = time.strftime("%Y-%m-%d")
@@ -1572,6 +1630,204 @@ class MemorySystem:
             plan_reasoning=str(plan.get("reasoning") or "")[:500],
             state_summary=self._task_continuity_state_summary(current_state),
         )
+
+    def _build_task_continuity_record_from_session_events(
+        self,
+        events: list[dict],
+        source_log: str = "",
+        source: str = "session_import",
+    ) -> Optional[TaskContinuityRecord]:
+        events = [event for event in events or [] if isinstance(event, dict)]
+        if not events:
+            return None
+        goal = self._session_continuity_goal(events)
+        current_state = self._session_continuity_current_state(events)
+        plan = self._session_continuity_plan(events)
+        failed_actions = self._session_failed_action_summaries(events)
+        if not goal and not plan and not current_state and not failed_actions:
+            return None
+
+        task_payloads = self._session_continuity_task_payloads(plan, current_state, failed_actions, goal)
+        status_counts = {}
+        for task in task_payloads:
+            self._increment_count(status_counts, task.get("status") or "unknown")
+        ready_tasks = [task for task in task_payloads if task.get("continuity_ready")]
+        active_tasks = [task for task in task_payloads if task.get("status") == "active"]
+        blocked_tasks = [
+            task for task in task_payloads
+            if task.get("status") in {"blocked", "waiting"} or task.get("missing_preconditions") or task.get("blockers")
+        ]
+        failed_tasks = [task for task in task_payloads if task.get("status") == "failed"]
+        plan_actions = self._task_continuity_plan_actions(plan)
+        next_actions = self._task_continuity_next_actions(ready_tasks, blocked_tasks, failed_tasks, plan_actions)
+        if source_log:
+            next_actions.append(f"review source session log: {source_log}")
+        summary = self._task_continuity_summary(goal, status_counts, ready_tasks, blocked_tasks, failed_tasks, plan_actions)
+        if failed_actions:
+            summary = (summary + f" | failed_actions={len(failed_actions)}").strip(" |")
+        return TaskContinuityRecord(
+            goal=str(goal or ""),
+            source=str(source or "session_import"),
+            summary=summary,
+            status_counts=dict(sorted(status_counts.items())),
+            ready_tasks=ready_tasks[:6],
+            active_tasks=active_tasks[:6],
+            blocked_tasks=blocked_tasks[:6],
+            failed_tasks=failed_tasks[:6],
+            next_actions=self._dedupe_text(next_actions)[:8],
+            plan_status=str(plan.get("status") or "session_import"),
+            plan_reasoning=str(plan.get("reasoning") or self._session_continuity_reasoning(events))[:500],
+            state_summary={
+                **self._task_continuity_state_summary(current_state),
+                "source_log": source_log,
+                "event_count": len(events),
+            },
+        )
+
+    def _session_continuity_goal(self, events: list[dict]) -> str:
+        for event in reversed(events):
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            event_type = event.get("type")
+            if event_type in {"goal_start", "goal_end"} and data.get("goal"):
+                return str(data.get("goal"))
+            if isinstance(data.get("goal"), str) and data.get("goal"):
+                return str(data.get("goal"))
+            context = data.get("action_context", {}) if isinstance(data.get("action_context", {}), dict) else {}
+            if context.get("goal"):
+                return str(context.get("goal"))
+        return ""
+
+    def _session_continuity_current_state(self, events: list[dict]) -> dict:
+        for event in reversed(events):
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event.get("type") == "action":
+                post = data.get("post_observation", {})
+                if isinstance(post, dict) and post:
+                    return post
+                pre = data.get("pre_observation", {})
+                if isinstance(pre, dict) and pre:
+                    return pre
+            if event.get("type") == "observation" and data:
+                return data
+            if event.get("type") == "vision" and data:
+                return data
+        return {}
+
+    def _session_continuity_plan(self, events: list[dict]) -> dict:
+        for event in reversed(events):
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event.get("type") == "plan" and data:
+                return data
+            if event.get("type") in {"planner_fallback", "plan_cache_hit"}:
+                plan = data.get("plan", {})
+                if isinstance(plan, dict) and plan:
+                    return plan
+        return {}
+
+    def _session_continuity_reasoning(self, events: list[dict]) -> str:
+        for event in reversed(events):
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if event.get("type") == "reflection":
+                return str(data.get("analysis") or data.get("suggestion") or "")
+            if event.get("type") == "error":
+                return str(data.get("error") or data)
+        return ""
+
+    def _session_failed_action_summaries(self, events: list[dict], limit: int = 6) -> list[dict]:
+        failures = []
+        for event in reversed(events):
+            if event.get("type") != "action":
+                continue
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            action = data.get("action", {}) if isinstance(data.get("action", {}), dict) else {}
+            result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+            if result.get("success") is not False:
+                continue
+            action_type = str(action.get("type") or result.get("action_type") or "action")
+            params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
+            target = params.get("item") or params.get("block") or params.get("target") or params.get("entity")
+            error = str(result.get("error") or "action failed")[:180]
+            failures.append({
+                "action_type": action_type,
+                "target": str(target or "")[:120],
+                "error": error,
+            })
+            if len(failures) >= limit:
+                break
+        return list(reversed(failures))
+
+    def _session_continuity_task_payloads(
+        self,
+        plan: dict,
+        current_state: dict,
+        failed_actions: list[dict],
+        goal: str,
+    ) -> list[dict]:
+        payloads = []
+        subtasks = plan.get("subtasks", []) if isinstance(plan, dict) else []
+        if isinstance(subtasks, list):
+            for index, subtask in enumerate(subtasks[:10], start=1):
+                if not isinstance(subtask, dict):
+                    continue
+                compact = {
+                    "id": f"imported_subtask_{index}",
+                    "title": str(subtask.get("title") or f"Imported subtask {index}")[:120],
+                    "type": str(subtask.get("type") or "general")[:60],
+                    "status": "accepted",
+                    "priority": subtask.get("priority", 3),
+                    "attempts": 0,
+                    "preconditions": subtask.get("preconditions", {}) if isinstance(subtask.get("preconditions", {}), dict) else {},
+                    "success_criteria": subtask.get("success_criteria", {}) if isinstance(subtask.get("success_criteria", {}), dict) else {},
+                    "blockers": [],
+                    "depends_on": list(subtask.get("depends_on", []) or [])[:6] if isinstance(subtask.get("depends_on", []), list) else [],
+                    "tags": list(subtask.get("tags", []) or [])[:8] if isinstance(subtask.get("tags", []), list) else [],
+                    "opportunity_triggers": list(subtask.get("opportunity_triggers", []) or [])[:8] if isinstance(subtask.get("opportunity_triggers", []), list) else [],
+                    "rationale": str(subtask.get("rationale") or "")[:180],
+                }
+                missing = self._task_continuity_missing_preconditions(compact["preconditions"], current_state or {})
+                if missing:
+                    compact["missing_preconditions"] = missing
+                compact["continuity_ready"] = not bool(compact.get("depends_on")) and not bool(missing)
+                payloads.append(compact)
+        plan_status = str(plan.get("status") or "").lower() if isinstance(plan, dict) else ""
+        actions = plan.get("actions", []) if isinstance(plan, dict) and isinstance(plan.get("actions", []), list) else []
+        if plan_status in {"blocked", "error"} or (plan and not actions and not payloads):
+            reason = str(plan.get("reasoning") or plan_status or "plan produced no executable actions")[:180]
+            payloads.append({
+                "id": "imported_blocked_plan",
+                "title": f"Resolve blocked plan for {goal or 'session goal'}"[:120],
+                "type": "recovery",
+                "status": "blocked",
+                "priority": 1,
+                "attempts": 0,
+                "preconditions": {},
+                "success_criteria": {},
+                "blockers": [reason],
+                "depends_on": [],
+                "tags": ["session_import", "blocked_plan"],
+                "opportunity_triggers": [],
+                "rationale": "Imported from stalled or blocked planner output",
+                "continuity_ready": False,
+            })
+        for index, failure in enumerate(failed_actions[:4], start=1):
+            label = f"{failure.get('action_type', 'action')}:{failure.get('target')}" if failure.get("target") else failure.get("action_type", "action")
+            payloads.append({
+                "id": f"imported_failed_action_{index}",
+                "title": f"Recover from failed {label}"[:120],
+                "type": "recovery",
+                "status": "failed",
+                "priority": 2,
+                "attempts": 1,
+                "preconditions": {},
+                "success_criteria": {},
+                "blockers": [failure.get("error", "action failed")],
+                "depends_on": [],
+                "tags": ["session_import", "failed_action", str(failure.get("action_type") or "")],
+                "opportunity_triggers": [str(failure.get("target") or "")] if failure.get("target") else [],
+                "rationale": "Imported from failed action trace",
+                "continuity_ready": False,
+            })
+        return payloads
 
     def _task_continuity_payloads(self, task_system, current_state: dict, max_tasks: int = 12) -> list[dict]:
         tasks = getattr(task_system, "tasks", {}) if task_system is not None else {}

@@ -845,6 +845,16 @@ def main():
     task_continuity_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     task_continuity_parser.add_argument("--log-level", type=str, default="INFO")
 
+    task_continuity_import_parser = subparsers.add_parser(
+        "task-continuity-import",
+        help="Import durable task-continuity checkpoints from session JSONL logs",
+    )
+    task_continuity_import_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
+    task_continuity_import_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to import")
+    task_continuity_import_parser.add_argument("--source", type=str, default="session_import", help="Source label stored on imported checkpoints")
+    task_continuity_import_parser.add_argument("--output", type=str, default="", help="Optional JSON import report path")
+    task_continuity_import_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline memory policy trace report
     memory_policy_parser = subparsers.add_parser("memory-policy-report", help="Report memory write/read/manage policy gaps in session logs")
     memory_policy_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -2321,6 +2331,58 @@ def main():
             )
         for action in report.get("next_actions", [])[:6]:
             print(f"  next: {action}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"  saved: {args.output}")
+        return
+
+    if args.command == "task-continuity-import":
+        from singularity.core.memory import MemorySystem
+
+        session_logs = getattr(args, "session_log", []) or []
+        if not session_logs:
+            print("task-continuity-import requires at least one --session-log")
+            sys.exit(1)
+        memory = MemorySystem(memory_dir=getattr(args, "memory_dir", "workspace/memory"))
+        imports = [
+            memory.import_task_continuity_from_session_log(path, source=getattr(args, "source", "session_import"))
+            for path in session_logs
+        ]
+        imported_count = sum(1 for item in imports if item.get("imported"))
+        failed_count = len(imports) - imported_count
+        report = {
+            "type": "task_continuity_import_report",
+            "memory_dir": getattr(args, "memory_dir", "workspace/memory"),
+            "session_log_count": len(session_logs),
+            "imported_count": imported_count,
+            "failed_count": failed_count,
+            "imports": imports,
+        }
+        print("\nTask Continuity Import")
+        print(
+            f"  logs: {len(session_logs)}, imported={imported_count}, "
+            f"failed={failed_count}"
+        )
+        for item in imports[:12]:
+            marker = "+" if item.get("imported") else "!"
+            if item.get("imported"):
+                record = item.get("record", {}) if isinstance(item.get("record", {}), dict) else {}
+                print(
+                    f"  [{marker}] {item.get('source_log')}: "
+                    f"{record.get('id')} goal={record.get('goal', '')[:80]} "
+                    f"ready/blocked/failed="
+                    f"{item.get('ready_task_count', 0)}/"
+                    f"{item.get('blocked_task_count', 0)}/"
+                    f"{item.get('failed_task_count', 0)}"
+                )
+                for action in item.get("next_actions", [])[:3]:
+                    print(f"      next: {action}")
+            else:
+                print(f"  [{marker}] {item.get('source_log')}: {item.get('reason') or item.get('error')}")
         if getattr(args, "output", ""):
             output_dir = os.path.dirname(args.output)
             if output_dir:
