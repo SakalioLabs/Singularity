@@ -910,6 +910,54 @@ def main():
     task_continuity_revision_parser.add_argument("--output", type=str, default="", help="Optional JSON proposal path")
     task_continuity_revision_parser.add_argument("--log-level", type=str, default="INFO")
 
+    task_continuity_lineage_ablation_parser = subparsers.add_parser(
+        "task-continuity-lineage-ablation",
+        help="Compare flat checkpoint retrieval with fixed-control execution-lineage selection",
+    )
+    task_continuity_lineage_ablation_parser.add_argument("--memory-dir", action="append", default=[], help="Durable memory directory to replay")
+    task_continuity_lineage_ablation_parser.add_argument("--case-file", action="append", default=[], help="JSON/JSONL lineage ablation cases")
+    task_continuity_lineage_ablation_parser.add_argument("--goal", action="append", default=[], help="Goal to scope each memory directory")
+    task_continuity_lineage_ablation_parser.add_argument("--include-builtins", action="store_true", help="Include deterministic smoke-test fixtures")
+    task_continuity_lineage_ablation_parser.add_argument("--context-limit", type=int, default=3)
+    task_continuity_lineage_ablation_parser.add_argument("--planner-id", type=str, default="")
+    task_continuity_lineage_ablation_parser.add_argument("--action-backend", type=str, default="")
+    task_continuity_lineage_ablation_parser.add_argument("--verifier-id", type=str, default="")
+    task_continuity_lineage_ablation_parser.add_argument("--task-stream-id", type=str, default="")
+    task_continuity_lineage_ablation_parser.add_argument("--seed", type=str, default="")
+    task_continuity_lineage_ablation_parser.add_argument("--evidence-kind", choices=["offline_replay", "live_trace"], default="offline_replay")
+    task_continuity_lineage_ablation_parser.add_argument("--output", type=str, default="")
+    task_continuity_lineage_ablation_parser.add_argument("--log-level", type=str, default="INFO")
+
+    task_continuity_restoration_report_parser = subparsers.add_parser(
+        "task-continuity-restoration-report",
+        help="Validate review-only revision proposals against shadow world-state evidence",
+    )
+    task_continuity_restoration_report_parser.add_argument("--case-file", action="append", default=[], help="JSON/JSONL shadow restoration cases")
+    task_continuity_restoration_report_parser.add_argument("--include-builtins", action="store_true", help="Include deterministic smoke-test fixtures")
+    task_continuity_restoration_report_parser.add_argument("--output", type=str, default="")
+    task_continuity_restoration_report_parser.add_argument("--log-level", type=str, default="INFO")
+
+    task_continuity_restoration_gate_parser = subparsers.add_parser(
+        "task-continuity-restoration-gate",
+        help="Gate shadow revision selection with lineage and restoration reports",
+    )
+    task_continuity_restoration_gate_parser.add_argument("--lineage-ablation", action="append", default=[], help="Saved task-continuity-lineage-ablation JSON")
+    task_continuity_restoration_gate_parser.add_argument("--restoration-report", action="append", default=[], help="Saved task-continuity-restoration-report JSON")
+    task_continuity_restoration_gate_parser.add_argument("--target", type=str, default="task_continuity_shadow_revision_selection")
+    task_continuity_restoration_gate_parser.add_argument("--min-lineage-cases", type=int, default=3)
+    task_continuity_restoration_gate_parser.add_argument("--min-lineage-helped-cases", type=int, default=1)
+    task_continuity_restoration_gate_parser.add_argument("--min-restoration-cases", type=int, default=3)
+    task_continuity_restoration_gate_parser.add_argument("--min-distinct-candidate-sessions", type=int, default=3)
+    task_continuity_restoration_gate_parser.add_argument("--min-precision-gain", type=float, default=0.0)
+    task_continuity_restoration_gate_parser.add_argument("--max-candidate-contamination", type=int, default=0)
+    task_continuity_restoration_gate_parser.add_argument("--max-lineage-regressions", type=int, default=0)
+    task_continuity_restoration_gate_parser.add_argument("--max-unreachable-cases", type=int, default=0)
+    task_continuity_restoration_gate_parser.add_argument("--max-state-rollback-cases", type=int, default=0)
+    task_continuity_restoration_gate_parser.add_argument("--max-completion-regressions", type=int, default=0)
+    task_continuity_restoration_gate_parser.add_argument("--allow-offline-shadow-review", action="store_true", help="Allow non-builtin offline cases to approve shadow selection; automatic restoration remains disabled")
+    task_continuity_restoration_gate_parser.add_argument("--output", type=str, default="")
+    task_continuity_restoration_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline memory policy trace report
     memory_policy_parser = subparsers.add_parser("memory-policy-report", help="Report memory write/read/manage policy gaps in session logs")
     memory_policy_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -2490,6 +2538,151 @@ def main():
                 os.makedirs(output_dir, exist_ok=True)
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(proposal, f, indent=2, ensure_ascii=False)
+            print(f"  saved: {args.output}")
+        return
+
+    if args.command == "task-continuity-lineage-ablation":
+        from singularity.evaluation.benchmark_runner import (
+            BenchmarkRunner,
+            TASK_CONTINUITY_LINEAGE_ABLATION_CASES,
+        )
+
+        runner = BenchmarkRunner(Config())
+        cases = list(TASK_CONTINUITY_LINEAGE_ABLATION_CASES) if getattr(args, "include_builtins", False) else []
+        loaded = runner.load_task_continuity_lineage_ablation_cases(
+            case_files=getattr(args, "case_file", []) or [],
+            memory_dirs=getattr(args, "memory_dir", []) or [],
+            goals=getattr(args, "goal", []) or [],
+            context_limit=getattr(args, "context_limit", 3),
+            planner_id=getattr(args, "planner_id", ""),
+            action_backend=getattr(args, "action_backend", ""),
+            verifier_id=getattr(args, "verifier_id", ""),
+            task_stream_id=getattr(args, "task_stream_id", ""),
+            seed=getattr(args, "seed", ""),
+            evidence_kind=getattr(args, "evidence_kind", "offline_replay"),
+        )
+        for case in loaded:
+            case.planner_id = case.planner_id or getattr(args, "planner_id", "")
+            case.action_backend = case.action_backend or getattr(args, "action_backend", "")
+            case.verifier_id = case.verifier_id or getattr(args, "verifier_id", "")
+            case.task_stream_id = case.task_stream_id or getattr(args, "task_stream_id", "")
+            case.seed = case.seed or getattr(args, "seed", "")
+        cases.extend(loaded)
+        if not cases:
+            print("task-continuity-lineage-ablation requires --memory-dir, --case-file, or --include-builtins")
+            sys.exit(1)
+        report = runner.run_task_continuity_lineage_ablation(cases)
+        payload = runner.task_continuity_lineage_ablation_payload(report)
+        print("\nTask Continuity Lineage Ablation")
+        print(
+            f"  cases: {payload.get('ready_case_count', 0)}/{payload.get('case_count', 0)} ready, "
+            f"helped={payload.get('helped_count', 0)}, regressions={payload.get('regression_count', 0)}"
+        )
+        print(
+            f"  failed-branch contamination: baseline={payload.get('baseline_failed_contamination_count', 0)}, "
+            f"candidate={payload.get('candidate_failed_contamination_count', 0)}, "
+            f"precision_gain={float(payload.get('average_precision_gain') or 0.0):.3f}"
+        )
+        for case in report.cases[:8]:
+            marker = "+" if case.ready_for_lineage_review and not case.candidate_regressed else "!"
+            print(
+                f"  [{marker}] {case.case_id}: precision={case.baseline_path_precision:.2f}->{case.candidate_path_precision:.2f}, "
+                f"contamination={case.baseline_failed_contamination_count}->{case.candidate_failed_contamination_count}, "
+                f"active_branches={case.active_branch_count}"
+            )
+            if case.issues:
+                print(f"      issues: {', '.join(case.issues)}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2, ensure_ascii=False)
+            print(f"  saved: {args.output}")
+        return
+
+    if args.command == "task-continuity-restoration-report":
+        from singularity.evaluation.benchmark_runner import (
+            BenchmarkRunner,
+            TASK_CONTINUITY_RESTORATION_CASES,
+        )
+
+        runner = BenchmarkRunner(Config())
+        cases = list(TASK_CONTINUITY_RESTORATION_CASES) if getattr(args, "include_builtins", False) else []
+        cases.extend(runner.load_task_continuity_restoration_cases(getattr(args, "case_file", []) or []))
+        if not cases:
+            print("task-continuity-restoration-report requires --case-file or --include-builtins")
+            sys.exit(1)
+        report = runner.run_task_continuity_restoration_report(cases)
+        payload = runner.task_continuity_restoration_payload(report)
+        print("\nTask Continuity Shadow Restoration Report")
+        print(
+            f"  cases: {payload.get('ready_case_count', 0)}/{payload.get('case_count', 0)} ready, "
+            f"unreachable={payload.get('unreachable_count', 0)}, "
+            f"state_rollback={payload.get('state_rollback_count', 0)}, "
+            f"completion_regression={payload.get('completion_regression_count', 0)}"
+        )
+        for case in report.cases[:8]:
+            marker = "+" if case.ready_for_shadow_review else "!"
+            print(
+                f"  [{marker}] {case.case_id}: target={case.target_checkpoint_id}, "
+                f"distance={case.target_distance}, state_preserved={case.state_preserved_before_action}, "
+                f"non_regression={case.completion_non_regression}"
+            )
+            if case.issues:
+                print(f"      issues: {', '.join(case.issues)}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2, ensure_ascii=False)
+            print(f"  saved: {args.output}")
+        return
+
+    if args.command == "task-continuity-restoration-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        lineage_paths = getattr(args, "lineage_ablation", []) or []
+        restoration_paths = getattr(args, "restoration_report", []) or []
+        if not lineage_paths or not restoration_paths:
+            print("task-continuity-restoration-gate requires --lineage-ablation and --restoration-report")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.build_task_continuity_restoration_gate(
+            lineage_ablation_report_paths=lineage_paths,
+            restoration_report_paths=restoration_paths,
+            target=getattr(args, "target", "task_continuity_shadow_revision_selection"),
+            min_lineage_cases=getattr(args, "min_lineage_cases", 3),
+            min_lineage_helped_cases=getattr(args, "min_lineage_helped_cases", 1),
+            min_restoration_cases=getattr(args, "min_restoration_cases", 3),
+            min_distinct_candidate_sessions=getattr(args, "min_distinct_candidate_sessions", 3),
+            min_precision_gain=getattr(args, "min_precision_gain", 0.0),
+            max_candidate_contamination=getattr(args, "max_candidate_contamination", 0),
+            max_lineage_regressions=getattr(args, "max_lineage_regressions", 0),
+            max_unreachable_cases=getattr(args, "max_unreachable_cases", 0),
+            max_state_rollback_cases=getattr(args, "max_state_rollback_cases", 0),
+            max_completion_regressions=getattr(args, "max_completion_regressions", 0),
+            require_live_evidence=not getattr(args, "allow_offline_shadow_review", False),
+        )
+        print("\nTask Continuity Restoration Gate")
+        print(f"  readiness: {report.get('readiness')} decision={report.get('decision')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            f"  eligible lineage/restoration: {report.get('eligible_lineage_case_count', 0)}/"
+            f"{report.get('eligible_restoration_case_count', 0)}, "
+            f"candidate_sessions={report.get('distinct_candidate_session_count', 0)}"
+        )
+        print(
+            f"  shadow_allowed={report.get('shadow_revision_selection_allowed', False)}, "
+            f"automatic_restore_allowed={report.get('automatic_restore_allowed', False)}"
+        )
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"  saved: {args.output}")
         return
 

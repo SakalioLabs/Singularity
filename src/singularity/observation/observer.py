@@ -19,7 +19,13 @@ class Observer:
             "position": player.get("position", {}),
             "health": player.get("health", 20),
             "hunger": player.get("food", 20),
+            "food_saturation": player.get("foodSaturation"),
+            "oxygen": player.get("oxygenLevel"),
             "xp_level": player.get("experience", {}).get("level", 0),
+            "dimension": player.get("dimension", ""),
+            "game_mode": player.get("gameMode", ""),
+            "selected_slot": player.get("selectedSlot"),
+            "equipment": player.get("equipment", []),
             "yaw": player.get("yaw", 0),
             "pitch": player.get("pitch", 0),
         })

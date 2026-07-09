@@ -2578,7 +2578,20 @@ class MemorySystem:
                 if key in position and isinstance(position.get(key), (int, float))
             },
             "health": current_state.get("health"),
+            "hunger": current_state.get("hunger"),
+            "food_saturation": current_state.get("food_saturation"),
+            "oxygen": current_state.get("oxygen"),
+            "xp_level": current_state.get("xp_level"),
+            "equipment": current_state.get("equipment"),
+            "selected_slot": current_state.get("selected_slot"),
+            "game_mode": current_state.get("game_mode"),
             "time_of_day": current_state.get("time_of_day"),
+            "dimension": str(
+                current_state.get("dimension")
+                or current_state.get("world")
+                or current_state.get("world_id")
+                or ""
+            ),
         }
 
     def _task_continuity_report_matches(self, goal: str, current_state: dict, limit: int = 10) -> list[dict]:

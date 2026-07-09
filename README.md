@@ -103,6 +103,10 @@ python -m singularity.main capability-evidence-report --check-runtime --output w
 python -m singularity.main capability-evidence-report --m3-evidence logs/benchmarks/continual_learning.json --m3-evidence logs/benchmarks/task_stream_transfer_gate.json --m5-evidence logs/benchmarks/exploration_trace.json --m5-evidence logs/benchmarks/world_model_gate.json --m6-evidence logs/benchmarks/visual_trace_report.json --m6-evidence logs/benchmarks/visual_action_ablation.json --output workspace/evals/capability_evidence_current.json
 python -m singularity.main task-continuity-report --goal "Build a safe shelter" --output logs/benchmarks/task_continuity.json
 python -m singularity.main task-continuity-revision --failed-checkpoint CHECKPOINT_ID --reason "Review nearest verified boundary" --output workspace/reviews/task_revision.json
+# Built-in lineage/restoration fixtures are smoke tests and cannot approve the default live-evidence gate.
+python -m singularity.main task-continuity-lineage-ablation --include-builtins --output logs/benchmarks/task_continuity_lineage_ablation.json
+python -m singularity.main task-continuity-restoration-report --include-builtins --output logs/benchmarks/task_continuity_restoration_report.json
+python -m singularity.main task-continuity-restoration-gate --lineage-ablation logs/benchmarks/task_continuity_lineage_ablation.json --restoration-report logs/benchmarks/task_continuity_restoration_report.json --output logs/benchmarks/task_continuity_restoration_gate.json
 python -m singularity.main benchmark --suite m1 --preflight
 python -m singularity.main benchmark --suite m1 --ingest
 python -m singularity.main benchmark --suite m1 --ingest --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL

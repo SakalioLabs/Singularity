@@ -343,7 +343,15 @@ const handlers = {
         position: bot.entity.position,
         health: bot.health,
         food: bot.food,
+        foodSaturation: bot.foodSaturation,
+        oxygenLevel: bot.oxygenLevel,
         experience: bot.experience,
+        dimension: bot.game?.dimension || null,
+        gameMode: bot.game?.gameMode || null,
+        selectedSlot: bot.quickBarSlot,
+        equipment: Array.isArray(bot.entity?.equipment)
+            ? bot.entity.equipment.map((item, slot) => item ? ({ slot, name: item.name, count: item.count }) : null)
+            : [],
         yaw: bot.entity.yaw,
         pitch: bot.entity.pitch,
     }),

@@ -88,6 +88,208 @@ class SchedulingAblationReport:
 
 
 @dataclass
+class TaskContinuityLineageAblationCase:
+    id: str
+    name: str
+    goal: str
+    records: list[dict]
+    current_state: dict = field(default_factory=dict)
+    expected_active_checkpoint_id: str = ""
+    context_limit: int = 3
+    planner_id: str = ""
+    action_backend: str = ""
+    verifier_id: str = ""
+    task_stream_id: str = ""
+    seed: str = ""
+    evidence_kind: str = "builtin"
+    source: str = "builtin"
+
+
+@dataclass
+class TaskContinuityLineageAblationResult:
+    case_id: str
+    case_name: str
+    goal: str
+    record_count: int = 0
+    baseline_checkpoint_ids: list[str] = field(default_factory=list)
+    candidate_checkpoint_ids: list[str] = field(default_factory=list)
+    candidate_hint_checkpoint_ids: list[str] = field(default_factory=list)
+    expected_path_checkpoint_ids: list[str] = field(default_factory=list)
+    expected_active_checkpoint_id: str = ""
+    inferred_active_checkpoint_ids: list[str] = field(default_factory=list)
+    expected_active_checkpoint_consistent: bool = False
+    baseline_active_leaf_hit: bool = False
+    candidate_active_leaf_hit: bool = False
+    baseline_path_precision: float = 0.0
+    candidate_path_precision: float = 0.0
+    precision_gain: float = 0.0
+    baseline_failed_contamination_count: int = 0
+    candidate_failed_contamination_count: int = 0
+    candidate_failed_hint_count: int = 0
+    baseline_context_chars: int = 0
+    candidate_context_chars: int = 0
+    context_char_delta: int = 0
+    active_branch_count: int = 0
+    lineage_issue_count: int = 0
+    non_memory_modules_fixed: bool = False
+    candidate_helped: bool = False
+    candidate_regressed: bool = False
+    ready_for_lineage_review: bool = False
+    issues: list[str] = field(default_factory=list)
+    planner_id: str = ""
+    action_backend: str = ""
+    verifier_id: str = ""
+    task_stream_id: str = ""
+    seed: str = ""
+    evidence_kind: str = "builtin"
+    source: str = "builtin"
+
+
+@dataclass
+class TaskContinuityLineageAblationReport:
+    cases: list[TaskContinuityLineageAblationResult] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def ready_case_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_lineage_review)
+
+    @property
+    def non_builtin_ready_case_count(self) -> int:
+        return sum(
+            1 for case in self.cases
+            if case.ready_for_lineage_review and case.evidence_kind != "builtin"
+        )
+
+    @property
+    def live_ready_case_count(self) -> int:
+        return sum(
+            1 for case in self.cases
+            if case.ready_for_lineage_review and case.evidence_kind == "live_trace"
+        )
+
+    @property
+    def helped_count(self) -> int:
+        return sum(1 for case in self.cases if case.candidate_helped)
+
+    @property
+    def regression_count(self) -> int:
+        return sum(1 for case in self.cases if case.candidate_regressed)
+
+    @property
+    def baseline_failed_contamination_count(self) -> int:
+        return sum(case.baseline_failed_contamination_count for case in self.cases)
+
+    @property
+    def candidate_failed_contamination_count(self) -> int:
+        return sum(case.candidate_failed_contamination_count for case in self.cases)
+
+    @property
+    def average_precision_gain(self) -> float:
+        return _average_optional([case.precision_gain for case in self.cases]) or 0.0
+
+
+@dataclass
+class TaskContinuityRestorationCase:
+    id: str
+    name: str
+    records: list[dict]
+    proposal_checkpoint_id: str
+    current_state: dict
+    candidate_pre_action_state: dict
+    route_verified: bool = False
+    route_evidence_id: str = ""
+    max_reach_distance: float = 64.0
+    baseline_completed: Optional[bool] = None
+    candidate_completed: Optional[bool] = None
+    baseline_session_id: str = ""
+    candidate_session_id: str = ""
+    planner_id: str = ""
+    action_backend: str = ""
+    verifier_id: str = ""
+    task_stream_id: str = ""
+    seed: str = ""
+    evidence_kind: str = "builtin"
+    source: str = "builtin"
+
+
+@dataclass
+class TaskContinuityRestorationResult:
+    case_id: str
+    case_name: str
+    proposal_checkpoint_id: str
+    failed_checkpoint_id: str = ""
+    target_checkpoint_id: str = ""
+    proposal_is_review_only: bool = False
+    failed_checkpoint_failed: bool = False
+    target_verified: bool = False
+    target_is_ancestor: bool = False
+    target_evidence_consistent: bool = False
+    branch_isolated: bool = False
+    lineage_integrity: bool = False
+    state_evidence_complete: bool = False
+    state_preserved_before_action: bool = False
+    critical_state_fields: list[str] = field(default_factory=list)
+    dimension_compatible: bool = False
+    target_distance: Optional[float] = None
+    target_reachable: bool = False
+    route_verified: bool = False
+    baseline_completed: Optional[bool] = None
+    candidate_completed: Optional[bool] = None
+    completion_non_regression: bool = False
+    distinct_sessions: bool = False
+    non_memory_modules_fixed: bool = False
+    ready_for_shadow_review: bool = False
+    issues: list[str] = field(default_factory=list)
+    planner_id: str = ""
+    action_backend: str = ""
+    verifier_id: str = ""
+    task_stream_id: str = ""
+    seed: str = ""
+    baseline_session_id: str = ""
+    candidate_session_id: str = ""
+    route_evidence_id: str = ""
+    evidence_kind: str = "builtin"
+    source: str = "builtin"
+
+
+@dataclass
+class TaskContinuityRestorationReport:
+    cases: list[TaskContinuityRestorationResult] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def ready_case_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_shadow_review)
+
+    @property
+    def non_builtin_ready_case_count(self) -> int:
+        return sum(
+            1 for case in self.cases
+            if case.ready_for_shadow_review and case.evidence_kind != "builtin"
+        )
+
+    @property
+    def live_ready_case_count(self) -> int:
+        return sum(
+            1 for case in self.cases
+            if case.ready_for_shadow_review and case.evidence_kind == "live_trace"
+        )
+
+    @property
+    def unreachable_count(self) -> int:
+        return sum(1 for case in self.cases if not case.target_reachable)
+
+    @property
+    def state_rollback_count(self) -> int:
+        return sum(1 for case in self.cases if not case.state_preserved_before_action)
+
+    @property
+    def completion_regression_count(self) -> int:
+        return sum(1 for case in self.cases if not case.completion_non_regression)
+
+
+@dataclass
 class CoachStyleAblationCase:
     id: str
     name: str
@@ -2263,6 +2465,88 @@ M2_BENCHMARKS = [
     BenchmarkTask("BM-010", "Night survival prep", "Build a shelter and craft a bed before nightfall", "M2",
                   timeout_cycles=300, success_criteria={"bed": 1}),
 ]
+
+TASK_CONTINUITY_LINEAGE_ABLATION_CASES = [
+    TaskContinuityLineageAblationCase(
+        id="TC-LIN-001",
+        name="Failed branch must not displace current root",
+        goal="Build a safe shelter",
+        records=[
+            {"id": "old-root", "goal": "Build a safe shelter", "schema_version": 2, "operation": "grow", "execution_id": "old-run", "branch_id": "branch-old", "root_checkpoint_id": "old-root", "depth": 0, "lineage_status": "root", "validation_status": "unverified", "branch_status": "active", "created_at": 1.0},
+            {"id": "old-ok", "goal": "Build a safe shelter", "schema_version": 2, "operation": "maintain", "execution_id": "old-run", "branch_id": "branch-old", "parent_checkpoint_id": "old-root", "root_checkpoint_id": "old-root", "depth": 1, "lineage_status": "linked", "validation_status": "verified", "validation_evidence": {"task": "foundation"}, "branch_status": "active", "created_at": 2.0},
+            {"id": "old-fail", "goal": "Build a safe shelter", "schema_version": 2, "operation": "maintain", "execution_id": "old-run", "branch_id": "branch-old", "parent_checkpoint_id": "old-ok", "root_checkpoint_id": "old-root", "depth": 2, "lineage_status": "linked", "validation_status": "failed", "validation_evidence": {"task": "roof"}, "branch_status": "failed", "failed_tasks": [{"id": "roof", "title": "Build roof", "status": "failed"}], "created_at": 3.0},
+            {"id": "new-root", "goal": "Build a safe shelter", "schema_version": 2, "operation": "grow", "execution_id": "new-run", "branch_id": "branch-new", "root_checkpoint_id": "new-root", "depth": 0, "lineage_status": "root", "validation_status": "unverified", "branch_status": "active", "created_at": 4.0},
+        ],
+        expected_active_checkpoint_id="new-root",
+        context_limit=2,
+        planner_id="fixed-rule-planner-v1",
+        action_backend="memory-selection-only",
+        verifier_id="explicit-branch-status-v1",
+        task_stream_id="builtin-shelter-lineage",
+        seed="1",
+    ),
+    TaskContinuityLineageAblationCase(
+        id="TC-LIN-002",
+        name="Current parent chain stays coherent",
+        goal="Mine iron safely",
+        records=[
+            {"id": "mine-failed", "goal": "Mine iron safely", "schema_version": 2, "operation": "maintain", "execution_id": "old-mine", "branch_id": "mine-old", "root_checkpoint_id": "mine-failed", "depth": 0, "lineage_status": "root", "validation_status": "failed", "branch_status": "failed", "failed_tasks": [{"id": "dig", "title": "Unsafe dig", "status": "failed"}], "created_at": 1.0},
+            {"id": "mine-root", "goal": "Mine iron safely", "schema_version": 2, "operation": "grow", "execution_id": "new-mine", "branch_id": "mine-new", "root_checkpoint_id": "mine-root", "depth": 0, "lineage_status": "root", "validation_status": "unverified", "branch_status": "active", "created_at": 2.0},
+            {"id": "mine-leaf", "goal": "Mine iron safely", "schema_version": 2, "operation": "maintain", "execution_id": "new-mine", "branch_id": "mine-new", "parent_checkpoint_id": "mine-root", "root_checkpoint_id": "mine-root", "depth": 1, "lineage_status": "linked", "validation_status": "verified", "validation_evidence": {"task": "craft pickaxe"}, "branch_status": "active", "created_at": 3.0},
+        ],
+        expected_active_checkpoint_id="mine-leaf",
+        context_limit=2,
+        planner_id="fixed-rule-planner-v1",
+        action_backend="memory-selection-only",
+        verifier_id="explicit-branch-status-v1",
+        task_stream_id="builtin-mining-lineage",
+        seed="2",
+    ),
+    TaskContinuityLineageAblationCase(
+        id="TC-LIN-003",
+        name="Multiple active leaves remain review-only",
+        goal="Explore east frontier",
+        records=[
+            {"id": "east-old", "goal": "Explore east frontier", "schema_version": 2, "operation": "grow", "execution_id": "crashed", "branch_id": "east-a", "root_checkpoint_id": "east-old", "depth": 0, "lineage_status": "root", "validation_status": "unverified", "branch_status": "active", "created_at": 1.0},
+            {"id": "east-new", "goal": "Explore east frontier", "schema_version": 2, "operation": "grow", "execution_id": "current", "branch_id": "east-b", "root_checkpoint_id": "east-new", "depth": 0, "lineage_status": "root", "validation_status": "unverified", "branch_status": "active", "created_at": 2.0},
+        ],
+        expected_active_checkpoint_id="east-new",
+        context_limit=2,
+        planner_id="fixed-rule-planner-v1",
+        action_backend="memory-selection-only",
+        verifier_id="explicit-branch-status-v1",
+        task_stream_id="builtin-navigation-lineage",
+        seed="3",
+    ),
+]
+
+
+TASK_CONTINUITY_RESTORATION_CASES = [
+    TaskContinuityRestorationCase(
+        id="TC-RESTORE-001",
+        name="Review-only proposal preserves live state",
+        records=[
+            {"id": "restore-root", "goal": "Build shelter", "schema_version": 2, "operation": "grow", "execution_id": "restore-run", "branch_id": "restore-old", "root_checkpoint_id": "restore-root", "depth": 0, "lineage_status": "root", "validation_status": "verified", "validation_evidence": {"goal": "foundation"}, "branch_status": "active", "state_summary": {"inventory": {"oak_log": 6}, "position": {"x": 0, "y": 64, "z": 0}, "dimension": "overworld"}, "created_at": 1.0},
+            {"id": "restore-fail", "goal": "Build shelter", "schema_version": 2, "operation": "maintain", "execution_id": "restore-run", "branch_id": "restore-old", "parent_checkpoint_id": "restore-root", "root_checkpoint_id": "restore-root", "depth": 1, "lineage_status": "linked", "validation_status": "failed", "validation_evidence": {"task": "roof"}, "branch_status": "failed", "created_at": 2.0},
+            {"id": "restore-proposal", "goal": "Build shelter", "schema_version": 2, "operation": "revise", "execution_id": "restore-run", "branch_id": "restore-new", "parent_checkpoint_id": "restore-root", "root_checkpoint_id": "restore-root", "depth": 1, "lineage_status": "revised", "validation_status": "unverified", "validation_evidence": {"failed_checkpoint_id": "restore-fail", "verified_target_checkpoint_id": "restore-root"}, "branch_status": "proposed", "revision_target_checkpoint_id": "restore-root", "revision_reason": "review roof recovery", "revision_status": "proposed", "restoration_applied": False, "created_at": 3.0},
+        ],
+        proposal_checkpoint_id="restore-proposal",
+        current_state={"inventory": {"oak_log": 6}, "inventory_count": 1, "position": {"x": 3, "y": 64, "z": 0}, "dimension": "overworld", "health": 20, "hunger": 18, "xp_level": 3, "equipment": {"hand": "wooden_axe"}},
+        candidate_pre_action_state={"inventory": {"oak_log": 6}, "inventory_count": 1, "position": {"x": 3, "y": 64, "z": 0}, "dimension": "overworld", "health": 20, "hunger": 18, "xp_level": 3, "equipment": {"hand": "wooden_axe"}},
+        route_verified=True,
+        route_evidence_id="builtin-route-1",
+        baseline_completed=False,
+        candidate_completed=True,
+        baseline_session_id="builtin-base-1",
+        candidate_session_id="builtin-candidate-1",
+        planner_id="fixed-rule-planner-v1",
+        action_backend="shadow-selection-only",
+        verifier_id="goal-verifier-v1",
+        task_stream_id="builtin-shelter-restoration",
+        seed="1",
+    ),
+]
+
 
 SCHEDULING_ABLATION_CASES = [
     SchedulingAblationCase(
@@ -16356,6 +16640,1014 @@ class BenchmarkRunner:
                 report.errors.append(f"{result.task_id}: {e}")
 
         return report
+
+    def run_task_continuity_lineage_ablation(
+        self,
+        cases: Optional[list[TaskContinuityLineageAblationCase]] = None,
+    ) -> TaskContinuityLineageAblationReport:
+        """Compare flat relevant-checkpoint retrieval with one execution-state path."""
+        report = TaskContinuityLineageAblationReport()
+        source_cases = TASK_CONTINUITY_LINEAGE_ABLATION_CASES if cases is None else cases
+        for case in source_cases:
+            try:
+                report.cases.append(self._run_task_continuity_lineage_case(case))
+            except Exception as e:
+                report.errors.append(f"{case.id}: {e}")
+        return report
+
+    def load_task_continuity_lineage_ablation_cases(
+        self,
+        case_files: Optional[list[str]] = None,
+        memory_dirs: Optional[list[str]] = None,
+        goals: Optional[list[str]] = None,
+        context_limit: int = 3,
+        planner_id: str = "",
+        action_backend: str = "",
+        verifier_id: str = "",
+        task_stream_id: str = "",
+        seed: str = "",
+        evidence_kind: str = "offline_replay",
+    ) -> list[TaskContinuityLineageAblationCase]:
+        """Load memory-isolated lineage cases from JSON/JSONL or durable ledgers."""
+        from singularity.core.memory import MemorySystem
+
+        cases = []
+        for path in case_files or []:
+            for index, record in enumerate(self._load_case_records(path), start=1):
+                case = self._task_continuity_lineage_case_from_record(record, path, index)
+                if case:
+                    cases.append(case)
+        requested_goals = [str(goal) for goal in (goals or []) if str(goal).strip()]
+        for memory_dir in memory_dirs or []:
+            memory = MemorySystem(memory_dir=memory_dir, persist=True)
+            available_goals = self._dedupe_strings(
+                requested_goals or [record.goal for record in memory.task_continuity_records if record.goal]
+            )
+            records = [asdict(record) for record in memory.task_continuity_records]
+            for goal in available_goals:
+                cases.append(TaskContinuityLineageAblationCase(
+                    id=f"LEDGER-LINEAGE-{len(cases) + 1:03d}",
+                    name=f"{os.path.basename(os.path.abspath(memory_dir)) or 'memory'}: {goal}",
+                    goal=goal,
+                    records=records,
+                    context_limit=max(1, int(context_limit or 3)),
+                    planner_id=planner_id,
+                    action_backend=action_backend,
+                    verifier_id=verifier_id,
+                    task_stream_id=task_stream_id,
+                    seed=str(seed or ""),
+                    evidence_kind=str(evidence_kind or "offline_replay"),
+                    source=memory_dir,
+                ))
+        return cases
+
+    def _task_continuity_lineage_case_from_record(
+        self,
+        record: dict,
+        source: str,
+        index: int,
+    ) -> Optional[TaskContinuityLineageAblationCase]:
+        records = record.get("records", []) if isinstance(record.get("records", []), list) else []
+        memory_dir = str(record.get("memory_dir") or "")
+        if not records and memory_dir:
+            from singularity.core.memory import MemorySystem
+            records = [asdict(item) for item in MemorySystem(memory_dir=memory_dir, persist=True).task_continuity_records]
+        goal = str(record.get("goal") or "")
+        if not records or not goal:
+            return None
+        return TaskContinuityLineageAblationCase(
+            id=str(record.get("id") or f"FILE-LINEAGE-{index:03d}"),
+            name=str(record.get("name") or f"Task continuity lineage case {index}"),
+            goal=goal,
+            records=records,
+            current_state=record.get("current_state", {}) if isinstance(record.get("current_state", {}), dict) else {},
+            expected_active_checkpoint_id=str(record.get("expected_active_checkpoint_id") or ""),
+            context_limit=max(1, self._gate_int(record.get("context_limit", 3))),
+            planner_id=str(record.get("planner_id") or ""),
+            action_backend=str(record.get("action_backend") or ""),
+            verifier_id=str(record.get("verifier_id") or ""),
+            task_stream_id=str(record.get("task_stream_id") or ""),
+            seed=str(record.get("seed") or ""),
+            evidence_kind=str(record.get("evidence_kind") or "offline_replay"),
+            source=source,
+        )
+
+    def _run_task_continuity_lineage_case(
+        self,
+        case: TaskContinuityLineageAblationCase,
+    ) -> TaskContinuityLineageAblationResult:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            memory = self._task_continuity_memory_from_records(case.records, tmpdir)
+            limit = max(1, int(case.context_limit or 3))
+            ranked = memory._task_continuity_report_matches(
+                case.goal,
+                case.current_state,
+                limit=max(len(memory.task_continuity_records), limit),
+            )
+            baseline_items = ranked[:limit]
+            candidate_items, hint_items = memory._task_continuity_context_paths(ranked, limit=limit)
+            expected_leaf, expected_path, latest_by_branch = self._task_continuity_expected_path(
+                memory,
+                case.goal,
+                case.expected_active_checkpoint_id,
+            )
+            expected_ids = [record.id for record in expected_path[-limit:]]
+            expected_set = set(expected_ids)
+            baseline_records = [item["record"] for item in baseline_items]
+            candidate_records = [item["record"] for item in candidate_items]
+            hint_records = [item["record"] for item in hint_items]
+            baseline_ids = [record.id for record in baseline_records]
+            candidate_ids = [record.id for record in candidate_records]
+            hint_ids = [record.id for record in hint_records]
+            baseline_precision = self._selection_precision(baseline_ids, expected_set)
+            candidate_precision = self._selection_precision(candidate_ids, expected_set)
+            failed_branches = {
+                branch_id for branch_id, record in latest_by_branch.items()
+                if record.branch_status in {"failed", "proposed", "superseded"}
+            }
+            baseline_contamination = self._task_continuity_failed_contamination(
+                memory, baseline_records, expected_set, failed_branches
+            )
+            candidate_contamination = self._task_continuity_failed_contamination(
+                memory, candidate_records, expected_set, failed_branches
+            )
+            candidate_failed_hints = self._task_continuity_failed_contamination(
+                memory, hint_records, expected_set, failed_branches
+            )
+            baseline_context = self._flat_task_continuity_context(baseline_records)
+            candidate_context = memory.task_continuity_context(
+                case.goal,
+                case.current_state,
+                limit=limit,
+            )
+            active_branches = [
+                branch_id for branch_id, record in latest_by_branch.items()
+                if record.branch_status in {"", "active"}
+            ]
+            inferred_active_ids = [
+                record.id for record in latest_by_branch.values()
+                if record.branch_status in {"", "active"}
+            ]
+            explicit_active_consistent = bool(
+                not case.expected_active_checkpoint_id
+                or (
+                    len(inferred_active_ids) == 1
+                    and inferred_active_ids[0] == case.expected_active_checkpoint_id
+                )
+            )
+            lineage_issues = self._dedupe_strings([
+                issue
+                for record in candidate_records
+                for issue in memory._task_continuity_lineage_issues(record)
+            ])
+            controls_fixed = all([
+                case.planner_id,
+                case.action_backend,
+                case.verifier_id,
+                case.task_stream_id,
+                str(case.seed),
+            ])
+            expected_id = expected_leaf.id if expected_leaf is not None else ""
+            baseline_leaf_hit = bool(expected_id and expected_id in baseline_ids)
+            candidate_leaf_hit = bool(expected_id and expected_id in candidate_ids)
+            issues = []
+            if not ranked:
+                issues.append("no_matching_checkpoints")
+            if not expected_id:
+                issues.append("missing_expected_active_leaf")
+            if len(active_branches) != 1:
+                issues.append("ambiguous_active_branches")
+            if not explicit_active_consistent:
+                issues.append("explicit_active_leaf_mismatch")
+            if not controls_fixed:
+                issues.append("non_memory_controls_missing")
+            if lineage_issues:
+                issues.append("candidate_lineage_integrity_failure")
+            if expected_id and not candidate_leaf_hit:
+                issues.append("candidate_missed_active_leaf")
+            if candidate_contamination:
+                issues.append("candidate_failed_branch_contamination")
+            precision_gain = round(candidate_precision - baseline_precision, 3)
+            candidate_regressed = bool(
+                candidate_precision < baseline_precision
+                or candidate_contamination > baseline_contamination
+                or (baseline_leaf_hit and not candidate_leaf_hit)
+            )
+            candidate_helped = bool(
+                not candidate_regressed
+                and candidate_leaf_hit
+                and len(active_branches) == 1
+                and explicit_active_consistent
+                and controls_fixed
+                and not lineage_issues
+                and (
+                    candidate_precision > baseline_precision
+                    or candidate_contamination < baseline_contamination
+                )
+            )
+            ready = bool(
+                ranked
+                and expected_id
+                and len(active_branches) == 1
+                and explicit_active_consistent
+                and controls_fixed
+                and not lineage_issues
+                and candidate_leaf_hit
+                and candidate_contamination == 0
+            )
+            return TaskContinuityLineageAblationResult(
+                case_id=case.id,
+                case_name=case.name,
+                goal=case.goal,
+                record_count=len(ranked),
+                baseline_checkpoint_ids=baseline_ids,
+                candidate_checkpoint_ids=candidate_ids,
+                candidate_hint_checkpoint_ids=hint_ids,
+                expected_path_checkpoint_ids=expected_ids,
+                expected_active_checkpoint_id=expected_id,
+                inferred_active_checkpoint_ids=inferred_active_ids,
+                expected_active_checkpoint_consistent=explicit_active_consistent,
+                baseline_active_leaf_hit=baseline_leaf_hit,
+                candidate_active_leaf_hit=candidate_leaf_hit,
+                baseline_path_precision=baseline_precision,
+                candidate_path_precision=candidate_precision,
+                precision_gain=precision_gain,
+                baseline_failed_contamination_count=baseline_contamination,
+                candidate_failed_contamination_count=candidate_contamination,
+                candidate_failed_hint_count=candidate_failed_hints,
+                baseline_context_chars=len(baseline_context),
+                candidate_context_chars=len(candidate_context),
+                context_char_delta=len(candidate_context) - len(baseline_context),
+                active_branch_count=len(active_branches),
+                lineage_issue_count=len(lineage_issues),
+                non_memory_modules_fixed=controls_fixed,
+                candidate_helped=candidate_helped,
+                candidate_regressed=candidate_regressed,
+                ready_for_lineage_review=ready,
+                issues=sorted(set(issues + lineage_issues)),
+                planner_id=case.planner_id,
+                action_backend=case.action_backend,
+                verifier_id=case.verifier_id,
+                task_stream_id=case.task_stream_id,
+                seed=str(case.seed),
+                evidence_kind=case.evidence_kind,
+                source=case.source,
+            )
+
+    def _task_continuity_memory_from_records(self, records: list[dict], memory_dir: str):
+        from singularity.core.memory import MemorySystem, TaskContinuityRecord
+
+        memory = MemorySystem(memory_dir=memory_dir, persist=False)
+        for payload in records or []:
+            if not isinstance(payload, dict):
+                continue
+            filtered = memory._filter_dataclass_fields(payload, TaskContinuityRecord)
+            memory.task_continuity_records.append(TaskContinuityRecord(**filtered))
+        return memory
+
+    def _task_continuity_expected_path(self, memory, goal: str, explicit_checkpoint_id: str = ""):
+        goal_key = str(goal or "").strip().casefold()
+        records = [
+            record for record in memory.task_continuity_records
+            if not goal_key or str(record.goal or "").strip().casefold() == goal_key
+        ]
+        latest_by_branch = {}
+        for record in records:
+            latest_by_branch[memory._task_continuity_effective_branch_id(record)] = record
+        active_leaves = [
+            record for record in records
+            if latest_by_branch.get(memory._task_continuity_effective_branch_id(record)) is record
+            and record.branch_status in {"", "active"}
+        ]
+        record_by_id = {record.id: record for record in records}
+        expected = record_by_id.get(str(explicit_checkpoint_id or "")) if explicit_checkpoint_id else None
+        if expected is None and active_leaves:
+            expected = active_leaves[-1]
+        path = []
+        visited = set()
+        current = expected
+        while current is not None and current.id not in visited:
+            visited.add(current.id)
+            path.append(current)
+            current = record_by_id.get(current.parent_checkpoint_id)
+        path.reverse()
+        return expected, path, latest_by_branch
+
+    def _selection_precision(self, selected_ids: list[str], expected_ids: set[str]) -> float:
+        if not selected_ids:
+            return 0.0
+        return round(sum(1 for checkpoint_id in selected_ids if checkpoint_id in expected_ids) / len(selected_ids), 3)
+
+    def _task_continuity_failed_contamination(
+        self,
+        memory,
+        records: list,
+        expected_ids: set[str],
+        failed_branches: set[str],
+    ) -> int:
+        return sum(
+            1 for record in records
+            if record.id not in expected_ids
+            and (
+                memory._task_continuity_effective_branch_id(record) in failed_branches
+                or record.validation_status in {"failed", "conflicted"}
+            )
+        )
+
+    def _flat_task_continuity_context(self, records: list) -> str:
+        lines = ["Flat relevant task checkpoints:"]
+        for record in records:
+            lines.append(
+                f"- {record.id} branch={record.branch_id or 'legacy'} "
+                f"status={record.branch_status}/{record.validation_status} {record.summary[:180]}"
+            )
+        return "\n".join(lines) if records else ""
+
+    def task_continuity_lineage_ablation_payload(
+        self,
+        report: TaskContinuityLineageAblationReport,
+    ) -> dict:
+        return {
+            "type": "task_continuity_lineage_ablation",
+            "schema_version": 2,
+            "case_count": len(report.cases),
+            "ready_case_count": report.ready_case_count,
+            "non_builtin_ready_case_count": report.non_builtin_ready_case_count,
+            "live_ready_case_count": report.live_ready_case_count,
+            "helped_count": report.helped_count,
+            "regression_count": report.regression_count,
+            "baseline_failed_contamination_count": report.baseline_failed_contamination_count,
+            "candidate_failed_contamination_count": report.candidate_failed_contamination_count,
+            "average_precision_gain": report.average_precision_gain,
+            "cases": [asdict(case) for case in report.cases],
+            "errors": list(report.errors),
+        }
+
+    def run_task_continuity_restoration_report(
+        self,
+        cases: Optional[list[TaskContinuityRestorationCase]] = None,
+    ) -> TaskContinuityRestorationReport:
+        """Validate revision proposals in shadow traces without applying restoration."""
+        report = TaskContinuityRestorationReport()
+        source_cases = TASK_CONTINUITY_RESTORATION_CASES if cases is None else cases
+        for case in source_cases:
+            try:
+                report.cases.append(self._run_task_continuity_restoration_case(case))
+            except Exception as e:
+                report.errors.append(f"{case.id}: {e}")
+        return report
+
+    def load_task_continuity_restoration_cases(
+        self,
+        case_files: list[str],
+    ) -> list[TaskContinuityRestorationCase]:
+        cases = []
+        for path in case_files or []:
+            for index, record in enumerate(self._load_case_records(path), start=1):
+                case = self._task_continuity_restoration_case_from_record(record, path, index)
+                if case:
+                    cases.append(case)
+        return cases
+
+    def _task_continuity_restoration_case_from_record(
+        self,
+        record: dict,
+        source: str,
+        index: int,
+    ) -> Optional[TaskContinuityRestorationCase]:
+        records = record.get("records", []) if isinstance(record.get("records", []), list) else []
+        memory_dir = str(record.get("memory_dir") or "")
+        if not records and memory_dir:
+            from singularity.core.memory import MemorySystem
+            records = [asdict(item) for item in MemorySystem(memory_dir=memory_dir, persist=True).task_continuity_records]
+        proposal_id = str(record.get("proposal_checkpoint_id") or "")
+        current_state = record.get("current_state", {}) if isinstance(record.get("current_state", {}), dict) else {}
+        candidate_state = record.get("candidate_pre_action_state", {}) if isinstance(record.get("candidate_pre_action_state", {}), dict) else {}
+        if not records or not proposal_id or not current_state or not candidate_state:
+            return None
+        return TaskContinuityRestorationCase(
+            id=str(record.get("id") or f"FILE-RESTORE-{index:03d}"),
+            name=str(record.get("name") or f"Task continuity restoration case {index}"),
+            records=records,
+            proposal_checkpoint_id=proposal_id,
+            current_state=current_state,
+            candidate_pre_action_state=candidate_state,
+            route_verified=record.get("route_verified") is True,
+            route_evidence_id=str(record.get("route_evidence_id") or ""),
+            max_reach_distance=max(0.0, float(record.get("max_reach_distance", 64.0) or 64.0)),
+            baseline_completed=record.get("baseline_completed") if isinstance(record.get("baseline_completed"), bool) else None,
+            candidate_completed=record.get("candidate_completed") if isinstance(record.get("candidate_completed"), bool) else None,
+            baseline_session_id=str(record.get("baseline_session_id") or ""),
+            candidate_session_id=str(record.get("candidate_session_id") or ""),
+            planner_id=str(record.get("planner_id") or ""),
+            action_backend=str(record.get("action_backend") or ""),
+            verifier_id=str(record.get("verifier_id") or ""),
+            task_stream_id=str(record.get("task_stream_id") or ""),
+            seed=str(record.get("seed") or ""),
+            evidence_kind=str(record.get("evidence_kind") or "offline_replay"),
+            source=source,
+        )
+
+    def _run_task_continuity_restoration_case(
+        self,
+        case: TaskContinuityRestorationCase,
+    ) -> TaskContinuityRestorationResult:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            memory = self._task_continuity_memory_from_records(case.records, tmpdir)
+            record_by_id = {record.id: record for record in memory.task_continuity_records}
+            proposal = record_by_id.get(case.proposal_checkpoint_id)
+            failed_id = ""
+            target_id = ""
+            proposal_review_only = False
+            failed_checkpoint_failed = False
+            target_verified = False
+            target_is_ancestor = False
+            target_evidence_consistent = False
+            branch_isolated = False
+            lineage_integrity = False
+            target = None
+            failed = None
+            if proposal is not None:
+                proposal_evidence = (
+                    proposal.validation_evidence
+                    if isinstance(proposal.validation_evidence, dict)
+                    else {}
+                )
+                failed_id = str(proposal_evidence.get("failed_checkpoint_id") or "")
+                target_id = str(proposal.revision_target_checkpoint_id or "")
+                failed = record_by_id.get(failed_id)
+                target = record_by_id.get(target_id)
+                proposal_review_only = bool(
+                    proposal.operation == "revise"
+                    and proposal.revision_status == "proposed"
+                    and proposal.branch_status == "proposed"
+                    and proposal.validation_status == "unverified"
+                    and not proposal.restoration_applied
+                )
+                failed_checkpoint_failed = bool(
+                    failed is not None and memory._task_continuity_record_failed(failed)
+                )
+                target_verified = bool(
+                    target is not None
+                    and target.validation_status == "verified"
+                    and isinstance(target.validation_evidence, dict)
+                    and target.validation_evidence
+                )
+                target_is_ancestor = self._task_continuity_checkpoint_is_ancestor(
+                    record_by_id,
+                    target_id,
+                    failed_id,
+                )
+                target_evidence_consistent = bool(
+                    target_id
+                    and str(proposal_evidence.get("verified_target_checkpoint_id") or "") == target_id
+                )
+                if failed is not None and target is not None:
+                    branch_isolated = bool(
+                        proposal.branch_id
+                        and proposal.branch_id != failed.branch_id
+                        and proposal.branch_id != target.branch_id
+                        and proposal.parent_checkpoint_id == target.id
+                    )
+                    lineage_records = [proposal, failed, target]
+                    lineage_issues = self._dedupe_strings([
+                        issue
+                        for record in lineage_records
+                        for issue in memory._task_continuity_lineage_issues(record)
+                    ])
+                    lineage_integrity = bool(
+                        not lineage_issues
+                        and all(record.schema_version >= 2 for record in lineage_records)
+                        and len({str(record.goal or "").strip().casefold() for record in lineage_records}) == 1
+                        and len({record.root_checkpoint_id for record in lineage_records}) == 1
+                        and bool(proposal.root_checkpoint_id)
+                    )
+
+            current_shadow_state = self._task_continuity_shadow_state(case.current_state)
+            candidate_shadow_state = self._task_continuity_shadow_state(case.candidate_pre_action_state)
+            state_evidence_complete = bool(
+                self._task_continuity_shadow_state_complete(case.current_state)
+                and self._task_continuity_shadow_state_complete(case.candidate_pre_action_state)
+            )
+            state_preserved = current_shadow_state == candidate_shadow_state
+            critical_state_fields = sorted(
+                key
+                for key, value in current_shadow_state.items()
+                if value not in (None, "", [], {})
+            )
+            target_state = target.state_summary if target is not None and isinstance(target.state_summary, dict) else {}
+            current_dimension = self._task_continuity_dimension(case.current_state)
+            target_dimension = self._task_continuity_dimension(target_state)
+            dimension_compatible = bool(
+                current_dimension and target_dimension and current_dimension == target_dimension
+            )
+            target_distance = self._task_continuity_position_distance(case.current_state, target_state)
+            route_verified = bool(case.route_verified and case.route_evidence_id)
+            target_reachable = bool(
+                dimension_compatible
+                and target_distance is not None
+                and target_distance <= float(case.max_reach_distance)
+                and route_verified
+            )
+            completion_non_regression = bool(
+                isinstance(case.baseline_completed, bool)
+                and isinstance(case.candidate_completed, bool)
+                and not (case.baseline_completed and not case.candidate_completed)
+            )
+            distinct_sessions = bool(
+                case.baseline_session_id
+                and case.candidate_session_id
+                and case.baseline_session_id != case.candidate_session_id
+            )
+            controls_fixed = all([
+                case.planner_id,
+                case.action_backend,
+                case.verifier_id,
+                case.task_stream_id,
+                str(case.seed),
+            ])
+            issues = []
+            if proposal is None:
+                issues.append("proposal_checkpoint_missing")
+            if not proposal_review_only:
+                issues.append("proposal_not_review_only")
+            if not failed_checkpoint_failed:
+                issues.append("failed_checkpoint_not_failed")
+            if not target_verified:
+                issues.append("revision_target_not_verified")
+            if not target_is_ancestor:
+                issues.append("revision_target_not_ancestor")
+            if not target_evidence_consistent:
+                issues.append("revision_target_evidence_mismatch")
+            if not branch_isolated:
+                issues.append("revision_branch_not_isolated")
+            if not lineage_integrity:
+                issues.append("revision_lineage_integrity_failure")
+            if not state_evidence_complete:
+                issues.append("critical_state_evidence_missing")
+            if not state_preserved:
+                issues.append("state_changed_before_shadow_action")
+            if not dimension_compatible:
+                issues.append("dimension_mismatch_or_missing")
+            if target_distance is None or target_distance > float(case.max_reach_distance):
+                issues.append("target_outside_static_reachability_bound")
+            if not route_verified:
+                issues.append("route_evidence_missing")
+            if not completion_non_regression:
+                issues.append("candidate_completion_regression_or_missing")
+            if not distinct_sessions:
+                issues.append("baseline_candidate_sessions_not_distinct")
+            if not controls_fixed:
+                issues.append("non_memory_controls_missing")
+            ready = bool(
+                proposal_review_only
+                and failed_checkpoint_failed
+                and target_verified
+                and target_is_ancestor
+                and target_evidence_consistent
+                and branch_isolated
+                and lineage_integrity
+                and state_evidence_complete
+                and state_preserved
+                and target_reachable
+                and completion_non_regression
+                and distinct_sessions
+                and controls_fixed
+            )
+            return TaskContinuityRestorationResult(
+                case_id=case.id,
+                case_name=case.name,
+                proposal_checkpoint_id=case.proposal_checkpoint_id,
+                failed_checkpoint_id=failed_id,
+                target_checkpoint_id=target_id,
+                proposal_is_review_only=proposal_review_only,
+                failed_checkpoint_failed=failed_checkpoint_failed,
+                target_verified=target_verified,
+                target_is_ancestor=target_is_ancestor,
+                target_evidence_consistent=target_evidence_consistent,
+                branch_isolated=branch_isolated,
+                lineage_integrity=lineage_integrity,
+                state_evidence_complete=state_evidence_complete,
+                state_preserved_before_action=state_preserved,
+                critical_state_fields=critical_state_fields,
+                dimension_compatible=dimension_compatible,
+                target_distance=round(target_distance, 3) if target_distance is not None else None,
+                target_reachable=target_reachable,
+                route_verified=route_verified,
+                baseline_completed=case.baseline_completed,
+                candidate_completed=case.candidate_completed,
+                completion_non_regression=completion_non_regression,
+                distinct_sessions=distinct_sessions,
+                non_memory_modules_fixed=controls_fixed,
+                ready_for_shadow_review=ready,
+                issues=sorted(set(issues)),
+                planner_id=case.planner_id,
+                action_backend=case.action_backend,
+                verifier_id=case.verifier_id,
+                task_stream_id=case.task_stream_id,
+                seed=str(case.seed),
+                baseline_session_id=case.baseline_session_id,
+                candidate_session_id=case.candidate_session_id,
+                route_evidence_id=case.route_evidence_id,
+                evidence_kind=case.evidence_kind,
+                source=case.source,
+            )
+
+    def _task_continuity_checkpoint_is_ancestor(
+        self,
+        record_by_id: dict,
+        ancestor_id: str,
+        checkpoint_id: str,
+    ) -> bool:
+        if not ancestor_id or not checkpoint_id:
+            return False
+        visited = set()
+        current = record_by_id.get(checkpoint_id)
+        while current is not None and current.id not in visited:
+            if current.id == ancestor_id:
+                return True
+            visited.add(current.id)
+            current = record_by_id.get(current.parent_checkpoint_id)
+        return False
+
+    def _task_continuity_shadow_state(self, state: dict) -> dict:
+        state = state if isinstance(state, dict) else {}
+        return {
+            "inventory": state.get("inventory", {}) if isinstance(state.get("inventory", {}), dict) else {},
+            "inventory_count": state.get("inventory_count"),
+            "position": state.get("position", {}) if isinstance(state.get("position", {}), dict) else {},
+            "health": state.get("health"),
+            "hunger": state.get("hunger"),
+            "food_saturation": state.get("food_saturation"),
+            "xp_level": state.get("xp_level", state.get("experience")),
+            "equipment": state.get("equipment"),
+            "selected_slot": state.get("selected_slot"),
+            "game_mode": state.get("game_mode"),
+            "oxygen": state.get("oxygen"),
+            "effects": state.get("effects"),
+            "dimension": self._task_continuity_dimension(state),
+        }
+
+    def _task_continuity_shadow_state_complete(self, state: dict) -> bool:
+        if not isinstance(state, dict):
+            return False
+        inventory = state.get("inventory")
+        position = state.get("position")
+        return bool(
+            isinstance(inventory, dict)
+            and isinstance(position, dict)
+            and all(isinstance(position.get(axis), (int, float)) for axis in ("x", "y", "z"))
+            and isinstance(state.get("health"), (int, float))
+            and self._task_continuity_dimension(state)
+        )
+
+    def _task_continuity_dimension(self, state: dict) -> str:
+        if not isinstance(state, dict):
+            return ""
+        return str(state.get("dimension") or state.get("world") or state.get("world_id") or "")
+
+    def _task_continuity_position_distance(self, first: dict, second: dict) -> Optional[float]:
+        first_position = first.get("position", {}) if isinstance(first, dict) and isinstance(first.get("position", {}), dict) else {}
+        second_position = second.get("position", {}) if isinstance(second, dict) and isinstance(second.get("position", {}), dict) else {}
+        try:
+            return math.sqrt(sum(
+                (float(first_position[axis]) - float(second_position[axis])) ** 2
+                for axis in ("x", "y", "z")
+            ))
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    def task_continuity_restoration_payload(
+        self,
+        report: TaskContinuityRestorationReport,
+    ) -> dict:
+        return {
+            "type": "task_continuity_restoration_report",
+            "schema_version": 2,
+            "case_count": len(report.cases),
+            "ready_case_count": report.ready_case_count,
+            "non_builtin_ready_case_count": report.non_builtin_ready_case_count,
+            "live_ready_case_count": report.live_ready_case_count,
+            "unreachable_count": report.unreachable_count,
+            "state_rollback_count": report.state_rollback_count,
+            "completion_regression_count": report.completion_regression_count,
+            "distinct_candidate_session_count": len({
+                case.candidate_session_id for case in report.cases if case.candidate_session_id
+            }),
+            "cases": [asdict(case) for case in report.cases],
+            "errors": list(report.errors),
+        }
+
+    def build_task_continuity_restoration_gate(
+        self,
+        lineage_ablation_reports: Optional[list[dict]] = None,
+        lineage_ablation_report_paths: Optional[list[str]] = None,
+        restoration_reports: Optional[list[dict]] = None,
+        restoration_report_paths: Optional[list[str]] = None,
+        target: str = "task_continuity_shadow_revision_selection",
+        min_lineage_cases: int = 3,
+        min_lineage_helped_cases: int = 1,
+        min_restoration_cases: int = 3,
+        min_distinct_candidate_sessions: int = 3,
+        min_precision_gain: float = 0.0,
+        max_candidate_contamination: int = 0,
+        max_lineage_regressions: int = 0,
+        max_unreachable_cases: int = 0,
+        max_state_rollback_cases: int = 0,
+        max_completion_regressions: int = 0,
+        require_live_evidence: bool = True,
+    ) -> dict:
+        """Gate shadow revision selection while keeping automatic restoration disabled."""
+        thresholds = {
+            "min_lineage_cases": max(1, int(min_lineage_cases or 1)),
+            "min_lineage_helped_cases": max(0, int(min_lineage_helped_cases or 0)),
+            "min_restoration_cases": max(1, int(min_restoration_cases or 1)),
+            "min_distinct_candidate_sessions": max(1, int(min_distinct_candidate_sessions or 1)),
+            "min_precision_gain": float(min_precision_gain or 0.0),
+            "max_candidate_contamination": max(0, int(max_candidate_contamination or 0)),
+            "max_lineage_regressions": max(0, int(max_lineage_regressions or 0)),
+            "max_unreachable_cases": max(0, int(max_unreachable_cases or 0)),
+            "max_state_rollback_cases": max(0, int(max_state_rollback_cases or 0)),
+            "max_completion_regressions": max(0, int(max_completion_regressions or 0)),
+            "require_live_evidence": bool(require_live_evidence),
+        }
+        report = {
+            "type": "task_continuity_restoration_gate",
+            "schema_version": 1,
+            "required": True,
+            "target": target,
+            "readiness": "review",
+            "decision": "keep_restoration_disabled",
+            "reason": "memory-isolated lineage and shadow restoration evidence are required",
+            "automatic_restore_allowed": False,
+            "shadow_revision_selection_allowed": False,
+            "thresholds": thresholds,
+            "lineage_ablation_report_count": 0,
+            "restoration_report_count": 0,
+            "lineage_case_count": 0,
+            "eligible_lineage_case_count": 0,
+            "lineage_helped_count": 0,
+            "lineage_regression_count": 0,
+            "lineage_integrity_failure_count": 0,
+            "candidate_failed_contamination_count": 0,
+            "average_precision_gain": None,
+            "restoration_case_count": 0,
+            "eligible_restoration_case_count": 0,
+            "unreachable_count": 0,
+            "state_rollback_count": 0,
+            "completion_regression_count": 0,
+            "restoration_integrity_failure_count": 0,
+            "distinct_candidate_session_count": 0,
+            "evidence_count": 0,
+            "warning_count": 0,
+            "failure_count": 0,
+            "missing": [],
+            "policy_hints": [],
+            "checks": [],
+            "errors": [],
+        }
+        lineage_items = self._load_gate_payloads(
+            lineage_ablation_reports or [],
+            lineage_ablation_report_paths or [],
+            report["errors"],
+            "task_continuity_lineage_ablation",
+        )
+        restoration_items = self._load_gate_payloads(
+            restoration_reports or [],
+            restoration_report_paths or [],
+            report["errors"],
+            "task_continuity_restoration_report",
+        )
+        report["lineage_ablation_report_count"] = len(lineage_items)
+        report["restoration_report_count"] = len(restoration_items)
+        if not lineage_items:
+            report["missing"].append("task_continuity_lineage_ablation")
+        if not restoration_items:
+            report["missing"].append("task_continuity_restoration_report")
+
+        precision_values = []
+        candidate_sessions = set()
+        for source, payload in lineage_items:
+            check = self._task_continuity_lineage_gate_check(source, payload, thresholds)
+            report["checks"].append(check)
+            metrics = check.get("metrics", {})
+            report["lineage_case_count"] += self._gate_int(metrics.get("case_count"))
+            report["eligible_lineage_case_count"] += self._gate_int(metrics.get("eligible_ready_case_count"))
+            report["lineage_helped_count"] += self._gate_int(metrics.get("helped_count"))
+            report["lineage_regression_count"] += self._gate_int(metrics.get("regression_count"))
+            report["lineage_integrity_failure_count"] += self._gate_int(metrics.get("integrity_failure_count"))
+            report["candidate_failed_contamination_count"] += self._gate_int(metrics.get("candidate_failed_contamination_count"))
+            value = self._gate_float_or_none(metrics.get("average_precision_gain"))
+            if value is not None:
+                precision_values.append(value)
+        for source, payload in restoration_items:
+            check = self._task_continuity_restoration_gate_check(source, payload, thresholds)
+            report["checks"].append(check)
+            metrics = check.get("metrics", {})
+            report["restoration_case_count"] += self._gate_int(metrics.get("case_count"))
+            report["eligible_restoration_case_count"] += self._gate_int(metrics.get("eligible_ready_case_count"))
+            report["unreachable_count"] += self._gate_int(metrics.get("unreachable_count"))
+            report["state_rollback_count"] += self._gate_int(metrics.get("state_rollback_count"))
+            report["completion_regression_count"] += self._gate_int(metrics.get("completion_regression_count"))
+            report["restoration_integrity_failure_count"] += self._gate_int(metrics.get("integrity_failure_count"))
+            for session_id in metrics.get("candidate_session_ids", []):
+                if session_id:
+                    candidate_sessions.add(str(session_id))
+        report["average_precision_gain"] = _average_optional(precision_values)
+        report["distinct_candidate_session_count"] = len(candidate_sessions)
+        report["evidence_count"] = sum(1 for check in report["checks"] if check.get("status") == "pass")
+        report["warning_count"] = sum(1 for check in report["checks"] if check.get("status") == "warn")
+        report["failure_count"] = sum(1 for check in report["checks"] if check.get("status") == "fail")
+
+        if report["candidate_failed_contamination_count"]:
+            report["policy_hints"].append("isolate_failed_task_branches")
+        if report["lineage_integrity_failure_count"]:
+            report["policy_hints"].append("repair_lineage_report_integrity")
+        if report["state_rollback_count"]:
+            report["policy_hints"].append("preserve_current_world_state_during_shadow_selection")
+        if report["unreachable_count"]:
+            report["policy_hints"].append("collect_verified_routes_to_revision_targets")
+        if report["completion_regression_count"]:
+            report["policy_hints"].append("reject_revision_policy_completion_regressions")
+        if report["restoration_integrity_failure_count"]:
+            report["policy_hints"].append("repair_revision_evidence_integrity")
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "reject_restoration_policy"
+            report["reason"] = "gate inputs could not be loaded"
+        elif report["failure_count"]:
+            report["readiness"] = "rejected"
+            report["decision"] = "reject_restoration_policy"
+            report["reason"] = "lineage or shadow restoration evidence contains a hard regression"
+        elif report["missing"] or report["warning_count"] or report["evidence_count"] < 2:
+            report["readiness"] = "review"
+            report["decision"] = "keep_restoration_disabled"
+            report["reason"] = "evidence is missing, synthetic, non-live, or below the shadow-review threshold"
+        elif report["distinct_candidate_session_count"] < thresholds["min_distinct_candidate_sessions"]:
+            report["readiness"] = "review"
+            report["decision"] = "keep_restoration_disabled"
+            report["reason"] = "not enough distinct candidate sessions support shadow revision selection"
+        else:
+            report["readiness"] = "approved"
+            report["decision"] = "allow_shadow_revision_selection"
+            report["reason"] = "memory-isolated lineage and shadow traces pass without state or completion regression"
+            report["shadow_revision_selection_allowed"] = True
+        report["policy_hints"] = self._dedupe_strings(report["policy_hints"])
+        return report
+
+    def _task_continuity_lineage_gate_check(self, source: str, payload: dict, thresholds: dict) -> dict:
+        cases = payload.get("cases", []) if isinstance(payload.get("cases", []), list) else []
+        require_live = thresholds.get("require_live_evidence", True)
+        relevant = [
+            case for case in cases
+            if isinstance(case, dict)
+            and (
+                case.get("evidence_kind") == "live_trace"
+                if require_live else case.get("evidence_kind") != "builtin"
+            )
+        ]
+        eligible = [
+            case for case in relevant if case.get("ready_for_lineage_review")
+        ]
+        fixed_controls = sum(
+            1 for case in eligible
+            if case.get("non_memory_modules_fixed")
+            and all(str(case.get(key) or "").strip() for key in (
+                "planner_id", "action_backend", "verifier_id", "task_stream_id", "seed"
+            ))
+        )
+        provenance_complete = sum(
+            1 for case in eligible
+            if str(case.get("source") or "").strip()
+            and str(case.get("source") or "").strip().casefold() != "builtin"
+        )
+        task_streams = {str(case.get("task_stream_id")) for case in eligible if case.get("task_stream_id")}
+        precision_values = [
+            float(case.get("precision_gain"))
+            for case in relevant
+            if isinstance(case.get("precision_gain"), (int, float))
+        ]
+        integrity_failure_count = sum(
+            1 for case in eligible
+            if not (
+                case.get("expected_active_checkpoint_consistent") is True
+                and case.get("candidate_active_leaf_hit") is True
+                and self._gate_int(case.get("active_branch_count")) == 1
+                and self._gate_int(case.get("lineage_issue_count")) == 0
+                and self._gate_int(case.get("candidate_failed_contamination_count")) == 0
+            )
+        )
+        metrics = {
+            "source_case_count": len(cases),
+            "case_count": len(relevant),
+            "eligible_ready_case_count": len(eligible),
+            "fixed_control_case_count": fixed_controls,
+            "provenance_complete_case_count": provenance_complete,
+            "distinct_task_stream_count": len(task_streams),
+            "helped_count": sum(1 for case in relevant if case.get("candidate_helped")),
+            "regression_count": sum(1 for case in relevant if case.get("candidate_regressed")),
+            "integrity_failure_count": integrity_failure_count,
+            "candidate_failed_contamination_count": sum(
+                self._gate_int(case.get("candidate_failed_contamination_count", 0))
+                for case in relevant
+            ),
+            "average_precision_gain": _average_optional(precision_values),
+        }
+        errors = payload.get("errors", []) if isinstance(payload.get("errors", []), list) else []
+        if payload.get("type") != "task_continuity_lineage_ablation" or self._gate_int(payload.get("schema_version")) != 2:
+            return self._gate_check(source, "task_continuity_lineage_ablation", "fail", "lineage ablation type or schema is invalid", metrics)
+        if errors:
+            return self._gate_check(source, "task_continuity_lineage_ablation", "fail", "lineage ablation contains errors", metrics)
+        if metrics["integrity_failure_count"]:
+            return self._gate_check(source, "task_continuity_lineage_ablation", "fail", "lineage report readiness contradicts its case evidence", metrics)
+        if metrics["regression_count"] > thresholds["max_lineage_regressions"]:
+            return self._gate_check(source, "task_continuity_lineage_ablation", "fail", "lineage candidate regresses against the flat baseline", metrics)
+        if metrics["candidate_failed_contamination_count"] > thresholds["max_candidate_contamination"]:
+            return self._gate_check(source, "task_continuity_lineage_ablation", "fail", "candidate active paths contain failed-branch checkpoints", metrics)
+        precision_gain = metrics["average_precision_gain"]
+        if precision_gain is None or precision_gain < thresholds["min_precision_gain"]:
+            return self._gate_check(source, "task_continuity_lineage_ablation", "warn", "lineage precision gain is missing or below threshold", metrics)
+        if (
+            len(eligible) < thresholds["min_lineage_cases"]
+            or fixed_controls < len(eligible)
+            or provenance_complete < len(eligible)
+        ):
+            return self._gate_check(source, "task_continuity_lineage_ablation", "warn", "not enough eligible fixed-control lineage cases", metrics)
+        if metrics["helped_count"] < thresholds["min_lineage_helped_cases"]:
+            return self._gate_check(source, "task_continuity_lineage_ablation", "warn", "lineage candidate has not helped enough cases", metrics)
+        return self._gate_check(source, "task_continuity_lineage_ablation", "pass", "lineage selection improves or preserves fixed-control memory retrieval", metrics)
+
+    def _task_continuity_restoration_gate_check(self, source: str, payload: dict, thresholds: dict) -> dict:
+        cases = payload.get("cases", []) if isinstance(payload.get("cases", []), list) else []
+        require_live = thresholds.get("require_live_evidence", True)
+        relevant = [
+            case for case in cases
+            if isinstance(case, dict)
+            and (
+                case.get("evidence_kind") == "live_trace"
+                if require_live else case.get("evidence_kind") != "builtin"
+            )
+        ]
+        eligible = [
+            case for case in relevant if case.get("ready_for_shadow_review")
+        ]
+        provenance_complete = sum(
+            1 for case in eligible
+            if str(case.get("source") or "").strip()
+            and str(case.get("source") or "").strip().casefold() != "builtin"
+            and all(str(case.get(key) or "").strip() for key in (
+                "planner_id", "action_backend", "verifier_id", "task_stream_id", "seed",
+                "baseline_session_id", "candidate_session_id", "route_evidence_id",
+            ))
+            and case.get("non_memory_modules_fixed")
+        )
+        candidate_session_ids = self._dedupe_strings([
+            str(case.get("candidate_session_id") or "") for case in eligible
+        ])
+        integrity_fields = (
+            "proposal_is_review_only",
+            "failed_checkpoint_failed",
+            "target_verified",
+            "target_is_ancestor",
+            "target_evidence_consistent",
+            "branch_isolated",
+            "lineage_integrity",
+            "state_evidence_complete",
+            "distinct_sessions",
+            "non_memory_modules_fixed",
+        )
+        metrics = {
+            "source_case_count": len(cases),
+            "case_count": len(relevant),
+            "eligible_ready_case_count": len(eligible),
+            "provenance_complete_case_count": provenance_complete,
+            "unreachable_count": sum(1 for case in relevant if not case.get("target_reachable")),
+            "state_rollback_count": sum(1 for case in relevant if not case.get("state_preserved_before_action")),
+            "completion_regression_count": sum(1 for case in relevant if not case.get("completion_non_regression")),
+            "integrity_failure_count": sum(
+                1 for case in relevant
+                if not all(case.get(field) is True for field in integrity_fields)
+            ),
+            "candidate_session_ids": candidate_session_ids,
+        }
+        errors = payload.get("errors", []) if isinstance(payload.get("errors", []), list) else []
+        if payload.get("type") != "task_continuity_restoration_report" or self._gate_int(payload.get("schema_version")) != 2:
+            return self._gate_check(source, "task_continuity_restoration_report", "fail", "shadow restoration report type or schema is invalid", metrics)
+        if errors:
+            return self._gate_check(source, "task_continuity_restoration_report", "fail", "shadow restoration report contains errors", metrics)
+        if metrics["unreachable_count"] > thresholds["max_unreachable_cases"]:
+            return self._gate_check(source, "task_continuity_restoration_report", "fail", "one or more revision targets lack bounded route evidence", metrics)
+        if metrics["state_rollback_count"] > thresholds["max_state_rollback_cases"]:
+            return self._gate_check(source, "task_continuity_restoration_report", "fail", "shadow selection rewrites current world state before action", metrics)
+        if metrics["completion_regression_count"] > thresholds["max_completion_regressions"]:
+            return self._gate_check(source, "task_continuity_restoration_report", "fail", "shadow candidate regresses goal completion", metrics)
+        if metrics["integrity_failure_count"]:
+            return self._gate_check(source, "task_continuity_restoration_report", "fail", "shadow proposal evidence or lineage integrity is invalid", metrics)
+        if len(eligible) < thresholds["min_restoration_cases"] or provenance_complete < len(eligible):
+            return self._gate_check(source, "task_continuity_restoration_report", "warn", "not enough eligible shadow restoration cases", metrics)
+        if len(candidate_session_ids) < thresholds["min_distinct_candidate_sessions"]:
+            return self._gate_check(source, "task_continuity_restoration_report", "warn", "shadow cases do not cover enough distinct candidate sessions", metrics)
+        return self._gate_check(source, "task_continuity_restoration_report", "pass", "shadow proposals preserve state, reach verified ancestors, and avoid completion regression", metrics)
 
     def run_policy_skill_ablation(
         self,

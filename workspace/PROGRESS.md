@@ -29,6 +29,8 @@ Current report outcome:
 - Rule and LLM planning cycles now retrieve typed memory through strict per-read and per-decision character budgets, emit a schema-v2 contract, and exclude non-planning causal reads from bounded-context evidence. Rule selection remains world-state-driven and reports that memory has not yet influenced its action choice.
 - Autonomous runs now emit observations, plans, selected goals, and terminal subgoal outcomes as non-nested machine-checkable events; queued tasks no longer silently replace the goal whose plan is being executed.
 - Task continuity now uses schema-v2 execution-state records with session, branch, parent/root checkpoint, depth, validation, and revision provenance. Planner context follows one active root-to-current path and labels failed/proposed branches as hints; revision commands remain review-only and cannot restore world state.
+- Added a MemGym-style fixed-control lineage ablation plus a verifier-backed shadow-restoration report and gate. Built-in lineage fixtures reduce failed-branch contamination from 2 to 0 with 2/3 review-ready cases, but they are synthetic, candidate context is currently longer than the flat baseline, and built-ins cannot approve the gate.
+- Player observations and action snapshots now preserve dimension, hunger, saturation, oxygen, XP, game mode, and selected slot so future shadow comparisons can reject hidden state rollback rather than comparing inventory and position alone.
 
 ## Evidence That Still Matters
 
@@ -41,7 +43,7 @@ Current report outcome:
 - No live BM-701 multi-agent execution report is available.
 - M3, M5, and M6 acceptance is machine-checkable; all 37 existing sessions were ingested and none qualifies.
 - The bounded-memory and autonomous-event fixes apply only to future sessions. They do not upgrade or rewrite the historical evidence above.
-- Execution-state lineage is offline-verified but has no live Minecraft ablation or restoration evidence; `automatic_restore_allowed` remains false.
+- Execution-state lineage and shadow-state invariants are offline-verified but have no live Minecraft ablation or restoration evidence. The gate can only authorize shadow revision selection after repeated eligible evidence and always emits `automatic_restore_allowed=false`.
 
 ## Research Direction
 
@@ -61,4 +63,4 @@ Current report outcome:
 3. Promote no capability until the ledger reports `repeat_verified`.
 4. Re-run M3/M5 with the new bounded-memory and autonomous-event contracts, then collect three distinct qualifying sessions for each adapter; M6 still requires screenshot-backed visual interventions.
 5. Continue research-driven improvements only with baseline/candidate traces and regression gates.
-6. Build a memory-isolated lineage ablation and verifier-backed restoration gate before any revision proposal may affect runtime behavior.
+6. Collect fixed-control live lineage and shadow-restoration traces on at least three distinct candidate sessions; keep automatic restoration disabled even if shadow selection is approved.

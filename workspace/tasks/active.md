@@ -329,8 +329,10 @@
 - [x] Extend `TaskContinuityRecord` with schema-v2 execution, branch, parent/root checkpoint, depth, validation, terminal status, and revision provenance while preserving schema-v1 JSONL loading.
 - [x] Rebuild planner continuity context from one root-to-current path and expose failed/proposed branches only as non-active hints.
 - [x] Add review-only `task-continuity-revision` proposals that require a verified ancestor and always report `restoration_applied=false`.
-- [ ] Add a memory-isolated execution-lineage ablation with fixed planner/action backends, following MemGym's separation of memory value from reasoning/tool value.
-- [ ] Add a verifier-backed restoration gate covering world-state reachability, inventory monotonicity, branch isolation, and baseline non-regression before applying any revision.
+- [x] Add a memory-isolated execution-lineage ablation with fixed planner/action backends, following MemGym's separation of memory value from reasoning/tool value.
+- [x] Add a verifier-backed shadow-restoration gate covering route-bounded reachability, critical player-state preservation, branch isolation, evidence integrity, and baseline non-regression while keeping automatic restoration disabled.
+- [ ] Collect at least three distinct live candidate sessions for both lineage and shadow-restoration reports; built-in and offline fixtures must remain ineligible under the default gate.
+- [ ] Reduce lineage candidate context cost without reintroducing failed-branch contamination; current built-ins improve precision but produce longer context than the flat baseline.
 - [ ] Run schema-v2 task continuity on fresh M1/M3/M5 sessions and inspect lineage issues, active paths, revision candidates, and terminal checkpoint validity.
 - [ ] Compare SelfMem-style planning-memory budget/layer variants offline, then promote only variants with held-out transfer and runtime-cost evidence.
 

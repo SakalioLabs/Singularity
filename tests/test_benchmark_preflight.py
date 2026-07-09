@@ -3950,6 +3950,193 @@ def test_bounded_context_gate_controls_planner_contract():
     print("PASS: Bounded context gate controls planner contract")
 
 
+def test_task_continuity_lineage_ablation_isolates_failed_branches():
+    runner = BenchmarkRunner(Config())
+    report = runner.run_task_continuity_lineage_ablation()
+    payload = runner.task_continuity_lineage_ablation_payload(report)
+    by_id = {case.case_id: case for case in report.cases}
+
+    assert payload["type"] == "task_continuity_lineage_ablation"
+    assert payload["case_count"] == 3
+    assert payload["ready_case_count"] == 2
+    assert payload["non_builtin_ready_case_count"] == 0
+    assert payload["helped_count"] == 2
+    assert payload["regression_count"] == 0
+    assert payload["baseline_failed_contamination_count"] == 2
+    assert payload["candidate_failed_contamination_count"] == 0
+    assert payload["average_precision_gain"] > 0
+    assert by_id["TC-LIN-001"].baseline_failed_contamination_count == 1
+    assert by_id["TC-LIN-001"].candidate_failed_contamination_count == 0
+    assert by_id["TC-LIN-001"].candidate_active_leaf_hit is True
+    assert by_id["TC-LIN-001"].expected_active_checkpoint_consistent is True
+    assert by_id["TC-LIN-003"].ready_for_lineage_review is False
+    assert "ambiguous_active_branches" in by_id["TC-LIN-003"].issues
+
+    stale_expected_payload = asdict(benchmark_module.TASK_CONTINUITY_LINEAGE_ABLATION_CASES[1])
+    stale_expected_payload["id"] = "TC-LIN-STALE-EXPECTED"
+    stale_expected_payload["expected_active_checkpoint_id"] = "mine-root"
+    stale_expected = benchmark_module.TaskContinuityLineageAblationCase(**stale_expected_payload)
+    stale_result = runner.run_task_continuity_lineage_ablation([stale_expected]).cases[0]
+    assert stale_result.ready_for_lineage_review is False
+    assert stale_result.expected_active_checkpoint_consistent is False
+    assert stale_result.inferred_active_checkpoint_ids == ["mine-leaf"]
+    assert "explicit_active_leaf_mismatch" in stale_result.issues
+    print("PASS: Task continuity lineage ablation isolates failed branches")
+
+
+def test_task_continuity_restoration_report_rejects_state_rollback():
+    runner = BenchmarkRunner(Config())
+    ready_report = runner.run_task_continuity_restoration_report()
+    ready = ready_report.cases[0]
+    assert ready.ready_for_shadow_review is True
+    assert ready.proposal_is_review_only is True
+    assert ready.failed_checkpoint_failed is True
+    assert ready.target_verified is True
+    assert ready.target_is_ancestor is True
+    assert ready.target_evidence_consistent is True
+    assert ready.branch_isolated is True
+    assert ready.lineage_integrity is True
+    assert ready.state_evidence_complete is True
+    assert ready.state_preserved_before_action is True
+    assert "hunger" in ready.critical_state_fields
+    assert "xp_level" in ready.critical_state_fields
+    assert ready.target_reachable is True
+    assert ready.completion_non_regression is True
+
+    bad_payload = asdict(benchmark_module.TASK_CONTINUITY_RESTORATION_CASES[0])
+    bad_payload["id"] = "TC-RESTORE-BAD"
+    bad_payload["candidate_pre_action_state"] = {
+        "inventory": {},
+        "position": {"x": 3, "y": 64, "z": 0},
+        "dimension": "overworld",
+        "health": 20,
+    }
+    bad_payload["route_verified"] = False
+    bad_payload["baseline_completed"] = True
+    bad_payload["candidate_completed"] = False
+    bad_case = benchmark_module.TaskContinuityRestorationCase(**bad_payload)
+    bad_report = runner.run_task_continuity_restoration_report([bad_case])
+    bad = bad_report.cases[0]
+    assert bad.ready_for_shadow_review is False
+    assert bad.state_preserved_before_action is False
+    assert bad.target_reachable is False
+    assert bad.completion_non_regression is False
+    assert "state_changed_before_shadow_action" in bad.issues
+    assert "route_evidence_missing" in bad.issues
+    assert "candidate_completion_regression_or_missing" in bad.issues
+
+    integrity_payload = asdict(benchmark_module.TASK_CONTINUITY_RESTORATION_CASES[0])
+    integrity_payload["id"] = "TC-RESTORE-INTEGRITY-BAD"
+    for record in integrity_payload["records"]:
+        if record["id"] == "restore-fail":
+            record["validation_status"] = "verified"
+            record["branch_status"] = "active"
+        if record["id"] == "restore-proposal":
+            record["validation_evidence"]["verified_target_checkpoint_id"] = "wrong-target"
+    integrity_case = benchmark_module.TaskContinuityRestorationCase(**integrity_payload)
+    integrity = runner.run_task_continuity_restoration_report([integrity_case]).cases[0]
+    assert integrity.ready_for_shadow_review is False
+    assert integrity.failed_checkpoint_failed is False
+    assert integrity.target_evidence_consistent is False
+    assert "failed_checkpoint_not_failed" in integrity.issues
+    assert "revision_target_evidence_mismatch" in integrity.issues
+    print("PASS: Task continuity restoration report rejects state rollback")
+
+
+def test_task_continuity_restoration_gate_allows_shadow_only():
+    runner = BenchmarkRunner(Config())
+    builtin_lineage = runner.task_continuity_lineage_ablation_payload(
+        runner.run_task_continuity_lineage_ablation()
+    )
+    builtin_restoration = runner.task_continuity_restoration_payload(
+        runner.run_task_continuity_restoration_report()
+    )
+    builtin_gate = runner.build_task_continuity_restoration_gate(
+        lineage_ablation_reports=[builtin_lineage],
+        restoration_reports=[builtin_restoration],
+    )
+    assert builtin_gate["readiness"] == "review"
+    assert builtin_gate["automatic_restore_allowed"] is False
+    assert builtin_gate["shadow_revision_selection_allowed"] is False
+    assert builtin_gate["eligible_lineage_case_count"] == 0
+
+    lineage_template = asdict(runner.run_task_continuity_lineage_ablation().cases[0])
+    lineage_cases = []
+    for index in range(3):
+        case = json.loads(json.dumps(lineage_template))
+        case["case_id"] = f"LIVE-LINEAGE-{index + 1}"
+        case["evidence_kind"] = "live_trace"
+        case["source"] = f"session-lineage-{index + 1}.jsonl"
+        case["task_stream_id"] = f"live-stream-{index + 1}"
+        case["seed"] = str(index + 10)
+        lineage_cases.append(case)
+    live_lineage = {
+        "type": "task_continuity_lineage_ablation",
+        "schema_version": 2,
+        "cases": lineage_cases,
+        "errors": [],
+    }
+
+    restoration_template = asdict(runner.run_task_continuity_restoration_report().cases[0])
+    restoration_cases = []
+    for index in range(3):
+        case = json.loads(json.dumps(restoration_template))
+        case["case_id"] = f"LIVE-RESTORE-{index + 1}"
+        case["evidence_kind"] = "live_trace"
+        case["source"] = f"session-restore-{index + 1}.jsonl"
+        case["baseline_session_id"] = f"baseline-{index + 1}"
+        case["candidate_session_id"] = f"candidate-{index + 1}"
+        case["route_evidence_id"] = f"route-{index + 1}"
+        restoration_cases.append(case)
+    live_restoration = {
+        "type": "task_continuity_restoration_report",
+        "schema_version": 2,
+        "cases": restoration_cases,
+        "errors": [],
+    }
+    approved = runner.build_task_continuity_restoration_gate(
+        lineage_ablation_reports=[live_lineage],
+        restoration_reports=[live_restoration],
+    )
+    assert approved["readiness"] == "approved"
+    assert approved["decision"] == "allow_shadow_revision_selection"
+    assert approved["shadow_revision_selection_allowed"] is True
+    assert approved["automatic_restore_allowed"] is False
+    assert approved["distinct_candidate_session_count"] == 3
+
+    regressed = json.loads(json.dumps(live_restoration))
+    regressed["cases"][0]["state_preserved_before_action"] = False
+    regressed["cases"][0]["ready_for_shadow_review"] = False
+    rejected = runner.build_task_continuity_restoration_gate(
+        lineage_ablation_reports=[live_lineage],
+        restoration_reports=[regressed],
+    )
+    assert rejected["readiness"] == "rejected"
+    assert rejected["decision"] == "reject_restoration_policy"
+    assert rejected["automatic_restore_allowed"] is False
+
+    invalid_integrity = json.loads(json.dumps(live_restoration))
+    invalid_integrity["cases"][0]["failed_checkpoint_failed"] = False
+    invalid_integrity_gate = runner.build_task_continuity_restoration_gate(
+        lineage_ablation_reports=[live_lineage],
+        restoration_reports=[invalid_integrity],
+    )
+    assert invalid_integrity_gate["readiness"] == "rejected"
+    assert invalid_integrity_gate["restoration_integrity_failure_count"] == 1
+    assert invalid_integrity_gate["automatic_restore_allowed"] is False
+
+    invalid_lineage = json.loads(json.dumps(live_lineage))
+    invalid_lineage["cases"][0]["expected_active_checkpoint_consistent"] = False
+    invalid_lineage_gate = runner.build_task_continuity_restoration_gate(
+        lineage_ablation_reports=[invalid_lineage],
+        restoration_reports=[live_restoration],
+    )
+    assert invalid_lineage_gate["readiness"] == "rejected"
+    assert invalid_lineage_gate["lineage_integrity_failure_count"] == 1
+    assert invalid_lineage_gate["automatic_restore_allowed"] is False
+    print("PASS: Task continuity restoration gate allows shadow only")
+
+
 def test_continual_learning_report_aggregates_open_ended_axes():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_continual_learning.jsonl")
@@ -5759,6 +5946,9 @@ if __name__ == "__main__":
     test_memory_lifecycle_policy_uses_task_stream_transfer_gate()
     test_bounded_context_report_audits_typed_planner_context()
     test_bounded_context_gate_controls_planner_contract()
+    test_task_continuity_lineage_ablation_isolates_failed_branches()
+    test_task_continuity_restoration_report_rejects_state_rollback()
+    test_task_continuity_restoration_gate_allows_shadow_only()
     test_continual_learning_report_aggregates_open_ended_axes()
     test_continual_learning_report_accepts_flat_session_log_fields()
     test_task_stream_transfer_report_scores_controlled_reuse()
