@@ -1238,6 +1238,103 @@ def build_memory_promptware_gate(
     return gate
 
 
+def evaluate_memory_promptware_runtime_gate(
+    gate_paths: list[str] = None,
+    enforce_requested: bool = False,
+) -> dict:
+    """Evaluate saved memory-promptware-gate reports before enabling strict writes."""
+    clean_paths = [str(path or "").strip() for path in (gate_paths or []) if str(path or "").strip()]
+    report = {
+        "type": "memory_promptware_runtime_gate",
+        "required": bool(enforce_requested),
+        "requested_enforce_write_gate": bool(enforce_requested),
+        "effective_enforce_write_gate": False,
+        "readiness": "not_required" if not enforce_requested else "review",
+        "decision": "skip_memory_promptware_runtime_gate" if not enforce_requested else "hold_strict_memory_write_gate",
+        "reason": "strict memory write gate is not requested",
+        "gate_paths": clean_paths,
+        "gate_count": 0,
+        "approved_gate_count": 0,
+        "review_gate_count": 0,
+        "rejected_gate_count": 0,
+        "error_gate_count": 0,
+        "gate_readiness": "not_required" if not enforce_requested else "missing",
+        "gate_approved": not bool(enforce_requested),
+        "gate_reports": [],
+        "missing": [],
+        "errors": [],
+    }
+    if not enforce_requested:
+        return report
+    if not clean_paths:
+        report["reason"] = "strict memory write gate requires approved memory promptware gate reports"
+        report["missing"].append("memory_promptware_gate")
+        return report
+
+    readinesses = []
+    for path in clean_paths:
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                payload = json.load(f)
+            if not isinstance(payload, dict):
+                raise ValueError("memory promptware gate must be a JSON object")
+            if str(payload.get("type") or "").strip() != "memory_promptware_gate":
+                raise ValueError("report type must be memory_promptware_gate")
+            readiness = str(payload.get("readiness") or "").strip().lower() or "unknown"
+            summary = {
+                "path": path,
+                "readiness": readiness,
+                "decision": str(payload.get("decision") or "").strip(),
+                "reason": str(payload.get("reason") or "").strip()[:300],
+                "report_count": _safe_int(payload.get("report_count", 0)),
+                "flagged_entry_count": _safe_int(payload.get("flagged_entry_count", 0)),
+                "flagged_experience_count": _safe_int(payload.get("flagged_experience_count", 0)),
+                "promptware_threat_count": _safe_int(payload.get("promptware_threat_count", 0)),
+            }
+            report["gate_reports"].append(summary)
+            report["gate_count"] += 1
+            readinesses.append(readiness)
+            if readiness == "approved":
+                report["approved_gate_count"] += 1
+            elif readiness == "rejected":
+                report["rejected_gate_count"] += 1
+            elif readiness == "error":
+                report["error_gate_count"] += 1
+            else:
+                report["review_gate_count"] += 1
+        except Exception as exc:
+            report["errors"].append(f"{path}: {exc}")
+
+    if report["errors"]:
+        report["readiness"] = "error"
+        report["gate_readiness"] = "error"
+        report["decision"] = "disable_strict_memory_write_gate"
+        report["reason"] = "memory promptware runtime gate inputs could not be loaded"
+    elif any(readiness == "error" for readiness in readinesses):
+        report["readiness"] = "error"
+        report["gate_readiness"] = "error"
+        report["decision"] = "disable_strict_memory_write_gate"
+        report["reason"] = "memory promptware gate has error readiness"
+    elif any(readiness == "rejected" for readiness in readinesses):
+        report["readiness"] = "rejected"
+        report["gate_readiness"] = "rejected"
+        report["decision"] = "disable_strict_memory_write_gate"
+        report["reason"] = "memory promptware gate rejected strict enforcement"
+    elif readinesses and all(readiness == "approved" for readiness in readinesses):
+        report["readiness"] = "approved"
+        report["gate_readiness"] = "approved"
+        report["gate_approved"] = True
+        report["effective_enforce_write_gate"] = True
+        report["decision"] = "enable_strict_memory_write_gate"
+        report["reason"] = "approved memory promptware gates allow strict memory write enforcement"
+    else:
+        report["readiness"] = "review"
+        report["gate_readiness"] = "review" if readinesses else "missing"
+        report["decision"] = "hold_strict_memory_write_gate"
+        report["reason"] = "memory promptware gate is not approved"
+    return report
+
+
 def _memory_promptware_gate_check(source: str, status: str, detail: str, metrics: dict) -> dict:
     return {
         "source": source,

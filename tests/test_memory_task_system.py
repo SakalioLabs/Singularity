@@ -7,7 +7,11 @@ import time
 
 sys.path.insert(0, "src")
 
-from singularity.core.memory import MemorySystem, build_memory_promptware_gate
+from singularity.core.memory import (
+    MemorySystem,
+    build_memory_promptware_gate,
+    evaluate_memory_promptware_runtime_gate,
+)
 from singularity.core.memory_policy import MemoryLifecyclePolicy, promptware_threat_flags
 from singularity.core.config import Config
 from singularity.core.curriculum import CurriculumManager
@@ -554,6 +558,63 @@ def test_memory_promptware_gate_requires_clean_reports():
     assert flagged["promptware_threat_count"] == 2
     assert flagged["checks"][0]["status"] == "fail"
     print("PASS: Memory promptware gate requires clean reports")
+
+
+def test_memory_promptware_runtime_gate_controls_strict_write_enforcement():
+    tmpdir = tempfile.mkdtemp()
+    approved_gate_path = os.path.join(tmpdir, "memory_promptware_gate_approved.json")
+    rejected_gate_path = os.path.join(tmpdir, "memory_promptware_gate_rejected.json")
+    with open(approved_gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "memory_promptware_gate",
+            "readiness": "approved",
+            "decision": "allow_strict_memory_promptware_enforcement",
+            "reason": "clean fixture",
+            "report_count": 1,
+            "flagged_entry_count": 0,
+            "flagged_experience_count": 0,
+        }, f)
+    with open(rejected_gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "memory_promptware_gate",
+            "readiness": "rejected",
+            "decision": "block_memory_promptware_enforcement",
+            "reason": "poisoned fixture",
+            "report_count": 1,
+            "flagged_entry_count": 1,
+            "flagged_experience_count": 0,
+        }, f)
+
+    missing = evaluate_memory_promptware_runtime_gate([], enforce_requested=True)
+    assert missing["readiness"] == "review"
+    assert missing["effective_enforce_write_gate"] is False
+    assert "memory_promptware_gate" in missing["missing"]
+
+    rejected = evaluate_memory_promptware_runtime_gate([rejected_gate_path], enforce_requested=True)
+    assert rejected["readiness"] == "rejected"
+    assert rejected["effective_enforce_write_gate"] is False
+
+    approved = evaluate_memory_promptware_runtime_gate([approved_gate_path], enforce_requested=True)
+    assert approved["readiness"] == "approved"
+    assert approved["gate_approved"] is True
+    assert approved["effective_enforce_write_gate"] is True
+
+    ungated_agent = Agent(Config(
+        memory_dir=os.path.join(tmpdir, "ungated_memory"),
+        skill_dir=os.path.join(tmpdir, "ungated_skills"),
+        enforce_memory_write_gate=True,
+    ))
+    gated_agent = Agent(Config(
+        memory_dir=os.path.join(tmpdir, "gated_memory"),
+        skill_dir=os.path.join(tmpdir, "gated_skills"),
+        enforce_memory_write_gate=True,
+        memory_promptware_gate_paths=[approved_gate_path],
+    ))
+    assert ungated_agent.memory_promptware_runtime_gate_report["effective_enforce_write_gate"] is False
+    assert ungated_agent.memory_policy.enforce_write_gate is False
+    assert gated_agent.memory_promptware_runtime_gate_report["effective_enforce_write_gate"] is True
+    assert gated_agent.memory_policy.enforce_write_gate is True
+    print("PASS: Memory promptware runtime gate controls strict write enforcement")
 
 
 def test_memory_tracks_recall_diversity_for_consolidation():
@@ -2610,6 +2671,7 @@ if __name__ == "__main__":
     test_memory_policy_routes_promptware_to_review()
     test_memory_filters_promptware_entries_and_experiences()
     test_memory_promptware_gate_requires_clean_reports()
+    test_memory_promptware_runtime_gate_controls_strict_write_enforcement()
     test_memory_tracks_recall_diversity_for_consolidation()
     test_memory_persists_entries_and_experiences()
     test_memory_records_and_retrieves_causal_events()

@@ -15,6 +15,6 @@
   - Start with advisory policy labels before enforcing learned gates.
 **Singularity Adaptation**:
   - `MemoryLifecyclePolicy` now emits per-operation decisions for Agent memory writes, reads, and management operations.
-  - The default mode is advisory and preserves existing writes; `enforce_memory_write_gate` can suppress noisy writes once enough trace evidence exists.
+  - The default mode is advisory and preserves existing writes; `enforce_memory_write_gate` can suppress noisy writes once enough trace evidence exists and an approved memory-promptware gate is supplied.
   - `memory_policy_feedback` can tune the policy after offline reports over real session logs.
 **Next Action**: Compare advisory memory decisions against real benchmark outcomes, then promote stable high-precision rules into enforced gates.

@@ -146,13 +146,15 @@ python -m singularity.main task-memory-report --memory-dir workspace/memory --go
 python -m singularity.main memory-policy-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/memory_policy.json
 # The saved JSON includes `memory_policy_feedback` for future memory-write and retrieval policy tuning.
 # New Agent runs log `memory_write`, `memory_read`, and `memory_manage` events plus summary metrics.
-# `MemoryLifecyclePolicy` is advisory by default; set `Config(enforce_memory_write_gate=True)` to suppress noisy writes.
+# `MemoryLifecyclePolicy` is advisory by default; strict suppression also requires an approved memory-promptware gate.
 # Audit durable memory entries that would be excluded at read time.
 python -m singularity.main memory-read-filter-report --memory-dir workspace/memory --query "safe coal route"
 # Audit durable memories and transferable experiences for promptware-style memory injection payloads.
 python -m singularity.main memory-promptware-report --memory-dir workspace/memory --output logs/benchmarks/memory_promptware.json
 # Gate stricter memory enforcement on a saved audit; default thresholds require zero flagged memories.
 python -m singularity.main memory-promptware-gate --memory-promptware-report logs/benchmarks/memory_promptware.json --output logs/benchmarks/memory_promptware_gate.json
+# Enable strict write suppression only with an approved promptware gate.
+python -m singularity.main run --goal "Craft torches" --enforce-memory-write-gate --memory-promptware-gate logs/benchmarks/memory_promptware_gate.json
 
 # Summarize open-world exploration coverage from autonomous/session logs
 python -m singularity.main exploration-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/exploration_trace.json
@@ -278,7 +280,7 @@ python -m singularity.main benchmark --suite m1 --mixed-policy-patch logs/benchm
 # Bundle approved gates and feedback artifacts into a reusable runtime profile.
 # Keep provider keys in environment variables or CLI only; profile JSON should
 # contain paths and safe runtime switches, not secrets.
-python -m singularity.main runtime-profile-build --name m1_visual_goal_critic --enable-goal-critic --goal-critic-gate logs/benchmarks/goal_critic_gate.json --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json --output workspace/runtime/m1_visual_profile.json
+python -m singularity.main runtime-profile-build --name m1_visual_goal_critic --enable-goal-critic --goal-critic-gate logs/benchmarks/goal_critic_gate.json --enforce-memory-write-gate --memory-promptware-gate logs/benchmarks/memory_promptware_gate.json --mixed-policy-patch logs/benchmarks/mixed_policy_patch.json --mixed-policy-gate logs/benchmarks/mixed_policy_gate.json --output workspace/runtime/m1_visual_profile.json
 python -m singularity.main runtime-profile-validate --runtime-profile workspace/runtime/m1_visual_profile.json --output logs/benchmarks/runtime_profile_validation.json
 python -m singularity.main runtime-profile-security-audit --runtime-profile workspace/runtime/m1_visual_profile.json --output logs/benchmarks/runtime_profile_security.json
 python -m singularity.main runtime-profile-suite-report --runtime-dir workspace/runtime --required-profile m1 --required-profile m2 --required-profile m7 --output logs/benchmarks/runtime_profile_suite.json

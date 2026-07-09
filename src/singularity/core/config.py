@@ -37,6 +37,7 @@ class Config:
     enable_skill_memory_context: bool = True
     enable_knowledge_correction_context: bool = True
     enforce_memory_write_gate: bool = False
+    memory_promptware_gate_paths: list[str] = field(default_factory=list)
     enable_coaching_policy: bool = True
     coach_style: str = ""
     coach_style_ablation_paths: list[str] = field(default_factory=list)

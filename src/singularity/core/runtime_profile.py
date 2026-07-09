@@ -29,6 +29,7 @@ LIST_FIELDS = {
     "skill_memory_quality_feedback_paths": ("artifacts", ("skill_memory_quality_feedback", "skill_memory_quality_feedback_paths")),
     "skill_memory_quality_gate_paths": ("gates", ("skill_memory_quality", "skill_memory_quality_gate", "skill_memory_quality_gate_paths")),
     "skill_runtime_default_gate_paths": ("gates", ("skill_runtime_default", "skill_runtime_default_gate", "skill_runtime_default_gate_paths")),
+    "memory_promptware_gate_paths": ("gates", ("memory_promptware", "memory_promptware_gate", "memory_promptware_gate_paths")),
     "coach_style_ablation_paths": ("artifacts", ("coach_style_ablation", "coach_style_ablation_paths")),
     "coach_style_gate_paths": ("gates", ("coach_style", "coach_style_gate", "coach_style_gate_paths")),
 }
@@ -41,6 +42,7 @@ REQUIRED_GATES = {
     "knowledge_correction_gate_paths": ("knowledge_correction_feedback_paths",),
     "skill_memory_quality_gate_paths": ("skill_memory_quality_feedback_paths",),
     "coach_style_gate_paths": ("coach_style", "coach_style_ablation_paths"),
+    "memory_promptware_gate_paths": ("enforce_memory_write_gate",),
 }
 
 
@@ -53,6 +55,7 @@ GATE_FIELDS = {
     "action_value_transition_evaluator_report_paths",
     "skill_memory_quality_gate_paths",
     "skill_runtime_default_gate_paths",
+    "memory_promptware_gate_paths",
     "coach_style_gate_paths",
 }
 
@@ -266,6 +269,7 @@ def build_runtime_profile_report_from_profiles(
                     report["errors"].append(f"{field}: missing artifact path {value}")
     settings = {
         "enable_goal_critic": _truthy(profile_setting(profiles, "enable_goal_critic", "goal_critic")),
+        "enforce_memory_write_gate": _truthy(profile_setting(profiles, "enforce_memory_write_gate", "memory_write_gate")),
         "coach_style": str(profile_setting(profiles, "coach_style") or ""),
     }
     report["settings"] = {key: value for key, value in settings.items() if value not in ("", False, None)}

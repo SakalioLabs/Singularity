@@ -70,6 +70,11 @@ def _add_runtime_profile_args(parser):
     )
 
 
+def _add_memory_promptware_runtime_args(parser):
+    parser.add_argument("--enforce-memory-write-gate", action="store_true", help="Suppress unsafe memory writes only when approved memory-promptware gates are supplied")
+    parser.add_argument("--memory-promptware-gate", action="append", default=[], help="Approved memory-promptware-gate JSON required before strict memory write enforcement")
+
+
 def _print_runtime_profile_report(report: dict):
     print("\nRuntime Profile Validation")
     print(f"  readiness: {report.get('readiness', 'unknown')}")
@@ -175,6 +180,8 @@ def _runtime_profile_payload_from_args(args) -> dict:
         settings["coach_style"] = getattr(args, "coach_style", "")
     if getattr(args, "capture_screenshots", False):
         settings["enable_screenshot_capture"] = True
+    if getattr(args, "enforce_memory_write_gate", False):
+        settings["enforce_memory_write_gate"] = True
     if getattr(args, "screenshot_dir", ""):
         settings["screenshot_dir"] = getattr(args, "screenshot_dir", "")
     path_fields = {
@@ -192,6 +199,7 @@ def _runtime_profile_payload_from_args(args) -> dict:
         "skill_memory_quality_feedback_paths": getattr(args, "skill_memory_quality_feedback", []) or [],
         "skill_memory_quality_gate_paths": getattr(args, "skill_memory_quality_gate", []) or [],
         "skill_runtime_default_gate_paths": getattr(args, "skill_runtime_default_gate", []) or [],
+        "memory_promptware_gate_paths": getattr(args, "memory_promptware_gate", []) or [],
         "coach_style_ablation_paths": getattr(args, "coach_style_ablation", []) or [],
         "coach_style_gate_paths": getattr(args, "coach_style_gate", []) or [],
     }
@@ -357,6 +365,7 @@ def main():
     run_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
     run_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into autonomous curriculum after approved gate")
     run_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
+    _add_memory_promptware_runtime_args(run_parser)
     _add_knowledge_correction_args(run_parser)
     run_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     run_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
@@ -394,6 +403,7 @@ def main():
     auto_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
     auto_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into autonomous curriculum after approved gate")
     auto_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
+    _add_memory_promptware_runtime_args(auto_parser)
     _add_knowledge_correction_args(auto_parser)
     auto_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     auto_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
@@ -430,6 +440,7 @@ def main():
     bench_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
     bench_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into autonomous curriculum after approved gate")
     bench_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
+    _add_memory_promptware_runtime_args(bench_parser)
     _add_knowledge_correction_args(bench_parser)
     bench_parser.add_argument("--knowledge-correction-preflight", action="store_true", help="Run approved gate and suite-coverage preflight before knowledge-correction-assisted benchmarks")
     bench_parser.add_argument("--knowledge-correction-preflight-output", type=str, default="", help="Optional JSON path for the knowledge-correction benchmark preflight report")
@@ -763,6 +774,7 @@ def main():
     collab_parser.add_argument("--self-evolution-feedback", action="append", default=[], help="self-evolution-report JSON to load as advisory planner feedback")
     collab_parser.add_argument("--world-model-feedback", action="append", default=[], help="world-model-report JSON to load into Agent executor curriculum after approved gate")
     collab_parser.add_argument("--world-model-gate", action="append", default=[], help="Approved world-model-feedback-gate JSON required before loading world-model feedback")
+    _add_memory_promptware_runtime_args(collab_parser)
     _add_knowledge_correction_args(collab_parser)
     collab_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
     collab_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value-transition-gate JSON required before loading ASV transition scores")
@@ -896,6 +908,7 @@ def main():
     runtime_profile_build_parser.add_argument("--enable-goal-critic", action="store_true", help="Set enable_goal_critic in profile settings")
     runtime_profile_build_parser.add_argument("--coach-style", type=str, default="", help="Set coach_style in profile settings")
     runtime_profile_build_parser.add_argument("--capture-screenshots", action="store_true", help="Set enable_screenshot_capture in profile settings")
+    runtime_profile_build_parser.add_argument("--enforce-memory-write-gate", action="store_true", help="Set enforce_memory_write_gate in profile settings")
     runtime_profile_build_parser.add_argument("--screenshot-dir", type=str, default="", help="Set screenshot_dir in profile settings")
     runtime_profile_build_parser.add_argument("--goal-critic-gate", action="append", default=[], help="Approved goal-verification-critic-gate JSON")
     runtime_profile_build_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-policy patch JSON")
@@ -911,6 +924,7 @@ def main():
     runtime_profile_build_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory quality feedback JSON")
     runtime_profile_build_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory quality gate JSON")
     runtime_profile_build_parser.add_argument("--skill-runtime-default-gate", action="append", default=[], help="Approved skill runtime-default gate JSON")
+    runtime_profile_build_parser.add_argument("--memory-promptware-gate", action="append", default=[], help="Approved memory-promptware gate JSON")
     runtime_profile_build_parser.add_argument("--coach-style-ablation", action="append", default=[], help="coach-style ablation JSON")
     runtime_profile_build_parser.add_argument("--coach-style-gate", action="append", default=[], help="Approved coach-style gate JSON")
     runtime_profile_build_parser.add_argument("--output", type=str, default="", help="Optional runtime profile JSON path")
@@ -2387,6 +2401,8 @@ def main():
                     ),
                     enable_goal_critic=profile_bool_arg(args, "goal_critic", runtime_profiles, "enable_goal_critic", "goal_critic"),
                     goal_critic_gate_paths=merge_arg_profile_list(args, "goal_critic_gate", runtime_profiles, "goal_critic_gate_paths"),
+                    enforce_memory_write_gate=profile_bool_arg(args, "enforce_memory_write_gate", runtime_profiles, "enforce_memory_write_gate", "memory_write_gate"),
+                    memory_promptware_gate_paths=merge_arg_profile_list(args, "memory_promptware_gate", runtime_profiles, "memory_promptware_gate_paths"),
                     enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
                     enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
                     coach_style=profile_str_arg(args, "coach_style", runtime_profiles, "coach_style", default=""),
@@ -4230,6 +4246,8 @@ def main():
         llm=_llm_config_from_args(args),
         enable_goal_critic=profile_bool_arg(args, "goal_critic", runtime_profiles, "enable_goal_critic", "goal_critic"),
         goal_critic_gate_paths=merge_arg_profile_list(args, "goal_critic_gate", runtime_profiles, "goal_critic_gate_paths"),
+        enforce_memory_write_gate=profile_bool_arg(args, "enforce_memory_write_gate", runtime_profiles, "enforce_memory_write_gate", "memory_write_gate"),
+        memory_promptware_gate_paths=merge_arg_profile_list(args, "memory_promptware_gate", runtime_profiles, "memory_promptware_gate_paths"),
         enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
         enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
         coach_style=profile_str_arg(args, "coach_style", runtime_profiles, "coach_style", default=""),

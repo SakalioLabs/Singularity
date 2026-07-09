@@ -12,7 +12,7 @@ from typing import Optional
 
 from singularity.core.config import Config
 from singularity.core.runtime import RuntimeSupervisor
-from singularity.core.memory import MemorySystem
+from singularity.core.memory import MemorySystem, evaluate_memory_promptware_runtime_gate
 from singularity.core.memory_policy import MemoryLifecyclePolicy, MemoryPolicyDecision
 from singularity.core.skill_library import SkillLibrary
 from singularity.core.task_system import TaskSystem, TaskStatus
@@ -75,8 +75,19 @@ class Agent:
 
         # Integrated modules
         self.memory = MemorySystem(memory_dir=config.memory_dir)
+        self.memory_promptware_runtime_gate_report = evaluate_memory_promptware_runtime_gate(
+            getattr(config, "memory_promptware_gate_paths", []),
+            enforce_requested=getattr(config, "enforce_memory_write_gate", False),
+        )
+        effective_memory_write_gate = bool(self.memory_promptware_runtime_gate_report.get("effective_enforce_write_gate"))
+        if getattr(config, "enforce_memory_write_gate", False) and not effective_memory_write_gate:
+            logger.warning(
+                "Strict memory write gate disabled: "
+                f"gate_readiness={self.memory_promptware_runtime_gate_report.get('gate_readiness')}, "
+                f"gate_paths={len(self.memory_promptware_runtime_gate_report.get('gate_paths', []))}"
+            )
         self.memory_policy = (
-            MemoryLifecyclePolicy(enforce_write_gate=getattr(config, "enforce_memory_write_gate", False))
+            MemoryLifecyclePolicy(enforce_write_gate=effective_memory_write_gate)
             if getattr(config, "enable_memory_policy", True)
             else None
         )
