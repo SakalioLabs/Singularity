@@ -1,0 +1,12 @@
+{
+  "type": "memory_promptware_report",
+  "query": "",
+  "current_state": {},
+  "total_entries": 0,
+  "total_experiences": 0,
+  "flagged_entry_count": 0,
+  "flagged_experience_count": 0,
+  "reason_counts": {},
+  "flagged_entries": [],
+  "flagged_experiences": []
+}

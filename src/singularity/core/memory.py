@@ -676,6 +676,7 @@ class MemorySystem:
             })
 
         return {
+            "type": "memory_promptware_report",
             "query": query,
             "current_state": current_state or {},
             "total_entries": len(self.entries),
@@ -1112,3 +1113,143 @@ class MemorySystem:
             + 0.20 * diversity_signal
             + 0.10 * recency_signal
         )
+
+
+def build_memory_promptware_gate(
+    report_paths: list[str] = None,
+    reports: list[dict] = None,
+    max_flagged_entries: int = 0,
+    max_flagged_experiences: int = 0,
+) -> dict:
+    """Gate stricter memory enforcement on saved promptware audit reports."""
+    report_paths = [str(path or "").strip() for path in (report_paths or []) if str(path or "").strip()]
+    max_flagged_entries = max(0, int(max_flagged_entries or 0))
+    max_flagged_experiences = max(0, int(max_flagged_experiences or 0))
+    gate = {
+        "type": "memory_promptware_gate",
+        "readiness": "review",
+        "decision": "hold_memory_promptware_enforcement",
+        "reason": "memory promptware gate needs saved audit reports",
+        "report_paths": list(report_paths),
+        "report_count": 0,
+        "max_flagged_entries": max_flagged_entries,
+        "max_flagged_experiences": max_flagged_experiences,
+        "total_entries": 0,
+        "total_experiences": 0,
+        "flagged_entry_count": 0,
+        "flagged_experience_count": 0,
+        "promptware_threat_count": 0,
+        "reason_counts": {},
+        "reports": [],
+        "checks": [],
+        "missing": [],
+        "errors": [],
+    }
+    loaded_reports = []
+    for index, payload in enumerate(reports or [], start=1):
+        if isinstance(payload, dict):
+            loaded_reports.append((f"inline:{index}", payload))
+        else:
+            gate["errors"].append(f"inline:{index}: memory promptware report must be a JSON object")
+    for path in report_paths:
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                payload = json.load(f)
+            if not isinstance(payload, dict):
+                raise ValueError("memory promptware report must be a JSON object")
+            loaded_reports.append((path, payload))
+        except Exception as exc:
+            gate["errors"].append(f"{path}: {exc}")
+
+    if not loaded_reports and not gate["errors"]:
+        gate["missing"].append("memory_promptware_report")
+        gate["checks"].append(_memory_promptware_gate_check(
+            "memory_promptware_report",
+            "warn",
+            "no memory promptware report was provided",
+            {"report_count": 0},
+        ))
+
+    for source, payload in loaded_reports:
+        report_type = str(payload.get("type") or "").strip()
+        if report_type and report_type != "memory_promptware_report":
+            gate["errors"].append(f"{source}: report type must be memory_promptware_report")
+            continue
+        if "flagged_entry_count" not in payload or "flagged_experience_count" not in payload:
+            gate["errors"].append(f"{source}: missing flagged memory promptware counts")
+            continue
+        entry_count = _safe_int(payload.get("flagged_entry_count", 0))
+        experience_count = _safe_int(payload.get("flagged_experience_count", 0))
+        reason_counts = payload.get("reason_counts", {}) if isinstance(payload.get("reason_counts", {}), dict) else {}
+        normalized_reasons = {
+            str(reason): _safe_int(count)
+            for reason, count in reason_counts.items()
+        }
+        summary = {
+            "path": source,
+            "query": str(payload.get("query") or ""),
+            "total_entries": _safe_int(payload.get("total_entries", 0)),
+            "total_experiences": _safe_int(payload.get("total_experiences", 0)),
+            "flagged_entry_count": entry_count,
+            "flagged_experience_count": experience_count,
+            "reason_counts": normalized_reasons,
+        }
+        gate["reports"].append(summary)
+        gate["report_count"] += 1
+        gate["total_entries"] += summary["total_entries"]
+        gate["total_experiences"] += summary["total_experiences"]
+        gate["flagged_entry_count"] += entry_count
+        gate["flagged_experience_count"] += experience_count
+        for reason, count in normalized_reasons.items():
+            gate["reason_counts"][reason] = gate["reason_counts"].get(reason, 0) + count
+        gate["checks"].append(_memory_promptware_gate_check(
+            source,
+            "pass" if entry_count <= max_flagged_entries and experience_count <= max_flagged_experiences else "fail",
+            (
+                "memory promptware report is within configured thresholds"
+                if entry_count <= max_flagged_entries and experience_count <= max_flagged_experiences
+                else "memory promptware report exceeds configured thresholds"
+            ),
+            {
+                "flagged_entry_count": entry_count,
+                "flagged_experience_count": experience_count,
+                "max_flagged_entries": max_flagged_entries,
+                "max_flagged_experiences": max_flagged_experiences,
+            },
+        ))
+
+    gate["promptware_threat_count"] = _safe_int(gate["reason_counts"].get("promptware_threat", 0))
+    if gate["errors"]:
+        gate["readiness"] = "error"
+        gate["decision"] = "block_memory_promptware_enforcement"
+        gate["reason"] = "memory promptware gate inputs could not be loaded"
+    elif gate["flagged_entry_count"] > max_flagged_entries or gate["flagged_experience_count"] > max_flagged_experiences:
+        gate["readiness"] = "rejected"
+        gate["decision"] = "block_memory_promptware_enforcement"
+        gate["reason"] = "memory promptware audit found flagged durable memory content"
+    elif gate["missing"]:
+        gate["readiness"] = "review"
+        gate["decision"] = "hold_memory_promptware_enforcement"
+        gate["reason"] = "memory promptware gate is missing audit evidence"
+    elif gate["report_count"]:
+        gate["readiness"] = "approved"
+        gate["decision"] = "allow_strict_memory_promptware_enforcement"
+        gate["reason"] = "memory promptware audits are within configured thresholds"
+    return gate
+
+
+def _memory_promptware_gate_check(source: str, status: str, detail: str, metrics: dict) -> dict:
+    return {
+        "source": source,
+        "kind": "memory_promptware_report",
+        "status": status,
+        "detail": detail,
+        "metrics": metrics or {},
+    }
+
+
+def _safe_int(value) -> int:
+    try:
+        return int(float(value or 0))
+    except (TypeError, ValueError):
+        return 0

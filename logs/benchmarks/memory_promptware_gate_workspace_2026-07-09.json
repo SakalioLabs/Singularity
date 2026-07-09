@@ -1,0 +1,45 @@
+{
+  "type": "memory_promptware_gate",
+  "readiness": "approved",
+  "decision": "allow_strict_memory_promptware_enforcement",
+  "reason": "memory promptware audits are within configured thresholds",
+  "report_paths": [
+    "logs/benchmarks/memory_promptware_workspace_2026-07-09.json"
+  ],
+  "report_count": 1,
+  "max_flagged_entries": 0,
+  "max_flagged_experiences": 0,
+  "total_entries": 0,
+  "total_experiences": 0,
+  "flagged_entry_count": 0,
+  "flagged_experience_count": 0,
+  "promptware_threat_count": 0,
+  "reason_counts": {},
+  "reports": [
+    {
+      "path": "logs/benchmarks/memory_promptware_workspace_2026-07-09.json",
+      "query": "",
+      "total_entries": 0,
+      "total_experiences": 0,
+      "flagged_entry_count": 0,
+      "flagged_experience_count": 0,
+      "reason_counts": {}
+    }
+  ],
+  "checks": [
+    {
+      "source": "logs/benchmarks/memory_promptware_workspace_2026-07-09.json",
+      "kind": "memory_promptware_report",
+      "status": "pass",
+      "detail": "memory promptware report is within configured thresholds",
+      "metrics": {
+        "flagged_entry_count": 0,
+        "flagged_experience_count": 0,
+        "max_flagged_entries": 0,
+        "max_flagged_experiences": 0
+      }
+    }
+  ],
+  "missing": [],
+  "errors": []
+}

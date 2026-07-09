@@ -7,7 +7,7 @@ import time
 
 sys.path.insert(0, "src")
 
-from singularity.core.memory import MemorySystem
+from singularity.core.memory import MemorySystem, build_memory_promptware_gate
 from singularity.core.memory_policy import MemoryLifecyclePolicy, promptware_threat_flags
 from singularity.core.config import Config
 from singularity.core.curriculum import CurriculumManager
@@ -504,6 +504,56 @@ def test_memory_filters_promptware_entries_and_experiences():
     assert promptware_report["flagged_entries"][0]["id"] == poison.id
     assert promptware_report["flagged_experiences"][0]["id"] == poisoned_experience.id
     print("PASS: Memory filters promptware entries and experiences")
+
+
+def test_memory_promptware_gate_requires_clean_reports():
+    tmpdir = tempfile.mkdtemp()
+    clean_path = os.path.join(tmpdir, "memory_promptware_clean.json")
+    flagged_path = os.path.join(tmpdir, "memory_promptware_flagged.json")
+    with open(clean_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "memory_promptware_report",
+            "query": "",
+            "total_entries": 3,
+            "total_experiences": 2,
+            "flagged_entry_count": 0,
+            "flagged_experience_count": 0,
+            "reason_counts": {},
+            "flagged_entries": [],
+            "flagged_experiences": [],
+        }, f)
+    with open(flagged_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "memory_promptware_report",
+            "query": "",
+            "total_entries": 3,
+            "total_experiences": 2,
+            "flagged_entry_count": 1,
+            "flagged_experience_count": 1,
+            "reason_counts": {"promptware_threat": 2, "instruction_override": 1},
+            "flagged_entries": [{"id": "mem_poison", "flags": ["promptware_threat"]}],
+            "flagged_experiences": [{"id": "exp_poison", "flags": ["promptware_threat"]}],
+        }, f)
+
+    missing = build_memory_promptware_gate()
+    assert missing["readiness"] == "review"
+    assert missing["decision"] == "hold_memory_promptware_enforcement"
+    assert "memory_promptware_report" in missing["missing"]
+
+    clean = build_memory_promptware_gate(report_paths=[clean_path])
+    assert clean["readiness"] == "approved"
+    assert clean["decision"] == "allow_strict_memory_promptware_enforcement"
+    assert clean["flagged_entry_count"] == 0
+    assert clean["flagged_experience_count"] == 0
+
+    flagged = build_memory_promptware_gate(report_paths=[flagged_path])
+    assert flagged["readiness"] == "rejected"
+    assert flagged["decision"] == "block_memory_promptware_enforcement"
+    assert flagged["flagged_entry_count"] == 1
+    assert flagged["flagged_experience_count"] == 1
+    assert flagged["promptware_threat_count"] == 2
+    assert flagged["checks"][0]["status"] == "fail"
+    print("PASS: Memory promptware gate requires clean reports")
 
 
 def test_memory_tracks_recall_diversity_for_consolidation():
@@ -2559,6 +2609,7 @@ if __name__ == "__main__":
     test_memory_read_filters_stale_and_conditional_entries()
     test_memory_policy_routes_promptware_to_review()
     test_memory_filters_promptware_entries_and_experiences()
+    test_memory_promptware_gate_requires_clean_reports()
     test_memory_tracks_recall_diversity_for_consolidation()
     test_memory_persists_entries_and_experiences()
     test_memory_records_and_retrieves_causal_events()

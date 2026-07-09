@@ -151,6 +151,8 @@ python -m singularity.main memory-policy-report --session-log logs/session_xxx.j
 python -m singularity.main memory-read-filter-report --memory-dir workspace/memory --query "safe coal route"
 # Audit durable memories and transferable experiences for promptware-style memory injection payloads.
 python -m singularity.main memory-promptware-report --memory-dir workspace/memory --output logs/benchmarks/memory_promptware.json
+# Gate stricter memory enforcement on a saved audit; default thresholds require zero flagged memories.
+python -m singularity.main memory-promptware-gate --memory-promptware-report logs/benchmarks/memory_promptware.json --output logs/benchmarks/memory_promptware_gate.json
 
 # Summarize open-world exploration coverage from autonomous/session logs
 python -m singularity.main exploration-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/exploration_trace.json

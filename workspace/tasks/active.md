@@ -126,6 +126,7 @@
 - [x] Add MemConflict-style read filtering so stale, superseded, invalidated, contradicted, out-of-scope, and condition-mismatched durable memories are excluded before planner prompt construction.
 - [x] Add read-filter observability: Agent `memory_read` events, session summaries, benchmark result JSON, and `memory-policy-report` now include filter diagnostics, while `memory-read-filter-report` can audit durable memory stores offline.
 - [x] Add WhisperBench/Hermes-style promptware scanning so suspicious durable memory writes route to review, promptware-like recalled memories and transferable experiences are filtered before planner context, and `memory-promptware-report` audits memory stores offline.
+- [x] Add `memory-promptware-gate` so stricter memory enforcement can require saved clean promptware audits before runtime policy tightening.
 - [x] Add MineNPC-Task to the paper index and implement seed mixed-initiative task templates with single-question clarification, scoped memory-write candidates, bounded-policy checks, and machine-checkable subtask validators.
 - [x] Add `mixed-initiative-trace-report` so session logs can be replayed through MineNPC-style validators and compared against logged `GoalVerifier` decisions for stricter/looser evidence gates.
 - [x] Make unsupported mixed-initiative goals explicit and aggregate them into template candidates with suggested slots/validators instead of forcing unknown requests through the oak-log template.
@@ -219,6 +220,7 @@
 - [ ] Run `transfer-memory-report` on real M1/M2/autonomous memory stores and compare high-scoring transfer matches against downstream task success.
 - [ ] Run `task-memory-report` on real multi-session task traces and compare task-centric memory matches against verifier outcomes and repeated-failure reductions.
 - [ ] Run `memory-promptware-report` on live autonomous/M7 memory stores and inspect any flagged entries before enabling stricter default memory enforcement.
+- [ ] Pass approved `memory-promptware-gate` reports into future strict memory-write/read enforcement before enabling it by default.
 - [ ] Run live M7 with shared-memory governance enabled and compare `false_promotion_review_count` plus provenance histories across collaboration logs.
 - [ ] Add mutable-world-state keys to live M7/autonomous traces and compare `state_revision_count` plus `implicit_conflict_count` against stale-task decisions.
 - [ ] Run `memory_read_filter_report()` on live autonomous/M7 memory stores and compare filtered stale/conditional entries against actual task outcomes.

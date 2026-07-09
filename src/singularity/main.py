@@ -678,6 +678,16 @@ def main():
     memory_promptware_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     memory_promptware_parser.add_argument("--log-level", type=str, default="INFO")
 
+    memory_promptware_gate_parser = subparsers.add_parser(
+        "memory-promptware-gate",
+        help="Gate stricter memory enforcement using saved memory-promptware-report JSON",
+    )
+    memory_promptware_gate_parser.add_argument("--memory-promptware-report", action="append", default=[], help="Saved memory-promptware-report JSON")
+    memory_promptware_gate_parser.add_argument("--max-flagged-entries", type=int, default=0, help="Maximum flagged durable memory entries allowed")
+    memory_promptware_gate_parser.add_argument("--max-flagged-experiences", type=int, default=0, help="Maximum flagged transferable experiences allowed")
+    memory_promptware_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    memory_promptware_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Skill candidate review queue
     candidates_parser = subparsers.add_parser("skill-candidates", help="Review extracted skill candidates")
     candidates_parser.add_argument("--queue", type=str, default="workspace/skills/skill_candidates.jsonl")
@@ -2067,6 +2077,45 @@ def main():
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "memory-promptware-gate":
+        from singularity.core.memory import build_memory_promptware_gate
+
+        report = build_memory_promptware_gate(
+            report_paths=getattr(args, "memory_promptware_report", []) or [],
+            max_flagged_entries=getattr(args, "max_flagged_entries", 0),
+            max_flagged_experiences=getattr(args, "max_flagged_experiences", 0),
+        )
+        print("\nMemory Promptware Gate")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  inputs: "
+            f"reports={report.get('report_count', 0)}, "
+            f"entries={report.get('flagged_entry_count', 0)}/{report.get('total_entries', 0)} flagged, "
+            f"experiences={report.get('flagged_experience_count', 0)}/{report.get('total_experiences', 0)} flagged"
+        )
+        if report.get("reason_counts"):
+            parts = [f"{key}={value}" for key, value in sorted(report.get("reason_counts", {}).items())]
+            print(f"  flags: {', '.join(parts)}")
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for check in report.get("checks", [])[:12]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"error", "rejected"}:
+            sys.exit(1)
         return
 
     if args.command == "skill-edit-proposal-report":
