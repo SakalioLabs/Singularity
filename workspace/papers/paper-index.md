@@ -1442,6 +1442,23 @@
 
 ---
 
+## P-080: MemGym
+
+- **Title**: MemGym: a Long-Horizon Memory Environment for LLM Agents
+- **Source**: https://arxiv.org/abs/2605.20833
+- **Year**: 2026
+- **Type**: Long-horizon agent-memory evaluation environment
+- **Task Type**: Tool-use dialogue, deep research, coding, and computer-use memory evaluation
+- **Core Method**: Memory-isolated scoring behind a shared memory-reasoning interface, with controlled synthetic pipelines and compression-quality evaluation
+- **Memory**: Separates memory formation and compression value from reasoning, retrieval, and tool-use confounders
+- **Key Results**: Provides five evaluation tracks across four agentic regimes plus a lightweight compression reward model for expensive coding rollouts
+- **Scores**: R=4, N=5, R=4, E=4
+- **Value to Project**: Defines the ablation discipline for testing execution-state lineage without crediting planner or action-backend changes to memory
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-10-memgym.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1525,3 +1542,4 @@
 | P-077 | Agent Memory System Characterization | 2026 | R5/N5/R4/E5 | P1 |
 | P-078 | SelfMem | 2026 | R4/N5/R4/E4 | P2 |
 | P-079 | MAGE Execution-State Memory | 2026 | R5/N5/R4/E5 | P1 |
+| P-080 | MemGym | 2026 | R4/N5/R4/E4 | P2 |

@@ -1266,11 +1266,14 @@ class Agent:
         max_cycles = 100
         cycle = 0
         success = False
+        last_observation = {}
+        last_plan = {}
 
         while self.running and cycle < max_cycles:
             cycle += 1
             try:
                 observation = self._observe()
+                last_observation = observation
                 self.session_logger.log_observation(observation)
                 self._write_memory_context(
                     {"cycle": cycle, "observation_summary": self._obs_summary(observation)},
@@ -1279,6 +1282,7 @@ class Agent:
                 self.explorer.record_position(observation.get("position", {}))
 
                 plan = self._think(observation)
+                last_plan = plan
                 self.session_logger.log_plan(plan)
                 self._write_memory_context(
                     {"plan_status": plan.get("status"), "reasoning": plan.get("reasoning", "")[:200]},
@@ -1362,6 +1366,7 @@ class Agent:
                     if not self.running:
                         break
                     interrupted, observation = self._handle_runtime_interrupt(observation, goal, {"cycle": cycle, "mode": "goal"})
+                    last_observation = observation
                     if interrupted:
                         break
                     before_action_observation = observation
@@ -1387,6 +1392,7 @@ class Agent:
                         result["action_candidate_selection"] = action_selection
                     self._record_action_value(action, result, goal, action_verification)
                     observation = self._apply_action_feedback(action, result, observation, {"cycle": cycle, "goal": goal})
+                    last_observation = observation
                     self._log_action_event(
                         action,
                         result,
@@ -1421,6 +1427,7 @@ class Agent:
                             goal,
                             {"cycle": cycle, "mode": "goal"},
                         )
+                        last_observation = observation
                         if corrected:
                             continue
                         reflection = self._reflect(observation, action, result, goal)
@@ -1444,6 +1451,22 @@ class Agent:
                 logger.error(f"Error in cycle {cycle}: {e}")
                 self.session_logger.log_error(str(e), {"cycle": cycle})
 
+        self._record_task_continuity(
+            goal,
+            last_observation,
+            last_plan,
+            source="goal_end",
+            context={"cycles": cycle, "mode": "goal", "success": success},
+            operation="compress" if success else "maintain",
+            validation_status="verified" if success else "failed",
+            validation_evidence={
+                "goal_success": success,
+                "cycles": cycle,
+                "terminal_observation_present": bool(last_observation),
+                "verification_source": "goal_verifier" if success else "terminal_failure",
+            },
+            branch_status="completed" if success else "failed",
+        )
         result = {
             "goal": goal,
             "cycles": cycle,
@@ -1548,6 +1571,7 @@ class Agent:
             # Pursue the goal
             cycle = 0
             goal_success = False
+            last_plan = {}
             while self.running and cycle < max_cycles_per_goal:
                 cycle += 1
                 total_cycles += 1
@@ -1561,6 +1585,7 @@ class Agent:
                     )
 
                     plan = self._think(observation, override_goal=goal)
+                    last_plan = plan
                     self.session_logger.log_plan(plan)
                     self._accept_planned_tasks()
                     self._record_task_continuity(
@@ -1738,6 +1763,21 @@ class Agent:
                 goals_completed += 1
                 logger.info(f"[Autonomous] Goal completed: {goal}")
                 outcome = {"goal": goal, "cycles": cycle, "completed": True, "success": True}
+                self._record_task_continuity(
+                    goal,
+                    observation,
+                    last_plan,
+                    source="auto_goal_complete",
+                    context={"cycles": cycle, "mode": "autonomous", "success": True},
+                    operation="compress",
+                    validation_status="verified",
+                    validation_evidence={
+                        "goal_success": True,
+                        "cycles": cycle,
+                        "verification_source": "goal_verifier",
+                    },
+                    branch_status="completed",
+                )
                 self.session_logger.log("auto_goal_complete", outcome)
                 self.session_logger.log_goal_end(goal, outcome)
                 self._write_memory_episode("auto_goal_complete", outcome, source="autonomous")
@@ -1746,6 +1786,21 @@ class Agent:
                 goals_failed += 1
                 logger.info(f"[Autonomous] Goal failed/blocked: {goal}")
                 outcome = {"goal": goal, "cycles": cycle, "completed": False, "success": False}
+                self._record_task_continuity(
+                    goal,
+                    observation,
+                    last_plan,
+                    source="auto_goal_failed",
+                    context={"cycles": cycle, "mode": "autonomous", "success": False},
+                    operation="maintain",
+                    validation_status="failed",
+                    validation_evidence={
+                        "goal_success": False,
+                        "cycles": cycle,
+                        "verification_source": "terminal_failure",
+                    },
+                    branch_status="failed",
+                )
                 self.session_logger.log("auto_goal_failed", outcome)
                 self.session_logger.log_goal_end(goal, outcome)
                 self._write_memory_episode("auto_goal_failed", outcome, source="autonomous")
@@ -2851,6 +2906,16 @@ class Agent:
         plan: dict = None,
         source: str = "agent",
         context: dict = None,
+        operation: str = "grow",
+        validation_status: str = "unverified",
+        validation_evidence: dict = None,
+        branch_status: str = "active",
+        parent_checkpoint_id: str = "",
+        branch_id: str = "",
+        revision_target_checkpoint_id: str = "",
+        revision_reason: str = "",
+        revision_status: str = "",
+        restoration_applied: bool = False,
     ):
         if not getattr(getattr(self, "config", None), "enable_task_continuity_context", True):
             return None
@@ -2859,6 +2924,9 @@ class Agent:
             "source": source,
             "plan_status": plan.get("status") if isinstance(plan, dict) else "",
             "context": context or {},
+            "operation": operation,
+            "validation_status": validation_status,
+            "branch_status": branch_status,
         }
         decision = self._memory_write_decision(
             layer="task",
@@ -2877,6 +2945,17 @@ class Agent:
                     current_state=current_state or {},
                     plan=plan or {},
                     source=source,
+                    execution_id=str(getattr(getattr(self, "session_logger", None), "session_id", "") or ""),
+                    operation=operation,
+                    parent_checkpoint_id=parent_checkpoint_id,
+                    branch_id=branch_id,
+                    validation_status=validation_status,
+                    validation_evidence=validation_evidence or {},
+                    branch_status=branch_status,
+                    revision_target_checkpoint_id=revision_target_checkpoint_id,
+                    revision_reason=revision_reason,
+                    revision_status=revision_status,
+                    restoration_applied=restoration_applied,
                 )
             except Exception as e:
                 logger.warning(f"Task continuity record failed: {e}")
@@ -2895,6 +2974,19 @@ class Agent:
                 "goal": goal,
                 "source": source,
                 "record_id": record.id,
+                "schema_version": record.schema_version,
+                "operation": record.operation,
+                "execution_id": record.execution_id,
+                "branch_id": record.branch_id,
+                "parent_checkpoint_id": record.parent_checkpoint_id,
+                "root_checkpoint_id": record.root_checkpoint_id,
+                "depth": record.depth,
+                "lineage_status": record.lineage_status,
+                "validation_status": record.validation_status,
+                "branch_status": record.branch_status,
+                "revision_target_checkpoint_id": record.revision_target_checkpoint_id,
+                "revision_status": record.revision_status,
+                "restoration_applied": record.restoration_applied,
                 "summary": record.summary,
                 "status_counts": record.status_counts,
                 "ready_count": len(record.ready_tasks),
@@ -4346,6 +4438,20 @@ class Agent:
                 plan=None,
                 source="task_state_update",
                 context=context or {},
+                operation="maintain",
+                validation_status=(
+                    "verified" if task.status == TaskStatus.COMPLETED
+                    else "failed" if task.status == TaskStatus.FAILED
+                    else "unverified"
+                ),
+                validation_evidence={
+                    "task_id": task.id,
+                    "task_status": task.status.value,
+                    "action_type": action.get("type"),
+                    "action_success": bool(result.get("success")),
+                    "verification_source": "task_system",
+                },
+                branch_status="active",
             )
         if hasattr(self.memory, "record_causal_transition"):
             causal_context = dict(context or {})

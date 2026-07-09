@@ -326,7 +326,12 @@
 - [x] Emit non-nested autonomous start/end, observation, plan, selected-goal, and subgoal outcome events so M5 completion evidence is machine-countable.
 - [x] Keep queued opportunistic tasks separate from the current planned goal so verification and `goal_end` records cannot silently refer to a different task.
 - [ ] Collect fresh M3/M5 live sessions and confirm bounded-context cycles, explicit memory reads, autonomous goal completion, and exploration coverage improve over the 37-session baseline.
-- [ ] Extend `TaskContinuityRecord` with parent checkpoint, branch, and revision provenance before implementing MAGE-style automatic branch restoration.
+- [x] Extend `TaskContinuityRecord` with schema-v2 execution, branch, parent/root checkpoint, depth, validation, terminal status, and revision provenance while preserving schema-v1 JSONL loading.
+- [x] Rebuild planner continuity context from one root-to-current path and expose failed/proposed branches only as non-active hints.
+- [x] Add review-only `task-continuity-revision` proposals that require a verified ancestor and always report `restoration_applied=false`.
+- [ ] Add a memory-isolated execution-lineage ablation with fixed planner/action backends, following MemGym's separation of memory value from reasoning/tool value.
+- [ ] Add a verifier-backed restoration gate covering world-state reachability, inventory monotonicity, branch isolation, and baseline non-regression before applying any revision.
+- [ ] Run schema-v2 task continuity on fresh M1/M3/M5 sessions and inspect lineage issues, active paths, revision candidates, and terminal checkpoint validity.
 - [ ] Compare SelfMem-style planning-memory budget/layer variants offline, then promote only variants with held-out transfer and runtime-cost evidence.
 
 ## Research Priorities

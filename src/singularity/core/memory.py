@@ -99,6 +99,21 @@ class TaskContinuityRecord:
     """Compact source-of-truth checkpoint for resuming long-running tasks."""
 
     goal: str
+    schema_version: int = 1
+    operation: str = "grow"
+    execution_id: str = ""
+    branch_id: str = ""
+    parent_checkpoint_id: str = ""
+    root_checkpoint_id: str = ""
+    depth: int = 0
+    lineage_status: str = "legacy"
+    validation_status: str = "unverified"
+    validation_evidence: dict = field(default_factory=dict)
+    branch_status: str = "active"
+    revision_target_checkpoint_id: str = ""
+    revision_reason: str = ""
+    revision_status: str = ""
+    restoration_applied: bool = False
     source: str = ""
     summary: str = ""
     status_counts: dict = field(default_factory=dict)
@@ -117,6 +132,17 @@ class TaskContinuityRecord:
         return " ".join([
             self.goal,
             self.source,
+            self.operation,
+            self.execution_id,
+            self.branch_id,
+            self.parent_checkpoint_id,
+            self.root_checkpoint_id,
+            self.lineage_status,
+            self.validation_status,
+            self.branch_status,
+            self.revision_target_checkpoint_id,
+            self.revision_reason,
+            self.revision_status,
             self.summary,
             self.plan_status,
             self.plan_reasoning,
@@ -722,6 +748,17 @@ class MemorySystem:
         plan: Optional[dict] = None,
         source: str = "agent",
         max_tasks: int = 12,
+        execution_id: str = "",
+        operation: str = "grow",
+        parent_checkpoint_id: str = "",
+        branch_id: str = "",
+        validation_status: str = "unverified",
+        validation_evidence: Optional[dict] = None,
+        branch_status: str = "active",
+        revision_target_checkpoint_id: str = "",
+        revision_reason: str = "",
+        revision_status: str = "",
+        restoration_applied: bool = False,
     ) -> TaskContinuityRecord:
         """Persist a compact task-continuity checkpoint for future planning turns."""
         record = self._build_task_continuity_record(
@@ -731,9 +768,87 @@ class MemorySystem:
             plan=plan or {},
             source=source,
             max_tasks=max_tasks,
+            execution_id=execution_id,
+            operation=operation,
+            parent_checkpoint_id=parent_checkpoint_id,
+            branch_id=branch_id,
+            validation_status=validation_status,
+            validation_evidence=validation_evidence or {},
+            branch_status=branch_status,
+            revision_target_checkpoint_id=revision_target_checkpoint_id,
+            revision_reason=revision_reason,
+            revision_status=revision_status,
+            restoration_applied=restoration_applied,
         )
         self._store_task_continuity_record(record)
         return record
+
+    def propose_task_continuity_revision(
+        self,
+        failed_checkpoint_id: str = "",
+        goal: str = "",
+        reason: str = "",
+        source: str = "revision_review",
+        execution_id: str = "",
+    ) -> dict:
+        """Record a review-only branch proposal from the nearest verified ancestor."""
+        failed = self._task_continuity_revision_source(failed_checkpoint_id, goal)
+        if failed is None:
+            return {
+                "type": "task_continuity_revision_proposal",
+                "proposed": False,
+                "restoration_applied": False,
+                "reason": "checkpoint was not found or is not a failed checkpoint",
+            }
+        target = self._nearest_verified_task_continuity_ancestor(failed)
+        if target is None:
+            return {
+                "type": "task_continuity_revision_proposal",
+                "proposed": False,
+                "restoration_applied": False,
+                "failed_checkpoint_id": failed.id,
+                "reason": "no verified ancestor is available as a restoration boundary",
+            }
+        revision_reason = str(reason or f"Review recovery after failed checkpoint {failed.id}")[:300]
+        record = self._new_task_continuity_record(
+            goal=failed.goal,
+            source=source,
+            summary=f"proposed revision from {failed.id} to verified boundary {target.id}",
+            status_counts=dict(failed.status_counts or {}),
+            ready_tasks=list(target.ready_tasks or []),
+            active_tasks=list(target.active_tasks or []),
+            blocked_tasks=list(failed.blocked_tasks or []),
+            failed_tasks=list(failed.failed_tasks or []),
+            next_actions=[
+                f"review restoration boundary: {target.id}",
+                f"isolate failed branch: {failed.branch_id or failed.id}",
+            ],
+            plan_status="revision_proposed",
+            plan_reasoning=revision_reason,
+            state_summary={"current_checkpoint_id": failed.id, "target_checkpoint_id": target.id},
+            execution_id=execution_id or failed.execution_id,
+            operation="revise",
+            parent_checkpoint_id=target.id,
+            validation_status="unverified",
+            validation_evidence={
+                "failed_checkpoint_id": failed.id,
+                "verified_target_checkpoint_id": target.id,
+            },
+            branch_status="proposed",
+            revision_target_checkpoint_id=target.id,
+            revision_reason=revision_reason,
+            revision_status="proposed",
+            restoration_applied=False,
+        )
+        self._store_task_continuity_record(record)
+        return {
+            "type": "task_continuity_revision_proposal",
+            "proposed": True,
+            "restoration_applied": False,
+            "failed_checkpoint_id": failed.id,
+            "target_checkpoint_id": target.id,
+            "record": asdict(record),
+        }
 
     def import_task_continuity_from_session_log(
         self,
@@ -797,16 +912,27 @@ class MemorySystem:
         limit: int = 3,
     ) -> str:
         """Format recent task-continuity checkpoints for planner context."""
-        matches = self._rank_task_continuity_records(goal, current_state or {}, limit=limit)
-        if not matches:
+        matches = self._rank_task_continuity_records(
+            goal,
+            current_state or {},
+            limit=max(len(self.task_continuity_records), self._safe_int(limit or 3)),
+        )
+        active_path, branch_hints = self._task_continuity_context_paths(matches, limit=limit)
+        if not active_path and not branch_hints:
             return ""
-        lines = ["Task continuity ledger (durable checkpoints; resume from latest unresolved tasks):"]
-        for item in matches:
+        selected_path_is_active = bool(
+            active_path and active_path[-1]["record"].branch_status in {"", "active"}
+        )
+        path_label = "active execution path" if selected_path_is_active else "latest retained execution path"
+        lines = [f"Task continuity ledger ({path_label}; prior branches are hints only):"]
+        for item in active_path:
             record = item["record"]
             age_s = max(0, int(time.time() - record.created_at))
             lines.append(
                 f"- checkpoint {record.id} age={age_s}s source={record.source} "
-                f"goal={record.goal[:90]} score={item['score']:.2f}"
+                f"goal={record.goal[:90]} score={item['score']:.2f} "
+                f"branch={record.branch_id or 'legacy'} depth={record.depth} "
+                f"op={record.operation} validation={record.validation_status}"
             )
             if record.summary:
                 lines.append(f"  summary: {record.summary[:220]}")
@@ -836,6 +962,15 @@ class MemorySystem:
                 lines.append(f"  {label}: " + " | ".join(task_bits))
             if record.next_actions:
                 lines.append("  next: " + "; ".join(record.next_actions[:4]))
+        if branch_hints:
+            lines.append("Prior branch hints (do not treat as active state):")
+            for item in branch_hints[:2]:
+                record = item["record"]
+                lines.append(
+                    f"- branch={record.branch_id or 'legacy'} checkpoint={record.id} "
+                    f"status={record.branch_status}/{record.validation_status} "
+                    f"summary={record.summary[:180]}"
+                )
         return "\n".join(lines)
 
     def task_continuity_report(
@@ -854,9 +989,15 @@ class MemorySystem:
         blocker_counts = {}
         resume_candidates = []
         next_actions = []
+        operation_counts = {}
+        validation_counts = {}
+        branch_status_counts = {}
 
         for item in ranked:
             record = item["record"]
+            self._increment_count(operation_counts, record.operation or "grow")
+            self._increment_count(validation_counts, record.validation_status or "unverified")
+            self._increment_count(branch_status_counts, record.branch_status or "active")
             for status, count in (record.status_counts or {}).items():
                 self._increment_count(status_counts, status, self._safe_int(count))
             for task in record.ready_tasks:
@@ -882,6 +1023,47 @@ class MemorySystem:
         failed_count = sum(1 for item in resume_candidates if item.get("status_bucket") == "failed")
         unresolved_count = ready_count + blocked_count + failed_count
         latest = max(records, key=lambda item: item.get("created_at", 0), default={})
+        path_ranked = self._task_continuity_report_matches(
+            goal,
+            current_state,
+            limit=max(len(self.task_continuity_records), max(1, self._safe_int(limit or 10))),
+        )
+        selected_path_items, _ = self._task_continuity_context_paths(path_ranked, limit=max(1, limit))
+        retained_path = [self._task_continuity_report_record(item) for item in selected_path_items]
+        selected_path_is_active = bool(
+            selected_path_items
+            and selected_path_items[-1]["record"].branch_status in {"", "active"}
+        )
+        active_path = retained_path if selected_path_is_active else []
+        revision_candidates = self._task_continuity_revision_candidates(ranked)
+        branch_ids = {
+            record.branch_id or f"legacy:{record.id}"
+            for record in (item["record"] for item in ranked)
+        }
+        latest_record_by_branch = {}
+        for record in self.task_continuity_records:
+            branch_key = record.branch_id or f"legacy:{record.id}"
+            if branch_key in branch_ids:
+                latest_record_by_branch[branch_key] = record
+        active_branch_ids = {
+            branch_key
+            for branch_key, record in latest_record_by_branch.items()
+            if record.branch_status in {"", "active"}
+        }
+        latest_branch_status_counts = {}
+        for record in latest_record_by_branch.values():
+            self._increment_count(latest_branch_status_counts, record.branch_status or "active")
+        lineage_issue_counts = {}
+        lineage_issue_record_count = 0
+        for item in ranked:
+            issues = self._task_continuity_lineage_issues(item["record"])
+            if issues:
+                lineage_issue_record_count += 1
+            for issue in issues:
+                self._increment_count(lineage_issue_counts, issue)
+        restoration_applied_count = sum(
+            1 for item in ranked if item["record"].restoration_applied
+        )
 
         policy_hints = []
         recommendations = []
@@ -897,6 +1079,15 @@ class MemorySystem:
         if failed_count:
             policy_hints.append("replan_failed_tasks_with_transfer_memory")
             recommendations.append("retrieve transferable experiences before retrying failed tasks")
+        if revision_candidates:
+            policy_hints.append("review_checkpoint_revision_before_retry")
+            recommendations.append("review the nearest verified checkpoint before creating a new recovery branch")
+        if len(active_branch_ids) > 1:
+            policy_hints.append("review_multiple_active_task_branches")
+            recommendations.append("select or close stale active branches before treating one path as resumable state")
+        if lineage_issue_record_count:
+            policy_hints.append("repair_task_continuity_lineage")
+            recommendations.append("resolve orphaned or cross-branch checkpoint links before using revision proposals")
         if not records:
             policy_hints.append("collect_task_continuity_checkpoints")
             recommendations.append("run an Agent cycle with task-continuity context enabled to create durable resume checkpoints")
@@ -908,6 +1099,7 @@ class MemorySystem:
 
         return {
             "type": "task_continuity_report",
+            "schema_version": 2,
             "generated_at": round(time.time(), 3),
             "memory_dir": self.memory_dir,
             "ledger_path": self.task_continuity_path,
@@ -925,10 +1117,29 @@ class MemorySystem:
             "missing_precondition_counts": dict(sorted(missing_precondition_counts.items())),
             "missing_precondition_totals": dict(sorted(missing_precondition_totals.items())),
             "blocker_counts": dict(sorted(blocker_counts.items())),
+            "execution_state": {
+                "branch_count": len(branch_ids),
+                "active_branch_count": len(active_branch_ids),
+                "operation_counts": dict(sorted(operation_counts.items())),
+                "validation_counts": dict(sorted(validation_counts.items())),
+                "checkpoint_branch_status_counts": dict(sorted(branch_status_counts.items())),
+                "latest_branch_status_counts": dict(sorted(latest_branch_status_counts.items())),
+                "verified_checkpoint_count": validation_counts.get("verified", 0),
+                "failed_checkpoint_count": validation_counts.get("failed", 0),
+                "revision_proposal_count": operation_counts.get("revise", 0),
+                "restoration_applied_count": restoration_applied_count,
+                "lineage_issue_count": lineage_issue_record_count,
+                "lineage_issue_counts": dict(sorted(lineage_issue_counts.items())),
+                "automatic_restore_allowed": False,
+                "automatic_restore_reason": "revision proposals are review-only; world-state restoration is not implemented",
+            },
             "policy_hints": policy_hints,
             "recommendations": recommendations,
             "next_actions": next_actions,
             "latest_checkpoint": latest,
+            "active_path": active_path,
+            "retained_path": retained_path,
+            "revision_candidates": revision_candidates,
             "resume_candidates": resume_candidates[:20],
             "records": records,
         }
@@ -1589,6 +1800,268 @@ class MemorySystem:
                 parts.append(json.dumps(value, default=str))
         return " ".join(part for part in parts if str(part or "").strip())
 
+    def _new_task_continuity_record(
+        self,
+        *,
+        goal: str,
+        source: str,
+        summary: str,
+        status_counts: dict,
+        ready_tasks: list[dict],
+        active_tasks: list[dict],
+        blocked_tasks: list[dict],
+        failed_tasks: list[dict],
+        next_actions: list[str],
+        plan_status: str,
+        plan_reasoning: str,
+        state_summary: dict,
+        execution_id: str = "",
+        operation: str = "grow",
+        parent_checkpoint_id: str = "",
+        branch_id: str = "",
+        validation_status: str = "unverified",
+        validation_evidence: Optional[dict] = None,
+        branch_status: str = "active",
+        revision_target_checkpoint_id: str = "",
+        revision_reason: str = "",
+        revision_status: str = "",
+        restoration_applied: bool = False,
+    ) -> TaskContinuityRecord:
+        checkpoint_id = str(uuid.uuid4())[:8]
+        operation = self._normalize_task_continuity_value(
+            operation,
+            {"grow", "compress", "maintain", "revise"},
+            "grow",
+        )
+        validation_status = self._normalize_task_continuity_value(
+            validation_status,
+            {"unverified", "verified", "failed", "conflicted"},
+            "unverified",
+        )
+        compact_validation_evidence = self._compact_task_continuity_evidence(validation_evidence or {})
+        if validation_status == "verified" and not compact_validation_evidence:
+            validation_status = "unverified"
+        branch_status = self._normalize_task_continuity_value(
+            branch_status,
+            {"active", "completed", "failed", "proposed", "superseded"},
+            "active",
+        )
+        revision_status = self._normalize_task_continuity_value(
+            revision_status,
+            {"", "proposed", "approved", "rejected"},
+            "",
+        )
+        if operation == "revise":
+            validation_status = "unverified"
+            branch_status = "proposed"
+            revision_status = "proposed"
+        else:
+            revision_target_checkpoint_id = ""
+            revision_reason = ""
+            revision_status = ""
+        lineage = self._task_continuity_lineage(
+            checkpoint_id=checkpoint_id,
+            goal=goal,
+            execution_id=execution_id,
+            operation=operation,
+            parent_checkpoint_id=parent_checkpoint_id,
+            branch_id=branch_id,
+            revision_target_checkpoint_id=revision_target_checkpoint_id,
+        )
+        return TaskContinuityRecord(
+            goal=str(goal or ""),
+            schema_version=2,
+            operation=operation,
+            execution_id=str(execution_id or "")[:120],
+            branch_id=lineage["branch_id"],
+            parent_checkpoint_id=lineage["parent_checkpoint_id"],
+            root_checkpoint_id=lineage["root_checkpoint_id"],
+            depth=lineage["depth"],
+            lineage_status=lineage["lineage_status"],
+            validation_status=validation_status,
+            validation_evidence=compact_validation_evidence,
+            branch_status=branch_status,
+            revision_target_checkpoint_id=str(revision_target_checkpoint_id or "")[:80],
+            revision_reason=str(revision_reason or "")[:300],
+            revision_status=revision_status,
+            restoration_applied=False,
+            source=str(source or "agent"),
+            summary=str(summary or "")[:800],
+            status_counts=dict(status_counts or {}),
+            ready_tasks=list(ready_tasks or [])[:6],
+            active_tasks=list(active_tasks or [])[:6],
+            blocked_tasks=list(blocked_tasks or [])[:6],
+            failed_tasks=list(failed_tasks or [])[:6],
+            next_actions=self._dedupe_text(next_actions or [])[:8],
+            plan_status=str(plan_status or "")[:80],
+            plan_reasoning=str(plan_reasoning or "")[:500],
+            state_summary=dict(state_summary or {}),
+            id=checkpoint_id,
+        )
+
+    def _normalize_task_continuity_value(self, value: str, allowed: set[str], default: str) -> str:
+        normalized = str(value or "").strip().lower()
+        return normalized if normalized in allowed else default
+
+    def _compact_task_continuity_evidence(self, value, depth: int = 0):
+        if depth >= 3:
+            return str(value)[:160]
+        if isinstance(value, dict):
+            return {
+                str(key)[:80]: self._compact_task_continuity_evidence(item, depth + 1)
+                for key, item in list(value.items())[:16]
+            }
+        if isinstance(value, list):
+            return [self._compact_task_continuity_evidence(item, depth + 1) for item in value[:8]]
+        if isinstance(value, tuple):
+            return [self._compact_task_continuity_evidence(item, depth + 1) for item in list(value)[:8]]
+        if isinstance(value, str):
+            return value[:240]
+        if isinstance(value, (bool, int, float)) or value is None:
+            return value
+        return str(value)[:240]
+
+    def _task_continuity_lineage(
+        self,
+        *,
+        checkpoint_id: str,
+        goal: str,
+        execution_id: str,
+        operation: str,
+        parent_checkpoint_id: str,
+        branch_id: str,
+        revision_target_checkpoint_id: str,
+    ) -> dict:
+        explicit_parent_id = str(parent_checkpoint_id or "")
+        target_id = str(revision_target_checkpoint_id or "")
+        parent = None
+        lineage_status = "root"
+        if operation == "revise":
+            parent = self._task_continuity_record_by_id(target_id or explicit_parent_id)
+            if parent is None and (target_id or explicit_parent_id):
+                lineage_status = "orphan_revision"
+            elif parent is not None:
+                lineage_status = "revised"
+        elif explicit_parent_id:
+            parent = self._task_continuity_record_by_id(explicit_parent_id)
+            lineage_status = "linked" if parent is not None else "orphan"
+        else:
+            parent = self._latest_task_continuity_parent(goal, execution_id, branch_id)
+            if parent is not None:
+                lineage_status = "linked"
+
+        parent_branch = self._task_continuity_effective_branch_id(parent) if parent is not None else ""
+        requested_branch = str(branch_id or "")[:80]
+        if operation == "revise":
+            resolved_branch = requested_branch or f"br-{checkpoint_id}"
+        elif parent is not None:
+            resolved_branch = requested_branch or parent_branch
+            if requested_branch and parent_branch and requested_branch != parent_branch:
+                lineage_status = "branch_mismatch"
+        else:
+            resolved_branch = requested_branch or f"br-{checkpoint_id}"
+
+        if parent is not None:
+            root_id = str(parent.root_checkpoint_id or parent.id)
+            depth = max(0, self._safe_int(parent.depth)) + 1
+            resolved_parent_id = parent.id
+        else:
+            root_id = checkpoint_id
+            depth = 0
+            resolved_parent_id = explicit_parent_id if explicit_parent_id else ""
+        return {
+            "branch_id": resolved_branch,
+            "parent_checkpoint_id": resolved_parent_id,
+            "root_checkpoint_id": root_id,
+            "depth": depth,
+            "lineage_status": lineage_status,
+        }
+
+    def _task_continuity_record_by_id(self, checkpoint_id: str) -> Optional[TaskContinuityRecord]:
+        checkpoint_id = str(checkpoint_id or "")
+        if not checkpoint_id:
+            return None
+        for record in reversed(self.task_continuity_records):
+            if record.id == checkpoint_id:
+                return record
+        return None
+
+    def _task_continuity_effective_branch_id(self, record: Optional[TaskContinuityRecord]) -> str:
+        if record is None:
+            return ""
+        return str(record.branch_id or f"legacy-{record.root_checkpoint_id or record.id}")
+
+    def _latest_task_continuity_parent(
+        self,
+        goal: str,
+        execution_id: str = "",
+        branch_id: str = "",
+    ) -> Optional[TaskContinuityRecord]:
+        goal_key = str(goal or "").strip().casefold()
+        execution_key = str(execution_id or "")
+        branch_key = str(branch_id or "")
+        for record in reversed(self.task_continuity_records):
+            if goal_key and str(record.goal or "").strip().casefold() != goal_key:
+                continue
+            if execution_key and str(record.execution_id or "") != execution_key:
+                continue
+            if branch_key and self._task_continuity_effective_branch_id(record) != branch_key:
+                continue
+            if record.branch_status not in {"", "active"}:
+                return None
+            if record.operation == "revise" and record.revision_status != "applied":
+                return None
+            return record
+        return None
+
+    def _task_continuity_revision_source(
+        self,
+        failed_checkpoint_id: str,
+        goal: str,
+    ) -> Optional[TaskContinuityRecord]:
+        if str(failed_checkpoint_id or ""):
+            candidate = self._task_continuity_record_by_id(failed_checkpoint_id)
+            return candidate if candidate is not None and self._task_continuity_record_failed(candidate) else None
+        goal_key = str(goal or "").strip().casefold()
+        if not goal_key:
+            return None
+        for record in reversed(self.task_continuity_records):
+            if goal_key and str(record.goal or "").strip().casefold() != goal_key:
+                continue
+            if self._task_continuity_record_failed(record):
+                return record
+        return None
+
+    def _task_continuity_record_failed(self, record: TaskContinuityRecord) -> bool:
+        return bool(
+            record.validation_status in {"failed", "conflicted"}
+            or record.branch_status == "failed"
+            or record.failed_tasks
+        )
+
+    def _nearest_verified_task_continuity_ancestor(
+        self,
+        record: TaskContinuityRecord,
+    ) -> Optional[TaskContinuityRecord]:
+        visited = {record.id}
+        parent_id = record.parent_checkpoint_id
+        while parent_id and parent_id not in visited:
+            visited.add(parent_id)
+            parent = self._task_continuity_record_by_id(parent_id)
+            if parent is None:
+                break
+            if parent.validation_status == "verified":
+                return parent
+            parent_id = parent.parent_checkpoint_id
+        branch_id = self._task_continuity_effective_branch_id(record)
+        candidates = [
+            candidate for candidate in self.task_continuity_records
+            if candidate.created_at <= record.created_at
+            and self._task_continuity_effective_branch_id(candidate) == branch_id
+            and candidate.validation_status == "verified"
+        ]
+        return max(candidates, key=lambda item: item.created_at, default=None)
+
     def _build_task_continuity_record(
         self,
         goal: str,
@@ -1597,6 +2070,17 @@ class MemorySystem:
         plan: Optional[dict] = None,
         source: str = "agent",
         max_tasks: int = 12,
+        execution_id: str = "",
+        operation: str = "grow",
+        parent_checkpoint_id: str = "",
+        branch_id: str = "",
+        validation_status: str = "unverified",
+        validation_evidence: Optional[dict] = None,
+        branch_status: str = "active",
+        revision_target_checkpoint_id: str = "",
+        revision_reason: str = "",
+        revision_status: str = "",
+        restoration_applied: bool = False,
     ) -> TaskContinuityRecord:
         current_state = current_state or {}
         plan = plan or {}
@@ -1616,7 +2100,7 @@ class MemorySystem:
         plan_actions = self._task_continuity_plan_actions(plan)
         next_actions = self._task_continuity_next_actions(ready_tasks, blocked_tasks, failed_tasks, plan_actions)
         summary = self._task_continuity_summary(goal, status_counts, ready_tasks, blocked_tasks, failed_tasks, plan_actions)
-        return TaskContinuityRecord(
+        return self._new_task_continuity_record(
             goal=str(goal or ""),
             source=str(source or "agent"),
             summary=summary,
@@ -1629,6 +2113,17 @@ class MemorySystem:
             plan_status=str(plan.get("status") or ""),
             plan_reasoning=str(plan.get("reasoning") or "")[:500],
             state_summary=self._task_continuity_state_summary(current_state),
+            execution_id=execution_id,
+            operation=operation,
+            parent_checkpoint_id=parent_checkpoint_id,
+            branch_id=branch_id,
+            validation_status=validation_status,
+            validation_evidence=validation_evidence or {},
+            branch_status=branch_status,
+            revision_target_checkpoint_id=revision_target_checkpoint_id,
+            revision_reason=revision_reason,
+            revision_status=revision_status,
+            restoration_applied=restoration_applied,
         )
 
     def _build_task_continuity_record_from_session_events(
@@ -1665,7 +2160,21 @@ class MemorySystem:
         summary = self._task_continuity_summary(goal, status_counts, ready_tasks, blocked_tasks, failed_tasks, plan_actions)
         if failed_actions:
             summary = (summary + f" | failed_actions={len(failed_actions)}").strip(" |")
-        return TaskContinuityRecord(
+        outcome = self._session_task_continuity_outcome(events)
+        if outcome is True:
+            operation = "compress"
+            validation_status = "verified"
+            branch_status = "completed"
+        elif outcome is False:
+            operation = "maintain"
+            validation_status = "failed"
+            branch_status = "failed"
+        else:
+            operation = "maintain"
+            validation_status = "unverified"
+            branch_status = "active"
+        execution_id = self._session_task_continuity_execution_id(events)
+        return self._new_task_continuity_record(
             goal=str(goal or ""),
             source=str(source or "session_import"),
             summary=summary,
@@ -1682,6 +2191,11 @@ class MemorySystem:
                 "source_log": source_log,
                 "event_count": len(events),
             },
+            execution_id=execution_id,
+            operation=operation,
+            validation_status=validation_status,
+            validation_evidence={"session_goal_outcome": outcome, "event_count": len(events)},
+            branch_status=branch_status,
         )
 
     def _session_continuity_goal(self, events: list[dict]) -> str:
@@ -1732,6 +2246,41 @@ class MemorySystem:
             if event.get("type") == "error":
                 return str(data.get("error") or data)
         return ""
+
+    def _session_task_continuity_execution_id(self, events: list[dict]) -> str:
+        for event in reversed(events):
+            if event.get("session"):
+                return str(event.get("session"))[:120]
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if data.get("session_id"):
+                return str(data.get("session_id"))[:120]
+        return ""
+
+    def _session_task_continuity_outcome(self, events: list[dict]):
+        for event in reversed(events):
+            if event.get("type") != "goal_end":
+                continue
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            outcome = self._task_continuity_outcome_value(data)
+            if outcome is not None:
+                return outcome
+        return None
+
+    def _task_continuity_outcome_value(self, value):
+        if not isinstance(value, dict):
+            return None
+        for key in ("success", "completed", "achieved", "passed"):
+            if isinstance(value.get(key), bool):
+                return value.get(key)
+        result = value.get("result")
+        if isinstance(result, dict):
+            return self._task_continuity_outcome_value(result)
+        status = str(value.get("status") or "").strip().lower()
+        if status in {"complete", "completed", "success", "succeeded", "passed"}:
+            return True
+        if status in {"blocked", "failed", "error", "incomplete", "rejected"}:
+            return False
+        return None
 
     def _session_failed_action_summaries(self, events: list[dict], limit: int = 6) -> list[dict]:
         failures = []
@@ -2045,12 +2594,159 @@ class MemorySystem:
             for index, record in enumerate(latest)
         ]
 
+    def _task_continuity_context_paths(self, matches: list[dict], limit: int = 3) -> tuple[list[dict], list[dict]]:
+        if not matches:
+            return [], []
+        record_by_id = {record.id: record for record in self.task_continuity_records}
+        latest_by_branch = {}
+        for record in self.task_continuity_records:
+            branch_id = self._task_continuity_effective_branch_id(record)
+            latest_by_branch[branch_id] = record
+        active_leaves = []
+        for item in matches:
+            record = item["record"]
+            branch_id = self._task_continuity_effective_branch_id(record)
+            leaf = latest_by_branch.get(branch_id, record)
+            if leaf.id == record.id and leaf.branch_status in {"", "active"}:
+                active_leaves.append(item)
+        retained_leaves = [
+            item for item in matches
+            if item["record"].operation != "revise" and item["record"].branch_status != "proposed"
+        ]
+        leaf_item = max(
+            active_leaves or retained_leaves or matches,
+            key=lambda item: (item.get("score", 0), item["record"].created_at),
+        )
+        match_by_id = {item["record"].id: item for item in matches}
+        path_records = []
+        visited = set()
+        current = leaf_item["record"]
+        while current is not None and current.id not in visited:
+            visited.add(current.id)
+            path_records.append(current)
+            current = record_by_id.get(current.parent_checkpoint_id)
+        path_records.reverse()
+        safe_limit = max(1, self._safe_int(limit or 3))
+        path_records = path_records[-safe_limit:]
+        active_path = [
+            match_by_id.get(record.id, {"record": record, "score": 0.0, "matches": ["lineage"]})
+            for record in path_records
+        ]
+        path_ids = {record.id for record in path_records}
+        branch_hints = [
+            item for item in matches
+            if item["record"].id not in path_ids
+            and (
+                self._task_continuity_record_failed(item["record"])
+                or item["record"].operation == "revise"
+                or item["record"].branch_status in {"proposed", "superseded"}
+                or latest_by_branch.get(
+                    self._task_continuity_effective_branch_id(item["record"]),
+                    item["record"],
+                ).id == item["record"].id
+            )
+        ]
+        branch_hints.sort(
+            key=lambda item: (item.get("score", 0), item["record"].created_at),
+            reverse=True,
+        )
+        return active_path, branch_hints[:2]
+
+    def _task_continuity_lineage_issues(self, record: TaskContinuityRecord) -> list[str]:
+        if record.schema_version < 2:
+            return []
+        issues = []
+        parent = self._task_continuity_record_by_id(record.parent_checkpoint_id)
+        root = self._task_continuity_record_by_id(record.root_checkpoint_id)
+        if record.lineage_status in {"orphan", "orphan_revision", "branch_mismatch"}:
+            issues.append(record.lineage_status)
+        if record.parent_checkpoint_id and parent is None:
+            issues.append("missing_parent_checkpoint")
+        if record.root_checkpoint_id and record.root_checkpoint_id != record.id and root is None:
+            issues.append("missing_root_checkpoint")
+        if parent is not None:
+            if record.depth != max(0, self._safe_int(parent.depth)) + 1:
+                issues.append("depth_mismatch")
+            if (
+                record.operation != "revise"
+                and self._task_continuity_effective_branch_id(record)
+                != self._task_continuity_effective_branch_id(parent)
+            ):
+                issues.append("parent_branch_mismatch")
+        elif record.parent_checkpoint_id == "" and record.depth != 0:
+            issues.append("root_depth_mismatch")
+        if record.operation == "revise":
+            if not record.revision_target_checkpoint_id:
+                issues.append("missing_revision_target")
+            elif self._task_continuity_record_by_id(record.revision_target_checkpoint_id) is None:
+                issues.append("missing_revision_target_checkpoint")
+        if record.restoration_applied:
+            issues.append("unsupported_restoration_applied")
+        return sorted(set(issues))
+
+    def _task_continuity_revision_candidates(self, ranked: list[dict]) -> list[dict]:
+        candidates = []
+        seen = set()
+        for item in ranked:
+            record = item["record"]
+            if record.operation == "revise":
+                key = ("proposal", record.id)
+                if key not in seen:
+                    seen.add(key)
+                    candidates.append({
+                        "type": "revision_proposal",
+                        "checkpoint_id": record.id,
+                        "branch_id": record.branch_id,
+                        "failed_checkpoint_id": record.validation_evidence.get("failed_checkpoint_id", ""),
+                        "target_checkpoint_id": record.revision_target_checkpoint_id,
+                        "revision_status": record.revision_status,
+                        "reason": record.revision_reason,
+                        "restoration_applied": record.restoration_applied,
+                    })
+                continue
+            if not self._task_continuity_record_failed(record):
+                continue
+            target = self._nearest_verified_task_continuity_ancestor(record)
+            if target is None:
+                continue
+            key = (record.id, target.id)
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append({
+                "type": "revision_candidate",
+                "failed_checkpoint_id": record.id,
+                "failed_branch_id": record.branch_id,
+                "target_checkpoint_id": target.id,
+                "target_branch_id": target.branch_id,
+                "target_validation_status": target.validation_status,
+                "decision": "review_before_revision",
+                "restoration_applied": False,
+            })
+        return candidates[:12]
+
     def _task_continuity_report_record(self, item: dict) -> dict:
         record = item["record"]
         return {
             "id": record.id,
+            "schema_version": record.schema_version,
             "goal": record.goal,
             "source": record.source,
+            "operation": record.operation,
+            "execution_id": record.execution_id,
+            "branch_id": record.branch_id,
+            "parent_checkpoint_id": record.parent_checkpoint_id,
+            "root_checkpoint_id": record.root_checkpoint_id,
+            "depth": record.depth,
+            "lineage_status": record.lineage_status,
+            "lineage_issues": self._task_continuity_lineage_issues(record),
+            "validation_status": record.validation_status,
+            "validation_evidence": dict(record.validation_evidence or {}),
+            "branch_status": record.branch_status,
+            "revision_target_checkpoint_id": record.revision_target_checkpoint_id,
+            "revision_reason": record.revision_reason,
+            "revision_status": record.revision_status,
+            "restoration_applied": record.restoration_applied,
             "summary": record.summary,
             "score": item.get("score", 0),
             "matches": item.get("matches", []),
@@ -2071,6 +2767,12 @@ class MemorySystem:
             "checkpoint_id": record.id,
             "checkpoint_goal": record.goal,
             "checkpoint_source": record.source,
+            "checkpoint_operation": record.operation,
+            "execution_id": record.execution_id,
+            "branch_id": record.branch_id,
+            "parent_checkpoint_id": record.parent_checkpoint_id,
+            "validation_status": record.validation_status,
+            "branch_status": record.branch_status,
             "task_id": str(task.get("id") or ""),
             "title": str(task.get("title") or "")[:160],
             "type": str(task.get("type") or "general")[:80],
@@ -2109,6 +2811,7 @@ class MemorySystem:
         result = []
         for candidate in candidates:
             key = (
+                candidate.get("branch_id"),
                 candidate.get("status_bucket"),
                 candidate.get("task_id") or candidate.get("title"),
                 json.dumps(candidate.get("missing_preconditions", {}), sort_keys=True, default=str),

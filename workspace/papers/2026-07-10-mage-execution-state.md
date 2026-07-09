@@ -23,4 +23,4 @@
 - Planner context should be rebuilt per decision from typed active-state records, not an accumulated transcript.
 - Repeated action failure should revise from the nearest verified checkpoint rather than append another reflection to the same branch.
 
-**Project Action**: The bounded planning-memory contract and explicit autonomous subgoal events are the first execution-state layer. The current budget covers typed memory reads, not every advisory prompt section. Extend `TaskContinuityRecord` with parent/revision provenance before enabling automatic branch restoration.
+**Project Action**: Schema-v2 `TaskContinuityRecord` now captures execution branches, parent/root checkpoints, depth, validation, terminal state, and revision provenance. Planner context follows one selected path and isolates failed/proposed branches as hints. `task-continuity-revision` only records a proposal to the nearest verified ancestor; automatic Minecraft restoration remains disabled until reachability and non-regression gates pass.

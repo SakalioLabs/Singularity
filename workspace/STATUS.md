@@ -42,6 +42,7 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 - Generated tracked M3/M5/M6 evidence from all 37 existing sessions instead of treating missing reports as missing runs.
 - Added strict typed planning-memory budgets for both rule and LLM planning, including separator-aware packet accounting and explicit rejection when the runtime contract is disabled.
 - Added machine-checkable autonomous observation/plan/subgoal events and prevented queued tasks from silently retargeting an already generated plan.
+- Added schema-v2 task execution-state lineage with active-path retrieval, failed-branch isolation, terminal `compress` checkpoints, validation evidence, and review-only revision proposals.
 
 ## Next Acceptance Work
 
@@ -50,3 +51,4 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 3. Run BM-006..010 only after M1 is live-observed.
 4. Re-run M3/M5 with the new bounded-memory and autonomous subgoal events; re-run M6 after screenshot capture and visual-action interventions are available.
 5. Start distinct M7 role bridges and run BM-701 against the single-agent baseline.
+6. Keep task-continuity restoration disabled until a memory-isolated ablation and world-state reachability verifier approve it.

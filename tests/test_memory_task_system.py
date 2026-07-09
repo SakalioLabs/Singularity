@@ -633,6 +633,216 @@ def test_task_continuity_report_summarizes_resume_candidates():
     print("PASS: Task continuity report summarizes resume candidates")
 
 
+def test_task_continuity_tracks_execution_state_branches():
+    tmpdir = tempfile.mkdtemp()
+    memory = MemorySystem(memory_dir=tmpdir, persist=True)
+    first = memory.record_task_continuity(
+        "Mine iron safely",
+        current_state={"position": {"x": 0, "y": 64, "z": 0}},
+        plan={"status": "planning", "actions": [{"type": "explore"}]},
+        source="plan_cycle",
+        execution_id="run-a",
+        operation="grow",
+    )
+    maintained = memory.record_task_continuity(
+        "Mine iron safely",
+        current_state={"inventory": {"stone_pickaxe": 1}},
+        source="task_state_update",
+        execution_id="run-a",
+        operation="maintain",
+        validation_status="verified",
+        validation_evidence={"task_status": "completed"},
+    )
+    failed = memory.record_task_continuity(
+        "Mine iron safely",
+        current_state={"health": 4},
+        source="goal_end",
+        execution_id="run-a",
+        operation="maintain",
+        validation_status="failed",
+        validation_evidence={"goal_success": False},
+        branch_status="failed",
+    )
+    restarted = memory.record_task_continuity(
+        "Mine iron safely",
+        current_state={"position": {"x": 2, "y": 64, "z": 0}},
+        source="new_attempt",
+        execution_id="run-a",
+        operation="grow",
+    )
+
+    assert first.schema_version == 2
+    assert first.parent_checkpoint_id == ""
+    assert first.root_checkpoint_id == first.id
+    assert first.depth == 0
+    assert maintained.parent_checkpoint_id == first.id
+    assert maintained.root_checkpoint_id == first.id
+    assert maintained.branch_id == first.branch_id
+    assert maintained.depth == 1
+    assert failed.parent_checkpoint_id == maintained.id
+    assert failed.depth == 2
+    assert restarted.parent_checkpoint_id == ""
+    assert restarted.root_checkpoint_id == restarted.id
+    assert restarted.branch_id != failed.branch_id
+
+    report = memory.task_continuity_report(goal="Mine iron safely", limit=10)
+    execution_state = report["execution_state"]
+    assert report["schema_version"] == 2
+    assert execution_state["branch_count"] == 2
+    assert execution_state["active_branch_count"] == 1
+    assert execution_state["operation_counts"]["grow"] == 2
+    assert execution_state["operation_counts"]["maintain"] == 2
+    assert execution_state["verified_checkpoint_count"] == 1
+    assert execution_state["failed_checkpoint_count"] == 1
+    assert execution_state["automatic_restore_allowed"] is False
+    assert report["active_path"][-1]["id"] == restarted.id
+
+    reloaded = MemorySystem(memory_dir=tmpdir, persist=True)
+    loaded = {record.id: record for record in reloaded.task_continuity_records}
+    assert loaded[maintained.id].parent_checkpoint_id == first.id
+    assert loaded[failed.id].validation_status == "failed"
+
+    legacy_dir = tempfile.mkdtemp()
+    legacy_path = os.path.join(legacy_dir, "task_continuity.jsonl")
+    with open(legacy_path, "w", encoding="utf-8") as f:
+        f.write(json.dumps({"id": "legacy01", "goal": "Legacy goal", "source": "old_runtime"}) + "\n")
+    legacy_memory = MemorySystem(memory_dir=legacy_dir, persist=True)
+    legacy = legacy_memory.task_continuity_records[0]
+    child = legacy_memory.record_task_continuity("Legacy goal", execution_id="", source="upgrade")
+    assert legacy.schema_version == 1
+    assert child.schema_version == 2
+    assert child.parent_checkpoint_id == legacy.id
+    assert child.root_checkpoint_id == legacy.id
+
+    orphan_memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
+    orphan = orphan_memory.record_task_continuity(
+        "Orphan checkpoint audit",
+        parent_checkpoint_id="missing-parent",
+    )
+    orphan_report = orphan_memory.task_continuity_report(goal="Orphan checkpoint audit")
+    assert orphan.lineage_status == "orphan"
+    assert orphan_report["execution_state"]["lineage_issue_count"] == 1
+    assert orphan_report["execution_state"]["lineage_issue_counts"]["missing_parent_checkpoint"] == 1
+    assert "repair_task_continuity_lineage" in orphan_report["policy_hints"]
+
+    parallel_memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
+    stale_leaf = parallel_memory.record_task_continuity(
+        "Resume shared build goal",
+        execution_id="crashed-session",
+    )
+    current_leaf = parallel_memory.record_task_continuity(
+        "Resume shared build goal",
+        execution_id="current-session",
+    )
+    parallel_report = parallel_memory.task_continuity_report(goal="Resume shared build goal")
+    parallel_context = parallel_memory.task_continuity_context("Resume shared build goal", limit=2)
+    assert parallel_report["execution_state"]["active_branch_count"] == 2
+    assert "review_multiple_active_task_branches" in parallel_report["policy_hints"]
+    assert parallel_report["active_path"][-1]["id"] == current_leaf.id
+    assert stale_leaf.id in parallel_context
+    assert current_leaf.id in parallel_context
+    print("PASS: Task continuity tracks execution-state branches")
+
+
+def test_task_continuity_revision_is_review_only():
+    memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
+    root = memory.record_task_continuity(
+        "Build a safe shelter",
+        execution_id="run-revision",
+        operation="grow",
+    )
+    verified = memory.record_task_continuity(
+        "Build a safe shelter",
+        execution_id="run-revision",
+        operation="maintain",
+        validation_status="verified",
+        validation_evidence={"task": "foundation", "status": "completed"},
+    )
+    failed = memory.record_task_continuity(
+        "Build a safe shelter",
+        execution_id="run-revision",
+        operation="maintain",
+        validation_status="failed",
+        validation_evidence={"task": "roof", "status": "failed"},
+        branch_status="failed",
+    )
+    proposal = memory.propose_task_continuity_revision(
+        failed_checkpoint_id=failed.id,
+        reason="Roof path exhausted available blocks",
+        source="test_review",
+    )
+    record = memory.task_continuity_records[-1]
+
+    assert proposal["proposed"] is True
+    assert proposal["restoration_applied"] is False
+    assert proposal["target_checkpoint_id"] == verified.id
+    assert record.operation == "revise"
+    assert record.parent_checkpoint_id == verified.id
+    assert record.root_checkpoint_id == root.id
+    assert record.branch_id != failed.branch_id
+    assert record.lineage_status == "revised"
+    assert record.revision_status == "proposed"
+    assert record.branch_status == "proposed"
+    assert record.restoration_applied is False
+
+    wrong_checkpoint = memory.propose_task_continuity_revision(
+        failed_checkpoint_id=verified.id,
+        reason="This must not fall back to another failed branch",
+    )
+    assert wrong_checkpoint["proposed"] is False
+    assert "not a failed checkpoint" in wrong_checkpoint["reason"]
+
+    report = memory.task_continuity_report(goal="Build a safe shelter", limit=10)
+    assert report["execution_state"]["revision_proposal_count"] == 1
+    assert report["execution_state"]["restoration_applied_count"] == 0
+    assert "review_checkpoint_revision_before_retry" in report["policy_hints"]
+    assert any(item["type"] == "revision_proposal" for item in report["revision_candidates"])
+    assert report["active_path"] == []
+    assert failed.id in {item["id"] for item in report["retained_path"]}
+    assert record.id not in {item["id"] for item in report["retained_path"]}
+
+    no_anchor = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
+    unverified = no_anchor.record_task_continuity("Explore cave", execution_id="run-no-anchor")
+    no_anchor.record_task_continuity(
+        "Explore cave",
+        execution_id="run-no-anchor",
+        validation_status="failed",
+        branch_status="failed",
+    )
+    rejected = no_anchor.propose_task_continuity_revision(goal="Explore cave")
+    assert unverified.validation_status == "unverified"
+    assert rejected["proposed"] is False
+    assert rejected["restoration_applied"] is False
+    assert "no verified ancestor" in rejected["reason"]
+
+    forged = no_anchor.record_task_continuity(
+        "Attempt unsupported restoration",
+        operation="maintain",
+        validation_status="verified",
+        validation_evidence={},
+        revision_status="applied",
+        restoration_applied=True,
+    )
+    assert forged.validation_status == "unverified"
+    assert forged.revision_status == ""
+    assert forged.restoration_applied is False
+    direct_revision = no_anchor.record_task_continuity(
+        "Attempt direct revision",
+        operation="revise",
+        revision_target_checkpoint_id=unverified.id,
+        validation_status="verified",
+        validation_evidence={"claimed": True},
+        branch_status="completed",
+        revision_status="approved",
+        restoration_applied=True,
+    )
+    assert direct_revision.validation_status == "unverified"
+    assert direct_revision.branch_status == "proposed"
+    assert direct_revision.revision_status == "proposed"
+    assert direct_revision.restoration_applied is False
+    print("PASS: Task continuity revisions remain review-only")
+
+
 def test_task_continuity_import_from_session_log():
     tmpdir = tempfile.mkdtemp()
     log_path = os.path.join(tmpdir, "session_import.jsonl")
@@ -677,6 +887,14 @@ def test_task_continuity_import_from_session_log():
                 "post_observation": {"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}]},
             },
         },
+        {
+            "session": "import-session",
+            "type": "goal_end",
+            "data": {
+                "goal": "Craft torches before night",
+                "result": {"completed": False, "success": False},
+            },
+        },
     ]
     with open(log_path, "w", encoding="utf-8") as f:
         for event in events:
@@ -695,6 +913,11 @@ def test_task_continuity_import_from_session_log():
     assert result["blocked_task_count"] >= 1
     assert result["failed_task_count"] == 1
     assert result["record"]["state_summary"]["source_log"] == log_path
+    assert result["record"]["schema_version"] == 2
+    assert result["record"]["operation"] == "maintain"
+    assert result["record"]["execution_id"] == "import-session"
+    assert result["record"]["validation_status"] == "failed"
+    assert result["record"]["branch_status"] == "failed"
     assert os.path.exists(os.path.join(tmpdir, "task_continuity.jsonl"))
     assert report["record_count"] == 1
     assert report["missing_precondition_counts"]["inventory.coal"] == 1
@@ -1862,6 +2085,7 @@ def test_agent_records_and_reads_task_continuity_context():
     agent.memory = MemorySystem(memory_dir=tmpdir, persist=False)
     agent.memory_policy = MemoryLifecyclePolicy()
     agent.session_logger = FakeSessionLogger()
+    agent.session_logger.session_id = "agent-continuity-session"
     agent.task_system = TaskSystem()
     agent.current_goal = "Craft torches before night"
     agent.task_system.create_task(
@@ -1879,6 +2103,9 @@ def test_agent_records_and_reads_task_continuity_context():
         {"inventory": {"stick": 1}, "nearby_blocks": [{"name": "coal_ore"}]},
         {"status": "planning", "reasoning": "mine coal before crafting", "actions": [{"type": "dig", "parameters": {"block": "coal_ore"}}]},
         source="test_agent",
+        operation="maintain",
+        validation_status="verified",
+        validation_evidence={"fixture": "checkpoint"},
     )
     context = agent._task_continuity_context(
         "Craft torches before night",
@@ -1889,12 +2116,18 @@ def test_agent_records_and_reads_task_continuity_context():
     checkpoint_event = next(event for event in agent.session_logger.events if event["type"] == "task_continuity_checkpoint")
 
     assert record is not None
+    assert record.schema_version == 2
+    assert record.operation == "maintain"
+    assert record.execution_id == "agent-continuity-session"
+    assert record.validation_status == "verified"
     assert "Task continuity ledger" in context
     assert "Craft torches" in context
     assert "missing" in context
     assert write_event["data"]["operation"] == "record_task_continuity"
     assert read_event["data"]["has_result"] is True
     assert checkpoint_event["data"]["ready_count"] == 0
+    assert checkpoint_event["data"]["branch_id"] == record.branch_id
+    assert checkpoint_event["data"]["validation_status"] == "verified"
 
     agent.config = Config(enable_task_continuity_context=False)
     assert agent._task_continuity_context("Craft torches", {}) == ""
@@ -3891,7 +4124,8 @@ def test_autonomous_loop_logs_machine_checkable_subgoal_events():
 
     agent._goal_is_verified = verify_original_goal
     agent._accept_planned_tasks = lambda: None
-    agent._record_task_continuity = lambda *args, **kwargs: None
+    continuity_calls = []
+    agent._record_task_continuity = lambda *args, **kwargs: continuity_calls.append({"args": args, "kwargs": kwargs})
     agent._state_with_causal_context = lambda state, goal="": state
     agent._write_memory_episode = lambda *args, **kwargs: None
     agent._write_memory_context = lambda *args, **kwargs: None
@@ -3913,6 +4147,13 @@ def test_autonomous_loop_logs_machine_checkable_subgoal_events():
     assert "autonomous_end" in event_types
     assert subgoal_end["data"]["result"]["success"] is True
     assert agent.task_system.completed == []
+    terminal_checkpoint = next(
+        call for call in continuity_calls
+        if call["kwargs"].get("source") == "auto_goal_complete"
+    )
+    assert terminal_checkpoint["kwargs"]["operation"] == "compress"
+    assert terminal_checkpoint["kwargs"]["validation_status"] == "verified"
+    assert terminal_checkpoint["kwargs"]["branch_status"] == "completed"
 
     tmpdir = tempfile.mkdtemp()
     log_path = os.path.join(tmpdir, "autonomous.jsonl")
@@ -3938,6 +4179,8 @@ if __name__ == "__main__":
     test_task_continuity_ledger_persists_resume_context()
     test_task_continuity_records_spatial_precondition_gaps()
     test_task_continuity_report_summarizes_resume_candidates()
+    test_task_continuity_tracks_execution_state_branches()
+    test_task_continuity_revision_is_review_only()
     test_task_continuity_import_from_session_log()
     test_memory_read_filters_stale_and_conditional_entries()
     test_memory_policy_routes_promptware_to_review()

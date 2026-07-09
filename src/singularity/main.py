@@ -898,6 +898,18 @@ def main():
     task_continuity_import_parser.add_argument("--output", type=str, default="", help="Optional JSON import report path")
     task_continuity_import_parser.add_argument("--log-level", type=str, default="INFO")
 
+    task_continuity_revision_parser = subparsers.add_parser(
+        "task-continuity-revision",
+        help="Create a review-only branch proposal from a failed checkpoint to a verified ancestor",
+    )
+    task_continuity_revision_parser.add_argument("--memory-dir", type=str, default="workspace/memory")
+    task_continuity_revision_parser.add_argument("--failed-checkpoint", type=str, default="", help="Failed checkpoint ID")
+    task_continuity_revision_parser.add_argument("--goal", type=str, default="", help="Fallback goal query for the latest failed checkpoint")
+    task_continuity_revision_parser.add_argument("--reason", type=str, required=True, help="Review reason for proposing a new branch")
+    task_continuity_revision_parser.add_argument("--source", type=str, default="manual_revision_review")
+    task_continuity_revision_parser.add_argument("--output", type=str, default="", help="Optional JSON proposal path")
+    task_continuity_revision_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline memory policy trace report
     memory_policy_parser = subparsers.add_parser("memory-policy-report", help="Report memory write/read/manage policy gaps in session logs")
     memory_policy_parser.add_argument("--session-log", action="append", default=[], help="Session JSONL log to inspect")
@@ -2350,6 +2362,14 @@ def main():
             f"{report.get('blocked_task_count', 0)}/"
             f"{report.get('failed_task_count', 0)}"
         )
+        execution_state = report.get("execution_state", {}) if isinstance(report.get("execution_state", {}), dict) else {}
+        print(
+            f"  branches: {execution_state.get('active_branch_count', 0)}/"
+            f"{execution_state.get('branch_count', 0)} active, "
+            f"verified={execution_state.get('verified_checkpoint_count', 0)}, "
+            f"revisions={execution_state.get('revision_proposal_count', 0)}, "
+            f"lineage_issues={execution_state.get('lineage_issue_count', 0)}"
+        )
         if report.get("missing_precondition_counts"):
             parts = [
                 f"{key}={value}"
@@ -2432,6 +2452,44 @@ def main():
                 os.makedirs(output_dir, exist_ok=True)
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"  saved: {args.output}")
+        return
+
+    if args.command == "task-continuity-revision":
+        from singularity.core.memory import MemorySystem
+
+        failed_checkpoint = getattr(args, "failed_checkpoint", "")
+        goal = getattr(args, "goal", "")
+        if not failed_checkpoint and not goal:
+            print("task-continuity-revision requires --failed-checkpoint or --goal")
+            sys.exit(1)
+        memory = MemorySystem(memory_dir=getattr(args, "memory_dir", "workspace/memory"))
+        proposal = memory.propose_task_continuity_revision(
+            failed_checkpoint_id=failed_checkpoint,
+            goal=goal,
+            reason=getattr(args, "reason", ""),
+            source=getattr(args, "source", "manual_revision_review"),
+        )
+        print("\nTask Continuity Revision Proposal")
+        print(
+            f"  proposed: {proposal.get('proposed', False)}, "
+            f"restoration_applied={proposal.get('restoration_applied', False)}"
+        )
+        if proposal.get("proposed"):
+            record = proposal.get("record", {}) if isinstance(proposal.get("record", {}), dict) else {}
+            print(
+                f"  failed={proposal.get('failed_checkpoint_id')} "
+                f"target={proposal.get('target_checkpoint_id')} "
+                f"branch={record.get('branch_id')}"
+            )
+        else:
+            print(f"  reason: {proposal.get('reason', 'revision proposal rejected')}")
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(proposal, f, indent=2, ensure_ascii=False)
             print(f"  saved: {args.output}")
         return
 
