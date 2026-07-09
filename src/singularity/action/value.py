@@ -117,6 +117,8 @@ class ActionValueProfile:
     def __init__(self):
         self.stats: dict[str, ActionValueStats] = {}
         self.repair_pairs: dict[str, list[dict]] = {}
+        self.transition_values: dict[str, dict] = {}
+        self.last_merge_report: dict = {}
 
     def record(self, action: dict, result: dict = None, goal: str = "", verification: dict = None):
         signature = action_signature(action)
@@ -131,7 +133,7 @@ class ActionValueProfile:
         signature = action_signature(action)
         stats = self.stats.get(signature)
         if stats is None:
-            return {
+            data = {
                 "signature": signature,
                 "value_score": 0.5,
                 "attempts": 0,
@@ -139,12 +141,23 @@ class ActionValueProfile:
                 "failure_rate": 0.0,
                 "task_family": task_family_from_goal(goal),
             }
-        data = stats.as_dict()
-        data["task_family"] = task_family_from_goal(goal)
+        else:
+            data = stats.as_dict()
+            data["task_family"] = task_family_from_goal(goal)
+        transition = self.transition_values.get(signature)
+        if transition:
+            self._apply_transition_value(data, transition)
         return data
 
     def merge_feedback(self, feedback: dict) -> int:
         """Load action-value feedback items from an offline report."""
+        self.last_merge_report = {
+            "action_value_items_loaded": 0,
+            "repair_pairs_loaded": 0,
+            "transition_values_loaded": 0,
+            "transition_values_skipped": 0,
+            "transition_skip_reasons": {},
+        }
         if not isinstance(feedback, dict):
             return 0
         items = feedback.get("action_value_items", feedback.get("items", []))
@@ -171,7 +184,10 @@ class ActionValueProfile:
             )
             self.stats[signature] = stats
             loaded += 1
-        loaded += self.merge_repair_pairs(feedback.get("failure_correction_pairs", []))
+        self.last_merge_report["action_value_items_loaded"] = loaded
+        repair_loaded = self.merge_repair_pairs(feedback.get("failure_correction_pairs", []))
+        transition_loaded = self.merge_transition_values(feedback.get("state_transition_value_items", []))
+        loaded += repair_loaded + transition_loaded
         return loaded
 
     def merge_repair_pairs(self, pairs: list[dict]) -> int:
@@ -200,6 +216,38 @@ class ActionValueProfile:
                 continue
             bucket.append(item)
             loaded += 1
+        self.last_merge_report["repair_pairs_loaded"] = self.last_merge_report.get("repair_pairs_loaded", 0) + loaded
+        return loaded
+
+    def merge_transition_values(self, items: list[dict]) -> int:
+        """Load high-confidence state-transition value scores from ASV-style feedback."""
+        if not isinstance(items, list):
+            return 0
+        loaded = 0
+        skipped = 0
+        skip_reasons = {}
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            signature = str(item.get("signature") or "")
+            if not signature:
+                continue
+            trusted, reason = self._transition_value_trust_decision(item)
+            if not trusted:
+                skipped += 1
+                skip_reasons[reason] = skip_reasons.get(reason, 0) + 1
+                continue
+            self._merge_transition_value_item(item)
+            loaded += 1
+        self.last_merge_report["transition_values_loaded"] = (
+            self.last_merge_report.get("transition_values_loaded", 0) + loaded
+        )
+        self.last_merge_report["transition_values_skipped"] = (
+            self.last_merge_report.get("transition_values_skipped", 0) + skipped
+        )
+        for reason, count in skip_reasons.items():
+            existing = self.last_merge_report.setdefault("transition_skip_reasons", {})
+            existing[reason] = existing.get(reason, 0) + count
         return loaded
 
     def repair_candidates(self, action: dict, limit: int = 5) -> list[dict]:
@@ -230,9 +278,14 @@ class ActionValueProfile:
         return {
             "action_value_items": items[:limit],
             "failure_correction_pairs": pairs[:limit],
+            "state_transition_value_items": [
+                dict(self.transition_values[signature])
+                for signature in sorted(self.transition_values)
+            ][:limit],
             "signature_count": len(items),
             "attempt_count": sum(item["attempts"] for item in items),
             "repair_pair_count": len(pairs),
+            "transition_value_count": len(self.transition_values),
         }
 
     def high_value_items(self, min_attempts: int = 2, min_score: float = 0.7) -> list[dict]:
@@ -268,3 +321,77 @@ class ActionValueProfile:
             return int(value)
         except (TypeError, ValueError):
             return default
+
+    def _safe_float(self, value, default: float = 0.0) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    def _transition_value_trust_decision(self, item: dict) -> tuple[bool, str]:
+        attempts = max(0, self._safe_int(item.get("attempts")))
+        if attempts <= 0:
+            return False, "no_transition_attempts"
+        confidence = self._safe_float(item.get("avg_transition_confidence"), 0.0)
+        if confidence < 0.75:
+            return False, "low_transition_confidence"
+        low_confidence = max(0, self._safe_int(item.get("low_confidence_transitions")))
+        if low_confidence / max(1, attempts) > 0.25:
+            return False, "too_many_low_confidence_windows"
+        if item.get("avg_transition_value_score") is None:
+            return False, "missing_transition_value_score"
+        return True, "trusted"
+
+    def _merge_transition_value_item(self, item: dict):
+        signature = str(item.get("signature") or "")
+        attempts = max(1, self._safe_int(item.get("attempts")))
+        score = max(0.0, min(1.0, self._safe_float(item.get("avg_transition_value_score"), 0.5)))
+        confidence = max(0.0, min(1.0, self._safe_float(item.get("avg_transition_confidence"), 1.0)))
+        existing = self.transition_values.get(signature)
+        if existing is None:
+            self.transition_values[signature] = {
+                "signature": signature,
+                "action_type": str(item.get("action_type") or signature.split(":", 1)[0] or "unknown"),
+                "attempts": attempts,
+                "avg_transition_value_score": round(score, 3),
+                "avg_transition_confidence": round(confidence, 3),
+                "positive_transitions": self._safe_int(item.get("positive_transitions")),
+                "negative_transitions": self._safe_int(item.get("negative_transitions")),
+                "no_progress_transitions": self._safe_int(item.get("no_progress_transitions")),
+                "low_confidence_transitions": self._safe_int(item.get("low_confidence_transitions")),
+                "source_logs": list(item.get("source_logs", []))[:8] if isinstance(item.get("source_logs", []), list) else [],
+            }
+            return
+        total_attempts = existing["attempts"] + attempts
+        existing_score = self._safe_float(existing.get("avg_transition_value_score"), 0.5)
+        existing_confidence = self._safe_float(existing.get("avg_transition_confidence"), 1.0)
+        existing["avg_transition_value_score"] = round(
+            ((existing_score * existing["attempts"]) + (score * attempts)) / total_attempts,
+            3,
+        )
+        existing["avg_transition_confidence"] = round(
+            ((existing_confidence * existing["attempts"]) + (confidence * attempts)) / total_attempts,
+            3,
+        )
+        existing["attempts"] = total_attempts
+        for key in ("positive_transitions", "negative_transitions", "no_progress_transitions", "low_confidence_transitions"):
+            existing[key] = self._safe_int(existing.get(key)) + self._safe_int(item.get(key))
+        if isinstance(item.get("source_logs", []), list):
+            merged_sources = list(existing.get("source_logs", []))
+            for source in item.get("source_logs", []):
+                if source not in merged_sources:
+                    merged_sources.append(source)
+            existing["source_logs"] = merged_sources[:8]
+
+    def _apply_transition_value(self, data: dict, transition: dict):
+        outcome_score = self._safe_float(data.get("value_score"), 0.5)
+        transition_score = self._safe_float(transition.get("avg_transition_value_score"), 0.5)
+        transition_attempts = max(1, self._safe_int(transition.get("attempts")))
+        confidence = max(0.0, min(1.0, self._safe_float(transition.get("avg_transition_confidence"), 1.0)))
+        weight = min(0.35, transition_attempts * 0.08) * confidence
+        data["outcome_value_score"] = round(outcome_score, 3)
+        data["transition_value_score"] = round(transition_score, 3)
+        data["transition_value_attempts"] = transition_attempts
+        data["transition_value_confidence"] = round(confidence, 3)
+        data["transition_value_applied"] = True
+        data["value_score"] = round(max(0.0, min(1.0, outcome_score * (1 - weight) + transition_score * weight)), 3)

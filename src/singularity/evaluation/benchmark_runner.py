@@ -3953,6 +3953,13 @@ class BenchmarkRunner:
                 "reason": "before/after observations expose whether accepted actions actually improved world state",
                 "count": len(transition_items),
             })
+        if report.low_confidence_transition_count:
+            policy_hints.append({
+                "action_value_policy": "collect_action_local_transition_windows",
+                "priority": "high",
+                "reason": "some transition values rely on shared or wide observation windows and should not drive runtime ranking yet",
+                "count": report.low_confidence_transition_count,
+            })
         return {
             "log_count": report.log_count,
             "ready_log_count": report.ready_log_count,

@@ -216,6 +216,9 @@ class Agent:
             "loaded_count": 0,
             "skipped_count": 0,
             "value_items_loaded": 0,
+            "transition_values_loaded": 0,
+            "transition_values_skipped": 0,
+            "transition_skip_reasons": {},
             "advisory_only": True,
             "errors": [],
         }
@@ -225,8 +228,15 @@ class Agent:
                     payload = json.load(f)
                 feedback = payload.get("action_value_feedback", payload) if isinstance(payload, dict) else {}
                 loaded = self.action_value_profile.merge_feedback(feedback)
+                merge_report = dict(getattr(self.action_value_profile, "last_merge_report", {}) or {})
                 report["loaded_count"] += 1
                 report["value_items_loaded"] += int(loaded or 0)
+                report["transition_values_loaded"] += int(merge_report.get("transition_values_loaded") or 0)
+                report["transition_values_skipped"] += int(merge_report.get("transition_values_skipped") or 0)
+                for reason, count in (merge_report.get("transition_skip_reasons", {}) or {}).items():
+                    report["transition_skip_reasons"][reason] = (
+                        report["transition_skip_reasons"].get(reason, 0) + int(count or 0)
+                    )
             except Exception as e:
                 message = f"{path}: {e}"
                 report["errors"].append(message)
@@ -236,6 +246,8 @@ class Agent:
                 "Action-value feedback loaded: "
                 f"{report['loaded_count']} files, "
                 f"items={report['value_items_loaded']}, "
+                f"transitions={report['transition_values_loaded']}, "
+                f"transition_skipped={report['transition_values_skipped']}, "
                 f"errors={len(report['errors'])}"
             )
         return report

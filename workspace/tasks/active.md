@@ -172,6 +172,7 @@
 - [x] Extend `action-value-report` with deterministic ASV-style before/after state-transition value items, including positive/negative/no-progress labels from inventory, movement, resource-visibility, health, and danger deltas.
 - [x] Regenerate `logs/benchmarks/action_value_m1_2026-07-09.json` with state-transition values; the current M1 trace still has 200/200 action success but 0 positive transitions, 2 negative transitions, 196 no-progress transitions, and 198 low-confidence shared-observation windows.
 - [x] Add action-level pre/post observation logging for goal, autonomous, runtime-interrupt, and failure-correction actions, using compact state snapshots so ASV-style transition values can use high-confidence local windows.
+- [x] Gate ASV-style `state_transition_value_items` before runtime consumption: `ActionValueProfile` skips low-confidence transition windows, reports skip reasons, and only blends trusted transition value into candidate scoring.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.

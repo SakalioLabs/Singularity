@@ -124,7 +124,17 @@ def _write_action_value_feedback(tmpdir):
                         "verifier_accepts": 4,
                         "task_families": {"crafting": 4},
                     }
-                ]
+                ],
+                "state_transition_value_items": [
+                    {
+                        "signature": "dig:coal_ore",
+                        "action_type": "dig",
+                        "attempts": 4,
+                        "avg_transition_value_score": 0.2,
+                        "avg_transition_confidence": 0.5,
+                        "low_confidence_transitions": 4,
+                    }
+                ],
             }
         }, f)
     return feedback_path
@@ -412,7 +422,11 @@ def test_agent_loads_action_value_feedback_into_candidate_selector():
 
     assert report["loaded_count"] == 1
     assert report["value_items_loaded"] == 1
+    assert report["transition_values_loaded"] == 0
+    assert report["transition_values_skipped"] == 1
+    assert report["transition_skip_reasons"]["low_transition_confidence"] == 1
     assert value["attempts"] == 4
+    assert "transition_value_applied" not in value
     assert value["value_score"] > 0.7
     print("PASS: Agent loads action-value feedback into candidate selector")
 
@@ -601,6 +615,67 @@ def test_action_candidate_selector_surfaces_action_value_evidence():
     print("PASS: ActionCandidateSelector surfaces action-value evidence")
 
 
+def test_action_value_profile_gates_transition_value_feedback():
+    low_confidence = ActionValueProfile()
+    low_loaded = low_confidence.merge_feedback({
+        "action_value_items": [
+            {
+                "signature": "wait:low_impact",
+                "action_type": "wait",
+                "attempts": 6,
+                "successes": 6,
+                "failures": 0,
+            }
+        ],
+        "state_transition_value_items": [
+            {
+                "signature": "wait:low_impact",
+                "action_type": "wait",
+                "attempts": 6,
+                "avg_transition_value_score": 0.2,
+                "avg_transition_confidence": 0.5,
+                "low_confidence_transitions": 6,
+            }
+        ],
+    })
+    low_score = low_confidence.score({"type": "wait", "parameters": {"ticks": 20}})
+
+    trusted = ActionValueProfile()
+    trusted_loaded = trusted.merge_feedback({
+        "action_value_items": [
+            {
+                "signature": "wait:low_impact",
+                "action_type": "wait",
+                "attempts": 6,
+                "successes": 6,
+                "failures": 0,
+            }
+        ],
+        "state_transition_value_items": [
+            {
+                "signature": "wait:low_impact",
+                "action_type": "wait",
+                "attempts": 6,
+                "avg_transition_value_score": 0.2,
+                "avg_transition_confidence": 1.0,
+                "low_confidence_transitions": 0,
+            }
+        ],
+    })
+    trusted_score = trusted.score({"type": "wait", "parameters": {"ticks": 20}})
+
+    assert low_loaded == 1
+    assert low_confidence.last_merge_report["transition_values_skipped"] == 1
+    assert low_confidence.last_merge_report["transition_skip_reasons"]["low_transition_confidence"] == 1
+    assert "transition_value_applied" not in low_score
+    assert trusted_loaded == 2
+    assert trusted.last_merge_report["transition_values_loaded"] == 1
+    assert trusted_score["transition_value_applied"] is True
+    assert trusted_score["transition_value_score"] == 0.2
+    assert trusted_score["value_score"] < trusted_score["outcome_value_score"]
+    print("PASS: ActionValueProfile gates transition-value feedback by confidence")
+
+
 def test_action_candidate_selector_uses_failure_correction_pairs():
     profile = ActionValueProfile()
     loaded = profile.merge_feedback({
@@ -650,5 +725,6 @@ if __name__ == "__main__":
     test_action_verifier_rejects_missing_craft_materials_and_tools()
     test_action_candidate_selector_repairs_rejected_craft_action()
     test_action_candidate_selector_surfaces_action_value_evidence()
+    test_action_value_profile_gates_transition_value_feedback()
     test_action_candidate_selector_uses_failure_correction_pairs()
     print("\nAction controller tests PASSED")
