@@ -3235,6 +3235,400 @@ class BenchmarkRunner:
             hints.append("consider_task_family_runtime_default_candidates_after_gate_review")
         return hints
 
+    def build_skill_runtime_default_gate(
+        self,
+        lifecycle_reports: Optional[list[dict]] = None,
+        lifecycle_report_paths: Optional[list[str]] = None,
+        transfer_gates: Optional[list[dict]] = None,
+        transfer_gate_paths: Optional[list[str]] = None,
+        quality_gates: Optional[list[dict]] = None,
+        quality_gate_paths: Optional[list[str]] = None,
+        target_task_family: str = "",
+        require_quality_gate: bool = False,
+        min_runtime_candidates: int = 1,
+    ) -> dict:
+        """Gate task-family runtime-default skills with lifecycle and transfer evidence."""
+        target_family = str(target_task_family or "").strip().lower()
+        require_quality = bool(require_quality_gate or quality_gates or quality_gate_paths)
+        report = {
+            "type": "skill_runtime_default_gate",
+            "research_basis": [
+                "after_procedural_memory_transfer_local_cross_task_specialization",
+                "neural_procedural_memory_complements_explicit_skill_libraries",
+                "muse_skill_lifecycle_governance",
+                "agentcl_task_stream_transfer_gates",
+            ],
+            "target": "task_family_runtime_default_skills",
+            "target_task_family": target_family,
+            "required": True,
+            "readiness": "review",
+            "decision": "keep_runtime_default_review_only",
+            "reason": "runtime-default skills require lifecycle and transfer evidence",
+            "thresholds": {
+                "min_runtime_candidates": int(min_runtime_candidates or 1),
+                "require_quality_gate": require_quality,
+            },
+            "lifecycle_report_count": 0,
+            "transfer_gate_count": 0,
+            "quality_gate_count": 0,
+            "candidate_count": 0,
+            "approved_candidate_count": 0,
+            "review_candidate_count": 0,
+            "rejected_candidate_count": 0,
+            "lifecycle_ready_count": 0,
+            "runtime_default_candidate_count": 0,
+            "transfer_gate_readiness": "missing",
+            "transfer_gate_approved": False,
+            "quality_gate_readiness": "not_required" if not require_quality else "missing",
+            "quality_gate_approved": not require_quality,
+            "missing": [],
+            "policy_hints": [],
+            "checks": [],
+            "lifecycle_reports": [],
+            "transfer_gate_reports": [],
+            "quality_gate_reports": [],
+            "candidates": [],
+            "errors": [],
+        }
+
+        lifecycle_items = self._load_gate_payloads(
+            lifecycle_reports or [],
+            lifecycle_report_paths or [],
+            report["errors"],
+            "skill_lifecycle_report",
+        )
+        transfer_items = self._load_gate_payloads(
+            transfer_gates or [],
+            transfer_gate_paths or [],
+            report["errors"],
+            "task_stream_transfer_gate",
+        )
+        quality_items = self._load_gate_payloads(
+            quality_gates or [],
+            quality_gate_paths or [],
+            report["errors"],
+            "skill_memory_quality_gate",
+        )
+        report["lifecycle_report_count"] = len(lifecycle_items)
+        report["transfer_gate_count"] = len(transfer_items)
+        report["quality_gate_count"] = len(quality_items)
+        if not lifecycle_items:
+            report["missing"].append("skill_lifecycle_report")
+        if not transfer_items:
+            report["missing"].append("task_stream_transfer_gate")
+        if require_quality and not quality_items:
+            report["missing"].append("skill_memory_quality_gate")
+
+        self._attach_runtime_default_gate_summaries(
+            report,
+            transfer_items,
+            "task_stream_transfer_gate",
+            "transfer_gate_reports",
+            "transfer_gate_readiness",
+            "transfer_gate_approved",
+        )
+        if require_quality:
+            self._attach_runtime_default_gate_summaries(
+                report,
+                quality_items,
+                "skill_memory_quality_gate",
+                "quality_gate_reports",
+                "quality_gate_readiness",
+                "quality_gate_approved",
+            )
+
+        quality_index = self._skill_runtime_quality_gate_index(quality_items)
+        for source, payload in lifecycle_items:
+            lifecycle = payload.get("skill_lifecycle_report", payload) if isinstance(payload, dict) else {}
+            if not isinstance(lifecycle, dict):
+                continue
+            lifecycle_family = str(lifecycle.get("task_family") or "").strip().lower()
+            lifecycle_summary = {
+                "path": source,
+                "task_family": lifecycle_family,
+                "skill_count": self._gate_int(lifecycle.get("skill_count", 0)),
+                "ready_count": self._gate_int(lifecycle.get("ready_count", 0)),
+                "runtime_default_candidate_count": self._gate_int(lifecycle.get("runtime_default_candidate_count", 0)),
+                "errors": list(lifecycle.get("errors", [])) if isinstance(lifecycle.get("errors", []), list) else [],
+            }
+            report["lifecycle_reports"].append(lifecycle_summary)
+            check_status = "fail" if lifecycle_summary["errors"] else (
+                "pass" if lifecycle_summary["runtime_default_candidate_count"] else "warn"
+            )
+            check_detail = "skill lifecycle report contains errors" if lifecycle_summary["errors"] else (
+                "runtime-default candidates are present"
+                if lifecycle_summary["runtime_default_candidate_count"]
+                else "no runtime-default candidates found in lifecycle report"
+            )
+            report["checks"].append(self._gate_check(
+                source,
+                "skill_lifecycle_report",
+                check_status,
+                check_detail,
+                lifecycle_summary,
+            ))
+            for skill in lifecycle.get("skills", []) if isinstance(lifecycle.get("skills", []), list) else []:
+                if not isinstance(skill, dict):
+                    continue
+                candidate = self._skill_runtime_default_candidate(
+                    source,
+                    skill,
+                    lifecycle_family,
+                    target_family,
+                    require_quality,
+                    quality_index,
+                )
+                if candidate:
+                    report["candidates"].append(candidate)
+
+        report["candidate_count"] = len(report["candidates"])
+        report["lifecycle_ready_count"] = sum(1 for item in report["candidates"] if item["lifecycle_ready"])
+        report["runtime_default_candidate_count"] = sum(
+            1 for item in report["candidates"] if item["runtime_default_candidate"]
+        )
+
+        transfer_approved = bool(report["transfer_gate_approved"])
+        quality_approved = bool(report["quality_gate_approved"])
+        for candidate in report["candidates"]:
+            if candidate["candidate_readiness"] == "rejected":
+                pass
+            elif not transfer_approved:
+                candidate["candidate_readiness"] = "review"
+                candidate["decision"] = "keep_runtime_default_review_only"
+                candidate["reason"] = "task-stream transfer gate is not approved"
+            elif not quality_approved:
+                candidate["candidate_readiness"] = "review"
+                candidate["decision"] = "keep_runtime_default_review_only"
+                candidate["reason"] = "skill-memory quality gate is not approved"
+            elif (
+                candidate["lifecycle_ready"]
+                and candidate["runtime_default_candidate"]
+                and candidate["quality_readiness"] in {"approved", "not_required"}
+            ):
+                candidate["candidate_readiness"] = "approved"
+                candidate["decision"] = "allow_task_family_runtime_default"
+                candidate["reason"] = "skill lifecycle, transfer gate, and quality gate evidence allow task-family default use"
+            else:
+                candidate["candidate_readiness"] = "review"
+                candidate["decision"] = "keep_runtime_default_review_only"
+                candidate["reason"] = candidate["reason"] or "runtime-default evidence is incomplete"
+
+        report["approved_candidate_count"] = sum(
+            1 for item in report["candidates"] if item["candidate_readiness"] == "approved"
+        )
+        report["review_candidate_count"] = sum(
+            1 for item in report["candidates"] if item["candidate_readiness"] == "review"
+        )
+        report["rejected_candidate_count"] = sum(
+            1 for item in report["candidates"] if item["candidate_readiness"] == "rejected"
+        )
+
+        hints = set()
+        if report["approved_candidate_count"]:
+            hints.add("enable_only_approved_task_family_runtime_default_skills")
+        if report["review_candidate_count"] or report["missing"]:
+            hints.add("keep_runtime_default_candidates_review_only_until_evidence_passes")
+        if report["rejected_candidate_count"]:
+            hints.add("block_rejected_or_conflicting_runtime_default_skills")
+        if target_family:
+            hints.add("scope_runtime_default_skill_to_task_family")
+        if require_quality:
+            hints.add("keep_quality_feedback_gate_in_runtime_default_profile")
+        report["policy_hints"] = sorted(hints)
+
+        min_candidates = int(min_runtime_candidates or 1)
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "do_not_enable_runtime_default_skills"
+            report["reason"] = "runtime-default gate inputs could not be loaded"
+        elif report["transfer_gate_readiness"] in {"rejected", "error"} or report["quality_gate_readiness"] in {"rejected", "error"}:
+            report["readiness"] = "rejected"
+            report["decision"] = "do_not_enable_runtime_default_skills"
+            report["reason"] = "transfer or quality gate rejected runtime-default evidence"
+        elif report["missing"]:
+            report["readiness"] = "review"
+            report["decision"] = "keep_runtime_default_review_only"
+            report["reason"] = "runtime-default gate is missing required evidence"
+        elif report["approved_candidate_count"] < min_candidates:
+            report["readiness"] = "review"
+            report["decision"] = "keep_runtime_default_review_only"
+            report["reason"] = "not enough approved runtime-default skill candidates"
+        else:
+            report["readiness"] = "approved"
+            report["decision"] = "allow_task_family_runtime_default_skills"
+            report["reason"] = "approved lifecycle, transfer, and quality evidence are present for task-family runtime defaults"
+        return report
+
+    def _attach_runtime_default_gate_summaries(
+        self,
+        report: dict,
+        items: list[tuple[str, dict]],
+        kind: str,
+        output_key: str,
+        readiness_key: str,
+        approved_key: str,
+    ):
+        readinesses = []
+        for source, payload in items:
+            readiness = str(payload.get("readiness") or "").strip().lower() or "unknown"
+            summary = {
+                "path": source,
+                "readiness": readiness,
+                "decision": str(payload.get("decision") or "").strip(),
+                "reason": str(payload.get("reason") or "").strip()[:300],
+                "approved_count": self._gate_int(payload.get("approved_count", payload.get("evidence_count", 0))),
+                "review_count": self._gate_int(payload.get("review_count", payload.get("warning_count", 0))),
+                "rejected_count": self._gate_int(payload.get("rejected_count", payload.get("regression_count", 0))),
+            }
+            report[output_key].append(summary)
+            readinesses.append(readiness)
+            status = "pass" if readiness == "approved" else "fail" if readiness in {"rejected", "error"} else "warn"
+            report["checks"].append(self._gate_check(
+                source,
+                kind,
+                status,
+                summary["reason"] or f"{kind} readiness is {readiness}",
+                {
+                    "readiness": readiness,
+                    "approved_count": summary["approved_count"],
+                    "review_count": summary["review_count"],
+                    "rejected_count": summary["rejected_count"],
+                },
+            ))
+        if not items:
+            return
+        if any(readiness == "error" for readiness in readinesses):
+            report[readiness_key] = "error"
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report[readiness_key] = "rejected"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report[readiness_key] = "approved"
+            report[approved_key] = True
+        elif any(readiness == "review" for readiness in readinesses):
+            report[readiness_key] = "review"
+        else:
+            report[readiness_key] = "unknown"
+
+    def _skill_runtime_quality_gate_index(self, quality_items: list[tuple[str, dict]]) -> dict[tuple[str, str], dict]:
+        index = {}
+        for source, payload in quality_items:
+            for candidate in payload.get("candidates", []) if isinstance(payload.get("candidates", []), list) else []:
+                if not isinstance(candidate, dict):
+                    continue
+                skill = str(candidate.get("skill") or candidate.get("name") or "").strip()
+                family = str(candidate.get("task_family") or "").strip().lower()
+                if not skill:
+                    continue
+                key = (skill, family)
+                entry = index.setdefault(key, {
+                    "skill": skill,
+                    "task_family": family,
+                    "readinesses": set(),
+                    "supported_reuse_count": 0,
+                    "conflicting_reuse_count": 0,
+                    "sources": set(),
+                })
+                entry["readinesses"].add(str(candidate.get("readiness") or "").strip().lower() or "unknown")
+                entry["supported_reuse_count"] += self._gate_int(candidate.get("supported_reuse_count", 0))
+                entry["conflicting_reuse_count"] += self._gate_int(candidate.get("conflicting_reuse_count", 0))
+                entry["sources"].add(source)
+        for entry in index.values():
+            readinesses = entry["readinesses"]
+            if "rejected" in readinesses or "error" in readinesses:
+                readiness = "rejected"
+            elif readinesses and all(item == "approved" for item in readinesses):
+                readiness = "approved"
+            elif "review" in readinesses:
+                readiness = "review"
+            else:
+                readiness = "unknown"
+            entry["readiness"] = readiness
+            entry["readinesses"] = sorted(readinesses)
+            entry["sources"] = sorted(entry["sources"])
+        return index
+
+    def _skill_runtime_default_candidate(
+        self,
+        source: str,
+        skill: dict,
+        lifecycle_family: str,
+        target_family: str,
+        require_quality: bool,
+        quality_index: dict[tuple[str, str], dict],
+    ) -> Optional[dict]:
+        name = str(skill.get("name") or "").strip()
+        if not name:
+            return None
+        family_counts = skill.get("task_family_counts", {}) if isinstance(skill.get("task_family_counts", {}), dict) else {}
+        normalized_families = {
+            str(family or "").strip().lower(): self._gate_int(count)
+            for family, count in family_counts.items()
+            if str(family or "").strip()
+        }
+        candidate_family = target_family or lifecycle_family
+        if target_family:
+            if lifecycle_family and lifecycle_family != target_family and target_family not in normalized_families:
+                return None
+            if normalized_families and target_family not in normalized_families and lifecycle_family != target_family:
+                return None
+        elif not candidate_family and len(normalized_families) == 1:
+            candidate_family = next(iter(normalized_families))
+        elif not candidate_family:
+            candidate_family = ""
+
+        lifecycle_ready = str(skill.get("readiness") or "").strip().lower() == "ready"
+        runtime_default_candidate = bool(skill.get("runtime_default_candidate"))
+        quality = (
+            quality_index.get((name, candidate_family))
+            or quality_index.get((name, ""))
+            or {}
+        )
+        quality_readiness = "not_required"
+        if require_quality:
+            quality_readiness = str(quality.get("readiness") or "missing").strip().lower()
+
+        candidate_readiness = "review"
+        decision = "keep_runtime_default_review_only"
+        reason = ""
+        if str(skill.get("readiness") or "").strip().lower() == "blocked":
+            candidate_readiness = "rejected"
+            decision = "do_not_enable_runtime_default_skill"
+            reason = "skill lifecycle readiness is blocked"
+        elif quality_readiness in {"rejected", "error"}:
+            candidate_readiness = "rejected"
+            decision = "do_not_enable_runtime_default_skill"
+            reason = "skill-memory quality gate rejected this skill or task family"
+        elif not lifecycle_ready:
+            reason = "skill lifecycle is not ready"
+        elif not runtime_default_candidate:
+            reason = "skill is not a lifecycle runtime-default candidate"
+        elif require_quality and quality_readiness != "approved":
+            reason = "matching skill-memory quality gate evidence is missing or not approved"
+
+        return {
+            "skill": name,
+            "source": source,
+            "task_family": candidate_family,
+            "lifecycle_ready": lifecycle_ready,
+            "runtime_default_candidate": runtime_default_candidate,
+            "candidate_readiness": candidate_readiness,
+            "decision": decision,
+            "reason": reason,
+            "skill_readiness": str(skill.get("readiness") or ""),
+            "gate_readiness": str(skill.get("gate_readiness") or ""),
+            "quality_readiness": quality_readiness,
+            "quality_supported_reuse_count": self._gate_int(quality.get("supported_reuse_count", 0)),
+            "quality_conflicting_reuse_count": self._gate_int(quality.get("conflicting_reuse_count", 0)),
+            "memory_count": self._gate_int(skill.get("memory_count", 0)),
+            "success_memory_count": self._gate_int(skill.get("success_memory_count", 0)),
+            "failure_memory_count": self._gate_int(skill.get("failure_memory_count", 0)),
+            "approved_transfer_memory_count": self._gate_int(skill.get("approved_transfer_memory_count", 0)),
+            "review_transfer_memory_count": self._gate_int(skill.get("review_transfer_memory_count", 0)),
+            "success_rate": round(float(skill.get("success_rate", 0.0) or 0.0), 4),
+            "issues": list(skill.get("issues", [])) if isinstance(skill.get("issues", []), list) else [],
+            "recommendations": list(skill.get("recommendations", [])) if isinstance(skill.get("recommendations", []), list) else [],
+        }
+
     def _merge_skill_memory_quality_feedback_items(self, items: list[tuple[str, dict]]) -> dict:
         feedback = {
             "quality_label_counts": {},
@@ -12354,6 +12748,23 @@ class BenchmarkRunner:
             json.dump(report, f, indent=2, ensure_ascii=False)
         logger.info(f"Skill lifecycle report saved to {path}")
 
+    def save_skill_runtime_default_gate_report(
+        self,
+        report: dict,
+        filename: str = "skill_runtime_default_gate.json",
+    ):
+        path = filename
+        if not os.path.isabs(path) and not os.path.dirname(path):
+            os.makedirs(self.output_dir, exist_ok=True)
+            path = os.path.join(self.output_dir, path)
+        else:
+            parent = os.path.dirname(path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+        logger.info(f"Skill runtime-default gate saved to {path}")
+
     def print_summary(self):
         total = len(self.results)
         passed = sum(1 for r in self.results if r.status == "pass")
@@ -12496,6 +12907,53 @@ class BenchmarkRunner:
                 print(f"      issues: {', '.join(skill.get('issues', []))}")
             if skill.get("recommendations"):
                 print(f"      recommendations: {', '.join(skill.get('recommendations', []))}")
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+
+    def print_skill_runtime_default_gate_report(self, report: dict):
+        print("\nSkill Runtime Default Gate")
+        if report.get("target_task_family"):
+            print(f"  task family: {report.get('target_task_family')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  inputs: "
+            f"lifecycle={report.get('lifecycle_report_count', 0)}, "
+            f"transfer_gates={report.get('transfer_gate_count', 0)}, "
+            f"quality_gates={report.get('quality_gate_count', 0)}"
+        )
+        print(
+            "  candidates: "
+            f"approved={report.get('approved_candidate_count', 0)}, "
+            f"review={report.get('review_candidate_count', 0)}, "
+            f"rejected={report.get('rejected_candidate_count', 0)}, "
+            f"runtime_default={report.get('runtime_default_candidate_count', 0)}"
+        )
+        print(
+            "  gates: "
+            f"transfer={report.get('transfer_gate_readiness', 'unknown')}, "
+            f"quality={report.get('quality_gate_readiness', 'unknown')}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for candidate in report.get("candidates", [])[:10]:
+            marker = "+" if candidate.get("candidate_readiness") == "approved" else (
+                "x" if candidate.get("candidate_readiness") == "rejected" else "!"
+            )
+            print(
+                f"  [{marker}] {candidate.get('skill')} ({candidate.get('task_family') or 'any'}): "
+                f"{candidate.get('candidate_readiness')} "
+                f"lifecycle={candidate.get('skill_readiness')} "
+                f"quality={candidate.get('quality_readiness')}"
+            )
+            if candidate.get("reason"):
+                print(f"      {candidate.get('reason')}")
+        for check in report.get("checks", [])[:12]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
+        if report.get("policy_hints"):
+            print(f"  policy hints: {', '.join(report.get('policy_hints', []))}")
         for error in report.get("errors", []):
             print(f"  error: {error}")
 

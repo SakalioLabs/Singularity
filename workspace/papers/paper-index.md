@@ -1244,6 +1244,36 @@
 
 ---
 
+### P-068: Managing Procedural Memory in LLM Agents
+
+- **Source**: https://arxiv.org/abs/2606.23127
+- **Year**: 2026
+- **Type**: Procedural-memory transfer benchmark and management study
+- **Task Type**: Recurring role-scoped agent workflows with local, cross-task, cross-role, and cross-model transfer probes
+- **Core Method**: AFTER benchmark separates local skill refinement from broader procedural-memory transfer and specialization
+- **Memory**: Procedural skills are evaluated as deployable memories with transfer scope, refinement evidence, and specialization risk
+- **Key Results**: Reports consistent gains from procedural memory refinement and shows some skills transfer broadly while others become role-specialized
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Supports task-family-scoped runtime-default gates for Minecraft skills before they are allowed to influence planning by default
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-09-after-procedural-memory.md`
+
+### P-069: Mem^p Procedural Memory
+
+- **Source**: https://arxiv.org/abs/2508.06433
+- **Year**: 2025
+- **Type**: Procedural-memory construction, retrieval, and update framework
+- **Task Type**: Long-horizon household and information-seeking agent tasks with reusable procedures
+- **Core Method**: Distills trajectories into fine-grained procedural instructions and higher-level scripts, then updates them through validation, reflection, and discarding
+- **Memory**: Lifelong procedural memory with build, retrieval, update, correction, and deletion operations
+- **Key Results**: Reports improved task success and efficiency from refined procedural memories, including transfer from stronger to weaker model backbones
+- **Scores**: R=4, N=5, R=4, E=4
+- **Value to Project**: Supports typed Minecraft skill memories, quality gates, and review-only defaults until localized outcome evidence proves reuse value
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-09-memp-procedural-memory.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1315,3 +1345,5 @@
 | P-065 | Agent Step Value | 2026 | R5/N5/R4/E5 | P1 |
 | P-066 | Coachable Agents | 2026 | R4/N5/R3/E5 | P2 |
 | P-067 | LLM-in-Sandbox | 2026 | R4/N5/R3/E5 | P2 |
+| P-068 | AFTER Procedural Memory | 2026 | R5/N5/R4/E5 | P1 |
+| P-069 | Mem^p Procedural Memory | 2025 | R4/N5/R4/E4 | P2 |

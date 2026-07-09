@@ -357,6 +357,8 @@ python -m singularity.main skill-contract-report --skill-storage-path workspace/
 python -m singularity.main skill-memory-report --skill-storage-path workspace/skills --goal "Craft torches" --task-family crafting --output logs/benchmarks/skill_memory.json
 # Audit the full skill lifecycle before treating task-family skills as runtime defaults
 python -m singularity.main skill-lifecycle-report --skill-storage-path workspace/skills --goal "Craft torches" --task-family crafting --output logs/benchmarks/skill_lifecycle.json
+# Gate task-family runtime-default skills with lifecycle, transfer, and optional quality evidence:
+python -m singularity.main skill-runtime-default-gate --skill-lifecycle-report logs/benchmarks/skill_lifecycle.json --task-stream-transfer-gate logs/benchmarks/task_stream_transfer_gate.json --skill-memory-quality-gate logs/benchmarks/skill_memory_quality_gate.json --target-task-family crafting --require-skill-memory-quality-gate --output logs/benchmarks/skill_runtime_default_gate.json
 # Approved skill candidates seed promotion/transfer memories automatically, and
 # live failure-correction skills append success/failure memories during Agent runs.
 # Skill-memory hints are retrieved into LLM planner context by inferred task family

@@ -286,6 +286,19 @@ def main():
     skill_lifecycle_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     skill_lifecycle_parser.add_argument("--log-level", type=str, default="INFO")
 
+    skill_runtime_gate_parser = subparsers.add_parser(
+        "skill-runtime-default-gate",
+        help="Gate task-family runtime-default skill enablement with lifecycle and transfer evidence",
+    )
+    skill_runtime_gate_parser.add_argument("--skill-lifecycle-report", action="append", default=[], help="Saved skill-lifecycle-report JSON")
+    skill_runtime_gate_parser.add_argument("--task-stream-transfer-gate", action="append", default=[], help="Saved approved task-stream-transfer-gate JSON")
+    skill_runtime_gate_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Optional saved skill-memory-quality-gate JSON")
+    skill_runtime_gate_parser.add_argument("--target-task-family", type=str, default="", help="Optional task-family scope such as crafting, mining, shelter, or navigation")
+    skill_runtime_gate_parser.add_argument("--require-skill-memory-quality-gate", action="store_true", help="Require approved localized skill-memory quality evidence")
+    skill_runtime_gate_parser.add_argument("--min-runtime-candidates", type=int, default=1, help="Minimum approved runtime-default candidates required")
+    skill_runtime_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    skill_runtime_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
     # Offline skill-memory quality report
     skill_memory_quality_parser = subparsers.add_parser(
         "skill-memory-quality-report",
@@ -1045,6 +1058,32 @@ def main():
         runner.print_skill_lifecycle_report(report)
         if getattr(args, "output", ""):
             runner.save_skill_lifecycle_report(report, getattr(args, "output", ""))
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "skill-runtime-default-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        lifecycle_reports = getattr(args, "skill_lifecycle_report", []) or []
+        transfer_gates = getattr(args, "task_stream_transfer_gate", []) or []
+        if not lifecycle_reports:
+            print("skill-runtime-default-gate requires at least one --skill-lifecycle-report")
+            sys.exit(1)
+        if not transfer_gates:
+            print("skill-runtime-default-gate requires at least one --task-stream-transfer-gate")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.build_skill_runtime_default_gate(
+            lifecycle_report_paths=lifecycle_reports,
+            transfer_gate_paths=transfer_gates,
+            quality_gate_paths=getattr(args, "skill_memory_quality_gate", []) or [],
+            target_task_family=getattr(args, "target_task_family", ""),
+            require_quality_gate=getattr(args, "require_skill_memory_quality_gate", False),
+            min_runtime_candidates=getattr(args, "min_runtime_candidates", 1),
+        )
+        runner.print_skill_runtime_default_gate_report(report)
+        if getattr(args, "output", ""):
+            runner.save_skill_runtime_default_gate_report(report, getattr(args, "output", ""))
             print(f"\nReport saved to {args.output}")
         return
 

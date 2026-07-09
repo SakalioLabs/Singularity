@@ -3748,6 +3748,129 @@ def test_skill_lifecycle_report_tracks_ready_and_refinement_paths():
     print("PASS: Skill lifecycle report tracks ready and refinement paths")
 
 
+def test_skill_runtime_default_gate_requires_lifecycle_transfer_and_quality():
+    tmpdir = tempfile.mkdtemp()
+    skill_dir = os.path.join(tmpdir, "skills")
+    skill_library = SkillLibrary(storage_path=skill_dir, persist=True)
+    skill_library.create_skill(
+        "craft_torch_reliable",
+        "Craft torches after confirming coal and sticks are available",
+        json.dumps([{"type": "craft", "parameters": {"item": "torch", "count": 4}}]),
+        parameters={"count": "int"},
+        preconditions={"inventory": {"coal": 1, "stick": 1}},
+        postconditions={"inventory": {"torch": 4}},
+        required_items=["coal", "stick"],
+        dependencies=["craft_item"],
+        total_uses=3,
+        successful_uses=3,
+        success_rate=1.0,
+        provenance={"source_log": "fixture", "goal": "Craft torches", "reviewer": "unit_test"},
+        gate={
+            "decision": "approve",
+            "verification": {"status": "achieved"},
+            "transfer": {"readiness": "approved"},
+        },
+    )
+    skill_library.record_skill_memory(
+        "craft_torch_reliable",
+        "Coal plus sticks reliably crafts four torches before cave exploration.",
+        memory_type="replay",
+        outcome="success",
+        task_family="crafting",
+        confidence=0.95,
+        transfer_gate={"readiness": "approved"},
+        evidence={"successes": 3},
+    )
+
+    runner = BenchmarkRunner(Config(skill_dir=skill_dir))
+    lifecycle = runner.run_skill_lifecycle_report(
+        skill_storage_path=skill_dir,
+        goal="Craft torches before cave exploration",
+        task_family="crafting",
+        include_builtins=False,
+        limit=10,
+    )
+    transfer_gate = runner.build_task_stream_transfer_gate(
+        transfer_reports=[{
+            "stream_count": 1,
+            "ready_stream_count": 1,
+            "task_count": 3,
+            "reuse_expected_tag_count": 3,
+            "reuse_hit_tag_count": 3,
+            "reuse_coverage": 1.0,
+            "average_plasticity_gain": 0.2,
+            "average_stability_gain": 0.0,
+            "average_generalization_gain": 0.1,
+            "interference_count": 0,
+            "errors": [],
+        }],
+        target="skill:craft_torch_reliable",
+    )
+    quality_gate = {
+        "readiness": "approved",
+        "decision": "allow_supported_reuse_skill_memory_promotion",
+        "reason": "localized REUSE hints are supported",
+        "approved_count": 1,
+        "review_count": 0,
+        "rejected_count": 0,
+        "candidates": [{
+            "skill": "craft_torch_reliable",
+            "task_family": "crafting",
+            "readiness": "approved",
+            "supported_reuse_count": 3,
+            "conflicting_reuse_count": 0,
+        }],
+    }
+    approved = runner.build_skill_runtime_default_gate(
+        lifecycle_reports=[lifecycle],
+        transfer_gates=[transfer_gate],
+        quality_gates=[quality_gate],
+        target_task_family="crafting",
+        require_quality_gate=True,
+    )
+
+    assert approved["readiness"] == "approved"
+    assert approved["decision"] == "allow_task_family_runtime_default_skills"
+    assert approved["approved_candidate_count"] == 1
+    candidate = approved["candidates"][0]
+    assert candidate["skill"] == "craft_torch_reliable"
+    assert candidate["candidate_readiness"] == "approved"
+    assert candidate["quality_readiness"] == "approved"
+    assert "scope_runtime_default_skill_to_task_family" in approved["policy_hints"]
+
+    missing_transfer = runner.build_skill_runtime_default_gate(
+        lifecycle_reports=[lifecycle],
+        target_task_family="crafting",
+    )
+    assert missing_transfer["readiness"] == "review"
+    assert "task_stream_transfer_gate" in missing_transfer["missing"]
+
+    rejected_quality = runner.build_skill_runtime_default_gate(
+        lifecycle_reports=[lifecycle],
+        transfer_gates=[transfer_gate],
+        quality_gates=[{
+            **quality_gate,
+            "readiness": "rejected",
+            "decision": "do_not_promote_skill_memory",
+            "rejected_count": 1,
+            "approved_count": 0,
+            "candidates": [{
+                "skill": "craft_torch_reliable",
+                "task_family": "crafting",
+                "readiness": "rejected",
+                "supported_reuse_count": 1,
+                "conflicting_reuse_count": 1,
+            }],
+        }],
+        target_task_family="crafting",
+        require_quality_gate=True,
+    )
+    assert rejected_quality["readiness"] == "rejected"
+    assert rejected_quality["decision"] == "do_not_enable_runtime_default_skills"
+    assert rejected_quality["rejected_candidate_count"] == 1
+    print("PASS: Skill runtime default gate requires lifecycle, transfer, and quality evidence")
+
+
 def test_action_value_transition_preflight_requires_approved_gate_and_evaluator():
     tmpdir = tempfile.mkdtemp()
     feedback_path = os.path.join(tmpdir, "action_value_feedback.json")
@@ -4220,6 +4343,7 @@ if __name__ == "__main__":
     test_skill_memory_quality_gate_controls_reuse_promotion()
     test_skill_memory_quality_preflight_requires_gate_and_ranking_effect()
     test_skill_lifecycle_report_tracks_ready_and_refinement_paths()
+    test_skill_runtime_default_gate_requires_lifecycle_transfer_and_quality()
     test_action_value_transition_preflight_requires_approved_gate_and_evaluator()
     test_visual_action_benchmark_ablation_compares_live_suite_modes()
     test_mixed_policy_benchmark_ablation_compares_live_patch_modes()
