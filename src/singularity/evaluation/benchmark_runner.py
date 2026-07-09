@@ -3482,6 +3482,180 @@ class BenchmarkRunner:
         report["ready"] = report["readiness"] in {"approved", "not_required"}
         return report
 
+    def run_coach_style_preflight(
+        self,
+        suite: str = "m1",
+        styles: Optional[list[str]] = None,
+        ablation_paths: Optional[list[str]] = None,
+        gate_paths: Optional[list[str]] = None,
+        require_goal_change: bool = False,
+    ) -> dict:
+        """Check coach-style ablations and gates before style-biased benchmarks."""
+        configured_styles = styles
+        if configured_styles is None:
+            configured_styles = CoachPolicy.from_style(getattr(self.config, "coach_style", "")).style_names
+        clean_styles = [str(style).strip().lower() for style in (configured_styles or []) if str(style).strip()]
+        clean_ablation_paths = [
+            path for path in (
+                ablation_paths
+                if ablation_paths is not None
+                else getattr(self.config, "coach_style_ablation_paths", [])
+            ) or []
+            if path
+        ]
+        clean_gate_paths = [
+            path for path in (
+                gate_paths
+                if gate_paths is not None
+                else getattr(self.config, "coach_style_gate_paths", [])
+            ) or []
+            if path
+        ]
+        required = bool(clean_styles) and getattr(self.config, "enable_coaching_policy", True)
+        report = {
+            "required": required,
+            "ready": not required,
+            "readiness": "not_required" if not required else "review",
+            "decision": "skip_coach_style_preflight" if not required else "hold_coach_style_benchmark",
+            "reason": "no coach style configured for this benchmark",
+            "suite": suite,
+            "styles": clean_styles,
+            "ablation_paths": list(clean_ablation_paths),
+            "gate_paths": list(clean_gate_paths),
+            "case_count": 0,
+            "changed_count": 0,
+            "score_changed_count": 0,
+            "gate_count": 0,
+            "gate_readiness": "not_required" if not required else "missing",
+            "gate_approved": not required,
+            "approved_styles": [],
+            "review_styles": [],
+            "ablation_sources": [],
+            "gate_reports": [],
+            "checks": [],
+            "missing": [],
+            "errors": [],
+        }
+        if not required:
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "coach_style_preflight",
+                "pass",
+                "no coach style is configured for this benchmark",
+                {"styles": clean_styles},
+            ))
+            return report
+
+        if not clean_ablation_paths:
+            report["missing"].append("coach_style_ablation")
+        if not clean_gate_paths:
+            report["missing"].append("coach_style_gate")
+
+        ablation_items = self._load_gate_payloads([], clean_ablation_paths, report["errors"], "coach_style_ablation")
+        for source, payload in ablation_items:
+            summary = self._coach_style_gate_source_summary(source, payload, clean_styles)
+            report["ablation_sources"].append(summary)
+            report["case_count"] += summary["case_count"]
+            report["changed_count"] += summary["changed_count"]
+            report["score_changed_count"] += summary["score_changed_count"]
+            report["errors"].extend(summary["errors"])
+            report["checks"].append(self._gate_check(
+                source,
+                "coach_style_ablation",
+                "pass" if summary["ready"] else "warn",
+                summary["reason"],
+                {
+                    "case_count": summary["case_count"],
+                    "changed_count": summary["changed_count"],
+                    "score_changed_count": summary["score_changed_count"],
+                    "styles": summary["styles"],
+                },
+            ))
+
+        for style in clean_styles:
+            score_changes = sum(
+                int(source.get("style_score_changed_counts", {}).get(style, 0) or 0)
+                for source in report["ablation_sources"]
+            )
+            goal_changes = sum(
+                int(source.get("style_changed_counts", {}).get(style, 0) or 0)
+                for source in report["ablation_sources"]
+            )
+            if score_changes <= 0:
+                report["missing"].append(f"coach_style_score_effect:{style}")
+            if require_goal_change and goal_changes <= 0:
+                report["missing"].append(f"coach_style_goal_change:{style}")
+
+        gate_items = self._load_gate_payloads([], clean_gate_paths, report["errors"], "coach_style_gate")
+        report["gate_count"] = len(gate_items)
+        for source, payload in gate_items:
+            readiness = str(payload.get("readiness") or "").lower()
+            decision = str(payload.get("decision") or "").lower()
+            approved_styles = [
+                str(style).strip().lower()
+                for style in (payload.get("approved_styles", []) if isinstance(payload.get("approved_styles", []), list) else [])
+                if str(style).strip()
+            ]
+            review_styles = payload.get("review_styles", []) if isinstance(payload.get("review_styles", []), list) else []
+            covers_requested = all(style in approved_styles for style in clean_styles)
+            gate_ready = readiness == "approved" and decision == "allow_coach_style" and covers_requested
+            if gate_ready:
+                for style in approved_styles:
+                    if style not in report["approved_styles"]:
+                        report["approved_styles"].append(style)
+            for item in review_styles:
+                if isinstance(item, dict):
+                    report["review_styles"].append(item)
+            report["gate_reports"].append({
+                "path": source,
+                "readiness": readiness or "unknown",
+                "decision": decision or "unknown",
+                "approved_styles": approved_styles,
+                "review_styles": review_styles,
+                "covers_requested": covers_requested,
+                "reason": payload.get("reason", ""),
+            })
+            report["checks"].append(self._gate_check(
+                source,
+                "coach_style_gate",
+                "pass" if gate_ready else "warn",
+                payload.get("reason", "coach-style gate report checked"),
+                {
+                    "readiness": readiness,
+                    "decision": decision,
+                    "approved_styles": approved_styles,
+                    "covers_requested": covers_requested,
+                },
+            ))
+
+        report["gate_approved"] = bool(clean_gate_paths) and bool(report["gate_reports"]) and all(
+            gate.get("readiness") == "approved"
+            and gate.get("decision") == "allow_coach_style"
+            and gate.get("covers_requested")
+            for gate in report["gate_reports"]
+        )
+        report["gate_readiness"] = "approved" if report["gate_approved"] else "review"
+        if not report["gate_approved"]:
+            report["missing"].append("approved_coach_style_gate")
+
+        report["missing"] = self._dedupe_strings(report["missing"])
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["ready"] = False
+            report["decision"] = "block_coach_style_benchmark"
+            report["reason"] = "coach-style preflight inputs could not be loaded"
+        elif report["missing"]:
+            report["readiness"] = "review"
+            report["ready"] = False
+            report["decision"] = "hold_coach_style_benchmark"
+            report["reason"] = "coach-style benchmark needs approved gate and score-changing ablation evidence"
+        else:
+            report["readiness"] = "approved"
+            report["ready"] = True
+            report["decision"] = "allow_coach_style_benchmark"
+            report["reason"] = "coach-style benchmark has approved gate and offline ablation evidence"
+        return report
+
     def _attach_action_value_transition_preflight_feedback(self, report: dict, feedback_items: list[tuple[str, dict]]):
         if not feedback_items:
             report["missing"].append("action_value_feedback")
@@ -12146,6 +12320,23 @@ class BenchmarkRunner:
             json.dump(report, f, indent=2, ensure_ascii=False)
         logger.info(f"Action-value transition preflight saved to {path}")
 
+    def save_coach_style_preflight_report(
+        self,
+        report: dict,
+        filename: str = "coach_style_preflight.json",
+    ):
+        path = filename
+        if not os.path.isabs(path) and not os.path.dirname(path):
+            os.makedirs(self.output_dir, exist_ok=True)
+            path = os.path.join(self.output_dir, path)
+        else:
+            parent = os.path.dirname(path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+        logger.info(f"Coach-style preflight saved to {path}")
+
     def save_skill_lifecycle_report(
         self,
         report: dict,
@@ -12355,6 +12546,38 @@ class BenchmarkRunner:
         for check in report.get("checks", [])[:10]:
             marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
             print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+
+    def print_coach_style_preflight_report(self, report: dict):
+        print("\nCoach Style Benchmark Preflight")
+        print(f"  suite: {report.get('suite', 'm1')}")
+        print(f"  styles: {', '.join(report.get('styles', [])) or 'none'}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  evidence: "
+            f"ablations={len(report.get('ablation_sources', []))}, "
+            f"gates={report.get('gate_count', 0)}, "
+            f"cases={report.get('case_count', 0)}, "
+            f"score_changed={report.get('score_changed_count', 0)}"
+        )
+        if report.get("approved_styles"):
+            print(f"  approved styles: {', '.join(report.get('approved_styles', []))}")
+        for source in report.get("ablation_sources", [])[:6]:
+            print(
+                f"  ablation {source.get('source')}: "
+                f"cases={source.get('case_count', 0)}, "
+                f"score_changed={source.get('score_changed_count', 0)}"
+            )
+        for gate in report.get("gate_reports", [])[:6]:
+            print(
+                f"  gate {gate.get('path')}: {gate.get('readiness')} "
+                f"covers_requested={gate.get('covers_requested')}"
+            )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
         for error in report.get("errors", []):
             print(f"  error: {error}")
 

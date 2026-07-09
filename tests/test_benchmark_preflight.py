@@ -4114,6 +4114,54 @@ def test_coach_style_gate_controls_style_readiness():
     print("PASS: Coach style gate controls style readiness")
 
 
+def test_coach_style_preflight_requires_gate_and_ablation_effect():
+    tmpdir = tempfile.mkdtemp()
+    runner = BenchmarkRunner(Config())
+    ablation = runner.run_coach_style_ablation(styles=["explorer"])
+    ablation_payload = {
+        "changed_count": ablation.changed_count,
+        "score_changed_count": ablation.score_changed_count,
+        "cases": [asdict(case) for case in ablation.cases],
+    }
+    gate_payload = runner.build_coach_style_gate(
+        coach_ablation_reports=[ablation_payload],
+        styles=["explorer"],
+    )
+    ablation_path = os.path.join(tmpdir, "coach_style_ablation.json")
+    gate_path = os.path.join(tmpdir, "coach_style_gate.json")
+    with open(ablation_path, "w", encoding="utf-8") as f:
+        json.dump(ablation_payload, f)
+    with open(gate_path, "w", encoding="utf-8") as f:
+        json.dump(gate_payload, f)
+
+    approved_runner = BenchmarkRunner(Config(
+        coach_style="explorer",
+        coach_style_ablation_paths=[ablation_path],
+        coach_style_gate_paths=[gate_path],
+    ))
+    approved = approved_runner.run_coach_style_preflight(suite="m1")
+
+    assert approved["ready"]
+    assert approved["readiness"] == "approved"
+    assert approved["decision"] == "allow_coach_style_benchmark"
+    assert approved["gate_approved"]
+    assert approved["approved_styles"] == ["explorer"]
+    assert approved["case_count"] == len(ablation.cases)
+    assert approved["score_changed_count"] >= 1
+
+    ungated_runner = BenchmarkRunner(Config(
+        coach_style="explorer",
+        coach_style_ablation_paths=[ablation_path],
+    ))
+    ungated = ungated_runner.run_coach_style_preflight(suite="m1")
+
+    assert not ungated["ready"]
+    assert ungated["readiness"] == "review"
+    assert "coach_style_gate" in ungated["missing"]
+    assert "approved_coach_style_gate" in ungated["missing"]
+    print("PASS: Coach style preflight requires gate and ablation effect")
+
+
 if __name__ == "__main__":
     test_preflight_report_without_network()
     test_bot_session_preflight_check()
@@ -4179,4 +4227,5 @@ if __name__ == "__main__":
     test_scheduling_ablation_replays_session_logs()
     test_coach_style_ablation_compares_curriculum_styles()
     test_coach_style_gate_controls_style_readiness()
+    test_coach_style_preflight_requires_gate_and_ablation_effect()
     print("\nBenchmark preflight tests PASSED")

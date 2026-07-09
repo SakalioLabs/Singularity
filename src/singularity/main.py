@@ -206,6 +206,11 @@ def main():
     bench_parser.add_argument("--skill-memory-quality-preflight", action="store_true", help="Run gate and offline ranking preflight before quality-feedback-assisted benchmarks")
     bench_parser.add_argument("--skill-memory-quality-preflight-output", type=str, default="", help="Optional JSON path for the skill-memory quality benchmark preflight report")
     _add_coaching_args(bench_parser)
+    bench_parser.add_argument("--coach-style-ablation", action="append", default=[], help="coach-style-ablation JSON used by benchmark coach-style preflight")
+    bench_parser.add_argument("--coach-style-gate", action="append", default=[], help="Approved coach-style-gate JSON required before coach-style benchmark runs")
+    bench_parser.add_argument("--coach-style-preflight", action="store_true", help="Run coach-style ablation/gate preflight before style-biased benchmarks")
+    bench_parser.add_argument("--coach-style-preflight-output", type=str, default="", help="Optional JSON path for the coach-style benchmark preflight report")
+    bench_parser.add_argument("--require-coach-style-goal-change", action="store_true", help="Require at least one top-goal change for each requested coach style")
     bench_parser.add_argument("--log-level", type=str, default="INFO")
     bench_parser.add_argument("--output", type=str, default="benchmark_results.json")
     bench_parser.add_argument("--preflight", action="store_true", help="Run readiness checks before benchmarks")
@@ -3313,6 +3318,8 @@ def main():
         enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
         enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
         coach_style=getattr(args, "coach_style", "") or "",
+        coach_style_ablation_paths=getattr(args, "coach_style_ablation", []) or [],
+        coach_style_gate_paths=getattr(args, "coach_style_gate", []) or [],
         enable_vision_analysis=not getattr(args, "no_vision_analysis", False),
         enable_visual_action_grounding=not getattr(args, "no_visual_action_grounding", False),
         mixed_policy_patch_paths=getattr(args, "mixed_policy_patch", []) or [],
@@ -3392,6 +3399,25 @@ def main():
             transition_preflight_output = getattr(args, "action_value_transition_preflight_output", "") or ""
             if transition_preflight_output:
                 runner.save_action_value_transition_preflight_report(report, transition_preflight_output)
+            if not report.get("ready"):
+                sys.exit(1)
+        coach_style_paths = getattr(args, "coach_style_ablation", []) or []
+        coach_gate_paths = getattr(args, "coach_style_gate", []) or []
+        coach_style = getattr(args, "coach_style", "") or ""
+        if (
+            getattr(args, "coach_style_preflight", False)
+            or coach_style_paths
+            or coach_gate_paths
+            or (coach_style and not getattr(args, "no_coaching_policy", False))
+        ):
+            report = runner.run_coach_style_preflight(
+                suite=args.suite,
+                require_goal_change=getattr(args, "require_coach_style_goal_change", False),
+            )
+            runner.print_coach_style_preflight_report(report)
+            coach_preflight_output = getattr(args, "coach_style_preflight_output", "") or ""
+            if coach_preflight_output:
+                runner.save_coach_style_preflight_report(report, coach_preflight_output)
             if not report.get("ready"):
                 sys.exit(1)
         if getattr(args, "policy_skill_ablation", False):

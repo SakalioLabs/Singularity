@@ -182,6 +182,7 @@
 - [x] Add Coachable Agents-style `CoachPolicy` so `--coach-style` can bias LLM planner context and autonomous curriculum ranking without bypassing tasks, verifier checks, safety gates, or memory gates.
 - [x] Add `coach-style-ablation` to compare baseline curriculum choices against advisory style-biased choices over default cases, JSON/JSONL case files, or session-log observations before live autonomous runs.
 - [x] Add `coach-style-gate` so saved style-ablation reports must prove per-style case coverage and score-changing evidence before a style is treated as benchmark-ready.
+- [x] Add benchmark-level `--coach-style-preflight` so style-biased benchmark suites require saved ablation evidence and approved `coach-style-gate` reports before live execution.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
