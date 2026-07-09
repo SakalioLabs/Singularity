@@ -1,7 +1,10 @@
 """Runtime profile loading and validation for gated Agent startup."""
+import hashlib
 import json
 import os
 from typing import Any
+
+from singularity.core.memory_policy import promptware_threat_flags
 
 
 LIST_FIELDS = {
@@ -55,6 +58,10 @@ GATE_FIELDS = {
 
 
 ARTIFACT_FIELDS = set(LIST_FIELDS) - GATE_FIELDS
+
+
+DEFAULT_SECURITY_SCAN_BYTES = 200_000
+DEFAULT_SECURITY_MAX_FINDINGS = 50
 
 
 def _canonical_profile_key(field: str) -> tuple[str, str]:
@@ -325,3 +332,226 @@ def _add_missing_runtime_profile_requirements(report: dict, profiles: list[dict]
         if required and not gate_paths:
             report["missing"].append(gate_field)
     report["missing"] = dedupe(report["missing"])
+
+
+def build_runtime_profile_security_audit(
+    profile_paths: list[str],
+    include_gates: bool = False,
+    max_scan_bytes: int = DEFAULT_SECURITY_SCAN_BYTES,
+    max_findings: int = DEFAULT_SECURITY_MAX_FINDINGS,
+) -> dict:
+    """Audit profile-referenced artifacts for promptware-like payloads."""
+    profiles, errors = load_runtime_profiles(profile_paths)
+    return build_runtime_profile_security_audit_from_profiles(
+        profiles,
+        profile_paths=profile_paths,
+        load_errors=errors,
+        include_gates=include_gates,
+        max_scan_bytes=max_scan_bytes,
+        max_findings=max_findings,
+    )
+
+
+def build_runtime_profile_security_audit_from_profiles(
+    profiles: list[dict],
+    profile_paths: list[str] = None,
+    load_errors: list[str] = None,
+    include_gates: bool = False,
+    max_scan_bytes: int = DEFAULT_SECURITY_SCAN_BYTES,
+    max_findings: int = DEFAULT_SECURITY_MAX_FINDINGS,
+) -> dict:
+    """Scan artifacts referenced by runtime profiles before live startup.
+
+    Findings intentionally avoid raw content snippets. Reports may be saved to
+    disk, so they expose only path metadata, JSON location, threat flags, and a
+    hash of the scanned unit.
+    """
+    max_scan_bytes = max(1, int(max_scan_bytes or DEFAULT_SECURITY_SCAN_BYTES))
+    max_findings = max(1, int(max_findings or DEFAULT_SECURITY_MAX_FINDINGS))
+    scan_fields = set(ARTIFACT_FIELDS)
+    if include_gates:
+        scan_fields.update(GATE_FIELDS)
+    report = {
+        "type": "runtime_profile_security_audit",
+        "readiness": "review",
+        "decision": "hold_runtime_profile_security",
+        "reason": "runtime profile artifacts need promptware audit",
+        "profile_paths": list(profile_paths or []),
+        "profile_count": len(profiles or []),
+        "include_gates": bool(include_gates),
+        "max_scan_bytes": max_scan_bytes,
+        "scanned_path_count": 0,
+        "scanned_record_count": 0,
+        "finding_count": 0,
+        "included_finding_count": 0,
+        "high_risk_count": 0,
+        "truncated_finding_count": 0,
+        "references": [],
+        "findings": [],
+        "missing": [],
+        "errors": list(load_errors or []),
+    }
+    if not profile_paths:
+        report["missing"].append("runtime_profile")
+
+    for field in sorted(scan_fields):
+        for path in collect_profile_list(profiles, field):
+            reference = _scan_runtime_profile_reference(
+                field,
+                path,
+                max_scan_bytes=max_scan_bytes,
+                remaining_findings=max_findings - len(report["findings"]),
+            )
+            report["references"].append(reference)
+            if reference.get("scanned"):
+                report["scanned_path_count"] += 1
+                report["scanned_record_count"] += int(reference.get("scanned_record_count") or 0)
+            for error in reference.get("errors", []):
+                report["errors"].append(f"{field}: {path}: {error}")
+            for finding in reference.get("findings", []):
+                if len(report["findings"]) >= max_findings:
+                    report["truncated_finding_count"] += 1
+                    continue
+                report["findings"].append(finding)
+            report["high_risk_count"] += int(reference.get("high_risk_count") or 0)
+
+    total_reference_findings = sum(int(reference.get("finding_count") or 0) for reference in report["references"])
+    report["finding_count"] = total_reference_findings
+    report["included_finding_count"] = len(report["findings"])
+    if any(reference.get("finding_count", 0) for reference in report["references"]):
+        report["truncated_finding_count"] += max(0, total_reference_findings - report["included_finding_count"])
+
+    if report["errors"]:
+        report["readiness"] = "error"
+        report["decision"] = "reject_runtime_profile_security"
+        report["reason"] = "runtime profile security audit could not scan every referenced input"
+    elif report["high_risk_count"]:
+        report["readiness"] = "rejected"
+        report["decision"] = "reject_runtime_profile_security"
+        report["reason"] = "runtime profile references promptware-like artifact content"
+    elif report["finding_count"]:
+        report["readiness"] = "review"
+        report["decision"] = "hold_runtime_profile_security"
+        report["reason"] = "runtime profile references artifacts that need security review"
+    elif profiles:
+        report["readiness"] = "approved"
+        report["decision"] = "allow_runtime_profile_security"
+        report["reason"] = "runtime profile artifacts passed promptware audit"
+    return report
+
+
+def _scan_runtime_profile_reference(
+    field: str,
+    path: str,
+    max_scan_bytes: int,
+    remaining_findings: int,
+) -> dict:
+    reference = {
+        "field": field,
+        "path": path,
+        "scanned": False,
+        "bytes_scanned": 0,
+        "is_json": False,
+        "scanned_record_count": 0,
+        "finding_count": 0,
+        "high_risk_count": 0,
+        "findings": [],
+        "errors": [],
+    }
+    if not os.path.exists(path):
+        reference["errors"].append("missing referenced path")
+        return reference
+    if os.path.isdir(path):
+        reference["errors"].append("referenced path is a directory")
+        return reference
+
+    try:
+        with open(path, "rb") as f:
+            data = f.read(max_scan_bytes + 1)
+    except Exception as e:
+        reference["errors"].append(str(e))
+        return reference
+
+    if len(data) > max_scan_bytes:
+        reference["errors"].append(f"referenced file exceeds max_scan_bytes={max_scan_bytes}")
+        data = data[:max_scan_bytes]
+    reference["bytes_scanned"] = len(data)
+    reference["scanned"] = True
+    text = data.decode("utf-8-sig", errors="replace")
+
+    payload = None
+    try:
+        payload = json.loads(text)
+        reference["is_json"] = True
+    except Exception:
+        payload = None
+
+    units = list(_iter_runtime_profile_scan_units(payload if reference["is_json"] else text))
+    if not units:
+        units = [("$", text)]
+    found = []
+    for record_path, content in units:
+        reference["scanned_record_count"] += 1
+        flags = promptware_threat_flags(content)
+        if not flags:
+            continue
+        finding = _runtime_profile_security_finding(field, path, record_path, content, flags)
+        found.append(finding)
+        if finding.get("severity") == "high":
+            reference["high_risk_count"] += 1
+        if len(reference["findings"]) < max(0, remaining_findings):
+            reference["findings"].append(finding)
+
+    if not found and reference["is_json"]:
+        reference["scanned_record_count"] += 1
+        flags = promptware_threat_flags(payload)
+        if flags:
+            finding = _runtime_profile_security_finding(field, path, "$", payload, flags)
+            found.append(finding)
+            if finding.get("severity") == "high":
+                reference["high_risk_count"] += 1
+            if len(reference["findings"]) < max(0, remaining_findings):
+                reference["findings"].append(finding)
+
+    reference["finding_count"] = len(found)
+    return reference
+
+
+def _iter_runtime_profile_scan_units(value, path: str = "$"):
+    if isinstance(value, str):
+        yield path, value
+    elif isinstance(value, dict):
+        for key, child in value.items():
+            key_text = str(key)
+            yield f"{path}.{_safe_record_path_part(key_text)}.__key__", key_text
+            yield from _iter_runtime_profile_scan_units(
+                child,
+                f"{path}.{_safe_record_path_part(key_text)}",
+            )
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            yield from _iter_runtime_profile_scan_units(child, f"{path}[{index}]")
+
+
+def _runtime_profile_security_finding(field: str, path: str, record_path: str, content, flags: list[str]) -> dict:
+    content_hash = hashlib.sha256(content_text_for_hash(content).encode("utf-8", errors="replace")).hexdigest()
+    return {
+        "field": field,
+        "path": path,
+        "record_path": record_path,
+        "severity": "high" if "promptware_threat" in flags else "review",
+        "flags": sorted(set(flags)),
+        "content_sha256": content_hash,
+    }
+
+
+def content_text_for_hash(content) -> str:
+    try:
+        return json.dumps(content, ensure_ascii=False, sort_keys=True, default=str)
+    except Exception:
+        return str(content or "")
+
+
+def _safe_record_path_part(value: str) -> str:
+    cleaned = "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in str(value or ""))
+    return cleaned[:80] or "field"

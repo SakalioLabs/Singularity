@@ -277,7 +277,8 @@
 - [ ] Run Agent-backed `collab-benchmark --mixed-policy-ablation --mixed-policy-patch ...` on BM-701 with live role bridges.
 - [ ] Use `mixed-initiative-policy-gate` on real approved patch reports before making a patch part of default runtime configuration.
 - [ ] Fill repeatable runtime profiles for M1/M2/M7 with real approved gate reports and validate them before live runs.
-- [ ] Add runtime-profile security audit for referenced memory/correction artifacts so persistent promptware cannot enter live profiles through approved-looking paths.
+- [x] Add runtime-profile security audit for referenced memory/correction artifacts so persistent promptware cannot enter live profiles through approved-looking paths.
+- [ ] Run `runtime-profile-security-audit` on real M1/M2/M7 runtime profiles and inspect any rejected artifacts before live runs.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
 - [ ] Run an unknown visual/environment goal with `--goal-critic --goal-critic-gate ...` and inspect `goal_verification_metrics` plus critic evidence in the session log.
 - [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces, build `goal-verification-critic-gate`, and compare completion judgments against manual review.

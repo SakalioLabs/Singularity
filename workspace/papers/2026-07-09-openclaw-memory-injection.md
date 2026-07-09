@@ -16,5 +16,6 @@
 **Singularity Adaptation**:
   - `MemoryLifecyclePolicy` already routes promptware-like memory writes to review or suppression, and `memory-promptware-report` audits durable memory stores.
   - `runtime-profile-build` now packages only explicit gate/artifact paths and safe switches, then validates approved gates and path existence before a profile can be used as live configuration.
+  - `runtime-profile-security-audit` scans profile-referenced feedback, correction, patch, value, and style artifacts with the same promptware detector before live startup. Reports identify path/field/location/hash without copying raw artifact text into the saved audit.
   - Runtime profiles deliberately do not store provider keys, prompts, or raw memory contents; secrets stay in environment variables or the current operator-controlled shell.
-**Next Action**: Add a runtime-profile security audit that checks referenced artifacts for promptware summaries and blocks profiles that include unvalidated memory/correction files.
+**Next Action**: Run `runtime-profile-security-audit` on real M1/M2/M7 runtime profiles, then inspect and quarantine any rejected referenced artifacts before live runs.

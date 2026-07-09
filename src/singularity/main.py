@@ -10,6 +10,8 @@ from singularity.core.runtime_profile import (
     build_runtime_profile_payload,
     build_runtime_profile_report,
     build_runtime_profile_report_from_profiles,
+    build_runtime_profile_security_audit,
+    build_runtime_profile_security_audit_from_profiles,
     load_runtime_profiles,
     merge_arg_profile_list,
     profile_bool_arg,
@@ -91,6 +93,37 @@ def _print_runtime_profile_report(report: dict):
         )
         if gate.get("reason"):
             print(f"      {gate.get('reason')}")
+    for error in report.get("errors", []):
+        print(f"  error: {error}")
+
+
+def _print_runtime_profile_security_audit(report: dict):
+    print("\nRuntime Profile Security Audit")
+    print(f"  readiness: {report.get('readiness', 'unknown')}")
+    print(f"  decision: {report.get('decision', 'unknown')}")
+    print(f"  reason: {report.get('reason', '')}")
+    print(
+        "  inputs: "
+        f"profiles={report.get('profile_count', 0)}, "
+        f"paths_scanned={report.get('scanned_path_count', 0)}, "
+        f"records_scanned={report.get('scanned_record_count', 0)}, "
+        f"findings={report.get('finding_count', 0)} "
+        f"(included={report.get('included_finding_count', report.get('finding_count', 0))})"
+    )
+    if report.get("include_gates"):
+        print("  scope: artifacts and gates")
+    else:
+        print("  scope: artifacts")
+    for finding in report.get("findings", [])[:12]:
+        print(
+            f"  [!] {finding.get('field')} {finding.get('path')} "
+            f"{finding.get('record_path')}: {','.join(finding.get('flags', []))}"
+        )
+        print(f"      sha256={finding.get('content_sha256', '')}")
+    if report.get("truncated_finding_count"):
+        print(f"  truncated findings: {report.get('truncated_finding_count')}")
+    if report.get("missing"):
+        print(f"  missing: {', '.join(report.get('missing', []))}")
     for error in report.get("errors", []):
         print(f"  error: {error}")
 
@@ -773,6 +806,17 @@ def main():
     runtime_profile_parser.add_argument("--output", type=str, default="", help="Optional JSON validation report path")
     runtime_profile_parser.add_argument("--log-level", type=str, default="INFO")
 
+    runtime_profile_security_parser = subparsers.add_parser(
+        "runtime-profile-security-audit",
+        help="Audit runtime profile artifacts for promptware-like payloads before live Agent startup",
+    )
+    runtime_profile_security_parser.add_argument("--runtime-profile", action="append", default=[], help="Runtime profile JSON to audit")
+    runtime_profile_security_parser.add_argument("--include-gates", action="store_true", help="Also scan referenced gate reports")
+    runtime_profile_security_parser.add_argument("--max-scan-bytes", type=int, default=200000, help="Maximum bytes to scan per referenced file")
+    runtime_profile_security_parser.add_argument("--max-findings", type=int, default=50, help="Maximum findings to include in the saved report")
+    runtime_profile_security_parser.add_argument("--output", type=str, default="", help="Optional JSON audit report path")
+    runtime_profile_security_parser.add_argument("--log-level", type=str, default="INFO")
+
     runtime_profile_build_parser = subparsers.add_parser(
         "runtime-profile-build",
         help="Build a reusable runtime profile JSON from approved gates and feedback artifacts",
@@ -1164,7 +1208,7 @@ def main():
     runtime_profile_errors = []
     if getattr(args, "runtime_profile", []):
         runtime_profiles, runtime_profile_errors = load_runtime_profiles(getattr(args, "runtime_profile", []) or [])
-        if runtime_profile_errors and args.command != "runtime-profile-validate":
+        if runtime_profile_errors and args.command not in {"runtime-profile-validate", "runtime-profile-security-audit"}:
             for error in runtime_profile_errors:
                 print(f"runtime profile error: {error}")
             sys.exit(1)
@@ -1183,23 +1227,60 @@ def main():
             sys.exit(1)
         return
 
+    if args.command == "runtime-profile-security-audit":
+        report = build_runtime_profile_security_audit(
+            getattr(args, "runtime_profile", []) or [],
+            include_gates=getattr(args, "include_gates", False),
+            max_scan_bytes=getattr(args, "max_scan_bytes", 200000),
+            max_findings=getattr(args, "max_findings", 50),
+        )
+        _print_runtime_profile_security_audit(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"error", "rejected"}:
+            sys.exit(1)
+        return
+
     if args.command == "runtime-profile-build":
         payload = _runtime_profile_payload_from_args(args)
         profile_label = getattr(args, "output", "") or f"inline:{payload.get('name', 'runtime_profile')}"
         report = build_runtime_profile_report_from_profiles([payload], profile_paths=[profile_label])
-        if getattr(args, "output", ""):
+        security_report = build_runtime_profile_security_audit_from_profiles([payload], profile_paths=[profile_label])
+        if (
+            getattr(args, "output", "")
+            and report.get("readiness") not in {"error", "rejected"}
+            and security_report.get("readiness") not in {"error", "rejected"}
+        ):
             output_dir = os.path.dirname(args.output)
             if output_dir:
                 os.makedirs(output_dir, exist_ok=True)
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2, ensure_ascii=False)
             print(f"Runtime profile saved to {args.output}")
-        else:
+        elif not getattr(args, "output", ""):
             print(json.dumps(payload, indent=2, ensure_ascii=False))
+        else:
+            print("Runtime profile not saved because validation or security audit did not approve it")
         _print_runtime_profile_report(report)
-        if report.get("readiness") in {"error", "rejected"}:
+        _print_runtime_profile_security_audit(security_report)
+        if report.get("readiness") in {"error", "rejected"} or security_report.get("readiness") in {"error", "rejected"}:
             sys.exit(1)
         return
+
+    if runtime_profiles:
+        security_report = build_runtime_profile_security_audit_from_profiles(
+            runtime_profiles,
+            profile_paths=getattr(args, "runtime_profile", []) or [],
+            load_errors=runtime_profile_errors,
+        )
+        if security_report.get("readiness") in {"error", "rejected"}:
+            _print_runtime_profile_security_audit(security_report)
+            sys.exit(1)
 
     # Handle skills command (no server needed)
     if args.command == "skills":
