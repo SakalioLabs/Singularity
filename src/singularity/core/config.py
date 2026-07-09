@@ -37,6 +37,9 @@ class Config:
     enable_task_continuity_context: bool = True
     enable_task_readiness_context: bool = True
     enable_task_readiness_recovery: bool = True
+    enable_bounded_planning_context: bool = True
+    planning_memory_read_limit_chars: int = 600
+    planning_memory_cycle_limit_chars: int = 2400
     enable_skill_memory_context: bool = True
     enable_curriculum_planner_context: bool = True
     enable_knowledge_correction_context: bool = True

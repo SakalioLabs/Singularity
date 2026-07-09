@@ -156,6 +156,22 @@ class FakeSessionLogger:
 
     def log_observation(self, observation: dict):
         self.observations.append(observation)
+        self.log("observation", observation)
+
+    def log_plan(self, plan: dict):
+        self.log("plan", plan)
+
+    def log_goal_start(self, goal: str):
+        self.log("goal_start", {"goal": goal})
+
+    def log_goal_end(self, goal: str, result: dict):
+        self.log("goal_end", {"goal": goal, "result": result})
+
+    def log_error(self, error: str, context: dict = None):
+        self.log("error", {"error": error, "context": context or {}}, level="ERROR")
+
+    def get_summary(self):
+        return {"event_count": len(self.events)}
 
 
 class FakeMemoryWriter:
@@ -185,6 +201,28 @@ class FakeRelevantMemory:
             "filter_reasons": {"superseded": 1},
             "filtered_ids": ["old-route"],
         }
+
+
+class FakeBoundedPlanningMemory(FakeRelevantMemory):
+    def __init__(self):
+        super().__init__()
+        self.last_retrieval_trace = {}
+
+    def get_relevant_memory(self, query: str, current_state: dict = None) -> str:
+        self.calls.append({"query": query, "current_state": current_state})
+        return "relevant-memory-" * 20
+
+    def task_memory_context(self, goal: str, task=None, current_state: dict = None, limit: int = 3) -> str:
+        return "task-memory-" * 20
+
+    def task_continuity_context(self, goal: str, current_state: dict = None, limit: int = 3) -> str:
+        return "continuity-memory-" * 20
+
+    def get_context_window(self) -> str:
+        return "working-context-" * 20
+
+    def get_last_retrieval_trace(self) -> dict:
+        return dict(self.last_retrieval_trace)
 
 
 class FakeObserver:
@@ -3652,6 +3690,243 @@ def test_agent_visual_action_grounding_prepends_resource_focus():
     print("PASS: Agent visual action grounding prepends resource focus")
 
 
+def test_rule_planner_uses_bounded_typed_memory_contract():
+    tmpdir = tempfile.mkdtemp()
+    agent = object.__new__(Agent)
+    agent.config = Config(
+        planning_memory_read_limit_chars=24,
+        planning_memory_cycle_limit_chars=72,
+    )
+    agent.memory = FakeBoundedPlanningMemory()
+    agent.memory_policy = None
+    agent.rule_planner = RuleBasedPlanner()
+    agent.task_system = TaskSystem()
+    agent.session_logger = FakeSessionLogger()
+    observation = {
+        "inventory": {},
+        "position": {"x": 0, "y": 64, "z": 0},
+        "trees_found": [],
+    }
+
+    plan = agent._think_rule(observation, "Gather 3 oak logs")
+    agent._log_memory_read(
+        query="post-plan scheduler",
+        layer="causal",
+        memory_type="opportunity_context",
+        operation="retrieve",
+        result="not part of the planner packet" * 10,
+        source="causal_scheduler",
+        planning_context=False,
+    )
+    agent.session_logger.log_plan(plan)
+
+    reads = [event for event in agent.session_logger.events if event["type"] == "memory_read"]
+    contract = plan["planning_context_contract"]
+    assert len(reads) == 4
+    assert sum(1 for event in reads if event["data"]["planning_context"]) == 3
+    assert contract["bounded_ok"] is True
+    assert contract["memory_read_count"] == 3
+    assert contract["typed_layer_count"] == 3
+    assert contract["schema_version"] == 2
+    assert contract["total_result_chars"] == 70
+    assert contract["total_separator_chars"] == 2
+    assert contract["total_context_chars"] == 72
+    assert len(agent._last_planning_memory_context) == 72
+    assert all(segment["result_chars"] <= 24 for segment in contract["segments"])
+    assert plan["memory_context_available"] is True
+    assert plan["memory_context_influenced_plan"] is False
+
+    log_path = os.path.join(tmpdir, "bounded_rule.jsonl")
+    with open(log_path, "w", encoding="utf-8") as f:
+        for event in agent.session_logger.events:
+            f.write(json.dumps(event) + "\n")
+    report = BenchmarkRunner(Config()).run_bounded_context_report_from_logs(
+        [log_path],
+        max_read_chars=24,
+        max_cycle_chars=72,
+    )
+    case = report.cases[0]
+    assert case.bounded_cycle_count == 1
+    assert case.unbounded_cycle_count == 0
+    assert case.cycles[0].memory_read_count == 3
+
+    disabled_events = json.loads(json.dumps(agent.session_logger.events))
+    for event in disabled_events:
+        if event["type"] == "planning_context_contract":
+            event["data"]["enabled"] = False
+            event["data"]["bounded_ok"] = False
+        if event["type"] == "plan":
+            event["data"]["planning_context_contract"]["enabled"] = False
+            event["data"]["planning_context_contract"]["bounded_ok"] = False
+    disabled_log_path = os.path.join(tmpdir, "disabled_bounded_rule.jsonl")
+    with open(disabled_log_path, "w", encoding="utf-8") as f:
+        for event in disabled_events:
+            f.write(json.dumps(event) + "\n")
+    disabled_report = BenchmarkRunner(Config()).run_bounded_context_report_from_logs(
+        [disabled_log_path],
+        max_read_chars=24,
+        max_cycle_chars=72,
+    )
+    disabled_cycle = disabled_report.cases[0].cycles[0]
+    assert disabled_cycle.bounded_ok is False
+    assert "bounded_contract_disabled" in disabled_cycle.issues
+    assert "bounded_contract_violation" in disabled_cycle.issues
+    disabled_feedback = BenchmarkRunner(Config()).bounded_context_feedback(disabled_report)
+    assert any(
+        hint["bounded_context_policy"] == "enforce_bounded_context_contract"
+        for hint in disabled_feedback["policy_hints"]
+    )
+    print("PASS: Rule planner uses bounded typed memory contract")
+
+
+def test_llm_planner_uses_bounded_typed_memory_contract():
+    agent = object.__new__(Agent)
+    agent.config = Config(
+        planning_memory_read_limit_chars=20,
+        planning_memory_cycle_limit_chars=80,
+    )
+    agent.memory = FakeBoundedPlanningMemory()
+    agent.memory_policy = None
+    agent.task_system = TaskSystem()
+    agent.skill_library = SkillLibrary(storage_path=os.path.join(tempfile.mkdtemp(), "skills"), persist=False)
+    agent.session_logger = FakeSessionLogger()
+    agent.planner = FakeCapturePlanner()
+    agent._visual_memory_context = lambda goal: ""
+    agent._visual_action_context = lambda goal, observation: ""
+    agent._coach_context = lambda goal, observation: ""
+    agent._curriculum_context = lambda goal, observation: ""
+    agent._self_evolution_context = lambda goal, observation: ""
+    agent._knowledge_correction_context = lambda goal, observation: ""
+    agent._task_precondition_context = lambda goal, observation: ""
+    agent._skill_memory_context = lambda goal, observation: ""
+    agent._plan_cache_lookup = lambda goal, observation: None
+    agent._record_plan_cache_signature = lambda *args, **kwargs: None
+
+    plan = agent._think_llm(
+        {"inventory": {}, "position": {"x": 0, "y": 64, "z": 0}},
+        "Gather 3 oak logs",
+    )
+    reads = [event for event in agent.session_logger.events if event["type"] == "memory_read"]
+    contract = plan["planning_context_contract"]
+
+    assert len(reads) == 4
+    assert all(event["data"]["planning_context"] for event in reads)
+    assert all(event["data"]["result_chars"] <= 20 for event in reads)
+    assert contract["bounded_ok"] is True
+    assert contract["memory_read_count"] == 4
+    assert contract["total_result_chars"] == 77
+    assert contract["total_separator_chars"] == 3
+    assert contract["total_context_chars"] == 80
+    assert len(agent._last_planning_memory_context) == 80
+    assert "relevant-memory" in agent.planner.calls[0]["memory_context"]
+    print("PASS: LLM planner uses bounded typed memory contract")
+
+
+def test_autonomous_loop_logs_machine_checkable_subgoal_events():
+    class GoalGenerator:
+        def next_goal(self, observation):
+            return "Gather 3 oak logs"
+
+    class Explorer:
+        landmarks = []
+
+        def set_base(self, x, y, z):
+            self.base = (x, y, z)
+
+        def should_return(self, position, inventory_count):
+            return False, ""
+
+        def record_position(self, position):
+            pass
+
+    class Curriculum:
+        def __init__(self):
+            self.outcomes = []
+
+        def record_goal_outcome(self, goal, success, cycles):
+            self.outcomes.append((goal, success, cycles))
+
+        def summary(self):
+            return {"outcome_count": len(self.outcomes)}
+
+    class Verification:
+        def to_dict(self):
+            return {"achieved": True, "reason": "fixture inventory target reached"}
+
+    class OpportunisticTaskSystem:
+        def __init__(self):
+            self.task = type("Task", (), {"id": "queued-task", "title": "Explore nearby frontier"})()
+            self.completed = []
+
+        def get_next_task(self, current_state):
+            return self.task
+
+        def complete_task(self, task_id, result):
+            self.completed.append((task_id, result))
+
+    observation = {
+        "position": {"x": 0, "y": 64, "z": 0},
+        "inventory": {"oak_log": 3},
+        "inventory_count": 3,
+        "nearby_blocks": [{"name": "oak_log"}],
+        "health": 20,
+    }
+    agent = object.__new__(Agent)
+    agent.config = Config()
+    agent.session_logger = FakeSessionLogger()
+    agent.goal_generator = GoalGenerator()
+    agent.explorer = Explorer()
+    agent.curriculum = Curriculum()
+    agent.task_system = OpportunisticTaskSystem()
+    agent._observe = lambda: dict(observation)
+    agent._select_autonomous_goal = lambda state, fallback: fallback
+    agent._think = lambda state, override_goal=None: {
+        "status": "complete",
+        "reasoning": "inventory target reached",
+        "actions": [],
+    }
+    def verify_original_goal(goal, *args, **kwargs):
+        assert goal == "Gather 3 oak logs"
+        return True, Verification()
+
+    agent._goal_is_verified = verify_original_goal
+    agent._accept_planned_tasks = lambda: None
+    agent._record_task_continuity = lambda *args, **kwargs: None
+    agent._state_with_causal_context = lambda state, goal="": state
+    agent._write_memory_episode = lambda *args, **kwargs: None
+    agent._write_memory_context = lambda *args, **kwargs: None
+
+    result = agent.run_autonomous(max_goals=1, max_cycles_per_goal=1)
+    event_types = [event["type"] for event in agent.session_logger.events]
+    subgoal_end = next(
+        event for event in agent.session_logger.events
+        if event["type"] == "goal_end" and event["data"].get("goal") == "Gather 3 oak logs"
+    )
+
+    assert result["goals_completed"] == 1
+    assert event_types.count("observation") == 2
+    assert "plan" in event_types
+    assert "auto_goal" in event_types
+    assert "auto_goal_complete" in event_types
+    assert "opportunity_task" in event_types
+    assert "autonomous_start" in event_types
+    assert "autonomous_end" in event_types
+    assert subgoal_end["data"]["result"]["success"] is True
+    assert agent.task_system.completed == []
+
+    tmpdir = tempfile.mkdtemp()
+    log_path = os.path.join(tmpdir, "autonomous.jsonl")
+    with open(log_path, "w", encoding="utf-8") as f:
+        for event in agent.session_logger.events:
+            f.write(json.dumps(event) + "\n")
+    exploration = BenchmarkRunner(Config()).run_exploration_trace_report_from_logs([log_path])
+    assert exploration.completed_goal_count == 1
+    assert exploration.cases[0].goal_count == 1
+    assert exploration.cases[0].auto_goal_count == 1
+    assert exploration.cases[0].plan_count == 1
+    print("PASS: Autonomous loop logs machine-checkable subgoal events")
+
+
 if __name__ == "__main__":
     test_knowledge_base_loads_recipes()
     test_agent_replaces_blocked_llm_plan_with_rule_fallback()
@@ -3736,4 +4011,7 @@ if __name__ == "__main__":
     test_agent_visual_action_grounding_prepends_danger_retreat()
     test_agent_visual_action_grounding_prepends_resource_approach()
     test_agent_visual_action_grounding_prepends_resource_focus()
+    test_rule_planner_uses_bounded_typed_memory_contract()
+    test_llm_planner_uses_bounded_typed_memory_contract()
+    test_autonomous_loop_logs_machine_checkable_subgoal_events()
     print("\nMemory/task system tests PASSED")

@@ -321,6 +321,13 @@
 - [ ] Run `visual-action-ablation --session-log` on real screenshot-backed traces and compare mined cases against the built-in visual grounding cases.
 - [ ] Use `visual-review-pipeline --run-ablations` on real traces to inspect promotion, goal, and visual-action ablation summaries in one report.
 - [ ] Run `benchmark --suite m1 --preflight --visual-action-ablation` once the Minecraft server and screenshot-capable bridge are live.
+- [x] Enforce separator-aware per-read and per-decision budgets over typed memory reads for both rule and LLM planning, with a schema-v2 runtime contract attached to every plan.
+- [x] Mark causal scheduler reads as non-planning evidence and make bounded-context replay reject explicitly disabled or violated runtime contracts.
+- [x] Emit non-nested autonomous start/end, observation, plan, selected-goal, and subgoal outcome events so M5 completion evidence is machine-countable.
+- [x] Keep queued opportunistic tasks separate from the current planned goal so verification and `goal_end` records cannot silently refer to a different task.
+- [ ] Collect fresh M3/M5 live sessions and confirm bounded-context cycles, explicit memory reads, autonomous goal completion, and exploration coverage improve over the 37-session baseline.
+- [ ] Extend `TaskContinuityRecord` with parent checkpoint, branch, and revision provenance before implementing MAGE-style automatic branch restoration.
+- [ ] Compare SelfMem-style planning-memory budget/layer variants offline, then promote only variants with held-out transfer and runtime-cost evidence.
 
 ## Research Priorities
 - [ ] Run live policy-skill benchmark ablation after Minecraft server and bot bridge are ready.

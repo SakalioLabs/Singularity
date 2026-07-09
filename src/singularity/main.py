@@ -396,6 +396,26 @@ def _add_task_continuity_args(parser):
     )
 
 
+def _add_bounded_planning_context_args(parser):
+    parser.add_argument(
+        "--no-bounded-planning-context",
+        action="store_true",
+        help="Disable per-decision typed memory character budgets",
+    )
+    parser.add_argument(
+        "--planning-memory-read-limit",
+        type=int,
+        default=600,
+        help="Maximum characters returned by one planner memory read",
+    )
+    parser.add_argument(
+        "--planning-memory-cycle-limit",
+        type=int,
+        default=2400,
+        help="Maximum memory characters assembled for one planner decision",
+    )
+
+
 def _add_knowledge_correction_args(parser):
     parser.add_argument(
         "--knowledge-correction-feedback",
@@ -537,6 +557,7 @@ def main():
     run_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
     _add_goal_critic_runtime_gate_args(run_parser)
     _add_task_continuity_args(run_parser)
+    _add_bounded_planning_context_args(run_parser)
     run_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     run_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     run_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
@@ -579,6 +600,7 @@ def main():
     auto_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
     _add_goal_critic_runtime_gate_args(auto_parser)
     _add_task_continuity_args(auto_parser)
+    _add_bounded_planning_context_args(auto_parser)
     auto_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     auto_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     auto_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
@@ -620,6 +642,7 @@ def main():
     bench_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
     _add_goal_critic_runtime_gate_args(bench_parser)
     _add_task_continuity_args(bench_parser)
+    _add_bounded_planning_context_args(bench_parser)
     bench_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     bench_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     bench_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
@@ -5199,6 +5222,9 @@ def main():
         plan_cache_gate_paths=merge_arg_profile_list(args, "plan_cache_gate", runtime_profiles, "plan_cache_gate_paths"),
         plan_cache_min_confidence=getattr(args, "plan_cache_min_confidence", 0.75),
         enable_task_continuity_context=not getattr(args, "no_task_continuity_context", False),
+        enable_bounded_planning_context=not getattr(args, "no_bounded_planning_context", False),
+        planning_memory_read_limit_chars=max(1, int(getattr(args, "planning_memory_read_limit", 600) or 600)),
+        planning_memory_cycle_limit_chars=max(1, int(getattr(args, "planning_memory_cycle_limit", 2400) or 2400)),
         enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
         enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
         coach_style=profile_str_arg(args, "coach_style", runtime_profiles, "coach_style", default=""),

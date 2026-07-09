@@ -40,11 +40,13 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 - Added `capability-evidence-report` to reject unsupported M0-M7 completion claims from benchmark and runtime evidence.
 - Added machine-checkable M3/M5/M6 adapters with distinct-session counting and independent mechanism gates.
 - Generated tracked M3/M5/M6 evidence from all 37 existing sessions instead of treating missing reports as missing runs.
+- Added strict typed planning-memory budgets for both rule and LLM planning, including separator-aware packet accounting and explicit rejection when the runtime contract is disabled.
+- Added machine-checkable autonomous observation/plan/subgoal events and prevented queued tasks from silently retargeting an already generated plan.
 
 ## Next Acceptance Work
 
 1. Provision a Minecraft 1.20.4 test server after explicit EULA acceptance and restart the bridge.
 2. Re-run BM-001..005, diagnose failures, and collect three successful runs per task.
 3. Run BM-006..010 only after M1 is live-observed.
-4. Re-run M3/M5/M6 after restoring goal completion, bounded memory events, screenshot capture, and visual-action interventions.
+4. Re-run M3/M5 with the new bounded-memory and autonomous subgoal events; re-run M6 after screenshot capture and visual-action interventions are available.
 5. Start distinct M7 role bridges and run BM-701 against the single-agent baseline.

@@ -17,7 +17,25 @@ class RuleBasedPlanner:
         self._explore_offset = 0
         self.knowledge_base = knowledge_base or KnowledgeBase()
 
-    def plan_from_goal(self, goal: str, world_state: dict) -> dict:
+    def plan_from_goal(self, goal: str, world_state: dict, memory_context: str = "") -> dict:
+        """Plan deterministically while recording whether bounded memory was available."""
+        plan = self._plan_from_goal(goal, world_state)
+        if not isinstance(plan, dict):
+            return plan
+        result = dict(plan)
+        if str(memory_context or "").strip():
+            result["memory_context_available"] = True
+            result["memory_context_influenced_plan"] = False
+            result["reasoning"] = self._append_reasoning(
+                result.get("reasoning", ""),
+                "Bounded typed memory was available; deterministic rule selection remained world-state-driven",
+            )
+        else:
+            result["memory_context_available"] = False
+            result["memory_context_influenced_plan"] = False
+        return result
+
+    def _plan_from_goal(self, goal: str, world_state: dict) -> dict:
         goal_lower = goal.lower()
         inv = world_state.get("inventory", {})
         trees = world_state.get("trees_found", [])
@@ -48,6 +66,10 @@ class RuleBasedPlanner:
                     pos,
                 )
         return {"status": "blocked", "reasoning": f"No rule for goal: {goal}", "actions": []}
+
+    def _append_reasoning(self, existing: str, addition: str) -> str:
+        parts = [str(existing or "").strip(), str(addition or "").strip()]
+        return "; ".join(part for part in parts if part)
 
     def _plan_explore_frontier(self, goal: str, world_state: dict, pos: dict) -> dict:
         target = self._frontier_target(goal, pos)

@@ -1408,6 +1408,40 @@
 
 ---
 
+## P-078: SelfMem
+
+- **Title**: SelfMem: Self-Optimizing Memory for AI Agents
+- **Source**: https://arxiv.org/abs/2607.03726
+- **Year**: 2026
+- **Type**: Self-optimizing agent-memory framework
+- **Task Type**: Long-context memory strategy search and refinement with feedback
+- **Core Method**: Lets an agent use memory tools and evaluation feedback to refine its own memory strategy
+- **Memory**: Treats storage, retrieval, and summarization policy as an optimizable strategy rather than a fixed pipeline
+- **Key Results**: Reports 48.7%, 40.8%, and 41.9% gains over the strongest baseline at 100K, 500K, and 1M-token BEAM settings
+- **Scores**: R=4, N=5, R=4, E=4
+- **Value to Project**: Motivates gated offline optimization of typed Minecraft memory budgets and retrieval mixes
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-10-selfmem.md`
+
+---
+
+## P-079: MAGE Execution-State Memory
+
+- **Title**: Beyond Semantic Organization: Memory as Execution State Management for Long-Horizon Agents
+- **Source**: https://arxiv.org/abs/2606.06090
+- **Year**: 2026
+- **Type**: Hierarchical execution-state memory for long-horizon agents
+- **Task Type**: Interdependent decisions, checkpoint maintenance, error isolation, and branch revision
+- **Core Method**: Grow/Compress/Maintain/Revise operations over an active root-to-current state tree
+- **Memory**: Separates the active execution path from failed historical branches while retaining revision hints
+- **Key Results**: Reports 7.8--20.4 percentage-point success gains and 55.1% lower token use on MemoryArena
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Direct blueprint for branching task continuity and checkpoint-based failure recovery
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-10-mage-execution-state.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1489,3 +1523,5 @@
 | P-075 | CausalGame | 2026 | R5/N5/R4/E5 | P1 |
 | P-076 | WorldLines | 2026 | R5/N5/R4/E5 | P1 |
 | P-077 | Agent Memory System Characterization | 2026 | R5/N5/R4/E5 | P1 |
+| P-078 | SelfMem | 2026 | R4/N5/R4/E4 | P2 |
+| P-079 | MAGE Execution-State Memory | 2026 | R5/N5/R4/E5 | P1 |

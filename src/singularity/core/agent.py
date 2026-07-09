@@ -8,7 +8,7 @@ import json
 import time
 import logging
 from dataclasses import asdict
-from typing import Optional
+from typing import Callable, Optional
 
 from singularity.core.config import Config
 from singularity.core.runtime import RuntimeSupervisor
@@ -1467,11 +1467,16 @@ class Agent:
         total_cycles = 0
 
         logger.info("Starting autonomous survival mode")
-        self.session_logger.log_goal_start("AUTONOMOUS_MODE")
-        self._write_memory_episode("autonomous_start", {"max_goals": max_goals}, source="autonomous")
+        autonomous_start = {
+            "max_goals": max_goals,
+            "max_cycles_per_goal": max_cycles_per_goal,
+        }
+        self.session_logger.log("autonomous_start", autonomous_start)
+        self._write_memory_episode("autonomous_start", autonomous_start, source="autonomous")
 
         # Set base on first observation
         observation = self._observe()
+        self.session_logger.log_observation(observation)
         pos = observation.get("position", {})
         self.explorer.set_base(pos.get("x", 0), pos.get("y", 64), pos.get("z", 0))
 
@@ -1480,8 +1485,12 @@ class Agent:
             goal = self.goal_generator.next_goal(observation)
             goal = self._select_autonomous_goal(observation, goal)
             self._last_plan_cache_signature = START_PLAN_SIGNATURE
-            logger.info(f"[Autonomous] Goal {goals_completed + goals_failed + 1}/{max_goals}: {goal}")
-            self._write_memory_episode("auto_goal", {"goal": goal}, source="autonomous_goal")
+            goal_index = goals_completed + goals_failed + 1
+            goal_payload = {"goal": goal, "goal_index": goal_index, "max_goals": max_goals}
+            logger.info(f"[Autonomous] Goal {goal_index}/{max_goals}: {goal}")
+            self.session_logger.log("auto_goal", goal_payload)
+            self.session_logger.log_goal_start(goal)
+            self._write_memory_episode("auto_goal", goal_payload, source="autonomous_goal")
 
             # Check if we should return to base (M5)
             should_ret, reason = self.explorer.should_return(
@@ -1491,9 +1500,49 @@ class Agent:
             if should_ret:
                 logger.info(f"[Explorer] Returning to base: {reason}")
                 return_dir = self.explorer.get_return_direction(observation.get("position", {}))
-                self.action_controller.execute(
-                    {"type": "move_to", "parameters": {"x": return_dir["x"], "z": return_dir["z"]}},
-                    observation
+                return_action = {
+                    "type": "move_to",
+                    "parameters": {"x": return_dir["x"], "z": return_dir["z"]},
+                }
+                return_action, action_selection = self._select_action_for_execution(
+                    return_action,
+                    observation,
+                    goal,
+                    {"mode": "autonomous", "phase": "return_to_base"},
+                )
+                action_verification, rejected_result = self._verify_action_for_execution(
+                    return_action,
+                    observation,
+                    goal,
+                    {"mode": "autonomous", "phase": "return_to_base"},
+                )
+                before_return = observation
+                if rejected_result:
+                    return_result = rejected_result
+                else:
+                    return_result = self.action_controller.execute(return_action, observation)
+                    if action_verification:
+                        return_result["action_verification"] = action_verification
+                if action_selection:
+                    return_result["action_candidate_selection"] = action_selection
+                self._record_action_value(return_action, return_result, goal, action_verification)
+                observation = self._apply_action_feedback(
+                    return_action,
+                    return_result,
+                    observation,
+                    {"goal": goal, "mode": "autonomous", "phase": "return_to_base"},
+                )
+                self._log_action_event(
+                    return_action,
+                    return_result,
+                    pre_observation=before_return,
+                    post_observation=observation,
+                    context={"goal": goal, "mode": "autonomous", "phase": "return_to_base"},
+                )
+                self._write_memory_episode(
+                    "return_to_base",
+                    {"reason": reason, "action": return_action, "result": return_result},
+                    source="autonomous_return",
                 )
 
             # Pursue the goal
@@ -1504,6 +1553,7 @@ class Agent:
                 total_cycles += 1
                 try:
                     observation = self._observe()
+                    self.session_logger.log_observation(observation)
                     self.explorer.record_position(observation.get("position", {}))
                     self._write_memory_context(
                         {"auto_cycle": total_cycles, "goal": goal[:80]},
@@ -1511,6 +1561,7 @@ class Agent:
                     )
 
                     plan = self._think(observation, override_goal=goal)
+                    self.session_logger.log_plan(plan)
                     self._accept_planned_tasks()
                     self._record_task_continuity(
                         goal,
@@ -1521,14 +1572,16 @@ class Agent:
                     )
                     scheduling_state = self._state_with_causal_context(observation, goal)
                     next_task = self.task_system.get_next_task(scheduling_state)
+                    active_task = next_task if next_task and next_task.title == goal else None
                     if next_task and next_task.title != goal:
-                        logger.info(f"[Autonomous] Opportunistic task selected: {next_task.title}")
+                        logger.info(f"[Autonomous] Opportunistic task queued: {next_task.title}")
+                        opportunity_payload = {"from_goal": goal, "task": next_task.title}
+                        self.session_logger.log("opportunity_task", opportunity_payload)
                         self._write_memory_episode(
                             "opportunity_task",
-                            {"from_goal": goal, "task": next_task.title},
+                            opportunity_payload,
                             source="autonomous_scheduler",
                         )
-                        goal = next_task.title
 
                     verified, verification = self._goal_is_verified(
                         goal,
@@ -1537,8 +1590,8 @@ class Agent:
                     )
                     if verified:
                         goal_success = True
-                        if next_task:
-                            self.task_system.complete_task(next_task.id, {"goal": goal, "cycle": total_cycles, "verification": verification.to_dict()})
+                        if active_task:
+                            self.task_system.complete_task(active_task.id, {"goal": goal, "cycle": total_cycles, "verification": verification.to_dict()})
                         break
 
                     if plan.get("status") == "complete":
@@ -1550,11 +1603,11 @@ class Agent:
                         )
                         if accepted:
                             goal_success = True
-                            if next_task:
+                            if active_task:
                                 result = {"goal": goal, "cycle": total_cycles}
                                 if verification:
                                     result["verification"] = verification.to_dict()
-                                self.task_system.complete_task(next_task.id, result)
+                                self.task_system.complete_task(active_task.id, result)
                             break
                         logger.info("[Autonomous] Planner reported complete, but verifier needs more evidence")
                         continue
@@ -1684,12 +1737,18 @@ class Agent:
             if goal_success:
                 goals_completed += 1
                 logger.info(f"[Autonomous] Goal completed: {goal}")
-                self._write_memory_episode("auto_goal_complete", {"goal": goal, "cycles": cycle}, source="autonomous")
+                outcome = {"goal": goal, "cycles": cycle, "completed": True, "success": True}
+                self.session_logger.log("auto_goal_complete", outcome)
+                self.session_logger.log_goal_end(goal, outcome)
+                self._write_memory_episode("auto_goal_complete", outcome, source="autonomous")
                 self.curriculum.record_goal_outcome(goal, True, cycle)
             else:
                 goals_failed += 1
                 logger.info(f"[Autonomous] Goal failed/blocked: {goal}")
-                self._write_memory_episode("auto_goal_failed", {"goal": goal, "cycles": cycle}, source="autonomous")
+                outcome = {"goal": goal, "cycles": cycle, "completed": False, "success": False}
+                self.session_logger.log("auto_goal_failed", outcome)
+                self.session_logger.log_goal_end(goal, outcome)
+                self._write_memory_episode("auto_goal_failed", outcome, source="autonomous")
                 self.curriculum.record_goal_outcome(goal, False, cycle)
 
         result = {
@@ -1701,7 +1760,7 @@ class Agent:
             "curriculum": self.curriculum.summary(),
             "summary": self.session_logger.get_summary(),
         }
-        self.session_logger.log_goal_end("AUTONOMOUS_MODE", result)
+        self.session_logger.log("autonomous_end", result)
         self._write_memory_episode("autonomous_end", result, source="autonomous")
         logger.info(f"Autonomous mode ended: {goals_completed} completed, {goals_failed} failed, {total_cycles} total cycles")
         return result
@@ -1718,12 +1777,54 @@ class Agent:
         return self._apply_visual_action_grounding(plan, observation, goal)
 
     def _think_llm(self, observation: dict, goal: str) -> dict:
-        # Gather memory context for planning
-        memory_context = self._read_relevant_memory(goal, observation, source="planner_goal")
-        task_memory_context = self._task_memory_context(goal, observation)
-        task_continuity_context = self._task_continuity_context(goal, observation)
+        planning_memory, planning_contract = self._collect_bounded_planning_memory(
+            goal,
+            observation,
+            planner="llm",
+            readers=[
+                (
+                    "relevant_memory",
+                    "mixed",
+                    lambda limit: self._call_bounded_memory_reader(
+                        self._read_relevant_memory,
+                        goal,
+                        observation,
+                        source="planner_goal",
+                        max_chars=limit,
+                    ),
+                ),
+                (
+                    "task_memory",
+                    "task",
+                    lambda limit: self._call_bounded_memory_reader(
+                        self._task_memory_context,
+                        goal,
+                        observation,
+                        max_chars=limit,
+                    ),
+                ),
+                (
+                    "task_continuity",
+                    "task",
+                    lambda limit: self._call_bounded_memory_reader(
+                        self._task_continuity_context,
+                        goal,
+                        observation,
+                        max_chars=limit,
+                    ),
+                ),
+                (
+                    "context_window",
+                    "context",
+                    lambda limit: self._call_bounded_memory_reader(
+                        self._read_context_window,
+                        source="planner_context",
+                        max_chars=limit,
+                    ),
+                ),
+            ],
+        )
         task_readiness_context = self._task_readiness_context(goal, observation)
-        context_window = self._read_context_window(source="planner_context")
 
         # Get skill recommendations
         recommended = self.skill_library.get_recommended_skills(goal, observation)
@@ -1752,11 +1853,8 @@ class Agent:
             task_precondition_context = self._task_precondition_context(goal, observation)
             skill_memory_context = self._skill_memory_context(goal, observation)
             combined_memory = "\n".join(part for part in (
-                memory_context,
-                task_memory_context,
-                task_continuity_context,
+                planning_memory,
                 task_readiness_context,
-                context_window,
                 visual_context,
                 visual_action_context,
                 coach_context,
@@ -1769,14 +1867,14 @@ class Agent:
             ) if part)
             cached_plan = self._plan_cache_lookup(goal, observation)
             if cached_plan:
-                return cached_plan
+                return self._attach_planning_context_contract(cached_plan, planning_contract)
             plan = self.planner.plan_from_goal(goal, observation, combined_memory)
             self._record_plan_cache_signature(plan, goal, observation, source="llm_planner")
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
             self.session_logger.log_error(f"LLM call failed: {e}")
             plan = {"status": "error", "actions": [], "reasoning": str(e)}
-        return plan
+        return self._attach_planning_context_contract(plan, planning_contract)
 
     def _plan_cache_lookup(self, goal: str, observation: dict) -> dict | None:
         """Try an approved plan-transition cache before spending an LLM call."""
@@ -2302,7 +2400,46 @@ class Agent:
         return ""
 
     def _think_rule(self, observation: dict, goal: str) -> dict:
-        plan = self.rule_planner.plan_from_goal(goal, observation)
+        planning_memory, planning_contract = self._collect_bounded_planning_memory(
+            goal,
+            observation,
+            planner="rule",
+            readers=[
+                (
+                    "relevant_memory",
+                    "mixed",
+                    lambda limit: self._call_bounded_memory_reader(
+                        self._read_relevant_memory,
+                        goal,
+                        observation,
+                        source="rule_planner_goal",
+                        max_chars=limit,
+                    ),
+                ),
+                (
+                    "task_memory",
+                    "task",
+                    lambda limit: self._call_bounded_memory_reader(
+                        self._task_memory_context,
+                        goal,
+                        observation,
+                        max_chars=limit,
+                    ),
+                ),
+                (
+                    "task_continuity",
+                    "task",
+                    lambda limit: self._call_bounded_memory_reader(
+                        self._task_continuity_context,
+                        goal,
+                        observation,
+                        max_chars=limit,
+                    ),
+                ),
+            ],
+        )
+        plan = self.rule_planner.plan_from_goal(goal, observation, memory_context=planning_memory)
+        plan = self._attach_planning_context_contract(plan, planning_contract)
         self._ingest_plan_subtasks(plan, goal, source="rule_planner")
         return plan
 
@@ -2325,7 +2462,11 @@ class Agent:
             return plan
 
         try:
-            fallback = self.rule_planner.plan_from_goal(goal, observation or {})
+            fallback = self.rule_planner.plan_from_goal(
+                goal,
+                observation or {},
+                memory_context=str(getattr(self, "_last_planning_memory_context", "") or ""),
+            )
         except Exception as e:
             logger.warning(f"Rule fallback failed for blocked plan: {e}")
             return plan
@@ -2338,6 +2479,8 @@ class Agent:
         fallback_status = str(fallback.get("status") or "").lower()
         if fallback_status == "complete" or fallback_actions:
             merged = dict(fallback)
+            if isinstance(plan.get("planning_context_contract"), dict):
+                merged["planning_context_contract"] = dict(plan["planning_context_contract"])
             if fallback_actions:
                 merged["status"] = "in_progress"
             merged["reasoning"] = self._append_reasoning(
@@ -2446,7 +2589,113 @@ class Agent:
         except Exception as e:
             logger.warning(f"Action-value recording failed: {e}")
 
-    def _task_memory_context(self, goal: str, current_state: dict = None) -> str:
+    def _collect_bounded_planning_memory(
+        self,
+        goal: str,
+        current_state: dict,
+        planner: str,
+        readers: list[tuple[str, str, Callable[[Optional[int]], str]]],
+    ) -> tuple[str, dict]:
+        """Build one typed, bounded memory packet for the next planner decision."""
+        config = getattr(self, "config", None)
+        enabled = bool(getattr(config, "enable_bounded_planning_context", True))
+        read_limit = max(1, self._small_int(getattr(config, "planning_memory_read_limit_chars", 600) or 600))
+        cycle_limit = max(1, self._small_int(getattr(config, "planning_memory_cycle_limit_chars", 2400) or 2400))
+        remaining = cycle_limit
+        segments = []
+        included = []
+        for memory_type, layer, reader in readers:
+            separator_reserve = 1 if enabled and included else 0
+            allowance = min(read_limit, max(0, remaining - separator_reserve)) if enabled else read_limit
+            try:
+                text = str(reader(allowance if enabled else None) or "")
+            except Exception as e:
+                logger.warning(f"Planning memory reader {memory_type} failed: {e}")
+                text = ""
+            if enabled:
+                text = text[:max(0, allowance)]
+            separator_chars = 1 if text and included else 0
+            if text:
+                included.append(text)
+                if enabled:
+                    remaining = max(0, remaining - separator_chars - len(text))
+            segments.append({
+                "memory_type": memory_type,
+                "layer": layer,
+                "result_chars": len(text),
+                "separator_chars": separator_chars,
+                "context_chars": len(text) + separator_chars,
+                "has_result": bool(text.strip()),
+                "allowance_chars": allowance,
+            })
+
+        planning_memory = "\n".join(included)
+        total_chars = sum(segment["result_chars"] for segment in segments)
+        total_separator_chars = sum(segment["separator_chars"] for segment in segments)
+        total_context_chars = len(planning_memory)
+        typed_pairs = {f"{segment['layer']}:{segment['memory_type']}" for segment in segments}
+        contract = {
+            "type": "planning_context_contract",
+            "schema_version": 2,
+            "planner": planner,
+            "goal": str(goal or "")[:160],
+            "enabled": enabled,
+            "read_limit_chars": read_limit,
+            "cycle_limit_chars": cycle_limit,
+            "memory_read_count": len(segments),
+            "typed_layer_count": len(typed_pairs),
+            "nonempty_read_count": sum(1 for segment in segments if segment["has_result"]),
+            "total_result_chars": total_chars,
+            "total_separator_chars": total_separator_chars,
+            "total_context_chars": total_context_chars,
+            "bounded_ok": bool(
+                enabled
+                and total_context_chars <= cycle_limit
+                and all(segment["result_chars"] <= read_limit for segment in segments)
+            ),
+            "segments": segments,
+        }
+        self._last_planning_memory_context = planning_memory
+        self._last_planning_context_contract = contract
+        if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("planning_context_contract", contract)
+        return self._last_planning_memory_context, contract
+
+    def _attach_planning_context_contract(self, plan: dict, contract: dict) -> dict:
+        if not isinstance(plan, dict):
+            plan = {"status": "error", "actions": [], "reasoning": "planner returned a non-object result"}
+        result = dict(plan)
+        result["planning_context_contract"] = dict(contract or {})
+        return result
+
+    def _bounded_memory_text(self, value, max_chars: Optional[int]) -> str:
+        text = str(value or "")
+        if max_chars is None:
+            return text
+        return text[:max(0, self._small_int(max_chars))]
+
+    def _call_bounded_memory_reader(
+        self,
+        reader: Callable,
+        *args,
+        max_chars: Optional[int] = None,
+        **kwargs,
+    ) -> str:
+        """Call current or legacy memory readers and apply the contract limit."""
+        try:
+            value = reader(*args, max_chars=max_chars, **kwargs)
+        except TypeError as exc:
+            if "max_chars" not in str(exc):
+                raise
+            value = reader(*args, **kwargs)
+        return self._bounded_memory_text(value, max_chars)
+
+    def _task_memory_context(
+        self,
+        goal: str,
+        current_state: dict = None,
+        max_chars: Optional[int] = None,
+    ) -> str:
         if not getattr(getattr(self, "config", None), "enable_task_memory_context", True):
             return ""
         task = None
@@ -2470,6 +2719,7 @@ class Agent:
                 retrieval_trace = self._latest_memory_retrieval_trace()
             except Exception as e:
                 logger.warning(f"Task memory context failed: {e}")
+        result = self._bounded_memory_text(result, max_chars)
         self._log_memory_read(
             query=query or goal,
             layer="task",
@@ -2479,10 +2729,16 @@ class Agent:
             source="planner_task_memory",
             decision=decision,
             retrieval_trace=retrieval_trace,
+            planning_context=True,
         )
         return result
 
-    def _task_continuity_context(self, goal: str, current_state: dict = None) -> str:
+    def _task_continuity_context(
+        self,
+        goal: str,
+        current_state: dict = None,
+        max_chars: Optional[int] = None,
+    ) -> str:
         if not getattr(getattr(self, "config", None), "enable_task_continuity_context", True):
             return ""
         query = str(goal or "")
@@ -2497,6 +2753,7 @@ class Agent:
                 )
             except Exception as e:
                 logger.warning(f"Task continuity context failed: {e}")
+        result = self._bounded_memory_text(result, max_chars)
         self._log_memory_read(
             query=query,
             layer="task",
@@ -2505,6 +2762,7 @@ class Agent:
             result=result,
             source="planner_task_continuity",
             decision=decision,
+            planning_context=True,
         )
         return result
 
@@ -2694,7 +2952,13 @@ class Agent:
             decision=decision,
         )
 
-    def _read_relevant_memory(self, query: str, current_state: dict = None, source: str = "planner") -> str:
+    def _read_relevant_memory(
+        self,
+        query: str,
+        current_state: dict = None,
+        source: str = "planner",
+        max_chars: Optional[int] = None,
+    ) -> str:
         decision = self._memory_read_decision(query, "mixed", "relevant_memory", "retrieve")
         result = ""
         read_filter_report = {}
@@ -2704,6 +2968,7 @@ class Agent:
             retrieval_trace = self._latest_memory_retrieval_trace()
             if hasattr(self.memory, "memory_read_filter_report"):
                 read_filter_report = self.memory.memory_read_filter_report(query, current_state=current_state)
+        result = self._bounded_memory_text(result, max_chars)
         self._log_memory_read(
             query=query,
             layer="mixed",
@@ -2714,14 +2979,16 @@ class Agent:
             decision=decision,
             read_filter_report=read_filter_report,
             retrieval_trace=retrieval_trace,
+            planning_context=True,
         )
         return result
 
-    def _read_context_window(self, source: str = "planner") -> str:
+    def _read_context_window(self, source: str = "planner", max_chars: Optional[int] = None) -> str:
         decision = self._memory_read_decision("context_window", "context", "context_window", "read")
         result = ""
         if decision.should_retrieve and hasattr(self, "memory") and self.memory and hasattr(self.memory, "get_context_window"):
             result = self.memory.get_context_window()
+        result = self._bounded_memory_text(result, max_chars)
         self._log_memory_read(
             query="context_window",
             layer="context",
@@ -2730,6 +2997,7 @@ class Agent:
             result=result,
             source=source,
             decision=decision,
+            planning_context=True,
         )
         return result
 
@@ -2820,6 +3088,7 @@ class Agent:
         decision: MemoryPolicyDecision = None,
         read_filter_report: dict = None,
         retrieval_trace: dict = None,
+        planning_context: bool = True,
     ):
         if not hasattr(self, "session_logger") or not hasattr(self.session_logger, "log"):
             return
@@ -2832,6 +3101,7 @@ class Agent:
             "query": str(query or "")[:160],
             "result_chars": len(text),
             "has_result": bool(text.strip()),
+            "planning_context": bool(planning_context),
         }
         if decision is not None:
             payload["policy_decision"] = decision.as_dict()
@@ -3712,11 +3982,14 @@ class Agent:
                     getattr(self, "skill_library", None),
                 )
             if hasattr(self, "memory") and goal != fallback_goal:
-                self._write_memory_episode("curriculum_goal", {
+                payload = {
                     "fallback": fallback_goal,
                     "selected": goal,
                     "decision": getattr(self.curriculum, "last_decision", {}),
-                }, source="curriculum")
+                }
+                if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+                    self.session_logger.log("curriculum_goal", payload)
+                self._write_memory_episode("curriculum_goal", payload, source="curriculum")
             return goal
         return fallback_goal
 
@@ -3802,6 +4075,7 @@ class Agent:
             result=context,
             source="causal_scheduler",
             decision=decision,
+            planning_context=False,
         )
         if not context.get("causal_tags") and not context.get("causal_events"):
             return observation

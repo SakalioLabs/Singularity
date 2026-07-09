@@ -1803,6 +1803,10 @@ class BoundedPlanningContextCycle:
     read_layers: dict = field(default_factory=dict)
     read_types: dict = field(default_factory=dict)
     read_sources: dict = field(default_factory=dict)
+    contract_present: bool = False
+    contract_enabled: bool = False
+    contract_bounded_ok: bool = False
+    contract_total_context_chars: int = 0
     issues: list[str] = field(default_factory=list)
     bounded_ok: bool = False
 
@@ -10540,6 +10544,13 @@ class BenchmarkRunner:
     def bounded_context_feedback(self, report: BoundedPlanningContextReport) -> dict:
         """Aggregate bounded-context traces into planner/memory contract hints."""
         policy_hints = []
+        if report.unbounded_cycle_count:
+            policy_hints.append({
+                "bounded_context_policy": "enforce_bounded_context_contract",
+                "priority": "high",
+                "reason": "one or more planner cycles did not satisfy the active bounded-context contract",
+                "count": report.unbounded_cycle_count,
+            })
         if report.missing_read_cycle_count:
             policy_hints.append({
                 "bounded_context_policy": "instrument_planning_context_reads",
@@ -10766,6 +10777,7 @@ class BenchmarkRunner:
     ) -> BoundedPlanningContextCase:
         current_goal = ""
         pending_reads = []
+        pending_contract = None
         cycles = []
         for event in events:
             event_type = event.get("type")
@@ -10775,8 +10787,13 @@ class BenchmarkRunner:
             elif event_type == "goal_end":
                 current_goal = str(data.get("goal") or current_goal or "")
             elif event_type == "memory_read":
-                pending_reads.append(event)
+                if data.get("planning_context") is not False:
+                    pending_reads.append(event)
+            elif event_type == "planning_context_contract":
+                pending_contract = data
             elif event_type == "plan":
+                embedded_contract = data.get("planning_context_contract")
+                contract = embedded_contract if isinstance(embedded_contract, dict) else pending_contract
                 cycles.append(self._bounded_context_cycle(
                     len(cycles) + 1,
                     current_goal,
@@ -10784,8 +10801,10 @@ class BenchmarkRunner:
                     pending_reads,
                     max_read_chars,
                     max_cycle_chars,
+                    contract=contract,
                 ))
                 pending_reads = []
+                pending_contract = None
 
         read_layers = {}
         read_types = {}
@@ -10829,6 +10848,7 @@ class BenchmarkRunner:
         read_events: list[dict],
         max_read_chars: int,
         max_cycle_chars: int,
+        contract: dict = None,
     ) -> BoundedPlanningContextCycle:
         read_layers = {}
         read_types = {}
@@ -10862,6 +10882,14 @@ class BenchmarkRunner:
             if memory_type == "context_window" and result_chars > max_read_chars:
                 raw_context_risk = True
 
+        contract = contract if isinstance(contract, dict) else {}
+        contract_present = bool(contract)
+        contract_enabled = contract.get("enabled") is True if contract_present else False
+        contract_bounded_ok = contract.get("bounded_ok") is True if contract_present else False
+        contract_total_context_chars = self._safe_int(
+            contract.get("total_context_chars", contract.get("total_result_chars", 0)),
+            default=0,
+        ) if contract_present else 0
         actions = plan.get("actions", []) if isinstance(plan.get("actions", []), list) else []
         typed_pairs = {
             f"{event.get('data', {}).get('layer', 'unknown')}:{event.get('data', {}).get('memory_type', 'unknown')}"
@@ -10873,18 +10901,24 @@ class BenchmarkRunner:
             issues.append("missing_memory_read_trace")
         if max_chars > max_read_chars:
             issues.append("oversized_memory_read")
-        if total_chars > max_cycle_chars:
+        if max(total_chars, contract_total_context_chars) > max_cycle_chars:
             issues.append("oversized_planning_context")
         if raw_context_risk:
             issues.append("raw_context_risk")
         if read_events and len(typed_pairs) < 2:
             issues.append("low_retrieval_diversity")
+        if contract_present and not contract_enabled:
+            issues.append("bounded_contract_disabled")
+        if contract_present and not contract_bounded_ok:
+            issues.append("bounded_contract_violation")
 
         hard_issues = {
             "missing_memory_read_trace",
             "oversized_memory_read",
             "oversized_planning_context",
             "raw_context_risk",
+            "bounded_contract_disabled",
+            "bounded_contract_violation",
         }
         return BoundedPlanningContextCycle(
             cycle_index=cycle_index,
@@ -10901,6 +10935,10 @@ class BenchmarkRunner:
             read_layers=dict(sorted(read_layers.items())),
             read_types=dict(sorted(read_types.items())),
             read_sources=dict(sorted(read_sources.items())),
+            contract_present=contract_present,
+            contract_enabled=contract_enabled,
+            contract_bounded_ok=contract_bounded_ok,
+            contract_total_context_chars=contract_total_context_chars,
             issues=sorted(set(issues)),
             bounded_ok=not any(issue in hard_issues for issue in issues),
         )
