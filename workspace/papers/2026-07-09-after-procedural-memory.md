@@ -19,4 +19,5 @@
   - `skill-lifecycle-report` identifies lifecycle-ready runtime-default candidates.
   - `skill-runtime-default-gate` now joins lifecycle candidates with approved transfer gates and optional localized quality gates before default enablement.
   - `--skill-runtime-default-gate` now loads approved task-family profiles into live Agent, benchmark, and M7 Agent executor runs so learned policy skills are filtered by transfer scope at runtime.
+  - `benchmark --skill-runtime-default-gate` now preflights approved candidate coverage against the selected suite's inferred task families before spending live Minecraft runtime.
 **Next Action**: Run the gate on real autonomous/M7 skill stores and enable only family-scoped skill profiles whose transfer evidence remains stable on held-out variants.

@@ -2934,6 +2934,253 @@ class BenchmarkRunner:
         report["ready"] = report["readiness"] in {"approved", "not_required"}
         return report
 
+    def run_skill_runtime_default_preflight(
+        self,
+        tasks: Optional[list[BenchmarkTask]] = None,
+        suite: str = "m1",
+        gate_paths: Optional[list[str]] = None,
+        skill_storage_path: str = "",
+    ) -> dict:
+        """Check approved runtime-default gates and task-family coverage before live benchmarks."""
+        from singularity.core.skill_library import SkillLibrary
+
+        clean_gate_paths = [
+            path for path in (
+                gate_paths
+                if gate_paths is not None
+                else getattr(self.config, "skill_runtime_default_gate_paths", [])
+            ) or []
+            if path
+        ]
+        storage_path = skill_storage_path or getattr(self.config, "skill_dir", "workspace/skills")
+        report = {
+            "required": bool(clean_gate_paths),
+            "ready": not bool(clean_gate_paths),
+            "readiness": "not_required" if not clean_gate_paths else "review",
+            "decision": "skip_skill_runtime_default_preflight" if not clean_gate_paths else "hold_skill_runtime_default_benchmark",
+            "reason": "no skill runtime-default gate configured",
+            "suite": suite,
+            "skill_storage_path": storage_path,
+            "gate_paths": list(clean_gate_paths),
+            "gate_count": 0,
+            "gate_readiness": "not_required" if not clean_gate_paths else "missing",
+            "gate_approved": not bool(clean_gate_paths),
+            "candidate_count": 0,
+            "approved_candidate_count": 0,
+            "review_candidate_count": 0,
+            "rejected_candidate_count": 0,
+            "benchmark_task_count": 0,
+            "benchmark_task_families": [],
+            "approved_task_families": [],
+            "family_overlap_count": 0,
+            "covered_task_families": [],
+            "uncovered_task_families": [],
+            "gate_reports": [],
+            "candidates": [],
+            "checks": [],
+            "missing": [],
+            "errors": [],
+        }
+        if not clean_gate_paths:
+            report["checks"].append(self._gate_check(
+                "benchmark",
+                "skill_runtime_default_preflight",
+                "pass",
+                "no runtime-default gate is configured for this benchmark",
+                {"gate_paths": 0},
+            ))
+            return report
+
+        gate_items = self._load_gate_payloads(
+            [],
+            clean_gate_paths,
+            report["errors"],
+            "skill_runtime_default_gate",
+        )
+        report["gate_count"] = len(gate_items)
+        if not gate_items:
+            report["missing"].append("skill_runtime_default_gate")
+
+        readinesses = []
+        approved_families = set()
+        for source, payload in gate_items:
+            gate = payload.get("skill_runtime_default_gate", payload) if isinstance(payload, dict) else {}
+            if not isinstance(gate, dict):
+                report["errors"].append(f"{source}: skill_runtime_default_gate payload must be a dict")
+                continue
+            readiness = str(gate.get("readiness") or "").strip().lower() or "unknown"
+            target_family = str(gate.get("target_task_family") or "").strip().lower()
+            summary = {
+                "path": source,
+                "readiness": readiness,
+                "decision": str(gate.get("decision") or "").strip(),
+                "reason": str(gate.get("reason") or "").strip()[:300],
+                "target_task_family": target_family,
+                "candidate_count": self._gate_int(gate.get("candidate_count", 0)),
+                "approved_candidate_count": self._gate_int(gate.get("approved_candidate_count", 0)),
+                "review_candidate_count": self._gate_int(gate.get("review_candidate_count", 0)),
+                "rejected_candidate_count": self._gate_int(gate.get("rejected_candidate_count", 0)),
+            }
+            report["gate_reports"].append(summary)
+            readinesses.append(readiness)
+            status = "pass" if readiness == "approved" else "fail" if readiness in {"rejected", "error"} else "warn"
+            report["checks"].append(self._gate_check(
+                source,
+                "skill_runtime_default_gate",
+                status,
+                summary["reason"] or f"runtime-default gate readiness is {readiness}",
+                {
+                    "readiness": readiness,
+                    "target_task_family": target_family,
+                    "approved_candidate_count": summary["approved_candidate_count"],
+                    "review_candidate_count": summary["review_candidate_count"],
+                    "rejected_candidate_count": summary["rejected_candidate_count"],
+                },
+            ))
+            for candidate in gate.get("candidates", []) if isinstance(gate.get("candidates", []), list) else []:
+                if not isinstance(candidate, dict):
+                    continue
+                candidate_readiness = str(candidate.get("candidate_readiness") or "").strip().lower() or "unknown"
+                task_family = str(candidate.get("task_family") or target_family or "").strip().lower()
+                candidate_summary = {
+                    "source": source,
+                    "skill": str(candidate.get("skill") or candidate.get("name") or "").strip(),
+                    "task_family": task_family,
+                    "candidate_readiness": candidate_readiness,
+                    "decision": str(candidate.get("decision") or "").strip(),
+                    "reason": str(candidate.get("reason") or "").strip()[:300],
+                    "lifecycle_ready": bool(candidate.get("lifecycle_ready")),
+                    "runtime_default_candidate": bool(candidate.get("runtime_default_candidate")),
+                    "quality_readiness": str(candidate.get("quality_readiness") or "").strip().lower(),
+                }
+                report["candidates"].append(candidate_summary)
+                if candidate_readiness == "approved":
+                    approved_families.add(task_family)
+
+        if readinesses:
+            if any(readiness == "error" for readiness in readinesses):
+                report["gate_readiness"] = "error"
+            elif any(readiness == "rejected" for readiness in readinesses):
+                report["gate_readiness"] = "rejected"
+            elif all(readiness == "approved" for readiness in readinesses):
+                report["gate_readiness"] = "approved"
+                report["gate_approved"] = True
+            elif any(readiness == "review" for readiness in readinesses):
+                report["gate_readiness"] = "review"
+            else:
+                report["gate_readiness"] = "unknown"
+
+        report["candidate_count"] = len(report["candidates"])
+        report["approved_candidate_count"] = sum(
+            1 for item in report["candidates"] if item.get("candidate_readiness") == "approved"
+        )
+        report["review_candidate_count"] = sum(
+            1 for item in report["candidates"] if item.get("candidate_readiness") == "review"
+        )
+        report["rejected_candidate_count"] = sum(
+            1 for item in report["candidates"] if item.get("candidate_readiness") == "rejected"
+        )
+        if report["approved_candidate_count"] <= 0:
+            report["missing"].append("approved_runtime_default_candidate")
+
+        try:
+            skill_library = SkillLibrary(storage_path=storage_path, persist=True)
+            source_tasks = tasks if tasks is not None else self.tasks_for_suite(suite)
+            benchmark_families = set()
+            for task in source_tasks or []:
+                goal = str(getattr(task, "goal", "") or "").strip()
+                family = skill_library.infer_task_family(goal, {})
+                if family:
+                    benchmark_families.add(str(family).strip().lower())
+            report["benchmark_task_count"] = len(source_tasks or [])
+            report["benchmark_task_families"] = sorted(benchmark_families)
+            if not source_tasks:
+                report["missing"].append("benchmark_tasks")
+        except Exception as e:
+            report["errors"].append(f"skill_runtime_default_preflight: {e}")
+            benchmark_families = set()
+
+        report["approved_task_families"] = sorted(approved_families)
+        wildcard_family = "" in approved_families
+        covered_families = set(report["benchmark_task_families"]) if wildcard_family else (
+            set(report["benchmark_task_families"]) & approved_families
+        )
+        uncovered_families = set(report["benchmark_task_families"]) - covered_families
+        report["covered_task_families"] = sorted(covered_families)
+        report["uncovered_task_families"] = sorted(uncovered_families)
+        report["family_overlap_count"] = len(covered_families)
+
+        candidate_status = "pass" if report["approved_candidate_count"] > 0 else "warn"
+        candidate_detail = (
+            "approved runtime-default candidates are present"
+            if report["approved_candidate_count"] > 0
+            else "no approved runtime-default candidates are present"
+        )
+        report["checks"].append(self._gate_check(
+            "benchmark",
+            "runtime_default_candidates",
+            candidate_status,
+            candidate_detail,
+            {
+                "approved_candidate_count": report["approved_candidate_count"],
+                "review_candidate_count": report["review_candidate_count"],
+                "rejected_candidate_count": report["rejected_candidate_count"],
+            },
+        ))
+
+        if report["benchmark_task_families"] and report["approved_candidate_count"] > 0:
+            if covered_families:
+                report["checks"].append(self._gate_check(
+                    "benchmark",
+                    "benchmark_task_family_overlap",
+                    "pass",
+                    "approved runtime-default candidates cover at least one benchmark task family",
+                    {
+                        "covered_task_families": report["covered_task_families"],
+                        "uncovered_task_families": report["uncovered_task_families"],
+                    },
+                ))
+            else:
+                report["missing"].append("benchmark_task_family_overlap")
+                report["checks"].append(self._gate_check(
+                    "benchmark",
+                    "benchmark_task_family_overlap",
+                    "warn",
+                    "approved runtime-default candidates do not cover this benchmark suite",
+                    {
+                        "benchmark_task_families": report["benchmark_task_families"],
+                        "approved_task_families": report["approved_task_families"],
+                    },
+                ))
+
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "block_skill_runtime_default_benchmark"
+            report["reason"] = "skill runtime-default preflight inputs could not be loaded"
+        elif not report["gate_approved"]:
+            report["readiness"] = report["gate_readiness"] or "review"
+            report["decision"] = "block_skill_runtime_default_benchmark"
+            report["reason"] = "runtime-default gate is not approved"
+        elif report["approved_candidate_count"] <= 0:
+            report["readiness"] = "review"
+            report["decision"] = "hold_skill_runtime_default_benchmark"
+            report["reason"] = "runtime-default gate has no approved candidates"
+        elif "benchmark_task_family_overlap" in report["missing"]:
+            report["readiness"] = "review"
+            report["decision"] = "hold_skill_runtime_default_benchmark"
+            report["reason"] = "runtime-default gate has no task-family coverage for this benchmark suite"
+        elif report["missing"]:
+            report["readiness"] = "review"
+            report["decision"] = "hold_skill_runtime_default_benchmark"
+            report["reason"] = "skill runtime-default preflight is missing required evidence"
+        else:
+            report["ready"] = True
+            report["readiness"] = "approved"
+            report["decision"] = "allow_skill_runtime_default_benchmark"
+            report["reason"] = "approved runtime-default gates cover the benchmark task family"
+        report["ready"] = report["readiness"] in {"approved", "not_required"}
+        return report
+
     def run_skill_lifecycle_report(
         self,
         skill_storage_path: str = "",
@@ -12731,6 +12978,23 @@ class BenchmarkRunner:
             json.dump(report, f, indent=2, ensure_ascii=False)
         logger.info(f"Coach-style preflight saved to {path}")
 
+    def save_skill_runtime_default_preflight_report(
+        self,
+        report: dict,
+        filename: str = "skill_runtime_default_preflight.json",
+    ):
+        path = filename
+        if not os.path.isabs(path) and not os.path.dirname(path):
+            os.makedirs(self.output_dir, exist_ok=True)
+            path = os.path.join(self.output_dir, path)
+        else:
+            parent = os.path.dirname(path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2, ensure_ascii=False)
+        logger.info(f"Skill runtime-default preflight saved to {path}")
+
     def save_skill_lifecycle_report(
         self,
         report: dict,
@@ -12954,6 +13218,61 @@ class BenchmarkRunner:
             print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
         if report.get("policy_hints"):
             print(f"  policy hints: {', '.join(report.get('policy_hints', []))}")
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+
+    def print_skill_runtime_default_preflight_report(self, report: dict):
+        print("\nSkill Runtime Default Benchmark Preflight")
+        print(f"  suite: {report.get('suite', 'm1')}")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  inputs: "
+            f"gates={report.get('gate_count', 0)}, "
+            f"candidates={report.get('candidate_count', 0)}, "
+            f"benchmark_tasks={report.get('benchmark_task_count', 0)}, "
+            f"skill_dir={report.get('skill_storage_path', '')}"
+        )
+        print(
+            "  candidates: "
+            f"approved={report.get('approved_candidate_count', 0)}, "
+            f"review={report.get('review_candidate_count', 0)}, "
+            f"rejected={report.get('rejected_candidate_count', 0)}"
+        )
+        approved_families = [family or "any" for family in report.get("approved_task_families", [])]
+        print(
+            "  families: "
+            f"benchmark={', '.join(report.get('benchmark_task_families', [])) or 'none'}, "
+            f"approved={', '.join(approved_families) or 'none'}, "
+            f"covered={', '.join(report.get('covered_task_families', [])) or 'none'}"
+        )
+        if report.get("uncovered_task_families"):
+            print(f"  uncovered: {', '.join(report.get('uncovered_task_families', []))}")
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for gate in report.get("gate_reports", [])[:6]:
+            marker = "+" if gate.get("readiness") == "approved" else "x" if gate.get("readiness") == "rejected" else "!"
+            print(
+                f"  [{marker}] gate {gate.get('path')}: {gate.get('readiness')} "
+                f"target={gate.get('target_task_family') or 'any'} "
+                f"approved={gate.get('approved_candidate_count', 0)}"
+            )
+            if gate.get("reason"):
+                print(f"      {gate.get('reason')}")
+        for candidate in report.get("candidates", [])[:10]:
+            marker = "+" if candidate.get("candidate_readiness") == "approved" else (
+                "x" if candidate.get("candidate_readiness") == "rejected" else "!"
+            )
+            print(
+                f"  [{marker}] {candidate.get('skill') or 'unknown'} "
+                f"({candidate.get('task_family') or 'any'}): {candidate.get('candidate_readiness')}"
+            )
+            if candidate.get("reason"):
+                print(f"      {candidate.get('reason')}")
+        for check in report.get("checks", [])[:12]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')}")
         for error in report.get("errors", []):
             print(f"  error: {error}")
 

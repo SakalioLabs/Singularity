@@ -185,6 +185,7 @@
 - [x] Add benchmark-level `--coach-style-preflight` so style-biased benchmark suites require saved ablation evidence and approved `coach-style-gate` reports before live execution.
 - [x] Add `skill-runtime-default-gate` so task-family runtime-default skills require lifecycle readiness, controlled transfer gates, and optional localized quality gates before default enablement.
 - [x] Wire approved `skill-runtime-default-gate` reports into Agent startup so learned policy skills, failure corrections, and skill-memory hints are task-family filtered at runtime while built-in primitive skills remain available.
+- [x] Add benchmark-level `--skill-runtime-default-preflight` so live suites using learned default-skill profiles require approved gates and task-family overlap before execution.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
@@ -223,7 +224,7 @@
 - [ ] Run `skill-contract-report` after real skill approvals and compare ready/review/blocked skill retrieval against planner choices on held-out crafting, mining, and building goals.
 - [ ] Run `skill-lifecycle-report` on real approved skill stores and use its ready/review/blocked plus runtime-default candidates before enabling task-family skill defaults.
 - [ ] Run `skill-runtime-default-gate` on real lifecycle, task-stream transfer, and skill-memory quality gate reports before enabling any task-family runtime-default skill profile.
-- [ ] Run live M1/M2/M7 with approved `--skill-runtime-default-gate` profiles and compare learned policy-skill interventions against un-gated baselines.
+- [ ] Run live M1/M2/M7 with approved `--skill-runtime-default-gate` profiles and saved `--skill-runtime-default-preflight-output` reports, then compare learned policy-skill interventions against un-gated baselines.
 - [ ] Run `benchmark --skill-memory-ablation` on live M1/M2/autonomous-ready tasks and compare skill-memory hint counts, pass rates, and regressions before making skills runtime defaults.
 - [ ] Run `self-evolution-report` on real M1/M2/autonomous logs and compare adaptor recommendations against retry outcomes before enabling automatic plan-suffix repair.
 - [x] Inspect `logs/benchmarks/self_evolution_m1_2026-07-09.json` for 0-action failed logs and decide whether the next fix belongs in benchmark execution, bridge action logging, or runtime adaptor routing.

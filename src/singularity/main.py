@@ -217,6 +217,8 @@ def main():
     bench_parser.add_argument("--skill-memory-quality-preflight", action="store_true", help="Run gate and offline ranking preflight before quality-feedback-assisted benchmarks")
     bench_parser.add_argument("--skill-memory-quality-preflight-output", type=str, default="", help="Optional JSON path for the skill-memory quality benchmark preflight report")
     _add_skill_runtime_default_args(bench_parser)
+    bench_parser.add_argument("--skill-runtime-default-preflight", action="store_true", help="Run approved runtime-default gate coverage preflight before learned default-skill benchmarks")
+    bench_parser.add_argument("--skill-runtime-default-preflight-output", type=str, default="", help="Optional JSON path for the skill runtime-default benchmark preflight report")
     _add_coaching_args(bench_parser)
     bench_parser.add_argument("--coach-style-ablation", action="append", default=[], help="coach-style-ablation JSON used by benchmark coach-style preflight")
     bench_parser.add_argument("--coach-style-gate", action="append", default=[], help="Approved coach-style-gate JSON required before coach-style benchmark runs")
@@ -3436,6 +3438,15 @@ def main():
             quality_preflight_output = getattr(args, "skill_memory_quality_preflight_output", "") or ""
             if quality_preflight_output:
                 runner.save_skill_memory_quality_preflight_report(report, quality_preflight_output)
+            if not report.get("ready"):
+                sys.exit(1)
+        runtime_default_gate_paths = getattr(args, "skill_runtime_default_gate", []) or []
+        if getattr(args, "skill_runtime_default_preflight", False) or runtime_default_gate_paths:
+            report = runner.run_skill_runtime_default_preflight(suite=args.suite)
+            runner.print_skill_runtime_default_preflight_report(report)
+            runtime_default_preflight_output = getattr(args, "skill_runtime_default_preflight_output", "") or ""
+            if runtime_default_preflight_output:
+                runner.save_skill_runtime_default_preflight_report(report, runtime_default_preflight_output)
             if not report.get("ready"):
                 sys.exit(1)
         transition_gate_paths = getattr(args, "action_value_transition_gate", []) or []

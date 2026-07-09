@@ -362,7 +362,9 @@ python -m singularity.main skill-runtime-default-gate --skill-lifecycle-report l
 # Load approved runtime-default gates into Agent runs, benchmarks, or M7 Agent roles.
 # Review/rejected gates suppress learned default skills while built-in primitive skills remain available.
 python -m singularity.main run --goal "Craft torches" --skill-runtime-default-gate logs/benchmarks/skill_runtime_default_gate.json
-python -m singularity.main benchmark --suite m1 --skill-runtime-default-gate logs/benchmarks/skill_runtime_default_gate.json
+# Benchmark automatically preflights configured runtime-default gates before live suite execution.
+# The preflight requires approved candidates whose task family overlaps the selected benchmark suite:
+python -m singularity.main benchmark --suite m1 --skill-runtime-default-gate logs/benchmarks/skill_runtime_default_gate.json --skill-runtime-default-preflight-output logs/benchmarks/skill_runtime_default_preflight.json
 # Approved skill candidates seed promotion/transfer memories automatically, and
 # live failure-correction skills append success/failure memories during Agent runs.
 # Skill-memory hints are retrieved into LLM planner context by inferred task family

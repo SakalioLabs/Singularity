@@ -3871,6 +3871,100 @@ def test_skill_runtime_default_gate_requires_lifecycle_transfer_and_quality():
     print("PASS: Skill runtime default gate requires lifecycle, transfer, and quality evidence")
 
 
+def test_skill_runtime_default_preflight_requires_approved_family_coverage():
+    tmpdir = tempfile.mkdtemp()
+    skill_dir = os.path.join(tmpdir, "skills")
+
+    def write_gate(filename, task_family="crafting", readiness="approved", candidate_readiness="approved"):
+        approved = 1 if candidate_readiness == "approved" else 0
+        review = 1 if candidate_readiness == "review" else 0
+        rejected = 1 if candidate_readiness == "rejected" else 0
+        path = os.path.join(tmpdir, filename)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({
+                "type": "skill_runtime_default_gate",
+                "target_task_family": task_family,
+                "readiness": readiness,
+                "decision": (
+                    "allow_task_family_runtime_default_skills"
+                    if readiness == "approved"
+                    else "do_not_enable_runtime_default_skills"
+                ),
+                "reason": f"{readiness} runtime-default fixture",
+                "candidate_count": 1,
+                "approved_candidate_count": approved,
+                "review_candidate_count": review,
+                "rejected_candidate_count": rejected,
+                "candidates": [{
+                    "skill": f"{task_family or 'general'}_fixture_skill",
+                    "task_family": task_family,
+                    "candidate_readiness": candidate_readiness,
+                    "decision": (
+                        "allow_task_family_runtime_default"
+                        if candidate_readiness == "approved"
+                        else "do_not_enable_runtime_default_skill"
+                    ),
+                    "reason": "",
+                    "lifecycle_ready": candidate_readiness == "approved",
+                    "runtime_default_candidate": candidate_readiness == "approved",
+                    "quality_readiness": "approved",
+                }],
+            }, f, indent=2)
+        return path
+
+    no_gate = BenchmarkRunner(Config(skill_dir=skill_dir)).run_skill_runtime_default_preflight(
+        suite="m1",
+        gate_paths=[],
+    )
+    assert no_gate["ready"]
+    assert no_gate["readiness"] == "not_required"
+    assert no_gate["decision"] == "skip_skill_runtime_default_preflight"
+
+    approved_path = write_gate("approved_crafting_gate.json", task_family="crafting")
+    approved_runner = BenchmarkRunner(Config(
+        skill_dir=skill_dir,
+        skill_runtime_default_gate_paths=[approved_path],
+    ))
+    approved = approved_runner.run_skill_runtime_default_preflight(suite="m1")
+    assert approved["ready"]
+    assert approved["readiness"] == "approved"
+    assert approved["decision"] == "allow_skill_runtime_default_benchmark"
+    assert approved["gate_approved"]
+    assert approved["approved_candidate_count"] == 1
+    assert "crafting" in approved["benchmark_task_families"]
+    assert "crafting" in approved["approved_task_families"]
+    assert "crafting" in approved["covered_task_families"]
+    assert approved["family_overlap_count"] >= 1
+
+    no_overlap_path = write_gate("approved_redstone_gate.json", task_family="redstone")
+    no_overlap_runner = BenchmarkRunner(Config(
+        skill_dir=skill_dir,
+        skill_runtime_default_gate_paths=[no_overlap_path],
+    ))
+    no_overlap = no_overlap_runner.run_skill_runtime_default_preflight(suite="m1")
+    assert not no_overlap["ready"]
+    assert no_overlap["readiness"] == "review"
+    assert no_overlap["decision"] == "hold_skill_runtime_default_benchmark"
+    assert "benchmark_task_family_overlap" in no_overlap["missing"]
+    assert no_overlap["family_overlap_count"] == 0
+
+    rejected_path = write_gate(
+        "rejected_crafting_gate.json",
+        task_family="crafting",
+        readiness="rejected",
+        candidate_readiness="rejected",
+    )
+    rejected_runner = BenchmarkRunner(Config(
+        skill_dir=skill_dir,
+        skill_runtime_default_gate_paths=[rejected_path],
+    ))
+    rejected = rejected_runner.run_skill_runtime_default_preflight(suite="m1")
+    assert not rejected["ready"]
+    assert rejected["readiness"] == "rejected"
+    assert rejected["decision"] == "block_skill_runtime_default_benchmark"
+    print("PASS: Skill runtime default preflight requires approved task-family coverage")
+
+
 def test_action_value_transition_preflight_requires_approved_gate_and_evaluator():
     tmpdir = tempfile.mkdtemp()
     feedback_path = os.path.join(tmpdir, "action_value_feedback.json")
@@ -4344,6 +4438,7 @@ if __name__ == "__main__":
     test_skill_memory_quality_preflight_requires_gate_and_ranking_effect()
     test_skill_lifecycle_report_tracks_ready_and_refinement_paths()
     test_skill_runtime_default_gate_requires_lifecycle_transfer_and_quality()
+    test_skill_runtime_default_preflight_requires_approved_family_coverage()
     test_action_value_transition_preflight_requires_approved_gate_and_evaluator()
     test_visual_action_benchmark_ablation_compares_live_suite_modes()
     test_mixed_policy_benchmark_ablation_compares_live_patch_modes()
