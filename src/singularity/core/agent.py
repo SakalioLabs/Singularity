@@ -2240,6 +2240,7 @@ class Agent:
 
     def _think_rule(self, observation: dict, goal: str) -> dict:
         plan = self.rule_planner.plan_from_goal(goal, observation)
+        self._ingest_plan_subtasks(plan, goal, source="rule_planner")
         return plan
 
     def _blocked_plan_rule_fallback(self, plan: dict, goal: str, observation: dict) -> dict:
@@ -2291,6 +2292,7 @@ class Agent:
             if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
                 self.session_logger.log("planner_fallback", payload)
             self._write_memory_episode("planner_fallback", payload, source="blocked_plan_rule_fallback")
+            self._ingest_plan_subtasks(merged, goal, source="blocked_plan_rule_fallback")
             return merged
         return plan
 
@@ -3304,6 +3306,95 @@ class Agent:
         for task in self.task_system.tasks.values():
             if task.status == TaskStatus.PROPOSED:
                 self.task_system.update_task(task.id, status=TaskStatus.ACCEPTED)
+
+    def _ingest_plan_subtasks(self, plan: dict, goal: str = "", source: str = "planner") -> dict:
+        """Create scheduler tasks from deterministic or cached plan subtasks."""
+        if not isinstance(plan, dict) or not hasattr(self, "task_system") or self.task_system is None:
+            return {"created_count": 0, "reused_count": 0}
+        subtasks = plan.get("subtasks", [])
+        if not isinstance(subtasks, list) or not subtasks:
+            return {"created_count": 0, "reused_count": 0}
+
+        title_to_id = {}
+        pending_dependencies: list[tuple[str, list[str]]] = []
+        created = []
+        reused = []
+        for st in subtasks:
+            if not isinstance(st, dict):
+                continue
+            title = str(st.get("title") or "unnamed").strip() or "unnamed"
+            existing = self._find_existing_plan_task(title)
+            if existing:
+                task = existing
+                reused.append(task.id)
+            else:
+                task = self.task_system.create_task(
+                    title=title,
+                    task_type=st.get("type", "general"),
+                    success_criteria=st.get("success_criteria", {}) if isinstance(st.get("success_criteria", {}), dict) else {},
+                    failure_criteria=st.get("failure_criteria", {}) if isinstance(st.get("failure_criteria", {}), dict) else {},
+                    preconditions=st.get("preconditions", {}) if isinstance(st.get("preconditions", {}), dict) else {},
+                    priority=self._safe_plan_priority(st.get("priority", 3)),
+                    assigned_skill=st.get("assigned_skill"),
+                    tags=list(st.get("tags", []) or [])[:8] if isinstance(st.get("tags", []), list) else [],
+                    opportunity_triggers=(
+                        list(st.get("opportunity_triggers", []) or [])[:8]
+                        if isinstance(st.get("opportunity_triggers", []), list)
+                        else []
+                    ),
+                    deadline=self._deadline_from_plan_seconds(st.get("deadline_seconds")),
+                    rationale=str(st.get("rationale") or "")[:300],
+                )
+                created.append(task.id)
+            title_to_id[title.lower()] = task.id
+            dependencies = st.get("depends_on", [])
+            if isinstance(dependencies, list) and dependencies:
+                pending_dependencies.append((task.id, dependencies))
+
+        for task_id, dependencies in pending_dependencies:
+            task = self.task_system.tasks.get(task_id)
+            if not task:
+                continue
+            task.depends_on = [
+                title_to_id[dep.lower()]
+                for dep in dependencies
+                if isinstance(dep, str) and dep.lower() in title_to_id
+            ]
+
+        report = {
+            "goal": goal,
+            "source": source,
+            "created_count": len(created),
+            "reused_count": len(reused),
+            "task_ids": created + reused,
+        }
+        if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("planner_subtasks_ingested", report)
+        return report
+
+    def _find_existing_plan_task(self, title: str):
+        title_key = str(title or "").strip().lower()
+        if not title_key or not hasattr(self, "task_system") or self.task_system is None:
+            return None
+        terminal = {TaskStatus.COMPLETED, TaskStatus.CANCELLED, TaskStatus.FAILED}
+        for task in self.task_system.tasks.values():
+            if task.title.strip().lower() == title_key and task.status not in terminal:
+                return task
+        return None
+
+    def _safe_plan_priority(self, value) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return 3
+
+    def _deadline_from_plan_seconds(self, seconds):
+        if seconds is None:
+            return None
+        try:
+            return time.time() + float(seconds)
+        except (TypeError, ValueError):
+            return None
 
     def _select_autonomous_goal(self, observation: dict, fallback_goal: str) -> str:
         """Let ready tasks and open-ended curriculum override generated goals."""

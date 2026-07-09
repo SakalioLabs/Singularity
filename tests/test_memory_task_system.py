@@ -236,6 +236,39 @@ def test_agent_replaces_blocked_llm_plan_with_rule_fallback():
     print("PASS: Agent replaces blocked LLM plans with deterministic rule fallback")
 
 
+def test_agent_ingests_rule_planner_frontier_subtasks():
+    agent = Agent.__new__(Agent)
+    agent.rule_planner = RuleBasedPlanner()
+    agent.task_system = TaskSystem()
+    agent.session_logger = FakeSessionLogger()
+    observation = {
+        "inventory": {"wooden_pickaxe": 1},
+        "position": {"x": 0, "y": 64, "z": 0},
+        "nearby_blocks": [{"name": "coal_ore", "position": {"x": 11, "y": 63, "z": 5}}],
+    }
+    goal = "Explore east frontier cell (1,0) near x=12, z=4 to inspect coal_ore"
+
+    plan = agent._think_rule(observation, goal)
+    agent._accept_planned_tasks()
+    tasks = list(agent.task_system.tasks.values())
+    navigate = next(task for task in tasks if task.title == "Navigate to mapped frontier")
+    inspect = next(task for task in tasks if task.title == "Inspect frontier coal_ore")
+
+    assert plan["status"] == "in_progress"
+    assert len(tasks) == 2
+    assert navigate.status == TaskStatus.ACCEPTED
+    assert inspect.depends_on == [navigate.id]
+    assert "coal_ore" in inspect.opportunity_triggers
+    ingest_event = next(event for event in agent.session_logger.events if event["type"] == "planner_subtasks_ingested")
+    assert ingest_event["data"]["source"] == "rule_planner"
+    assert ingest_event["data"]["created_count"] == 2
+
+    agent._think_rule(observation, goal)
+    assert len(agent.task_system.tasks) == 2
+    assert agent.session_logger.events[-1]["data"]["reused_count"] == 2
+    print("PASS: Agent ingests rule planner frontier subtasks")
+
+
 def test_knowledge_graph_plans_resources_and_tools():
     kb = KnowledgeBase()
     plan = kb.get_resource_plan("stone_pickaxe", {"oak_log": 1})
@@ -3293,6 +3326,7 @@ def test_agent_visual_action_grounding_prepends_resource_focus():
 if __name__ == "__main__":
     test_knowledge_base_loads_recipes()
     test_agent_replaces_blocked_llm_plan_with_rule_fallback()
+    test_agent_ingests_rule_planner_frontier_subtasks()
     test_knowledge_graph_plans_resources_and_tools()
     test_memory_curates_and_retrieves_transfer_experience()
     test_memory_ranks_experiences_by_transfer_axes()
