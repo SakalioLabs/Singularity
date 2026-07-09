@@ -74,6 +74,7 @@
 - [x] Add opt-in `GoalVerificationCritic` fallback for unknown goal completion checks, including `--goal-critic` CLI support and critic-specific acceptance reasons in session logs.
 - [x] Add offline `goal-verification-ablation` so session-log goals can be replayed through deterministic-only, API visual summary, and screenshot/VLM-assisted verification with API-helped and screenshot-added-value counts.
 - [x] Add manual-label agreement metrics to `goal-verification-ablation` via `--label-file`, so deterministic/API-visual/screenshot-VLM readiness can be compared against reviewed `approved/rejected/unknown` labels.
+- [x] Add `goal-verification-critic-gate` plus runtime `--goal-critic-gate`, so live goal critics require approved offline/manual agreement evidence before they can affect completion decisions.
 - [x] Add manual-label agreement metrics to `promotion-review-ablation` via `--label-file`, using candidate id/name/goal/source matching so promotion decisions can be compared against reviewed `approved/rejected/unknown` labels.
 - [x] Add `review-label-template` so screenshot-backed session logs can generate JSONL manual-review templates for promotion candidates and goal-verification segments before running agreement ablations.
 - [x] Add `visual-trace-report` so session logs can be audited for screenshot paths, VLM summaries, API visual fields, visual goal coverage, and visual promotion-candidate coverage before running label templates or ablations.
@@ -274,8 +275,8 @@
 - [ ] Use `mixed-initiative-policy-gate` on real approved patch reports before making a patch part of default runtime configuration.
 - [ ] Promote real approved gate reports into repeatable runtime profiles for M1/M2/M7.
 - [ ] Run live M1/M2 goals with `goal_verification_metrics` enabled and compare rejected false-complete counts against old planner-only completion.
-- [ ] Run an unknown visual/environment goal with `--goal-critic` and inspect `goal_verification_metrics` plus critic evidence in the session log.
-- [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces and compare completion judgments against manual review.
+- [ ] Run an unknown visual/environment goal with `--goal-critic --goal-critic-gate ...` and inspect `goal_verification_metrics` plus critic evidence in the session log.
+- [ ] Run the three-way `goal-verification-ablation` with `--label-file` on real screenshot-backed traces, build `goal-verification-critic-gate`, and compare completion judgments against manual review.
 - [ ] Run benchmark ingestion on live M1/M2 traces and compare `promotion_readiness` against manually reviewed candidate quality.
 - [ ] Run `--promotion-critic` on unknown live M1/M2 candidates and inspect critic-approved postconditions before approval.
 - [ ] Capture at least one real screenshot-backed session and verify that `visual_evidence` improves critic decisions for visual-only or environment-state goals.

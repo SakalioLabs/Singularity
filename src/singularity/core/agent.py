@@ -94,6 +94,7 @@ class Agent:
         self.curriculum = CurriculumManager()
         self.world_model_feedback_report = self._load_world_model_feedback()
         self.goal_verifier = GoalVerifier(skill_library=self.skill_library)
+        self.goal_critic_gate_report = self._evaluate_goal_critic_runtime_gate()
         self.explorer = Explorer()
         self.rule_planner = RuleBasedPlanner()
         self.runtime = RuntimeSupervisor(config, self.explorer)
@@ -116,7 +117,15 @@ class Agent:
             self.planner = Planner(self.llm, self.task_system)
             self.reflector = Reflector(self.llm)
             if getattr(config, "enable_goal_critic", False):
-                self.goal_verifier.goal_critic = GoalVerificationCritic(self.llm)
+                if self.goal_critic_gate_report.get("gate_approved"):
+                    self.goal_verifier.goal_critic = GoalVerificationCritic(self.llm)
+                    logger.info("Goal verification critic enabled by approved runtime gate")
+                else:
+                    logger.warning(
+                        "Goal verification critic disabled: "
+                        f"gate_readiness={self.goal_critic_gate_report.get('gate_readiness')}, "
+                        f"gate_paths={len(self.goal_critic_gate_report.get('gate_paths', []))}"
+                    )
             logger.info("Using LLM planner with full module integration")
         else:
             self.reflector = None
@@ -734,6 +743,69 @@ class Agent:
             return float(value or 0.0)
         except (TypeError, ValueError):
             return 0.0
+
+    def _evaluate_goal_critic_runtime_gate(self) -> dict:
+        """Return whether the LLM goal critic may affect runtime completion checks."""
+        gate_paths = [
+            path for path in (getattr(self.config, "goal_critic_gate_paths", []) or [])
+            if path
+        ]
+        gate_requested = bool(getattr(self.config, "enable_goal_critic", False))
+        report = {
+            "gate_paths": list(gate_paths),
+            "gate_required": gate_requested,
+            "gate_approved": not gate_requested,
+            "gate_readiness": "not_requested" if not gate_requested else "review",
+            "gate_reports": [],
+            "missing": [],
+            "errors": [],
+        }
+        if not gate_requested:
+            return report
+        if not gate_paths:
+            report["missing"].append("goal_critic_gate")
+            return report
+
+        report["gate_approved"] = False
+        readinesses = []
+        for path in gate_paths:
+            summary = {
+                "path": path,
+                "readiness": "error",
+                "decision": "",
+                "reason": "",
+                "approved_count": 0,
+            }
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    gate = json.load(f)
+                readiness = str(gate.get("readiness", "")).strip().lower() or "unknown"
+                summary.update({
+                    "readiness": readiness,
+                    "decision": str(gate.get("decision", "")).strip(),
+                    "reason": str(gate.get("reason", "")).strip()[:300],
+                    "approved_count": self._small_int(gate.get("approved_count", 0)),
+                })
+            except Exception as e:
+                readiness = "error"
+                summary["error"] = str(e)
+                report["errors"].append(f"{path}: {e}")
+                logger.warning(f"Failed to load goal critic gate {path}: {e}")
+            readinesses.append(readiness)
+            report["gate_reports"].append(summary)
+
+        if any(readiness == "error" for readiness in readinesses):
+            report["gate_readiness"] = "error"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report["gate_readiness"] = "approved"
+            report["gate_approved"] = True
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report["gate_readiness"] = "rejected"
+        elif any(readiness == "review" for readiness in readinesses):
+            report["gate_readiness"] = "review"
+        else:
+            report["gate_readiness"] = "unknown"
+        return report
 
     def _load_world_model_feedback(self) -> dict:
         """Load gated world-model feedback into autonomous curriculum scoring."""

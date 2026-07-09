@@ -22,6 +22,6 @@
   - `SkillPromotionValidationReport` now records the promotion explanation, including approve/reject/unknown decisions and warnings.
   - Benchmark ingestion now aggregates these validation reports into suite-level approve/reject/unknown readiness counts before candidates enter human review.
   - Unknown verifier gates can now route through an explicit LLM `SkillPromotionCritic`, preserving the same audit report while keeping the default path deterministic and offline.
-  - Unknown runtime goal completions can route through an opt-in `GoalVerificationCritic`, preserving deterministic anchors as the first gate while allowing open-world claims to be audited by a critic.
-  - Offline `goal-verification-ablation` now measures whether API visual summaries or screenshot/VLM references add verifier coverage beyond generated anchors.
-**Next Action**: Compare live M1/M2 traces with deterministic-only versus LLM-critic-assisted goal and skill verification.
+  - Unknown runtime goal completions can route through `GoalVerificationCritic` only after `goal-verification-critic-gate` approves saved ablation and manual-label validation evidence, preserving deterministic anchors as the first gate while allowing open-world claims to be audited by a critic.
+  - Offline `goal-verification-ablation` now measures whether API visual summaries or screenshot/VLM references add verifier coverage beyond generated anchors before that critic can affect runtime completion policy.
+**Next Action**: Compare live M1/M2 traces with deterministic-only versus approved-gate LLM-critic-assisted goal and skill verification.

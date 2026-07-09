@@ -13471,6 +13471,283 @@ class BenchmarkRunner:
             return None
         return readiness == manual_readiness
 
+    def build_goal_verification_critic_gate(
+        self,
+        goal_ablation_reports: list[dict] = None,
+        goal_ablation_report_paths: list[str] = None,
+        label_validation_reports: list[dict] = None,
+        label_validation_report_paths: list[str] = None,
+        target: str = "goal_verification_critic_runtime",
+        min_cases: int = 1,
+        min_manual_labels: int = 1,
+        min_screenshot_cases: int = 1,
+        min_screenshot_manual_matches: int = 1,
+        max_screenshot_manual_mismatches: int = 0,
+        min_screenshot_added_value: int = 0,
+        require_label_validation: bool = True,
+    ) -> dict:
+        """Gate runtime goal critics with offline/manual goal-verification evidence."""
+        thresholds = {
+            "min_cases": int(min_cases),
+            "min_manual_labels": int(min_manual_labels),
+            "min_screenshot_cases": int(min_screenshot_cases),
+            "min_screenshot_manual_matches": int(min_screenshot_manual_matches),
+            "max_screenshot_manual_mismatches": int(max_screenshot_manual_mismatches),
+            "min_screenshot_added_value": int(min_screenshot_added_value),
+            "require_label_validation": bool(require_label_validation),
+        }
+        report = {
+            "type": "goal_verification_critic_gate",
+            "target": target,
+            "readiness": "review",
+            "decision": "hold_goal_critic_runtime_use",
+            "reason": "runtime goal critic requires offline agreement evidence",
+            "thresholds": thresholds,
+            "source_count": 0,
+            "label_validation_count": 0,
+            "valid_label_validation_count": 0,
+            "goal_count": 0,
+            "manual_labeled_count": 0,
+            "decisive_manual_label_count": 0,
+            "screenshot_case_count": 0,
+            "screenshot_vlm_added_value_count": 0,
+            "screenshot_vlm_manual_match_count": 0,
+            "screenshot_vlm_manual_mismatch_count": 0,
+            "api_visual_manual_match_count": 0,
+            "deterministic_manual_match_count": 0,
+            "critic_regression_count": 0,
+            "dangerous_false_approve_count": 0,
+            "false_reject_count": 0,
+            "label_validation_goal_ok_count": 0,
+            "label_validation_error_count": 0,
+            "screenshot_vlm_manual_match_rate": 0.0,
+            "policy_hints": [],
+            "approved_count": 0,
+            "missing": [],
+            "checks": [],
+            "dangerous_cases": [],
+            "regression_cases": [],
+            "errors": [],
+        }
+        ablation_items = self._load_gate_payloads(
+            goal_ablation_reports or [],
+            goal_ablation_report_paths or [],
+            report["errors"],
+            "goal_verification_ablation",
+        )
+        label_items = self._load_gate_payloads(
+            label_validation_reports or [],
+            label_validation_report_paths or [],
+            report["errors"],
+            "label_validation",
+        )
+        report["source_count"] = len(ablation_items)
+        report["label_validation_count"] = len(label_items)
+        if not ablation_items:
+            report["missing"].append("goal_verification_ablation")
+
+        for source, payload in ablation_items:
+            check = self._goal_verification_critic_gate_ablation_check(source, payload)
+            report["checks"].append(check)
+            metrics = check.get("metrics", {})
+            for key in (
+                "goal_count",
+                "manual_labeled_count",
+                "decisive_manual_label_count",
+                "screenshot_case_count",
+                "screenshot_vlm_added_value_count",
+                "screenshot_vlm_manual_match_count",
+                "screenshot_vlm_manual_mismatch_count",
+                "api_visual_manual_match_count",
+                "deterministic_manual_match_count",
+                "critic_regression_count",
+                "dangerous_false_approve_count",
+                "false_reject_count",
+            ):
+                report[key] += self._gate_int(metrics.get(key, 0))
+            report["dangerous_cases"].extend(metrics.get("dangerous_cases", [])[:8])
+            report["regression_cases"].extend(metrics.get("regression_cases", [])[:8])
+
+        for source, payload in label_items:
+            check = self._goal_verification_critic_gate_label_check(source, payload)
+            report["checks"].append(check)
+            metrics = check.get("metrics", {})
+            if check.get("status") == "pass":
+                report["valid_label_validation_count"] += 1
+            report["label_validation_goal_ok_count"] += self._gate_int(metrics.get("goal_ok_count", 0))
+            report["label_validation_error_count"] += self._gate_int(metrics.get("error_count", 0))
+
+        decisive = max(1, report["decisive_manual_label_count"])
+        if report["decisive_manual_label_count"]:
+            report["screenshot_vlm_manual_match_rate"] = round(
+                report["screenshot_vlm_manual_match_count"] / decisive,
+                3,
+            )
+
+        failed_checks = [check for check in report["checks"] if check.get("status") == "fail"]
+        if report["errors"]:
+            report["readiness"] = "error"
+            report["decision"] = "reject_goal_critic_runtime_use"
+            report["reason"] = "goal critic gate inputs could not be read"
+        elif failed_checks:
+            report["readiness"] = "rejected"
+            report["decision"] = "reject_goal_critic_runtime_use"
+            report["reason"] = failed_checks[0].get("detail", "goal critic evidence failed")
+        else:
+            if require_label_validation and not label_items:
+                report["missing"].append("label_validation_report")
+            if require_label_validation and report["valid_label_validation_count"] <= 0:
+                report["missing"].append("valid_label_validation_report")
+            if require_label_validation and report["label_validation_goal_ok_count"] < int(min_manual_labels):
+                report["missing"].append("validated_goal_labels")
+            if report["goal_count"] < int(min_cases):
+                report["missing"].append("goal_verification_cases")
+            if report["decisive_manual_label_count"] < int(min_manual_labels):
+                report["missing"].append("manual_goal_labels")
+            if report["screenshot_case_count"] < int(min_screenshot_cases):
+                report["missing"].append("verified_screenshot_goal_cases")
+            if report["screenshot_vlm_manual_match_count"] < int(min_screenshot_manual_matches):
+                report["missing"].append("screenshot_vlm_manual_matches")
+            if report["screenshot_vlm_added_value_count"] < int(min_screenshot_added_value):
+                report["missing"].append("screenshot_vlm_added_value")
+            if report["screenshot_vlm_manual_mismatch_count"] > int(max_screenshot_manual_mismatches):
+                report["readiness"] = "rejected"
+                report["decision"] = "reject_goal_critic_runtime_use"
+                report["reason"] = "screenshot/VLM goal critic disagreed with manual labels"
+            elif report["missing"]:
+                report["readiness"] = "review"
+                report["decision"] = "hold_goal_critic_runtime_use"
+                report["reason"] = "goal critic evidence is incomplete"
+            else:
+                report["readiness"] = "approved"
+                report["decision"] = "allow_goal_critic_runtime_use"
+                report["reason"] = "manual screenshot-backed goal-verification evidence supports runtime critic use"
+                report["policy_hints"].append("enable_goal_verification_critic")
+                report["approved_count"] = 1
+
+        if report["readiness"] != "approved":
+            report["policy_hints"].append("keep_goal_critic_offline_until_gate_approved")
+        report["missing"] = self._dedupe_strings(report["missing"])
+        report["dangerous_cases"] = report["dangerous_cases"][:20]
+        report["regression_cases"] = report["regression_cases"][:20]
+        return report
+
+    def _goal_verification_critic_gate_ablation_check(self, source: str, payload: dict) -> dict:
+        goal_payload = self._goal_ablation_gate_payload(payload)
+        cases = goal_payload.get("cases", []) if isinstance(goal_payload.get("cases", []), list) else []
+        report_errors = goal_payload.get("errors", []) if isinstance(goal_payload.get("errors", []), list) else []
+        metrics = {
+            "goal_count": self._gate_int(goal_payload.get("goal_count", len(cases))),
+            "manual_labeled_count": self._gate_int(goal_payload.get("manual_labeled_count", 0)),
+            "decisive_manual_label_count": 0,
+            "screenshot_case_count": 0,
+            "screenshot_vlm_added_value_count": self._gate_int(goal_payload.get("screenshot_vlm_added_value_count", 0)),
+            "screenshot_vlm_manual_match_count": 0,
+            "screenshot_vlm_manual_mismatch_count": 0,
+            "api_visual_manual_match_count": 0,
+            "deterministic_manual_match_count": 0,
+            "critic_regression_count": 0,
+            "dangerous_false_approve_count": 0,
+            "false_reject_count": 0,
+            "dangerous_cases": [],
+            "regression_cases": [],
+        }
+        for case in cases:
+            if not isinstance(case, dict):
+                continue
+            manual = str(case.get("manual_readiness", "") or "").strip().lower()
+            screenshot_readiness = str(case.get("screenshot_vlm_readiness", "") or "").strip().lower()
+            api_readiness = str(case.get("api_visual_readiness", "") or "").strip().lower()
+            deterministic_readiness = str(case.get("deterministic_readiness", "") or "").strip().lower()
+            screenshot_count = self._gate_int(case.get("screenshot_count", 0))
+            if screenshot_count > 0:
+                metrics["screenshot_case_count"] += 1
+            if case.get("screenshot_vlm_added_value"):
+                metrics["screenshot_vlm_added_value_count"] += 0 if goal_payload.get("screenshot_vlm_added_value_count") is not None else 1
+            if manual not in {"approved", "rejected"}:
+                continue
+            metrics["decisive_manual_label_count"] += 1
+            if screenshot_readiness == manual:
+                metrics["screenshot_vlm_manual_match_count"] += 1
+            else:
+                metrics["screenshot_vlm_manual_mismatch_count"] += 1
+            if api_readiness == manual:
+                metrics["api_visual_manual_match_count"] += 1
+            if deterministic_readiness == manual:
+                metrics["deterministic_manual_match_count"] += 1
+            if api_readiness == manual and screenshot_readiness != manual:
+                metrics["critic_regression_count"] += 1
+                metrics["regression_cases"].append(self._goal_critic_gate_case_summary(case))
+            if manual == "rejected" and screenshot_readiness == "approved":
+                metrics["dangerous_false_approve_count"] += 1
+                metrics["dangerous_cases"].append(self._goal_critic_gate_case_summary(case))
+            if manual == "approved" and screenshot_readiness == "rejected":
+                metrics["false_reject_count"] += 1
+
+        if report_errors:
+            return self._gate_check(source, "goal_verification_ablation", "fail", "goal-verification ablation contains errors", metrics)
+        if metrics["dangerous_false_approve_count"]:
+            return self._gate_check(source, "goal_verification_ablation", "fail", "goal critic falsely approved rejected manual labels", metrics)
+        if metrics["critic_regression_count"]:
+            return self._gate_check(source, "goal_verification_ablation", "fail", "screenshot/VLM critic regressed against API/manual agreement", metrics)
+        if not cases:
+            return self._gate_check(source, "goal_verification_ablation", "warn", "no goal-verification ablation cases found", metrics)
+        if metrics["decisive_manual_label_count"] and metrics["screenshot_case_count"]:
+            return self._gate_check(source, "goal_verification_ablation", "pass", "goal critic ablation has decisive manual screenshot evidence", metrics)
+        return self._gate_check(source, "goal_verification_ablation", "warn", "goal critic ablation evidence is incomplete", metrics)
+
+    def _goal_ablation_gate_payload(self, payload: dict) -> dict:
+        if not isinstance(payload, dict):
+            return {}
+        nested = payload.get("goal_ablation")
+        if isinstance(nested, dict) and isinstance(nested.get("cases", []), list):
+            return nested
+        return payload
+
+    def _goal_critic_gate_case_summary(self, case: dict) -> dict:
+        return {
+            "source_log": str(case.get("source_log", "") or ""),
+            "goal": str(case.get("goal", "") or ""),
+            "goal_index": self._gate_int(case.get("goal_index", 0)),
+            "manual_readiness": str(case.get("manual_readiness", "") or ""),
+            "api_visual_readiness": str(case.get("api_visual_readiness", "") or ""),
+            "screenshot_vlm_readiness": str(case.get("screenshot_vlm_readiness", "") or ""),
+        }
+
+    def _goal_verification_critic_gate_label_check(self, source: str, payload: dict) -> dict:
+        validation = self._label_validation_gate_payload(payload)
+        cases = validation.get("cases", []) if isinstance(validation.get("cases", []), list) else []
+        errors = validation.get("errors", []) if isinstance(validation.get("errors", []), list) else []
+        ok = bool(validation.get("ok", False))
+        metrics = {
+            "label_count": self._gate_int(validation.get("label_count", len(cases))),
+            "ok_count": self._gate_int(validation.get("ok_count", 0)),
+            "error_count": self._gate_int(validation.get("error_count", len(errors))),
+            "goal_label_count": 0,
+            "goal_ok_count": 0,
+        }
+        for case in cases:
+            if not isinstance(case, dict):
+                continue
+            if str(case.get("label_type", "") or "").strip().lower() != "goal_verification":
+                continue
+            metrics["goal_label_count"] += 1
+            if bool(case.get("ok", False)) and str(case.get("readiness", "") or "").strip().lower() in {"approved", "rejected"}:
+                metrics["goal_ok_count"] += 1
+        if errors or not ok:
+            return self._gate_check(source, "label_validation", "fail", "manual review label validation failed", metrics)
+        if metrics["goal_ok_count"]:
+            return self._gate_check(source, "label_validation", "pass", "manual goal labels are validated", metrics)
+        return self._gate_check(source, "label_validation", "warn", "no decisive validated goal labels found", metrics)
+
+    def _label_validation_gate_payload(self, payload: dict) -> dict:
+        if not isinstance(payload, dict):
+            return {}
+        nested = payload.get("label_validation")
+        if isinstance(nested, dict) and isinstance(nested.get("cases", []), list):
+            return nested
+        return payload
+
     def _session_goal_from_end(self, events: list[dict]) -> str:
         for event in reversed(events):
             if event.get("type") == "goal_end":
@@ -17025,6 +17302,39 @@ class BenchmarkRunner:
             if case.visual_evidence_keys:
                 print(f"      visual keys: {', '.join(case.visual_evidence_keys)}")
         for error in report.errors:
+            print(f"  error: {error}")
+
+    def print_goal_verification_critic_gate_report(self, report: dict):
+        print("\nGoal Verification Critic Gate")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  inputs: "
+            f"ablations={report.get('source_count', 0)}, "
+            f"label_validations={report.get('label_validation_count', 0)}"
+        )
+        print(
+            "  evidence: "
+            f"goals={report.get('goal_count', 0)}, "
+            f"manual={report.get('decisive_manual_label_count', 0)}, "
+            f"screenshot_cases={report.get('screenshot_case_count', 0)}, "
+            f"screenshot_matches={report.get('screenshot_vlm_manual_match_count', 0)}, "
+            f"mismatches={report.get('screenshot_vlm_manual_mismatch_count', 0)}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for check in report.get("checks", [])[:10]:
+            marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
+            metrics = check.get("metrics", {}) if isinstance(check.get("metrics", {}), dict) else {}
+            print(
+                f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('detail')} "
+                f"goals={metrics.get('goal_count', metrics.get('goal_label_count', 0))} "
+                f"matches={metrics.get('screenshot_vlm_manual_match_count', metrics.get('goal_ok_count', 0))}"
+            )
+        for case in report.get("dangerous_cases", [])[:5]:
+            print(f"  false approve: {case.get('goal', '')} ({case.get('source_log', '')})")
+        for error in report.get("errors", []):
             print(f"  error: {error}")
 
     def print_policy_skill_ablation_report(self, report: PolicySkillAblationReport):

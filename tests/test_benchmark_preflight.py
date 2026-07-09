@@ -624,6 +624,64 @@ def test_goal_verification_ablation_compares_visual_evidence():
     print("PASS: Goal verification ablation compares visual evidence")
 
 
+def test_goal_verification_critic_gate_controls_runtime_use():
+    runner = BenchmarkRunner(Config())
+    ablation_report = {
+        "goal_count": 1,
+        "manual_labeled_count": 1,
+        "screenshot_vlm_added_value_count": 1,
+        "errors": [],
+        "cases": [{
+            "source_log": "logs/session_goal_visual_review.jsonl",
+            "goal": "Confirm base entrance is sealed",
+            "goal_index": 1,
+            "screenshot_count": 1,
+            "manual_readiness": "approved",
+            "deterministic_readiness": "unknown",
+            "api_visual_readiness": "unknown",
+            "screenshot_vlm_readiness": "approved",
+            "screenshot_vlm_added_value": True,
+        }],
+    }
+    label_validation = {
+        "ok": True,
+        "label_count": 1,
+        "ok_count": 1,
+        "error_count": 0,
+        "errors": [],
+        "cases": [{
+            "label_type": "goal_verification",
+            "readiness": "approved",
+            "ok": True,
+        }],
+    }
+
+    report = runner.build_goal_verification_critic_gate(
+        goal_ablation_reports=[ablation_report],
+        label_validation_reports=[label_validation],
+    )
+
+    assert report["readiness"] == "approved"
+    assert report["decision"] == "allow_goal_critic_runtime_use"
+    assert report["approved_count"] == 1
+    assert report["screenshot_vlm_manual_match_count"] == 1
+    assert report["screenshot_vlm_manual_mismatch_count"] == 0
+    assert "enable_goal_verification_critic" in report["policy_hints"]
+
+    false_approve = dict(ablation_report)
+    false_approve["cases"] = [dict(ablation_report["cases"][0], manual_readiness="rejected")]
+    rejected = runner.build_goal_verification_critic_gate(
+        goal_ablation_reports=[false_approve],
+        label_validation_reports=[dict(label_validation, cases=[dict(label_validation["cases"][0], readiness="rejected")])],
+    )
+
+    assert rejected["readiness"] == "rejected"
+    assert rejected["decision"] == "reject_goal_critic_runtime_use"
+    assert rejected["dangerous_false_approve_count"] == 1
+    assert rejected["dangerous_cases"][0]["goal"] == "Confirm base entrance is sealed"
+    print("PASS: Goal verification critic gate controls runtime use")
+
+
 def test_promotion_review_ablation_ignores_unverified_screenshot_paths():
     tmpdir = tempfile.mkdtemp()
     session_path = os.path.join(tmpdir, "session_visual_review_missing.jsonl")
@@ -4910,6 +4968,7 @@ if __name__ == "__main__":
     test_ingest_uses_promotion_critic_for_unknown_reports()
     test_promotion_review_ablation_compares_visual_evidence()
     test_goal_verification_ablation_compares_visual_evidence()
+    test_goal_verification_critic_gate_controls_runtime_use()
     test_promotion_review_ablation_ignores_unverified_screenshot_paths()
     test_goal_verification_ablation_ignores_unverified_screenshot_paths()
     test_review_label_template_generates_promotion_and_goal_records()

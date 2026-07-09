@@ -39,6 +39,15 @@ def _goal_critic_from_args(args):
     return GoalVerificationCritic(LLMProvider(_llm_config_from_args(args)))
 
 
+def _add_goal_critic_runtime_gate_args(parser):
+    parser.add_argument(
+        "--goal-critic-gate",
+        action="append",
+        default=[],
+        help="Approved goal-verification-critic-gate JSON required before --goal-critic affects runtime completion decisions",
+    )
+
+
 def _add_coaching_args(parser):
     parser.add_argument(
         "--coach-style",
@@ -180,6 +189,7 @@ def main():
     run_parser.add_argument("--llm-base-url", type=str, default="")
     run_parser.add_argument("--api-key", type=str, default="")
     run_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
+    _add_goal_critic_runtime_gate_args(run_parser)
     run_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     run_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     run_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
@@ -215,6 +225,7 @@ def main():
     auto_parser.add_argument("--llm-base-url", type=str, default="")
     auto_parser.add_argument("--api-key", type=str, default="")
     auto_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
+    _add_goal_critic_runtime_gate_args(auto_parser)
     auto_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     auto_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     auto_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
@@ -249,6 +260,7 @@ def main():
     bench_parser.add_argument("--llm-base-url", type=str, default="")
     bench_parser.add_argument("--api-key", type=str, default="")
     bench_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
+    _add_goal_critic_runtime_gate_args(bench_parser)
     bench_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     bench_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     bench_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
@@ -566,6 +578,7 @@ def main():
     collab_parser.add_argument("--llm-base-url", type=str, default="")
     collab_parser.add_argument("--api-key", type=str, default="")
     collab_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
+    _add_goal_critic_runtime_gate_args(collab_parser)
     collab_parser.add_argument("--no-skill-memory-context", action="store_true", help="Disable skill-level memory hints in planner context")
     collab_parser.add_argument("--no-vision-analysis", action="store_true", help="Disable structured vision grounding on observations")
     collab_parser.add_argument("--no-visual-action-grounding", action="store_true", help="Disable visual suggestions from modifying planned actions")
@@ -647,6 +660,23 @@ def main():
     goal_review_parser.add_argument("--label-file", type=str, default="", help="Optional manual labels JSON/JSONL for agreement metrics")
     goal_review_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     goal_review_parser.add_argument("--log-level", type=str, default="INFO")
+
+    goal_critic_gate_parser = subparsers.add_parser(
+        "goal-verification-critic-gate",
+        help="Gate runtime goal-verification critics with offline ablation and manual-label evidence",
+    )
+    goal_critic_gate_parser.add_argument("--goal-verification-ablation", action="append", default=[], help="Saved goal-verification-ablation or visual-review-pipeline JSON")
+    goal_critic_gate_parser.add_argument("--label-validation", action="append", default=[], help="Saved review-label-validate or visual-review-pipeline JSON")
+    goal_critic_gate_parser.add_argument("--target", type=str, default="goal_verification_critic_runtime", help="Gate target label")
+    goal_critic_gate_parser.add_argument("--min-cases", type=int, default=1, help="Minimum goal-verification ablation cases required")
+    goal_critic_gate_parser.add_argument("--min-manual-labels", type=int, default=1, help="Minimum manual goal labels required")
+    goal_critic_gate_parser.add_argument("--min-screenshot-cases", type=int, default=1, help="Minimum verified screenshot-backed goal cases required")
+    goal_critic_gate_parser.add_argument("--min-screenshot-manual-matches", type=int, default=1, help="Minimum screenshot/VLM judgments matching manual labels")
+    goal_critic_gate_parser.add_argument("--max-screenshot-manual-mismatches", type=int, default=0, help="Maximum allowed screenshot/VLM mismatches against manual labels")
+    goal_critic_gate_parser.add_argument("--min-screenshot-added-value", type=int, default=0, help="Minimum screenshot/VLM added-value cases required")
+    goal_critic_gate_parser.add_argument("--no-require-label-validation", action="store_true", help="Allow approval without a separate review-label-validate report")
+    goal_critic_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    goal_critic_gate_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Offline manual review label templates
     label_template_parser = subparsers.add_parser("review-label-template", help="Generate JSONL manual review label templates from session logs")
@@ -1932,6 +1962,7 @@ def main():
                         base_url=getattr(args, "llm_base_url", "") or os.environ.get("SINGULARITY_LLM_BASE_URL", ""),
                     ),
                     enable_goal_critic=getattr(args, "goal_critic", False),
+                    goal_critic_gate_paths=getattr(args, "goal_critic_gate", []) or [],
                     enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
                     enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
                     coach_style=getattr(args, "coach_style", "") or "",
@@ -2304,6 +2335,39 @@ def main():
                     "cases": [asdict(case) for case in report.cases],
                 }, f, indent=2, ensure_ascii=False)
             print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "goal-verification-critic-gate":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        ablation_paths = getattr(args, "goal_verification_ablation", []) or []
+        label_validation_paths = getattr(args, "label_validation", []) or []
+        if not ablation_paths:
+            print("goal-verification-critic-gate requires at least one --goal-verification-ablation")
+            sys.exit(1)
+        runner = BenchmarkRunner(Config())
+        report = runner.build_goal_verification_critic_gate(
+            goal_ablation_report_paths=ablation_paths,
+            label_validation_report_paths=label_validation_paths,
+            target=getattr(args, "target", "goal_verification_critic_runtime"),
+            min_cases=getattr(args, "min_cases", 1),
+            min_manual_labels=getattr(args, "min_manual_labels", 1),
+            min_screenshot_cases=getattr(args, "min_screenshot_cases", 1),
+            min_screenshot_manual_matches=getattr(args, "min_screenshot_manual_matches", 1),
+            max_screenshot_manual_mismatches=getattr(args, "max_screenshot_manual_mismatches", 0),
+            min_screenshot_added_value=getattr(args, "min_screenshot_added_value", 0),
+            require_label_validation=not getattr(args, "no_require_label_validation", False),
+        )
+        runner.print_goal_verification_critic_gate_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") == "error":
+            sys.exit(1)
         return
 
     if args.command == "review-label-template":
@@ -3688,6 +3752,7 @@ def main():
         bot=BotConfig(host=host, port=port, username=username, bridge_host=bridge_host, bridge_port=bridge_port),
         llm=_llm_config_from_args(args),
         enable_goal_critic=getattr(args, "goal_critic", False),
+        goal_critic_gate_paths=getattr(args, "goal_critic_gate", []) or [],
         enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
         enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
         coach_style=getattr(args, "coach_style", "") or "",

@@ -39,8 +39,9 @@ npm run start:screenshot
 $env:OPENAI_API_KEY = "sk-..."
 python -m singularity.main run --goal "Gather 3 oak logs" --llm-provider openai --llm-model gpt-4o-mini
 
-# Optional fallback critic for goals that deterministic verification cannot cover
-python -m singularity.main run --goal "Confirm base entrance is sealed" --goal-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
+# Optional fallback critic for goals that deterministic verification cannot cover.
+# Runtime use requires an approved goal-verification-critic-gate report.
+python -m singularity.main run --goal "Confirm base entrance is sealed" --goal-critic --goal-critic-gate logs/benchmarks/goal_critic_gate.json --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
 
 # Structured vision grounding is enabled by default and logs lightweight `vision` events.
 # Disable it for debugging or baseline runs:
@@ -350,6 +351,10 @@ python -m singularity.main promotion-review-ablation --session-log logs/session_
 # Compare deterministic-only, API visual summary, and screenshot/VLM-assisted goal verification
 python -m singularity.main goal-verification-ablation --session-log logs/session_xxx.jsonl --goal-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
 python -m singularity.main goal-verification-ablation --session-log logs/session_xxx.jsonl --goal-critic --label-file workspace/reviews/goal_labels.jsonl --output logs/benchmarks/goal_verification_ablation.json
+
+# Gate runtime --goal-critic use with offline/manual agreement evidence
+python -m singularity.main goal-verification-critic-gate --goal-verification-ablation logs/benchmarks/goal_verification_ablation.json --label-validation logs/benchmarks/session_xxx_label_validation.json --output logs/benchmarks/goal_critic_gate.json
+python -m singularity.main run --goal "Confirm base entrance is sealed" --goal-critic --goal-critic-gate logs/benchmarks/goal_critic_gate.json
 
 # Label files may be JSONL records such as:
 # {"source_log":"logs/session_xxx.jsonl","goal":"Confirm base entrance is sealed","readiness":"approved","reviewer":"manual","notes":"screenshot shows sealed entrance"}

@@ -1,5 +1,6 @@
 """Unit tests for deterministic Minecraft goal self-verification."""
 import json
+import os
 import sys
 import tempfile
 
@@ -273,6 +274,38 @@ def test_agent_completion_gate_rejects_unknown_goal_when_critic_rejects():
     print("PASS: Agent completion gate rejects unknown goals when critic rejects")
 
 
+def test_agent_goal_critic_requires_approved_runtime_gate():
+    blocked = object.__new__(Agent)
+    blocked.config = Config(enable_goal_critic=True)
+    blocked_report = blocked._evaluate_goal_critic_runtime_gate()
+
+    assert blocked_report["gate_required"]
+    assert not blocked_report["gate_approved"]
+    assert blocked_report["gate_readiness"] == "review"
+    assert "goal_critic_gate" in blocked_report["missing"]
+
+    tmpdir = tempfile.mkdtemp()
+    gate_path = os.path.join(tmpdir, "goal_critic_gate.json")
+    with open(gate_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "type": "goal_verification_critic_gate",
+            "readiness": "approved",
+            "decision": "allow_goal_critic_runtime_use",
+            "reason": "fixture",
+            "approved_count": 1,
+        }, f)
+
+    approved = object.__new__(Agent)
+    approved.config = Config(enable_goal_critic=True, goal_critic_gate_paths=[gate_path])
+    approved_report = approved._evaluate_goal_critic_runtime_gate()
+
+    assert approved_report["gate_required"]
+    assert approved_report["gate_approved"]
+    assert approved_report["gate_readiness"] == "approved"
+    assert approved_report["gate_reports"][0]["approved_count"] == 1
+    print("PASS: Agent goal critic requires approved runtime gate")
+
+
 def test_session_summary_counts_goal_verification_metrics():
     logger = SessionLogger(log_dir=tempfile.mkdtemp(), session_id="verify-test")
     logger.log("goal_verification", {
@@ -312,5 +345,6 @@ if __name__ == "__main__":
     test_agent_completion_gate_rejects_false_complete()
     test_agent_completion_gate_accepts_unknown_goal_with_audit_trail()
     test_agent_completion_gate_rejects_unknown_goal_when_critic_rejects()
+    test_agent_goal_critic_requires_approved_runtime_gate()
     test_session_summary_counts_goal_verification_metrics()
     print("\nGoal verifier tests PASSED")

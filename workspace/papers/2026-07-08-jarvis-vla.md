@@ -24,6 +24,6 @@
   - Current agent uses Mineflayer API; M6 can compare API observations against visual grounding.
   - Promotion review can now consume screenshot references and VLM summaries from session logs as `visual_evidence`, which is a low-cost bridge before full keyboard/mouse VLA control.
   - `promotion-review-ablation` provides the first deterministic/API-visual/screenshot-VLM split for M6 promotion review.
-  - `GoalVerificationCritic` now extends the same critic pathway to runtime unknown goal verification.
-  - `goal-verification-ablation` replays session goals through deterministic-only, API visual summary, and screenshot/VLM-assisted verification so visual evidence value can be measured before adding keyboard/mouse VLA control.
-**Next Action**: Run the split on real screenshot/VLM traces for both promotion review and goal verification tasks.
+  - `GoalVerificationCritic` now extends the same critic pathway to unknown goal verification, while runtime use is held behind an approved `goal-verification-critic-gate`.
+  - `goal-verification-ablation` replays session goals through deterministic-only, API visual summary, and screenshot/VLM-assisted verification so visual evidence value can be measured before adding keyboard/mouse VLA control or allowing `--goal-critic` online.
+**Next Action**: Run the split on real screenshot/VLM traces for both promotion review and goal verification tasks, then approve runtime goal-critic use only through the gate.
