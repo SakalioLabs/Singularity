@@ -10,6 +10,7 @@ from typing import Any
 
 MODULE_ORDER = [
     "plan_cache",
+    "episode_early_abort",
     "visual_action_grounding",
     "action_verification",
     "action_candidate_selection",
@@ -147,6 +148,15 @@ def _empty_summary(label: str, session_log_paths: list[str]) -> dict:
                 "hit_rate": 0.0,
                 "activity_count": 0,
             },
+            "episode_early_abort": {
+                "gate_event_count": 0,
+                "probe_count": 0,
+                "would_abort_count": 0,
+                "active_abort_count": 0,
+                "shadow_abort_count": 0,
+                "round_counts": {},
+                "activity_count": 0,
+            },
             "visual_action_grounding": {
                 "suggestion_event_count": 0,
                 "suggestion_count": 0,
@@ -246,6 +256,8 @@ def _ingest_event(summary: dict, event: dict):
         _ingest_action(summary, data)
     elif event_type in {"plan_cache_hit", "plan_cache_hybrid_hint", "plan_cache_miss", "plan_cache_signature"}:
         _ingest_plan_cache(summary, event_type)
+    elif event_type in {"episode_abort_runtime_gate", "episode_viability_probe", "episode_early_abort"}:
+        _ingest_episode_abort(summary, event_type, data)
     elif event_type in {"visual_action_suggestion", "visual_action_intervention"}:
         _ingest_visual_action(summary, event_type, data)
     elif event_type == "action_verification":
@@ -305,6 +317,23 @@ def _ingest_plan_cache(summary: dict, event_type: str):
         module["miss_count"] += 1
     elif event_type == "plan_cache_signature":
         module["signature_count"] += 1
+
+
+def _ingest_episode_abort(summary: dict, event_type: str, data: dict):
+    module = summary["modules"]["episode_early_abort"]
+    if event_type == "episode_abort_runtime_gate":
+        module["gate_event_count"] += 1
+        return
+    if event_type == "episode_viability_probe":
+        module["probe_count"] += 1
+        _increment(module["round_counts"], str(data.get("round") or "unknown"))
+        return
+    if data.get("would_abort") is True:
+        module["would_abort_count"] += 1
+    if data.get("active_abort") is True:
+        module["active_abort_count"] += 1
+    elif data.get("would_abort") is True:
+        module["shadow_abort_count"] += 1
 
 
 def _ingest_visual_action(summary: dict, event_type: str, data: dict):
@@ -482,6 +511,14 @@ def _finalize_summary(summary: dict):
         plan_cache["workflow_intervention_count"]
         + plan_cache["miss_count"]
         + plan_cache["signature_count"]
+    )
+
+    episode_abort = summary["modules"]["episode_early_abort"]
+    episode_abort["activity_count"] = (
+        episode_abort["gate_event_count"]
+        + episode_abort["probe_count"]
+        + episode_abort["would_abort_count"]
+        + episode_abort["active_abort_count"]
     )
 
     visual = summary["modules"]["visual_action_grounding"]
@@ -706,6 +743,8 @@ def _comparison_recommendations(candidate: dict, deltas: dict, module_activity: 
         recommendations.append("run_candidate_with_module_runtime_switches_or_profile_enabled")
     if "plan_cache" in active:
         recommendations.append("run_entry_scoped_plan_cache_runtime_report_before_deterministic_reuse")
+    if "episode_early_abort" in active:
+        recommendations.append("rebuild_episode_early_abort_gate_on_disjoint_live_logs_before_active_termination")
     if "visual_action_grounding" in active:
         recommendations.append("run_visual_action_ablation_or_visual_review_pipeline_before_visual_policy_promotion")
     if "action_verification" in active or "action_candidate_selection" in active:

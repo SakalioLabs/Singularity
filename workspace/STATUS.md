@@ -48,6 +48,7 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 - Added task-frontier skill routing with a legacy baseline switch, governance filtering, prerequisite/target-state scoring, bounded reason-coded planner context, and a 3-case fixed-control ablation. The built-in 3/3 result remains offline-only.
 - Added Blind-Curator-style skill retirement audits: per-judge defect-injection calibration, fixed-control no-skill contribution reports, and a live-evidence gate. Approved candidates become task-family-scoped in-memory exclusions only; built-ins remain usable, skill files are untouched, and automatic deletion is prohibited.
 - Upgraded plan caching to `progressive_workflow_crystallization_v1`: offline transitions are bounded hybrid planner hints, while direct deterministic reuse requires entry-scoped matched success across three distinct live sessions by default. Action, goal, or verifier regressions demote only the affected entry to agentic execution.
+- Added `behavior_surface_v1` recall-controlled episode viability. It uses exact per-round Clopper-Pearson calibration, disjoint calibration/validation/test splits, held-out global-recall certificates, and fixed runtime provenance. It is off by default and has no approved live Minecraft gate.
 
 ## Next Acceptance Work
 
@@ -60,3 +61,4 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 7. Compare frontier skill routing against `--no-skill-frontier-routing` on fresh M1/M2 task streams, measuring task completion, environment steps, verifier rejects, token cost, and latency before treating the synthetic top-1 gain as operational evidence.
 8. Collect live defect-injection calibration and paired no-skill contribution traces across at least three distinct candidate sessions before loading any `--skill-retirement-gate`; the built-in fixtures remain runtime-ineligible.
 9. Run hybrid plan-cache guidance on fresh M1/M2 sessions, collect three exact matched successes per candidate entry, and compare planner calls, token cost, actions, completion, and verifier outcomes before any deterministic promotion.
+10. Collect disjoint fixed-control M1/M2 calibration, validation, and test trajectories; run episode viability in shadow mode first, and keep active abort disabled until held-out recall is certified and failed-episode planner-round savings are positive.

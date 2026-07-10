@@ -35,6 +35,7 @@ Current report outcome:
 - Added `frontier_transition_skill_router_v1`, which reranks governed skills against readiness tasks, assigned skills, missing preconditions, target state, task family, and Bayesian-smoothed use outcomes. Its 600-character planner projection logs only skill names, task IDs, scores, coverage, and reason codes. Fixed-control built-ins improve expected top-1 routing from 0/3 to 3/3 with full frontier coverage and zero regressions; this is synthetic offline evidence only.
 - Added a verifier-calibrated soft-retirement pipeline. It measures false-pass bias per judge with injected defects, compares each learned skill to a fixed-control no-skill baseline, requires live provenance and distinct sessions, and applies approved results only as a task-family runtime overlay. Built-ins cannot be quarantined, synthetic fixtures are runtime-ineligible, skill files are never mutated, and every gate hard-codes `automatic_delete_allowed=false`.
 - Upgraded AgenticCache reuse with Progressive Crystallization and EvoSOP lifecycle constraints. Schema-v2 cache reports can grant only hybrid planner guidance from offline traces; runtime reports aggregate exact executable-workflow matches, independent sessions, goal outcomes, action failures, and verifier rejects per entry. Three matched successes across three complete live sessions are required by default for deterministic reuse, while regressions demote only the affected entry.
+- Added a hosted-API-compatible recall-controlled episode viability cascade. `behavior_surface_v1` scores only typed action/verifier/progress events, calibrates exact binomial survival bounds per round, searches budgets on a separate validation split, certifies global success recall on held-out test data, and binds `shadow`/`active` runtime use to planner, action backend, verifier, task stream, and seed identities. The implementation explicitly makes no hidden-activation or token-savings claim.
 
 ## Evidence That Still Matters
 
@@ -51,6 +52,7 @@ Current report outcome:
 - Frontier skill routing has no fresh Minecraft completion, interaction-step, token, or latency comparison. The old ranker remains available through `--no-skill-frontier-routing` for live fixed-control runs.
 - Skill soft retirement has deterministic offline coverage but no live defect-injection calibration or paired no-skill Minecraft traces. No current skill is justified for runtime quarantine by tracked evidence.
 - Workflow crystallization is offline-verified, but no existing Minecraft cache entry has the three-session live evidence required for deterministic execution. Existing schema-v1 gates are intentionally rejected.
+- Episode early-abort mechanics are offline-verified only. Existing logs do not provide disjoint successful calibration/validation/test populations, so no live gate is approved and runtime remains off by default.
 
 ## Research Direction
 
@@ -68,7 +70,8 @@ Current report outcome:
 - Gold-standard lightweight game agents: hold a strong deterministic yardstick fixed and report negative results and regressions instead of grading an agent against itself.
 - Blind Curator and SkillCenter: scale skill libraries only with provenance, verifier-visible failures, and false-pass-calibrated soft retirement; never delete skills from an LLM judge score alone.
 - Progressive Crystallization and EvoSOP: treat exploration as workflow discovery, keep offline procedures hybrid, promote entries individually after repeated live verification, and demote regressions without erasing evidence.
-- Recall-Controlled Early Abort: future early-stop cascades must preserve successful episodes at a held-out global recall target; behavior-only Minecraft signals must not inherit hidden-state probe claims.
+- Recall-Controlled Early Abort: use exact sample-complexity-aware certificates and shadow deployment before behavior-changing termination; behavior-only Minecraft signals must not inherit hidden-state probe claims.
+- IGRPO: when retries or branch rollouts become available, allocate a fixed planner-round budget toward frontier nodes that reduce verifier uncertainty or reveal prerequisites, and compare against uniform allocation before online suppression.
 
 ## Immediate Sequence
 
@@ -80,3 +83,4 @@ Current report outcome:
 6. Collect fixed-control live lineage and shadow-restoration traces on at least three distinct candidate sessions, verifying `goal_frontier_capsule_v1` memory-read events and actual token/latency deltas; keep automatic restoration disabled even if shadow selection is approved.
 7. Collect per-judge defect-injection controls and paired no-skill skill-contribution traces across at least three distinct live sessions before applying a runtime retirement overlay; preserve all skill files for audit and recovery.
 8. Run schema-v2 hybrid workflow guidance on fresh M1/M2 traces, then regenerate runtime reports and permit deterministic reuse only for entries with three distinct exact matched successes and no regression.
+9. Build disjoint fixed-control M1/M2 episode-abort splits, run `behavior_surface_v1` in shadow mode, and permit active termination only after validation and held-out test global-recall certificates pass with positive failed-episode savings.

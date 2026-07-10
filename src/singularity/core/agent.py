@@ -7,11 +7,17 @@ import os
 import json
 import time
 import logging
+import hashlib
 from dataclasses import asdict
 from typing import Callable, Optional
 
 from singularity.core.config import Config
 from singularity.core.runtime import RuntimeSupervisor
+from singularity.core.episode_abort import (
+    EpisodeAbortMonitor,
+    evaluate_episode_abort_runtime_gate,
+    runtime_episode_abort_provenance,
+)
 from singularity.core.memory import (
     MemorySystem,
     evaluate_memory_attribution_runtime_gate,
@@ -83,6 +89,30 @@ class Agent:
         self.session_log: list[dict] = []
         self.current_goal: Optional[str] = None
         self.session_logger = SessionLogger(log_dir=config.log_dir)
+        self.episode_abort_runtime_gate_report = evaluate_episode_abort_runtime_gate(
+            getattr(config, "episode_abort_gate_paths", []),
+            requested_mode=getattr(config, "episode_abort_mode", "off"),
+            runtime_provenance=runtime_episode_abort_provenance(config),
+        )
+        self.episode_abort_monitor = EpisodeAbortMonitor(self.episode_abort_runtime_gate_report)
+        requested_abort_mode = str(getattr(config, "episode_abort_mode", "off") or "off").lower()
+        if requested_abort_mode != "off" or getattr(config, "episode_abort_gate_paths", []):
+            self.session_logger.log("episode_abort_runtime_gate", {
+                "requested_mode": requested_abort_mode,
+                "effective_mode": self.episode_abort_runtime_gate_report.get("effective_mode", "off"),
+                "gate_readiness": self.episode_abort_runtime_gate_report.get("gate_readiness", "unknown"),
+                "provenance_match": self.episode_abort_runtime_gate_report.get("provenance_match", False),
+                "active_abort_allowed": self.episode_abort_runtime_gate_report.get("active_abort_allowed", False),
+                "shadow_probe_allowed": self.episode_abort_runtime_gate_report.get("shadow_probe_allowed", False),
+                "error_count": len(self.episode_abort_runtime_gate_report.get("errors", [])),
+            })
+        if requested_abort_mode != self.episode_abort_runtime_gate_report.get("effective_mode"):
+            logger.warning(
+                "Episode early abort disabled or downgraded: "
+                f"requested={requested_abort_mode}, "
+                f"effective={self.episode_abort_runtime_gate_report.get('effective_mode')}, "
+                f"gate_readiness={self.episode_abort_runtime_gate_report.get('gate_readiness')}"
+            )
 
         # Integrated modules
         self.memory = MemorySystem(memory_dir=config.memory_dir)
@@ -1392,6 +1422,7 @@ class Agent:
         success = False
         last_observation = {}
         last_plan = {}
+        termination_reason = ""
 
         while self.running and cycle < max_cycles:
             cycle += 1
@@ -1453,6 +1484,9 @@ class Agent:
                             self.task_system.complete_task(next_task.id, result)
                         break
                     logger.info("Planner reported complete, but goal verifier needs more evidence")
+                    if self._evaluate_episode_abort(goal, cycle, mode="goal"):
+                        termination_reason = "episode_early_abort"
+                        break
                     continue
 
                 if plan.get("status") == "blocked":
@@ -1467,6 +1501,7 @@ class Agent:
                     if hasattr(self.session_logger, "log"):
                         self.session_logger.log("blocked_plan", payload)
                     self._write_memory_episode("blocked_plan", payload, source="run_goal")
+                    termination_reason = "blocked_plan"
                     break
 
                 actions = plan.get("actions", [])
@@ -1484,6 +1519,7 @@ class Agent:
                     if hasattr(self.session_logger, "log"):
                         self.session_logger.log("empty_plan", payload)
                     self._write_memory_episode("empty_plan", payload, source="run_goal")
+                    termination_reason = "empty_plan"
                     break
 
                 for action in actions:
@@ -1569,6 +1605,10 @@ class Agent:
                 if observation.get("health", 20) < self.config.health_critical_threshold:
                     logger.warning("Health critical - aborting goal")
                     self.session_logger.log_error("Health critical", {"health": observation["health"]})
+                    termination_reason = "health_critical"
+                    break
+                if self._evaluate_episode_abort(goal, cycle, mode="goal"):
+                    termination_reason = "episode_early_abort"
                     break
                 time.sleep(0.5)
             except Exception as e:
@@ -1591,10 +1631,13 @@ class Agent:
             },
             branch_status="completed" if success else "failed",
         )
+        if not success and not termination_reason:
+            termination_reason = "max_cycles" if cycle >= max_cycles else "stopped"
         result = {
             "goal": goal,
             "cycles": cycle,
             "completed": success,
+            "termination_reason": "goal_verified" if success else termination_reason,
             "summary": self.session_logger.get_summary(),
         }
         self.session_logger.log_goal_end(goal, result)
@@ -1696,6 +1739,7 @@ class Agent:
             cycle = 0
             goal_success = False
             last_plan = {}
+            termination_reason = ""
             while self.running and cycle < max_cycles_per_goal:
                 cycle += 1
                 total_cycles += 1
@@ -1759,10 +1803,14 @@ class Agent:
                                 self.task_system.complete_task(active_task.id, result)
                             break
                         logger.info("[Autonomous] Planner reported complete, but verifier needs more evidence")
+                        if self._evaluate_episode_abort(goal, cycle, mode="autonomous"):
+                            termination_reason = "episode_early_abort"
+                            break
                         continue
 
                     if plan.get("status") == "blocked":
                         logger.info(f"[Autonomous] Goal blocked: {plan.get('reasoning', '')}")
+                        termination_reason = "blocked_plan"
                         break
 
                     actions = plan.get("actions", [])
@@ -1779,6 +1827,7 @@ class Agent:
                         if hasattr(self.session_logger, "log"):
                             self.session_logger.log("empty_plan", payload)
                         self._write_memory_episode("empty_plan", payload, source="autonomous")
+                        termination_reason = "empty_plan"
                         break
 
                     for action in actions:
@@ -1876,6 +1925,10 @@ class Agent:
 
                     if observation.get("health", 20) < self.config.health_critical_threshold:
                         logger.warning("[Autonomous] Health critical - emergency survival")
+                        termination_reason = "health_critical"
+                        break
+                    if self._evaluate_episode_abort(goal, cycle, mode="autonomous"):
+                        termination_reason = "episode_early_abort"
                         break
 
                     time.sleep(0.5)
@@ -1886,7 +1939,13 @@ class Agent:
             if goal_success:
                 goals_completed += 1
                 logger.info(f"[Autonomous] Goal completed: {goal}")
-                outcome = {"goal": goal, "cycles": cycle, "completed": True, "success": True}
+                outcome = {
+                    "goal": goal,
+                    "cycles": cycle,
+                    "completed": True,
+                    "success": True,
+                    "termination_reason": "goal_verified",
+                }
                 self._record_task_continuity(
                     goal,
                     observation,
@@ -1909,7 +1968,15 @@ class Agent:
             else:
                 goals_failed += 1
                 logger.info(f"[Autonomous] Goal failed/blocked: {goal}")
-                outcome = {"goal": goal, "cycles": cycle, "completed": False, "success": False}
+                if not termination_reason:
+                    termination_reason = "max_cycles" if cycle >= max_cycles_per_goal else "stopped"
+                outcome = {
+                    "goal": goal,
+                    "cycles": cycle,
+                    "completed": False,
+                    "success": False,
+                    "termination_reason": termination_reason,
+                }
                 self._record_task_continuity(
                     goal,
                     observation,
@@ -4810,6 +4877,45 @@ class Agent:
             )
 
         return True, observation
+
+    def _evaluate_episode_abort(self, goal: str, cycle: int, mode: str) -> bool:
+        """Log a calibrated viability probe and return whether it may stop the goal."""
+        monitor = getattr(self, "episode_abort_monitor", None)
+        if monitor is None or not monitor.enabled:
+            return False
+        events = getattr(getattr(self, "session_logger", None), "events", []) or []
+        decision = monitor.evaluate(events, cycle)
+        if not decision.evaluated:
+            return False
+        payload = decision.to_dict()
+        payload.update({"goal_fingerprint": self._goal_fingerprint(goal), "mode": mode})
+        self.session_logger.log("episode_viability_probe", payload)
+        if not decision.would_abort:
+            return False
+        self.session_logger.log(
+            "episode_early_abort",
+            payload,
+            level="WARNING" if decision.active_abort else "INFO",
+        )
+        if decision.active_abort:
+            logger.warning(
+                "Recall-controlled episode abort triggered: "
+                f"round={cycle}, score={decision.score}, threshold={decision.threshold}"
+            )
+            self._write_memory_episode(
+                "episode_early_abort",
+                {
+                    "goal_fingerprint": payload["goal_fingerprint"],
+                    "round": cycle,
+                    "signal_profile": decision.signal_profile,
+                },
+                source="episode_abort_monitor",
+            )
+        return decision.active_abort
+
+    def _goal_fingerprint(self, goal: str) -> str:
+        normalized = " ".join(str(goal or "").strip().lower().split())
+        return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
 
     def _obs_summary(self, obs: dict) -> dict:
         """Compact observation summary for memory."""

@@ -115,6 +115,10 @@ python -m singularity.main skill-contribution-report --include-builtins --output
 # Offline plan-cache entries are hybrid-only; direct reuse requires three matched live sessions by default.
 python -m singularity.main plan-cache-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/plan_cache.json
 python -m singularity.main plan-cache-gate --plan-cache-report logs/benchmarks/plan_cache.json --output logs/benchmarks/plan_cache_hybrid_gate.json
+# Calibrate a behavior-only episode viability cascade on three disjoint live splits.
+# Active termination remains unavailable unless the saved gate carries held-out global-recall certificates.
+python -m singularity.main episode-early-abort-gate --calibration-log logs/calibration_1.jsonl --validation-log logs/validation_1.jsonl --test-log logs/test_1.jsonl --evidence-kind live_trace --planner-id rule-based-v1 --action-backend mineflayer-bridge-v1 --verifier-id goal-action-verifier-v1 --task-stream-id m1-fixed-v1 --seed WORLD_SEED --output logs/benchmarks/episode_early_abort_gate.json
+python -m singularity.main run --goal "Gather 3 oak logs" --episode-abort-mode shadow --episode-abort-gate logs/benchmarks/episode_early_abort_gate.json --episode-abort-task-stream-id m1-fixed-v1 --episode-abort-seed-id WORLD_SEED
 python -m singularity.main benchmark --suite m1 --preflight
 python -m singularity.main benchmark --suite m1 --ingest
 python -m singularity.main benchmark --suite m1 --ingest --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
@@ -173,6 +177,7 @@ python tests/test_comprehensive.py
 python tests/test_m2_comprehensive.py
 python tests/test_action_controller.py
 python tests/test_runtime_supervisor.py
+python tests/test_episode_abort.py
 python tests/test_bot_bridge.py
 python tests/test_collaboration_benchmark.py
 python tests/test_collaboration_executor.py
@@ -180,7 +185,7 @@ python tests/test_memory_task_system.py
 python tests/test_benchmark_preflight.py
 ```
 
-Coverage includes config, goal generation, exploration, interruptible runtime supervision, action safety helpers, memory and experience records, skill extraction/review, task scheduling, rule planning, knowledge loading, session logging, benchmark preflight, bridge health, collaboration benchmark feasibility/execution, Agent-backed collaboration task adapters, and benchmark trace ingestion.
+Coverage includes config, goal generation, exploration, interruptible runtime supervision, recall-controlled episode viability, action safety helpers, memory and experience records, skill extraction/review, task scheduling, rule planning, knowledge loading, session logging, benchmark preflight, bridge health, collaboration benchmark feasibility/execution, Agent-backed collaboration task adapters, and benchmark trace ingestion.
 
 ## Project Structure
 
@@ -195,6 +200,7 @@ Singularity/
 │   │   ├── core/
 │   │   │   ├── agent.py          # Main agent: goal-directed + autonomous modes
 │   │   │   ├── config.py         # BotConfig, LLMConfig, Config
+│   │   │   ├── episode_abort.py  # Recall-controlled behavioral viability cascade
 │   │   │   ├── planner.py        # LLM planner with knowledge injection
 │   │   │   ├── reflector.py      # Failure analysis and re-planning
 │   │   │   ├── rule_planner.py   # Rule-based fallback planner
@@ -233,7 +239,7 @@ Singularity/
 
 ## Research Foundation
 
-- **75+ papers** analyzed across Minecraft, game agents, memory, skills, world models, evaluation, safety, and multi-agent execution
+- **90 papers** analyzed across Minecraft, game agents, memory, skills, world models, evaluation, safety, and multi-agent execution
 - **4 key repos** evaluated: Mindcraft, Mineflayer, Baritone, MineDojo
 - **10 research questions** identified and tracked (RQ1-RQ10)
 

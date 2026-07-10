@@ -304,6 +304,8 @@
 - [x] Add AgenticCache-style `plan-cache-report` plus default-off runtime `--enable-plan-cache --plan-cache ...` reuse, with cache artifacts scanned through runtime profiles and action/goal verification preserved on cached plans.
 - [x] Add `plan-cache-runtime-report` and `plan-cache-gate` so plan-cache artifacts require approved hit-safety evidence before runtime profiles or Agents can load cached transitions.
 - [x] Upgrade plan cache to Progressive Crystallization: offline entries remain hybrid planner hints, deterministic reuse requires three distinct matched live sessions by default, and regressions demote only the affected entry.
+- [x] Add a behavior-only recall-controlled episode-abort cascade with exact Clopper-Pearson calibration, disjoint split search/test evidence, runtime provenance binding, and off/shadow/active modes.
+- [x] Add IGRPO to the paper index and map information-weighted rollout allocation onto future Minecraft task-frontier budget experiments.
 - [x] Add Orak-style `agent-module-comparison-report` so baseline vs candidate session logs can compare completion, action failures, empty plans, and active module signals across plan cache, visual grounding, action verification, skill memory, memory policy, goal verification, and control policy before runtime-profile promotion.
 - [x] Add CausalGame-style `causal-evidence-report` so causal memories and repeated causal-summary skills can be audited for hypothesis/intervention/outcome protocol evidence, contrast controls, bias-risk mitigation, and unresolved counterexamples before promotion.
 - [ ] Re-run `runtime-profile-suite-report --required-profile m1 --required-profile m2 --required-profile m7` after M2/M7 profiles exist and require an approved suite before live profile-assisted benchmarks.
@@ -342,6 +344,7 @@
 - [ ] Run fresh M1/M2 baseline versus frontier-router task streams and compare completion, environment steps, verifier rejects, tokens, and latency across distinct sessions.
 - [x] Add a Blind-Curator-style soft-retirement audit with per-judge defect injection, fixed-control no-skill contribution reports, live-evidence gating, and a runtime-only overlay; never auto-delete skill files.
 - [ ] Collect live calibration and paired contribution cases across at least three distinct candidate sessions before applying any learned-skill soft-retirement gate.
+- [ ] Collect disjoint fixed-control M1/M2 calibration, validation, and held-out test episodes; inspect shadow probes before enabling any approved episode early-abort gate.
 
 ## Research Priorities
 - [ ] Run live policy-skill benchmark ablation after Minecraft server and bot bridge are ready.

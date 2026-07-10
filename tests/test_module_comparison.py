@@ -34,6 +34,7 @@ def _baseline_failure_events():
 
 def _candidate_module_events():
     return [
+        {"type": "episode_abort_runtime_gate", "data": {"requested_mode": "shadow", "effective_mode": "shadow"}},
         {"type": "goal_start", "data": {"goal": "Craft torches"}},
         {"type": "memory_read", "data": {"memory_type": "episodic", "read_filter_report": {"filtered_entries": 1, "filter_reasons": {"stale": 1}}}},
         {"type": "skill_memory_hint", "data": {"task_family": "crafting", "hint_count": 2}},
@@ -105,6 +106,7 @@ def _candidate_module_events():
             },
         },
         {"type": "goal_verification", "data": {"achieved": True, "status": "achieved", "context": {"accepted": True}}},
+        {"type": "episode_viability_probe", "data": {"round": 2, "score": 0.1, "threshold": 0.4, "would_abort": False}},
         {"type": "goal_end", "data": {"goal": "Craft torches", "result": {"completed": True}}},
     ]
 
@@ -129,12 +131,15 @@ def test_agent_module_comparison_approves_active_candidate():
     assert report["candidate"]["modules"]["plan_cache"]["hit_count"] == 1
     assert report["candidate"]["modules"]["plan_cache"]["hybrid_hint_count"] == 1
     assert report["candidate"]["modules"]["plan_cache"]["workflow_intervention_count"] == 2
+    assert report["candidate"]["modules"]["episode_early_abort"]["probe_count"] == 1
     assert report["candidate"]["modules"]["visual_action_grounding"]["intervention_count"] == 1
     assert report["candidate"]["modules"]["action_candidate_selection"]["repaired_reject_count"] == 1
     assert report["candidate"]["modules"]["skill_memory"]["hint_count"] == 2
     assert report["candidate"]["modules"]["memory_policy"]["read_filtered_entries"] == 1
     assert report["candidate"]["modules"]["control_policy"]["event_count"] == 1
     assert "plan_cache" in report["module_activity"]["candidate_active_modules"]
+    assert "episode_early_abort" in report["module_activity"]["candidate_active_modules"]
+    assert "rebuild_episode_early_abort_gate_on_disjoint_live_logs_before_active_termination" in report["recommendations"]
     assert "package_candidate_artifacts_in_runtime_profile_after_dedicated_gates_pass" in report["recommendations"]
     print("PASS: Agent module comparison approves active candidate")
 

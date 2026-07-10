@@ -48,6 +48,10 @@ class Config:
     plan_cache_paths: list[str] = field(default_factory=list)
     plan_cache_gate_paths: list[str] = field(default_factory=list)
     plan_cache_min_confidence: float = 0.75
+    episode_abort_mode: str = "off"
+    episode_abort_gate_paths: list[str] = field(default_factory=list)
+    episode_abort_task_stream_id: str = ""
+    episode_abort_seed_id: str = ""
     enable_weighted_memory_retrieval: bool = False
     memory_attribution_gate_paths: list[str] = field(default_factory=list)
     enforce_memory_write_gate: bool = False

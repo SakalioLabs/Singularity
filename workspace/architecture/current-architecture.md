@@ -98,6 +98,7 @@ The Singularity agent uses a modular hybrid architecture (Route F) with clear se
 | Evaluator | Measure performance | run_benchmark(suite) -> results |
 | Memory System | Multi-layer knowledge store | read/write/search/compress memory |
 | Safety System | Enforce boundaries | validate/check/log actions |
+| Episode Viability | Recall-controlled long-run termination | replay/calibrate/probe -> shadow or gated abort |
 
 ## Data Flow
 
@@ -111,6 +112,7 @@ The Singularity agent uses a modular hybrid architecture (Route F) with clear se
 8. Reflector analyzes failures and triggers re-planning
 9. Evaluator tracks metrics across sessions
 10. Memory System stores experiences, skills, and knowledge
+11. Episode Viability probes only configured rounds; active abort requires an approved held-out recall certificate and exact runtime provenance
 
 ## Key Interfaces
 

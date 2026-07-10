@@ -87,6 +87,33 @@ def _add_plan_cache_runtime_args(parser):
     parser.add_argument("--plan-cache-min-confidence", type=float, default=0.75, help="Minimum confidence for runtime plan-cache entries")
 
 
+def _add_episode_abort_runtime_args(parser):
+    parser.add_argument(
+        "--episode-abort-mode",
+        choices=["off", "shadow", "active"],
+        default="off",
+        help="Run the evidence-qualified episode viability cascade off, as shadow probes, or with active termination",
+    )
+    parser.add_argument(
+        "--episode-abort-gate",
+        action="append",
+        default=[],
+        help="Saved episode-early-abort-gate JSON; exactly one matching gate is required for shadow or active mode",
+    )
+    parser.add_argument(
+        "--episode-abort-task-stream-id",
+        type=str,
+        default="",
+        help="Task-stream control id that must match the calibrated episode-abort gate",
+    )
+    parser.add_argument(
+        "--episode-abort-seed-id",
+        type=str,
+        default="",
+        help="Environment/task seed control id that must match the calibrated episode-abort gate",
+    )
+
+
 def _print_runtime_profile_report(report: dict):
     print("\nRuntime Profile Validation")
     print(f"  readiness: {report.get('readiness', 'unknown')}")
@@ -331,6 +358,12 @@ def _runtime_profile_payload_from_args(args) -> dict:
         settings["enable_weighted_memory_retrieval"] = True
     if getattr(args, "enable_plan_cache", False):
         settings["enable_plan_cache"] = True
+    if getattr(args, "episode_abort_mode", ""):
+        settings["episode_abort_mode"] = getattr(args, "episode_abort_mode", "")
+    if getattr(args, "episode_abort_task_stream_id", ""):
+        settings["episode_abort_task_stream_id"] = getattr(args, "episode_abort_task_stream_id", "")
+    if getattr(args, "episode_abort_seed_id", ""):
+        settings["episode_abort_seed_id"] = getattr(args, "episode_abort_seed_id", "")
     if getattr(args, "screenshot_dir", ""):
         settings["screenshot_dir"] = getattr(args, "screenshot_dir", "")
     path_fields = {
@@ -346,6 +379,7 @@ def _runtime_profile_payload_from_args(args) -> dict:
         "task_precondition_gate_paths": getattr(args, "task_precondition_gate", []) or [],
         "plan_cache_paths": getattr(args, "plan_cache", []) or [],
         "plan_cache_gate_paths": getattr(args, "plan_cache_gate", []) or [],
+        "episode_abort_gate_paths": getattr(args, "episode_abort_gate", []) or [],
         "action_value_feedback_paths": getattr(args, "action_value_feedback", []) or [],
         "action_value_transition_gate_paths": getattr(args, "action_value_transition_gate", []) or [],
         "action_value_transition_evaluator_report_paths": getattr(args, "action_value_transition_evaluator_report", []) or [],
@@ -590,6 +624,7 @@ def main():
     _add_memory_promptware_runtime_args(run_parser)
     _add_memory_attribution_runtime_args(run_parser)
     _add_plan_cache_runtime_args(run_parser)
+    _add_episode_abort_runtime_args(run_parser)
     _add_knowledge_correction_args(run_parser)
     _add_task_precondition_args(run_parser)
     run_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
@@ -635,6 +670,7 @@ def main():
     _add_memory_promptware_runtime_args(auto_parser)
     _add_memory_attribution_runtime_args(auto_parser)
     _add_plan_cache_runtime_args(auto_parser)
+    _add_episode_abort_runtime_args(auto_parser)
     _add_knowledge_correction_args(auto_parser)
     _add_task_precondition_args(auto_parser)
     auto_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
@@ -679,6 +715,7 @@ def main():
     _add_memory_promptware_runtime_args(bench_parser)
     _add_memory_attribution_runtime_args(bench_parser)
     _add_plan_cache_runtime_args(bench_parser)
+    _add_episode_abort_runtime_args(bench_parser)
     _add_knowledge_correction_args(bench_parser)
     _add_task_precondition_args(bench_parser)
     bench_parser.add_argument("--knowledge-correction-preflight", action="store_true", help="Run approved gate and suite-coverage preflight before knowledge-correction-assisted benchmarks")
@@ -1210,6 +1247,34 @@ def main():
     plan_cache_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
     plan_cache_gate_parser.add_argument("--log-level", type=str, default="INFO")
 
+    episode_abort_parser = subparsers.add_parser(
+        "episode-early-abort-gate",
+        help="Calibrate and test a recall-controlled behavioral episode-abort cascade",
+    )
+    episode_abort_parser.add_argument("--calibration-log", action="append", default=[], help="Calibration session JSONL; repeat for multiple disjoint sessions")
+    episode_abort_parser.add_argument("--validation-log", action="append", default=[], help="Validation session JSONL used once for budget search")
+    episode_abort_parser.add_argument("--test-log", action="append", default=[], help="Held-out test session JSONL used once after policy selection")
+    episode_abort_parser.add_argument("--gate-round", action="append", type=int, default=[], help="Completed planner round at which to probe; defaults to 2, 4, and 8")
+    episode_abort_parser.add_argument("--recall-budget", action="append", type=float, default=[], help="Per-round recall budget grid value; defaults to the paper's 0.85..1.0 grid")
+    episode_abort_parser.add_argument("--target-recall", type=float, default=0.95, help="Required global recall of episodes that would eventually succeed")
+    episode_abort_parser.add_argument("--search-rule", choices=["certificate", "margin"], default="certificate", help="Validation feasibility rule; only certificate can authorize active termination")
+    episode_abort_parser.add_argument("--validation-margin", type=float, default=0.02, help="Extra validation recall required by margin search")
+    episode_abort_parser.add_argument("--confidence-alpha", type=float, default=0.05, help="One-sided Clopper-Pearson error probability")
+    episode_abort_parser.add_argument("--min-calibration-successes", type=int, default=20)
+    episode_abort_parser.add_argument("--min-validation-successes", type=int, default=20)
+    episode_abort_parser.add_argument("--min-test-successes", type=int, default=20)
+    episode_abort_parser.add_argument("--min-test-failures", type=int, default=5)
+    episode_abort_parser.add_argument("--min-test-sessions", type=int, default=10)
+    episode_abort_parser.add_argument("--split-scope", choices=["held_out_session", "held_out_task"], default="held_out_session", help="Require session-only or task-group-disjoint evidence splits")
+    episode_abort_parser.add_argument("--evidence-kind", choices=["unknown", "synthetic_control", "live_trace"], default="unknown", help="Only complete live_trace evidence can authorize active termination")
+    episode_abort_parser.add_argument("--planner-id", type=str, default="", help="Fixed planner id, such as rule-based-v1 or llm:openai:model-name")
+    episode_abort_parser.add_argument("--action-backend", type=str, default="", help="Fixed action backend id; current runtime uses mineflayer-bridge-v1")
+    episode_abort_parser.add_argument("--verifier-id", type=str, default="", help="Fixed verifier id; current runtime uses goal-action-verifier-v1")
+    episode_abort_parser.add_argument("--task-stream-id", type=str, default="", help="Fixed task-stream id required again at runtime")
+    episode_abort_parser.add_argument("--seed", type=str, default="", help="Fixed environment/task seed id")
+    episode_abort_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    episode_abort_parser.add_argument("--log-level", type=str, default="INFO")
+
     agent_module_parser = subparsers.add_parser(
         "agent-module-comparison-report",
         help="Compare baseline vs candidate session logs across optional agent modules",
@@ -1306,6 +1371,7 @@ def main():
     _add_memory_promptware_runtime_args(collab_parser)
     _add_memory_attribution_runtime_args(collab_parser)
     _add_plan_cache_runtime_args(collab_parser)
+    _add_episode_abort_runtime_args(collab_parser)
     _add_knowledge_correction_args(collab_parser)
     _add_task_precondition_args(collab_parser)
     collab_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
@@ -1445,6 +1511,24 @@ def main():
     runtime_profile_build_parser.add_argument("--enforce-memory-write-gate", action="store_true", help="Set enforce_memory_write_gate in profile settings")
     runtime_profile_build_parser.add_argument("--enable-weighted-memory-retrieval", action="store_true", help="Set enable_weighted_memory_retrieval in profile settings")
     runtime_profile_build_parser.add_argument("--enable-plan-cache", action="store_true", help="Set enable_plan_cache in profile settings")
+    runtime_profile_build_parser.add_argument(
+        "--episode-abort-mode",
+        choices=["off", "shadow", "active"],
+        default="",
+        help="Set episode_abort_mode in profile settings",
+    )
+    runtime_profile_build_parser.add_argument(
+        "--episode-abort-task-stream-id",
+        type=str,
+        default="",
+        help="Set the calibrated episode-abort task-stream control id",
+    )
+    runtime_profile_build_parser.add_argument(
+        "--episode-abort-seed-id",
+        type=str,
+        default="",
+        help="Set the calibrated environment/task seed control id",
+    )
     runtime_profile_build_parser.add_argument("--screenshot-dir", type=str, default="", help="Set screenshot_dir in profile settings")
     runtime_profile_build_parser.add_argument("--goal-critic-gate", action="append", default=[], help="Approved goal-verification-critic-gate JSON")
     runtime_profile_build_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-policy patch JSON")
@@ -1458,6 +1542,7 @@ def main():
     runtime_profile_build_parser.add_argument("--task-precondition-gate", action="append", default=[], help="Approved task-precondition gate JSON")
     runtime_profile_build_parser.add_argument("--plan-cache", action="append", default=[], help="Approved plan-transition-cache report JSON")
     runtime_profile_build_parser.add_argument("--plan-cache-gate", action="append", default=[], help="Approved plan-cache gate JSON")
+    runtime_profile_build_parser.add_argument("--episode-abort-gate", action="append", default=[], help="Episode early-abort gate JSON")
     runtime_profile_build_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value feedback JSON")
     runtime_profile_build_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value transition gate JSON")
     runtime_profile_build_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value evaluator report JSON")
@@ -3501,6 +3586,88 @@ def main():
             sys.exit(1)
         return
 
+    if args.command == "episode-early-abort-gate":
+        from singularity.core.episode_abort import (
+            build_episode_early_abort_gate,
+            write_episode_early_abort_gate,
+        )
+
+        calibration_logs = getattr(args, "calibration_log", []) or []
+        validation_logs = getattr(args, "validation_log", []) or []
+        test_logs = getattr(args, "test_log", []) or []
+        if not calibration_logs or not validation_logs or not test_logs:
+            print("episode-early-abort-gate requires calibration, validation, and test logs")
+            sys.exit(1)
+        report = build_episode_early_abort_gate(
+            calibration_paths=calibration_logs,
+            validation_paths=validation_logs,
+            test_paths=test_logs,
+            gate_rounds=getattr(args, "gate_round", []) or None,
+            budget_grid=getattr(args, "recall_budget", []) or None,
+            target_recall=getattr(args, "target_recall", 0.95),
+            search_rule=getattr(args, "search_rule", "certificate"),
+            validation_margin=getattr(args, "validation_margin", 0.02),
+            confidence_alpha=getattr(args, "confidence_alpha", 0.05),
+            min_calibration_successes=getattr(args, "min_calibration_successes", 20),
+            min_validation_successes=getattr(args, "min_validation_successes", 20),
+            min_test_successes=getattr(args, "min_test_successes", 20),
+            min_test_failures=getattr(args, "min_test_failures", 5),
+            min_test_sessions=getattr(args, "min_test_sessions", 10),
+            evidence_kind=getattr(args, "evidence_kind", "unknown"),
+            planner_id=getattr(args, "planner_id", ""),
+            action_backend=getattr(args, "action_backend", ""),
+            verifier_id=getattr(args, "verifier_id", ""),
+            task_stream_id=getattr(args, "task_stream_id", ""),
+            seed=getattr(args, "seed", ""),
+            split_scope=getattr(args, "split_scope", "held_out_session"),
+        )
+        selected = report.get("selected_policy", {}) if isinstance(report.get("selected_policy", {}), dict) else {}
+        validation = selected.get("validation_evaluation", {}) if isinstance(selected.get("validation_evaluation", {}), dict) else {}
+        test = report.get("test_evaluation", {}) if isinstance(report.get("test_evaluation", {}), dict) else {}
+        print("\nEpisode Early-Abort Gate")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  evidence: "
+            f"kind={report.get('evidence_kind')}, "
+            f"runtime_eligible={report.get('runtime_eligible')}, "
+            f"signal={report.get('signal_profile')}, "
+            f"hidden_activations={report.get('hidden_activation_claimed')}"
+        )
+        print(
+            "  search: "
+            f"rule={report.get('search_rule')}, "
+            f"target={report.get('target_global_success_recall')}, "
+            f"budgets={report.get('candidate_budget_count', 0)}, "
+            f"policies={report.get('evaluated_policy_count', 0)}, "
+            f"feasible={report.get('feasible_candidate_count', 0)}, "
+            f"active_rounds={selected.get('active_round_count', 0)}"
+        )
+        print(
+            "  validation: "
+            f"recall={validation.get('global_success_recall', 0)}, "
+            f"lower_bound={validation.get('global_recall_lower_bound', 0)}, "
+            f"saved_rounds={validation.get('saved_planner_rounds', 0)}"
+        )
+        print(
+            "  held-out test: "
+            f"recall={test.get('global_success_recall', 0)}, "
+            f"lower_bound={test.get('global_recall_lower_bound', 0)}, "
+            f"failed_aborts={test.get('failed_episode_abort_count', 0)}, "
+            f"savings={test.get('cost_savings_rate', 0)}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            write_episode_early_abort_gate(report, args.output)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"error", "rejected"}:
+            sys.exit(1)
+        return
+
     if args.command == "agent-module-comparison-report":
         from singularity.evaluation.module_comparison import (
             build_agent_module_comparison_report,
@@ -3813,6 +3980,10 @@ def main():
                     enable_plan_cache=profile_bool_arg(args, "enable_plan_cache", runtime_profiles, "enable_plan_cache", "plan_cache"),
                     plan_cache_paths=merge_arg_profile_list(args, "plan_cache", runtime_profiles, "plan_cache_paths"),
                     plan_cache_gate_paths=merge_arg_profile_list(args, "plan_cache_gate", runtime_profiles, "plan_cache_gate_paths"),
+                    episode_abort_mode=profile_str_arg(args, "episode_abort_mode", runtime_profiles, "episode_abort_mode", default="off"),
+                    episode_abort_gate_paths=merge_arg_profile_list(args, "episode_abort_gate", runtime_profiles, "episode_abort_gate_paths"),
+                    episode_abort_task_stream_id=profile_str_arg(args, "episode_abort_task_stream_id", runtime_profiles, "episode_abort_task_stream_id", default=""),
+                    episode_abort_seed_id=profile_str_arg(args, "episode_abort_seed_id", runtime_profiles, "episode_abort_seed_id", default=""),
                     plan_cache_min_confidence=getattr(args, "plan_cache_min_confidence", 0.75),
                     enable_task_continuity_context=not getattr(args, "no_task_continuity_context", False),
                     enable_skill_frontier_routing=not getattr(args, "no_skill_frontier_routing", False),
@@ -5747,6 +5918,10 @@ def main():
         plan_cache_paths=merge_arg_profile_list(args, "plan_cache", runtime_profiles, "plan_cache_paths"),
         plan_cache_gate_paths=merge_arg_profile_list(args, "plan_cache_gate", runtime_profiles, "plan_cache_gate_paths"),
         plan_cache_min_confidence=getattr(args, "plan_cache_min_confidence", 0.75),
+        episode_abort_mode=profile_str_arg(args, "episode_abort_mode", runtime_profiles, "episode_abort_mode", default="off"),
+        episode_abort_gate_paths=merge_arg_profile_list(args, "episode_abort_gate", runtime_profiles, "episode_abort_gate_paths"),
+        episode_abort_task_stream_id=profile_str_arg(args, "episode_abort_task_stream_id", runtime_profiles, "episode_abort_task_stream_id", default=""),
+        episode_abort_seed_id=profile_str_arg(args, "episode_abort_seed_id", runtime_profiles, "episode_abort_seed_id", default=""),
         enable_task_continuity_context=not getattr(args, "no_task_continuity_context", False),
         enable_skill_frontier_routing=not getattr(args, "no_skill_frontier_routing", False),
         enable_bounded_planning_context=not getattr(args, "no_bounded_planning_context", False),

@@ -20,6 +20,10 @@ LIST_FIELDS = {
     "task_precondition_gate_paths": ("gates", ("task_precondition", "task_precondition_gate", "task_precondition_gate_paths")),
     "plan_cache_paths": ("artifacts", ("plan_cache", "plan_transition_cache", "plan_cache_paths")),
     "plan_cache_gate_paths": ("gates", ("plan_cache", "plan_cache_gate", "plan_cache_gate_paths")),
+    "episode_abort_gate_paths": (
+        "gates",
+        ("episode_early_abort", "episode_abort_gate", "episode_abort_gate_paths"),
+    ),
     "memory_attribution_gate_paths": ("gates", ("memory_attribution", "memory_attribution_gate", "memory_attribution_gate_paths")),
     "action_value_feedback_paths": ("artifacts", ("action_value_feedback", "action_value_feedback_paths")),
     "action_value_transition_gate_paths": ("gates", ("action_value_transition", "action_value_transition_gate", "action_value_transition_gate_paths")),
@@ -51,6 +55,7 @@ REQUIRED_GATES = {
     "coach_style_gate_paths": ("coach_style", "coach_style_ablation_paths"),
     "memory_promptware_gate_paths": ("enforce_memory_write_gate",),
     "plan_cache_gate_paths": ("enable_plan_cache", "plan_cache_paths"),
+    "episode_abort_gate_paths": ("episode_abort_mode",),
     "memory_attribution_gate_paths": ("enable_weighted_memory_retrieval", "weighted_memory_retrieval"),
 }
 
@@ -69,6 +74,7 @@ GATE_FIELDS = {
     "memory_promptware_gate_paths",
     "memory_attribution_gate_paths",
     "plan_cache_gate_paths",
+    "episode_abort_gate_paths",
     "coach_style_gate_paths",
 }
 
@@ -283,6 +289,9 @@ def build_runtime_profile_report_from_profiles(
     settings = {
         "enable_goal_critic": _truthy(profile_setting(profiles, "enable_goal_critic", "goal_critic")),
         "enable_plan_cache": _truthy(profile_setting(profiles, "enable_plan_cache", "plan_cache")),
+        "episode_abort_mode": str(profile_setting(profiles, "episode_abort_mode") or ""),
+        "episode_abort_task_stream_id": str(profile_setting(profiles, "episode_abort_task_stream_id") or ""),
+        "episode_abort_seed_id": str(profile_setting(profiles, "episode_abort_seed_id") or ""),
         "enable_weighted_memory_retrieval": _truthy(profile_setting(profiles, "enable_weighted_memory_retrieval", "weighted_memory_retrieval")),
         "enforce_memory_write_gate": _truthy(profile_setting(profiles, "enforce_memory_write_gate", "memory_write_gate")),
         "coach_style": str(profile_setting(profiles, "coach_style") or ""),
@@ -350,6 +359,10 @@ def _gate_summary(field: str, path: str) -> dict:
                 raise ValueError("plan cache gate execution taxonomy is invalid")
             if payload.get("readiness") == "approved" and not payload.get("entry_profiles"):
                 raise ValueError("approved plan cache gate has no entry profiles")
+        if field == "episode_abort_gate_paths":
+            from singularity.core.episode_abort import validate_episode_abort_gate_payload
+
+            validate_episode_abort_gate_payload(payload)
         summary.update({
             "readiness": str(payload.get("readiness", "") or "unknown").strip().lower(),
             "decision": str(payload.get("decision", "") or ""),

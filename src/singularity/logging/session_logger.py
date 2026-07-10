@@ -92,6 +92,7 @@ class SessionLogger:
         intervention_metrics.update(action_candidate_metrics)
         goal_verification_metrics = self._goal_verification_metrics()
         plan_cache_metrics = self._plan_cache_metrics()
+        episode_abort_metrics = self._episode_abort_metrics()
         memory_policy_metrics = self._memory_policy_metrics()
         return {
             "session_id": self.session_id,
@@ -106,6 +107,7 @@ class SessionLogger:
             "action_candidate_selection_metrics": action_candidate_metrics,
             "goal_verification_metrics": goal_verification_metrics,
             "plan_cache_metrics": plan_cache_metrics,
+            "episode_abort_metrics": episode_abort_metrics,
             "memory_policy_metrics": memory_policy_metrics,
             "log_path": self._log_path,
         }
@@ -136,6 +138,42 @@ class SessionLogger:
             "plan_cache_hit_entries": hit_entries,
             "plan_cache_hit_goals": sorted(hit_goals),
             "plan_cache_execution_stage_counts": stage_counts,
+        }
+
+    def _episode_abort_metrics(self) -> dict:
+        gates = [event for event in self.events if event.get("type") == "episode_abort_runtime_gate"]
+        probes = [event for event in self.events if event.get("type") == "episode_viability_probe"]
+        triggers = [event for event in self.events if event.get("type") == "episode_early_abort"]
+        active_count = 0
+        shadow_count = 0
+        round_counts = {}
+        scores = []
+        for event in probes:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            try:
+                scores.append(float(data.get("score") or 0.0))
+            except (TypeError, ValueError):
+                pass
+            round_key = str(data.get("round") or "unknown")
+            round_counts[round_key] = round_counts.get(round_key, 0) + 1
+        for event in triggers:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            if data.get("active_abort") is True:
+                active_count += 1
+            elif data.get("would_abort") is True:
+                shadow_count += 1
+        latest_gate = gates[-1].get("data", {}) if gates and isinstance(gates[-1].get("data", {}), dict) else {}
+        return {
+            "runtime_gate_event_count": len(gates),
+            "requested_mode": str(latest_gate.get("requested_mode") or "off"),
+            "effective_mode": str(latest_gate.get("effective_mode") or "off"),
+            "gate_readiness": str(latest_gate.get("gate_readiness") or "not_configured"),
+            "viability_probe_count": len(probes),
+            "early_abort_trigger_count": len(triggers),
+            "active_early_abort_count": active_count,
+            "shadow_would_abort_count": shadow_count,
+            "probe_round_counts": round_counts,
+            "average_viability_risk_score": round(sum(scores) / len(scores), 6) if scores else 0.0,
         }
 
     def _memory_policy_metrics(self) -> dict:

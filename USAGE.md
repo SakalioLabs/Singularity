@@ -241,8 +241,18 @@ python -m singularity.main plan-cache-runtime-report --session-log logs/session_
 python -m singularity.main plan-cache-gate --plan-cache-report logs/benchmarks/plan_cache.json --runtime-report logs/benchmarks/plan_cache_runtime.json --min-runtime-hits 3 --min-deterministic-sessions 3 --min-deterministic-successes 3 --min-plan-match-rate 1.0 --output logs/benchmarks/plan_cache_gate.json
 python -m singularity.main run --goal "Craft torches" --enable-plan-cache --plan-cache logs/benchmarks/plan_cache.json --plan-cache-gate logs/benchmarks/plan_cache_gate.json
 # A verifier reject, excessive action-failure rate, or failed-goal rate demotes only the affected entry to agentic execution.
+# Calibrate an API-visible behavior probe cascade from disjoint calibration, validation, and held-out test logs.
+# Repeat each split option for every session file. The default 0.95 certificate needs at least 59 successful
+# validation and 59 successful test episodes even when no successful episode is falsely aborted.
+python -m singularity.main episode-early-abort-gate --calibration-log logs/calibration_1.jsonl --validation-log logs/validation_1.jsonl --test-log logs/test_1.jsonl --gate-round 2 --gate-round 4 --gate-round 8 --target-recall 0.95 --search-rule certificate --evidence-kind live_trace --planner-id rule-based-v1 --action-backend mineflayer-bridge-v1 --verifier-id goal-action-verifier-v1 --task-stream-id m1-fixed-v1 --seed WORLD_SEED --output logs/benchmarks/episode_early_abort_gate.json
+# Shadow mode logs episode_viability_probe and episode_early_abort(would_abort=true) without stopping the goal.
+python -m singularity.main run --goal "Gather 3 oak logs" --episode-abort-mode shadow --episode-abort-gate logs/benchmarks/episode_early_abort_gate.json --episode-abort-task-stream-id m1-fixed-v1 --episode-abort-seed-id WORLD_SEED
+# Use active only after the gate reports readiness=approved and active_abort_allowed=true.
+python -m singularity.main run --goal "Gather 3 oak logs" --episode-abort-mode active --episode-abort-gate logs/benchmarks/episode_early_abort_gate.json --episode-abort-task-stream-id m1-fixed-v1 --episode-abort-seed-id WORLD_SEED
+# Hosted LLM runs use planner ids in the form llm:PROVIDER:MODEL. Any planner/backend/verifier/stream/seed mismatch forces mode=off.
+# This implementation is behavior_surface_v1. It does not read hidden activations and must not inherit the paper's hidden-probe savings claims.
 # Compare an ungated baseline against a module-assisted candidate across plan cache,
-# visual grounding, action verification, skill memory, memory policy, and control policy signals.
+# episode viability, visual grounding, action verification, skill memory, memory policy, and control policy signals.
 python -m singularity.main agent-module-comparison-report --baseline-session-log logs/session_baseline.jsonl --candidate-session-log logs/session_candidate.jsonl --baseline-label m1_plain --candidate-label m1_module_profile --output logs/benchmarks/agent_module_comparison.json
 # Separate world-state completion from the agent's terminal completion report.
 python -m singularity.main terminal-commitment-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/terminal_commitment.json

@@ -1,6 +1,6 @@
 ﻿# Paper Index — Minecraft Agent Research
 
-> Last updated: 2026-07-09
+> Last updated: 2026-07-10
 > Scoring: Relevance / Novelty / Reproducibility / Engineering Value (1-5 each)
 
 ---
@@ -1607,8 +1607,26 @@
 - **Key Results**: Reports 37.2%-47.1% inference-compute savings at a 90% global recall target across two models
 - **Scores**: R=4, N=5, R=4, E=4
 - **Value to Project**: Motivates a held-out recall gate before early-aborting expensive Minecraft episodes
+- **Implementation Mapping**: `behavior_surface_v1` now reproduces the calibration/search/deployment discipline with API-visible events, while explicitly excluding hidden-state and reported-compute-savings claims
 - **Reproduction Priority**: P2
 - **Card**: `2026-07-10-early-abort-cascade.md`
+
+---
+
+## P-090: Information Gain-based Rollout Policy Optimization
+
+- **Title**: Information Gain-based Rollout Policy Optimization: An Adaptive Tree-Structured Rollout Approach for Multi-Turn LLM Agents
+- **Source**: https://arxiv.org/abs/2607.06223
+- **Year**: 2026
+- **Type**: Budget-aware tree rollout and policy optimization
+- **Task Type**: Multi-turn search-augmented question answering
+- **Core Method**: Allocates branch expansion by node-level informativeness and derives an induced teacher trajectory distribution
+- **Memory**: Uses intermediate search states as budget-allocation nodes rather than flat trajectory records
+- **Key Results**: Reports consistent gains over strong baselines on seven QA benchmarks under matched rollout budgets
+- **Scores**: R=4, N=5, R=3, E=4
+- **Value to Project**: Motivates reallocating certified saved planner rounds toward informative Minecraft task-frontier branches under a fixed total budget
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-10-igrpo.md`
 
 ---
 
@@ -1705,3 +1723,4 @@
 | P-087 | EvoSOP | 2026 | R4/N5/R3/E4 | P2 |
 | P-088 | Progressive Crystallization | 2026 | R5/N5/R4/E5 | P1 |
 | P-089 | Recall-Controlled Early Abort | 2026 | R4/N5/R4/E4 | P2 |
+| P-090 | Information Gain-based Rollout Policy Optimization | 2026 | R4/N5/R3/E4 | P2 |

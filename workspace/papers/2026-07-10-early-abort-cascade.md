@@ -19,4 +19,6 @@
 - Early termination must preserve successful trajectories at a calibrated recall target, not merely improve average cost.
 - Sample-size sufficiency should be part of the gate before high-recall claims are accepted.
 
-**Project Action**: Keep this as the next efficiency experiment after live M1/M2 traces exist. Singularity can first build a behavior/verifier cascade from readiness failures, repeated action rejects, and unchanged state, but must report it as weaker than hidden-state probing and must not enable automatic abort without held-out success-recall evidence.
+**Project Action**: Implemented `behavior_surface_v1` as a weaker hosted-API-compatible cascade. It reconstructs goal-bounded episodes from JSONL, ignores free-form prompt text, calibrates per-round thresholds with one-sided Clopper-Pearson bounds, searches budgets on a disjoint validation split, evaluates once on a held-out test split, and binds runtime use to fixed planner/backend/verifier/task-stream/seed provenance. Runtime remains `off` by default; synthetic evidence can never authorize active termination, and no current live Minecraft gate is approved.
+
+**Non-Claim**: The project does not expose hidden activations and therefore does not reproduce the paper's hidden-state probe, early-round AUC, token savings, or wall-clock savings. Its current cost proxy is saved planner rounds only.
