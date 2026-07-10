@@ -1,0 +1,23 @@
+{
+  "approved_candidate_count": 1,
+  "candidates": [
+    {
+      "candidate_readiness": "approved",
+      "decision": "allow_task_family_runtime_default",
+      "promotion_gate_fingerprint": "3852177b5b65d32e770adeab33147ddafe156db8b834d316ce2a44e3f0663135",
+      "skill": "learned_gather_wood",
+      "skill_id": "learned:gather_wood",
+      "task_family": "gathering"
+    }
+  ],
+  "decision": "allow_task_family_runtime_default",
+  "executable_promotion_gate_fingerprint": "3852177b5b65d32e770adeab33147ddafe156db8b834d316ce2a44e3f0663135",
+  "readiness": "approved",
+  "reason": "paired live executable evidence approved",
+  "required": true,
+  "review_candidate_count": 0,
+  "schema_version": 1,
+  "source_report_id": "paired:learned:gather_wood:1.0.0",
+  "target_task_family": "gathering",
+  "type": "skill_runtime_default_gate"
+}

@@ -1,0 +1,17 @@
+{
+  "task_family": "crafting",
+  "supported_task_families": [
+    "crafting"
+  ],
+  "unsupported_task_families": [
+    "gathering",
+    "combat"
+  ],
+  "goals": [
+    "Craft a wooden pickaxe"
+  ],
+  "quantity_range": {
+    "minimum": 1,
+    "maximum": 1
+  }
+}

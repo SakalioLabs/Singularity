@@ -456,12 +456,13 @@ def test_ingest_aggregates_promotion_validation_reports():
     assert report.processed_results == 2
     assert report.skill_candidates == 2
     assert len(report.promotion_reports) == 2
-    assert report.promotion_readiness["approved"] == 1
+    assert report.promotion_readiness["approved"] == 0
+    assert report.promotion_readiness["retained"] == 1
     assert report.promotion_readiness["rejected"] == 1
     assert report.promotion_readiness["unknown"] == 0
-    assert report.promotion_decisions["approve"] == 1
+    assert report.promotion_decisions["retain_candidate"] == 1
     assert report.promotion_decisions["reject"] == 1
-    assert report.promotion_statuses["achieved"] == 1
+    assert report.promotion_statuses["candidate"] == 1
     assert report.promotion_statuses["failed"] == 1
 
     pending = queue.pending()
@@ -471,11 +472,12 @@ def test_ingest_aggregates_promotion_validation_reports():
     rejected_report = rejected_candidate.signals["promotion_report"]
 
     assert verified_report["benchmark_task_id"] == "BM-V"
-    assert verified_report["reason"] == "verified_postconditions_satisfied"
+    assert verified_report["reason"] == "candidate_needs_more_independent_live_evidence"
+    assert "three_distinct_live_source_sessions_required" in verified_report["missing"]
     assert verified_report["postconditions"]["inventory"]["torch"] == 4
     assert rejected_report["benchmark_task_id"] == "BM-X"
     assert rejected_report["decision"] == "reject"
-    assert rejected_report["missing"] == ["need 6 oak_log, have 3"]
+    assert "need 6 oak_log, have 3" in rejected_report["missing"]
     print("PASS: Benchmark ingestion aggregates promotion validation reports")
 
 
@@ -510,14 +512,16 @@ def test_ingest_uses_promotion_critic_for_unknown_reports():
     )
 
     assert report.processed_results == 1
-    assert report.promotion_readiness["approved"] == 1
+    assert report.promotion_readiness["approved"] == 0
+    assert report.promotion_readiness["retained"] == 1
     assert report.promotion_readiness["unknown"] == 0
-    assert report.promotion_statuses["critic_approved"] == 1
+    assert report.promotion_statuses["candidate"] == 1
     candidate = queue.pending()[0]
     promotion_report = candidate.signals["promotion_report"]
-    assert promotion_report["status"] == "critic_approved"
+    assert promotion_report["status"] == "candidate"
+    assert promotion_report["decision"] == "retain_candidate"
     assert promotion_report["postconditions"]["inventory"]["torch"] == 4
-    print("PASS: Benchmark ingestion uses promotion critic for unknown reports")
+    print("PASS: Promotion critic cannot bypass distinct live-source requirements")
 
 
 def test_promotion_review_ablation_compares_visual_evidence():
@@ -568,15 +572,15 @@ def test_promotion_review_ablation_compares_visual_evidence():
 
     assert report.candidate_count == 1
     assert report.changed_count == 1
-    assert report.visual_helped_count == 1
+    assert report.visual_helped_count == 0
     assert report.api_visual_helped_count == 0
-    assert report.screenshot_vlm_helped_count == 1
-    assert report.screenshot_vlm_added_value_count == 1
+    assert report.screenshot_vlm_helped_count == 0
+    assert report.screenshot_vlm_added_value_count == 0
     assert report.manual_labeled_count == 1
     assert report.deterministic_manual_match_count == 0
     assert report.api_visual_manual_match_count == 0
-    assert report.screenshot_vlm_manual_match_count == 1
-    assert report.screenshot_vlm_manual_improvement_count == 1
+    assert report.screenshot_vlm_manual_match_count == 0
+    assert report.screenshot_vlm_manual_improvement_count == 0
     case = report.cases[0]
     assert case.has_visual_evidence
     assert "screenshots" in case.visual_evidence_keys
@@ -586,23 +590,23 @@ def test_promotion_review_ablation_compares_visual_evidence():
     assert case.invalid_screenshot_count == 0
     assert case.manual_readiness == "approved"
     assert case.manual_label_source == "manual_fixture"
-    assert case.deterministic_readiness == "unknown"
-    assert case.api_visual_readiness == "unknown"
-    assert case.screenshot_vlm_readiness == "approved"
-    assert case.without_visual_readiness == "unknown"
-    assert case.with_visual_readiness == "approved"
+    assert case.deterministic_readiness == "rejected"
+    assert case.api_visual_readiness == "rejected"
+    assert case.screenshot_vlm_readiness == "rejected"
+    assert case.without_visual_readiness == "rejected"
+    assert case.with_visual_readiness == "rejected"
     assert case.with_visual_status == "critic_approved"
-    assert case.visual_helped
+    assert not case.visual_helped
     assert not case.api_visual_helped
-    assert case.screenshot_vlm_helped
-    assert case.screenshot_vlm_added_value
+    assert not case.screenshot_vlm_helped
+    assert not case.screenshot_vlm_added_value
     assert case.deterministic_matches_manual is False
     assert case.api_visual_matches_manual is False
-    assert case.screenshot_vlm_matches_manual is True
+    assert case.screenshot_vlm_matches_manual is False
     assert len(critic_llm.prompts) == 2
     assert "session_visual.png" not in critic_llm.prompts[0]
     assert "session_visual.png" in critic_llm.prompts[1]
-    print("PASS: Promotion review ablation compares visual evidence")
+    print("PASS: Visual review cannot bypass typed skill-contract requirements")
 
 
 def test_goal_verification_ablation_compares_visual_evidence():
@@ -780,7 +784,7 @@ def test_promotion_review_ablation_ignores_unverified_screenshot_paths():
     assert case.raw_screenshot_count == 1
     assert case.screenshot_count == 0
     assert case.missing_screenshot_count == 1
-    assert case.screenshot_vlm_readiness == "unknown"
+    assert case.screenshot_vlm_readiness == "rejected"
     assert not case.screenshot_vlm_helped
     assert "session_visual.png" not in critic_llm.prompts[1]
     print("PASS: Promotion review ablation ignores unverified screenshot paths")
@@ -1055,7 +1059,7 @@ def test_visual_review_pipeline_runs_trace_validation_and_ablations():
     assert report.promotion_ablation is not None
     assert report.promotion_ablation.candidate_count == 1
     assert report.promotion_ablation.manual_labeled_count == 1
-    assert report.promotion_ablation.screenshot_vlm_added_value_count == 1
+    assert report.promotion_ablation.screenshot_vlm_added_value_count == 0
     assert report.goal_ablation is not None
     assert report.goal_ablation.goal_count == 1
     assert report.goal_ablation.manual_labeled_count == 1
@@ -1066,7 +1070,7 @@ def test_visual_review_pipeline_runs_trace_validation_and_ablations():
     payload = runner.visual_review_pipeline_report_to_dict(report)
     assert payload["summary"]["ready"]
     assert payload["summary"]["template_count"] == 2
-    assert payload["summary"]["promotion_screenshot_vlm_added_value_count"] == 1
+    assert payload["summary"]["promotion_screenshot_vlm_added_value_count"] == 0
     assert payload["summary"]["goal_screenshot_vlm_added_value_count"] == 1
     assert payload["summary"]["visual_action_case_count"] == 1
     assert payload["summary"]["visual_action_helped_count"] == 1
@@ -3241,9 +3245,10 @@ def test_discovery_skill_gate_controls_experiment_derived_skill_promotion():
     ready_skill = extractor.approve_candidate(ready_candidate)
     blocked_skill = extractor.approve_candidate(blocked_candidate)
 
-    assert ready_skill is not None
-    assert ready_candidate.review_status == "approved"
+    assert ready_skill is None
+    assert ready_candidate.review_status == "rejected"
     assert ready_candidate.signals["promotion_report"]["discovery_gate"]["readiness"] == "approved"
+    assert "typed_bounded_skill_contract" in ready_candidate.signals["promotion_report"]["matched_rules"]
     assert blocked_skill is None
     assert blocked_candidate.review_status == "rejected"
     blocked_report = blocked_candidate.signals["promotion_report"]
@@ -3251,7 +3256,7 @@ def test_discovery_skill_gate_controls_experiment_derived_skill_promotion():
     assert blocked_report["discovery_gate"]["readiness"] == "review"
     assert blocked_report["reason"] == "discovery_skill_gate_requires_review"
     assert "write_causal_rule_with_provenance_before_skill_promotion" in blocked_report["warnings"]
-    print("PASS: Discovery skill gate controls experiment-derived skill promotion")
+    print("PASS: Discovery evidence cannot bypass bounded contract and live-source gates")
 
 
 def test_task_stream_transfer_gate_controls_skill_promotion_path():
@@ -3323,20 +3328,12 @@ def test_task_stream_transfer_gate_controls_skill_promotion_path():
     ready_skill = extractor.approve_candidate(ready_candidate)
     blocked_skill = extractor.approve_candidate(blocked_candidate)
 
-    assert ready_skill is not None
-    assert ready_candidate.review_status == "approved"
+    assert ready_skill is None
+    assert ready_candidate.review_status == "rejected"
     ready_report = ready_candidate.signals["promotion_report"]
     assert ready_report["transfer_gate"]["readiness"] == "approved"
-    assert ready_skill.gate["transfer"]["readiness"] == "approved"
-    governance = skill_library.skill_graph_report()
-    ready_node = next(node for node in governance["nodes"] if node["name"] == ready_skill.name)
-    assert ready_node["governance"]["transfer_readiness"] == "approved"
-    memory_report = skill_library.skill_memory_report("Craft a stone pickaxe", task_family="crafting", limit=0)
-    memory_summary = next(summary for summary in memory_report["skills"] if summary["name"] == ready_skill.name)
-    assert memory_report["approved_transfer_memory_count"] == 1
-    assert memory_summary["memories"][0]["type"] == "promotion_transfer"
-    assert memory_summary["memories"][0]["transfer_readiness"] == "approved"
-    assert memory_summary["memories"][0]["evidence"]["candidate_id"] == ready_candidate.id
+    assert "typed_bounded_skill_contract" in ready_report["matched_rules"]
+    assert not skill_library.skill_versions(ready_candidate.skill_id)
 
     assert blocked_skill is None
     assert blocked_candidate.review_status == "rejected"
@@ -3345,7 +3342,7 @@ def test_task_stream_transfer_gate_controls_skill_promotion_path():
     assert blocked_report["transfer_gate"]["readiness"] == "review"
     assert blocked_report["reason"] == "task_stream_transfer_gate_requires_review"
     assert "held-out generalization gain evidence is missing" in blocked_report["warnings"]
-    print("PASS: Task stream transfer gate controls skill promotion path")
+    print("PASS: Transfer evidence cannot bypass bounded contract and source provenance")
 
 
 def test_action_abstraction_report_counts_backend_mapping_and_low_level_candidates():
@@ -5307,6 +5304,8 @@ def test_skill_memory_quality_preflight_requires_gate_and_ranking_effect():
         json.dumps([{"type": "craft", "parameters": {"item": "torch", "count": 4}}]),
         postconditions={"inventory": {"torch": 4}},
         gate={"decision": "approve", "verification": {"status": "achieved"}},
+        status="advisory",
+        task_family="crafting",
     )
     skill_library.record_skill_memory(
         "supported_torch_skill",

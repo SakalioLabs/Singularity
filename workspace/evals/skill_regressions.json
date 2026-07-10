@@ -1,0 +1,190 @@
+{
+  "automatic_delete_allowed": false,
+  "events": [
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 0.9,
+        "executed_action_count": 4,
+        "experiment_id": "gather-wood-fallback-01",
+        "failed_action_count": 0,
+        "failure_type": "postcondition_failure",
+        "fallback_reason": "",
+        "first_failed_transition": "",
+        "goal": "Craft a crafting table",
+        "goal_success": false,
+        "goal_termination_reason": "max_cycles",
+        "missing_postconditions": [],
+        "postconditions_met": true
+      },
+      "failure_type": "postcondition_failure",
+      "first_failed_transition": "",
+      "name": "learned_gather_wood",
+      "outcome": "failure",
+      "previous_status": "advisory",
+      "skill_id": "learned:gather_wood",
+      "status": "advisory",
+      "timestamp": 1783686909.6428356,
+      "version": "1.0.0"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "event": "failure_attribution_reclassified",
+      "experiment_id": "gather-wood-fallback-01",
+      "failure_type": "routing_error",
+      "previous_failure_type": "postcondition_failure",
+      "reason": "runtime selector failed to enforce the saved gathering task-family scope",
+      "skill_id": "learned:gather_wood",
+      "status": "advisory",
+      "timestamp": 1783687065.4165041,
+      "version": "1.0.0"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 0.9,
+        "executed_action_count": 3,
+        "experiment_id": "gather-wood-heldout-runtime-03",
+        "failed_action_count": 0,
+        "failure_type": "postcondition_failure",
+        "fallback_reason": "",
+        "first_failed_transition": "",
+        "goal": "Gather 2 oak logs",
+        "goal_success": true,
+        "goal_task_family": "gathering",
+        "goal_termination_reason": "goal_verified",
+        "missing_postconditions": [
+          "inventory:oak_log>=3"
+        ],
+        "postconditions_met": false,
+        "route_scope_valid": true
+      },
+      "failure_type": "postcondition_failure",
+      "first_failed_transition": "",
+      "name": "learned_gather_wood",
+      "outcome": "failure",
+      "previous_status": "executable",
+      "skill_id": "learned:gather_wood",
+      "status": "executable",
+      "timestamp": 1783689177.6113017,
+      "version": "1.0.1"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "event": "failure_attribution_reclassified",
+      "experiment_id": "gather-wood-heldout-runtime-03",
+      "failure_type": "framework_contract_binding_error",
+      "previous_failure_type": "postcondition_failure",
+      "reason": "runtime outcome attribution used the static training postcondition instead of the DSL quantity bound for the held-out goal",
+      "skill_id": "learned:gather_wood",
+      "status": "executable",
+      "timestamp": 1783689323.7952464,
+      "version": "1.0.1"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 0.95,
+        "bound_parameters": {},
+        "effective_postconditions": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "executed_action_count": 1,
+        "experiment_id": "wooden-pickaxe-fault-01",
+        "failed_action_count": 1,
+        "failure_type": "skill_error",
+        "fallback_reason": "learned_skill_action_failed",
+        "first_failed_transition": "craft_target:0:craft",
+        "goal": "Craft a wooden pickaxe",
+        "goal_success": true,
+        "goal_task_family": "crafting",
+        "goal_termination_reason": "goal_verified",
+        "missing_postconditions": [],
+        "postconditions_met": true,
+        "route_scope_valid": true
+      },
+      "failure_type": "skill_error",
+      "first_failed_transition": "craft_target:0:craft",
+      "name": "learned_craft_wooden_pickaxe",
+      "outcome": "failure",
+      "previous_status": "executable",
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "status": "executable",
+      "timestamp": 1783690634.859579,
+      "version": "1.0.1"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 0.95,
+        "bound_parameters": {},
+        "effective_postconditions": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "executed_action_count": 1,
+        "experiment_id": "wooden-pickaxe-fault-02",
+        "failed_action_count": 1,
+        "failure_type": "skill_error",
+        "fallback_reason": "learned_skill_action_failed",
+        "first_failed_transition": "craft_target:0:place",
+        "goal": "Craft a wooden pickaxe",
+        "goal_success": true,
+        "goal_task_family": "crafting",
+        "goal_termination_reason": "goal_verified",
+        "missing_postconditions": [],
+        "postconditions_met": true,
+        "route_scope_valid": true
+      },
+      "failure_type": "skill_error",
+      "first_failed_transition": "craft_target:0:place",
+      "name": "learned_craft_wooden_pickaxe",
+      "outcome": "failure",
+      "previous_status": "executable",
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "status": "advisory",
+      "timestamp": 1783690688.79994,
+      "version": "1.0.1"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 0.95,
+        "bound_parameters": {},
+        "effective_postconditions": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "executed_action_count": 1,
+        "experiment_id": "wooden-pickaxe-fault-03",
+        "failed_action_count": 1,
+        "failure_type": "skill_error",
+        "fallback_reason": "learned_skill_action_failed",
+        "first_failed_transition": "craft_target:0:equip",
+        "goal": "Craft a wooden pickaxe",
+        "goal_success": true,
+        "goal_task_family": "crafting",
+        "goal_termination_reason": "goal_verified",
+        "missing_postconditions": [],
+        "postconditions_met": true,
+        "route_scope_valid": true
+      },
+      "failure_type": "skill_error",
+      "first_failed_transition": "craft_target:0:equip",
+      "name": "learned_craft_wooden_pickaxe",
+      "outcome": "failure",
+      "previous_status": "advisory",
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "status": "quarantined",
+      "timestamp": 1783690742.7983403,
+      "version": "1.0.1"
+    }
+  ],
+  "schema_version": 1,
+  "type": "skill_regressions",
+  "updated_at": 1783690743.1560104
+}

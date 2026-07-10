@@ -1,4 +1,5 @@
 """Skill extractor - extracts reusable skills and experience atoms from task traces."""
+import hashlib
 import json
 import logging
 import os
@@ -14,6 +15,12 @@ from singularity.core.causal_index import (
     CausalEventSummary,
     aggregate_causal_events,
 )
+from singularity.core.skill_runtime import (
+    bounded_template_fingerprint,
+    derive_bounded_action_template,
+    validate_bounded_action_template,
+    wilson_confidence_interval,
+)
 
 logger = logging.getLogger("singularity.skill_extractor")
 
@@ -27,6 +34,34 @@ class SkillCandidate:
     description: str
     implementation: str
     score: float
+    skill_id: str = ""
+    version: str = "1.0.0"
+    task_family: str = "general"
+    parameters_schema: dict = field(default_factory=dict)
+    preconditions: dict = field(default_factory=dict)
+    required_observations: list = field(default_factory=list)
+    required_inventory: list = field(default_factory=list)
+    dependencies: list[str] = field(default_factory=list)
+    bounded_action_template: dict = field(default_factory=dict)
+    expected_intermediate_states: list = field(default_factory=list)
+    postconditions: dict = field(default_factory=dict)
+    failure_conditions: list = field(default_factory=list)
+    abort_conditions: list = field(default_factory=list)
+    provenance: dict = field(default_factory=dict)
+    source_session_ids: list[str] = field(default_factory=list)
+    source_environment_ids: list[str] = field(default_factory=list)
+    verifier_version: str = ""
+    success_count: int = 0
+    failure_count: int = 0
+    confidence_interval: dict = field(default_factory=dict)
+    transfer_scope: dict = field(default_factory=dict)
+    status: str = "candidate"
+    parent_version: str = ""
+    rollback_target: str = ""
+    dedupe_key: str = ""
+    runtime_eligible: bool = False
+    evidence_kind: str = "unknown"
+    validation_issues: list[str] = field(default_factory=list)
     signals: dict = field(default_factory=dict)
     layer: str = "composite"
     review_status: str = "pending"
@@ -183,6 +218,16 @@ class SkillCandidateQueue:
         self._load()
 
     def enqueue(self, candidate: SkillCandidate) -> SkillCandidate:
+        self._normalize_candidate(candidate)
+        matches = [
+            item for item in self.candidates.values()
+            if item.dedupe_key == candidate.dedupe_key
+        ]
+        existing = self._canonical_candidate(matches) if matches else None
+        if existing is not None:
+            self._merge_candidate(existing, candidate)
+            self._rewrite()
+            return existing
         self.candidates[candidate.id] = candidate
         self._rewrite()
         return candidate
@@ -192,6 +237,38 @@ class SkillCandidateQueue:
 
     def all(self) -> list[SkillCandidate]:
         return list(self.candidates.values())
+
+    def save(self):
+        self._rewrite()
+
+    def reconcile_duplicates(self, persist: bool = True) -> dict:
+        """Restore one canonical queue record per bounded-template fingerprint."""
+        groups: dict[str, list[SkillCandidate]] = {}
+        for candidate in self.candidates.values():
+            groups.setdefault(candidate.dedupe_key, []).append(candidate)
+
+        merged = {}
+        for dedupe_key, matches in groups.items():
+            if not dedupe_key or len(matches) < 2:
+                continue
+            canonical = self._canonical_candidate(matches)
+            duplicate_ids = []
+            for duplicate in matches:
+                if duplicate.id == canonical.id:
+                    continue
+                self._merge_candidate(canonical, duplicate)
+                self.candidates.pop(duplicate.id, None)
+                duplicate_ids.append(duplicate.id)
+            if duplicate_ids:
+                merged[canonical.id] = duplicate_ids
+
+        if merged and persist:
+            self._rewrite()
+        return {
+            "canonical_count": len(self.candidates),
+            "duplicates_removed": sum(len(ids) for ids in merged.values()),
+            "merged_candidate_ids": merged,
+        }
 
     def approve(
         self,
@@ -214,6 +291,7 @@ class SkillCandidateQueue:
         ).approve_candidate(candidate)
         if skill is not None:
             candidate.review_status = "approved"
+            candidate.status = "advisory"
         self._rewrite()
         return candidate
 
@@ -222,6 +300,7 @@ class SkillCandidateQueue:
         if not candidate:
             return None
         candidate.review_status = "rejected"
+        candidate.status = "candidate"
         candidate.reason = reason or candidate.reason
         self._rewrite()
         return candidate
@@ -237,18 +316,125 @@ class SkillCandidateQueue:
                         continue
                     data = json.loads(line)
                     candidate = SkillCandidate(**self._filter_candidate_fields(data))
+                    self._normalize_candidate(candidate)
                     self.candidates[candidate.id] = candidate
+            reconciliation = self.reconcile_duplicates(persist=False)
+            if reconciliation["duplicates_removed"]:
+                self._rewrite()
         except Exception as e:
             logger.warning(f"Could not load skill candidate queue: {e}")
 
     def _rewrite(self):
-        with open(self.path, "w", encoding="utf-8") as f:
+        temp_path = self.path + ".tmp"
+        with open(temp_path, "w", encoding="utf-8") as f:
             for candidate in self.candidates.values():
                 f.write(json.dumps(asdict(candidate), ensure_ascii=False, default=str) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_path, self.path)
 
     def _filter_candidate_fields(self, data: dict) -> dict:
         allowed = set(SkillCandidate.__dataclass_fields__.keys())
         return {k: v for k, v in data.items() if k in allowed}
+
+    def _normalize_candidate(self, candidate: SkillCandidate):
+        candidate.skill_id = candidate.skill_id or f"learned:{candidate.name}"
+        candidate.status = "candidate" if candidate.status not in {"candidate", "advisory", "executable", "quarantined"} else candidate.status
+        candidate.task_family = str(candidate.task_family or "general").strip().lower()
+        if not candidate.bounded_action_template and candidate.implementation:
+            try:
+                parsed = json.loads(candidate.implementation)
+            except (TypeError, ValueError):
+                parsed = {}
+            if isinstance(parsed, dict) and parsed.get("dsl_version"):
+                candidate.bounded_action_template = parsed
+        validation = validate_bounded_action_template(candidate.bounded_action_template)
+        candidate.validation_issues = list(validation.issues)
+        if validation.valid:
+            candidate.bounded_action_template = validation.normalized_template
+            candidate.implementation = json.dumps(validation.normalized_template, sort_keys=True)
+        candidate.dedupe_key = candidate.dedupe_key or bounded_template_fingerprint(
+            candidate.bounded_action_template,
+            candidate.task_family,
+        )
+        if not validation.valid:
+            legacy = "|".join([candidate.task_family, candidate.name, candidate.goal, candidate.implementation])
+            candidate.dedupe_key = "legacy:" + hashlib.sha256(legacy.encode("utf-8", errors="ignore")).hexdigest()[:20]
+        candidate.source_session_ids = self._dedupe_strings(candidate.source_session_ids)
+        candidate.source_environment_ids = self._dedupe_strings(candidate.source_environment_ids)
+        candidate.success_count = max(candidate.success_count, len(candidate.source_session_ids) if candidate.runtime_eligible else 0)
+        candidate.confidence_interval = wilson_confidence_interval(candidate.success_count, candidate.failure_count)
+
+    def _merge_candidate(self, target: SkillCandidate, incoming: SkillCandidate):
+        target.source_session_ids = self._dedupe_strings(target.source_session_ids + incoming.source_session_ids)
+        target.source_environment_ids = self._dedupe_strings(target.source_environment_ids + incoming.source_environment_ids)
+        target.runtime_eligible = bool(target.runtime_eligible or incoming.runtime_eligible)
+        target.success_count = len(target.source_session_ids) if target.runtime_eligible else max(target.success_count, incoming.success_count)
+        target.failure_count = max(target.failure_count, incoming.failure_count)
+        target.score = max(float(target.score or 0.0), float(incoming.score or 0.0))
+        target.confidence_interval = wilson_confidence_interval(target.success_count, target.failure_count)
+        target.created_at = min(float(target.created_at or time.time()), float(incoming.created_at or time.time()))
+        sources = target.provenance.get("sources", []) if isinstance(target.provenance, dict) else []
+        incoming_sources = incoming.provenance.get("sources", []) if isinstance(incoming.provenance, dict) else []
+        target.provenance = {
+            **(target.provenance if isinstance(target.provenance, dict) else {}),
+            "sources": self._dedupe_dicts(list(sources) + list(incoming_sources)),
+        }
+        target_signals = target.signals if isinstance(target.signals, dict) else {}
+        merged_candidate_ids = self._dedupe_strings(
+            list(target_signals.get("merged_candidate_ids", []))
+            + ([incoming.id] if incoming.id != target.id else [])
+        )
+        target.signals = {
+            **target_signals,
+            "merged_source_count": len(target.source_session_ids),
+            "merged_candidate_ids": merged_candidate_ids,
+        }
+
+    def _canonical_candidate(self, candidates: list[SkillCandidate]) -> SkillCandidate:
+        status_rank = {
+            "candidate": 1,
+            "advisory": 2,
+            "executable": 3,
+            "quarantined": 4,
+        }
+        review_rank = {
+            "pending": 1,
+            "retained": 2,
+            "rejected": 3,
+            "approved": 4,
+        }
+
+        def priority(candidate: SkillCandidate):
+            try:
+                created_at = float(candidate.created_at or 0.0)
+            except (TypeError, ValueError):
+                created_at = 0.0
+            return (
+                status_rank.get(candidate.status, 0),
+                review_rank.get(candidate.review_status, 0),
+                len(candidate.source_session_ids),
+                -created_at,
+                candidate.id,
+            )
+
+        return max(candidates, key=priority)
+
+    def _dedupe_strings(self, values: list) -> list[str]:
+        return list(dict.fromkeys(str(value) for value in values if str(value or "").strip()))
+
+    def _dedupe_dicts(self, values: list) -> list[dict]:
+        seen = set()
+        result = []
+        for value in values:
+            if not isinstance(value, dict):
+                continue
+            key = json.dumps(value, sort_keys=True, default=str)
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(value)
+        return result
 
 
 def build_discovery_skill_gate(
@@ -692,7 +878,7 @@ class SkillExtractor:
         self,
         skill_library,
         memory_system=None,
-        auto_promote: bool = True,
+        auto_promote: bool = False,
         promotion_critic=None,
         discovery_gate_paths: list[str] = None,
         transfer_gate_paths: list[str] = None,
@@ -723,6 +909,15 @@ class SkillExtractor:
     def extract_skill_candidates(self, session_log_path: str) -> list[SkillCandidate]:
         """Create reviewable skill candidates from a session log."""
         events = self._load_events(session_log_path)
+        return self.extract_skill_candidates_from_events(events, session_log_path)
+
+    def extract_skill_candidates_from_events(
+        self,
+        events: list[dict],
+        source_path: str = "in_memory_episode",
+    ) -> list[SkillCandidate]:
+        """Create candidates from one already-delimited, completed episode."""
+        events = [event for event in events if isinstance(event, dict)]
         actions = self._successful_action_sequence(events)
         if not actions:
             return []
@@ -732,10 +927,28 @@ class SkillExtractor:
             logger.info(f"Session not promoted to skill candidate: score={score['score']:.2f}")
             return []
         verification_gate = self._verification_gate_from_events(events, goal)
+        postconditions = self._postconditions_from_verification_gate(verification_gate)
+        bounded_template = derive_bounded_action_template(goal, actions, postconditions)
+        contract_validation = validate_bounded_action_template(bounded_template)
+        source = self._source_trace_provenance(events, source_path)
         visual_evidence = self._visual_evidence_from_events(events, goal)
         discovery_feedback = self._discovery_feedback_from_events(events)
-        skill_name = self._generate_skill_name(goal)
-        signals = {**score["signals"], "verification_gate": verification_gate}
+        task_family = self._task_family_from_template(goal, bounded_template)
+        skill_name = self._template_skill_name(bounded_template, goal)
+        parameters_schema = (
+            bounded_template.get("parameters", {})
+            if isinstance(bounded_template.get("parameters", {}), dict)
+            else {}
+        )
+        required_inventory = self._required_inventory_from_events(events, bounded_template)
+        required_observations = self._required_observations_from_template(bounded_template)
+        signals = {
+            **score["signals"],
+            "verification_gate": verification_gate,
+            "contract_validation": contract_validation.to_dict(),
+            "runtime_eligible": source["runtime_eligible"],
+            "evidence_kind": source["evidence_kind"],
+        }
         if visual_evidence:
             signals["visual_evidence"] = visual_evidence
         if discovery_feedback:
@@ -747,10 +960,57 @@ class SkillExtractor:
         return [
             SkillCandidate(
                 name=skill_name,
+                skill_id=self._template_skill_id(skill_name),
                 goal=goal,
                 description=f"Extracted from goal: {goal}",
-                implementation=json.dumps(actions),
+                implementation=json.dumps(
+                    contract_validation.normalized_template if contract_validation.valid else bounded_template,
+                    sort_keys=True,
+                ),
                 score=score["score"],
+                task_family=task_family,
+                parameters_schema=parameters_schema,
+                preconditions={
+                    "inventory": {
+                        item["item"]: item["count"]
+                        for item in required_inventory
+                        if isinstance(item, dict) and item.get("item")
+                    },
+                },
+                required_observations=required_observations,
+                required_inventory=required_inventory,
+                dependencies=self._dependencies_from_template(bounded_template),
+                bounded_action_template=(
+                    contract_validation.normalized_template
+                    if contract_validation.valid
+                    else bounded_template
+                ),
+                expected_intermediate_states=self._expected_states_from_template(bounded_template),
+                postconditions=postconditions,
+                failure_conditions=[
+                    "action_verifier_reject",
+                    "action_result_failure",
+                    "postcondition_not_reached_within_max_actions",
+                ],
+                abort_conditions=[
+                    "health_critical",
+                    "runtime_interrupt",
+                    "required_observation_missing",
+                    "parameter_outside_transfer_scope",
+                ],
+                provenance={"sources": [source]},
+                source_session_ids=[source["session_id"]] if source["session_id"] else [],
+                source_environment_ids=[source["environment_id"]] if source["environment_id"] else [],
+                verifier_version=source["verifier_version"],
+                success_count=1 if source["runtime_eligible"] else 0,
+                failure_count=0,
+                confidence_interval=wilson_confidence_interval(1 if source["runtime_eligible"] else 0, 0),
+                transfer_scope=self._transfer_scope_from_template(goal, task_family, bounded_template, source),
+                status="candidate",
+                rollback_target="",
+                runtime_eligible=source["runtime_eligible"],
+                evidence_kind=source["evidence_kind"],
+                validation_issues=contract_validation.issues,
                 signals=signals,
                 reason="score passed consolidation threshold",
             )
@@ -832,19 +1092,44 @@ class SkillExtractor:
             "causal_evidence_gate": report.causal_evidence_gate,
             "promotion_report": report.to_dict(),
         }
-        if report.decision == "reject":
-            candidate.review_status = "rejected"
+        if report.decision != "promote_advisory":
+            candidate.review_status = "rejected" if report.decision == "reject" else "retained"
             candidate.reason = f"{candidate.reason}; promotion_gate={report.reason}"
-            logger.warning(f"Rejected skill candidate '{candidate.name}' by promotion gate: {report.reason}")
+            logger.warning(
+                f"Skill candidate '{candidate.name}' remains {candidate.review_status}: {report.reason}"
+            )
             return None
 
         candidate.review_status = "approved"
+        candidate.status = "advisory"
         skill = self.skill_library.create_skill(
             name=candidate.name,
+            skill_id=candidate.skill_id,
             description=candidate.description,
             implementation=candidate.implementation,
+            parameters=candidate.parameters_schema,
+            task_family=candidate.task_family,
+            preconditions=candidate.preconditions,
+            required_observations=candidate.required_observations,
+            required_inventory=candidate.required_inventory,
+            required_items=candidate.required_inventory,
+            bounded_action_template=candidate.bounded_action_template,
+            expected_intermediate_states=candidate.expected_intermediate_states,
+            failure_conditions=candidate.failure_conditions,
+            abort_conditions=candidate.abort_conditions,
+            version=candidate.version,
+            status="advisory",
+            parent_version=candidate.parent_version,
+            rollback_target=candidate.rollback_target,
+            success_count=candidate.success_count,
+            failure_count=candidate.failure_count,
+            confidence_interval=candidate.confidence_interval,
+            source_session_ids=candidate.source_session_ids,
+            source_environment_ids=candidate.source_environment_ids,
+            verifier_version=candidate.verifier_version,
+            transfer_scope=candidate.transfer_scope,
             layer=candidate.layer,
-            postconditions=report.postconditions,
+            postconditions=candidate.postconditions or report.postconditions,
             dependencies=self._skill_dependencies_from_candidate(candidate),
             provenance={
                 "candidate_id": candidate.id,
@@ -852,6 +1137,7 @@ class SkillExtractor:
                 "reason": report.reason,
                 "created_at": candidate.created_at,
                 "score": candidate.score,
+                "sources": candidate.provenance.get("sources", []) if isinstance(candidate.provenance, dict) else [],
             },
             gate={
                 "decision": report.decision,
@@ -867,7 +1153,7 @@ class SkillExtractor:
             notes=f"consolidation_score={candidate.score:.2f}; signals={candidate.signals}; review={candidate.review_status}",
         )
         self._record_promotion_skill_memory(skill, candidate, report)
-        logger.info(f"Approved skill '{candidate.name}' from goal: {candidate.goal}")
+        logger.info(f"Promoted skill '{candidate.name}' to advisory from goal: {candidate.goal}")
         return skill
 
     def _record_promotion_skill_memory(self, skill, candidate: SkillCandidate, report: SkillPromotionValidationReport):
@@ -969,10 +1255,47 @@ class SkillExtractor:
                     "status": f"causal_evidence_{causal_evidence_gate.get('readiness', 'review')}",
                     "reason": causal_evidence_gate.get("reason", "causal_evidence_gate_requires_review"),
                 })
+        contract_validation = validate_bounded_action_template(candidate.bounded_action_template)
+        source_records = (
+            candidate.provenance.get("sources", [])
+            if isinstance(candidate.provenance, dict)
+            and isinstance(candidate.provenance.get("sources", []), list)
+            else []
+        )
+        eligible_sources = [
+            source for source in source_records
+            if isinstance(source, dict) and source.get("runtime_eligible") is True
+        ]
+        eligible_sessions = sorted({
+            str(source.get("session_id") or "")
+            for source in eligible_sources
+            if source.get("session_id")
+        })
+        eligible_environments = sorted({
+            str(source.get("environment_id") or "")
+            for source in eligible_sources
+            if source.get("environment_id")
+        })
+        all_sources_verified = bool(eligible_sources) and all(
+            source.get("goal_verifier_achieved") is True
+            and int(source.get("transition_proof_count") or 0) >= 1
+            and int(source.get("transition_proof_count") or 0) == int(source.get("transition_count") or 0)
+            for source in eligible_sources
+        )
+        lifecycle_missing = []
+        if not contract_validation.valid:
+            lifecycle_missing.extend(contract_validation.issues)
+        if len(eligible_sessions) < 3:
+            lifecycle_missing.append("three_distinct_live_source_sessions_required")
+        if len(eligible_environments) < 3:
+            lifecycle_missing.append("three_distinct_source_environments_required")
+        if not all_sources_verified:
+            lifecycle_missing.append("all_sources_require_goal_and_transition_verification")
+
         critic = {}
         if gate.get("status") == "unknown" and self.promotion_critic:
             gate, critic = self._apply_promotion_critic(candidate, gate)
-        postconditions = self._postconditions_from_verification_gate(gate)
+        postconditions = candidate.postconditions or self._postconditions_from_verification_gate(gate)
         warnings = []
         if discovery_gate.get("warnings"):
             warnings.extend(discovery_gate.get("warnings", []))
@@ -987,32 +1310,58 @@ class SkillExtractor:
         if causal_evidence_gate.get("errors"):
             warnings.extend(causal_evidence_gate.get("errors", []))
         if gate.get("status") == "unknown":
-            warnings.append("no deterministic verification proof; approval relies on consolidation score and human/operator review")
+            warnings.append("no deterministic verification proof; candidate cannot advance")
         if not postconditions:
             warnings.append("no inventory postconditions available for future self-verification")
         warnings.extend(critic.get("warnings", []) if isinstance(critic.get("warnings", []), list) else [])
         if critic and critic.get("decision") == "unknown":
             warnings.append("promotion critic could not resolve unknown verifier status")
 
-        decision = "reject" if gate.get("decision") == "reject" else "approve"
-        reason = gate.get("reason") or "verification_gate_missing_reason"
-        if decision == "approve" and gate.get("status") == "achieved":
-            reason = "verified_postconditions_satisfied"
-        elif decision == "approve" and gate.get("status") == "critic_approved":
-            reason = "critic_approved"
-        elif decision == "reject" and gate.get("status") == "critic_rejected":
+        hard_reject = bool(
+            gate.get("decision") == "reject"
+            or not contract_validation.valid
+            or not postconditions
+            or (critic and critic.get("decision") == "reject")
+        )
+        if hard_reject:
+            decision = "reject"
+            reason = gate.get("reason") or "candidate_contract_or_verification_rejected"
+        elif lifecycle_missing:
+            decision = "retain_candidate"
+            reason = "candidate_needs_more_independent_live_evidence"
+        elif gate.get("status") == "achieved" and all_sources_verified:
+            decision = "promote_advisory"
+            reason = "three_verified_sources_support_advisory_promotion"
+        else:
+            decision = "retain_candidate"
+            reason = "deterministic_verification_required_for_advisory_promotion"
+        if decision == "reject" and gate.get("status") == "critic_rejected":
             reason = "critic_rejected"
+
+        combined_missing = self._merge_list(
+            gate.get("missing", []) if isinstance(gate.get("missing", []), list) else [],
+            lifecycle_missing,
+        )
+        matched_rules = self._merge_list(
+            gate.get("matched_rules", []) if isinstance(gate.get("matched_rules", []), list) else [],
+            ["typed_bounded_skill_contract", "three_state_skill_lifecycle", "distinct_live_source_gate"],
+        )
+        report_status = gate.get("status", "unknown")
+        if decision == "retain_candidate":
+            report_status = "candidate"
+        elif decision == "promote_advisory":
+            report_status = "advisory_ready"
 
         return SkillPromotionValidationReport(
             candidate_id=candidate.id,
             candidate_name=candidate.name,
             decision=decision,
-            status=gate.get("status", "unknown"),
+            status=report_status,
             reason=reason,
             score=candidate.score,
             evidence=gate.get("evidence", []) if isinstance(gate.get("evidence", []), list) else [],
-            missing=gate.get("missing", []) if isinstance(gate.get("missing", []), list) else [],
-            matched_rules=gate.get("matched_rules", []) if isinstance(gate.get("matched_rules", []), list) else [],
+            missing=combined_missing,
+            matched_rules=matched_rules,
             postconditions=postconditions,
             warnings=warnings,
             gate=gate,
@@ -1136,6 +1485,214 @@ class SkillExtractor:
                 if line:
                     events.append(json.loads(line))
         return events
+
+    def _source_trace_provenance(self, events: list[dict], source_path: str) -> dict:
+        runtime = next(
+            (
+                event.get("data", {}) for event in reversed(events)
+                if event.get("type") == "benchmark_runtime_profile"
+                and isinstance(event.get("data", {}), dict)
+            ),
+            {},
+        )
+        reset = next(
+            (
+                event.get("data", {}) for event in reversed(events)
+                if event.get("type") == "benchmark_reset"
+                and isinstance(event.get("data", {}), dict)
+            ),
+            {},
+        )
+        session_id = next(
+            (str(event.get("session") or "").strip() for event in events if event.get("session")),
+            "",
+        )
+        if not session_id:
+            basename = os.path.basename(source_path)
+            if basename.startswith("session_"):
+                session_id = basename[len("session_"):].split(".", 1)[0]
+        environment_id = str(reset.get("level_name") or reset.get("episode_id") or "").strip()
+        verifier_events = [
+            event.get("data", {}) for event in events
+            if event.get("type") == "goal_verification" and isinstance(event.get("data", {}), dict)
+        ]
+        verifier_achieved = any(
+            item.get("achieved") is True or str(item.get("status") or "").lower() == "achieved"
+            for item in verifier_events
+        )
+        transition_checks = [
+            self._action_transition_supported(event.get("data", {}))
+            for event in events
+            if event.get("type") == "action"
+            and isinstance(event.get("data", {}), dict)
+            and event.get("data", {}).get("result", {}).get("success") is True
+            and str(event.get("data", {}).get("action", {}).get("type") or "")
+            in {"move_to", "dig", "craft", "place", "equip", "use_item", "attack"}
+        ]
+        runtime_eligible = bool(
+            session_id
+            and environment_id
+            and reset.get("success") is True
+            and runtime.get("isolated") is True
+            and verifier_achieved
+            and self._goal_succeeded(events)
+            and transition_checks
+            and all(transition_checks)
+        )
+        canonical = json.dumps(events, sort_keys=True, separators=(",", ":"), default=str)
+        return {
+            "source_log": source_path,
+            "source_trace_sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+            "session_id": session_id,
+            "environment_id": environment_id,
+            "episode_id": str(reset.get("episode_id") or ""),
+            "world_seed": str(reset.get("seed") or ""),
+            "server_jar_sha256": str(reset.get("server_jar_sha256") or ""),
+            "protocol_sha256": str(runtime.get("protocol_sha256") or reset.get("protocol_sha256") or ""),
+            "verifier_version": str(runtime.get("verifier_id") or ""),
+            "goal_verifier_achieved": verifier_achieved,
+            "goal_end_completed": self._goal_succeeded(events),
+            "transition_count": len(transition_checks),
+            "transition_proof_count": sum(1 for passed in transition_checks if passed),
+            "runtime_eligible": runtime_eligible,
+            "evidence_kind": "live_verified" if runtime_eligible else "offline_or_unverified",
+        }
+
+    def _action_transition_supported(self, data: dict) -> bool:
+        action = data.get("action", {}) if isinstance(data.get("action", {}), dict) else {}
+        result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+        before = data.get("pre_observation", {}) if isinstance(data.get("pre_observation", {}), dict) else {}
+        after = data.get("post_observation", {}) if isinstance(data.get("post_observation", {}), dict) else {}
+        if not before or not after or result.get("success") is not True:
+            return False
+        action_type = str(action.get("type") or "")
+        if action_type == "move_to":
+            return before.get("position") != after.get("position") and result.get("reached") is True
+        if action_type in {"craft", "dig", "equip", "place", "use_item"}:
+            return before.get("inventory", {}) != after.get("inventory", {}) or (
+                action_type == "dig" and result.get("block_removed") is True
+            ) or (
+                action_type == "place" and result.get("block_placed") is True
+            )
+        return before != after
+
+    def _required_inventory_from_events(self, events: list[dict], template: dict) -> list[dict]:
+        first_observation = next(
+            (
+                event.get("data", {}) for event in events
+                if event.get("type") == "observation" and isinstance(event.get("data", {}), dict)
+            ),
+            {},
+        )
+        inventory = first_observation.get("inventory", {}) if isinstance(first_observation.get("inventory", {}), dict) else {}
+        phases = template.get("phases", []) if isinstance(template, dict) else []
+        needs_inventory = any(
+            isinstance(phase, dict) and phase.get("op") in {"craft_item", "acquire_block_drop"}
+            for phase in phases
+        )
+        if not needs_inventory:
+            return []
+        return [
+            {"item": str(item), "count": int(count)}
+            for item, count in sorted(inventory.items())
+            if _safe_int(count) > 0
+        ]
+
+    def _required_observations_from_template(self, template: dict) -> list[str]:
+        required = []
+        for phase in template.get("phases", []) if isinstance(template, dict) else []:
+            if not isinstance(phase, dict):
+                continue
+            if phase.get("op") == "acquire_block_drop":
+                required.extend(f"observed_block:{name}" for name in phase.get("source_blocks", []))
+            elif phase.get("op") == "craft_item":
+                required.append("inventory")
+                if phase.get("item") in {"wooden_pickaxe", "stone_pickaxe", "wooden_axe", "stone_axe"}:
+                    required.append("nearby_block:crafting_table")
+        return list(dict.fromkeys(required))
+
+    def _dependencies_from_template(self, template: dict) -> list[str]:
+        dependencies = []
+        for phase in template.get("phases", []) if isinstance(template, dict) else []:
+            if not isinstance(phase, dict):
+                continue
+            if phase.get("op") == "craft_item":
+                dependencies.append("craft_item")
+            elif phase.get("op") == "acquire_block_drop":
+                dependencies.extend(["move_to", "dig_block"])
+        return list(dict.fromkeys(dependencies))
+
+    def _expected_states_from_template(self, template: dict) -> list[dict]:
+        states = []
+        for phase in template.get("phases", []) if isinstance(template, dict) else []:
+            if not isinstance(phase, dict):
+                continue
+            states.append({
+                "phase_id": phase.get("id"),
+                "target_inventory": {
+                    str(phase.get("target_item")): phase.get("target_count", 1),
+                },
+                "reobserve_after_each_action": True,
+            })
+        return states
+
+    def _transfer_scope_from_template(self, goal: str, task_family: str, template: dict, source: dict) -> dict:
+        parameters = template.get("parameters", {}) if isinstance(template, dict) else {}
+        quantity = parameters.get("quantity", {}) if isinstance(parameters, dict) else {}
+        phases = template.get("phases", []) if isinstance(template, dict) else []
+        source_blocks = sorted({
+            str(block)
+            for phase in phases if isinstance(phase, dict)
+            for block in phase.get("source_blocks", []) if block
+        })
+        return {
+            "supported_task_families": [task_family],
+            "unsupported_task_families": [],
+            "training_goals": [goal],
+            "training_session_ids": [source.get("session_id")] if source.get("session_id") else [],
+            "training_environment_ids": [source.get("environment_id")] if source.get("environment_id") else [],
+            "quantity_range": {
+                "minimum": quantity.get("minimum", quantity.get("default", 1)) if isinstance(quantity, dict) else 1,
+                "maximum": quantity.get("maximum", quantity.get("default", 1)) if isinstance(quantity, dict) else 1,
+            },
+            "source_blocks": source_blocks,
+            "heldout_validated": False,
+        }
+
+    def _template_skill_name(self, template: dict, goal: str) -> str:
+        phases = template.get("phases", []) if isinstance(template, dict) else []
+        phase = phases[-1] if phases and isinstance(phases[-1], dict) else {}
+        target = str(phase.get("target_item") or "").strip()
+        if phase.get("op") == "acquire_block_drop":
+            if target == "oak_log":
+                return "learned_gather_wood"
+            if target == "cobblestone":
+                return "learned_mine_cobblestone"
+            return self._safe_skill_name(["learned", "gather", target])
+        if phase.get("op") == "craft_item" and target:
+            return self._safe_skill_name(["learned", "craft", target])
+        return self._safe_skill_name(["learned", self._generate_skill_name(goal)])
+
+    def _task_family_from_template(self, goal: str, template: dict) -> str:
+        phases = template.get("phases", []) if isinstance(template, dict) else []
+        operations = {phase.get("op") for phase in phases if isinstance(phase, dict)}
+        targets = {
+            str(phase.get("target_item") or "")
+            for phase in phases if isinstance(phase, dict)
+        }
+        if "craft_item" in operations:
+            return "crafting"
+        if "acquire_block_drop" in operations and "oak_log" in targets:
+            return "gathering"
+        if "acquire_block_drop" in operations:
+            return "mining"
+        return self.skill_library.infer_task_family(goal)
+
+    def _template_skill_id(self, skill_name: str) -> str:
+        name = str(skill_name or "").strip()
+        if name.startswith("learned_"):
+            name = name[len("learned_"):]
+        return f"learned:{name}"
 
     def _session_goal(self, events: list[dict]) -> str:
         goal_event = next((e for e in events if e.get("type") == "goal_start"), None)
@@ -1347,10 +1904,14 @@ class SkillExtractor:
             return build_task_stream_transfer_skill_gate(transfer_gate_paths=self.transfer_gate_paths)
         gate = candidate.signals.get("task_stream_transfer_gate", {}) if isinstance(candidate.signals, dict) else {}
         if isinstance(gate, dict) and gate:
+            if gate.get("required") is False or str(gate.get("readiness") or "").lower() == "not_required":
+                return build_task_stream_transfer_skill_gate()
             return build_task_stream_transfer_skill_gate(gate=gate, source=f"candidate:{candidate.id}")
         promotion = candidate.signals.get("promotion_report", {}) if isinstance(candidate.signals, dict) else {}
         transfer_gate = promotion.get("transfer_gate", {}) if isinstance(promotion, dict) else {}
         if isinstance(transfer_gate, dict) and transfer_gate:
+            if transfer_gate.get("required") is False or str(transfer_gate.get("readiness") or "").lower() == "not_required":
+                return build_task_stream_transfer_skill_gate()
             return build_task_stream_transfer_skill_gate(gate=transfer_gate, source=f"candidate:{candidate.id}")
         return build_task_stream_transfer_skill_gate()
 

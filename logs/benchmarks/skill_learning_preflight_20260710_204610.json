@@ -1,0 +1,77 @@
+{
+  "type": "benchmark_preflight",
+  "schema_version": 2,
+  "generated_at_utc": "2026-07-10T12:46:26Z",
+  "evidence_kind": "runtime_preflight",
+  "counts_toward_live_observed": false,
+  "counts_toward_repeat_verified": false,
+  "ok": true,
+  "checks": [
+    {
+      "name": "python:pydantic",
+      "status": "pass",
+      "detail": "import available",
+      "remedy": ""
+    },
+    {
+      "name": "python:openai",
+      "status": "pass",
+      "detail": "import available",
+      "remedy": ""
+    },
+    {
+      "name": "python:anthropic",
+      "status": "warn",
+      "detail": "optional provider package missing",
+      "remedy": "pip install anthropic if using this provider"
+    },
+    {
+      "name": "java",
+      "status": "pass",
+      "detail": "openjdk version \"25.0.1\" 2025-10-21 LTS",
+      "remedy": ""
+    },
+    {
+      "name": "node",
+      "status": "pass",
+      "detail": "v22.16.0",
+      "remedy": ""
+    },
+    {
+      "name": "npm",
+      "status": "pass",
+      "detail": "11.4.2",
+      "remedy": ""
+    },
+    {
+      "name": "node_dependencies",
+      "status": "pass",
+      "detail": "mineflayer dependencies installed",
+      "remedy": ""
+    },
+    {
+      "name": "bot_bridge",
+      "status": "pass",
+      "detail": "Singularity health protocol confirmed at 127.0.0.1:30000",
+      "remedy": ""
+    },
+    {
+      "name": "bot_session",
+      "status": "pass",
+      "detail": "bot spawned as Singularity",
+      "remedy": ""
+    },
+    {
+      "name": "m1_harness",
+      "status": "pass",
+      "detail": "m1-fixed-v1 episode skill_episode_20260710_204610 matches tracked protocol 2631cbbc0a82",
+      "remedy": ""
+    },
+    {
+      "name": "minecraft_server",
+      "status": "pass",
+      "detail": "127.0.0.1:25565 reachable",
+      "remedy": ""
+    }
+  ]
+}

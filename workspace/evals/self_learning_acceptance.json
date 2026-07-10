@@ -1,0 +1,132 @@
+{
+  "type": "bounded_skill_learning_acceptance",
+  "schema_version": 1,
+  "generated_at": "2026-07-10T22:03:25+08:00",
+  "scope": "bounded evidence-gated learned skills",
+  "status": "passed",
+  "decision": "accept_bounded_skill_learning_loop",
+  "claim_boundary": "This supports improvement through bounded learned skills, not unrestricted continuous self-evolution.",
+  "capability_prerequisite": {
+    "report": "workspace/evals/self_learning_capability_evidence.json",
+    "m1_status": "repeat_verified",
+    "m1_verified_tasks": 5,
+    "m3_status": "repeat_verified",
+    "m3_verified_sessions": 3,
+    "m3_transfer_support": "approved"
+  },
+  "skills": [
+    {
+      "skill_id": "learned:gather_wood",
+      "source_session_count": 3,
+      "paired_live_session_count": 3,
+      "baseline_completion_rate": 1.0,
+      "candidate_completion_rate": 1.0,
+      "baseline_environment_steps": 12,
+      "candidate_environment_steps": 6,
+      "stable_environment_step_gain": true,
+      "promoted_version": "1.0.1",
+      "runtime_session_id": "b9e1bb0e-88b",
+      "runtime_attribution_confidence": 1.0,
+      "current_status": "executable",
+      "paired_report": "workspace/evals/skill_ablation/gather_wood/paired_report.json",
+      "runtime_report": "workspace/evals/skill_ablation/gather_wood/runs/runtime-03.json"
+    },
+    {
+      "skill_id": "learned:craft_crafting_table",
+      "source_session_count": 3,
+      "paired_live_session_count": 3,
+      "baseline_completion_rate": 1.0,
+      "candidate_completion_rate": 1.0,
+      "baseline_environment_steps": 3,
+      "candidate_environment_steps": 3,
+      "stable_environment_step_gain": false,
+      "promoted_version": "1.0.1",
+      "runtime_session_id": "4b6f10e7-6fc",
+      "runtime_attribution_confidence": 1.0,
+      "current_status": "executable",
+      "paired_report": "workspace/evals/skill_ablation/craft_crafting_table/paired_report.json",
+      "runtime_report": "workspace/evals/skill_ablation/craft_crafting_table/runs/runtime-01.json"
+    },
+    {
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "source_session_count": 3,
+      "paired_live_session_count": 3,
+      "baseline_completion_rate": 1.0,
+      "candidate_completion_rate": 1.0,
+      "baseline_environment_steps": 3,
+      "candidate_environment_steps": 3,
+      "stable_environment_step_gain": false,
+      "promoted_version": "1.0.1",
+      "runtime_session_id": "1ec21c1f-fd9",
+      "runtime_attribution_confidence": 1.0,
+      "current_status": "quarantined",
+      "paired_report": "workspace/evals/skill_ablation/craft_wooden_pickaxe/paired_report.json",
+      "runtime_report": "workspace/evals/skill_ablation/craft_wooden_pickaxe/runs/runtime-01.json"
+    }
+  ],
+  "heldout_transfer": {
+    "skill_id": "learned:gather_wood",
+    "training_goal": "Gather 3 oak logs",
+    "heldout_goal": "Gather 2 oak logs",
+    "fixture_profile": "gather_oak_shifted_v1",
+    "training_heldout_session_overlap_count": 0,
+    "baseline_session_id": "0432d494-c7d",
+    "candidate_session_id": "6da981d0-e7c",
+    "baseline_environment_steps": 3,
+    "candidate_environment_steps": 2,
+    "positive_transfer": true,
+    "gate_readiness": "approved",
+    "report": "workspace/evals/skill_transfer/gather_wood/transfer_report.json",
+    "gate": "workspace/evals/skill_transfer/gather_wood/transfer_gate.json"
+  },
+  "failure_lifecycle": {
+    "skill_id": "learned:craft_wooden_pickaxe",
+    "fault_session_ids": [
+      "d5a1d1fb-4df",
+      "85546580-71c",
+      "a2560be6-b51"
+    ],
+    "lifecycle_statuses": [
+      "executable",
+      "advisory",
+      "quarantined"
+    ],
+    "all_tasks_recovered": true,
+    "all_faults_excluded_from_promotion": true,
+    "quarantine_fallback_session_id": "10432bf0-f69",
+    "quarantine_fallback_selected_count": 0,
+    "quarantine_fallback_executed_count": 0,
+    "quarantine_fallback_task_completion": 1,
+    "ledger": "workspace/evals/skill_regressions.json"
+  },
+  "automatic_extraction": {
+    "session_id": "9735e9d6-f9d",
+    "goal_end_precedes_extraction": true,
+    "durable_queue_write_recorded": true,
+    "canonical_candidate_id": "ef2c7be4",
+    "new_candidate_count": 0,
+    "deduplicated_candidate_count": 1,
+    "queue_candidate_count": 3,
+    "queue_unique_dedupe_key_count": 3,
+    "queue_dedupe_key_unique": true,
+    "task_result_unaffected": true,
+    "report": "workspace/evals/skill_ablation/craft_crafting_table/runs/extraction-03.json"
+  },
+  "checks": {
+    "three_distinct_skills_closed_loop": true,
+    "three_independent_paired_live_sessions_per_skill": true,
+    "heldout_positive_transfer": true,
+    "no_completion_rate_regression": true,
+    "stable_efficiency_improvement": true,
+    "automatic_demotion_and_quarantine": true,
+    "safe_fallback_when_inapplicable_or_quarantined": true,
+    "m1_repeat_verified": true,
+    "m3_continual_learning_repeat_verified": true,
+    "m3_transfer_gate_approved": true,
+    "typed_bounded_dsl_only": true,
+    "candidate_queue_unique_across_lifecycle": true,
+    "candidate_has_zero_runtime_influence": true,
+    "advisory_has_zero_direct_execution": true,
+    "version_and_rollback_history_retained": true
+  }
+}

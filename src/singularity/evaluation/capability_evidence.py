@@ -609,12 +609,16 @@ def _aggregate_case_records(records: list[dict]) -> dict:
 
 def _assess_m3_case(source_path: str, index: int, case: dict) -> dict:
     source_ref, source_key = _case_source_ref(case.get("source_log"), source_path, index)
+    memory_read_count = _as_int(case.get("memory_read_count"))
+    memory_write_count = _as_int(case.get("memory_write_count"))
+    skill_retrieval_count = _as_int(case.get("skill_retrieval_count"))
+    skill_outcome_write_count = _as_int(case.get("skill_outcome_write_count"))
     checks = {
         "source_log_present": bool(str(case.get("source_log") or "").strip()),
         "ready_for_continual_learning_review": case.get("ready_for_continual_learning_review") is True,
         "completed_goal": _as_int(case.get("completed_goal_count")) >= 1,
-        "memory_read": _as_int(case.get("memory_read_count")) >= 1,
-        "memory_write": _as_int(case.get("memory_write_count")) >= 1,
+        "memory_read": memory_read_count >= 1 or skill_retrieval_count >= 1,
+        "memory_write": memory_write_count >= 1 or skill_outcome_write_count >= 1,
         "progress_signal": _as_int(case.get("progress_event_count")) >= 1,
         "bounded_context": (
             "unbounded_context_cycle_count" in case
@@ -628,8 +632,10 @@ def _assess_m3_case(source_path: str, index: int, case: dict) -> dict:
         checks,
         {
             "completed_goal_count": _as_int(case.get("completed_goal_count")),
-            "memory_read_count": _as_int(case.get("memory_read_count")),
-            "memory_write_count": _as_int(case.get("memory_write_count")),
+            "memory_read_count": memory_read_count,
+            "memory_write_count": memory_write_count,
+            "skill_retrieval_count": skill_retrieval_count,
+            "skill_outcome_write_count": skill_outcome_write_count,
             "progress_event_count": _as_int(case.get("progress_event_count")),
             "unbounded_context_cycle_count": _as_int(case.get("unbounded_context_cycle_count")),
         },

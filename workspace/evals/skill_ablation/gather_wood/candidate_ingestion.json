@@ -1,0 +1,20 @@
+{
+  "decisions": [
+    {
+      "candidate_id": "a01e22d6",
+      "decision": "promote_advisory",
+      "environments": 3,
+      "missing": [],
+      "promoted": true,
+      "skill_id": "learned:gather_wood",
+      "sources": 3,
+      "status": "advisory"
+    }
+  ],
+  "deduped_candidate_count": 1,
+  "extracted_count": 3,
+  "focus_skill_id": "learned:gather_wood",
+  "schema_version": 1,
+  "session_count": 3,
+  "type": "skill_candidate_ingestion_report"
+}

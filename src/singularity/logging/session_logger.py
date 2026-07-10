@@ -86,6 +86,8 @@ class SessionLogger:
         intervention_metrics.update(visual_action_metrics)
         skill_memory_metrics = self._skill_memory_metrics()
         intervention_metrics.update(skill_memory_metrics)
+        skill_learning_metrics = self._skill_learning_metrics()
+        intervention_metrics.update(skill_learning_metrics)
         action_verification_metrics = self._action_verification_metrics()
         intervention_metrics.update(action_verification_metrics)
         action_candidate_metrics = self._action_candidate_selection_metrics()
@@ -104,6 +106,7 @@ class SessionLogger:
             "intervention_metrics": intervention_metrics,
             "visual_action_metrics": visual_action_metrics,
             "skill_memory_metrics": skill_memory_metrics,
+            "skill_learning_metrics": skill_learning_metrics,
             "action_verification_metrics": action_verification_metrics,
             "action_candidate_selection_metrics": action_candidate_metrics,
             "goal_verification_metrics": goal_verification_metrics,
@@ -385,6 +388,58 @@ class SessionLogger:
             "skill_memory_hint_event_count": len(events),
             "skill_memory_hint_count": total_hints,
             "skill_memory_task_families": task_families,
+        }
+
+    def _skill_learning_metrics(self) -> dict:
+        selected = [event for event in self.events if event.get("type") == "skill_selected"]
+        actions = [event for event in self.events if event.get("type") == "skill_action_result"]
+        outcomes = [event for event in self.events if event.get("type") == "skill_execution_outcome"]
+        fallbacks = [event for event in self.events if event.get("type") == "skill_fallback"]
+        shadows = [event for event in self.events if event.get("type") == "skill_shadow_plan"]
+        advisories = [event for event in self.events if event.get("type") == "skill_advisory_hint"]
+        extractions = [event for event in self.events if event.get("type") == "skill_candidate_extraction"]
+        skill_ids = set()
+        confidences = []
+        for event in selected + outcomes:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            identity = data.get("skill", {}) if isinstance(data.get("skill", {}), dict) else {}
+            skill_id = data.get("skill_id") or identity.get("skill_id")
+            if skill_id:
+                skill_ids.add(str(skill_id))
+            if event.get("type") == "skill_execution_outcome":
+                try:
+                    confidences.append(float(data.get("attribution_confidence") or 0.0))
+                except (TypeError, ValueError):
+                    pass
+        candidate_count = 0
+        for event in extractions:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            try:
+                candidate_count += int(data.get("candidate_count") or 0)
+            except (TypeError, ValueError):
+                pass
+        return {
+            "skill_selected_count": len(selected),
+            "skill_executed_count": len(actions),
+            "skill_successful_action_count": sum(
+                1 for event in actions
+                if isinstance(event.get("data", {}), dict) and event.get("data", {}).get("success") is True
+            ),
+            "skill_failed_action_count": sum(
+                1 for event in actions
+                if isinstance(event.get("data", {}), dict) and event.get("data", {}).get("success") is False
+            ),
+            "skill_completion_count": sum(
+                1 for event in outcomes
+                if isinstance(event.get("data", {}), dict) and event.get("data", {}).get("success") is True
+            ),
+            "skill_outcome_count": len(outcomes),
+            "skill_fallback_count": len(fallbacks),
+            "skill_shadow_plan_count": len(shadows),
+            "skill_advisory_hint_count": len(advisories),
+            "skill_candidate_extraction_count": candidate_count,
+            "skill_attribution_confidence": round(sum(confidences) / len(confidences), 4) if confidences else 0.0,
+            "skill_ids": sorted(skill_ids),
         }
 
     def _action_verification_metrics(self) -> dict:

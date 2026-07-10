@@ -1,0 +1,20 @@
+{
+  "decisions": [
+    {
+      "candidate_id": "ef2c7be4",
+      "decision": "promote_advisory",
+      "environments": 3,
+      "missing": [],
+      "promoted": true,
+      "skill_id": "learned:craft_crafting_table",
+      "sources": 3,
+      "status": "advisory"
+    }
+  ],
+  "deduped_candidate_count": 1,
+  "extracted_count": 3,
+  "focus_skill_id": "learned:craft_crafting_table",
+  "schema_version": 1,
+  "session_count": 3,
+  "type": "skill_candidate_ingestion_report"
+}

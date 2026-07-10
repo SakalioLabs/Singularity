@@ -1,0 +1,149 @@
+{
+  "arm": "baseline",
+  "checks": {
+    "live_connection_and_reset": false
+  },
+  "duration_s": 6.052,
+  "error": "research_fixture_verification_failed",
+  "experiment_id": "gather-wood-heldout-baseline-02",
+  "failed_checks": [
+    "live_connection_and_reset"
+  ],
+  "goal": "Gather 2 oak logs",
+  "heldout": true,
+  "metrics": {},
+  "pair_id": "gather-wood-heldout-02",
+  "replicate_id": "heldout-02",
+  "run_id": "gather-wood-heldout-baseline-02:baseline:330e9384-804",
+  "runtime_profile": {
+    "action_backend_id": "mineflayer-bridge-v1",
+    "action_controller_enforced": true,
+    "action_verifier_enforced": true,
+    "agent_id": "singularity-agent-v1",
+    "arm": "baseline",
+    "candidate_extraction": false,
+    "counts_toward_m1_acceptance": false,
+    "evidence_kind": "live_minecraft_skill_research",
+    "experiment_id": "gather-wood-heldout-baseline-02",
+    "force_rule_planner": true,
+    "goal_verifier_enforced": true,
+    "memory_persistence": false,
+    "planner_id": "rule-based-v1",
+    "policy_skills": false,
+    "profile": "controlled_skill_learning_v1",
+    "protocol": "m1-fixed-v1",
+    "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+    "research_fixture_profile": "gather_oak_shifted_v1",
+    "single_target_skill": true,
+    "skill_execution_mode": "off",
+    "target_skill_id": "",
+    "task_id": "BM-001",
+    "verifier_id": "goal-action-verifier-v1",
+    "vision": false,
+    "world_seed": "12345"
+  },
+  "schema_version": 1,
+  "session_id": "330e9384-804",
+  "setup_evidence": {
+    "after_state": {
+      "difficulty": "peaceful",
+      "dimension": "overworld",
+      "fixture": {
+        "block": "air",
+        "position": {
+          "x": 97,
+          "y": 144,
+          "z": -32
+        }
+      },
+      "food": 20,
+      "game_mode": "survival",
+      "health": 20,
+      "inventory": {},
+      "position": {
+        "x": 96.5,
+        "y": 144,
+        "z": -31.5
+      },
+      "spawn_position": {
+        "x": 96,
+        "y": 144,
+        "z": -32
+      },
+      "time_of_day": 1031,
+      "weather": "clear"
+    },
+    "before_state": {
+      "difficulty": "peaceful",
+      "dimension": "overworld",
+      "fixture": {
+        "block": "air",
+        "position": {
+          "x": 97,
+          "y": 144,
+          "z": -32
+        }
+      },
+      "food": 20,
+      "game_mode": "survival",
+      "health": 20,
+      "inventory": {},
+      "position": {
+        "x": 94.5,
+        "y": 143,
+        "z": -36.5
+      },
+      "spawn_position": {
+        "x": 96,
+        "y": 144,
+        "z": -32
+      },
+      "time_of_day": 117,
+      "weather": "clear"
+    },
+    "checks": {
+      "daytime": true,
+      "difficulty": true,
+      "dimension": true,
+      "fixture": true,
+      "food": true,
+      "game_mode": true,
+      "health": true,
+      "inventory_exact": true,
+      "position_at_spawn": true,
+      "position_distance": 0.707,
+      "time_initialized": true,
+      "weather": true
+    },
+    "command_count": 10,
+    "episode_id": "skill_episode_20260710_211034",
+    "error": "",
+    "expected": {
+      "difficulty": "peaceful",
+      "game_mode": "survival",
+      "initial_blocks": [],
+      "initial_inventory": {},
+      "time_of_day": 1000,
+      "weather": "clear"
+    },
+    "failed_checks": [],
+    "level_name": "skill_episode_20260710_211034_bm_001",
+    "observed_minecraft_version": "1.20.4",
+    "profile": "m1-fixed-v1",
+    "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+    "seed": "12345",
+    "server_brand": "Paper",
+    "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+    "success": true,
+    "task_id": "BM-001"
+  },
+  "skill_id": "learned:gather_wood",
+  "source_log": "logs\\session_330e9384-804.jsonl",
+  "source_log_sha256": "efa3cd1c3f196c5541067c7dfeb35c0aca44221353f1bc3b9753328c3f9c56aa",
+  "status": "error",
+  "success_criteria": {
+    "oak_log": 2
+  },
+  "task_id": "BM-001",
+  "type": "skill_learning_live_run"
+}

@@ -30,6 +30,15 @@ class Config:
     log_dir: str = "logs"
     memory_dir: str = "workspace/memory"
     skill_dir: str = "workspace/skills"
+    enable_skill_candidate_extraction: bool = False
+    skill_candidate_queue_path: str = "workspace/skills/skill_candidates.jsonl"
+    skill_learning_ledger_path: str = "workspace/evals/skill_learning_ledger.json"
+    skill_regressions_path: str = "workspace/evals/skill_regressions.json"
+    skill_execution_mode: str = "off"  # off, shadow, advisory, evaluation, runtime
+    target_skill_id: str = ""
+    skill_experiment_id: str = ""
+    skill_evaluation_authorization: dict = field(default_factory=dict)
+    skill_fault_profile: str = ""
     enable_policy_skills: bool = True
     enable_skill_frontier_routing: bool = True
     enable_autocurriculum: bool = True

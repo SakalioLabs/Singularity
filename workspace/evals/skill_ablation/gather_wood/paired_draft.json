@@ -1,0 +1,227 @@
+{
+  "advisory_session_ids": [
+    "39a5963f-8aa"
+  ],
+  "advisory_verified": true,
+  "aggregate_metrics": {
+    "baseline_environment_steps": 4,
+    "baseline_failed_actions": 0,
+    "baseline_no_progress_loops": 0,
+    "baseline_planner_calls": 4,
+    "baseline_verifier_rejects": 0,
+    "candidate_environment_steps": 2,
+    "candidate_failed_actions": 0,
+    "candidate_no_progress_loops": 0,
+    "candidate_planner_calls": 2,
+    "candidate_verifier_rejects": 0,
+    "environment_step_gain": 2,
+    "planner_call_gain": 2
+  },
+  "baseline_completion_rate": 1.0,
+  "baseline_session_ids": [
+    "083bded6-3a1"
+  ],
+  "candidate_completion_rate": 1.0,
+  "candidate_session_ids": [
+    "7c3f9ec8-38d"
+  ],
+  "candidate_steps_reobserved": true,
+  "candidate_steps_verified": true,
+  "claim": "self-learning mechanism under evaluation",
+  "decision": "retain_advisory",
+  "errors": [],
+  "executable_promotion_gate": {
+    "action_controller_enforced": true,
+    "action_verifier_enforced": true,
+    "advisory_hint_verified": true,
+    "baseline_session_ids": [
+      "083bded6-3a1"
+    ],
+    "candidate_session_ids": [
+      "7c3f9ec8-38d"
+    ],
+    "candidate_steps_reobserved": true,
+    "candidate_steps_verified": true,
+    "decision": "retain_advisory",
+    "fallback_verified": true,
+    "fixed_controls_match": true,
+    "goal_verifier_enforced": true,
+    "live_minecraft_only": true,
+    "no_action_failure_regression": true,
+    "no_completion_rate_regression": true,
+    "no_no_progress_regression": true,
+    "no_verifier_reject_regression": true,
+    "paired_live_session_count": 1,
+    "paired_report_fingerprint": "73f30b134c4f653a0be390eaf52b1f33392e9cab9b0de2282f6e401873d24375",
+    "readiness": "review",
+    "rollback_path_present": true,
+    "rollback_target": "1.0.0",
+    "schema_version": 1,
+    "shadow_plan_verified": true,
+    "single_target_skill": true,
+    "skill_id": "learned:gather_wood",
+    "skill_version": "1.0.0",
+    "synthetic_evidence_count": 0,
+    "thresholds": {
+      "min_paired_live_sessions": 3
+    },
+    "transfer_scope": {
+      "goals": [
+        "Gather 3 oak logs"
+      ],
+      "quantity_range": {
+        "maximum": 3,
+        "minimum": 1
+      },
+      "supported_task_families": [
+        "gathering"
+      ],
+      "task_family": "gathering",
+      "unsupported_task_families": [
+        "crafting",
+        "combat"
+      ]
+    },
+    "type": "skill_executable_promotion_gate"
+  },
+  "fallback_session_ids": [
+    "5cdd69de-0bf"
+  ],
+  "fallback_verified": true,
+  "fixed_controls_match": true,
+  "lifecycle_transition": {
+    "changed": false,
+    "reason": "promotion_not_requested"
+  },
+  "live_minecraft_only": true,
+  "no_action_failure_regression": true,
+  "no_completion_rate_regression": true,
+  "no_no_progress_regression": true,
+  "no_verifier_reject_regression": true,
+  "pair_count": 1,
+  "pairs": [
+    {
+      "baseline_live_integrity": true,
+      "baseline_metrics": {
+        "action_verification_event_count": 4,
+        "attribution_confidence": 0.0,
+        "candidate_steps_reobserved": true,
+        "candidate_steps_verified": true,
+        "death_or_safety_events": 0,
+        "environment_steps": 4,
+        "failed_actions": 0,
+        "inventory_progress": {
+          "oak_log": 3
+        },
+        "navigation_failures": 0,
+        "no_progress_loops": 0,
+        "planner_calls": 4,
+        "replans": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_completion_count": 0,
+        "skill_executed_count": 0,
+        "skill_fallback_count": 0,
+        "skill_outcome_count": 0,
+        "skill_selected_count": 0,
+        "skill_shadow_plan_count": 0,
+        "successful_actions": 4,
+        "task_completion": 1,
+        "token_usage": 0,
+        "verifier_rejects": 0,
+        "wall_clock_latency_s": 19.366
+      },
+      "baseline_passed": true,
+      "baseline_run_id": "gather-wood-pair-01-final-baseline:baseline:083bded6-3a1",
+      "baseline_session_id": "083bded6-3a1",
+      "baseline_source_log": "logs\\session_083bded6-3a1.jsonl",
+      "candidate_live_integrity": true,
+      "candidate_metrics": {
+        "action_verification_event_count": 4,
+        "attribution_confidence": 1.0,
+        "candidate_steps_reobserved": true,
+        "candidate_steps_verified": true,
+        "death_or_safety_events": 0,
+        "environment_steps": 2,
+        "failed_actions": 0,
+        "inventory_progress": {
+          "oak_log": 3
+        },
+        "navigation_failures": 0,
+        "no_progress_loops": 0,
+        "planner_calls": 2,
+        "replans": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_completion_count": 1,
+        "skill_executed_count": 4,
+        "skill_fallback_count": 0,
+        "skill_outcome_count": 1,
+        "skill_selected_count": 1,
+        "skill_shadow_plan_count": 0,
+        "successful_actions": 4,
+        "task_completion": 1,
+        "token_usage": 0,
+        "verifier_rejects": 0,
+        "wall_clock_latency_s": 18.411
+      },
+      "candidate_passed": true,
+      "candidate_run_id": "gather-wood-pair-01-final-candidate:candidate:7c3f9ec8-38d",
+      "candidate_session_id": "7c3f9ec8-38d",
+      "candidate_source_log": "logs\\session_7c3f9ec8-38d.jsonl",
+      "controlled_setup_match": true,
+      "deltas": {
+        "environment_steps": 2.0,
+        "failed_actions": 0.0,
+        "navigation_failures": 0.0,
+        "no_progress_loops": 0.0,
+        "planner_calls": 2.0,
+        "replans": 0.0,
+        "token_usage": 0.0,
+        "verifier_rejects": 0.0,
+        "wall_clock_latency_s": 0.955
+      },
+      "fixed_controls_match": true,
+      "initial_observation_match": true,
+      "pair_id": "gather-wood-pair-01-final",
+      "replicate_id": "01"
+    }
+  ],
+  "readiness": "review",
+  "report_id": "paired:learned:gather_wood:1.0.0",
+  "schema_version": 1,
+  "shadow_session_ids": [
+    "adaa9515-f22"
+  ],
+  "shadow_verified": true,
+  "single_target_skill": true,
+  "skill_id": "learned:gather_wood",
+  "skill_version": "1.0.0",
+  "stable_efficiency_gain": {
+    "environment_steps": {
+      "mean_gain": 2.0,
+      "nonnegative_pair_count": 1,
+      "positive_pair_count": 1,
+      "stable_positive": true
+    },
+    "planner_calls": {
+      "mean_gain": 2.0,
+      "nonnegative_pair_count": 1,
+      "positive_pair_count": 1,
+      "stable_positive": true
+    },
+    "token_usage": {
+      "mean_gain": 0.0,
+      "nonnegative_pair_count": 1,
+      "positive_pair_count": 0,
+      "stable_positive": false
+    },
+    "wall_clock_latency_s": {
+      "mean_gain": 0.955,
+      "nonnegative_pair_count": 1,
+      "positive_pair_count": 1,
+      "stable_positive": true
+    }
+  },
+  "task_family": "gathering",
+  "type": "skill_paired_ablation_report",
+  "valid_pair_count": 1
+}

@@ -1,0 +1,479 @@
+{
+  "advisory_session_ids": [
+    "315d4b1e-250"
+  ],
+  "advisory_verified": true,
+  "aggregate_metrics": {
+    "baseline_environment_steps": 3,
+    "baseline_failed_actions": 0,
+    "baseline_no_progress_loops": 0,
+    "baseline_planner_calls": 3,
+    "baseline_verifier_rejects": 0,
+    "candidate_environment_steps": 3,
+    "candidate_failed_actions": 0,
+    "candidate_no_progress_loops": 0,
+    "candidate_planner_calls": 3,
+    "candidate_verifier_rejects": 0,
+    "environment_step_gain": 0,
+    "planner_call_gain": 0
+  },
+  "baseline_completion_rate": 1.0,
+  "baseline_session_ids": [
+    "8a3a9c33-1dd",
+    "7cf95f90-c35",
+    "0385cd67-724"
+  ],
+  "candidate_completion_rate": 1.0,
+  "candidate_session_ids": [
+    "c36f7923-2ed",
+    "6ea54a72-baf",
+    "4137454a-74a"
+  ],
+  "candidate_steps_reobserved": true,
+  "candidate_steps_verified": true,
+  "claim": "self-learning mechanism under evaluation",
+  "decision": "promote_executable",
+  "errors": [],
+  "executable_promotion_gate": {
+    "action_controller_enforced": true,
+    "action_verifier_enforced": true,
+    "advisory_hint_verified": true,
+    "baseline_session_ids": [
+      "8a3a9c33-1dd",
+      "7cf95f90-c35",
+      "0385cd67-724"
+    ],
+    "candidate_session_ids": [
+      "c36f7923-2ed",
+      "6ea54a72-baf",
+      "4137454a-74a"
+    ],
+    "candidate_steps_reobserved": true,
+    "candidate_steps_verified": true,
+    "decision": "promote_executable",
+    "fallback_verified": true,
+    "fixed_controls_match": true,
+    "goal_verifier_enforced": true,
+    "live_minecraft_only": true,
+    "no_action_failure_regression": true,
+    "no_completion_rate_regression": true,
+    "no_no_progress_regression": true,
+    "no_verifier_reject_regression": true,
+    "paired_live_session_count": 3,
+    "paired_report_fingerprint": "cb8fffbeaebbad5c769afd05efc9a06071ce91464c45442ac375ef5bf7611a2c",
+    "promoted_skill_version": "1.0.1",
+    "readiness": "approved",
+    "rollback_path_present": true,
+    "rollback_target": "1.0.0",
+    "schema_version": 1,
+    "shadow_plan_verified": true,
+    "single_target_skill": true,
+    "skill_id": "learned:craft_wooden_pickaxe",
+    "skill_version": "1.0.0",
+    "synthetic_evidence_count": 0,
+    "thresholds": {
+      "min_paired_live_sessions": 3
+    },
+    "transfer_scope": {
+      "goals": [
+        "Craft a wooden pickaxe"
+      ],
+      "quantity_range": {
+        "maximum": 1,
+        "minimum": 1
+      },
+      "supported_task_families": [
+        "crafting"
+      ],
+      "task_family": "crafting",
+      "unsupported_task_families": [
+        "gathering",
+        "combat"
+      ]
+    },
+    "type": "skill_executable_promotion_gate"
+  },
+  "fallback_session_ids": [
+    "7107c902-6b4"
+  ],
+  "fallback_verified": true,
+  "fixed_controls_match": true,
+  "lifecycle_transition": {
+    "automatic_delete_allowed": false,
+    "changed": true,
+    "evidence": {
+      "action_controller_enforced": true,
+      "action_verifier_enforced": true,
+      "advisory_hint_verified": true,
+      "baseline_session_ids": [
+        "8a3a9c33-1dd",
+        "7cf95f90-c35",
+        "0385cd67-724"
+      ],
+      "candidate_session_ids": [
+        "c36f7923-2ed",
+        "6ea54a72-baf",
+        "4137454a-74a"
+      ],
+      "candidate_steps_reobserved": true,
+      "candidate_steps_verified": true,
+      "decision": "promote_executable",
+      "fallback_verified": true,
+      "fixed_controls_match": true,
+      "goal_verifier_enforced": true,
+      "live_minecraft_only": true,
+      "no_action_failure_regression": true,
+      "no_completion_rate_regression": true,
+      "no_no_progress_regression": true,
+      "no_verifier_reject_regression": true,
+      "paired_live_session_count": 3,
+      "paired_report_fingerprint": "cb8fffbeaebbad5c769afd05efc9a06071ce91464c45442ac375ef5bf7611a2c",
+      "promoted_skill_version": "1.0.1",
+      "readiness": "approved",
+      "rollback_path_present": true,
+      "rollback_target": "1.0.0",
+      "schema_version": 1,
+      "shadow_plan_verified": true,
+      "single_target_skill": true,
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "skill_version": "1.0.0",
+      "synthetic_evidence_count": 0,
+      "thresholds": {
+        "min_paired_live_sessions": 3
+      },
+      "transfer_scope": {
+        "goals": [
+          "Craft a wooden pickaxe"
+        ],
+        "quantity_range": {
+          "maximum": 1,
+          "minimum": 1
+        },
+        "supported_task_families": [
+          "crafting"
+        ],
+        "task_family": "crafting",
+        "unsupported_task_families": [
+          "gathering",
+          "combat"
+        ]
+      },
+      "type": "skill_executable_promotion_gate"
+    },
+    "previous_status": "advisory",
+    "previous_version": "1.0.0",
+    "reason": "three paired live trials passed fixed-control safety and regression gates",
+    "rollback_target": "1.0.0",
+    "skill_id": "learned:craft_wooden_pickaxe",
+    "status": "executable",
+    "timestamp": 1783690266.344865,
+    "version": "1.0.1"
+  },
+  "live_minecraft_only": true,
+  "no_action_failure_regression": true,
+  "no_completion_rate_regression": true,
+  "no_no_progress_regression": true,
+  "no_verifier_reject_regression": true,
+  "pair_count": 3,
+  "pairs": [
+    {
+      "baseline_live_integrity": true,
+      "baseline_metrics": {
+        "action_verification_event_count": 1,
+        "attribution_confidence": 0.0,
+        "candidate_steps_reobserved": true,
+        "candidate_steps_verified": true,
+        "death_or_safety_events": 0,
+        "environment_steps": 1,
+        "failed_actions": 0,
+        "inventory_progress": {
+          "oak_planks": -3,
+          "stick": -2,
+          "wooden_pickaxe": 1
+        },
+        "navigation_failures": 0,
+        "no_progress_loops": 0,
+        "planner_calls": 1,
+        "replans": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_completion_count": 0,
+        "skill_executed_count": 0,
+        "skill_fallback_count": 0,
+        "skill_outcome_count": 0,
+        "skill_selected_count": 0,
+        "skill_shadow_plan_count": 0,
+        "successful_actions": 1,
+        "task_completion": 1,
+        "token_usage": 0,
+        "verifier_rejects": 0,
+        "wall_clock_latency_s": 6.815
+      },
+      "baseline_passed": true,
+      "baseline_run_id": "wooden-pickaxe-pair-01-baseline:baseline:8a3a9c33-1dd",
+      "baseline_session_id": "8a3a9c33-1dd",
+      "baseline_source_log": "logs\\session_8a3a9c33-1dd.jsonl",
+      "candidate_live_integrity": true,
+      "candidate_metrics": {
+        "action_verification_event_count": 1,
+        "attribution_confidence": 1.0,
+        "candidate_steps_reobserved": true,
+        "candidate_steps_verified": true,
+        "death_or_safety_events": 0,
+        "environment_steps": 1,
+        "failed_actions": 0,
+        "inventory_progress": {
+          "oak_planks": -3,
+          "wooden_pickaxe": 1
+        },
+        "navigation_failures": 0,
+        "no_progress_loops": 0,
+        "planner_calls": 1,
+        "replans": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_completion_count": 1,
+        "skill_executed_count": 1,
+        "skill_fallback_count": 0,
+        "skill_outcome_count": 1,
+        "skill_selected_count": 1,
+        "skill_shadow_plan_count": 0,
+        "successful_actions": 1,
+        "task_completion": 1,
+        "token_usage": 0,
+        "verifier_rejects": 0,
+        "wall_clock_latency_s": 7.1
+      },
+      "candidate_passed": true,
+      "candidate_run_id": "wooden-pickaxe-pair-01-candidate:candidate:c36f7923-2ed",
+      "candidate_session_id": "c36f7923-2ed",
+      "candidate_source_log": "logs\\session_c36f7923-2ed.jsonl",
+      "controlled_setup_match": true,
+      "deltas": {
+        "environment_steps": 0.0,
+        "failed_actions": 0.0,
+        "navigation_failures": 0.0,
+        "no_progress_loops": 0.0,
+        "planner_calls": 0.0,
+        "replans": 0.0,
+        "token_usage": 0.0,
+        "verifier_rejects": 0.0,
+        "wall_clock_latency_s": -0.285
+      },
+      "fixed_controls_match": true,
+      "initial_observation_match": false,
+      "pair_id": "wooden-pickaxe-pair-01",
+      "replicate_id": "01"
+    },
+    {
+      "baseline_live_integrity": true,
+      "baseline_metrics": {
+        "action_verification_event_count": 1,
+        "attribution_confidence": 0.0,
+        "candidate_steps_reobserved": true,
+        "candidate_steps_verified": true,
+        "death_or_safety_events": 0,
+        "environment_steps": 1,
+        "failed_actions": 0,
+        "inventory_progress": {
+          "oak_planks": -3,
+          "wooden_pickaxe": 1
+        },
+        "navigation_failures": 0,
+        "no_progress_loops": 0,
+        "planner_calls": 1,
+        "replans": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_completion_count": 0,
+        "skill_executed_count": 0,
+        "skill_fallback_count": 0,
+        "skill_outcome_count": 0,
+        "skill_selected_count": 0,
+        "skill_shadow_plan_count": 0,
+        "successful_actions": 1,
+        "task_completion": 1,
+        "token_usage": 0,
+        "verifier_rejects": 0,
+        "wall_clock_latency_s": 7.096
+      },
+      "baseline_passed": true,
+      "baseline_run_id": "wooden-pickaxe-pair-02-baseline:baseline:7cf95f90-c35",
+      "baseline_session_id": "7cf95f90-c35",
+      "baseline_source_log": "logs\\session_7cf95f90-c35.jsonl",
+      "candidate_live_integrity": true,
+      "candidate_metrics": {
+        "action_verification_event_count": 1,
+        "attribution_confidence": 1.0,
+        "candidate_steps_reobserved": true,
+        "candidate_steps_verified": true,
+        "death_or_safety_events": 0,
+        "environment_steps": 1,
+        "failed_actions": 0,
+        "inventory_progress": {
+          "oak_planks": -3,
+          "wooden_pickaxe": 1
+        },
+        "navigation_failures": 0,
+        "no_progress_loops": 0,
+        "planner_calls": 1,
+        "replans": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_completion_count": 1,
+        "skill_executed_count": 1,
+        "skill_fallback_count": 0,
+        "skill_outcome_count": 1,
+        "skill_selected_count": 1,
+        "skill_shadow_plan_count": 0,
+        "successful_actions": 1,
+        "task_completion": 1,
+        "token_usage": 0,
+        "verifier_rejects": 0,
+        "wall_clock_latency_s": 7.061
+      },
+      "candidate_passed": true,
+      "candidate_run_id": "wooden-pickaxe-pair-02-candidate:candidate:6ea54a72-baf",
+      "candidate_session_id": "6ea54a72-baf",
+      "candidate_source_log": "logs\\session_6ea54a72-baf.jsonl",
+      "controlled_setup_match": true,
+      "deltas": {
+        "environment_steps": 0.0,
+        "failed_actions": 0.0,
+        "navigation_failures": 0.0,
+        "no_progress_loops": 0.0,
+        "planner_calls": 0.0,
+        "replans": 0.0,
+        "token_usage": 0.0,
+        "verifier_rejects": 0.0,
+        "wall_clock_latency_s": 0.035
+      },
+      "fixed_controls_match": true,
+      "initial_observation_match": true,
+      "pair_id": "wooden-pickaxe-pair-02",
+      "replicate_id": "02"
+    },
+    {
+      "baseline_live_integrity": true,
+      "baseline_metrics": {
+        "action_verification_event_count": 1,
+        "attribution_confidence": 0.0,
+        "candidate_steps_reobserved": true,
+        "candidate_steps_verified": true,
+        "death_or_safety_events": 0,
+        "environment_steps": 1,
+        "failed_actions": 0,
+        "inventory_progress": {
+          "oak_planks": -3,
+          "wooden_pickaxe": 1
+        },
+        "navigation_failures": 0,
+        "no_progress_loops": 0,
+        "planner_calls": 1,
+        "replans": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_completion_count": 0,
+        "skill_executed_count": 0,
+        "skill_fallback_count": 0,
+        "skill_outcome_count": 0,
+        "skill_selected_count": 0,
+        "skill_shadow_plan_count": 0,
+        "successful_actions": 1,
+        "task_completion": 1,
+        "token_usage": 0,
+        "verifier_rejects": 0,
+        "wall_clock_latency_s": 6.888
+      },
+      "baseline_passed": true,
+      "baseline_run_id": "wooden-pickaxe-pair-03-baseline:baseline:0385cd67-724",
+      "baseline_session_id": "0385cd67-724",
+      "baseline_source_log": "logs\\session_0385cd67-724.jsonl",
+      "candidate_live_integrity": true,
+      "candidate_metrics": {
+        "action_verification_event_count": 1,
+        "attribution_confidence": 1.0,
+        "candidate_steps_reobserved": true,
+        "candidate_steps_verified": true,
+        "death_or_safety_events": 0,
+        "environment_steps": 1,
+        "failed_actions": 0,
+        "inventory_progress": {
+          "oak_planks": -3,
+          "wooden_pickaxe": 1
+        },
+        "navigation_failures": 0,
+        "no_progress_loops": 0,
+        "planner_calls": 1,
+        "replans": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_completion_count": 1,
+        "skill_executed_count": 1,
+        "skill_fallback_count": 0,
+        "skill_outcome_count": 1,
+        "skill_selected_count": 1,
+        "skill_shadow_plan_count": 0,
+        "successful_actions": 1,
+        "task_completion": 1,
+        "token_usage": 0,
+        "verifier_rejects": 0,
+        "wall_clock_latency_s": 7.283
+      },
+      "candidate_passed": true,
+      "candidate_run_id": "wooden-pickaxe-pair-03-candidate:candidate:4137454a-74a",
+      "candidate_session_id": "4137454a-74a",
+      "candidate_source_log": "logs\\session_4137454a-74a.jsonl",
+      "controlled_setup_match": true,
+      "deltas": {
+        "environment_steps": 0.0,
+        "failed_actions": 0.0,
+        "navigation_failures": 0.0,
+        "no_progress_loops": 0.0,
+        "planner_calls": 0.0,
+        "replans": 0.0,
+        "token_usage": 0.0,
+        "verifier_rejects": 0.0,
+        "wall_clock_latency_s": -0.395
+      },
+      "fixed_controls_match": true,
+      "initial_observation_match": true,
+      "pair_id": "wooden-pickaxe-pair-03",
+      "replicate_id": "03"
+    }
+  ],
+  "promoted_skill_version": "1.0.1",
+  "readiness": "approved",
+  "report_id": "paired:learned:craft_wooden_pickaxe:1.0.0",
+  "schema_version": 1,
+  "shadow_session_ids": [
+    "0a510bfe-acb"
+  ],
+  "shadow_verified": true,
+  "single_target_skill": true,
+  "skill_id": "learned:craft_wooden_pickaxe",
+  "skill_version": "1.0.0",
+  "stable_efficiency_gain": {
+    "environment_steps": {
+      "mean_gain": 0.0,
+      "nonnegative_pair_count": 3,
+      "positive_pair_count": 0,
+      "stable_positive": false
+    },
+    "planner_calls": {
+      "mean_gain": 0.0,
+      "nonnegative_pair_count": 3,
+      "positive_pair_count": 0,
+      "stable_positive": false
+    },
+    "token_usage": {
+      "mean_gain": 0.0,
+      "nonnegative_pair_count": 3,
+      "positive_pair_count": 0,
+      "stable_positive": false
+    },
+    "wall_clock_latency_s": {
+      "mean_gain": -0.215,
+      "nonnegative_pair_count": 1,
+      "positive_pair_count": 1,
+      "stable_positive": false
+    }
+  },
+  "task_family": "crafting",
+  "type": "skill_paired_ablation_report",
+  "valid_pair_count": 3
+}

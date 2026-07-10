@@ -11,6 +11,25 @@ param(
     [ValidateSet("", "BM-001", "BM-002", "BM-003", "BM-004", "BM-005")]
     [string]$TaskId = "",
     [switch]$RunBenchmark,
+    [ValidateSet("", "baseline", "shadow", "advisory", "candidate", "runtime", "fallback", "fault", "extraction")]
+    [string]$SkillLearningArm = "",
+    [string]$SkillId = "",
+    [string]$ExperimentId = "",
+    [string]$PairId = "",
+    [string]$ReplicateId = "",
+    [string]$ResearchGoal = "",
+    [string]$SuccessCriteriaJson = "",
+    [string]$SuccessCriteriaFile = "",
+    [ValidateSet("protocol_default", "gather_oak_near_v1", "gather_oak_shifted_v1")]
+    [string]$ResearchFixtureProfile = "protocol_default",
+    [string]$SkillStoragePath = "workspace/skills",
+    [string]$SkillLedgerPath = "workspace/evals/skill_learning_ledger.json",
+    [string]$SkillRegressionsPath = "workspace/evals/skill_regressions.json",
+    [string[]]$SkillRuntimeDefaultGate = @(),
+    [ValidateSet("", "reject_skill_craft_missing_item_v1", "reject_skill_place_missing_item_v1", "reject_skill_equip_missing_item_v1")]
+    [string]$SkillFaultProfile = "",
+    [string]$SkillOutputPath = "",
+    [switch]$Heldout,
     [switch]$KeepProcesses
 )
 
@@ -23,12 +42,23 @@ $jarPath = Join-Path $serverRoot $ServerJar
 $eulaPath = Join-Path $serverRoot "eula.txt"
 $propertiesPath = Join-Path $serverRoot "server.properties"
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-$episodeId = "m1_episode_$timestamp"
+$researchRun = -not [string]::IsNullOrWhiteSpace($SkillLearningArm)
+$episodeId = if ($researchRun) { "skill_episode_$timestamp" } else { "m1_episode_$timestamp" }
 $runtimeLogRoot = Join-Path $repoRoot "logs\benchmarks\runtime"
-$preflightPath = Join-Path $repoRoot "logs\benchmarks\m1_preflight_$timestamp.json"
-$manifestPath = Join-Path $repoRoot "logs\benchmarks\m1_runtime_manifest_$timestamp.json"
-$benchmarkPath = Join-Path $repoRoot "logs\benchmarks\m1_benchmark_$timestamp.json"
-$blockerPath = Join-Path $repoRoot "logs\benchmarks\m1_runtime_blocker_$timestamp.json"
+$artifactPrefix = if ($researchRun) { "skill_learning" } else { "m1" }
+$preflightPath = Join-Path $repoRoot "logs\benchmarks\${artifactPrefix}_preflight_$timestamp.json"
+$manifestPath = Join-Path $repoRoot "logs\benchmarks\${artifactPrefix}_runtime_manifest_$timestamp.json"
+$defaultBenchmarkPath = if ($researchRun) {
+    Join-Path $repoRoot "workspace\evals\skill_ablation\runs\skill_run_${timestamp}_${SkillLearningArm}_${TaskId}.json"
+} else {
+    Join-Path $repoRoot "logs\benchmarks\m1_benchmark_$timestamp.json"
+}
+$benchmarkPath = if ($SkillOutputPath) {
+    [System.IO.Path]::GetFullPath((Join-Path $repoRoot $SkillOutputPath))
+} else {
+    $defaultBenchmarkPath
+}
+$blockerPath = Join-Path $repoRoot "logs\benchmarks\${artifactPrefix}_runtime_blocker_$timestamp.json"
 $serverProcess = $null
 $bridgeProcess = $null
 $originalServerProperties = $null
@@ -154,6 +184,10 @@ function Assert-File {
 Push-Location $repoRoot
 try {
     New-Item -ItemType Directory -Force -Path $runtimeLogRoot | Out-Null
+    $benchmarkParent = Split-Path -Parent $benchmarkPath
+    if ($benchmarkParent) {
+        New-Item -ItemType Directory -Force -Path $benchmarkParent | Out-Null
+    }
     foreach ($evidencePath in @($preflightPath, $manifestPath, $benchmarkPath, $blockerPath)) {
         if (Test-Path -LiteralPath $evidencePath) {
             throw "M1 runtime blocked: refusing to overwrite evidence at $evidencePath."
@@ -170,6 +204,37 @@ try {
     }
     if ($TaskId -and -not $RunBenchmark) {
         throw "M1 runtime blocked: -TaskId is only valid with -RunBenchmark."
+    }
+    if ($researchRun -and -not $RunBenchmark) {
+        throw "Skill-learning runtime blocked: -SkillLearningArm requires -RunBenchmark."
+    }
+    if ($researchRun -and (-not $SkillId -or -not $ExperimentId)) {
+        throw "Skill-learning runtime blocked: -SkillId and -ExperimentId are required for every research arm."
+    }
+    if (-not $researchRun -and ($SkillId -or $ExperimentId -or $SkillOutputPath)) {
+        throw "M1 runtime blocked: skill-learning arguments require -SkillLearningArm."
+    }
+    if ($SkillLearningArm -eq "runtime" -and $SkillRuntimeDefaultGate.Count -lt 1) {
+        throw "Skill-learning runtime blocked: runtime arm requires -SkillRuntimeDefaultGate."
+    }
+    if ($SkillLearningArm -eq "fault" -and -not $SkillFaultProfile) {
+        throw "Skill-learning runtime blocked: fault arm requires -SkillFaultProfile."
+    }
+    if ($SkillLearningArm -ne "fault" -and $SkillFaultProfile) {
+        throw "Skill-learning runtime blocked: -SkillFaultProfile is only valid with the fault arm."
+    }
+    if ($SuccessCriteriaJson -and $SuccessCriteriaFile) {
+        throw "Skill-learning runtime blocked: use only one of -SuccessCriteriaJson or -SuccessCriteriaFile."
+    }
+    $resolvedSuccessCriteriaFile = ""
+    if ($SuccessCriteriaFile) {
+        $resolvedSuccessCriteriaFile = if ([System.IO.Path]::IsPathRooted($SuccessCriteriaFile)) {
+            [System.IO.Path]::GetFullPath($SuccessCriteriaFile)
+        }
+        else {
+            [System.IO.Path]::GetFullPath((Join-Path $repoRoot $SuccessCriteriaFile))
+        }
+        Assert-File -Path $resolvedSuccessCriteriaFile -Message "Skill-learning runtime blocked: success-criteria file is missing: $resolvedSuccessCriteriaFile"
     }
 
     $seed = Get-ServerProperty -Path $propertiesPath -Name "level-seed"
@@ -260,7 +325,7 @@ try {
     }
 
     $manifest = [ordered]@{
-        type = "m1_runtime_manifest"
+        type = if ($researchRun) { "skill_learning_runtime_manifest" } else { "m1_runtime_manifest" }
         schema_version = 1
         generated_at = (Get-Date).ToUniversalTime().ToString("o")
         evidence_kind = "runtime_setup"
@@ -286,6 +351,14 @@ try {
         bridge_endpoint = "127.0.0.1`:$BridgePort"
         username = $Username
         run_benchmark = [bool]$RunBenchmark
+        skill_learning_arm = $SkillLearningArm
+        skill_id = $SkillId
+        experiment_id = $ExperimentId
+        pair_id = $PairId
+        replicate_id = $ReplicateId
+        heldout = [bool]$Heldout
+        research_fixture_profile = $ResearchFixtureProfile
+        counts_toward_m1_acceptance = -not $researchRun
     }
     [System.IO.File]::WriteAllText(
         $manifestPath,
@@ -302,21 +375,52 @@ try {
     Write-Host "Evidence: $preflightPath"
     Write-Host "Manifest: $manifestPath"
     if ($RunBenchmark) {
-        $benchmarkArguments = @(
-            "-m", "singularity.main", "benchmark",
-            "--suite", "m1",
-            "--task-id", $TaskId,
-            "--preflight",
-            "--host", $MinecraftHost,
-            "--port", $MinecraftPort,
-            "--username", $Username,
-            "--bridge-host", "127.0.0.1",
-            "--bridge-port", $BridgePort,
-            "--output", $benchmarkPath
-        )
+        if ($researchRun) {
+            $benchmarkArguments = @(
+                "-m", "singularity.main", "skill-learning-run",
+                "--task-id", $TaskId,
+                "--arm", $SkillLearningArm,
+                "--skill-id", $SkillId,
+                "--experiment-id", $ExperimentId,
+                "--research-fixture-profile", $ResearchFixtureProfile,
+                "--skill-storage-path", $SkillStoragePath,
+                "--ledger", $SkillLedgerPath,
+                "--regressions", $SkillRegressionsPath,
+                "--host", $MinecraftHost,
+                "--port", $MinecraftPort,
+                "--username", $Username,
+                "--bridge-host", "127.0.0.1",
+                "--bridge-port", $BridgePort,
+                "--output", $benchmarkPath
+            )
+            if ($PairId) { $benchmarkArguments += @("--pair-id", $PairId) }
+            if ($ReplicateId) { $benchmarkArguments += @("--replicate-id", $ReplicateId) }
+            if ($ResearchGoal) { $benchmarkArguments += @("--goal", $ResearchGoal) }
+            if ($SuccessCriteriaJson) { $benchmarkArguments += @("--success-criteria-json", $SuccessCriteriaJson) }
+            if ($resolvedSuccessCriteriaFile) { $benchmarkArguments += @("--success-criteria-file", $resolvedSuccessCriteriaFile) }
+            if ($Heldout) { $benchmarkArguments += "--heldout" }
+            foreach ($gatePath in $SkillRuntimeDefaultGate) {
+                $benchmarkArguments += @("--skill-runtime-default-gate", $gatePath)
+            }
+            if ($SkillFaultProfile) { $benchmarkArguments += @("--skill-fault-profile", $SkillFaultProfile) }
+        }
+        else {
+            $benchmarkArguments = @(
+                "-m", "singularity.main", "benchmark",
+                "--suite", "m1",
+                "--task-id", $TaskId,
+                "--preflight",
+                "--host", $MinecraftHost,
+                "--port", $MinecraftPort,
+                "--username", $Username,
+                "--bridge-host", "127.0.0.1",
+                "--bridge-port", $BridgePort,
+                "--output", $benchmarkPath
+            )
+        }
         & python @benchmarkArguments
         if ($LASTEXITCODE -ne 0) {
-            throw "M1 benchmark command failed. Inspect $benchmarkPath and runtime logs."
+            throw "Controlled benchmark command failed. Inspect $benchmarkPath and runtime logs."
         }
         Write-Host "Benchmark evidence: $benchmarkPath"
     }
@@ -345,7 +449,7 @@ catch {
         $eulaAccepted = [bool](Select-String -LiteralPath $eulaPath -Pattern '^\s*eula\s*=\s*true\s*$' -Quiet)
     }
     $blocker = [ordered]@{
-        type = "m1_runtime_blocker"
+        type = if ($researchRun) { "skill_learning_runtime_blocker" } else { "m1_runtime_blocker" }
         schema_version = 1
         generated_at_utc = (Get-Date).ToUniversalTime().ToString("o")
         evidence_kind = "runtime_setup_failure"
@@ -353,6 +457,9 @@ catch {
         counts_toward_repeat_verified = $false
         task_id = $TaskId
         run_benchmark = [bool]$RunBenchmark
+        skill_learning_arm = $SkillLearningArm
+        skill_id = $SkillId
+        experiment_id = $ExperimentId
         failure_layer = if ($message -match "EULA|eula") { "environment_eula" } else { "environment_runtime" }
         blocker = $message
         server_jar_present = [bool](Test-Path -LiteralPath $jarPath -PathType Leaf)

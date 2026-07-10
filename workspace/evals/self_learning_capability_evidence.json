@@ -1,0 +1,2232 @@
+{
+  "type": "capability_evidence_report",
+  "schema_version": 2,
+  "generated_at": "2026-07-10T13:49:57.043302+00:00",
+  "readiness": "rejected",
+  "claim_readiness": "approved",
+  "system_status": "incomplete",
+  "system_complete": false,
+  "policy": {
+    "min_repeats": 3,
+    "source_presence_is_capability_evidence": false,
+    "unit_tests_are_live_capability_evidence": false,
+    "completion_requires_repeat_verified_execution": true,
+    "live_phase_acceptance": {
+      "M3": "three distinct successful continual-learning sessions plus an approved held-out transfer gate",
+      "M5": "three distinct autonomous exploration sessions covering at least 16 blocks plus an approved world-model gate",
+      "M6": "three distinct screenshot-backed sessions with matching non-builtin visual-action ablations"
+    }
+  },
+  "inputs": {
+    "status_path": "workspace/STATUS.md",
+    "source_root": ".",
+    "benchmark_result_paths": [
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_174239.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_174806.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_175231.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_175931.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180117.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180210.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180422.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180456.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180534.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180608.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180643.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180714.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180752.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_181023.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_181400.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_181649.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_181909.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_182225.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_182346.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_182505.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_182625.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_182705.json",
+      "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_182736.json"
+    ],
+    "phase_evidence_paths": {
+      "M3": [
+        "workspace/evals/skill_continual_learning_report.json",
+        "workspace/evals/skill_transfer/gather_wood/transfer_gate.json"
+      ],
+      "M5": [
+        "logs/benchmarks/exploration_trace_current.json",
+        "logs/benchmarks/world_model_gate_current.json"
+      ],
+      "M6": [
+        "logs/benchmarks/visual_trace_current.json",
+        "logs/benchmarks/visual_action_ablation_current.json"
+      ]
+    }
+  },
+  "runtime_evidence": {},
+  "summary": {
+    "phase_count": 8,
+    "declared_complete_count": 2,
+    "supported_completion_count": 2,
+    "contradicted_completion_count": 0,
+    "unsupported_completion_count": 0,
+    "repeat_verified_phase_count": 2,
+    "live_observed_phase_count": 0,
+    "failing_phase_count": 2,
+    "system_complete": false
+  },
+  "contradicted_phases": [],
+  "unsupported_phases": [],
+  "phases": [
+    {
+      "id": "M0",
+      "name": "Research Baseline",
+      "evidence_kind": "source",
+      "status": "source_verified",
+      "completion_claim_allowed": true,
+      "declared": {
+        "name": "Research Baseline",
+        "status": "Complete (source verified)",
+        "progress": "Research deliverables present"
+      },
+      "declared_complete": true,
+      "claim_assessment": "supported",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "workspace/papers/paper-index.md",
+          "exists": true
+        },
+        {
+          "path": "workspace/repos/repo-index.md",
+          "exists": true
+        },
+        {
+          "path": "workspace/benchmarks/benchmark-index.md",
+          "exists": true
+        },
+        {
+          "path": "workspace/ROADMAP.md",
+          "exists": true
+        },
+        {
+          "path": "workspace/OPEN_QUESTIONS.md",
+          "exists": true
+        },
+        {
+          "path": "workspace/DECISIONS.md",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 0,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [],
+      "live_evidence": {},
+      "required_live_execution_count": 0,
+      "live_observed_execution_count": 0,
+      "missing_evidence": []
+    },
+    {
+      "id": "M1",
+      "name": "Minimum Viable Bot",
+      "evidence_kind": "benchmark",
+      "status": "repeat_verified",
+      "completion_claim_allowed": true,
+      "declared": {
+        "name": "Minimum Viable Bot",
+        "status": "Complete (repeat verified)",
+        "progress": "BM-001..005 each 3/3; 15/15 distinct eligible live successes"
+      },
+      "declared_complete": true,
+      "claim_assessment": "supported",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/core/agent.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/action/controller.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/observation/observer.py",
+          "exists": true
+        },
+        {
+          "path": "src/bot/bot_server.js",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 5,
+      "live_observed_benchmark_count": 5,
+      "repeat_verified_benchmark_count": 5,
+      "benchmarks": [
+        {
+          "task_id": "BM-001",
+          "status": "repeat_verified",
+          "attempts": 12,
+          "successes": 3,
+          "failures": 3,
+          "ineligible_successes": 6,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "benchmark_reset_not_successful",
+            "benchmark_reset_task_mismatch",
+            "benchmark_reset_seed_mismatch",
+            "benchmark_minecraft_version_mismatch",
+            "benchmark_server_brand_not_paper",
+            "benchmark_server_jar_hash_mismatch",
+            "benchmark_reset_checks_not_verified",
+            "fresh_episode_level_not_proven",
+            "session_evidence_validation_not_passed",
+            "m1_runtime_not_isolated",
+            "m1_agent_identity_mismatch",
+            "m1_planner_identity_mismatch",
+            "m1_action_backend_identity_mismatch",
+            "m1_verifier_identity_mismatch",
+            "setup_protocol_hash_mismatch",
+            "validation_protocol_hash_mismatch"
+          ],
+          "repeats_required": 3,
+          "evidence_refs": [
+            "8ddbc702-6e0:logs\\session_8ddbc702-6e0.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_174239.json:$[0].setup_evidence",
+            "f633f0c0-1de:logs\\session_f633f0c0-1de.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_174806.json:$[0].setup_evidence",
+            "a6441b83-31e:logs\\session_a6441b83-31e.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_175231.json:$[0].setup_evidence",
+            "f0d8e29a-df0:logs\\session_f0d8e29a-df0.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_175931.json:$[0].setup_evidence",
+            "df255fd9-1e8:logs\\session_df255fd9-1e8.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180117.json:$[0].setup_evidence",
+            "f4d54be2-914:logs\\session_f4d54be2-914.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180210.json:$[0].setup_evidence"
+          ]
+        },
+        {
+          "task_id": "BM-002",
+          "status": "repeat_verified",
+          "attempts": 6,
+          "successes": 3,
+          "failures": 0,
+          "ineligible_successes": 3,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "benchmark_reset_not_successful",
+            "benchmark_reset_task_mismatch",
+            "benchmark_reset_seed_mismatch",
+            "benchmark_minecraft_version_mismatch",
+            "benchmark_server_brand_not_paper",
+            "benchmark_server_jar_hash_mismatch",
+            "benchmark_reset_checks_not_verified",
+            "benchmark_reset_inventory_mismatch",
+            "fresh_episode_level_not_proven",
+            "session_evidence_validation_not_passed",
+            "m1_runtime_not_isolated",
+            "m1_agent_identity_mismatch",
+            "m1_planner_identity_mismatch",
+            "m1_action_backend_identity_mismatch",
+            "m1_verifier_identity_mismatch",
+            "setup_protocol_hash_mismatch"
+          ],
+          "repeats_required": 3,
+          "evidence_refs": [
+            "1d4c1893-f9f:logs\\session_1d4c1893-f9f.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180422.json:$[0].setup_evidence",
+            "0fdd3cde-efa:logs\\session_0fdd3cde-efa.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180456.json:$[0].setup_evidence",
+            "8679dd7e-ecb:logs\\session_8679dd7e-ecb.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180534.json:$[0].setup_evidence"
+          ]
+        },
+        {
+          "task_id": "BM-003",
+          "status": "repeat_verified",
+          "attempts": 6,
+          "successes": 3,
+          "failures": 0,
+          "ineligible_successes": 3,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "benchmark_reset_not_successful",
+            "benchmark_reset_task_mismatch",
+            "benchmark_reset_seed_mismatch",
+            "benchmark_minecraft_version_mismatch",
+            "benchmark_server_brand_not_paper",
+            "benchmark_server_jar_hash_mismatch",
+            "benchmark_reset_checks_not_verified",
+            "benchmark_reset_inventory_mismatch",
+            "fresh_episode_level_not_proven",
+            "session_evidence_validation_not_passed",
+            "m1_runtime_not_isolated",
+            "m1_agent_identity_mismatch",
+            "m1_planner_identity_mismatch",
+            "m1_action_backend_identity_mismatch",
+            "m1_verifier_identity_mismatch",
+            "setup_protocol_hash_mismatch"
+          ],
+          "repeats_required": 3,
+          "evidence_refs": [
+            "0de69547-12e:logs\\session_0de69547-12e.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180608.json:$[0].setup_evidence",
+            "0b5c8694-31f:logs\\session_0b5c8694-31f.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180643.json:$[0].setup_evidence",
+            "52468e88-215:logs\\session_52468e88-215.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180714.json:$[0].setup_evidence"
+          ]
+        },
+        {
+          "task_id": "BM-004",
+          "status": "repeat_verified",
+          "attempts": 16,
+          "successes": 3,
+          "failures": 5,
+          "ineligible_successes": 8,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "benchmark_reset_not_successful",
+            "benchmark_reset_task_mismatch",
+            "benchmark_reset_seed_mismatch",
+            "benchmark_minecraft_version_mismatch",
+            "benchmark_server_brand_not_paper",
+            "benchmark_server_jar_hash_mismatch",
+            "benchmark_reset_checks_not_verified",
+            "benchmark_reset_inventory_mismatch",
+            "fresh_episode_level_not_proven",
+            "session_evidence_validation_not_passed",
+            "m1_runtime_not_isolated",
+            "m1_agent_identity_mismatch",
+            "m1_planner_identity_mismatch",
+            "m1_action_backend_identity_mismatch",
+            "m1_verifier_identity_mismatch",
+            "setup_protocol_hash_mismatch"
+          ],
+          "repeats_required": 3,
+          "evidence_refs": [
+            "80471d30-a4c:logs\\session_80471d30-a4c.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_180752.json:$[0].setup_evidence",
+            "2cd17442-323:logs\\session_2cd17442-323.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_181023.json:$[0].setup_evidence",
+            "6069bf83-671:logs\\session_6069bf83-671.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_181400.json:$[0].setup_evidence",
+            "879f0bf0-111:logs\\session_879f0bf0-111.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_181649.json:$[0].setup_evidence",
+            "0a26b8b3-d12:logs\\session_0a26b8b3-d12.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_181909.json:$[0].setup_evidence",
+            "78004a77-cf0:logs\\session_78004a77-cf0.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_182225.json:$[0].setup_evidence",
+            "af9c0ca8-a60:logs\\session_af9c0ca8-a60.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_182346.json:$[0].setup_evidence",
+            "dc63e525-8c8:logs\\session_dc63e525-8c8.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_182505.json:$[0].setup_evidence"
+          ]
+        },
+        {
+          "task_id": "BM-005",
+          "status": "repeat_verified",
+          "attempts": 6,
+          "successes": 3,
+          "failures": 0,
+          "ineligible_successes": 3,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "benchmark_reset_not_successful",
+            "benchmark_reset_task_mismatch",
+            "benchmark_reset_seed_mismatch",
+            "benchmark_minecraft_version_mismatch",
+            "benchmark_server_brand_not_paper",
+            "benchmark_server_jar_hash_mismatch",
+            "benchmark_reset_checks_not_verified",
+            "benchmark_reset_inventory_mismatch",
+            "fresh_episode_level_not_proven",
+            "session_evidence_validation_not_passed",
+            "m1_runtime_not_isolated",
+            "m1_agent_identity_mismatch",
+            "m1_planner_identity_mismatch",
+            "m1_action_backend_identity_mismatch",
+            "m1_verifier_identity_mismatch",
+            "setup_protocol_hash_mismatch"
+          ],
+          "repeats_required": 3,
+          "evidence_refs": [
+            "96ed78a1-bbd:logs\\session_96ed78a1-bbd.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_182625.json:$[0].setup_evidence",
+            "6f3c70d4-57b:logs\\session_6f3c70d4-57b.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_182705.json:$[0].setup_evidence",
+            "659a69fe-6fc:logs\\session_659a69fe-6fc.jsonl",
+            "F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m1_benchmark_20260710_182736.json:$[0].setup_evidence"
+          ]
+        }
+      ],
+      "live_evidence": {},
+      "required_live_execution_count": 0,
+      "live_observed_execution_count": 0,
+      "missing_evidence": []
+    },
+    {
+      "id": "M2",
+      "name": "LLM Task Planning",
+      "evidence_kind": "benchmark",
+      "status": "not_run",
+      "completion_claim_allowed": false,
+      "declared": {
+        "name": "LLM Task Planning",
+        "status": "Evidence pending",
+        "progress": "BM-006..010: no tracked execution evidence"
+      },
+      "declared_complete": false,
+      "claim_assessment": "not_claimed_complete",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/core/planner.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/task_system.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/reflector.py",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 5,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [
+        {
+          "task_id": "BM-006",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "ineligible_successes": 0,
+          "ineligibility_reasons": [],
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-007",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "ineligible_successes": 0,
+          "ineligibility_reasons": [],
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-008",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "ineligible_successes": 0,
+          "ineligibility_reasons": [],
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-009",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "ineligible_successes": 0,
+          "ineligibility_reasons": [],
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-010",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "ineligible_successes": 0,
+          "ineligibility_reasons": [],
+          "repeats_required": 3,
+          "evidence_refs": []
+        }
+      ],
+      "live_evidence": {},
+      "required_live_execution_count": 0,
+      "live_observed_execution_count": 0,
+      "missing_evidence": [
+        "BM-006:needs_3_more_successes",
+        "BM-007:needs_3_more_successes",
+        "BM-008:needs_3_more_successes",
+        "BM-009:needs_3_more_successes",
+        "BM-010:needs_3_more_successes"
+      ]
+    },
+    {
+      "id": "M3",
+      "name": "Skill Library and Memory",
+      "evidence_kind": "live_report",
+      "status": "repeat_verified",
+      "completion_claim_allowed": true,
+      "declared": {
+        "name": "Skill Library & Memory",
+        "status": "Live failing",
+        "progress": "0/37 sessions qualify; no memory reads/writes and 2,601 unbounded context cycles"
+      },
+      "declared_complete": false,
+      "claim_assessment": "not_claimed_complete",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/core/memory.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/skill_library.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/skill_extractor.py",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 0,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [],
+      "live_evidence": {
+        "phase_id": "M3",
+        "primary_evidence_type": "continual_learning_report",
+        "support_evidence_type": "task_stream_transfer_gate",
+        "status": "repeat_verified",
+        "repeats_required": 3,
+        "loaded_report_count": 2,
+        "primary_report_count": 1,
+        "support_report_count": 1,
+        "attempts": 3,
+        "primary_successes": 3,
+        "verified_successes": 3,
+        "failures": 0,
+        "support_approved": true,
+        "evidence_refs": [
+          "logs\\session_1ec21c1f-fd9.jsonl",
+          "logs\\session_4b6f10e7-6fc.jsonl",
+          "logs\\session_b9e1bb0e-88b.jsonl"
+        ],
+        "primary_cases": [
+          {
+            "report_path": "workspace/evals/skill_continual_learning_report.json",
+            "source_ref": "logs\\session_b9e1bb0e-88b.jsonl",
+            "success": true,
+            "failed_criteria": [],
+            "metrics": {
+              "completed_goal_count": 1,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "skill_retrieval_count": 1,
+              "skill_outcome_write_count": 1,
+              "progress_event_count": 4,
+              "unbounded_context_cycle_count": 0
+            }
+          },
+          {
+            "report_path": "workspace/evals/skill_continual_learning_report.json",
+            "source_ref": "logs\\session_4b6f10e7-6fc.jsonl",
+            "success": true,
+            "failed_criteria": [],
+            "metrics": {
+              "completed_goal_count": 1,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "skill_retrieval_count": 1,
+              "skill_outcome_write_count": 1,
+              "progress_event_count": 1,
+              "unbounded_context_cycle_count": 0
+            }
+          },
+          {
+            "report_path": "workspace/evals/skill_continual_learning_report.json",
+            "source_ref": "logs\\session_1ec21c1f-fd9.jsonl",
+            "success": true,
+            "failed_criteria": [],
+            "metrics": {
+              "completed_goal_count": 1,
+              "memory_read_count": 0,
+              "memory_write_count": 0,
+              "skill_retrieval_count": 1,
+              "skill_outcome_write_count": 1,
+              "progress_event_count": 1,
+              "unbounded_context_cycle_count": 0
+            }
+          }
+        ],
+        "support_evidence": [
+          {
+            "report_path": "workspace/evals/skill_transfer/gather_wood/transfer_gate.json",
+            "approved": true,
+            "failed_criteria": [],
+            "readiness": "approved",
+            "decision": "allow_candidate_promotion",
+            "ready_stream_count": 1,
+            "task_count": 1,
+            "average_generalization_gain": 1.0
+          }
+        ],
+        "missing": []
+      },
+      "required_live_execution_count": 3,
+      "live_observed_execution_count": 3,
+      "missing_evidence": []
+    },
+    {
+      "id": "M4",
+      "name": "Autonomous Survival",
+      "evidence_kind": "benchmark",
+      "status": "not_run",
+      "completion_claim_allowed": false,
+      "declared": {
+        "name": "Autonomous Survival",
+        "status": "Evidence pending",
+        "progress": "BM-011..014: no tracked execution evidence"
+      },
+      "declared_complete": false,
+      "claim_assessment": "not_claimed_complete",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/core/goal_generator.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/curriculum.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/runtime.py",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 4,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [
+        {
+          "task_id": "BM-011",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "ineligible_successes": 0,
+          "ineligibility_reasons": [],
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-012",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "ineligible_successes": 0,
+          "ineligibility_reasons": [],
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-013",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "ineligible_successes": 0,
+          "ineligibility_reasons": [],
+          "repeats_required": 3,
+          "evidence_refs": []
+        },
+        {
+          "task_id": "BM-014",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "ineligible_successes": 0,
+          "ineligibility_reasons": [],
+          "repeats_required": 3,
+          "evidence_refs": []
+        }
+      ],
+      "live_evidence": {},
+      "required_live_execution_count": 0,
+      "live_observed_execution_count": 0,
+      "missing_evidence": [
+        "BM-011:needs_3_more_successes",
+        "BM-012:needs_3_more_successes",
+        "BM-013:needs_3_more_successes",
+        "BM-014:needs_3_more_successes"
+      ]
+    },
+    {
+      "id": "M5",
+      "name": "Open-World Exploration",
+      "evidence_kind": "live_report",
+      "status": "failing",
+      "completion_claim_allowed": false,
+      "declared": {
+        "name": "Open-World Exploration",
+        "status": "Live failing",
+        "progress": "0/37 sessions qualify; world-model gate passes, but 0/27 goals completed"
+      },
+      "declared_complete": false,
+      "claim_assessment": "not_claimed_complete",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/core/explorer.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/core/curriculum.py",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 0,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [],
+      "live_evidence": {
+        "phase_id": "M5",
+        "primary_evidence_type": "exploration_trace_report",
+        "support_evidence_type": "world_model_feedback_gate",
+        "status": "failing",
+        "repeats_required": 3,
+        "loaded_report_count": 2,
+        "primary_report_count": 1,
+        "support_report_count": 1,
+        "attempts": 37,
+        "primary_successes": 0,
+        "verified_successes": 0,
+        "failures": 37,
+        "support_approved": true,
+        "evidence_refs": [],
+        "primary_cases": [
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_135514aa-b34.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_18afca4f-925.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 24,
+              "path_distance": 69.8,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 3
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_210b278f-f2c.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 41,
+              "path_distance": 231.3,
+              "plan_signal_count": 96,
+              "autonomous_goal_count": 0,
+              "discovery_count": 18
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_22497e5a-3d1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 35,
+              "path_distance": 71.35,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 4
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_23eb9fce-5df.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 1,
+              "path_distance": 0.0,
+              "plan_signal_count": 99,
+              "autonomous_goal_count": 0,
+              "discovery_count": 6
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_2818ff2a-612.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 4,
+              "path_distance": 40.47,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 18
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_340cb717-ed4.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 12,
+              "path_distance": 67.9,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 3
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_3466f191-696.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 1,
+              "path_distance": 0.0,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 12
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_363c6651-e39.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 4,
+              "path_distance": 78.74,
+              "plan_signal_count": 33,
+              "autonomous_goal_count": 0,
+              "discovery_count": 7
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_4138b270-949.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 1,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 11
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_4907f85d-989.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 65,
+              "path_distance": 104.54,
+              "plan_signal_count": 62,
+              "autonomous_goal_count": 0,
+              "discovery_count": 15
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_5420f1b3-f9a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_5815bb56-2d7.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 76,
+              "path_distance": 184.14,
+              "plan_signal_count": 96,
+              "autonomous_goal_count": 0,
+              "discovery_count": 16
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_67ba45ce-2e1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 1,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 11
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_6fd20cb9-d9d.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_732da4ca-ff1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_7c91318c-3c8.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 17,
+              "path_distance": 83.91,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 3
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_832d447f-c65.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 36,
+              "path_distance": 67.19,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 3
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_90e0fccd-e62.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 77,
+              "path_distance": 705.44,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 20
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_9357fe3f-acb.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 24,
+              "path_distance": 133.01,
+              "plan_signal_count": 50,
+              "autonomous_goal_count": 0,
+              "discovery_count": 4
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_99210dd0-e96.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_b41c7b4a-e6d.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "minimum_path_distance",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 4,
+              "path_distance": 0.98,
+              "plan_signal_count": 99,
+              "autonomous_goal_count": 0,
+              "discovery_count": 10
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_b58cacbf-817.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_bab1505b-cfd.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 28,
+              "path_distance": 92.05,
+              "plan_signal_count": 48,
+              "autonomous_goal_count": 0,
+              "discovery_count": 13
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_bae74597-6ed.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_bcd06511-00a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 1,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 13
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_bd269eb6-268.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "minimum_path_distance",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 3,
+              "path_distance": 1.63,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 7
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_c2ce7263-285.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 19,
+              "path_distance": 32.83,
+              "plan_signal_count": 94,
+              "autonomous_goal_count": 0,
+              "discovery_count": 12
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_d2e4d4a6-058.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_d320a4eb-afb.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 2,
+              "path_distance": 0.61,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 6
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_dc8fff18-00b.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 1,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 13
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_f01b520e-7df.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 4,
+              "path_distance": 38.4,
+              "plan_signal_count": 53,
+              "autonomous_goal_count": 0,
+              "discovery_count": 3
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_f4652ae8-2b0.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 16,
+              "path_distance": 69.36,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 4
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_f4d6e1d7-396.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 70,
+              "path_distance": 149.13,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 13
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_f8b769d4-961.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_exploration_review",
+              "completed_goal",
+              "distinct_positions",
+              "minimum_path_distance",
+              "multi_step_or_multi_hop_plan",
+              "autonomous_or_curriculum_goal",
+              "world_discovery"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 0,
+              "path_distance": 0.0,
+              "plan_signal_count": 0,
+              "autonomous_goal_count": 0,
+              "discovery_count": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_fbee086b-fe8.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 48,
+              "path_distance": 136.05,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 17
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/exploration_trace_current.json",
+            "source_ref": "logs/session_fd0b126a-d4a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "completed_goal",
+              "autonomous_or_curriculum_goal"
+            ],
+            "metrics": {
+              "completed_goal_count": 0,
+              "unique_position_count": 15,
+              "path_distance": 40.93,
+              "plan_signal_count": 100,
+              "autonomous_goal_count": 0,
+              "discovery_count": 23
+            }
+          }
+        ],
+        "support_evidence": [
+          {
+            "report_path": "logs/benchmarks/world_model_gate_current.json",
+            "approved": true,
+            "failed_criteria": [],
+            "readiness": "approved",
+            "decision": "allow_world_model_feedback",
+            "ready_log_count": 28,
+            "actionable_item_count": 24,
+            "structured_map_evidence_count": 12
+          }
+        ],
+        "missing": [
+          "needs_3_more_distinct_successful_sessions"
+        ]
+      },
+      "required_live_execution_count": 3,
+      "live_observed_execution_count": 0,
+      "missing_evidence": [
+        "needs_3_more_distinct_successful_sessions"
+      ]
+    },
+    {
+      "id": "M6",
+      "name": "Vision and Multimodal",
+      "evidence_kind": "live_report",
+      "status": "failing",
+      "completion_claim_allowed": false,
+      "declared": {
+        "name": "Vision & Multimodal",
+        "status": "Live failing",
+        "progress": "0/37 sessions qualify; no verified screenshots or live-source visual-action interventions"
+      },
+      "declared_complete": false,
+      "claim_assessment": "not_claimed_complete",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/vision/analyzer.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/vision/visual_memory.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/vision/action_advisor.py",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 0,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [],
+      "live_evidence": {
+        "phase_id": "M6",
+        "primary_evidence_type": "visual_trace_report",
+        "support_evidence_type": "visual_action_ablation",
+        "status": "failing",
+        "repeats_required": 3,
+        "loaded_report_count": 2,
+        "primary_report_count": 1,
+        "support_report_count": 1,
+        "attempts": 37,
+        "primary_successes": 0,
+        "verified_successes": 0,
+        "failures": 37,
+        "support_approved": false,
+        "evidence_refs": [],
+        "primary_cases": [
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_135514aa-b34.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_18afca4f-925.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_210b278f-f2c.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_22497e5a-3d1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_23eb9fce-5df.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_2818ff2a-612.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_340cb717-ed4.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_3466f191-696.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_363c6651-e39.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_4138b270-949.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_4907f85d-989.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_5420f1b3-f9a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_5815bb56-2d7.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_67ba45ce-2e1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_6fd20cb9-d9d.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_732da4ca-ff1.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_7c91318c-3c8.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_832d447f-c65.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_90e0fccd-e62.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_9357fe3f-acb.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_99210dd0-e96.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_b41c7b4a-e6d.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_b58cacbf-817.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_bab1505b-cfd.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_bae74597-6ed.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_bcd06511-00a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_bd269eb6-268.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_c2ce7263-285.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_d2e4d4a6-058.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_d320a4eb-afb.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_dc8fff18-00b.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_f01b520e-7df.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_f4652ae8-2b0.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_f4d6e1d7-396.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_f8b769d4-961.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_fbee086b-fe8.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          },
+          {
+            "report_path": "logs/benchmarks/visual_trace_current.json",
+            "source_ref": "logs/session_fd0b126a-d4a.jsonl",
+            "success": false,
+            "failed_criteria": [
+              "ready_for_visual_ablation",
+              "verified_screenshot",
+              "visual_analysis",
+              "goal_uses_visual_evidence"
+            ],
+            "metrics": {
+              "screenshot_count": 0,
+              "missing_screenshot_count": 0,
+              "invalid_screenshot_count": 0,
+              "visual_analysis_count": 0,
+              "goals_with_visual_evidence": 0
+            }
+          }
+        ],
+        "support_evidence": [
+          {
+            "approved": false,
+            "live_attempts": 0,
+            "live_successes": 0,
+            "live_failures": 0,
+            "evidence_refs": [],
+            "ignored_builtin_case_count": 0,
+            "cases": []
+          }
+        ],
+        "missing": [
+          "needs_3_more_distinct_successful_sessions",
+          "matching_non_builtin_visual_action_ablation_required"
+        ],
+        "ignored_builtin_support_case_count": 0,
+        "visual_action_success_count": 0
+      },
+      "required_live_execution_count": 3,
+      "live_observed_execution_count": 0,
+      "missing_evidence": [
+        "needs_3_more_distinct_successful_sessions",
+        "matching_non_builtin_visual_action_ablation_required"
+      ]
+    },
+    {
+      "id": "M7",
+      "name": "Multi-Agent Collaboration",
+      "evidence_kind": "benchmark",
+      "status": "not_run",
+      "completion_claim_allowed": false,
+      "declared": {
+        "name": "Multi-Agent Collaboration",
+        "status": "Evidence pending",
+        "progress": "BM-701: no tracked live execution"
+      },
+      "declared_complete": false,
+      "claim_assessment": "not_claimed_complete",
+      "source_ready": true,
+      "source_checks": [
+        {
+          "path": "src/singularity/multiagent/coordinator.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/multiagent/protocol.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/evaluation/collaboration_runner.py",
+          "exists": true
+        }
+      ],
+      "required_benchmark_count": 1,
+      "live_observed_benchmark_count": 0,
+      "repeat_verified_benchmark_count": 0,
+      "benchmarks": [
+        {
+          "task_id": "BM-701",
+          "status": "not_run",
+          "attempts": 0,
+          "successes": 0,
+          "failures": 0,
+          "ineligible_successes": 0,
+          "ineligibility_reasons": [],
+          "repeats_required": 3,
+          "evidence_refs": []
+        }
+      ],
+      "live_evidence": {},
+      "required_live_execution_count": 0,
+      "live_observed_execution_count": 0,
+      "missing_evidence": [
+        "BM-701:needs_3_more_successes"
+      ]
+    }
+  ],
+  "errors": [],
+  "recommendations": [
+    "run_m2_benchmarks",
+    "run_m4_benchmarks",
+    "diagnose_and_rerun_m5_live_evidence",
+    "diagnose_and_rerun_m6_live_evidence",
+    "run_m7_benchmarks"
+  ]
+}

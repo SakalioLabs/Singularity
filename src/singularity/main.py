@@ -1397,7 +1397,11 @@ def main():
     candidates_parser = subparsers.add_parser("skill-candidates", help="Review extracted skill candidates")
     candidates_parser.add_argument("--queue", type=str, default="workspace/skills/skill_candidates.jsonl")
     candidates_parser.add_argument("--storage-path", type=str, default="workspace/skills")
-    candidates_parser.add_argument("--session", type=str, default="", help="Extract candidates from a session JSONL log")
+    candidates_parser.add_argument("--session", action="append", default=[], help="Extract candidates from a completed session JSONL log; repeat for independent sources")
+    candidates_parser.add_argument("--focus-skill-id", type=str, default="", help="Only retain the named learned skill id during this research round")
+    candidates_parser.add_argument("--ledger", type=str, default="workspace/evals/skill_learning_ledger.json")
+    candidates_parser.add_argument("--promote-advisory", action="store_true", help="Promote only when the typed contract and three-source live gate pass")
+    candidates_parser.add_argument("--output", type=str, default="", help="Optional ingestion decision report")
     candidates_parser.add_argument("--promotion-critic", action="store_true", help="Use configured LLM as fallback critic for unknown verifier gates")
     candidates_parser.add_argument("--discovery-skill-gate", action="append", default=[], help="Saved discovery-application-report JSON required before approving experiment-derived skills")
     candidates_parser.add_argument("--task-stream-transfer-gate", action="append", default=[], help="Saved task-stream-transfer-gate JSON required before promoting transfer-tested skills")
@@ -1416,6 +1420,88 @@ def main():
     candidates_parser.add_argument("--reject", type=str, default="", help="Reject a candidate id")
     candidates_parser.add_argument("--reason", type=str, default="", help="Reason for rejection")
     candidates_parser.add_argument("--all", action="store_true", help="List all candidates, not just pending")
+
+    skill_run_parser = subparsers.add_parser(
+        "skill-learning-run",
+        help="Run one fresh-world controlled baseline, shadow, candidate, runtime, or fallback arm",
+    )
+    skill_run_parser.add_argument("--task-id", required=True, choices=["BM-001", "BM-002", "BM-003", "BM-004", "BM-005"])
+    skill_run_parser.add_argument("--arm", required=True, choices=["baseline", "shadow", "advisory", "candidate", "runtime", "fallback", "fault", "extraction"])
+    skill_run_parser.add_argument("--skill-id", type=str, default="")
+    skill_run_parser.add_argument("--experiment-id", type=str, required=True)
+    skill_run_parser.add_argument("--pair-id", type=str, default="")
+    skill_run_parser.add_argument("--replicate-id", type=str, default="")
+    skill_run_parser.add_argument("--goal", type=str, default="")
+    skill_run_parser.add_argument("--success-criteria-json", type=str, default="")
+    skill_run_parser.add_argument("--success-criteria-file", type=str, default="")
+    skill_run_parser.add_argument("--heldout", action="store_true")
+    skill_run_parser.add_argument(
+        "--research-fixture-profile",
+        choices=["protocol_default", "gather_oak_near_v1", "gather_oak_shifted_v1"],
+        default="protocol_default",
+    )
+    skill_run_parser.add_argument("--skill-storage-path", type=str, default="workspace/skills")
+    skill_run_parser.add_argument("--ledger", type=str, default="workspace/evals/skill_learning_ledger.json")
+    skill_run_parser.add_argument("--regressions", type=str, default="workspace/evals/skill_regressions.json")
+    skill_run_parser.add_argument("--skill-runtime-default-gate", action="append", default=[])
+    skill_run_parser.add_argument(
+        "--skill-fault-profile",
+        choices=[
+            "reject_skill_craft_missing_item_v1",
+            "reject_skill_place_missing_item_v1",
+            "reject_skill_equip_missing_item_v1",
+        ],
+        default="",
+    )
+    skill_run_parser.add_argument("--host", type=str, default="localhost")
+    skill_run_parser.add_argument("--port", type=int, default=25565)
+    skill_run_parser.add_argument("--username", type=str, default="Singularity")
+    skill_run_parser.add_argument("--bridge-host", type=str, default="127.0.0.1")
+    skill_run_parser.add_argument("--bridge-port", type=int, default=3000)
+    skill_run_parser.add_argument("--output", type=str, required=True)
+    skill_run_parser.add_argument("--log-level", type=str, default="INFO")
+
+    skill_eval_parser = subparsers.add_parser(
+        "skill-learning-evaluate",
+        help="Build a paired live ablation report and optionally promote one advisory skill",
+    )
+    skill_eval_parser.add_argument("--run", action="append", default=[], required=True)
+    skill_eval_parser.add_argument("--skill-id", type=str, required=True)
+    skill_eval_parser.add_argument("--skill-storage-path", type=str, default="workspace/skills")
+    skill_eval_parser.add_argument("--task-family", type=str, required=True)
+    skill_eval_parser.add_argument("--transfer-scope-json", type=str, default="")
+    skill_eval_parser.add_argument("--transfer-scope-file", type=str, default="")
+    skill_eval_parser.add_argument("--ledger", type=str, default="workspace/evals/skill_learning_ledger.json")
+    skill_eval_parser.add_argument("--promote-executable", action="store_true")
+    skill_eval_parser.add_argument("--runtime-gate-output", type=str, default="")
+    skill_eval_parser.add_argument("--output", type=str, required=True)
+    skill_eval_parser.add_argument("--log-level", type=str, default="INFO")
+
+    skill_transfer_parser = subparsers.add_parser(
+        "skill-learning-transfer",
+        help="Build a held-out transfer report and M3-compatible transfer gate",
+    )
+    skill_transfer_parser.add_argument("--baseline-run", type=str, required=True)
+    skill_transfer_parser.add_argument("--candidate-run", type=str, required=True)
+    skill_transfer_parser.add_argument("--skill-id", type=str, required=True)
+    skill_transfer_parser.add_argument("--training-task", action="append", default=[])
+    skill_transfer_parser.add_argument("--training-session-id", action="append", default=[])
+    skill_transfer_parser.add_argument("--validation-task", action="append", default=[])
+    skill_transfer_parser.add_argument("--heldout-task", action="append", default=[])
+    skill_transfer_parser.add_argument("--unsupported-family", action="append", default=[])
+    skill_transfer_parser.add_argument("--output", type=str, required=True)
+    skill_transfer_parser.add_argument("--gate-output", type=str, required=True)
+    skill_transfer_parser.add_argument("--skill-storage-path", type=str, default="workspace/skills")
+    skill_transfer_parser.add_argument("--apply-approved", action="store_true")
+    skill_transfer_parser.add_argument("--log-level", type=str, default="INFO")
+
+    skill_continual_parser = subparsers.add_parser(
+        "skill-learning-continual-report",
+        help="Build M3 continual-learning evidence from subsequent executable-skill runs",
+    )
+    skill_continual_parser.add_argument("--runtime-run", action="append", default=[], required=True)
+    skill_continual_parser.add_argument("--output", type=str, required=True)
+    skill_continual_parser.add_argument("--log-level", type=str, default="INFO")
 
     skill_edit_parser = subparsers.add_parser(
         "skill-edit-proposal-report",
@@ -2184,6 +2270,7 @@ def main():
     # Handle skills command (no server needed)
     if args.command == "skills":
         from singularity.core.skill_library import SkillLibrary
+        from singularity.core.skill_learning import SkillLearningLedger
         lib = SkillLibrary(persist=True)
         print(f"\nSingularity Skill Library ({len(lib.skills)} skills)\n")
         for layer in ("primitive", "composite", "strategic"):
@@ -3998,12 +4085,17 @@ def main():
 
     if args.command == "skill-candidates":
         from singularity.core.skill_extractor import SkillCandidateQueue, SkillExtractor
+        from singularity.core.skill_learning import SkillLearningLedger
         from singularity.core.skill_library import SkillLibrary
 
         queue = SkillCandidateQueue(getattr(args, "queue", "workspace/skills/skill_candidates.jsonl"))
         promotion_critic = _promotion_critic_from_args(args)
-        if getattr(args, "session", ""):
-            lib = SkillLibrary(storage_path=getattr(args, "storage_path", "workspace/skills"))
+        session_paths = getattr(args, "session", []) or []
+        if isinstance(session_paths, str):
+            session_paths = [session_paths]
+        if session_paths:
+            lib = SkillLibrary(storage_path=getattr(args, "storage_path", "workspace/skills"), persist=True)
+            ledger = SkillLearningLedger(getattr(args, "ledger", "workspace/evals/skill_learning_ledger.json"))
             extractor = SkillExtractor(
                 lib,
                 auto_promote=False,
@@ -4012,31 +4104,86 @@ def main():
                 transfer_gate_paths=getattr(args, "task_stream_transfer_gate", []) or [],
                 causal_evidence_gate_paths=getattr(args, "causal_evidence_gate", []) or [],
             )
-            candidates = extractor.extract_skill_candidates(args.session)
-            if getattr(args, "causal_summaries", False):
-                candidates.extend(extractor.extract_causal_skill_candidates(
-                    args.session,
-                    min_repeats=getattr(args, "min_causal_repeats", 3),
-                    min_value_score=getattr(args, "min_causal_value", 0.65),
-                ))
-            if getattr(args, "failure_corrections", False):
-                candidates.extend(extractor.extract_failure_correction_candidates(
-                    args.session,
-                    min_failures=getattr(args, "min_failure_repeats", 2),
-                    min_value_score=getattr(args, "min_failure_value", 0.55),
-                ))
-            for candidate in candidates:
-                if promotion_critic:
-                    report = extractor.validate_candidate_for_promotion(candidate)
-                    candidate.signals = {
-                        **candidate.signals,
-                        "verification_gate": report.gate,
-                        "promotion_report": report.to_dict(),
-                    }
-                queue.enqueue(candidate)
-                print(f"queued {candidate.id}: {candidate.name} score={candidate.score}")
-            if not candidates:
+            focus_skill_id = str(getattr(args, "focus_skill_id", "") or "").strip()
+            queued_ids = []
+            extracted_count = 0
+            for session_path in session_paths:
+                candidates = extractor.extract_skill_candidates(session_path)
+                if getattr(args, "causal_summaries", False):
+                    candidates.extend(extractor.extract_causal_skill_candidates(
+                        session_path,
+                        min_repeats=getattr(args, "min_causal_repeats", 3),
+                        min_value_score=getattr(args, "min_causal_value", 0.65),
+                    ))
+                if getattr(args, "failure_corrections", False):
+                    candidates.extend(extractor.extract_failure_correction_candidates(
+                        session_path,
+                        min_failures=getattr(args, "min_failure_repeats", 2),
+                        min_value_score=getattr(args, "min_failure_value", 0.55),
+                    ))
+                for candidate in candidates:
+                    if focus_skill_id and focus_skill_id not in {candidate.skill_id, candidate.name}:
+                        continue
+                    queued = queue.enqueue(candidate)
+                    extracted_count += 1
+                    if queued.id not in queued_ids:
+                        queued_ids.append(queued.id)
+
+            decisions = []
+            for candidate_id in queued_ids:
+                candidate = queue.candidates[candidate_id]
+                report = extractor.validate_candidate_for_promotion(candidate)
+                candidate.signals = {
+                    **candidate.signals,
+                    "verification_gate": report.gate,
+                    "promotion_report": report.to_dict(),
+                }
+                queue.save()
+                ledger.record_candidate(candidate, report.to_dict())
+                skill = None
+                if getattr(args, "promote_advisory", False) and report.decision == "promote_advisory":
+                    skill = extractor.approve_candidate(candidate)
+                    queue.save()
+                    if skill is not None:
+                        ledger.record_skill(skill)
+                        ledger.record_decision(
+                            skill.skill_id,
+                            "promote_advisory",
+                            report.reason,
+                            evidence=report.to_dict(),
+                        )
+                decisions.append({
+                    "candidate_id": candidate.id,
+                    "skill_id": candidate.skill_id,
+                    "sources": len(candidate.source_session_ids),
+                    "environments": len(candidate.source_environment_ids),
+                    "decision": report.decision,
+                    "status": candidate.status,
+                    "promoted": skill is not None,
+                    "missing": report.missing,
+                })
+                print(
+                    f"{report.decision} {candidate.id}: {candidate.skill_id} "
+                    f"sources={len(candidate.source_session_ids)}"
+                )
+            if not extracted_count:
                 print("no promotable candidates found")
+            payload = {
+                "type": "skill_candidate_ingestion_report",
+                "schema_version": 1,
+                "session_count": len(session_paths),
+                "extracted_count": extracted_count,
+                "deduped_candidate_count": len(queued_ids),
+                "focus_skill_id": focus_skill_id,
+                "decisions": decisions,
+            }
+            if getattr(args, "output", ""):
+                output_dir = os.path.dirname(args.output)
+                if output_dir:
+                    os.makedirs(output_dir, exist_ok=True)
+                with open(args.output, "w", encoding="utf-8") as handle:
+                    json.dump(payload, handle, indent=2, sort_keys=True)
+                    handle.write("\n")
             return
         if getattr(args, "approve", ""):
             lib = SkillLibrary(storage_path=getattr(args, "storage_path", "workspace/skills"), persist=True)
@@ -6174,6 +6321,9 @@ def main():
     config = Config(
         bot=BotConfig(host=host, port=port, username=username, bridge_host=bridge_host, bridge_port=bridge_port),
         llm=_llm_config_from_args(args),
+        skill_dir=getattr(args, "skill_storage_path", getattr(args, "storage_path", "workspace/skills")),
+        skill_learning_ledger_path=getattr(args, "ledger", "workspace/evals/skill_learning_ledger.json"),
+        skill_regressions_path=getattr(args, "regressions", "workspace/evals/skill_regressions.json"),
         enable_goal_critic=profile_bool_arg(args, "goal_critic", runtime_profiles, "enable_goal_critic", "goal_critic"),
         goal_critic_gate_paths=merge_arg_profile_list(args, "goal_critic_gate", runtime_profiles, "goal_critic_gate_paths"),
         enforce_memory_write_gate=profile_bool_arg(args, "enforce_memory_write_gate", runtime_profiles, "enforce_memory_write_gate", "memory_write_gate"),
@@ -6231,7 +6381,182 @@ def main():
         screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),
     )
 
-    if args.command == "capability-evidence-report":
+    if args.command == "skill-learning-run":
+        from singularity.core.skill_learning import SkillLearningLedger
+        from singularity.evaluation.skill_learning_experiment import run_live_skill_arm, write_json
+
+        arm = str(getattr(args, "arm", "") or "")
+        skill_id = str(getattr(args, "skill_id", "") or "")
+        if arm != "baseline" and not skill_id:
+            print("skill-learning-run requires --skill-id for non-baseline arms")
+            sys.exit(1)
+        criteria = None
+        criteria_json = str(getattr(args, "success_criteria_json", "") or "")
+        criteria_file = str(getattr(args, "success_criteria_file", "") or "")
+        if criteria_json and criteria_file:
+            print("use only one of --success-criteria-json or --success-criteria-file")
+            sys.exit(1)
+        if criteria_file:
+            try:
+                with open(criteria_file, "r", encoding="utf-8-sig") as handle:
+                    criteria = json.load(handle)
+            except (OSError, json.JSONDecodeError) as exc:
+                print(f"invalid --success-criteria-file: {exc}")
+                sys.exit(1)
+        elif criteria_json:
+            try:
+                criteria = json.loads(criteria_json)
+            except json.JSONDecodeError as exc:
+                print(f"invalid --success-criteria-json: {exc}")
+                sys.exit(1)
+        if criteria is not None and (not isinstance(criteria, dict) or not criteria):
+            print("success criteria must be a non-empty JSON object")
+            sys.exit(1)
+        report = run_live_skill_arm(
+            config,
+            task_id=args.task_id,
+            arm=arm,
+            skill_id=skill_id,
+            experiment_id=args.experiment_id,
+            pair_id=getattr(args, "pair_id", ""),
+            replicate_id=getattr(args, "replicate_id", ""),
+            goal_override=getattr(args, "goal", ""),
+            success_criteria_override=criteria,
+            heldout=getattr(args, "heldout", False),
+            research_fixture_profile=getattr(args, "research_fixture_profile", "protocol_default"),
+            fault_profile=getattr(args, "skill_fault_profile", ""),
+        )
+        write_json(args.output, report)
+        SkillLearningLedger(getattr(args, "ledger", "workspace/evals/skill_learning_ledger.json")).record_experiment(report)
+        print(
+            f"skill-learning {arm}: {report.get('status')} "
+            f"session={report.get('session_id', '')} output={args.output}"
+        )
+        if report.get("status") != "pass":
+            print(f"failed checks: {', '.join(report.get('failed_checks', []))}")
+            sys.exit(2)
+        return
+
+    elif args.command == "skill-learning-evaluate":
+        from singularity.core.skill_learning import SkillLearningLedger
+        from singularity.core.skill_library import SkillLibrary
+        from singularity.evaluation.skill_learning_experiment import (
+            build_paired_ablation_report,
+            build_runtime_default_gate,
+            write_json,
+        )
+
+        try:
+            if getattr(args, "transfer_scope_file", ""):
+                with open(args.transfer_scope_file, "r", encoding="utf-8-sig") as handle:
+                    transfer_scope = json.load(handle)
+            elif getattr(args, "transfer_scope_json", ""):
+                transfer_scope = json.loads(args.transfer_scope_json)
+            else:
+                raise ValueError("one of --transfer-scope-file or --transfer-scope-json is required")
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print(f"invalid transfer scope: {exc}")
+            sys.exit(1)
+        if not isinstance(transfer_scope, dict) or not transfer_scope.get("task_family"):
+            print("--transfer-scope-json must include task_family")
+            sys.exit(1)
+        library = SkillLibrary(storage_path=args.skill_storage_path, persist=True)
+        skill = library.get_skill_by_id(args.skill_id)
+        if skill is None:
+            print(f"learned skill not found: {args.skill_id}")
+            sys.exit(1)
+        report = build_paired_ablation_report(
+            args.run,
+            skill_id=skill.skill_id,
+            skill_version=skill.version,
+            task_family=args.task_family,
+            rollback_target=skill.version,
+            transfer_scope=transfer_scope,
+        )
+        transition = {"changed": False, "reason": "promotion_not_requested"}
+        if getattr(args, "promote_executable", False):
+            transition = library.transition_skill_status(
+                skill.skill_id,
+                "executable",
+                "three paired live trials passed fixed-control safety and regression gates",
+                evidence=report.get("executable_promotion_gate", {}),
+            )
+            if transition.get("changed"):
+                active = library.get_skill_by_id(skill.skill_id)
+                report["executable_promotion_gate"]["promoted_skill_version"] = active.version
+                report["promoted_skill_version"] = active.version
+        report["lifecycle_transition"] = transition
+        write_json(args.output, report)
+        ledger = SkillLearningLedger(getattr(args, "ledger", "workspace/evals/skill_learning_ledger.json"))
+        ledger.record_experiment(report)
+        active = library.get_skill_by_id(skill.skill_id)
+        ledger.record_skill(active)
+        ledger.record_decision(
+            active.skill_id,
+            "promote_executable" if transition.get("changed") else report.get("decision", "retain_advisory"),
+            transition.get("reason") or "paired live ablation decision",
+            evidence=report.get("executable_promotion_gate", {}),
+        )
+        if getattr(args, "runtime_gate_output", ""):
+            runtime_gate = build_runtime_default_gate(report, active.name)
+            write_json(args.runtime_gate_output, runtime_gate)
+        print(
+            f"skill-learning evaluate: {report.get('decision')} "
+            f"pairs={report.get('valid_pair_count', 0)} transition={transition.get('changed')}"
+        )
+        if getattr(args, "promote_executable", False) and not transition.get("changed"):
+            print(f"promotion blocked: {transition.get('reason')}; {transition.get('issues', [])}")
+            sys.exit(2)
+        return
+
+    elif args.command == "skill-learning-transfer":
+        from singularity.evaluation.skill_learning_experiment import build_heldout_transfer_report, write_json
+
+        report, gate = build_heldout_transfer_report(
+            args.baseline_run,
+            args.candidate_run,
+            args.skill_id,
+            training_task_set=getattr(args, "training_task", []) or [],
+            validation_task_set=getattr(args, "validation_task", []) or [],
+            heldout_task_set=getattr(args, "heldout_task", []) or [],
+            unsupported_task_family=getattr(args, "unsupported_family", []) or [],
+            training_session_ids=getattr(args, "training_session_id", []) or [],
+        )
+        write_json(args.output, report)
+        write_json(args.gate_output, gate)
+        transition = {}
+        if getattr(args, "apply_approved", False):
+            from singularity.core.skill_library import SkillLibrary
+
+            transition = SkillLibrary(args.skill_storage_path, persist=True).apply_heldout_transfer_evidence(
+                args.skill_id,
+                report,
+                gate,
+            )
+            if not transition.get("changed"):
+                print(f"held-out transfer application rejected: {transition}")
+                sys.exit(2)
+        print(
+            f"skill-learning transfer: positive={report.get('positive_transfer')} "
+            f"step_gain={report.get('environment_step_gain')} "
+            f"applied={bool(transition.get('changed'))}"
+        )
+        if not report.get("positive_transfer"):
+            sys.exit(2)
+        return
+
+    elif args.command == "skill-learning-continual-report":
+        from singularity.evaluation.skill_learning_experiment import build_continual_learning_report, write_json
+
+        report = build_continual_learning_report(args.runtime_run)
+        write_json(args.output, report)
+        ready = sum(1 for case in report.get("cases", []) if case.get("ready_for_continual_learning_review"))
+        print(f"skill-learning continual report: ready_sessions={ready}/{len(report.get('cases', []))}")
+        if ready < 3:
+            sys.exit(2)
+        return
+
+    elif args.command == "capability-evidence-report":
         from dataclasses import asdict
         from singularity.evaluation.benchmark_runner import BenchmarkRunner
         from singularity.evaluation.capability_evidence import (

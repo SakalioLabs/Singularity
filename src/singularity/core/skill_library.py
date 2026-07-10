@@ -3,8 +3,21 @@ import json
 import os
 import time
 import logging
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from typing import Optional
+
+from singularity.core.skill_learning import (
+    evidence_fingerprint,
+    evaluation_authorization_issues,
+    executable_promotion_gate_issues,
+)
+from singularity.core.skill_runtime import (
+    build_bounded_skill_plan,
+    evaluate_skill_postconditions,
+    validate_bounded_action_template,
+    wilson_confidence_interval,
+)
 
 logger = logging.getLogger("singularity.skills")
 
@@ -14,23 +27,45 @@ class Skill:
     name: str
     description: str = ""
     parameters: dict = field(default_factory=dict)
+    task_family: str = "general"
     preconditions: dict = field(default_factory=dict)
+    required_observations: list = field(default_factory=list)
+    required_inventory: list = field(default_factory=list)
     postconditions: dict = field(default_factory=dict)
     required_items: list = field(default_factory=list)
     failure_modes: list = field(default_factory=list)
-    implementation: str = ""  # code or action sequence
+    implementation: str = ""  # JSON-encoded bounded action template; never evaluated as code
+    bounded_action_template: dict = field(default_factory=dict)
+    expected_intermediate_states: list = field(default_factory=list)
+    failure_conditions: list = field(default_factory=list)
+    abort_conditions: list = field(default_factory=list)
     examples: list = field(default_factory=list)
-    version: str = "1.0"
+    version: str = "1.0.0"
+    status: str = "candidate"  # candidate, advisory, executable, quarantined, builtin
+    parent_version: str = ""
+    rollback_target: str = ""
     success_rate: float = 0.0
     total_uses: int = 0
     successful_uses: int = 0
+    success_count: int = 0
+    failure_count: int = 0
+    observed_failure_count: int = 0
+    failure_type_counts: dict = field(default_factory=dict)
+    confidence_interval: dict = field(default_factory=dict)
     last_used: Optional[str] = None
     layer: str = "composite"  # primitive, composite, strategic, social, meta
     notes: str = ""
     dependencies: list[str] = field(default_factory=list)
     provenance: dict = field(default_factory=dict)
+    source_session_ids: list[str] = field(default_factory=list)
+    source_environment_ids: list[str] = field(default_factory=list)
+    verifier_version: str = ""
+    transfer_scope: dict = field(default_factory=dict)
     gate: dict = field(default_factory=dict)
     skill_memory: list[dict] = field(default_factory=list)
+    skill_id: str = ""
+    lifecycle_history: list[dict] = field(default_factory=list)
+    failure_evidence: list[dict] = field(default_factory=list)
 
 
 class SkillLibrary:
@@ -39,6 +74,7 @@ class SkillLibrary:
         self.persist = persist
         self.custom_path = os.path.join(storage_path, "custom_skills.jsonl")
         self.skills: dict[str, Skill] = {}
+        self._skill_history: dict[tuple[str, str], Skill] = {}
         self._skill_memory_quality_feedback: dict = {}
         self._skill_memory_quality_policies: dict[str, dict] = {}
         self._skill_memory_quality_items: dict[tuple[str, str, str], dict] = {}
@@ -73,6 +109,9 @@ class SkillLibrary:
             Skill("prepare_for_mining", "Gather tools and torches for mining", {}, layer="strategic"),
         ]
         for skill in builtins:
+            skill.skill_id = f"builtin:{skill.name}"
+            skill.status = "builtin"
+            skill.task_family = self.infer_task_family(skill.name)
             self.skills[skill.name] = skill
 
     def get_skill(self, name: str) -> Optional[Skill]:
@@ -84,8 +123,44 @@ class SkillLibrary:
         return list(self.skills.values())
 
     def create_skill(self, name: str, description: str, implementation: str, persist: Optional[bool] = None, **kwargs) -> Skill:
+        template = kwargs.get("bounded_action_template", {})
+        if not template and isinstance(implementation, str) and implementation.strip():
+            try:
+                parsed = json.loads(implementation)
+            except (TypeError, ValueError):
+                parsed = {}
+            if isinstance(parsed, dict) and parsed.get("dsl_version"):
+                template = parsed
+                kwargs["bounded_action_template"] = template
+        status = str(kwargs.get("status") or "candidate").strip().lower()
+        if status == "executable":
+            validation = validate_bounded_action_template(template)
+            if not validation.valid:
+                raise ValueError(f"executable skill requires a valid bounded action template: {validation.issues}")
+            gate = kwargs.get("gate", {}) if isinstance(kwargs.get("gate"), dict) else {}
+            promotion_gate = gate.get("executable_promotion", gate)
+            gate_issues = executable_promotion_gate_issues(
+                promotion_gate,
+                skill_id=str(kwargs.get("skill_id") or name),
+                version=str(kwargs.get("version") or "1.0.0"),
+            )
+            if gate_issues:
+                raise ValueError(f"executable skill requires paired live promotion evidence: {gate_issues}")
+            kwargs["bounded_action_template"] = validation.normalized_template
+            implementation = json.dumps(validation.normalized_template, sort_keys=True)
+        kwargs.setdefault("skill_id", name)
+        kwargs.setdefault("task_family", self.infer_task_family(" ".join([name, description])))
+        kwargs.setdefault("status", status)
+        successes = self._safe_int(kwargs.get("success_count", kwargs.get("successful_uses", 0)), default=0)
+        failures = self._safe_int(kwargs.get("failure_count", 0), default=0)
+        kwargs.setdefault("confidence_interval", wilson_confidence_interval(successes, failures))
+        existing = self.skills.get(name)
+        if existing and existing.name not in self._builtin_skill_names():
+            self._skill_history[(existing.skill_id or existing.name, existing.version)] = existing
         skill = Skill(name=name, description=description, implementation=implementation, **kwargs)
         self.skills[name] = skill
+        if skill.name not in self._builtin_skill_names():
+            self._skill_history[(skill.skill_id or skill.name, skill.version)] = skill
         should_persist = self.persist if persist is None else persist
         if should_persist:
             self._rewrite_custom_skills()
@@ -99,6 +174,464 @@ class SkillLibrary:
                 skill.successful_uses += 1
             skill.success_rate = skill.successful_uses / skill.total_uses if skill.total_uses > 0 else 0
             skill.last_used = time.strftime("%Y-%m-%d")
+
+    def get_skill_by_id(self, skill_id: str) -> Optional[Skill]:
+        target = str(skill_id or "").strip()
+        if not target:
+            return None
+        return next(
+            (skill for skill in self.skills.values() if skill.skill_id == target or skill.name == target),
+            None,
+        )
+
+    def select_runtime_skill(
+        self,
+        goal: str,
+        world_state: dict,
+        execution_mode: str = "off",
+        target_skill_id: str = "",
+        experiment_id: str = "",
+        evaluation_authorization: Optional[dict] = None,
+    ) -> Optional[Skill]:
+        """Select one learned skill without allowing advisory runtime execution."""
+        mode = str(execution_mode or "off").strip().lower()
+        if mode not in {"shadow", "advisory", "evaluation", "runtime"}:
+            return None
+        task_family = self.infer_task_family(goal)
+        candidates = []
+        for skill in self.skills.values():
+            if skill.status == "builtin":
+                continue
+            if target_skill_id and target_skill_id not in {skill.skill_id, skill.name}:
+                continue
+            if not self.skill_transfer_scope_allows(skill, task_family):
+                continue
+            if mode in {"shadow", "advisory"} and skill.status not in {"advisory", "executable"}:
+                continue
+            if mode == "advisory" and evaluation_authorization_issues(
+                evaluation_authorization or {},
+                skill.skill_id,
+                experiment_id,
+            ):
+                continue
+            if mode == "evaluation":
+                if skill.status == "advisory":
+                    auth_issues = evaluation_authorization_issues(
+                        evaluation_authorization or {},
+                        skill.skill_id,
+                        experiment_id,
+                    )
+                    if auth_issues:
+                        continue
+                elif skill.status != "executable":
+                    continue
+            if mode == "runtime":
+                if skill.status != "executable":
+                    continue
+                promotion_gate = skill.gate.get("executable_promotion", {}) if isinstance(skill.gate, dict) else {}
+                if executable_promotion_gate_issues(
+                    promotion_gate,
+                    skill_id=skill.skill_id,
+                    version=skill.version,
+                ):
+                    continue
+                if not self._runtime_default_skill_allowed(
+                    skill.name,
+                    task_family,
+                    built_in=False,
+                    promotion_gate_fingerprint=evidence_fingerprint(promotion_gate),
+                ):
+                    continue
+            contract = self._skill_contract_profile(skill, goal, world_state or {})
+            if contract.get("readiness") == "blocked" or contract.get("score", 0) <= 0:
+                continue
+            candidates.append((contract.get("score", 0), skill.success_rate, skill.total_uses, skill))
+        if not candidates:
+            return None
+        candidates.sort(key=lambda item: (item[0], item[1], item[2], item[3].name), reverse=True)
+        return candidates[0][3]
+
+    def build_runtime_skill_plan(self, skill: Skill, goal: str, world_state: dict) -> dict:
+        return build_bounded_skill_plan(skill, goal, world_state)
+
+    def skill_transfer_scope_allows(self, skill: Skill, task_family: str) -> bool:
+        """Keep learned skills inside their explicitly supported family scope."""
+        family = str(task_family or "").strip().lower()
+        scope = skill.transfer_scope if isinstance(skill.transfer_scope, dict) else {}
+        unsupported = {
+            str(item or "").strip().lower()
+            for item in scope.get("unsupported_task_families", [])
+            if str(item or "").strip()
+        }
+        if family in unsupported:
+            return False
+        supported = {
+            str(item or "").strip().lower()
+            for item in scope.get("supported_task_families", [])
+            if str(item or "").strip()
+        }
+        explicit_family = str(scope.get("task_family") or skill.task_family or "").strip().lower()
+        if explicit_family:
+            supported.add(explicit_family)
+        return bool(family and family in supported)
+
+    def record_learned_skill_outcome(
+        self,
+        skill_id: str,
+        success: bool,
+        context: Optional[dict] = None,
+        persist: Optional[bool] = None,
+        regression_ledger_path: str = "",
+    ) -> dict:
+        """Record an attributed outcome and apply conservative demotion/quarantine rules."""
+        skill = self.get_skill_by_id(skill_id)
+        if not skill or skill.status == "builtin":
+            return {"recorded": False, "reason": "learned_skill_not_found"}
+        context = context if isinstance(context, dict) else {}
+        previous_status = skill.status
+        failure_type = str(context.get("failure_type") or "").strip().lower()
+        attributable_failure = not success and failure_type in {
+            "skill_error",
+            "precondition_misclassification",
+            "postcondition_failure",
+        }
+        if success:
+            skill.success_count += 1
+            skill.successful_uses += 1
+        else:
+            skill.observed_failure_count += 1
+            failure_key = failure_type or "unattributed_failure"
+            skill.failure_type_counts[failure_key] = int(skill.failure_type_counts.get(failure_key, 0) or 0) + 1
+            if attributable_failure:
+                skill.failure_count += 1
+            if context:
+                skill.failure_evidence.append(dict(context))
+                skill.failure_evidence = skill.failure_evidence[-50:]
+        skill.total_uses += 1
+        skill.success_rate = skill.success_count / max(1, skill.success_count + skill.failure_count)
+        skill.confidence_interval = wilson_confidence_interval(skill.success_count, skill.failure_count)
+        skill.last_used = time.strftime("%Y-%m-%d")
+
+        if attributable_failure and skill.status in {"executable", "advisory"}:
+            repeated_transition = self._repeated_failed_transition_count(skill, context)
+            if skill.failure_count >= 3 or repeated_transition >= 2:
+                skill.status = "quarantined"
+            elif skill.status == "executable" and skill.failure_count >= 2:
+                skill.status = "advisory"
+        event = {
+            "timestamp": time.time(),
+            "skill_id": skill.skill_id,
+            "name": skill.name,
+            "version": skill.version,
+            "outcome": "success" if success else "failure",
+            "failure_type": failure_type,
+            "first_failed_transition": str(context.get("first_failed_transition") or ""),
+            "previous_status": previous_status,
+            "status": skill.status,
+            "automatic_delete_allowed": False,
+            "context": context,
+        }
+        skill.lifecycle_history.append(event)
+        skill.lifecycle_history = skill.lifecycle_history[-100:]
+        should_persist = self.persist if persist is None else persist
+        if should_persist:
+            self._rewrite_custom_skills()
+        if regression_ledger_path and (not success or previous_status != skill.status):
+            try:
+                from singularity.core.skill_learning import SkillRegressionLedger
+
+                SkillRegressionLedger(regression_ledger_path).record(event)
+            except Exception as exc:
+                logger.warning(f"Could not record skill regression event: {type(exc).__name__}")
+        return {"recorded": True, "status_changed": previous_status != skill.status, **event}
+
+    def reclassify_learned_skill_failure(
+        self,
+        skill_id: str,
+        experiment_id: str,
+        corrected_failure_type: str,
+        reason: str,
+        persist: Optional[bool] = None,
+        regression_ledger_path: str = "",
+    ) -> dict:
+        """Correct an attribution label without deleting the original audit history."""
+        skill = self.get_skill_by_id(skill_id)
+        if not skill or skill.status == "builtin":
+            return {"changed": False, "reason": "learned_skill_not_found"}
+        match = next(
+            (
+                item for item in reversed(skill.failure_evidence)
+                if str(item.get("experiment_id") or "") == str(experiment_id or "")
+            ),
+            None,
+        )
+        if match is None:
+            return {"changed": False, "reason": "failure_evidence_not_found"}
+        previous_type = str(match.get("failure_type") or "unattributed_failure")
+        corrected = str(corrected_failure_type or "unattributed_failure").strip().lower()
+        attributable = {"skill_error", "precondition_misclassification", "postcondition_failure"}
+        if previous_type in attributable and corrected not in attributable:
+            skill.failure_count = max(0, skill.failure_count - 1)
+        elif previous_type not in attributable and corrected in attributable:
+            skill.failure_count += 1
+        previous_count = int(skill.failure_type_counts.get(previous_type, 0) or 0)
+        if previous_count <= 1:
+            skill.failure_type_counts.pop(previous_type, None)
+        else:
+            skill.failure_type_counts[previous_type] = previous_count - 1
+        skill.failure_type_counts[corrected] = int(skill.failure_type_counts.get(corrected, 0) or 0) + 1
+        match["original_failure_type"] = previous_type
+        match["failure_type"] = corrected
+        match["attribution_correction_reason"] = str(reason or "")[:300]
+        skill.confidence_interval = wilson_confidence_interval(skill.success_count, skill.failure_count)
+        event = {
+            "timestamp": time.time(),
+            "skill_id": skill.skill_id,
+            "version": skill.version,
+            "experiment_id": str(experiment_id or ""),
+            "event": "failure_attribution_reclassified",
+            "previous_failure_type": previous_type,
+            "failure_type": corrected,
+            "reason": str(reason or "")[:300],
+            "status": skill.status,
+            "automatic_delete_allowed": False,
+        }
+        skill.lifecycle_history.append(event)
+        should_persist = self.persist if persist is None else persist
+        if should_persist:
+            self._rewrite_custom_skills()
+        if regression_ledger_path:
+            try:
+                from singularity.core.skill_learning import SkillRegressionLedger
+
+                SkillRegressionLedger(regression_ledger_path).record(event)
+            except Exception as exc:
+                logger.warning(f"Could not record attribution correction: {type(exc).__name__}")
+        return {"changed": True, **event}
+
+    def transition_skill_status(
+        self,
+        skill_id: str,
+        target_status: str,
+        reason: str,
+        evidence: Optional[dict] = None,
+        persist: Optional[bool] = None,
+    ) -> dict:
+        skill = self.get_skill_by_id(skill_id)
+        target = str(target_status or "").strip().lower()
+        allowed = {
+            "candidate": {"advisory", "quarantined"},
+            "advisory": {"executable", "quarantined"},
+            "executable": {"advisory", "quarantined"},
+            "quarantined": {"advisory"},
+        }
+        if not skill or skill.status == "builtin":
+            return {"changed": False, "reason": "learned_skill_not_found"}
+        if target not in allowed.get(skill.status, set()):
+            return {"changed": False, "reason": "invalid_lifecycle_transition"}
+        if target == "executable":
+            validation = validate_bounded_action_template(skill.bounded_action_template)
+            if not validation.valid:
+                return {"changed": False, "reason": "invalid_bounded_action_template", "issues": validation.issues}
+            promotion_gate = evidence.get("executable_promotion_gate", evidence) if isinstance(evidence, dict) else {}
+            gate_issues = executable_promotion_gate_issues(
+                promotion_gate,
+                skill_id=skill.skill_id,
+                version=skill.version,
+            )
+            if gate_issues:
+                return {
+                    "changed": False,
+                    "reason": "paired_live_executable_promotion_gate_required",
+                    "issues": gate_issues,
+                }
+        previous = skill.status
+        previous_version = skill.version
+        if target == "executable":
+            self._skill_history[(skill.skill_id or skill.name, skill.version)] = deepcopy(skill)
+            promoted = deepcopy(skill)
+            promoted.version = self._next_patch_version(skill.version)
+            promoted.parent_version = skill.version
+            promoted.rollback_target = skill.version
+            promoted.status = "executable"
+            promoted_gate = deepcopy(promotion_gate)
+            promoted_gate["promoted_skill_version"] = promoted.version
+            promoted.gate = {
+                **(promoted.gate if isinstance(promoted.gate, dict) else {}),
+                "readiness": "approved",
+                "executable_promotion": promoted_gate,
+            }
+            self.skills[promoted.name] = promoted
+            self._skill_history[(promoted.skill_id or promoted.name, promoted.version)] = promoted
+            skill = promoted
+        else:
+            skill.status = target
+        event = {
+            "timestamp": time.time(),
+            "skill_id": skill.skill_id,
+            "version": skill.version,
+            "previous_version": previous_version,
+            "previous_status": previous,
+            "status": target,
+            "reason": str(reason or "")[:300],
+            "evidence": evidence or {},
+            "automatic_delete_allowed": False,
+        }
+        skill.lifecycle_history.append(event)
+        should_persist = self.persist if persist is None else persist
+        if should_persist:
+            self._rewrite_custom_skills()
+        return {"changed": True, "rollback_target": skill.rollback_target, **event}
+
+    def rollback_skill_version(
+        self,
+        skill_id: str,
+        target_version: str,
+        reason: str,
+        evidence: Optional[dict] = None,
+        persist: Optional[bool] = None,
+    ) -> dict:
+        """Restore a historical contract as a new advisory version for revalidation."""
+        current = self.get_skill_by_id(skill_id)
+        target = next(
+            (item for item in self.skill_versions(skill_id) if item.version == str(target_version)),
+            None,
+        )
+        if current is None or target is None or current.status == "builtin":
+            return {"changed": False, "reason": "rollback_target_not_found"}
+        next_version = self._next_patch_version(current.version)
+        payload = asdict(deepcopy(target))
+        payload.update({
+            "version": next_version,
+            "status": "advisory",
+            "parent_version": current.version,
+            "rollback_target": target.version,
+            "gate": {},
+            "success_count": 0,
+            "failure_count": 0,
+            "observed_failure_count": 0,
+            "failure_type_counts": {},
+            "successful_uses": 0,
+            "total_uses": 0,
+            "success_rate": 0.0,
+            "confidence_interval": wilson_confidence_interval(0, 0),
+        })
+        event = {
+            "timestamp": time.time(),
+            "skill_id": current.skill_id,
+            "previous_version": current.version,
+            "rollback_source_version": target.version,
+            "version": next_version,
+            "status": "advisory",
+            "reason": str(reason or "")[:300],
+            "evidence": evidence or {},
+            "automatic_delete_allowed": False,
+        }
+        payload["lifecycle_history"] = list(payload.get("lifecycle_history", [])) + [event]
+        name = payload.pop("name")
+        description = payload.pop("description", "")
+        implementation = payload.pop("implementation", "")
+        restored = self.create_skill(
+            name,
+            description,
+            implementation,
+            persist=False,
+            **payload,
+        )
+        should_persist = self.persist if persist is None else persist
+        if should_persist:
+            self._rewrite_custom_skills()
+        return {"changed": True, "skill": restored, **event}
+
+    def skill_postconditions_met(
+        self,
+        skill: Skill,
+        world_state: dict,
+        effective_postconditions: Optional[dict] = None,
+    ) -> tuple[bool, list[str]]:
+        contract = (
+            {"postconditions": effective_postconditions}
+            if isinstance(effective_postconditions, dict) and effective_postconditions
+            else skill
+        )
+        return evaluate_skill_postconditions(contract, world_state)
+
+    def apply_heldout_transfer_evidence(
+        self,
+        skill_id: str,
+        report: dict,
+        gate: dict,
+        persist: Optional[bool] = None,
+    ) -> dict:
+        """Attach approved held-out evidence without widening the task family."""
+        skill = self.get_skill_by_id(skill_id)
+        if skill is None or skill.status != "executable":
+            return {"changed": False, "reason": "executable_skill_required"}
+        issues = []
+        if report.get("type") != "skill_heldout_transfer_report":
+            issues.append("heldout_report_type_invalid")
+        if str(report.get("skill_id") or "") != skill.skill_id:
+            issues.append("heldout_report_skill_mismatch")
+        if report.get("positive_transfer") is not True or report.get("heldout") is not True:
+            issues.append("positive_heldout_transfer_required")
+        if report.get("fixed_controls_match") is not True:
+            issues.append("heldout_controls_mismatch")
+        if int(report.get("training_heldout_overlap_count", 0) or 0) != 0:
+            issues.append("training_heldout_session_overlap")
+        if report.get("errors"):
+            issues.append("heldout_report_has_errors")
+        if gate.get("type") != "task_stream_transfer_gate":
+            issues.append("transfer_gate_type_invalid")
+        if gate.get("readiness") != "approved" or gate.get("decision") != "allow_candidate_promotion":
+            issues.append("transfer_gate_not_approved")
+        if str(gate.get("target") or "") != f"skill:{skill.skill_id}":
+            issues.append("transfer_gate_skill_mismatch")
+        if str(gate.get("source_report_fingerprint") or "") != evidence_fingerprint(report):
+            issues.append("transfer_report_fingerprint_mismatch")
+        if issues:
+            return {"changed": False, "reason": "heldout_transfer_gate_rejected", "issues": sorted(set(issues))}
+
+        scope = deepcopy(skill.transfer_scope if isinstance(skill.transfer_scope, dict) else {})
+        scope["heldout_validated"] = True
+        scope["heldout_task_set"] = sorted(set(
+            list(scope.get("heldout_task_set", []) or [])
+            + list(report.get("heldout_transfer_task_set", []) or [])
+        ))
+        scope["heldout_session_ids"] = sorted(set(
+            list(scope.get("heldout_session_ids", []) or [])
+            + list(report.get("heldout_session_ids", []) or [])
+        ))
+        scope["unsupported_task_families"] = sorted(set(
+            list(scope.get("unsupported_task_families", []) or [])
+            + list(report.get("unsupported_task_family", []) or [])
+        ))
+        scope["transfer_gate_fingerprint"] = evidence_fingerprint(gate)
+        scope["positive_transfer_step_gain"] = float(report.get("environment_step_gain", 0) or 0)
+        skill.transfer_scope = scope
+        event = {
+            "timestamp": time.time(),
+            "skill_id": skill.skill_id,
+            "version": skill.version,
+            "event": "heldout_transfer_validated",
+            "heldout_session_ids": list(scope["heldout_session_ids"]),
+            "transfer_gate_fingerprint": scope["transfer_gate_fingerprint"],
+            "status": skill.status,
+            "automatic_scope_widening_allowed": False,
+        }
+        skill.lifecycle_history.append(event)
+        should_persist = self.persist if persist is None else persist
+        if should_persist:
+            self._rewrite_custom_skills()
+        return {"changed": True, "skill": skill, **event}
+
+    def _repeated_failed_transition_count(self, skill: Skill, context: dict) -> int:
+        target = str(context.get("first_failed_transition") or "").strip()
+        if not target:
+            return 0
+        return sum(
+            1 for item in skill.failure_evidence
+            if str(item.get("first_failed_transition") or "").strip() == target
+        )
 
     def record_skill_memory(
         self,
@@ -181,6 +714,8 @@ class SkillLibrary:
         builtin_names = self._builtin_skill_names()
         task_family = self.infer_task_family(goal, {})
         for skill in self.skills.values():
+            if skill.name not in builtin_names and skill.status not in {"advisory", "executable"}:
+                continue
             if not self._runtime_default_skill_allowed(skill.name, task_family, built_in=skill.name in builtin_names):
                 continue
             if skill.total_uses > 0:
@@ -230,6 +765,9 @@ class SkillLibrary:
         blocked_candidate_count = 0
         for skill in self.skills.values():
             built_in = skill.name in builtin_names
+            if not built_in and skill.status not in {"advisory", "executable"}:
+                blocked_candidate_count += 1
+                continue
             allowed = built_in or any(
                 self._runtime_default_skill_allowed(skill.name, family, built_in=False)
                 for family in frontier_families
@@ -547,8 +1085,25 @@ class SkillLibrary:
         original_feedback = dict(self._skill_memory_quality_feedback)
         original_policies = {key: dict(value) for key, value in self._skill_memory_quality_policies.items()}
         original_items = {key: dict(value) for key, value in self._skill_memory_quality_items.items()}
+        original_runtime_profile = json.loads(json.dumps(self._runtime_default_gate_profile, default=str))
         results = []
         try:
+            evaluation_candidates = [
+                {
+                    "skill": skill.name,
+                    "task_family": skill.task_family or "",
+                    "candidate_readiness": "approved",
+                }
+                for skill in self.skills.values()
+                if skill.name not in self._builtin_skill_names()
+                and skill.status in {"advisory", "executable"}
+            ]
+            if evaluation_candidates:
+                self.record_skill_runtime_default_gate({
+                    "readiness": "approved",
+                    "decision": "allow_offline_quality_ablation_only",
+                    "candidates": evaluation_candidates,
+                })
             self._clear_skill_memory_quality_feedback()
             for index, case in enumerate(cases, start=1):
                 goal = case.get("goal", "")
@@ -562,6 +1117,7 @@ class SkillLibrary:
             self._skill_memory_quality_feedback = original_feedback
             self._skill_memory_quality_policies = original_policies
             self._skill_memory_quality_items = original_items
+            self._runtime_default_gate_profile = original_runtime_profile
         return {
             "case_count": len(results),
             "changed_count": sum(1 for case in results if case["changed"]),
@@ -670,11 +1226,20 @@ class SkillLibrary:
             family_skills = profile["approved_family_skills"].setdefault(family, [])
             if name not in family_skills:
                 family_skills.append(name)
+            fingerprint = str(candidate.get("promotion_gate_fingerprint") or "").strip().lower()
+            if fingerprint:
+                fingerprints = profile["approved_skill_promotion_fingerprints"].setdefault(name, [])
+                if fingerprint not in fingerprints:
+                    fingerprints.append(fingerprint)
 
         profile["gate_readiness"] = "approved" if profile.get("gate_approved", True) else profile.get("gate_readiness", "review")
         for key in ("approved_skills", "review_skills", "rejected_skills"):
             profile[key] = sorted(profile.get(key, []))
-        for key in ("approved_skill_families", "approved_family_skills"):
+        for key in (
+            "approved_skill_families",
+            "approved_family_skills",
+            "approved_skill_promotion_fingerprints",
+        ):
             profile[key] = {
                 name: sorted(values)
                 for name, values in sorted(profile.get(key, {}).items())
@@ -699,6 +1264,10 @@ class SkillLibrary:
                 family: list(values)
                 for family, values in profile.get("approved_family_skills", {}).items()
             },
+            "approved_skill_promotion_fingerprints": {
+                name: list(values)
+                for name, values in profile.get("approved_skill_promotion_fingerprints", {}).items()
+            },
             "review_skills": list(profile.get("review_skills", [])),
             "rejected_skills": list(profile.get("rejected_skills", [])),
             "decision": str(profile.get("decision", "")),
@@ -717,6 +1286,7 @@ class SkillLibrary:
             "approved_skills": [],
             "approved_skill_families": {},
             "approved_family_skills": {},
+            "approved_skill_promotion_fingerprints": {},
             "review_skills": [],
             "rejected_skills": [],
         }
@@ -848,14 +1418,20 @@ class SkillLibrary:
         family = str(task_family or "").strip().lower()
         return "" not in families and family not in families
 
-    def _runtime_default_skill_allowed(self, skill_name: str, task_family: str = "", built_in: bool = False) -> bool:
+    def _runtime_default_skill_allowed(
+        self,
+        skill_name: str,
+        task_family: str = "",
+        built_in: bool = False,
+        promotion_gate_fingerprint: str = "",
+    ) -> bool:
         if built_in:
             return True
         if not self._skill_retirement_allowed(skill_name, task_family, built_in=False):
             return False
         profile = self._runtime_default_gate_profile
         if not profile.get("gate_required"):
-            return True
+            return False
         if not profile.get("gate_approved"):
             return False
         name = str(skill_name or "").strip()
@@ -865,7 +1441,13 @@ class SkillLibrary:
         if not families:
             return False
         family = str(task_family or "").strip().lower()
-        return "" in families or family in families
+        if "" not in families and family not in families:
+            return False
+        expected_fingerprint = str(promotion_gate_fingerprint or "").strip().lower()
+        if expected_fingerprint:
+            approved = profile.get("approved_skill_promotion_fingerprints", {}).get(name, [])
+            return expected_fingerprint in approved
+        return True
 
     def _skill_memory_hint_candidates(self, goal: str = "", task_family: str = "") -> list[dict]:
         family_filter = str(task_family or "").strip().lower()
@@ -873,6 +1455,8 @@ class SkillLibrary:
         builtin_names = self._builtin_skill_names()
         candidates = []
         for skill in self.skills.values():
+            if skill.name not in builtin_names and skill.status not in {"advisory", "executable"}:
+                continue
             governance = self._skill_governance(skill, built_in=skill.name in builtin_names)
             for memory in self._normalized_skill_memory(skill):
                 note = memory.get("note", "")
@@ -1172,6 +1756,7 @@ class SkillLibrary:
             return "building"
         family_terms = [
             ("redstone", ("redstone", "circuit", "lever", "repeater", "comparator", "lamp")),
+            ("gathering", ("gather", "collect", "chop", "oak log", "wood log")),
             ("crafting", ("craft", "recipe", "smelt", "furnace", "torch", "pickaxe", "plank", "stick")),
             ("mining", ("mine", "dig", "ore", "coal", "iron", "diamond", "stone", "cobblestone")),
             ("building", ("build", "place", "shelter", "wall", "roof", "door", "base")),
@@ -1385,16 +1970,67 @@ class SkillLibrary:
                         continue
                     data = json.loads(line)
                     skill = Skill(**self._filter_skill_fields(data))
+                    skill.skill_id = skill.skill_id or skill.name
+                    skill.status = str(skill.status or "candidate").strip().lower()
+                    skill.task_family = skill.task_family or self.infer_task_family(
+                        " ".join([skill.name, skill.description])
+                    )
+                    if not skill.bounded_action_template and skill.implementation:
+                        try:
+                            parsed = json.loads(skill.implementation)
+                        except (TypeError, ValueError):
+                            parsed = {}
+                        if isinstance(parsed, dict) and parsed.get("dsl_version"):
+                            skill.bounded_action_template = parsed
+                    skill.confidence_interval = skill.confidence_interval or wilson_confidence_interval(
+                        skill.success_count,
+                        skill.failure_count,
+                    )
                     skill.skill_memory = self._normalized_skill_memory(skill)
-                    self.skills[skill.name] = skill
+                    self._skill_history[(skill.skill_id, skill.version)] = skill
+                    current = self.skills.get(skill.name)
+                    if current is None or self._version_key(skill.version) >= self._version_key(current.version):
+                        self.skills[skill.name] = skill
         except Exception as e:
             logger.warning(f"Could not load custom skills: {e}")
 
     def _rewrite_custom_skills(self):
-        custom_skills = [s for s in self.skills.values() if s.name not in self._builtin_skill_names()]
-        with open(self.custom_path, "w", encoding="utf-8") as f:
+        builtin_names = self._builtin_skill_names()
+        for skill in self.skills.values():
+            if skill.name not in builtin_names:
+                self._skill_history[(skill.skill_id or skill.name, skill.version)] = skill
+        custom_skills = sorted(
+            self._skill_history.values(),
+            key=lambda skill: (skill.skill_id or skill.name, self._version_key(skill.version)),
+        )
+        temp_path = self.custom_path + ".tmp"
+        with open(temp_path, "w", encoding="utf-8") as f:
             for skill in custom_skills:
                 f.write(json.dumps(asdict(skill), ensure_ascii=False, default=str) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_path, self.custom_path)
+
+    def skill_versions(self, skill_id: str) -> list[Skill]:
+        target = str(skill_id or "").strip()
+        versions = [
+            skill for (stored_id, _), skill in self._skill_history.items()
+            if stored_id == target or skill.name == target
+        ]
+        return sorted(versions, key=lambda skill: self._version_key(skill.version))
+
+    def _version_key(self, version: str) -> tuple[int, ...]:
+        parts = []
+        for value in str(version or "0").split("."):
+            try:
+                parts.append(int(value))
+            except ValueError:
+                parts.append(0)
+        return tuple((parts + [0, 0, 0])[:3])
+
+    def _next_patch_version(self, version: str) -> str:
+        major, minor, patch = self._version_key(version)
+        return f"{major}.{minor}.{patch + 1}"
 
     def _filter_skill_fields(self, data: dict) -> dict:
         allowed = set(Skill.__dataclass_fields__.keys())

@@ -1,0 +1,21 @@
+{
+  "average_generalization_gain": 1.0,
+  "decision": "allow_candidate_promotion",
+  "evidence_count": 1,
+  "heldout_source_session_ids": [
+    "0432d494-c7d",
+    "6da981d0-e7c"
+  ],
+  "readiness": "approved",
+  "ready_stream_count": 1,
+  "regression_count": 0,
+  "schema_version": 1,
+  "source_report_fingerprint": "8b4bbba16454e8ee265ec2304677ae2aad4cd9a475629b5de55905fb7454d098",
+  "target": "skill:learned:gather_wood",
+  "task_count": 1,
+  "thresholds": {
+    "require_heldout": true
+  },
+  "training_heldout_overlap_count": 0,
+  "type": "task_stream_transfer_gate"
+}

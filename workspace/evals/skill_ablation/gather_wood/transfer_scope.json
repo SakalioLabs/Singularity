@@ -1,0 +1,17 @@
+{
+  "goals": [
+    "Gather 3 oak logs"
+  ],
+  "quantity_range": {
+    "maximum": 3,
+    "minimum": 1
+  },
+  "supported_task_families": [
+    "gathering"
+  ],
+  "task_family": "gathering",
+  "unsupported_task_families": [
+    "crafting",
+    "combat"
+  ]
+}

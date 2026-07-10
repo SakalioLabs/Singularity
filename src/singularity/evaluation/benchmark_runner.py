@@ -44,6 +44,11 @@ def m1_convergence_config(config: Config) -> Config:
         config,
         llm=replace(config.llm, api_key="", base_url=""),
         force_rule_planner=True,
+        enable_skill_candidate_extraction=False,
+        skill_execution_mode="off",
+        target_skill_id="",
+        skill_experiment_id="",
+        skill_evaluation_authorization={},
         enable_policy_skills=False,
         enable_skill_frontier_routing=False,
         enable_autocurriculum=False,
@@ -107,6 +112,10 @@ def m1_runtime_profile(config: Config) -> dict:
     fields = {
         "force_rule_planner": bool(config.force_rule_planner),
         "llm_planner": not bool(config.force_rule_planner),
+        "skill_candidate_extraction": bool(config.enable_skill_candidate_extraction),
+        "skill_execution_mode": str(config.skill_execution_mode or "off"),
+        "target_skill_id": str(config.target_skill_id or ""),
+        "skill_evaluation_authorized": bool(config.skill_evaluation_authorization),
         "policy_skills": bool(config.enable_policy_skills),
         "skill_frontier_routing": bool(config.enable_skill_frontier_routing),
         "autocurriculum": bool(config.enable_autocurriculum),
@@ -153,6 +162,7 @@ def m1_runtime_profile(config: Config) -> dict:
         fields["force_rule_planner"]
         and not any(fields[name] for name in (
             "llm_planner", "policy_skills", "skill_frontier_routing", "autocurriculum",
+            "skill_candidate_extraction",
             "memory_policy", "planning_memory", "memory_persistence", "task_memory",
             "task_continuity", "task_readiness", "task_readiness_recovery",
             "bounded_planning_context", "skill_memory", "curriculum_planner_context",
@@ -164,6 +174,9 @@ def m1_runtime_profile(config: Config) -> dict:
         and fields["ungated_artifact_path_count"] == 0
         and fields["episode_abort_mode"] == "off"
         and fields["frontier_budget_mode"] == "off"
+        and fields["skill_execution_mode"] == "off"
+        and not fields["target_skill_id"]
+        and not fields["skill_evaluation_authorized"]
         and fields["goal_verification"]
         and fields["action_verification"]
     )
@@ -3295,6 +3308,7 @@ class BenchmarkIngestionReport:
     promotion_statuses: dict[str, int] = field(default_factory=dict)
     promotion_readiness: dict[str, int] = field(default_factory=lambda: {
         "approved": 0,
+        "retained": 0,
         "rejected": 0,
         "unknown": 0,
     })
@@ -3311,10 +3325,14 @@ class BenchmarkIngestionReport:
 
         if decision == "reject":
             readiness = "rejected"
+        elif decision == "promote_advisory":
+            readiness = "approved"
+        elif decision == "retain_candidate":
+            readiness = "retained"
         elif status == "unknown":
             readiness = "unknown"
         else:
-            readiness = "approved"
+            readiness = "unknown"
         self.promotion_readiness[readiness] = self.promotion_readiness.get(readiness, 0) + 1
 
 
@@ -6544,9 +6562,11 @@ class BenchmarkRunner:
     def _promotion_readiness(self, report: dict) -> str:
         if report.get("decision") == "reject":
             return "rejected"
-        if report.get("status") == "unknown":
-            return "unknown"
-        return "approved"
+        if report.get("decision") == "promote_advisory":
+            return "approved"
+        if report.get("decision") == "retain_candidate":
+            return "candidate"
+        return "unknown"
 
     def load_promotion_review_labels(self, label_path: str) -> dict:
         """Load manual skill-promotion review labels from JSON or JSONL."""
@@ -17489,20 +17509,22 @@ class BenchmarkRunner:
                         "benchmark_task_id": result.task_id,
                         "benchmark_task_name": result.task_name,
                     }
-                    validation = extractor.validate_candidate_for_promotion(candidate)
+                    queued = candidate_queue.enqueue(candidate)
+                    validation = extractor.validate_candidate_for_promotion(queued)
                     validation_report = {
                         **validation.to_dict(),
                         "benchmark_task_id": result.task_id,
                         "benchmark_task_name": result.task_name,
                     }
-                    candidate.signals = {
-                        **candidate.signals,
-                        "verification_gate": validation_report.get("gate", candidate.signals.get("verification_gate", {})),
+                    queued.signals = {
+                        **queued.signals,
+                        "verification_gate": validation_report.get("gate", queued.signals.get("verification_gate", {})),
                         "promotion_report": validation_report,
                     }
                     report.record_promotion_report(validation_report)
-                    candidate_queue.enqueue(candidate)
-                    report.queued_candidate_ids.append(candidate.id)
+                    candidate_queue.save()
+                    if queued.id not in report.queued_candidate_ids:
+                        report.queued_candidate_ids.append(queued.id)
 
                 report.processed_results += 1
                 report.experience_atoms += len(atoms)
@@ -18984,6 +19006,8 @@ class BenchmarkRunner:
             params = action.get("parameters", {}) if isinstance(action.get("parameters", {}), dict) else {}
             if action.get("type") == "dig" and params.get("block"):
                 nearby_blocks.append({"name": params["block"]})
+                if params["block"] in {"coal_ore", "iron_ore", "stone"}:
+                    inventory.setdefault("wooden_pickaxe", 1)
             if action.get("type") == "craft" and params.get("item") == "torch":
                 inventory.setdefault("stick", 1)
         return {
@@ -19009,18 +19033,31 @@ class BenchmarkRunner:
         return "-".join(part for part in "".join(cleaned).split("-") if part)[:48] or "SKILL"
 
     def _run_policy_skill_case(self, case: PolicySkillAblationCase, enable_policy_skills: bool) -> dict:
+        from singularity.action.value import ActionValueProfile
+        from singularity.action.verifier import ActionVerifier
+        from singularity.core.goal_verifier import GoalVerifier
         from singularity.core.memory import MemorySystem
         from singularity.core.skill_library import SkillLibrary
         from singularity.logging.session_logger import SessionLogger
 
         with tempfile.TemporaryDirectory() as tmpdir:
             state = json.loads(json.dumps(case.world_state, default=str))
+            required_state = self._world_state_for_policy_skill(
+                case.failed_action,
+                case.skill_implementation.get("correction_sequence", []),
+            )
+            state.setdefault("inventory", {})
+            for item, count in required_state.get("inventory", {}).items():
+                state["inventory"].setdefault(item, count)
             config = replace(
                 self.config,
                 log_dir=os.path.join(tmpdir, "logs"),
                 memory_dir=os.path.join(tmpdir, "memory"),
                 skill_dir=os.path.join(tmpdir, "skills"),
                 enable_policy_skills=enable_policy_skills,
+                enable_action_candidate_selection=False,
+                enable_action_verification=True,
+                enforce_action_verification=True,
             )
             agent = object.__new__(Agent)
             agent.config = config
@@ -19030,13 +19067,29 @@ class BenchmarkRunner:
                 case.skill_name,
                 case.skill_description,
                 json.dumps(case.skill_implementation, ensure_ascii=False, default=str),
+                status="advisory",
             )
+            agent.skill_library.record_skill_runtime_default_gate({
+                "readiness": "approved",
+                "decision": "allow_task_family_runtime_default_skills",
+                "target_task_family": agent.skill_library.infer_task_family(case.goal, case.failed_action),
+                "candidates": [{
+                    "skill": case.skill_name,
+                    "task_family": agent.skill_library.infer_task_family(case.goal, case.failed_action),
+                    "candidate_readiness": "approved",
+                }],
+            })
             agent.task_system = TaskSystem()
+            agent.action_verifier = ActionVerifier()
+            agent.action_value_profile = ActionValueProfile()
+            agent.goal_verifier = GoalVerifier(skill_library=agent.skill_library)
             agent.action_controller = _PolicySkillAblationActionController(state)
             agent.observer = _PolicySkillAblationObserver(state)
             agent.session_logger = SessionLogger(log_dir=config.log_dir)
             agent.explorer = _PolicySkillAblationExplorer()
             agent.runtime = _PolicySkillAblationRuntime()
+            agent._active_skill_execution = {}
+            agent._skill_fallback_goals = set()
 
             corrected, observation = agent._attempt_failure_correction(
                 case.failed_action,

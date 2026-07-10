@@ -192,6 +192,29 @@ class Agent:
             else None
         )
         self.skill_library = SkillLibrary(storage_path=config.skill_dir, persist=True)
+        self.skill_candidate_queue = None
+        self.skill_extractor = None
+        self.skill_learning_ledger = None
+        if getattr(config, "enable_skill_candidate_extraction", False):
+            from singularity.core.skill_extractor import SkillCandidateQueue, SkillExtractor
+            from singularity.core.skill_learning import SkillLearningLedger
+
+            self.skill_candidate_queue = SkillCandidateQueue(config.skill_candidate_queue_path)
+            self.skill_extractor = SkillExtractor(
+                self.skill_library,
+                memory_system=self.memory,
+                auto_promote=False,
+            )
+            self.skill_learning_ledger = SkillLearningLedger(config.skill_learning_ledger_path)
+        elif str(getattr(config, "skill_execution_mode", "off") or "off").lower() != "off":
+            from singularity.core.skill_learning import SkillLearningLedger
+
+            self.skill_learning_ledger = SkillLearningLedger(config.skill_learning_ledger_path)
+        self._active_skill_execution: dict = {}
+        self._active_skill_advisory_hint = ""
+        self._skill_fallback_goals: set[str] = set()
+        self._applied_skill_fault_profiles: set[str] = set()
+        self._skill_episode_start_index = 0
         self.skill_runtime_default_gate_report = self._load_skill_runtime_default_gates()
         self.skill_retirement_gate_report = self._load_skill_retirement_gates()
         self.skill_memory_quality_feedback_report = self._load_skill_memory_quality_feedback()
@@ -1474,6 +1497,9 @@ class Agent:
 
         self.current_goal = goal
         self._last_plan_cache_signature = START_PLAN_SIGNATURE
+        self._skill_episode_start_index = len(getattr(self.session_logger, "events", []))
+        self._active_skill_execution = {}
+        self._skill_fallback_goals.discard(self._goal_fingerprint(goal))
         self.running = True
         logger.info(f"Starting goal: {goal}")
         self.session_logger.log_goal_start(goal)
@@ -1633,11 +1659,11 @@ class Agent:
                     self._write_memory_episode("action", {"action": action, "result": result}, source="goal_action")
 
                     if result.get("requires_replan"):
-                        self._record_skill_usage(action, False)
+                        self._record_skill_usage(action, False, result)
                         logger.info("Navigation target not reached; deferring the remaining plan suffix")
                         break
                     if result.get("success"):
-                        self._record_skill_usage(action, True)
+                        self._record_skill_usage(action, True, result)
                         verified, verification = self._goal_is_verified(
                             goal,
                             observation,
@@ -1653,7 +1679,7 @@ class Agent:
                             success = True
                             break
                     else:
-                        self._record_skill_usage(action, False)
+                        self._record_skill_usage(action, False, result)
                         corrected, observation = self._attempt_failure_correction(
                             action,
                             result,
@@ -1723,6 +1749,8 @@ class Agent:
         }
         self.session_logger.log_goal_end(goal, result)
         self._write_memory_episode("goal_end", {"goal": goal, "success": success, "cycles": cycle}, source="run_goal")
+        self._finalize_skill_learning_episode(goal, success, last_observation, result)
+        result["summary"] = self.session_logger.get_summary()
         return result
 
     # ── Autonomous mode (M4 + M5) ──────────────────────────────────────
@@ -1758,6 +1786,9 @@ class Agent:
             self._last_plan_cache_signature = START_PLAN_SIGNATURE
             goal_index = goals_completed + goals_failed + 1
             goal_payload = {"goal": goal, "goal_index": goal_index, "max_goals": max_goals}
+            self._skill_episode_start_index = len(getattr(self.session_logger, "events", []))
+            self._active_skill_execution = {}
+            self._skill_fallback_goals.discard(self._goal_fingerprint(goal))
             logger.info(f"[Autonomous] Goal {goal_index}/{max_goals}: {goal}")
             self.session_logger.log("auto_goal", goal_payload)
             self.session_logger.log_goal_start(goal)
@@ -1968,7 +1999,7 @@ class Agent:
                         )
 
                         if result.get("success"):
-                            self._record_skill_usage(action, True)
+                            self._record_skill_usage(action, True, result)
                             verified, verification = self._goal_is_verified(
                                 goal,
                                 observation,
@@ -1990,7 +2021,7 @@ class Agent:
                                 )
                                 break
                         else:
-                            self._record_skill_usage(action, False)
+                            self._record_skill_usage(action, False, result)
                             corrected, observation = self._attempt_failure_correction(
                                 action,
                                 result,
@@ -2062,6 +2093,7 @@ class Agent:
                 self.session_logger.log("auto_goal_complete", outcome)
                 self.session_logger.log_goal_end(goal, outcome)
                 self._write_memory_episode("auto_goal_complete", outcome, source="autonomous")
+                self._finalize_skill_learning_episode(goal, True, observation, outcome)
                 self.curriculum.record_goal_outcome(goal, True, cycle)
             else:
                 goals_failed += 1
@@ -2094,6 +2126,7 @@ class Agent:
                 self.session_logger.log("auto_goal_failed", outcome)
                 self.session_logger.log_goal_end(goal, outcome)
                 self._write_memory_episode("auto_goal_failed", outcome, source="autonomous")
+                self._finalize_skill_learning_episode(goal, False, observation, outcome)
                 self.curriculum.record_goal_outcome(goal, False, cycle)
 
         result = {
@@ -2114,6 +2147,10 @@ class Agent:
 
     def _think(self, observation: dict, override_goal: str = None) -> dict:
         goal = override_goal or self.current_goal or "explore"
+        self._active_skill_advisory_hint = ""
+        learned_plan = self._learned_skill_plan(goal, observation)
+        if learned_plan is not None:
+            return self._apply_visual_action_grounding(learned_plan, observation, goal)
         if self._use_llm:
             plan = self._think_llm(observation, goal)
             plan = self._blocked_plan_rule_fallback(plan, goal, observation)
@@ -2241,6 +2278,7 @@ class Agent:
                 knowledge_correction_context,
                 task_precondition_context,
                 skill_memory_context,
+                self._active_skill_advisory_hint,
                 skill_hint,
                 hybrid_workflow_context,
             ) if part)
@@ -2625,6 +2663,364 @@ class Agent:
             logger_instance.log("frontier_budget_outcome", payload)
         self._frontier_budget_active = {}
         return payload
+
+    def _learned_skill_plan(self, goal: str, observation: dict) -> dict | None:
+        """Return a gated learned-skill plan, or only log its shadow proposal."""
+        mode = str(getattr(self.config, "skill_execution_mode", "off") or "off").strip().lower()
+        if mode not in {"shadow", "advisory", "evaluation", "runtime"}:
+            return None
+        goal_key = self._goal_fingerprint(goal)
+        if goal_key in self._skill_fallback_goals:
+            return None
+        target_skill_id = str(getattr(self.config, "target_skill_id", "") or "").strip()
+        active_id = str(self._active_skill_execution.get("skill_id") or "")
+        skill = self.skill_library.get_skill_by_id(active_id) if active_id else None
+        if skill is None:
+            skill = self.skill_library.select_runtime_skill(
+                goal,
+                observation,
+                execution_mode=mode,
+                target_skill_id=target_skill_id,
+                experiment_id=str(getattr(self.config, "skill_experiment_id", "") or ""),
+                evaluation_authorization=getattr(self.config, "skill_evaluation_authorization", {}) or {},
+            )
+        if skill is None:
+            if target_skill_id:
+                self._skill_fallback_goals.add(goal_key)
+                self.session_logger.log("skill_fallback", {
+                    "goal": goal,
+                    "skill_id": target_skill_id,
+                    "mode": mode,
+                    "reason": "target_skill_not_applicable_or_not_gated",
+                    "before_execution": True,
+                })
+            return None
+
+        plan = self.skill_library.build_runtime_skill_plan(skill, goal, observation)
+        identity = plan.get("skill", {}) if isinstance(plan.get("skill", {}), dict) else {}
+        if plan.get("status") == "fallback":
+            fallback_reason = str(plan.get("fallback_reason") or "skill_plan_fallback")
+            fallback_failure_type = (
+                "skill_error"
+                if fallback_reason == "invalid_skill_contract"
+                else "environment_change"
+            )
+            self._skill_fallback_goals.add(goal_key)
+            self._active_skill_execution = {
+                "skill_id": skill.skill_id,
+                "skill_name": skill.name,
+                "version": skill.version,
+                "mode": mode,
+                "selected_count": 1,
+                "executed_count": 0,
+                "failed_action_count": 0,
+                "fallback_reason": fallback_reason,
+                "failure_type": fallback_failure_type,
+            }
+            self.session_logger.log("skill_fallback", {
+                "goal": goal,
+                "skill": identity,
+                "mode": mode,
+                "reason": fallback_reason,
+                "failure_type": fallback_failure_type,
+                "issues": plan.get("issues", []),
+                "before_execution": True,
+            })
+            return None
+
+        if mode == "shadow":
+            self.session_logger.log("skill_shadow_plan", {
+                "goal": goal,
+                "skill": identity,
+                "mode": mode,
+                "status": plan.get("status"),
+                "phase_id": plan.get("phase_id", ""),
+                "action_types": [
+                    str(action.get("type") or "")
+                    for action in plan.get("actions", [])
+                    if isinstance(action, dict)
+                ],
+                "action_count": len(plan.get("actions", []) or []),
+                "runtime_influence": False,
+            })
+            return None
+
+        if mode == "advisory":
+            action_types = [
+                str(action.get("type") or "")
+                for action in plan.get("actions", [])
+                if isinstance(action, dict) and action.get("type")
+            ]
+            self._active_skill_advisory_hint = (
+                "Bounded learned-skill advisory (no direct execution): "
+                f"skill={skill.skill_id}@{skill.version}; "
+                f"phase={plan.get('phase_id', '')}; "
+                f"allowed action types={','.join(action_types) or 'none'}; "
+                "reobserve and use ordinary planning for every action."
+            )
+            self.session_logger.log("skill_advisory_hint", {
+                "goal": goal,
+                "skill": identity,
+                "mode": mode,
+                "phase_id": plan.get("phase_id", ""),
+                "action_types": action_types,
+                "coordinate_parameters_injected": False,
+                "direct_execution": False,
+                "planner_influence": True,
+            })
+            return None
+
+        first_selection = not self._active_skill_execution
+        if first_selection:
+            self._active_skill_execution = {
+                "skill_id": skill.skill_id,
+                "skill_name": skill.name,
+                "version": skill.version,
+                "mode": mode,
+                "selected_count": 1,
+                "executed_count": 0,
+                "failed_action_count": 0,
+                "first_failed_transition": "",
+                "fallback_reason": "",
+                "bound_parameters": dict(plan.get("bound_parameters", {}) or {}),
+                "effective_postconditions": dict(plan.get("effective_postconditions", {}) or {}),
+            }
+            self.session_logger.log("skill_selected", {
+                "goal": goal,
+                "skill": identity,
+                "mode": mode,
+                "experiment_id": str(getattr(self.config, "skill_experiment_id", "") or ""),
+                "runtime_influence": True,
+                "evaluation_only": mode == "evaluation",
+            })
+
+        actions = []
+        for index, raw_action in enumerate(plan.get("actions", []) or []):
+            if not isinstance(raw_action, dict):
+                continue
+            action = dict(raw_action)
+            action["skill_context"] = {
+                "skill_id": skill.skill_id,
+                "skill_name": skill.name,
+                "version": skill.version,
+                "status": skill.status,
+                "mode": mode,
+                "phase_id": plan.get("phase_id", ""),
+                "template_action_index": index,
+                "experiment_id": str(getattr(self.config, "skill_experiment_id", "") or ""),
+                "goal": goal,
+                "goal_fingerprint": goal_key,
+            }
+            actions.append(action)
+        bounded_plan = {
+            "status": plan.get("status", "in_progress"),
+            "reasoning": plan.get("reasoning", "bounded learned skill plan"),
+            "actions": actions,
+            "skill_execution": identity,
+            "skill_phase_id": plan.get("phase_id", ""),
+            "bound_parameters": dict(plan.get("bound_parameters", {}) or {}),
+            "effective_postconditions": dict(plan.get("effective_postconditions", {}) or {}),
+        }
+        self.session_logger.log("skill_plan", {
+            "goal": goal,
+            "skill": identity,
+            "mode": mode,
+            "phase_id": plan.get("phase_id", ""),
+            "action_count": len(actions),
+            "status": bounded_plan["status"],
+            "bound_parameters": bounded_plan["bound_parameters"],
+            "effective_postconditions": bounded_plan["effective_postconditions"],
+        })
+        return bounded_plan
+
+    def _finalize_skill_learning_episode(
+        self,
+        goal: str,
+        goal_success: bool,
+        terminal_observation: dict,
+        goal_result: dict,
+    ):
+        """Finalize attribution, then extract candidates after the episode is immutable."""
+        try:
+            self._finalize_active_skill_outcome(goal, goal_success, terminal_observation, goal_result)
+        except Exception as exc:
+            logger.warning(f"Skill outcome finalization failed: {type(exc).__name__}")
+            self.session_logger.log("skill_learning_error", {
+                "phase": "outcome_attribution",
+                "error_type": type(exc).__name__,
+                "task_result_affected": False,
+            }, level="ERROR")
+
+        if self.skill_extractor is None or self.skill_candidate_queue is None:
+            return
+        try:
+            all_events = list(getattr(self.session_logger, "events", []))
+            prefix_types = {"benchmark_runtime_profile", "benchmark_reset", "connect"}
+            prefix = [
+                event for event in all_events[: self._skill_episode_start_index]
+                if event.get("type") in prefix_types
+            ]
+            episode_events = prefix + all_events[self._skill_episode_start_index :]
+            source_path = str(getattr(self.session_logger, "_log_path", "in_memory_episode"))
+            candidates = self.skill_extractor.extract_skill_candidates_from_events(
+                episode_events,
+                source_path=source_path,
+            )
+            queued_ids = []
+            queued_candidates = []
+            decisions = []
+            for candidate in candidates:
+                queued = self.skill_candidate_queue.enqueue(candidate)
+                deduplicated = queued.id != candidate.id
+                report = self.skill_extractor.validate_candidate_for_promotion(queued)
+                queued.signals = {
+                    **(queued.signals if isinstance(queued.signals, dict) else {}),
+                    "promotion_report": report.to_dict(),
+                }
+                self.skill_candidate_queue.save()
+                queued_ids.append(queued.id)
+                queued_candidates.append({
+                    "extracted_candidate_id": candidate.id,
+                    "queued_candidate_id": queued.id,
+                    "dedupe_key": queued.dedupe_key,
+                    "deduplicated": deduplicated,
+                })
+                decisions.append(report.decision)
+                if self.skill_learning_ledger is not None:
+                    self.skill_learning_ledger.record_candidate(queued, report.to_dict())
+            queue_items = self.skill_candidate_queue.all()
+            queue_dedupe_keys = [item.dedupe_key for item in queue_items if item.dedupe_key]
+            self.session_logger.log("skill_candidate_extraction", {
+                "goal": goal,
+                "episode_closed": True,
+                "candidate_count": len(candidates),
+                "queued_candidate_ids": queued_ids,
+                "queued_candidates": queued_candidates,
+                "new_candidate_count": sum(
+                    1 for item in queued_candidates if not item["deduplicated"]
+                ),
+                "deduplicated_candidate_count": sum(
+                    1 for item in queued_candidates if item["deduplicated"]
+                ),
+                "queue_candidate_count": len(queue_items),
+                "queue_unique_dedupe_key_count": len(set(queue_dedupe_keys)),
+                "queue_dedupe_key_unique": len(queue_dedupe_keys) == len(queue_items),
+                "decisions": decisions,
+                "task_result_affected": False,
+                "runtime_influence": False,
+            })
+        except Exception as exc:
+            logger.warning(f"Post-episode skill extraction failed: {type(exc).__name__}")
+            self.session_logger.log("skill_learning_error", {
+                "phase": "post_episode_extraction",
+                "error_type": type(exc).__name__,
+                "task_result_affected": False,
+            }, level="ERROR")
+
+    def _finalize_active_skill_outcome(
+        self,
+        goal: str,
+        goal_success: bool,
+        terminal_observation: dict,
+        goal_result: dict,
+    ):
+        active = dict(self._active_skill_execution or {})
+        if not active.get("skill_id"):
+            return
+        skill = self.skill_library.get_skill_by_id(active["skill_id"])
+        if skill is None:
+            return
+        postconditions_met, missing = self.skill_library.skill_postconditions_met(
+            skill,
+            terminal_observation or {},
+            effective_postconditions=active.get("effective_postconditions", {}),
+        )
+        goal_family = self.skill_library.infer_task_family(goal)
+        route_scope_valid = self.skill_library.skill_transfer_scope_allows(skill, goal_family)
+        executed = int(active.get("executed_count", 0) or 0)
+        failed_actions = int(active.get("failed_action_count", 0) or 0)
+        attributed_success = bool(
+            goal_success
+            and postconditions_met
+            and route_scope_valid
+            and executed > 0
+            and failed_actions == 0
+        )
+        if attributed_success:
+            failure_type = ""
+            confidence = 1.0
+        elif executed and not route_scope_valid:
+            failure_type = "routing_error"
+            confidence = 1.0
+        elif failed_actions:
+            failure_type = str(active.get("failure_type") or "skill_error")
+            confidence = 0.95 if failure_type == "skill_error" else 0.8
+        elif active.get("fallback_reason"):
+            failure_type = str(active.get("failure_type") or "environment_change")
+            confidence = 0.85 if failure_type == "precondition_misclassification" else 0.75
+        elif executed:
+            failure_type = "postcondition_failure"
+            confidence = 0.9
+        else:
+            failure_type = "not_executed"
+            confidence = 0.0
+        context = {
+            "goal": goal,
+            "goal_success": bool(goal_success),
+            "goal_termination_reason": str(goal_result.get("termination_reason") or ""),
+            "postconditions_met": postconditions_met,
+            "bound_parameters": dict(active.get("bound_parameters", {}) or {}),
+            "effective_postconditions": dict(active.get("effective_postconditions", {}) or {}),
+            "goal_task_family": goal_family,
+            "route_scope_valid": route_scope_valid,
+            "missing_postconditions": missing,
+            "executed_action_count": executed,
+            "failed_action_count": failed_actions,
+            "fallback_reason": active.get("fallback_reason", ""),
+            "first_failed_transition": active.get("first_failed_transition", ""),
+            "failure_type": failure_type,
+            "attribution_confidence": confidence,
+            "experiment_id": str(getattr(self.config, "skill_experiment_id", "") or ""),
+        }
+        outcome = self.skill_library.record_learned_skill_outcome(
+            skill.skill_id,
+            attributed_success,
+            context=context,
+            regression_ledger_path=str(getattr(self.config, "skill_regressions_path", "") or ""),
+        ) if executed > 0 or active.get("fallback_reason") else {
+            "recorded": False,
+            "reason": "skill_was_not_executed",
+            "status": skill.status,
+        }
+        self.session_logger.log("skill_execution_outcome", {
+            "goal": goal,
+            "skill_id": skill.skill_id,
+            "skill_name": skill.name,
+            "version": skill.version,
+            "mode": active.get("mode", ""),
+            "success": attributed_success,
+            "goal_success": bool(goal_success),
+            "postconditions_met": postconditions_met,
+            "executed_action_count": executed,
+            "failed_action_count": failed_actions,
+            "fallback_count": 1 if active.get("fallback_reason") else 0,
+            "first_failed_transition": active.get("first_failed_transition", ""),
+            "failure_type": failure_type,
+            "attribution_confidence": confidence,
+            "lifecycle_outcome": outcome,
+        })
+        if self.skill_learning_ledger is not None:
+            self.skill_learning_ledger.record_skill(skill)
+            self.skill_learning_ledger.record_decision(
+                skill.skill_id,
+                "reinforce" if attributed_success else (
+                    "demote" if outcome.get("status_changed") and outcome.get("status") == "advisory"
+                    else "quarantine" if outcome.get("status_changed") and outcome.get("status") == "quarantined"
+                    else "retain"
+                ),
+                "runtime outcome attributed to the selected learned skill",
+                evidence=context,
+            )
 
     def _skill_memory_context(self, goal: str, current_state: dict = None, limit: int = 5) -> str:
         """Retrieve skill-local replay/failure notes for the current task family."""
@@ -3140,6 +3536,7 @@ class Agent:
         verifier = getattr(self, "action_verifier", None)
         if verifier is None:
             return None, None
+        self._apply_controlled_skill_fault(action)
         try:
             decision = verifier.verify(action, observation or {}, goal=goal)
         except Exception as e:
@@ -3168,6 +3565,47 @@ class Agent:
             }
             return verification, result
         return verification, None
+
+    def _apply_controlled_skill_fault(self, action: dict):
+        """Inject one allowlisted verifier-visible failure in research-only runs."""
+        profile = str(getattr(getattr(self, "config", None), "skill_fault_profile", "") or "").strip().lower()
+        skill_context = action.get("skill_context", {}) if isinstance(action, dict) else {}
+        if not profile or not isinstance(skill_context, dict) or not skill_context.get("skill_id"):
+            return
+        key = ":".join([
+            profile,
+            str(skill_context.get("experiment_id") or ""),
+            str(skill_context.get("goal_fingerprint") or ""),
+        ])
+        if key in self._applied_skill_fault_profiles:
+            return
+        mutations = {
+            "reject_skill_craft_missing_item_v1": ("craft", {"item": "", "count": 1}),
+            "reject_skill_place_missing_item_v1": ("place", {"item": "diamond_block"}),
+            "reject_skill_equip_missing_item_v1": ("equip", {"item": "diamond_pickaxe"}),
+        }
+        mutation = mutations.get(profile)
+        if mutation is None:
+            return
+        original = {
+            "type": str(action.get("type") or ""),
+            "parameters": dict(action.get("parameters", {}) or {}),
+        }
+        action["type"], action["parameters"] = mutation[0], dict(mutation[1])
+        self._applied_skill_fault_profiles.add(key)
+        self.session_logger.log("skill_learning_fault_injection", {
+            "profile": profile,
+            "skill_id": skill_context.get("skill_id", ""),
+            "experiment_id": skill_context.get("experiment_id", ""),
+            "original_action": original,
+            "injected_action": {
+                "type": action["type"],
+                "parameters": dict(action["parameters"]),
+            },
+            "controlled_failure_only": True,
+            "counts_toward_promotion": False,
+            "action_verifier_must_reject": True,
+        })
 
     def _select_action_for_execution(
         self,
@@ -4255,8 +4693,50 @@ class Agent:
         if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
             self.session_logger.log("goal_verification", payload)
 
-    def _record_skill_usage(self, action: dict, success: bool):
+    def _record_skill_usage(self, action: dict, success: bool, result: dict = None):
         """Record skill usage for actions that map to known skills."""
+        skill_context = action.get("skill_context", {}) if isinstance(action.get("skill_context", {}), dict) else {}
+        if skill_context.get("skill_id"):
+            active = self._active_skill_execution
+            active["executed_count"] = int(active.get("executed_count", 0) or 0) + 1
+            if not success:
+                active["failed_action_count"] = int(active.get("failed_action_count", 0) or 0) + 1
+                transition = "{phase}:{index}:{action}".format(
+                    phase=skill_context.get("phase_id", "unknown"),
+                    index=skill_context.get("template_action_index", 0),
+                    action=action.get("type", "unknown"),
+                )
+                if not active.get("first_failed_transition"):
+                    active["first_failed_transition"] = transition
+                active["fallback_reason"] = "learned_skill_action_failed"
+                failure_type = self._classify_skill_action_failure(action, result or {})
+                active["failure_type"] = failure_type
+                goal_key = str(skill_context.get("goal_fingerprint") or "")
+                if goal_key:
+                    self._skill_fallback_goals.add(goal_key)
+                self.session_logger.log("skill_fallback", {
+                    "goal": skill_context.get("goal", ""),
+                    "skill_id": skill_context.get("skill_id"),
+                    "version": skill_context.get("version", ""),
+                    "mode": skill_context.get("mode", ""),
+                    "reason": "learned_skill_action_failed",
+                    "failure_type": failure_type,
+                    "first_failed_transition": transition,
+                    "before_execution": False,
+                })
+            self.session_logger.log("skill_action_result", {
+                "goal": skill_context.get("goal", ""),
+                "skill_id": skill_context.get("skill_id"),
+                "skill_name": skill_context.get("skill_name", ""),
+                "version": skill_context.get("version", ""),
+                "mode": skill_context.get("mode", ""),
+                "phase_id": skill_context.get("phase_id", ""),
+                "template_action_index": skill_context.get("template_action_index", 0),
+                "action_type": action.get("type", ""),
+                "success": bool(success),
+                "failure_type": "" if success else self._classify_skill_action_failure(action, result or {}),
+                "attributed": True,
+            })
         action_type = action.get("type", "")
         skill_mapping = {
             "dig": "dig_block",
@@ -4273,6 +4753,23 @@ class Agent:
         skill_name = skill_mapping.get(action_type)
         if skill_name:
             self.skill_library.record_use(skill_name, success)
+
+    def _classify_skill_action_failure(self, action: dict, result: dict) -> str:
+        verification = result.get("action_verification", {}) if isinstance(result, dict) else {}
+        if isinstance(verification, dict) and str(verification.get("status") or "").lower() == "reject":
+            return "skill_error"
+        error = str(result.get("error") or result.get("reason") or "").lower() if isinstance(result, dict) else ""
+        if any(term in error for term in ("connection", "bridge", "socket", "timed out", "timeout")):
+            return "backend_execution_error"
+        if (
+            action.get("type") in {"move_to", "walk_to"}
+            and isinstance(result, dict)
+            and result.get("requires_replan") is True
+        ):
+            return "environment_change"
+        if any(term in error for term in ("not found", "no block", "unreachable", "out of range")):
+            return "environment_change"
+        return "skill_error"
 
     def _attempt_failure_correction(
         self,
@@ -4309,6 +4806,7 @@ class Agent:
         })
 
         current_observation = observation
+        completed_steps = 0
         for idx, correction_action in enumerate(sequence):
             if not isinstance(correction_action, dict):
                 continue
@@ -4338,7 +4836,33 @@ class Agent:
                 return False, current_observation
 
             before_correction_observation = current_observation
-            result = self.action_controller.execute(correction_action, current_observation)
+            correction_action, action_selection = self._select_action_for_execution(
+                correction_action,
+                current_observation,
+                goal,
+                {**(context or {}), "mode": "failure_correction", "correction_skill": skill.name, "correction_index": idx},
+            )
+            action_verification, rejected_result = self._verify_action_for_execution(
+                correction_action,
+                current_observation,
+                goal,
+                {**(context or {}), "mode": "failure_correction", "correction_skill": skill.name, "correction_index": idx},
+            )
+            if rejected_result:
+                result = rejected_result
+            else:
+                result = self.action_controller.execute(correction_action, current_observation)
+                if action_verification:
+                    result["action_verification"] = action_verification
+            if action_selection:
+                result["action_candidate_selection"] = action_selection
+            result["correction_skill_attribution"] = {
+                "skill_id": getattr(skill, "skill_id", "") or skill.name,
+                "skill_name": skill.name,
+                "version": getattr(skill, "version", ""),
+                "step": idx,
+            }
+            self._record_action_value(correction_action, result, goal, action_verification)
             self._write_memory_episode("failure_correction_action", {
                 "skill": skill.name,
                 "action": correction_action,
@@ -4371,7 +4895,7 @@ class Agent:
                 },
             )
 
-            self._record_skill_usage(correction_action, bool(result.get("success")))
+            self._record_skill_usage(correction_action, bool(result.get("success")), result)
             if not result.get("success"):
                 self.skill_library.record_use(skill.name, False)
                 self._record_failure_correction_skill_memory(
@@ -4401,6 +4925,26 @@ class Agent:
                     "error": result.get("error"),
                 })
                 return False, current_observation
+            completed_steps += 1
+            goal_reached, _ = self._goal_is_verified(
+                goal,
+                current_observation,
+                {
+                    **(context or {}),
+                    "mode": "failure_correction",
+                    "correction_skill": skill.name,
+                    "correction_index": idx,
+                    "phase": "post_action",
+                },
+                recent_actions=[{
+                    "action": correction_action,
+                    "result": result,
+                    "before_observation": before_correction_observation,
+                    "after_observation": current_observation,
+                }],
+            )
+            if goal_reached:
+                break
 
         self.skill_library.record_use(skill.name, True)
         self._record_failure_correction_skill_memory(
@@ -4410,23 +4954,23 @@ class Agent:
             failed_result,
             outcome="success",
             note=(
-                f"Correction completed {len(sequence)} steps after "
+                f"Correction completed {completed_steps} steps after "
                 f"{self._action_label(failed_action)} failed."
             ),
-            step=len(sequence),
-            correction_action=sequence[-1] if sequence else {},
+            step=completed_steps,
+            correction_action=sequence[max(0, completed_steps - 1)] if sequence and completed_steps else {},
             correction_result={"success": True},
             context=context,
         )
         self._write_memory_episode("failure_correction_completed", {
             "skill": skill.name,
-            "steps": len(sequence),
+            "steps": completed_steps,
             "goal": goal,
         }, source="failure_correction")
         self._log_policy_intervention("completed", {
             "kind": "failure_correction",
             "skill": skill.name,
-            "steps": len(sequence),
+            "steps": completed_steps,
             "goal": goal,
         })
         return True, current_observation
