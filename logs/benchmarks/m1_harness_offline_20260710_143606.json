@@ -1,0 +1,51 @@
+{
+  "type": "m1_harness_offline_report",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-10T06:36:06Z",
+  "evidence_kind": "offline_test",
+  "counts_toward_live_observed": false,
+  "counts_toward_repeat_verified": false,
+  "milestone": "M1",
+  "protocol": "m1-fixed-v1",
+  "protocol_sha256": "ea9ee772558655391a124f29737db2d73ebd34c926d580950d6b4cb75db40f29",
+  "server_jar_policy": "single_sha256_across_eligible_sessions_v1",
+  "current_gate": "G0_RUNTIME_AVAILABLE",
+  "live_successes": {
+    "BM-001": 0,
+    "BM-002": 0,
+    "BM-003": 0,
+    "BM-004": 0,
+    "BM-005": 0
+  },
+  "checks": [
+    {"command": "all tests/test_*.py standalone entry points", "status": "pass", "file_count": 28},
+    {"command": "all tests/test_*.js standalone entry points", "status": "pass", "file_count": 4},
+    {"command": "node tests/test_bot_server_benchmark_reset.js", "status": "pass"},
+    {"command": "node tests/test_bot_server_navigation.js", "status": "pass"},
+    {"command": "python tests/test_m1_harness.py", "status": "pass"},
+    {"command": "python tests/test_capability_evidence.py", "status": "pass"},
+    {"command": "python tests/test_benchmark_preflight.py", "status": "pass"},
+    {"command": "python tests/test_bot_bridge.py", "status": "pass"},
+    {"command": "python tests/test_action_controller.py", "status": "pass"},
+    {"command": "python tests/test_comprehensive.py", "status": "pass", "test_count": 90},
+    {"command": "python tests/test_memory_task_system.py", "status": "pass"},
+    {"command": "python -m pytest -q", "status": "not_run", "reason": "pytest is not installed in the active Python environment"}
+  ],
+  "verified_offline_only": [
+    "canonical task/reset definitions and BM-004 threshold",
+    "RuleBasedPlanner runtime isolation",
+    "strict reached/tolerance navigation",
+    "dependent suffix deferral after unreached navigation",
+    "grounded dig and craft pre/post state deltas",
+    "bounded pickup observation",
+    "immutable session/result hashes",
+    "duplicate session, episode, log hash, and server jar rejection"
+  ],
+  "runtime_preflight": {
+    "path": "logs/benchmarks/m1_preflight_20260710_142227.json",
+    "sha256": "e542670efd191db84298690e252eb9561688fcaea35bca10c70b7ddaf7cd2c41",
+    "ok": false,
+    "blocker": "Paper server assets and a valid Singularity Bridge/Bot Session are unavailable"
+  },
+  "next_command": "powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001"
+}

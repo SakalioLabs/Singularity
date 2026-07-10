@@ -26,8 +26,158 @@ from singularity.core.curriculum import CurriculumManager
 from singularity.core.task_system import TaskStatus, TaskSystem
 from singularity.bot.bridge import BotBridge
 from singularity.action.mapping import ActionMapper
+from singularity.evaluation.m1_protocol import (
+    PROTOCOL as M1_PROTOCOL,
+    PROTOCOL_PATH as _M1_PROTOCOL_PATH,
+    PROTOCOL_SHA256 as M1_PROTOCOL_SHA256,
+    action_transition_proof,
+)
 
 logger = logging.getLogger("singularity.benchmark")
+
+M1_PROTOCOL_PATH = str(_M1_PROTOCOL_PATH)
+
+
+def m1_convergence_config(config: Config) -> Config:
+    """Return the deterministic, isolated runtime configuration used for M1 evidence."""
+    return replace(
+        config,
+        llm=replace(config.llm, api_key="", base_url=""),
+        force_rule_planner=True,
+        enable_policy_skills=False,
+        enable_skill_frontier_routing=False,
+        enable_autocurriculum=False,
+        enable_memory_policy=False,
+        enable_memory_persistence=False,
+        enable_planning_memory_context=False,
+        enable_task_memory_context=False,
+        enable_task_continuity_context=False,
+        enable_task_readiness_context=False,
+        enable_task_readiness_recovery=False,
+        enable_bounded_planning_context=False,
+        enable_skill_memory_context=False,
+        enable_curriculum_planner_context=False,
+        enable_knowledge_correction_context=False,
+        enable_task_precondition_context=False,
+        enable_plan_cache=False,
+        plan_cache_paths=[],
+        plan_cache_gate_paths=[],
+        episode_abort_mode="off",
+        episode_abort_gate_paths=[],
+        frontier_budget_mode="off",
+        frontier_budget_gate_paths=[],
+        enable_weighted_memory_retrieval=False,
+        memory_attribution_gate_paths=[],
+        enable_coaching_policy=False,
+        coach_style="",
+        coach_style_ablation_paths=[],
+        coach_style_gate_paths=[],
+        enable_vision_analysis=False,
+        enable_visual_action_grounding=False,
+        mixed_policy_patch_paths=[],
+        mixed_policy_gate_paths=[],
+        self_evolution_feedback_paths=[],
+        world_model_feedback_paths=[],
+        world_model_gate_paths=[],
+        knowledge_correction_feedback_paths=[],
+        knowledge_correction_gate_paths=[],
+        task_precondition_feedback_paths=[],
+        task_precondition_gate_paths=[],
+        action_value_feedback_paths=[],
+        action_value_transition_gate_paths=[],
+        action_value_transition_evaluator_report_paths=[],
+        skill_memory_quality_feedback_paths=[],
+        skill_memory_quality_gate_paths=[],
+        skill_runtime_default_gate_paths=[],
+        skill_retirement_gate_paths=[],
+        enable_self_evolution_policy=False,
+        enable_screenshot_capture=False,
+        enable_goal_critic=False,
+        goal_critic_gate_paths=[],
+        enable_world_model_curriculum_feedback=False,
+        enable_action_candidate_selection=False,
+        enable_goal_verification=True,
+        enable_action_verification=True,
+        enforce_action_verification=True,
+        max_action_timeout=int(M1_PROTOCOL["max_action_timeout_ms"]),
+    )
+
+
+def m1_runtime_profile(config: Config) -> dict:
+    fields = {
+        "force_rule_planner": bool(config.force_rule_planner),
+        "llm_planner": not bool(config.force_rule_planner),
+        "policy_skills": bool(config.enable_policy_skills),
+        "skill_frontier_routing": bool(config.enable_skill_frontier_routing),
+        "autocurriculum": bool(config.enable_autocurriculum),
+        "memory_policy": bool(config.enable_memory_policy),
+        "planning_memory": bool(config.enable_planning_memory_context),
+        "memory_persistence": bool(config.enable_memory_persistence),
+        "task_memory": bool(config.enable_task_memory_context),
+        "task_continuity": bool(config.enable_task_continuity_context),
+        "task_readiness": bool(config.enable_task_readiness_context),
+        "task_readiness_recovery": bool(config.enable_task_readiness_recovery),
+        "bounded_planning_context": bool(config.enable_bounded_planning_context),
+        "skill_memory": bool(config.enable_skill_memory_context),
+        "curriculum_planner_context": bool(config.enable_curriculum_planner_context),
+        "knowledge_correction_context": bool(config.enable_knowledge_correction_context),
+        "task_precondition_context": bool(config.enable_task_precondition_context),
+        "plan_cache": bool(config.enable_plan_cache),
+        "episode_abort_mode": str(config.episode_abort_mode),
+        "frontier_budget_mode": str(config.frontier_budget_mode),
+        "weighted_memory": bool(config.enable_weighted_memory_retrieval),
+        "coaching": bool(config.enable_coaching_policy),
+        "vision": bool(config.enable_vision_analysis),
+        "visual_action_grounding": bool(config.enable_visual_action_grounding),
+        "screenshot_capture": bool(config.enable_screenshot_capture),
+        "self_evolution": bool(config.enable_self_evolution_policy),
+        "goal_critic": bool(config.enable_goal_critic),
+        "world_model_curriculum": bool(config.enable_world_model_curriculum_feedback),
+        "action_candidate_selection": bool(config.enable_action_candidate_selection),
+        "multiagent": False,
+        "goal_verification": bool(config.enable_goal_verification),
+        "action_verification": bool(config.enable_action_verification and config.enforce_action_verification),
+        "ungated_artifact_path_count": sum(len(getattr(config, name, []) or []) for name in (
+            "plan_cache_paths", "plan_cache_gate_paths", "episode_abort_gate_paths",
+            "frontier_budget_gate_paths", "memory_attribution_gate_paths",
+            "coach_style_ablation_paths", "coach_style_gate_paths", "mixed_policy_patch_paths",
+            "mixed_policy_gate_paths", "self_evolution_feedback_paths", "world_model_feedback_paths",
+            "world_model_gate_paths", "knowledge_correction_feedback_paths", "knowledge_correction_gate_paths",
+            "task_precondition_feedback_paths", "task_precondition_gate_paths", "action_value_feedback_paths",
+            "action_value_transition_gate_paths", "action_value_transition_evaluator_report_paths",
+            "skill_memory_quality_feedback_paths", "skill_memory_quality_gate_paths",
+            "skill_runtime_default_gate_paths", "skill_retirement_gate_paths", "goal_critic_gate_paths",
+        )),
+    }
+    isolated = bool(
+        fields["force_rule_planner"]
+        and not any(fields[name] for name in (
+            "llm_planner", "policy_skills", "skill_frontier_routing", "autocurriculum",
+            "memory_policy", "planning_memory", "memory_persistence", "task_memory",
+            "task_continuity", "task_readiness", "task_readiness_recovery",
+            "bounded_planning_context", "skill_memory", "curriculum_planner_context",
+            "knowledge_correction_context", "task_precondition_context", "plan_cache",
+            "weighted_memory", "coaching", "vision", "visual_action_grounding",
+            "screenshot_capture", "self_evolution", "goal_critic", "world_model_curriculum",
+            "action_candidate_selection", "multiagent",
+        ))
+        and fields["ungated_artifact_path_count"] == 0
+        and fields["episode_abort_mode"] == "off"
+        and fields["frontier_budget_mode"] == "off"
+        and fields["goal_verification"]
+        and fields["action_verification"]
+    )
+    return {
+        "profile": "m1_minimal_runtime_v1",
+        "protocol": M1_PROTOCOL["profile"],
+        "protocol_sha256": M1_PROTOCOL_SHA256,
+        "agent_id": M1_PROTOCOL["agent_id"],
+        "planner_id": M1_PROTOCOL["planner_id"],
+        "action_backend_id": M1_PROTOCOL["action_backend_id"],
+        "verifier_id": M1_PROTOCOL["verifier_id"],
+        "isolated": isolated,
+        "settings": fields,
+    }
 
 
 def _average_optional(values) -> Optional[float]:
@@ -46,6 +196,10 @@ class BenchmarkTask:
     timeout_cycles: int = 100
     success_criteria: dict = field(default_factory=dict)
     min_inventory: dict = field(default_factory=dict)
+    initial_inventory: dict = field(default_factory=dict)
+    max_duration_s: int = 0
+    world_seed: str = ""
+    reset_profile: str = ""
 
 
 @dataclass
@@ -2602,16 +2756,19 @@ class VisualReviewPipelineReport:
 
 
 M1_BENCHMARKS = [
-    BenchmarkTask("BM-001", "Chop 3 oak logs", "Gather 3 oak logs", "M1",
-                  timeout_cycles=50, success_criteria={"oak_log": 3}, min_inventory={"oak_log": 3}),
-    BenchmarkTask("BM-002", "Craft workbench", "Craft a crafting table", "M1",
-                  timeout_cycles=30, success_criteria={"crafting_table": 1}, min_inventory={"oak_planks": 4}),
-    BenchmarkTask("BM-003", "Craft wooden pickaxe", "Craft a wooden pickaxe", "M1",
-                  timeout_cycles=60, success_criteria={"wooden_pickaxe": 1}, min_inventory={"oak_planks": 3, "stick": 2}),
-    BenchmarkTask("BM-004", "Mine cobblestone", "Mine 3 cobblestone blocks", "M1",
-                  timeout_cycles=40, success_criteria={"cobblestone": 3}),
-    BenchmarkTask("BM-005", "Craft stone tools", "Craft a stone pickaxe", "M1",
-                  timeout_cycles=80, success_criteria={"stone_pickaxe": 1}),
+    BenchmarkTask(
+        id=spec["id"],
+        name=spec["name"],
+        goal=spec["goal"],
+        phase="M1",
+        timeout_cycles=int(spec["max_cycles"]),
+        success_criteria=dict(spec["success_criteria"]),
+        initial_inventory=dict(spec["initial_inventory"]),
+        max_duration_s=int(spec["max_duration_s"]),
+        world_seed=M1_PROTOCOL["world_seed"],
+        reset_profile=M1_PROTOCOL["profile"],
+    )
+    for spec in M1_PROTOCOL["tasks"]
 ]
 
 M2_BENCHMARKS = [
@@ -3112,7 +3269,18 @@ class BenchmarkResult:
     intervention_metrics: dict = field(default_factory=dict)
     memory_policy_metrics: dict = field(default_factory=dict)
     error: str = ""
+    failure_reason: str = ""
     session_log_path: str = ""
+    session_id: str = ""
+    session_sha256: str = ""
+    goal_verified: bool = False
+    criteria_verified: bool = False
+    termination_reason: str = ""
+    setup_evidence: dict = field(default_factory=dict)
+    evidence_validation: dict = field(default_factory=dict)
+    runtime_profile: dict = field(default_factory=dict)
+    evidence_kind: str = ""
+    protocol_eligible: bool = False
 
 
 @dataclass
@@ -3190,50 +3358,349 @@ class ScreenshotSmokeReport:
 class BenchmarkRunner:
     """Runs benchmark tasks against the agent and records results."""
 
-    def __init__(self, config: Config, output_dir: str = "logs/benchmarks", bridge_factory=None):
+    def __init__(
+        self,
+        config: Config,
+        output_dir: str = "logs/benchmarks",
+        bridge_factory=None,
+        agent_factory=None,
+        enforce_m1_protocol: bool = True,
+    ):
         self.config = config
         self.output_dir = output_dir
         self.results: list[BenchmarkResult] = []
         self.bridge_factory = bridge_factory or BotBridge
+        self.agent_factory = agent_factory or Agent
+        self.enforce_m1_protocol = bool(enforce_m1_protocol)
 
     def run_task(self, task: BenchmarkTask) -> BenchmarkResult:
         """Run a single benchmark task."""
         logger.info(f"Running benchmark {task.id}: {task.name}")
-        agent = Agent(self.config)
+        task_config = (
+            m1_convergence_config(self.config)
+            if self.enforce_m1_protocol and task.reset_profile == M1_PROTOCOL["profile"]
+            else self.config
+        )
+        runtime_profile = (
+            m1_runtime_profile(task_config)
+            if task.reset_profile == M1_PROTOCOL["profile"]
+            else {"profile": "default_runtime", "isolated": False}
+        )
+        agent = self.agent_factory(task_config)
         start = time.time()
 
-        if not agent.connect():
-            return BenchmarkResult(task.id, task.name, "error", error="Connection failed")
-
+        connection_error = ""
         try:
-            result = agent.run_goal(task.goal)
-            duration = time.time() - start
-            inventory = agent.bot.get_inventory()
-            inv_summary = {}
-            for item in inventory:
-                name = item.get("name", "unknown")
-                inv_summary[name] = inv_summary.get(name, 0) + item.get("count", 1)
-
-            passed = self._check_success(inv_summary, task.success_criteria)
-            status = "pass" if passed else "fail"
-            session_summary = result.get("summary", {})
-
+            connected = bool(agent.connect())
+        except Exception as exc:
+            connected = False
+            connection_error = str(exc)
+        if not connected:
+            try:
+                session_summary = agent.session_logger.get_summary()
+            except Exception:
+                session_summary = {}
             bench_result = BenchmarkResult(
-                task_id=task.id, task_name=task.name, status=status,
-                cycles_used=result.get("cycles", 0), duration_s=round(duration, 2),
-                inventory_snapshot=inv_summary,
-                intervention_metrics=session_summary.get("intervention_metrics", {}),
-                memory_policy_metrics=session_summary.get("memory_policy_metrics", {}),
+                task.id,
+                task.name,
+                "error",
+                duration_s=round(time.time() - start, 2),
+                error=connection_error or "Connection failed",
+                failure_reason="bridge_connection_failed",
                 session_log_path=session_summary.get("log_path", ""),
+                session_id=session_summary.get("session_id", ""),
+                runtime_profile=runtime_profile,
+                evidence_kind="live_minecraft" if task.reset_profile else "live_uncontrolled",
             )
+            try:
+                agent.disconnect()
+            except Exception:
+                pass
+            if bench_result.session_log_path and os.path.isfile(bench_result.session_log_path):
+                with open(bench_result.session_log_path, "rb") as f:
+                    bench_result.session_sha256 = hashlib.sha256(f.read()).hexdigest()
+            self.results.append(bench_result)
+            return bench_result
+
+        bench_result = None
+        try:
+            if hasattr(agent.session_logger, "log"):
+                agent.session_logger.log("benchmark_runtime_profile", runtime_profile)
+            setup_evidence = {}
+            if task.reset_profile:
+                reset = getattr(agent.bot, "reset_benchmark", None)
+                if callable(reset):
+                    setup_evidence = reset(task.id)
+                else:
+                    setup_evidence = {
+                        "success": False,
+                        "error": "bridge does not expose benchmark_reset",
+                        "task_id": task.id,
+                    }
+                if hasattr(agent.session_logger, "log"):
+                    agent.session_logger.log("benchmark_reset", setup_evidence)
+                if setup_evidence.get("success"):
+                    position = setup_evidence.get("after_state", {}).get("position", {})
+                    if position and hasattr(agent, "explorer") and hasattr(agent.explorer, "set_base"):
+                        agent.explorer.set_base(
+                            position.get("x", 0),
+                            position.get("y", 64),
+                            position.get("z", 0),
+                        )
+
+            if task.reset_profile and not setup_evidence.get("success"):
+                session_summary = agent.session_logger.get_summary()
+                bench_result = BenchmarkResult(
+                    task_id=task.id,
+                    task_name=task.name,
+                    status="error",
+                    duration_s=round(time.time() - start, 2),
+                    error=str(setup_evidence.get("error") or "benchmark reset failed"),
+                    failure_reason="benchmark_reset_failed",
+                    session_log_path=session_summary.get("log_path", ""),
+                    session_id=session_summary.get("session_id", ""),
+                    setup_evidence=setup_evidence,
+                    runtime_profile=runtime_profile,
+                    evidence_kind="live_minecraft",
+                )
+            else:
+                result = agent.run_goal(
+                    task.goal,
+                    max_cycles=task.timeout_cycles,
+                    max_duration_s=task.max_duration_s or None,
+                )
+                duration = time.time() - start
+                inventory = agent.bot.get_inventory()
+                inv_summary = {}
+                for item in inventory:
+                    name = item.get("name", "unknown")
+                    inv_summary[name] = inv_summary.get(name, 0) + item.get("count", 1)
+
+                criteria_verified = self._check_success(inv_summary, task.success_criteria)
+                goal_verified = bool(
+                    result.get("completed")
+                    and result.get("termination_reason") == "goal_verified"
+                )
+                session_summary = result.get("summary", {})
+                evidence_validation = self._validate_m1_session_evidence(
+                    task,
+                    getattr(agent.session_logger, "events", []),
+                    setup_evidence,
+                    inv_summary,
+                    goal_verified,
+                ) if task.reset_profile == M1_PROTOCOL["profile"] else {"passed": True, "profile": "not_m1"}
+                if hasattr(agent.session_logger, "log"):
+                    agent.session_logger.log("benchmark_evidence_validation", evidence_validation)
+                protocol_eligible = bool(
+                    task.reset_profile == M1_PROTOCOL["profile"]
+                    and setup_evidence.get("success")
+                    and runtime_profile.get("isolated")
+                    and evidence_validation.get("passed")
+                )
+                passed = bool(criteria_verified and goal_verified and (not task.reset_profile or protocol_eligible))
+                failure_reasons = []
+                if not criteria_verified:
+                    failure_reasons.append("inventory_success_criteria_not_observed")
+                if not goal_verified:
+                    failure_reasons.append("goal_verifier_not_achieved")
+                if task.reset_profile and not protocol_eligible:
+                    failure_reasons.append("m1_protocol_evidence_ineligible")
+
+                bench_result = BenchmarkResult(
+                    task_id=task.id,
+                    task_name=task.name,
+                    status="pass" if passed else "fail",
+                    cycles_used=result.get("cycles", 0),
+                    duration_s=round(duration, 2),
+                    inventory_snapshot=inv_summary,
+                    intervention_metrics=session_summary.get("intervention_metrics", {}),
+                    memory_policy_metrics=session_summary.get("memory_policy_metrics", {}),
+                    failure_reason=";".join(failure_reasons),
+                    session_log_path=session_summary.get("log_path", ""),
+                    session_id=session_summary.get("session_id", ""),
+                    goal_verified=goal_verified,
+                    criteria_verified=criteria_verified,
+                    termination_reason=str(result.get("termination_reason") or ""),
+                    setup_evidence=setup_evidence,
+                    evidence_validation=evidence_validation,
+                    runtime_profile=runtime_profile,
+                    evidence_kind="live_minecraft" if task.reset_profile else "live_uncontrolled",
+                    protocol_eligible=protocol_eligible,
+                )
         except Exception as e:
-            bench_result = BenchmarkResult(task.id, task.name, "error", error=str(e))
+            session_summary = agent.session_logger.get_summary()
+            bench_result = BenchmarkResult(
+                task.id,
+                task.name,
+                "error",
+                duration_s=round(time.time() - start, 2),
+                error=str(e),
+                failure_reason="benchmark_exception",
+                session_log_path=session_summary.get("log_path", ""),
+                session_id=session_summary.get("session_id", ""),
+                runtime_profile=runtime_profile,
+                evidence_kind="live_minecraft" if task.reset_profile else "live_uncontrolled",
+            )
         finally:
             agent.disconnect()
+
+        if bench_result.session_log_path and os.path.isfile(bench_result.session_log_path):
+            with open(bench_result.session_log_path, "rb") as f:
+                bench_result.session_sha256 = hashlib.sha256(f.read()).hexdigest()
 
         self.results.append(bench_result)
         logger.info(f"  {task.id}: {bench_result.status} ({bench_result.duration_s}s, {bench_result.cycles_used} cycles)")
         return bench_result
+
+    def _validate_m1_session_evidence(
+        self,
+        task: BenchmarkTask,
+        events: list[dict],
+        setup_evidence: dict,
+        final_inventory: dict,
+        goal_verified: bool,
+    ) -> dict:
+        issues = []
+        source_events = [event for event in events if isinstance(event, dict)]
+        runtime_profiles = [
+            event.get("data", {})
+            for event in source_events
+            if event.get("type") == "benchmark_runtime_profile"
+        ]
+        reset_events = [
+            event.get("data", {})
+            for event in source_events
+            if event.get("type") == "benchmark_reset"
+        ]
+        goal_events = [
+            event.get("data", {})
+            for event in source_events
+            if event.get("type") == "goal_verification"
+        ]
+        action_events = [
+            event
+            for event in source_events
+            if event.get("type") == "action" and isinstance(event.get("data"), dict)
+        ]
+
+        runtime_isolated = bool(runtime_profiles and runtime_profiles[-1].get("isolated"))
+        reset_checks = setup_evidence.get("checks", {}) if isinstance(setup_evidence.get("checks"), dict) else {}
+        reset_verified = bool(
+            setup_evidence.get("success")
+            and reset_events
+            and reset_events[-1].get("success")
+            and setup_evidence.get("task_id") == task.id
+            and setup_evidence.get("protocol_sha256") == M1_PROTOCOL_SHA256
+            and str(setup_evidence.get("seed") or "") == str(M1_PROTOCOL["world_seed"])
+            and len(str(setup_evidence.get("server_jar_sha256") or "")) == 64
+            and reset_checks
+            and all(value is True for key, value in reset_checks.items() if key != "position_distance")
+        )
+        verifier_event_achieved = any(
+            event.get("achieved") is True or str(event.get("status") or "").lower() == "achieved"
+            for event in goal_events
+        )
+        if not runtime_isolated:
+            issues.append("m1_runtime_profile_not_isolated")
+        if not reset_verified:
+            issues.append("benchmark_reset_not_verified")
+        if not goal_verified or not verifier_event_achieved:
+            issues.append("goal_verifier_evidence_missing")
+
+        navigation_proof_count = 0
+        unreached_navigation_count = 0
+        dependent_after_unreached_count = 0
+        action_rows = []
+        for event in action_events:
+            data = event.get("data", {})
+            action = data.get("action", {}) if isinstance(data.get("action"), dict) else {}
+            result = data.get("result", {}) if isinstance(data.get("result"), dict) else {}
+            action_type = str(action.get("type") or result.get("action_type") or "")
+            context = data.get("action_context", {}) if isinstance(data.get("action_context"), dict) else {}
+            action_rows.append((action_type, result, context, data))
+            if action_type not in {"move_to", "walk_to"}:
+                continue
+            reached = result.get("reached") is True
+            if reached and result.get("success") is True:
+                try:
+                    distance = float(result.get("distance_to_target"))
+                    tolerance = float(result.get("tolerance"))
+                except (TypeError, ValueError):
+                    distance = float("inf")
+                    tolerance = -1.0
+                if distance <= tolerance:
+                    navigation_proof_count += 1
+                else:
+                    issues.append("navigation_success_outside_tolerance")
+            else:
+                unreached_navigation_count += 1
+                if result.get("success") is True:
+                    issues.append("navigation_success_without_reached")
+
+        for index, (action_type, result, context, _) in enumerate(action_rows):
+            if action_type not in {"move_to", "walk_to"} or result.get("reached") is True:
+                continue
+            cycle = context.get("cycle")
+            for later_type, _, later_context, _ in action_rows[index + 1:]:
+                if later_context.get("cycle") != cycle:
+                    break
+                if later_type in {"dig", "place", "craft"}:
+                    dependent_after_unreached_count += 1
+                    break
+        if dependent_after_unreached_count:
+            issues.append("dependent_action_after_unreached_navigation")
+
+        expected_action = "dig" if task.id in {"BM-001", "BM-004"} else "craft"
+        relevant_events = [row for row in action_rows if row[0] == expected_action and row[1].get("success") is True]
+        transition_proofs = [action_transition_proof(task.id, data) for _, _, _, data in relevant_events]
+        transition_proof_count = sum(1 for proof in transition_proofs if proof.get("passed"))
+        if not relevant_events:
+            issues.append(f"successful_{expected_action}_action_missing")
+        elif transition_proof_count != len(relevant_events):
+            issues.append(f"{expected_action}_state_transition_unverified")
+
+        initial_inventory = task.initial_inventory or {}
+        inventory_delta = {
+            item: int(final_inventory.get(item, 0) or 0) - int(initial_inventory.get(item, 0) or 0)
+            for item in sorted(set(initial_inventory) | set(final_inventory) | set(task.success_criteria))
+            if int(final_inventory.get(item, 0) or 0) != int(initial_inventory.get(item, 0) or 0)
+        }
+        target_inventory_observed = all(
+            int(final_inventory.get(item, 0) or 0) >= int(count)
+            for item, count in task.success_criteria.items()
+        )
+        if not target_inventory_observed:
+            issues.append("terminal_inventory_success_criteria_missing")
+        if task.id in {"BM-001", "BM-004"} and not any(
+            inventory_delta.get(item, 0) > 0 for item in task.success_criteria
+        ):
+            issues.append("pickup_inventory_delta_missing")
+        if task.id in {"BM-002", "BM-003", "BM-005"} and not any(
+            inventory_delta.get(item, 0) > 0 for item in task.success_criteria
+        ):
+            issues.append("craft_inventory_delta_missing")
+
+        return {
+            "profile": "m1_session_evidence_v1",
+            "protocol": task.reset_profile,
+            "protocol_sha256": M1_PROTOCOL_SHA256,
+            "passed": not issues,
+            "runtime_profile_isolated": runtime_isolated,
+            "reset_verified": reset_verified,
+            "goal_verifier_event_achieved": verifier_event_achieved,
+            "action_event_count": len(action_events),
+            "relevant_action_type": expected_action,
+            "relevant_success_count": len(relevant_events),
+            "transition_proof_count": transition_proof_count,
+            "transition_proofs": transition_proofs,
+            "navigation_proof_count": navigation_proof_count,
+            "unreached_navigation_count": unreached_navigation_count,
+            "dependent_after_unreached_count": dependent_after_unreached_count,
+            "initial_inventory": initial_inventory,
+            "final_inventory": final_inventory,
+            "inventory_delta": inventory_delta,
+            "issues": issues,
+        }
 
     def run_suite(self, tasks: list[BenchmarkTask]) -> list[BenchmarkResult]:
         """Run a suite of benchmark tasks."""
@@ -5850,7 +6317,13 @@ class BenchmarkRunner:
             report["transition_evaluator_readiness"] = "unknown"
 
     def _run_task_with_config(self, task: BenchmarkTask, config: Config) -> BenchmarkResult:
-        runner = BenchmarkRunner(config, output_dir=self.output_dir, bridge_factory=self.bridge_factory)
+        runner = BenchmarkRunner(
+            config,
+            output_dir=self.output_dir,
+            bridge_factory=self.bridge_factory,
+            agent_factory=self.agent_factory,
+            enforce_m1_protocol=False,
+        )
         return runner.run_task(task)
 
     def _policy_intervention_count(self, result: BenchmarkResult) -> int:
@@ -19323,7 +19796,12 @@ class BenchmarkRunner:
         })
         return compact
 
-    def preflight(self, check_network: bool = True, check_screenshot_renderer: bool = False) -> PreflightReport:
+    def preflight(
+        self,
+        check_network: bool = True,
+        check_screenshot_renderer: bool = False,
+        require_m1_harness: bool = False,
+    ) -> PreflightReport:
         """Check local readiness before running live M1/M2 benchmarks."""
         checks = [
             self._check_python_import("pydantic", required=True),
@@ -19339,6 +19817,16 @@ class BenchmarkRunner:
         if check_network:
             bridge_check, session_check = self._check_bot_bridge_and_session()
             checks.extend([bridge_check, session_check])
+            if require_m1_harness:
+                if bridge_check.status == "pass" and session_check.status == "pass":
+                    checks.append(self._check_m1_harness())
+                else:
+                    checks.append(PreflightCheck(
+                        "m1_harness",
+                        "fail",
+                        "not checked because the live bridge session is unavailable",
+                        "start the controlled M1 runtime with scripts/m1-runtime.ps1",
+                    ))
             checks.append(self._check_tcp("minecraft_server", self.config.bot.host, self.config.bot.port, required=True))
         ok = all(c.status != "fail" for c in checks)
         return PreflightReport(ok=ok, checks=checks)
@@ -19654,6 +20142,93 @@ class BenchmarkRunner:
     def _check_bot_session(self) -> PreflightCheck:
         return self._check_bot_bridge_and_session()[1]
 
+    def _check_m1_harness(self) -> PreflightCheck:
+        bridge = self.bridge_factory(self.config.bot)
+        try:
+            if not bridge.connect():
+                return PreflightCheck(
+                    "m1_harness",
+                    "fail",
+                    "could not connect to the Singularity bridge",
+                    "start the controlled M1 runtime with scripts/m1-runtime.ps1",
+                )
+            report = bridge.benchmark_protocol()
+            if not isinstance(report, dict) or not report.get("success"):
+                detail = report.get("error", "invalid benchmark protocol response") if isinstance(report, dict) else "non-object benchmark protocol response"
+                return PreflightCheck(
+                    "m1_harness",
+                    "fail",
+                    detail,
+                    "restart the Node bridge from the current source tree",
+                )
+
+            mismatches = []
+            expected_fields = {
+                "profile": M1_PROTOCOL["profile"],
+                "protocol_sha256": M1_PROTOCOL_SHA256,
+                "minecraft_version": M1_PROTOCOL["minecraft_version"],
+                "server_type": M1_PROTOCOL["server_type"],
+                "server_jar_policy": M1_PROTOCOL["server_jar_policy"],
+                "agent_id": M1_PROTOCOL["agent_id"],
+                "planner_id": M1_PROTOCOL["planner_id"],
+                "action_backend_id": M1_PROTOCOL["action_backend_id"],
+                "verifier_id": M1_PROTOCOL["verifier_id"],
+                "seed": M1_PROTOCOL["world_seed"],
+                "episode_strategy": M1_PROTOCOL["episode_strategy"],
+            }
+            for key, expected in expected_fields.items():
+                if report.get(key) != expected:
+                    mismatches.append(f"{key}={report.get(key)!r}, expected {expected!r}")
+            if report.get("tasks") != M1_PROTOCOL["tasks"]:
+                mismatches.append("task definitions do not match the tracked M1 protocol")
+            if report.get("dependencies") != M1_PROTOCOL["dependencies"]:
+                mismatches.append("Mineflayer dependency versions do not match the tracked M1 protocol")
+            if not report.get("configured"):
+                mismatches.extend(str(error) for error in report.get("errors", []) if error)
+            if not report.get("episode_id"):
+                mismatches.append("benchmark episode id is missing")
+            level_name = str(report.get("level_name") or "")
+            episode_id = str(report.get("episode_id") or "")
+            if not level_name or not level_name.startswith(f"{episode_id}_"):
+                mismatches.append("benchmark level name is not unique to the episode")
+            if not report.get("reset_supported"):
+                mismatches.append("benchmark reset command is unavailable")
+            if "paper" not in str(report.get("server_brand") or "").lower():
+                mismatches.append(f"server brand {report.get('server_brand')!r} is not Paper")
+            if report.get("observed_minecraft_version") != M1_PROTOCOL["minecraft_version"]:
+                mismatches.append(
+                    f"observed Minecraft version {report.get('observed_minecraft_version')!r} "
+                    f"does not match {M1_PROTOCOL['minecraft_version']!r}"
+                )
+            server_hash = str(report.get("server_jar_sha256") or "")
+            if len(server_hash) != 64 or any(ch not in "0123456789abcdef" for ch in server_hash.lower()):
+                mismatches.append("server jar sha256 is missing or invalid")
+
+            if mismatches:
+                return PreflightCheck(
+                    "m1_harness",
+                    "fail",
+                    "; ".join(dict.fromkeys(mismatches)),
+                    "restart the controlled runtime with scripts/m1-runtime.ps1 and the tracked protocol",
+                )
+            return PreflightCheck(
+                "m1_harness",
+                "pass",
+                f"{report.get('profile')} episode {report.get('episode_id')} matches tracked protocol {M1_PROTOCOL_SHA256[:12]}",
+            )
+        except Exception as e:
+            return PreflightCheck(
+                "m1_harness",
+                "fail",
+                str(e),
+                "restart the controlled M1 runtime with scripts/m1-runtime.ps1",
+            )
+        finally:
+            try:
+                bridge.disconnect()
+            except Exception:
+                pass
+
     def save_preflight(self, report: PreflightReport, path: str) -> str:
         output_path = os.path.abspath(path)
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -19674,18 +20249,30 @@ class BenchmarkRunner:
         return output_path
 
     def save_results(self, filename: str = "benchmark_results.json"):
-        import os
         os.makedirs(self.output_dir, exist_ok=True)
         path = os.path.join(self.output_dir, filename)
+        if os.path.exists(path):
+            raise FileExistsError(f"refusing to overwrite benchmark evidence: {os.path.abspath(path)}")
         data = []
         for r in self.results:
             data.append({
                 "task_id": r.task_id, "task_name": r.task_name, "status": r.status,
                 "cycles": r.cycles_used, "duration_s": r.duration_s,
                 "inventory": r.inventory_snapshot, "error": r.error,
+                "failure_reason": r.failure_reason,
                 "intervention_metrics": r.intervention_metrics,
                 "memory_policy_metrics": r.memory_policy_metrics,
                 "log": r.session_log_path,
+                "session_id": r.session_id,
+                "session_sha256": r.session_sha256,
+                "goal_verified": r.goal_verified,
+                "criteria_verified": r.criteria_verified,
+                "termination_reason": r.termination_reason,
+                "setup_evidence": r.setup_evidence,
+                "evidence_validation": r.evidence_validation,
+                "runtime_profile": r.runtime_profile,
+                "evidence_kind": r.evidence_kind,
+                "protocol_eligible": r.protocol_eligible,
             })
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)

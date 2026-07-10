@@ -3,11 +3,20 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Optional
+
+from singularity.evaluation.m1_protocol import (
+    PROTOCOL as M1_PROTOCOL,
+    PROTOCOL_SHA256 as M1_PROTOCOL_SHA256,
+    TASKS_BY_ID as M1_TASKS_BY_ID,
+    action_transition_proof,
+    inventory_counts,
+)
 
 
 SUCCESS_STATUSES = {"success", "succeeded", "pass", "passed", "complete", "completed"}
@@ -28,6 +37,8 @@ EXECUTION_FIELDS = {
     "completed",
     "success",
 }
+EXECUTION_BOUNDARY_FIELDS = EXECUTION_FIELDS - {"success", "completed"}
+M1_TASK_IDS = set(M1_TASKS_BY_ID)
 
 PHASE_SPECS = [
     {
@@ -935,6 +946,10 @@ def _load_benchmark_records(paths: Iterable[str]) -> tuple[list[dict], list[str]
     errors = []
     loaded_paths = []
     seen = set()
+    seen_m1_sessions = set()
+    seen_m1_hashes = set()
+    seen_m1_episodes = set()
+    m1_server_jar_sha256 = ""
     for raw_path in paths:
         path_text = str(raw_path or "").strip()
         if not path_text:
@@ -958,6 +973,29 @@ def _load_benchmark_records(paths: Iterable[str]) -> tuple[list[dict], list[str]
             if key in seen:
                 continue
             seen.add(key)
+            if normalized["outcome"] == "success" and normalized["task_id"] in M1_TASK_IDS:
+                duplicate_reasons = []
+                session_id = normalized.get("session_id", "")
+                session_hash = normalized.get("session_sha256", "")
+                episode_id = normalized.get("episode_id", "")
+                server_hash = normalized.get("server_jar_sha256", "")
+                if session_id in seen_m1_sessions:
+                    duplicate_reasons.append("duplicate_m1_session")
+                if session_hash in seen_m1_hashes:
+                    duplicate_reasons.append("duplicate_m1_session_log")
+                if episode_id in seen_m1_episodes:
+                    duplicate_reasons.append("duplicate_m1_episode")
+                if m1_server_jar_sha256 and server_hash != m1_server_jar_sha256:
+                    duplicate_reasons.append("m1_server_jar_mismatch")
+                if duplicate_reasons:
+                    normalized["outcome"] = "ineligible"
+                    normalized["eligibility_reasons"].extend(duplicate_reasons)
+                else:
+                    seen_m1_sessions.add(session_id)
+                    seen_m1_hashes.add(session_hash)
+                    seen_m1_episodes.add(episode_id)
+                    if not m1_server_jar_sha256:
+                        m1_server_jar_sha256 = server_hash
             records.append(normalized)
     return records, errors, loaded_paths
 
@@ -976,23 +1014,26 @@ def _normalize_execution_record(record: dict, source_path: str, record_path: str
     task_id = str(record.get("task_id") or record.get("benchmark_id") or "").upper().strip()
     if not re.fullmatch(r"BM-\d+", task_id):
         return {}
-    if not EXECUTION_FIELDS.intersection(record):
+    if not EXECUTION_BOUNDARY_FIELDS.intersection(record):
         return {}
     status = str(record.get("status") or record.get("outcome") or "").lower().strip()
     success_value = record.get("success")
     completed_value = record.get("completed")
-    if status in SUCCESS_STATUSES or success_value is True or completed_value is True:
+    candidate_success = status in SUCCESS_STATUSES or success_value is True or completed_value is True
+    eligibility_reasons = []
+    if candidate_success and task_id in M1_TASK_IDS:
+        eligibility_reasons = _m1_live_eligibility_issues(record, source_path)
+    if candidate_success and not eligibility_reasons:
         outcome = "success"
+    elif candidate_success:
+        outcome = "ineligible"
     elif status in FAILURE_STATUSES or success_value is False or completed_value is False:
         outcome = "failure"
     else:
         return {}
-    run_ref = str(
-        record.get("session_id")
-        or record.get("session_log")
-        or record.get("log")
-        or ""
-    ).strip()
+    session_id = str(record.get("session_id") or "").strip()
+    log_ref = str(record.get("session_log") or record.get("log") or "").strip()
+    run_ref = ":".join(part for part in (session_id, log_ref) if part)
     return {
         "task_id": task_id,
         "outcome": outcome,
@@ -1000,7 +1041,242 @@ def _normalize_execution_record(record: dict, source_path: str, record_path: str
         "run_ref": run_ref,
         "source_path": source_path,
         "record_path": record_path,
+        "eligibility_reasons": eligibility_reasons,
+        "session_id": session_id,
+        "session_sha256": str(record.get("session_sha256") or "").lower().strip(),
+        "episode_id": str(
+            (record.get("setup_evidence") or {}).get("episode_id")
+            if isinstance(record.get("setup_evidence"), dict)
+            else ""
+        ).strip(),
+        "server_jar_sha256": str(
+            (record.get("setup_evidence") or {}).get("server_jar_sha256")
+            if isinstance(record.get("setup_evidence"), dict)
+            else ""
+        ).lower().strip(),
     }
+
+
+def _m1_live_eligibility_issues(record: dict, source_path: str) -> list[str]:
+    issues = []
+    task_id = str(record.get("task_id") or record.get("benchmark_id") or "").upper().strip()
+    spec = M1_TASKS_BY_ID.get(task_id, {})
+    if record.get("evidence_kind") != "live_minecraft":
+        issues.append("evidence_kind_not_live_minecraft")
+    if record.get("protocol_eligible") is not True:
+        issues.append("protocol_eligible_not_true")
+    if record.get("goal_verified") is not True:
+        issues.append("goal_verified_not_true")
+    if record.get("criteria_verified") is not True:
+        issues.append("criteria_verified_not_true")
+
+    setup = record.get("setup_evidence", {}) if isinstance(record.get("setup_evidence"), dict) else {}
+    validation = record.get("evidence_validation", {}) if isinstance(record.get("evidence_validation"), dict) else {}
+    runtime = record.get("runtime_profile", {}) if isinstance(record.get("runtime_profile"), dict) else {}
+    if setup.get("success") is not True:
+        issues.append("benchmark_reset_not_successful")
+    if setup.get("task_id") != task_id:
+        issues.append("benchmark_reset_task_mismatch")
+    if str(setup.get("seed") or "") != str(M1_PROTOCOL["world_seed"]):
+        issues.append("benchmark_reset_seed_mismatch")
+    if setup.get("observed_minecraft_version") != M1_PROTOCOL["minecraft_version"]:
+        issues.append("benchmark_minecraft_version_mismatch")
+    if "paper" not in str(setup.get("server_brand") or "").lower():
+        issues.append("benchmark_server_brand_not_paper")
+    server_hash = str(setup.get("server_jar_sha256") or "").lower()
+    if len(server_hash) != 64 or any(ch not in "0123456789abcdef" for ch in server_hash):
+        issues.append("benchmark_server_jar_hash_invalid")
+    checks = setup.get("checks", {}) if isinstance(setup.get("checks"), dict) else {}
+    if not checks or any(value is not True for name, value in checks.items() if name != "position_distance"):
+        issues.append("benchmark_reset_checks_not_verified")
+    expected_initial = inventory_counts(spec.get("initial_inventory", {}))
+    observed_initial = inventory_counts(
+        setup.get("after_state", {}).get("inventory", {})
+        if isinstance(setup.get("after_state"), dict)
+        else {}
+    )
+    if observed_initial != expected_initial:
+        issues.append("benchmark_reset_inventory_mismatch")
+    episode_id = str(setup.get("episode_id") or "")
+    level_name = str(setup.get("level_name") or "")
+    if not episode_id or not level_name.startswith(f"{episode_id}_"):
+        issues.append("fresh_episode_level_not_proven")
+    if validation.get("passed") is not True:
+        issues.append("session_evidence_validation_not_passed")
+    if runtime.get("isolated") is not True:
+        issues.append("m1_runtime_not_isolated")
+    if runtime.get("agent_id") != M1_PROTOCOL["agent_id"]:
+        issues.append("m1_agent_identity_mismatch")
+    if runtime.get("planner_id") != M1_PROTOCOL["planner_id"]:
+        issues.append("m1_planner_identity_mismatch")
+    if runtime.get("action_backend_id") != M1_PROTOCOL["action_backend_id"]:
+        issues.append("m1_action_backend_identity_mismatch")
+    if runtime.get("verifier_id") != M1_PROTOCOL["verifier_id"]:
+        issues.append("m1_verifier_identity_mismatch")
+    for name, payload in (("setup", setup), ("validation", validation), ("runtime", runtime)):
+        if payload.get("protocol_sha256") != M1_PROTOCOL_SHA256:
+            issues.append(f"{name}_protocol_hash_mismatch")
+
+    final_inventory = inventory_counts(record.get("inventory", record.get("inventory_snapshot", {})))
+    if not all(final_inventory.get(item, 0) >= int(count) for item, count in spec.get("success_criteria", {}).items()):
+        issues.append("terminal_inventory_criteria_not_observed")
+
+    session_id = str(record.get("session_id") or "").strip()
+    log_ref = str(record.get("session_log") or record.get("log") or "").strip()
+    if not session_id:
+        issues.append("session_id_missing")
+    if not log_ref:
+        issues.append("session_log_missing")
+        return issues
+    log_path = _resolve_evidence_path(log_ref, source_path)
+    if log_path is None:
+        issues.append("session_log_unavailable")
+        return issues
+    expected_hash = str(record.get("session_sha256") or "").lower()
+    actual_hash = hashlib.sha256(log_path.read_bytes()).hexdigest()
+    if expected_hash != actual_hash:
+        issues.append("session_log_hash_mismatch")
+    issues.extend(_m1_session_log_issues(log_path, session_id, task_id))
+    return list(dict.fromkeys(issues))
+
+
+def _resolve_evidence_path(log_ref: str, source_path: str) -> Optional[Path]:
+    candidate = Path(log_ref)
+    candidates = [candidate]
+    if not candidate.is_absolute():
+        candidates.append(Path(source_path).resolve().parent / candidate)
+    for path in candidates:
+        if path.is_file():
+            return path.resolve()
+    return None
+
+
+def _m1_session_log_issues(path: Path, session_id: str, task_id: str) -> list[str]:
+    issues = []
+    task_id = str(task_id or "").upper().strip()
+    events = []
+    for line in path.read_text(encoding="utf-8-sig").splitlines():
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except Exception:
+            issues.append("session_log_invalid_jsonl")
+            continue
+        if isinstance(event, dict):
+            events.append(event)
+    if not events:
+        return issues + ["session_log_empty"]
+    event_sessions = {str(event.get("session") or "") for event in events if event.get("session")}
+    if session_id not in event_sessions or len(event_sessions) != 1:
+        issues.append("session_identity_mismatch")
+
+    def event_data(event_type: str) -> list[dict]:
+        return [
+            event.get("data", {})
+            for event in events
+            if event.get("type") == event_type and isinstance(event.get("data"), dict)
+        ]
+
+    connects = event_data("connect")
+    profiles = event_data("benchmark_runtime_profile")
+    resets = event_data("benchmark_reset")
+    validations = event_data("benchmark_evidence_validation")
+    goal_verifications = event_data("goal_verification")
+    goal_ends = event_data("goal_end")
+    if not any(event.get("success") is True for event in connects):
+        issues.append("live_connect_event_missing")
+    if (
+        not profiles
+        or profiles[-1].get("isolated") is not True
+        or profiles[-1].get("protocol_sha256") != M1_PROTOCOL_SHA256
+        or profiles[-1].get("agent_id") != M1_PROTOCOL["agent_id"]
+        or profiles[-1].get("planner_id") != M1_PROTOCOL["planner_id"]
+        or profiles[-1].get("action_backend_id") != M1_PROTOCOL["action_backend_id"]
+        or profiles[-1].get("verifier_id") != M1_PROTOCOL["verifier_id"]
+    ):
+        issues.append("isolated_runtime_event_missing")
+    reset = resets[-1] if resets else {}
+    reset_checks = reset.get("checks", {}) if isinstance(reset.get("checks"), dict) else {}
+    reset_episode = str(reset.get("episode_id") or "")
+    reset_level = str(reset.get("level_name") or "")
+    if (
+        not resets
+        or reset.get("success") is not True
+        or reset.get("task_id") != task_id
+        or reset.get("protocol_sha256") != M1_PROTOCOL_SHA256
+        or str(reset.get("seed") or "") != str(M1_PROTOCOL["world_seed"])
+        or reset.get("observed_minecraft_version") != M1_PROTOCOL["minecraft_version"]
+        or "paper" not in str(reset.get("server_brand") or "").lower()
+        or len(str(reset.get("server_jar_sha256") or "")) != 64
+        or not reset_episode
+        or not reset_level.startswith(f"{reset_episode}_")
+        or not reset_checks
+        or any(value is not True for name, value in reset_checks.items() if name != "position_distance")
+    ):
+        issues.append("verified_reset_event_missing")
+    if (
+        not validations
+        or validations[-1].get("passed") is not True
+        or validations[-1].get("protocol_sha256") != M1_PROTOCOL_SHA256
+    ):
+        issues.append("evidence_validation_event_missing")
+    if not any(
+        event.get("achieved") is True or str(event.get("status") or "").lower() == "achieved"
+        for event in goal_verifications
+    ):
+        issues.append("achieved_goal_verifier_event_missing")
+    if not any(
+        isinstance(event.get("result"), dict)
+        and event["result"].get("completed") is True
+        and event["result"].get("termination_reason") == "goal_verified"
+        for event in goal_ends
+    ):
+        issues.append("verified_goal_end_missing")
+
+    actions = []
+    for event in events:
+        if event.get("type") != "action" or not isinstance(event.get("data"), dict):
+            continue
+        data = event["data"]
+        action = data.get("action", {}) if isinstance(data.get("action"), dict) else {}
+        result = data.get("result", {}) if isinstance(data.get("result"), dict) else {}
+        context = data.get("action_context", {}) if isinstance(data.get("action_context"), dict) else {}
+        action_type = str(action.get("type") or result.get("action_type") or "")
+        actions.append((action_type, result, context, data))
+        if action_type in {"move_to", "walk_to"} and result.get("success") is True:
+            if result.get("reached") is not True:
+                issues.append("successful_navigation_missing_reached")
+                continue
+            try:
+                distance = float(result.get("distance_to_target"))
+                tolerance = float(result.get("tolerance"))
+            except (TypeError, ValueError):
+                issues.append("successful_navigation_missing_tolerance_proof")
+                continue
+            if distance > tolerance:
+                issues.append("successful_navigation_outside_tolerance")
+    for index, (action_type, result, context, _) in enumerate(actions):
+        if action_type not in {"move_to", "walk_to"} or result.get("reached") is True:
+            continue
+        cycle = context.get("cycle")
+        for later_type, _, later_context, _ in actions[index + 1:]:
+            if later_context.get("cycle") != cycle:
+                break
+            if later_type in {"dig", "place", "craft"}:
+                issues.append("dependent_action_after_unreached_navigation")
+                break
+    required_action = "dig" if task_id in {"BM-001", "BM-004"} else "craft"
+    relevant = [
+        action_transition_proof(task_id, data)
+        for action_type, result, _, data in actions
+        if action_type == required_action and result.get("success") is True
+    ]
+    if not relevant:
+        issues.append(f"successful_{required_action}_action_missing")
+    elif any(proof.get("passed") is not True for proof in relevant):
+        issues.append(f"{required_action}_state_transition_unverified")
+    return list(dict.fromkeys(issues))
 
 
 def _summarize_benchmarks(records: list[dict]) -> dict:
@@ -1010,10 +1286,20 @@ def _summarize_benchmarks(records: list[dict]) -> dict:
             "attempts": 0,
             "successes": 0,
             "failures": 0,
+            "ineligible_successes": 0,
+            "ineligibility_reasons": [],
             "evidence_refs": [],
         })
         item["attempts"] += 1
-        item["successes" if record["outcome"] == "success" else "failures"] += 1
+        if record["outcome"] == "success":
+            item["successes"] += 1
+        elif record["outcome"] == "failure":
+            item["failures"] += 1
+        else:
+            item["ineligible_successes"] += 1
+            for reason in record.get("eligibility_reasons", []):
+                if reason not in item["ineligibility_reasons"]:
+                    item["ineligibility_reasons"].append(reason)
         ref = record.get("run_ref") or f"{record['source_path']}:{record['record_path']}"
         if ref not in item["evidence_refs"]:
             item["evidence_refs"].append(ref)
@@ -1024,6 +1310,7 @@ def _benchmark_status(task_id: str, stats: dict, min_repeats: int) -> dict:
     attempts = int(stats.get("attempts", 0) or 0)
     successes = int(stats.get("successes", 0) or 0)
     failures = int(stats.get("failures", 0) or 0)
+    ineligible_successes = int(stats.get("ineligible_successes", 0) or 0)
     if successes >= min_repeats:
         status = "repeat_verified"
     elif successes >= 1:
@@ -1038,6 +1325,8 @@ def _benchmark_status(task_id: str, stats: dict, min_repeats: int) -> dict:
         "attempts": attempts,
         "successes": successes,
         "failures": failures,
+        "ineligible_successes": ineligible_successes,
+        "ineligibility_reasons": list(stats.get("ineligibility_reasons", []))[:20],
         "repeats_required": min_repeats,
         "evidence_refs": list(stats.get("evidence_refs", []))[:20],
     }

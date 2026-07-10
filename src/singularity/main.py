@@ -744,6 +744,7 @@ def main():
     bench_parser = subparsers.add_parser("benchmark", help="Run benchmarks")
     _add_runtime_profile_args(bench_parser)
     bench_parser.add_argument("--suite", type=str, default="m1", choices=["m1", "m2", "all"])
+    bench_parser.add_argument("--task-id", action="append", default=[], help="Run only the selected benchmark task id; repeat for multiple tasks")
     bench_parser.add_argument("--host", type=str, default="localhost")
     bench_parser.add_argument("--port", type=int, default=25565)
     bench_parser.add_argument("--username", type=str, default="Singularity")
@@ -841,6 +842,7 @@ def main():
     preflight_parser.add_argument("--bridge-port", type=int, default=3000)
     preflight_parser.add_argument("--skip-network", action="store_true", help="Skip bot bridge and MC server TCP checks")
     preflight_parser.add_argument("--screenshot-renderer", action="store_true", help="Check optional prismarine-viewer screenshot renderer dependencies")
+    preflight_parser.add_argument("--m1", action="store_true", help="Require the fixed M1 protocol and reset-capable bridge")
     preflight_parser.add_argument("--output", type=str, default="", help="Write a timestamped runtime-preflight JSON report")
     preflight_parser.add_argument("--log-level", type=str, default="INFO")
 
@@ -6240,7 +6242,10 @@ def main():
 
         runtime_evidence = {}
         if getattr(args, "check_runtime", False):
-            preflight_report = BenchmarkRunner(config).preflight(check_network=True)
+            preflight_report = BenchmarkRunner(config).preflight(
+                check_network=True,
+                require_m1_harness=True,
+            )
             runtime_evidence = {**asdict(preflight_report), "ok": preflight_report.ok}
         benchmark_paths = getattr(args, "benchmark_results", []) or []
         if not benchmark_paths and os.path.isfile("logs/benchmarks/benchmark_results.json"):
@@ -6286,10 +6291,14 @@ def main():
 
     elif args.command == "preflight":
         from singularity.evaluation.benchmark_runner import BenchmarkRunner
+        if getattr(args, "m1", False) and getattr(args, "skip_network", False):
+            print("preflight --m1 cannot be combined with --skip-network")
+            sys.exit(1)
         runner = BenchmarkRunner(config)
         report = runner.preflight(
             check_network=not getattr(args, "skip_network", False),
             check_screenshot_renderer=getattr(args, "screenshot_renderer", False),
+            require_m1_harness=getattr(args, "m1", False),
         )
         runner.print_preflight(report)
         if getattr(args, "output", ""):
@@ -6321,6 +6330,7 @@ def main():
         if getattr(args, "preflight", False):
             report = runner.preflight(
                 check_screenshot_renderer=config.enable_screenshot_capture,
+                require_m1_harness=args.suite in {"m1", "all"},
             )
             runner.print_preflight(report)
             if not report.ok:
@@ -6433,13 +6443,22 @@ def main():
             runner.print_mixed_policy_benchmark_ablation_report(report)
             runner.save_mixed_policy_benchmark_ablation_report(report, args.output)
             return
-        if args.suite == "m1":
-            runner.run_m1_suite()
-        elif args.suite == "m2":
-            runner.run_m2_suite()
-        else:
-            runner.run_m1_suite()
-            runner.run_m2_suite()
+        tasks = runner.tasks_for_suite(args.suite)
+        requested_task_ids = [str(task_id).upper() for task_id in (getattr(args, "task_id", []) or [])]
+        if requested_task_ids:
+            available = {task.id for task in tasks}
+            unknown = sorted(set(requested_task_ids) - available)
+            if unknown:
+                print(f"Unknown task id for suite {args.suite}: {', '.join(unknown)}")
+                sys.exit(1)
+            tasks = [task for task in tasks if task.id in requested_task_ids]
+        if any(task.phase == "M1" for task in tasks) and len(tasks) != 1:
+            print(
+                "M1 acceptance runs require exactly one --task-id per fresh episode; "
+                "use scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001"
+            )
+            sys.exit(1)
+        runner.run_suite(tasks)
         runner.print_summary()
         runner.save_results(args.output)
         if getattr(args, "ingest", False):

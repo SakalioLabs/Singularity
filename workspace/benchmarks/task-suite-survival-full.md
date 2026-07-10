@@ -1,46 +1,64 @@
-﻿# Task Suite: Survival — Full Benchmark Definitions
+# Task Suite: M1 Survival Benchmarks
+
+The machine-readable source of truth is `src/singularity/data/m1_protocol.json`. Offline fixtures never count toward the live totals below.
+
+## Fixed Runtime
+
+- Minecraft: `1.20.4`
+- Server: Paper for Minecraft 1.20.4; one server-jar SHA-256 must be shared by every eligible session in a campaign
+- Dependencies: Mineflayer `4.37.1`, mineflayer-pathfinder `2.4.5`, minecraft-data `3.111.0`
+- World: seed `12345`, a new level name for every task attempt, world spawn as the reset origin
+- Player: survival, peaceful, full health/food
+- Time/weather: tick `1000`, clear
+- Runtime identities: `singularity-agent-v1`, `rule-based-v1`, `mineflayer-bridge-v1`, `goal-action-verifier-v1`
+- Action timeout: 30 seconds
 
 ## BM-001: Chop 3 Oak Logs
-- Seed: 12345 | Version: 1.20.4 | Max time: 120s | Max tokens: 5000
-- Start: Player at spawn, empty inventory, daytime
-- Success: 3+ oak_log in inventory
-- Failure: Death, timeout, wrong item collected
-- Metrics: time, tokens, blocks_broken, distance_traveled
+
+- Limit: 50 cycles / 120 seconds
+- Start: empty inventory
+- Success: `oak_log >= 3`
+- Required evidence: grounded oak-log coordinates, successful dig, source block removed in pre/post observations, and oak-log inventory increase
 
 ## BM-002: Craft a Workbench
-- Seed: 12345 | Version: 1.20.4 | Max time: 60s | Max tokens: 3000
-- Start: Player at spawn with 4 oak_planks
-- Success: 1 crafting_table in inventory
-- Failure: Death, timeout, material wasted
-- Metrics: time, tokens, craft_attempts
+
+- Limit: 30 cycles / 60 seconds
+- Start: `oak_planks = 4`
+- Success: `crafting_table >= 1`
+- Required evidence: successful craft plus crafting-table inventory increase in pre/post observations
 
 ## BM-003: Craft a Wooden Pickaxe
-- Seed: 12345 | Version: 1.20.4 | Max time: 120s | Max tokens: 5000
-- Start: Player at spawn with 3 oak_planks + 2 sticks
-- Success: 1 wooden_pickaxe in inventory
-- Failure: Death, timeout, wrong recipe
-- Metrics: time, tokens, craft_attempts
+
+- Limit: 60 cycles / 120 seconds
+- Start: `oak_planks = 3`, `stick = 2`, and one crafting table at `(spawn + 1, 0, 0)`
+- Success: `wooden_pickaxe >= 1`
+- Required evidence: the observed nearby crafting table is passed to Mineflayer and the wooden-pickaxe inventory increases
 
 ## BM-004: Mine 5 Cobblestone
-- Seed: 12345 | Version: 1.20.4 | Max time: 180s | Max tokens: 8000
-- Start: Player at spawn with wooden_pickaxe
-- Success: 5+ cobblestone in inventory
-- Failure: Death, timeout, pickaxe broken without getting stone
-- Metrics: time, tokens, blocks_mined, distance_traveled, tool_durability_used
+
+- Limit: 40 cycles / 180 seconds
+- Start: `wooden_pickaxe = 1`
+- Success: `cobblestone >= 5`
+- Required evidence: every counted dig uses observed stone coordinates; pre/post observations prove block removal and cobblestone pickup
 
 ## BM-005: Craft a Stone Pickaxe
-- Seed: 12345 | Version: 1.20.4 | Max time: 180s | Max tokens: 8000
-- Start: Player at spawn with 3 cobblestone + 2 sticks
-- Success: 1 stone_pickaxe in inventory
-- Failure: Death, timeout, wrong recipe
-- Metrics: time, tokens, craft_attempts
+
+- Limit: 80 cycles / 180 seconds
+- Start: `cobblestone = 3`, `stick = 2`, and one crafting table at `(spawn + 1, 0, 0)`
+- Success: `stone_pickaxe >= 1`
+- Required evidence: the observed nearby crafting table is passed to Mineflayer and the stone-pickaxe inventory increases
 
 ## Evaluation Protocol
-1. Start MC server with fixed seed
-2. Connect bot, teleport to spawn
-3. Set inventory to benchmark starting items
-4. Issue natural language goal to agent
-5. Log all observations, actions, LLM calls
-6. Check success criteria at timeout or completion
-7. Record all metrics to experiment log
-8. Repeat 3x for statistical significance
+
+1. Provision `mc-server/server.jar`, accept the EULA manually, configure seed `12345` and offline mode, and operator-enable the `Singularity` bot.
+2. Run exactly one task in one fresh episode:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001
+   ```
+
+3. Require the protocol-aware preflight, verified reset event, isolated deterministic runtime profile, action pre/post observations, Goal Verifier success, terminal inventory criteria, and a complete immutable session JSONL.
+4. Reject any successful movement without `reached=true` or with final distance outside its declared tolerance.
+5. Reject any dependent dig/place/craft after an unreached movement in the same plan cycle.
+6. Reject copied sessions, repeated episode IDs, repeated session hashes, mixed Paper jar hashes, mock evidence, and synthetic evidence.
+7. Repeat each task in three distinct fresh episodes. M1 requires 15 eligible live successes and a `repeat_verified` capability report.

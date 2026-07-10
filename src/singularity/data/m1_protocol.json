@@ -1,0 +1,86 @@
+{
+  "type": "m1_fixed_protocol",
+  "schema_version": 1,
+  "profile": "m1-fixed-v1",
+  "minecraft_version": "1.20.4",
+  "server_type": "Paper",
+  "server_jar_policy": "single_sha256_across_eligible_sessions_v1",
+  "world_seed": "12345",
+  "episode_strategy": "fresh_level_per_task_run_v1",
+  "spawn_strategy": "world_spawn",
+  "difficulty": "peaceful",
+  "game_mode": "survival",
+  "time_of_day": 1000,
+  "weather": "clear",
+  "agent_id": "singularity-agent-v1",
+  "planner_id": "rule-based-v1",
+  "action_backend_id": "mineflayer-bridge-v1",
+  "verifier_id": "goal-action-verifier-v1",
+  "max_action_timeout_ms": 30000,
+  "dependencies": {
+    "mineflayer": "4.37.1",
+    "mineflayer-pathfinder": "2.4.5",
+    "minecraft-data": "3.111.0"
+  },
+  "tasks": [
+    {
+      "id": "BM-001",
+      "name": "Chop 3 oak logs",
+      "goal": "Gather 3 oak logs",
+      "initial_inventory": {},
+      "initial_blocks": [],
+      "evidence": {"action": "dig", "source_blocks": ["oak_log"], "target_item": "oak_log"},
+      "success_criteria": {"oak_log": 3},
+      "max_cycles": 50,
+      "max_duration_s": 120
+    },
+    {
+      "id": "BM-002",
+      "name": "Craft workbench",
+      "goal": "Craft a crafting table",
+      "initial_inventory": {"oak_planks": 4},
+      "initial_blocks": [],
+      "evidence": {"action": "craft", "target_item": "crafting_table"},
+      "success_criteria": {"crafting_table": 1},
+      "max_cycles": 30,
+      "max_duration_s": 60
+    },
+    {
+      "id": "BM-003",
+      "name": "Craft wooden pickaxe",
+      "goal": "Craft a wooden pickaxe",
+      "initial_inventory": {"oak_planks": 3, "stick": 2},
+      "initial_blocks": [
+        {"name": "crafting_table", "relative_position": {"x": 1, "y": 0, "z": 0}}
+      ],
+      "evidence": {"action": "craft", "target_item": "wooden_pickaxe"},
+      "success_criteria": {"wooden_pickaxe": 1},
+      "max_cycles": 60,
+      "max_duration_s": 120
+    },
+    {
+      "id": "BM-004",
+      "name": "Mine 5 cobblestone",
+      "goal": "Mine 5 cobblestone blocks",
+      "initial_inventory": {"wooden_pickaxe": 1},
+      "initial_blocks": [],
+      "evidence": {"action": "dig", "source_blocks": ["stone"], "target_item": "cobblestone"},
+      "success_criteria": {"cobblestone": 5},
+      "max_cycles": 40,
+      "max_duration_s": 180
+    },
+    {
+      "id": "BM-005",
+      "name": "Craft stone pickaxe",
+      "goal": "Craft a stone pickaxe",
+      "initial_inventory": {"cobblestone": 3, "stick": 2},
+      "initial_blocks": [
+        {"name": "crafting_table", "relative_position": {"x": 1, "y": 0, "z": 0}}
+      ],
+      "evidence": {"action": "craft", "target_item": "stone_pickaxe"},
+      "success_criteria": {"stone_pickaxe": 1},
+      "max_cycles": 80,
+      "max_duration_s": 180
+    }
+  ]
+}

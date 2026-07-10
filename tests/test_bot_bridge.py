@@ -13,8 +13,9 @@ class RecordingBridge(BotBridge):
         self.calls = []
 
     def _send_command(self, command: str, params: dict = None) -> dict:
-        self.calls.append((command, params or {}))
-        return {"success": True, "screenshot_path": params.get("path", "")}
+        payload = params or {}
+        self.calls.append((command, payload))
+        return {"success": True, "screenshot_path": payload.get("path", "")}
 
     def _send_command_single(self, command: str, params: dict = None) -> dict:
         self.calls.append((command, params or {}))
@@ -96,6 +97,18 @@ def test_navigation_commands_omit_null_y_and_forward_pathfinder_controls():
     print("PASS: BotBridge preserves horizontal navigation and pathfinder controls")
 
 
+def test_benchmark_protocol_commands_are_fixed_and_typed():
+    bridge = RecordingBridge()
+    bridge.benchmark_protocol()
+    bridge.reset_benchmark("BM-001")
+
+    assert bridge.calls == [
+        ("benchmark_protocol", {}),
+        ("benchmark_reset", {"task_id": "BM-001"}),
+    ]
+    print("PASS: BotBridge exposes fixed M1 protocol and allowlisted task reset commands")
+
+
 def test_single_shot_navigation_extends_and_restores_socket_timeout():
     bridge = object.__new__(BotBridge)
     bridge._connected = True
@@ -117,5 +130,6 @@ if __name__ == "__main__":
     test_decode_response_handles_empty_or_invalid_payloads()
     test_capture_screenshot_sends_renderer_command()
     test_navigation_commands_omit_null_y_and_forward_pathfinder_controls()
+    test_benchmark_protocol_commands_are_fixed_and_typed()
     test_single_shot_navigation_extends_and_restores_socket_timeout()
     print("\nBot bridge tests PASSED")

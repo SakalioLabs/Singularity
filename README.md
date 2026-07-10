@@ -78,27 +78,20 @@ python -m pip install -e .
 npm install
 ```
 
-### Running the Agent
+### Running M1
+
+Provision Paper and manually accept the EULA as described in `docs/SERVER_SETUP.md`, then run exactly one task in a fresh episode:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001
+```
+
+The M1 script uses the deterministic RuleBasedPlanner profile, Bridge port `30000`, a fresh level, verified reset state, and timestamped evidence. BM-001..005 each require three distinct live successes; offline tests do not count.
+
+### Development Commands
 
 ```bash
-# 1. Start Minecraft server
-cd mc-server
-java -Xmx1G -Xms512M -jar server.jar nogui
-
-# 2. Start bot bridge (in new terminal)
-node src/bot/bot_server.js
-
-# 3. Run agent (in new terminal)
-
-# Goal-directed mode
-python -m singularity.main run --goal "Gather 3 oak logs"
-
-# Autonomous survival mode (M4 + M5)
-python -m singularity.main autonomous --max-goals 10
-
-# Run benchmarks
 python -m singularity.main preflight --skip-network
-python -m singularity.main preflight
 python -m singularity.main capability-evidence-report --check-runtime --output workspace/evals/capability_evidence_current.json
 python -m singularity.main capability-evidence-report --m3-evidence logs/benchmarks/continual_learning.json --m3-evidence logs/benchmarks/task_stream_transfer_gate.json --m5-evidence logs/benchmarks/exploration_trace.json --m5-evidence logs/benchmarks/world_model_gate.json --m6-evidence logs/benchmarks/visual_trace_report.json --m6-evidence logs/benchmarks/visual_action_ablation.json --output workspace/evals/capability_evidence_current.json
 python -m singularity.main task-continuity-report --goal "Build a safe shelter" --output logs/benchmarks/task_continuity.json
@@ -131,9 +124,8 @@ python -m singularity.main frontier-rollout-budget-report --help
 # Built-ins are synthetic controls; typed repair candidates remain review-only in every report.
 python -m singularity.main critical-transition-report --include-builtins --evidence-kind synthetic_control --output logs/benchmarks/critical_transition_builtin.json
 python -m singularity.main critical-transition-report --session-log logs/session_xxx.jsonl --label-file workspace/reviews/critical_transition_labels.jsonl --evidence-kind live_trace --output logs/benchmarks/critical_transition_live.json
-python -m singularity.main benchmark --suite m1 --preflight
-python -m singularity.main benchmark --suite m1 --ingest
-python -m singularity.main benchmark --suite m1 --ingest --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
+# M1 acceptance runs must use exactly one task and one fresh episode.
+powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001
 python -m singularity.main visual-trace-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/visual_trace_report.json
 python -m singularity.main review-label-template --session-log logs/session_xxx.jsonl --mode both --output workspace/reviews/session_xxx_labels.jsonl
 python -m singularity.main promotion-review-ablation --session-log logs/session_xxx.jsonl --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL

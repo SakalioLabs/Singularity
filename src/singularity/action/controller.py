@@ -105,7 +105,7 @@ class ActionController:
         if action_type in NAVIGATION_ACTIONS:
             reached = result.get("reached") is True
             result["navigation_reached"] = reached
-            result["requires_replan"] = result.get("success") is True and not reached
+            result["requires_replan"] = not reached
             if result["requires_replan"]:
                 result["replan_reason"] = "navigation_target_unreached"
         return result

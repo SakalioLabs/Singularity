@@ -233,7 +233,10 @@ class Agent:
         self.visual_action_advisor = VisualActionAdvisor()
         self._last_screenshot_at = 0.0
 
-        self._use_llm = bool(config.llm.api_key or os.environ.get("OPENAI_API_KEY"))
+        self._use_llm = bool(
+            not getattr(config, "force_rule_planner", False)
+            and (config.llm.api_key or os.environ.get("OPENAI_API_KEY"))
+        )
         if self._use_llm:
             from singularity.llm.provider import LLMProvider
             from singularity.core.planner import Planner
@@ -1451,23 +1454,47 @@ class Agent:
 
     # ── Goal-directed mode ──────────────────────────────────────────────
 
-    def run_goal(self, goal: str) -> dict:
+    def run_goal(
+        self,
+        goal: str,
+        max_cycles: int = 100,
+        max_duration_s: Optional[float] = None,
+    ) -> dict:
         """Pursue a specific natural-language goal."""
+        try:
+            max_cycles = max(1, int(max_cycles))
+        except (TypeError, ValueError):
+            max_cycles = 100
+        try:
+            max_duration_s = float(max_duration_s) if max_duration_s is not None else None
+        except (TypeError, ValueError):
+            max_duration_s = None
+        if max_duration_s is not None and max_duration_s <= 0:
+            max_duration_s = None
+
         self.current_goal = goal
         self._last_plan_cache_signature = START_PLAN_SIGNATURE
         self.running = True
         logger.info(f"Starting goal: {goal}")
         self.session_logger.log_goal_start(goal)
+        self.session_logger.log("goal_limits", {
+            "max_cycles": max_cycles,
+            "max_duration_s": max_duration_s,
+        })
         self._write_memory_episode("goal_start", {"goal": goal}, source="run_goal")
 
-        max_cycles = 100
+        started_at = time.monotonic()
         cycle = 0
         success = False
         last_observation = {}
         last_plan = {}
         termination_reason = ""
 
-        while self.running and cycle < max_cycles:
+        while (
+            self.running
+            and cycle < max_cycles
+            and (max_duration_s is None or time.monotonic() - started_at < max_duration_s)
+        ):
             cycle += 1
             try:
                 observation = self._observe()
@@ -1605,6 +1632,10 @@ class Agent:
                     )
                     self._write_memory_episode("action", {"action": action, "result": result}, source="goal_action")
 
+                    if result.get("requires_replan"):
+                        self._record_skill_usage(action, False)
+                        logger.info("Navigation target not reached; deferring the remaining plan suffix")
+                        break
                     if result.get("success"):
                         self._record_skill_usage(action, True)
                         verified, verification = self._goal_is_verified(
@@ -1620,9 +1651,6 @@ class Agent:
                         )
                         if verified:
                             success = True
-                            break
-                        if result.get("requires_replan"):
-                            logger.info("Navigation target not reached; deferring the remaining plan suffix")
                             break
                     else:
                         self._record_skill_usage(action, False)
@@ -1677,13 +1705,20 @@ class Agent:
             },
             branch_status="completed" if success else "failed",
         )
+        elapsed_s = time.monotonic() - started_at
         if not success and not termination_reason:
-            termination_reason = "max_cycles" if cycle >= max_cycles else "stopped"
+            if max_duration_s is not None and elapsed_s >= max_duration_s:
+                termination_reason = "max_duration"
+            else:
+                termination_reason = "max_cycles" if cycle >= max_cycles else "stopped"
         result = {
             "goal": goal,
             "cycles": cycle,
             "completed": success,
             "termination_reason": "goal_verified" if success else termination_reason,
+            "max_cycles": max_cycles,
+            "max_duration_s": max_duration_s,
+            "elapsed_s": round(elapsed_s, 3),
             "summary": self.session_logger.get_summary(),
         }
         self.session_logger.log_goal_end(goal, result)
@@ -3188,6 +3223,30 @@ class Agent:
     ) -> tuple[str, dict]:
         """Build one typed, bounded memory packet for the next planner decision."""
         config = getattr(self, "config", None)
+        if not bool(getattr(config, "enable_planning_memory_context", True)):
+            contract = {
+                "type": "planning_context_contract",
+                "schema_version": 2,
+                "planner": planner,
+                "goal": str(goal or "")[:160],
+                "enabled": False,
+                "isolation_profile": "planning_memory_disabled_v1",
+                "read_limit_chars": 0,
+                "cycle_limit_chars": 0,
+                "memory_read_count": 0,
+                "typed_layer_count": 0,
+                "nonempty_read_count": 0,
+                "total_result_chars": 0,
+                "total_separator_chars": 0,
+                "total_context_chars": 0,
+                "bounded_ok": True,
+                "segments": [],
+            }
+            self._last_planning_memory_context = ""
+            self._last_planning_context_contract = contract
+            if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+                self.session_logger.log("planning_context_contract", contract)
+            return "", contract
         enabled = bool(getattr(config, "enable_bounded_planning_context", True))
         read_limit = max(1, self._small_int(getattr(config, "planning_memory_read_limit_chars", 600) or 600))
         cycle_limit = max(1, self._small_int(getattr(config, "planning_memory_cycle_limit_chars", 2400) or 2400))
@@ -3694,7 +3753,7 @@ class Agent:
     def _manage_memory_save_session(self):
         session_id = str(getattr(getattr(self, "session_logger", None), "session_id", "session"))
         decision = self._memory_manage_decision("save_session", layer="episodic", memory_type="lifecycle")
-        if hasattr(self, "memory") and self.memory and hasattr(self.memory, "save_session"):
+        if decision.should_persist and hasattr(self, "memory") and self.memory and hasattr(self.memory, "save_session"):
             self.memory.save_session(session_id)
         self._log_memory_manage("save_session", {"session_id": session_id}, layer="episodic", decision=decision)
 
@@ -3707,6 +3766,16 @@ class Agent:
         source: str,
         confidence: float,
     ) -> MemoryPolicyDecision:
+        if not getattr(getattr(self, "config", None), "enable_memory_persistence", True):
+            return MemoryPolicyDecision(
+                operation=operation,
+                layer=layer,
+                memory_type=memory_type,
+                decision="write_blocked",
+                reason="memory persistence disabled by runtime profile",
+                should_persist=False,
+                should_retrieve=False,
+            )
         if hasattr(self, "memory_policy") and self.memory_policy:
             return self.memory_policy.decide_write(layer, memory_type, operation, content, source, confidence)
         return MemoryPolicyDecision(
@@ -3731,6 +3800,16 @@ class Agent:
         )
 
     def _memory_manage_decision(self, operation: str, layer: str = "memory", memory_type: str = "lifecycle") -> MemoryPolicyDecision:
+        if not getattr(getattr(self, "config", None), "enable_memory_persistence", True):
+            return MemoryPolicyDecision(
+                operation=operation,
+                layer=layer,
+                memory_type=memory_type,
+                decision="manage_blocked",
+                reason="memory persistence disabled by runtime profile",
+                should_persist=False,
+                should_retrieve=False,
+            )
         if hasattr(self, "memory_policy") and self.memory_policy:
             return self.memory_policy.decide_manage(operation, layer, memory_type)
         return MemoryPolicyDecision(
@@ -4962,6 +5041,13 @@ class Agent:
         payload = {"action": action, "result": result}
         pre_snapshot = self._action_observation_snapshot(pre_observation)
         post_snapshot = self._action_observation_snapshot(post_observation)
+        if str(action.get("type") or "") == "dig":
+            target_before = result.get("target_block_before")
+            target_after = result.get("target_block_after")
+            if isinstance(target_before, dict) and target_before:
+                pre_snapshot["action_target_block"] = self._bounded_log_value(target_before, depth=0)
+            if isinstance(target_after, dict) and target_after:
+                post_snapshot["action_target_block"] = self._bounded_log_value(target_after, depth=0)
         if pre_snapshot:
             payload["pre_observation"] = pre_snapshot
         if post_snapshot:

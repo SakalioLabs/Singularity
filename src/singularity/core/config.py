@@ -34,6 +34,8 @@ class Config:
     enable_skill_frontier_routing: bool = True
     enable_autocurriculum: bool = True
     enable_memory_policy: bool = True
+    enable_memory_persistence: bool = True
+    enable_planning_memory_context: bool = True
     enable_task_memory_context: bool = True
     enable_task_continuity_context: bool = True
     enable_task_readiness_context: bool = True
@@ -93,6 +95,7 @@ class Config:
     screenshot_min_interval_s: float = 2.0
     enable_goal_verification: bool = True
     enable_goal_critic: bool = False
+    force_rule_planner: bool = False
     goal_critic_gate_paths: list[str] = field(default_factory=list)
     enable_world_model_curriculum_feedback: bool = True
     enable_blocked_plan_rule_fallback: bool = True

@@ -2,68 +2,99 @@
 
 ## Objective
 
-Move the Minimum Viable Bot from `live_failing` to `repeat_verified`. Until that gate passes, work is limited to the Minecraft 1.20.4 execution path:
+Move the Minimum Viable Bot from `live_failing` to `repeat_verified`. Until then, work is limited to:
 
 `Paper server -> Mineflayer -> TCP bridge -> observation -> deterministic planner -> action verification/execution -> post-observation -> goal verification -> evidence`
 
-M2-M7 work, research-driven feature additions, vision, learned skills, weighted memory, plan cache, self-evolution, frontier budgets, episode abort, policy mutation, and LLM critics are frozen for M1 acceptance runs.
+M2-M7, vision, learned skills, weighted memory, plan cache, self-evolution, frontier budgets, episode abort, policy mutation, and LLM critics are isolated from M1 acceptance runs.
 
 ## Current Gate
 
 `G0_RUNTIME_AVAILABLE`: **failing**
 
+- `mc-server/server.jar`, `mc-server/server.properties`, and manually accepted `mc-server/eula.txt` are absent.
 - No Minecraft server is listening on `localhost:25565`.
-- No server jar, `server.properties`, or manually accepted `eula.txt` exists under `mc-server/`.
-- `127.0.0.1:3000` belongs to an unrelated Windows service. It accepts TCP but does not implement the Singularity health protocol.
-- Raw evidence: `logs/benchmarks/m1_preflight_20260710_131157.json`.
+- `127.0.0.1:3000` is an unrelated Windows service and fails the Singularity health protocol.
+- Latest raw evidence: `logs/benchmarks/m1_preflight_20260710_142227.json` (`sha256=e542670efd191db84298690e252eb9561688fcaea35bca10c70b7ddaf7cd2c41`).
+- The preflight is explicitly non-capability evidence. No live task ran in this loop.
 
-The preflight now requires a valid `health` response with `success=true` and `bridge=true`; an arbitrary TCP listener cannot satisfy the bridge gate.
+`G1_HARNESS_VALID` is implemented and offline-tested, but it remains live-unverified behind G0.
 
 ## Ordered Gates
 
-| Gate | Exit condition | Evidence |
+| Gate | Exit condition | Current state |
 |---|---|---|
-| G0 Runtime available | Controlled Paper 1.20.4 server on seed `12345`; EULA accepted manually; Singularity bridge on an unused port; expected username/version/MC port; bot spawned | Timestamped `m1_preflight_*.json` plus server/bridge logs |
-| G1 Harness valid | Every task starts at spawn/daytime with its canonical inventory, reset postconditions are observed, BM-004 requires five cobblestone, advanced modules are disabled, and each task has its own session log | Reset event, effective M1 runtime profile, pre/post state, and verifier result in every session |
-| G2 BM-001 live observed | Three oak logs in post-observation and goal verifier; all movement has `reached=true` plus final tolerance proof | One passing live session |
-| G3 BM-002..005 live observed | Craft/dig outcomes proven by pre/post inventory or world state; no dependent action follows unreached navigation | One passing live session per task |
-| G4 Repeat verified | BM-001..005 each pass in three distinct complete sessions under the same fixed protocol | Fifteen distinct passing session manifests |
-| G5 Capability report | Capability evidence reports M1 as `repeat_verified`; offline/mock/synthetic records contribute zero live counts | `workspace/evals/capability_evidence_current.json` |
+| G0 Runtime available | Controlled Paper 1.20.4 server; fixed seed; manually accepted EULA; valid bridge/session/harness | Failing |
+| G1 Harness valid | Fresh level per task; verified reset; exact task inventory/fixture; deterministic isolated runtime; immutable session | Offline ready, live unverified |
+| G2 BM-001 live observed | Three oak logs plus Goal Verifier; truthful navigation and dig/pickup deltas | 0 successes |
+| G3 BM-002..005 live observed | One eligible live success per task with craft/dig state deltas | 0/4 tasks |
+| G4 Repeat verified | Three distinct eligible successes for each BM-001..005 under one server-jar hash | 0/15 successes |
+| G5 Capability report | M1 reads `repeat_verified`; offline/mock/synthetic contribute zero | Failing |
 
-Only the earliest failing gate is changed in each loop. A downstream result cannot upgrade an upstream gate.
+Only the earliest failing gate changes in a convergence loop. A downstream result cannot upgrade an upstream gate.
 
-## Canonical M1 Protocol
+## Canonical Protocol
 
-| Task | Start inventory | Success |
-|---|---|---|
-| BM-001 | empty | `oak_log >= 3` |
-| BM-002 | `oak_planks = 4` | `crafting_table >= 1` |
-| BM-003 | `oak_planks = 3`, `stick = 2` | `wooden_pickaxe >= 1` |
-| BM-004 | `wooden_pickaxe = 1` | `cobblestone >= 5` |
-| BM-005 | `cobblestone = 3`, `stick = 2` | `stone_pickaxe >= 1` |
+The source of truth is `src/singularity/data/m1_protocol.json`.
 
-Every attempt uses Minecraft `1.20.4`, seed `12345`, spawn position, daytime, survival mode, and a distinct session ID. Initial state and final success are observed, not inferred from planner text or backend return text.
+| Task | Start inventory / fixture | Limit | Success |
+|---|---|---|---|
+| BM-001 | empty | 50 cycles / 120s | `oak_log >= 3` |
+| BM-002 | `oak_planks = 4` | 30 / 60s | `crafting_table >= 1` |
+| BM-003 | `oak_planks = 3`, `stick = 2`; nearby table | 60 / 120s | `wooden_pickaxe >= 1` |
+| BM-004 | `wooden_pickaxe = 1` | 40 / 180s | `cobblestone >= 5` |
+| BM-005 | `cobblestone = 3`, `stick = 2`; nearby table | 80 / 180s | `stone_pickaxe >= 1` |
+
+Fixed identities and environment:
+
+- Minecraft `1.20.4`; Paper; a single server-jar SHA-256 across all eligible sessions
+- Mineflayer `4.37.1`; pathfinder `2.4.5`; minecraft-data `3.111.0`
+- Seed `12345`; fresh level per task; world spawn; peaceful; survival; tick `1000`; clear weather
+- Agent `singularity-agent-v1`; planner `rule-based-v1`; backend `mineflayer-bridge-v1`; verifier `goal-action-verifier-v1`
+- Maximum action timeout 30 seconds
 
 ## Evidence Rules
 
-- Never overwrite historical session logs or benchmark reports. New runtime evidence uses timestamped filenames under `logs/benchmarks/`.
-- A preflight report is `runtime_preflight`; it explicitly cannot count as `live_observed` or `repeat_verified`.
-- An attempt counts only when the bridge is connected to a real Minecraft world, the terminal boundary is complete, and the goal verifier is grounded in post-observation state.
-- A movement success requires `success=true`, `reached=true`, final position, target, tolerance, and final distance within tolerance.
-- Dig, pickup, and craft success require relevant pre/post state deltas. Backend success text alone is insufficient.
-- Any unreached movement defers the dependent plan suffix. A later dig/place/craft from that suffix is a regression.
-- Secrets and credentials are excluded from all logs and artifacts.
+- New session, benchmark, preflight, and runtime files are timestamped; historical evidence is never overwritten.
+- Success requires a real Minecraft connection, verified reset, complete session boundary, terminal inventory criteria, and an achieved Goal Verifier event.
+- Successful navigation requires `success=true`, `reached=true`, and final distance no greater than tolerance.
+- Dig requires grounded coordinates, an observed source block before the action, its removal after the action, and target-item pickup in inventory.
+- Craft requires the requested target item to increase in pre/post inventory observations; 3x3 recipes require an observed nearby workbench.
+- An unreached movement terminates its dependent plan suffix before dig/place/craft.
+- Session ID, episode ID, session hash, and server-jar hash are independently checked. Copies and mixed-server campaigns are ineligible.
+- Offline, mock, synthetic, planner text, and backend success text contribute zero live successes.
 
-## One-Command Runtime Preparation
+## Eliminated Hypotheses
 
-After placing a Paper 1.20.4 jar at `mc-server/server.jar`, manually accepting the EULA, and setting `level-seed=12345` plus `online-mode=false`, run:
+- An open TCP port proves Bridge readiness: false; protocol identity and bot session are now required.
+- Historical BM-002..005 failures prove recipe logic is primary: unsupported; their canonical starting inventories were absent.
+- BM-004 needs only three cobblestone: false; the canonical threshold is five.
+- Environment API credentials can silently select the LLM planner: prevented by the forced RuleBasedPlanner profile.
+- Nonempty pre/post payloads prove action success: false; target inventory and source-block deltas are now checked.
+- Reusing a session under another result path can satisfy repeats: false; session, episode, log hash, and Paper jar hash are deduplicated.
+
+## Current Repair Hypothesis
+
+The earliest causal blocker is external runtime provisioning, not another planner feature. Once a controlled Paper runtime is available, the highest-information experiment is one fresh BM-001 attempt. Its first unrecovered transition will determine the next code change.
+
+## One-Command Run
+
+After placing Paper 1.20.4 at `mc-server/server.jar`, manually accepting the EULA, setting `level-seed=12345`, `online-mode=false`, `server-port=25565`, and adding `Singularity` to `ops.json`, run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1
+powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001
 ```
 
-The script uses bridge port `30000`, owns and cleans up only the processes it starts, writes timestamped runtime logs, and runs protocol-aware preflight. It never edits `eula.txt`, never stops an existing listener, and currently stops at G1 rather than collecting invalid benchmark evidence.
+The script creates a fresh level, uses bridge port `30000`, records the exact server jar hash, runs M1 preflight, executes only BM-001, writes immutable evidence, restores `server.properties`, and stops only processes it owns. It never edits or accepts `eula.txt`.
 
-## Next Action
+## Acceptance Progress
 
-Provision the controlled server prerequisites, pass G0 with `scripts/m1-runtime.ps1`, then implement and offline-test the canonical per-task reset contract before any new BM-001..005 acceptance attempt.
+| Task | Eligible live successes | Required |
+|---|---:|---:|
+| BM-001 | 0 | 3 |
+| BM-002 | 0 | 3 |
+| BM-003 | 0 | 3 |
+| BM-004 | 0 | 3 |
+| BM-005 | 0 | 3 |
+
+Next experiment: provision the external server prerequisites and run the exact BM-001 command above. Do not start another feature branch while G0 is failing.

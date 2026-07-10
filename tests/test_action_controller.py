@@ -477,6 +477,11 @@ def test_partial_navigation_requires_replanning_before_plan_suffix():
         },
         {"health": 20},
     )
+    bot.move_to = lambda *args, **kwargs: {"success": False, "reached": False, "error": "no path"}
+    failed = controller.execute(
+        {"type": "move_to", "parameters": {"x": 30, "z": 30}},
+        {"health": 20},
+    )
 
     assert partial["success"] is True
     assert partial["navigation_reached"] is False
@@ -484,6 +489,9 @@ def test_partial_navigation_requires_replanning_before_plan_suffix():
     assert partial["replan_reason"] == "navigation_target_unreached"
     assert reached["navigation_reached"] is True
     assert reached["requires_replan"] is False
+    assert failed["success"] is False
+    assert failed["navigation_reached"] is False
+    assert failed["requires_replan"] is True
     assert bot.calls[-1] == ("move_to", 12, 4, None, 3, 30000)
     print("PASS: Partial navigation defers the remaining plan suffix")
 

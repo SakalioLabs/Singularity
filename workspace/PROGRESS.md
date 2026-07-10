@@ -8,7 +8,7 @@ M1 is the sole active milestone. Research expansion and M2-M7 runtime work are p
 
 Singularity has broad source coverage and a large passing offline test surface, but the full Minecraft Agent system is not complete. The authoritative capability report is `workspace/evals/capability_evidence_current.json`.
 
-The current loop improved evidence integrity rather than capability status: preflight now rejects the unrelated listener on port `3000`, emits timestamped non-capability JSON evidence, and has a controlled startup script on port `30000`. Minecraft remains unavailable, so M1 remains `live_failing` with zero verified successes.
+The current loop improved harness readiness and evidence integrity rather than capability status. A shared protocol now fixes reset state, task limits, deterministic runtime identity, dependency versions, fresh episodes, and one Paper jar hash across eligible sessions. Minecraft remains unavailable, so M1 remains `live_failing` with every task at `0/3` and zero live progress.
 
 Current report outcome:
 
@@ -45,10 +45,16 @@ Current report outcome:
 - Added `frontier_information_budget_v1` with an exact uniform control, fixed integer planner-round ledger, deterministic soft allocation, exploration floor, typed prerequisite/verifier/novelty/risk signals, and BAGEN-style remaining-round intervals. Active episode-abort savings can become bounded recovery credit but never extend the ledger. `frontier-rollout-budget-report` accepts offline fixtures for shadow review yet permits planner-facing advice only from distinct paired uniform/information JSONL sessions whose allocations replay exactly, outcomes do not regress, interval coverage has an exact one-sided certificate, and any recovered rounds link to an approved abort gate. Automatic retry, branch execution, and budget extension are structurally impossible.
 - Added AgentRx/AgentTether-style critical-transition diagnosis. `minecraft_transition_unit_v1` normalizes both action cycles and actionless planner responses; deterministic constraints feed a temporal/plan/target/artifact/error dependency graph and `first_unrecovered_constraint_v1`. Five synthetic failures match 5/5 critical units and categories versus 3/5 for a recency baseline. Repair candidates are typed and review-only, with no planner, retry, intervention, memory-promotion, or skill-mutation authority.
 - Fixed Mineflayer navigation truthfulness: `move_to` now uses pathfinder and succeeds only inside target tolerance, absent/null Y values preserve horizontal goals, action/socket timeout budgets align without replay, and unreached partial navigation defers the remaining plan suffix before any dependent world action.
+- Added `m1-fixed-v1` as the shared Node/Python source of truth for BM-001..005, including canonical fixtures, BM-004's five-cobblestone threshold, cycle/time limits, runtime identities, and exact Mineflayer dependency versions.
+- Added a reset-capable controlled runner that creates one fresh level per task, verifies all reset postconditions, forces the minimal RuleBasedPlanner profile, records the exact Paper jar hash, and refuses multi-task M1 acceptance runs in one episode.
+- Added state-grounded M1 transition validation. Dig must remove an observed source block and increase the target inventory; craft must increase the requested item; copied sessions, repeated episodes/hashes, nested reset payloads, and mixed server jars are ineligible.
+- Added a bounded post-dig pickup window and closer grounded resource approach so the post-action observation can prove pickup instead of racing the item entity.
 
 ## Evidence That Still Matters
 
 - Latest tracked M1 benchmark file records BM-001..005 as failures with empty inventories.
+- Latest runtime evidence, `logs/benchmarks/m1_preflight_20260710_142227.json`, still fails at the absent Minecraft server and invalid service on port `3000`; it counts toward no capability total.
+- The fixed M1 harness passes offline unit/integration coverage only. No reset, action transition, or task success has yet been observed in Minecraft.
 - The new tracked critical-transition replay localizes all five historical M1 failures: four contain 100 actionless non-terminal plans each, while the only 200-action run first exhibits repeated no-progress navigation. These diagnoses have no manual critical-unit labels and do not upgrade M1 evidence.
 - No tracked successful M2 benchmark suite is available.
 - No three-run first-night survival evidence is available.
@@ -91,8 +97,8 @@ The material below is retained as historical context and is not active work whil
 
 ## Immediate Sequence
 
-1. Pass controlled Paper/Mineflayer preflight with `scripts/m1-runtime.ps1`; EULA acceptance remains manual.
-2. Enforce and observe canonical reset state for all five tasks, including BM-004's five-cobblestone criterion.
-3. Run the smallest real task, BM-001, and localize only its earliest failing transition.
+1. Provision Paper/Mineflayer prerequisites; EULA acceptance and `op Singularity` remain manual.
+2. Run `powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001` and verify the canonical reset in a real fresh world.
+3. Localize only BM-001's earliest failing live transition.
 4. Extend to BM-002..005 only after the preceding gate is truthful and regression-tested.
 5. Accumulate fifteen distinct passing sessions, regenerate capability evidence, and keep M2-M7 frozen until M1 reads `repeat_verified`.

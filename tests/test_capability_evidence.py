@@ -1,14 +1,17 @@
 """Tests for evidence-backed project capability status."""
 
 import json
+import hashlib
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 
 sys.path.insert(0, "src")
 
-from singularity.evaluation.capability_evidence import build_capability_evidence_report
+from singularity.evaluation.capability_evidence import M1_PROTOCOL_SHA256, build_capability_evidence_report
+from singularity.evaluation.m1_protocol import PROTOCOL as M1_PROTOCOL, TASKS_BY_ID as M1_TASKS_BY_ID
 
 
 def _write_status(path: str):
@@ -48,6 +51,143 @@ def _write_results(path: str):
 def _write_json(path: str, payload):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f)
+
+
+def _write_m1_live_session(path: str, task_id: str, session_id: str):
+    spec = M1_TASKS_BY_ID[task_id]
+    initial_inventory = dict(spec["initial_inventory"])
+    target_item, target_count = next(iter(spec["success_criteria"].items()))
+    action_type = spec["evidence"]["action"]
+    current_inventory = dict(initial_inventory)
+    action_events = []
+    action_count = target_count if action_type == "dig" else 1
+    for index in range(action_count):
+        before_inventory = dict(current_inventory)
+        if action_type == "dig":
+            current_inventory[target_item] = current_inventory.get(target_item, 0) + 1
+            source_block = spec["evidence"]["source_blocks"][0]
+            action = {
+                "type": "dig",
+                "parameters": {"x": index + 1, "y": 64, "z": 0},
+            }
+            result = {"success": True, "block": source_block}
+            before_blocks = [{"name": source_block, "position": {"x": index + 1, "y": 64, "z": 0}}]
+            after_blocks = []
+        else:
+            current_inventory = {target_item: target_count}
+            action = {"type": "craft", "parameters": {"item": target_item, "count": 1}}
+            result = {"success": True, "item": target_item}
+            before_blocks = []
+            after_blocks = []
+        action_events.append({
+            "session": session_id,
+            "type": "action",
+            "data": {
+                "action": action,
+                "result": result,
+                "pre_observation": {
+                    "position": {"x": 0, "y": 64, "z": 0},
+                    "inventory": before_inventory,
+                    "nearby_blocks": before_blocks,
+                },
+                "post_observation": {
+                    "position": {"x": 0, "y": 64, "z": 0},
+                    "inventory": dict(current_inventory),
+                    "nearby_blocks": after_blocks,
+                },
+                "action_context": {"cycle": index + 1},
+            },
+        })
+    reset_checks = {
+        "inventory_exact": True,
+        "position_at_spawn": True,
+        "position_distance": 0.0,
+        "fixture": True,
+    }
+    runtime_profile = {
+        "isolated": True,
+        "protocol_sha256": M1_PROTOCOL_SHA256,
+        "agent_id": M1_PROTOCOL["agent_id"],
+        "planner_id": M1_PROTOCOL["planner_id"],
+        "action_backend_id": M1_PROTOCOL["action_backend_id"],
+        "verifier_id": M1_PROTOCOL["verifier_id"],
+    }
+    events = [
+        {"session": session_id, "type": "connect", "data": {"success": True}},
+        {
+            "session": session_id,
+            "type": "benchmark_runtime_profile",
+            "data": runtime_profile,
+        },
+        {
+            "session": session_id,
+            "type": "benchmark_reset",
+            "data": {
+                "success": True,
+                "task_id": task_id,
+                "protocol_sha256": M1_PROTOCOL_SHA256,
+                "seed": M1_PROTOCOL["world_seed"],
+                "server_jar_sha256": "a" * 64,
+                "server_brand": "Paper",
+                "observed_minecraft_version": M1_PROTOCOL["minecraft_version"],
+                "episode_id": session_id,
+                "level_name": f"{session_id}_world",
+                "after_state": {"inventory": initial_inventory},
+                "checks": reset_checks,
+            },
+        },
+        *action_events,
+        {"session": session_id, "type": "goal_verification", "data": {"achieved": True, "status": "achieved"}},
+        {
+            "session": session_id,
+            "type": "goal_end",
+            "data": {"result": {"completed": True, "termination_reason": "goal_verified"}},
+        },
+        {
+            "session": session_id,
+            "type": "benchmark_evidence_validation",
+            "data": {"passed": True, "protocol_sha256": M1_PROTOCOL_SHA256},
+        },
+    ]
+    with open(path, "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+    return current_inventory, reset_checks, runtime_profile
+
+
+def _eligible_m1_result(task_id: str, log_path: str, session_id: str) -> dict:
+    final_inventory, reset_checks, runtime_profile = _write_m1_live_session(log_path, task_id, session_id)
+    spec = M1_TASKS_BY_ID[task_id]
+    with open(log_path, "rb") as f:
+        session_hash = hashlib.sha256(f.read()).hexdigest()
+    return {
+        "task_id": task_id,
+        "status": "pass",
+        "duration_s": 1,
+        "log": log_path,
+        "session_id": session_id,
+        "session_sha256": session_hash,
+        "inventory": final_inventory,
+        "evidence_kind": "live_minecraft",
+        "protocol_eligible": True,
+        "goal_verified": True,
+        "criteria_verified": True,
+        "setup_evidence": {
+            "success": True,
+            "task_id": task_id,
+            "protocol_sha256": M1_PROTOCOL_SHA256,
+            "seed": M1_PROTOCOL["world_seed"],
+            "server_jar_sha256": "a" * 64,
+            "server_brand": "Paper",
+            "observed_minecraft_version": M1_PROTOCOL["minecraft_version"],
+            "episode_id": session_id,
+            "level_name": f"{session_id}_world",
+            "after_state": {"inventory": dict(spec["initial_inventory"])},
+            "checks": reset_checks,
+        },
+        "evidence_validation": {"passed": True, "protocol_sha256": M1_PROTOCOL_SHA256},
+        "runtime_profile": runtime_profile,
+    }
 
 
 def _continual_case(run_number: int) -> dict:
@@ -127,7 +267,9 @@ def test_capability_evidence_rejects_unsupported_completion_claims():
     assert phases["M0"]["claim_assessment"] == "contradicted"
     assert phases["M1"]["status"] == "failing"
     assert phases["M1"]["claim_assessment"] == "contradicted"
-    assert phases["M1"]["benchmarks"][0]["status"] == "live_observed"
+    assert phases["M1"]["benchmarks"][0]["status"] == "failing"
+    assert phases["M1"]["benchmarks"][0]["ineligible_successes"] == 1
+    assert "evidence_kind_not_live_minecraft" in phases["M1"]["benchmarks"][0]["ineligibility_reasons"]
     assert phases["M1"]["benchmarks"][1]["status"] == "failing"
     assert phases["M1"]["benchmarks"][2]["attempts"] == 0
     assert phases["M2"]["claim_assessment"] == "not_claimed_complete"
@@ -146,12 +288,49 @@ def test_capability_evidence_requires_distinct_repeated_runs():
     results = []
     for task_number in range(1, 6):
         for run_number in range(1, 4):
-            results.append({
-                "task_id": f"BM-{task_number:03d}",
-                "status": "pass",
-                "duration_s": 1,
-                "log": f"logs/bm{task_number}-run{run_number}.jsonl",
-            })
+            task_id = f"BM-{task_number:03d}"
+            session_id = f"bm{task_number}-run{run_number}"
+            log_path = os.path.join(tmpdir, f"{session_id}.jsonl")
+            results.append(_eligible_m1_result(task_id, log_path, session_id))
+    copied_log = os.path.join(tmpdir, "copied-bm1-run1.jsonl")
+    shutil.copyfile(results[0]["log"], copied_log)
+    copied_result = dict(results[0])
+    copied_result["log"] = copied_log
+    results.append(copied_result)
+
+    forged_log = os.path.join(tmpdir, "forged-no-delta.jsonl")
+    forged_result = _eligible_m1_result("BM-001", forged_log, "forged-no-delta")
+    forged_events = []
+    with open(forged_log, "r", encoding="utf-8") as f:
+        for line in f:
+            event = json.loads(line)
+            if event.get("type") == "action":
+                data = event["data"]
+                data["post_observation"] = dict(data["pre_observation"])
+            forged_events.append(event)
+    with open(forged_log, "w", encoding="utf-8") as f:
+        for event in forged_events:
+            f.write(json.dumps(event) + "\n")
+    with open(forged_log, "rb") as f:
+        forged_result["session_sha256"] = hashlib.sha256(f.read()).hexdigest()
+    results.append(forged_result)
+
+    mixed_server_log = os.path.join(tmpdir, "mixed-server-jar.jsonl")
+    mixed_server_result = _eligible_m1_result("BM-001", mixed_server_log, "mixed-server-jar")
+    mixed_server_events = []
+    with open(mixed_server_log, "r", encoding="utf-8") as f:
+        for line in f:
+            event = json.loads(line)
+            if event.get("type") == "benchmark_reset":
+                event["data"]["server_jar_sha256"] = "b" * 64
+            mixed_server_events.append(event)
+    with open(mixed_server_log, "w", encoding="utf-8") as f:
+        for event in mixed_server_events:
+            f.write(json.dumps(event) + "\n")
+    mixed_server_result["setup_evidence"]["server_jar_sha256"] = "b" * 64
+    with open(mixed_server_log, "rb") as f:
+        mixed_server_result["session_sha256"] = hashlib.sha256(f.read()).hexdigest()
+    results.append(mixed_server_result)
     results.append(dict(results[0]))
     with open(results_path, "w", encoding="utf-8") as f:
         json.dump({"results": results}, f)
@@ -166,7 +345,13 @@ def test_capability_evidence_requires_distinct_repeated_runs():
 
     assert m1["status"] == "repeat_verified"
     assert m1["claim_assessment"] == "supported"
-    assert all(task["attempts"] == 3 for task in m1["benchmarks"])
+    assert all(task["successes"] == 3 for task in m1["benchmarks"])
+    assert m1["benchmarks"][0]["attempts"] == 6
+    assert m1["benchmarks"][0]["ineligible_successes"] == 3
+    assert "duplicate_m1_session" in m1["benchmarks"][0]["ineligibility_reasons"]
+    assert "dig_state_transition_unverified" in m1["benchmarks"][0]["ineligibility_reasons"]
+    assert "m1_server_jar_mismatch" in m1["benchmarks"][0]["ineligibility_reasons"]
+    assert all(task["attempts"] == 3 for task in m1["benchmarks"][1:])
     assert report["system_complete"] is False
     print("PASS: Capability evidence requires distinct repeated runs")
 

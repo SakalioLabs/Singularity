@@ -385,7 +385,7 @@ class TestRulePlanner(unittest.TestCase):
         plan = self.planner.plan_from_goal("Gather 3 oak logs", obs)
         self.assertEqual(plan["status"], "in_progress")
         self.assertEqual(plan["actions"], [
-            {"type": "move_to", "parameters": {"x": 10, "z": 10}},
+            {"type": "move_to", "parameters": {"x": 10, "z": 10, "tolerance": 1.75}},
         ])
 
     def test_gather_wood_explore(self):
@@ -466,7 +466,27 @@ class TestRulePlanner(unittest.TestCase):
     def test_mine_cobblestone_have_pickaxe(self):
         obs = {"inventory": {"wooden_pickaxe": 1}}
         plan = self.planner.plan_from_goal("Mine cobblestone", obs)
+        self.assertEqual(plan["status"], "blocked")
+        self.assertEqual(plan["actions"], [])
+        self.assertIn("grounded coordinates", plan["reasoning"])
+
+    def test_mine_five_cobblestone_uses_observed_stone_coordinates(self):
+        obs = {
+            "inventory": {"wooden_pickaxe": 1, "cobblestone": 3},
+            "position": {"x": 0, "y": 64, "z": 0},
+            "nearby_blocks": [{
+                "name": "stone",
+                "position": {"x": 2, "y": 63, "z": 1},
+                "distance": 2.5,
+            }],
+        }
+        plan = self.planner.plan_from_goal("Mine 5 cobblestone blocks", obs)
         self.assertEqual(plan["status"], "in_progress")
+        move = next(action for action in plan["actions"] if action["type"] == "move_to")
+        self.assertEqual(move["parameters"]["tolerance"], 1.75)
+        dig = next(action for action in plan["actions"] if action["type"] == "dig")
+        self.assertEqual(dig["parameters"], {"x": 2, "y": 63, "z": 1})
+        self.assertIn("Need 2 more cobblestone", plan["reasoning"])
 
     def test_mine_visible_goal_resource(self):
         obs = {

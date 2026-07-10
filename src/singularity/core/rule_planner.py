@@ -45,15 +45,21 @@ class RuleBasedPlanner:
         if "explore" in goal_lower and "frontier" in goal_lower:
             return self._plan_explore_frontier(goal, world_state, pos)
         elif "craft" in goal_lower and "pickaxe" in goal_lower and "stone" in goal_lower:
-            return self._plan_craft_stone_pickaxe(inv, trees, pos)
+            return self._plan_craft_stone_pickaxe(inv, trees, pos, world_state)
         elif "craft" in goal_lower and "pickaxe" in goal_lower and "wooden" in goal_lower:
             return self._plan_craft_wooden_pickaxe(inv, trees, pos)
         elif "craft" in goal_lower and "table" in goal_lower:
             return self._plan_craft_workbench(inv, trees, pos)
         elif ("gather" in goal_lower or "chop" in goal_lower) and ("oak" in goal_lower or "log" in goal_lower or "wood" in goal_lower):
-            return self._plan_gather_wood(inv, trees, pos)
+            return self._plan_gather_wood(inv, trees, pos, target_count=self._goal_target_count(goal_lower, 3))
         elif "cobblestone" in goal_lower or ("mine" in goal_lower and "stone" in goal_lower):
-            return self._plan_mine_cobblestone(inv, trees, pos)
+            return self._plan_mine_cobblestone(
+                inv,
+                trees,
+                pos,
+                world_state=world_state,
+                target_count=self._goal_target_count(goal_lower, 3),
+            )
         elif "mine" in goal_lower:
             visible_plan = self._plan_mine_visible_block(goal_lower, world_state, pos)
             if visible_plan:
@@ -70,6 +76,10 @@ class RuleBasedPlanner:
     def _append_reasoning(self, existing: str, addition: str) -> str:
         parts = [str(existing or "").strip(), str(addition or "").strip()]
         return "; ".join(part for part in parts if part)
+
+    def _goal_target_count(self, goal: str, default: int) -> int:
+        match = re.search(r"\b(\d+)\b", str(goal or ""))
+        return max(1, int(match.group(1))) if match else max(1, int(default))
 
     def _plan_explore_frontier(self, goal: str, world_state: dict, pos: dict) -> dict:
         target = self._frontier_target(goal, pos)
@@ -206,8 +216,15 @@ class RuleBasedPlanner:
         if dist is None:
             dist = self._flat_distance(pos or {}, tpos or {})
         actions = []
-        if dist > 4.0:
-            actions.append({"type": "move_to", "parameters": {"x": round(tpos.get("x", 0)), "z": round(tpos.get("z", 0))}})
+        if dist > 1.75:
+            actions.append({
+                "type": "move_to",
+                "parameters": {
+                    "x": round(tpos.get("x", 0)),
+                    "z": round(tpos.get("z", 0)),
+                    "tolerance": 1.75,
+                },
+            })
         actions.append({
             "type": "look_at",
             "parameters": {
@@ -288,16 +305,16 @@ class RuleBasedPlanner:
         dz = float(a.get("z", 0) or 0) - float(b.get("z", 0) or 0)
         return math.sqrt(dx * dx + dz * dz)
 
-    def _plan_gather_wood(self, inv: dict, trees: list, pos: dict) -> dict:
+    def _plan_gather_wood(self, inv: dict, trees: list, pos: dict, target_count: int = 3) -> dict:
         oak_logs = inv.get("oak_log", 0)
-        if oak_logs >= 3:
+        if oak_logs >= target_count:
             return {"status": "complete", "reasoning": f"Have {oak_logs} oak logs", "actions": []}
         if trees:
             nearest = trees[0]
             tpos = nearest.get("position", {})
             dist = nearest.get("distance", 999)
-            # If tree is within 5 blocks, just dig it directly
-            if dist <= 3.0:
+            # Stand close enough that the block drop can be observed in inventory.
+            if dist <= 1.75:
                 return {
                     "status": "in_progress",
                     "reasoning": f"Digging {nearest['name']} at distance {dist:.1f}",
@@ -310,7 +327,10 @@ class RuleBasedPlanner:
                 "status": "in_progress",
                 "reasoning": f"Navigating to {nearest['name']} at {dist:.1f} blocks",
                 "actions": [
-                    {"type": "move_to", "parameters": {"x": tpos.get("x", 0), "z": tpos.get("z", 0)}},
+                    {
+                        "type": "move_to",
+                        "parameters": {"x": tpos.get("x", 0), "z": tpos.get("z", 0), "tolerance": 1.75},
+                    },
                 ]
             }
         # No trees found - explore in expanding directions
@@ -358,12 +378,33 @@ class RuleBasedPlanner:
         # No wood - gather some
         return self._plan_gather_wood(inv, trees, pos)
 
-    def _plan_mine_cobblestone(self, inv: dict, trees: list = None, pos: dict = None) -> dict:
-        if inv.get("cobblestone", 0) >= 3:
+    def _plan_mine_cobblestone(
+        self,
+        inv: dict,
+        trees: list = None,
+        pos: dict = None,
+        world_state: dict = None,
+        target_count: int = 3,
+    ) -> dict:
+        if inv.get("cobblestone", 0) >= target_count:
             return {"status": "complete", "reasoning": f"Have {inv.get('cobblestone', 0)} cobblestone", "actions": []}
         if inv.get("wooden_pickaxe", 0) >= 1 or inv.get("stone_pickaxe", 0) >= 1:
-            return {"status": "in_progress", "reasoning": "Mining cobblestone",
-                    "actions": [{"type": "dig", "parameters": {"x": -9, "y": 63, "z": 3}}]}
+            observed_state = dict(world_state or {})
+            observed_state.setdefault("inventory", inv)
+            observed_state.setdefault("position", pos or {})
+            visible_plan = self._plan_mine_visible_block("mine stone", observed_state, pos or {})
+            if visible_plan:
+                visible_plan = dict(visible_plan)
+                visible_plan["reasoning"] = self._append_reasoning(
+                    visible_plan.get("reasoning", ""),
+                    f"Need {target_count - int(inv.get('cobblestone', 0) or 0)} more cobblestone",
+                )
+                return visible_plan
+            return {
+                "status": "blocked",
+                "reasoning": "No observed stone block has grounded coordinates; observe stone before mining cobblestone",
+                "actions": [],
+            }
         fallback = self._plan_craft_wooden_pickaxe(inv, trees or [], pos or {})
         fallback = dict(fallback)
         reasoning = fallback.get("reasoning", "")
@@ -374,7 +415,7 @@ class RuleBasedPlanner:
         )
         return fallback
 
-    def _plan_craft_stone_pickaxe(self, inv: dict, trees: list, pos: dict) -> dict:
+    def _plan_craft_stone_pickaxe(self, inv: dict, trees: list, pos: dict, world_state: dict = None) -> dict:
         if inv.get("stone_pickaxe", 0) >= 1:
             return {"status": "complete", "reasoning": "Already have", "actions": []}
         if inv.get("cobblestone", 0) >= 3 and inv.get("stick", 0) >= 2:
@@ -382,7 +423,7 @@ class RuleBasedPlanner:
                     "actions": [{"type": "craft", "parameters": {"item": "stone_pickaxe"}}]}
         # Need cobblestone - mine some
         if inv.get("wooden_pickaxe", 0) >= 1 or inv.get("stone_pickaxe", 0) >= 1:
-            return self._plan_mine_cobblestone(inv, trees, pos)
+            return self._plan_mine_cobblestone(inv, trees, pos, world_state=world_state, target_count=3)
         # Need wooden pickaxe first
         if inv.get("wooden_pickaxe", 0) < 1:
             return self._plan_craft_wooden_pickaxe(inv, trees, pos)

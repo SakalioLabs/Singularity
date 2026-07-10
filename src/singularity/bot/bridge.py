@@ -119,6 +119,12 @@ class BotBridge:
     def health(self) -> dict:
         return self._send_command("health")
 
+    def benchmark_protocol(self) -> dict:
+        return self._send_command("benchmark_protocol")
+
+    def reset_benchmark(self, task_id: str) -> dict:
+        return self._send_command("benchmark_reset", {"task_id": task_id})
+
     def get_inventory(self) -> list:
         result = self._send_command("get_inventory")
         return result.get("items", [])

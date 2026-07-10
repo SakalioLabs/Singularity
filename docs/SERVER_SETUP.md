@@ -5,16 +5,29 @@
 - Node.js 18+
 - Python 3.10+
 
-## Steps
-1. Install Java 17: https://adoptium.net/
-2. Download Paper 1.20.4 from https://papermc.io/
-3. Start server: java -Xmx2G -jar paper.jar nogui
-4. Accept EULA after reading it: set eula=true in eula.txt
-5. Set online-mode=false in server.properties
-6. npm install
-7. node src/bot/bot_server.js --bridge-port 3000
-8. python -m singularity.main preflight --bridge-port 3000
-9. python -m singularity.main run --goal "Gather 3 oak logs"
+## Controlled M1 Setup
+
+1. Install Java 17+ and download a Paper server for Minecraft 1.20.4.
+2. Place the exact jar at `mc-server/server.jar`.
+3. Start it once from `mc-server/` with `java -Xmx2G -jar server.jar nogui`.
+4. Read the Minecraft EULA. Accept it manually by setting `eula=true` in `mc-server/eula.txt`. No Singularity script edits this file.
+5. Set these values in `mc-server/server.properties`:
+
+   ```properties
+   level-seed=12345
+   online-mode=false
+   server-port=25565
+   ```
+
+6. Start the server, run `op Singularity` in its console, then stop it cleanly. Confirm `Singularity` is present in `mc-server/ops.json`.
+7. Install deterministic dependencies with `python -m pip install -e .` and `npm ci`.
+8. Run one task in one fresh episode:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001
+   ```
+
+The script uses Bridge port `30000`, creates a unique level name, records the Paper jar SHA-256, verifies the fixed M1 protocol/reset, runs exactly one task, restores `server.properties`, and stops only processes it started. Repeat the command with BM-002 through BM-005 only after the preceding gate is truthful.
 
 ## Preflight Gates
 
@@ -22,11 +35,11 @@
 # Checks Python, Node, npm, and Mineflayer packages only
 python -m singularity.main preflight --skip-network
 
-# Also checks bridge TCP, bot spawn health, and MC server reachability
-python -m singularity.main preflight
+# Starts a controlled server/bridge episode and runs protocol-aware M1 preflight only
+powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1
 ```
 
-If `bot_bridge` passes but `bot_session` fails, restart `node src/bot/bot_server.js` after the Minecraft server is running.
+Raw preflight files are runtime diagnostics and never count as live benchmark success. Port `3000` may be occupied by an unrelated local service; the controlled M1 path deliberately uses `30000`.
 
 ## Optional Screenshot Plugin
 

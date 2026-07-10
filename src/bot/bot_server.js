@@ -13,6 +13,7 @@ const mineflayer = require('mineflayer');
 const net = require('net');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 
 // Parse CLI args
@@ -28,6 +29,10 @@ const MC_USERNAME = getArg('username', 'Singularity');
 const MC_VERSION = getArg('version', '1.20.4');
 const BRIDGE_HOST = getArg('bridge-host', '127.0.0.1');
 const BRIDGE_PORT = parseInt(getArg('bridge-port', '3000'));
+const BENCHMARK_SEED = getArg('benchmark-seed', '');
+const BENCHMARK_EPISODE = getArg('benchmark-episode', '');
+const BENCHMARK_LEVEL_NAME = getArg('benchmark-level-name', '');
+const BENCHMARK_SERVER_JAR_SHA256 = getArg('benchmark-server-jar-sha256', '');
 const SCREENSHOT_PLUGIN = getArg('screenshot-plugin', '');
 const SCREENSHOT_OPTIONS = {
     width: parseInt(getArg('screenshot-width', '512')),
@@ -35,6 +40,11 @@ const SCREENSHOT_OPTIONS = {
     viewDistance: parseInt(getArg('screenshot-view-distance', '4')),
     renderDelayMs: parseInt(getArg('screenshot-render-delay-ms', '500')),
 };
+
+const M1_PROTOCOL_PATH = path.resolve(__dirname, '..', 'singularity', 'data', 'm1_protocol.json');
+const M1_PROTOCOL_BYTES = fs.readFileSync(M1_PROTOCOL_PATH);
+const M1_PROTOCOL = JSON.parse(M1_PROTOCOL_BYTES.toString('utf8'));
+const M1_PROTOCOL_SHA256 = crypto.createHash('sha256').update(M1_PROTOCOL_BYTES).digest('hex');
 
 let bot = null;
 let botReady = false;
@@ -319,12 +329,12 @@ function createMoveToHandler(
                 Math.floor(target.x),
                 Math.floor(target.y),
                 Math.floor(target.z),
-                Math.max(1, Math.ceil(tolerance)),
+                Math.max(1, Math.floor(tolerance - 0.5)),
             )
             : new goals.GoalNearXZ(
                 Math.floor(target.x),
                 Math.floor(target.z),
-                Math.max(1, Math.ceil(tolerance)),
+                Math.max(1, Math.floor(tolerance - 0.5)),
             )
     ));
     return async (params = {}) => {
@@ -360,7 +370,7 @@ function createMoveToHandler(
             await Promise.race([navigation, timeout]);
             const finalPosition = activeBot.entity.position;
             const distance = navigationDistance(finalPosition, target, explicitY !== null);
-            const reached = distance !== null && distance <= tolerance + 0.75;
+            const reached = distance !== null && distance <= tolerance;
             if (!reached) {
                 return {
                     success: false,
@@ -449,6 +459,398 @@ function installConfiguredScreenshotPlugin(botInstance) {
     }
 }
 
+function installedBenchmarkDependencies() {
+    return {
+        mineflayer: require('mineflayer/package.json').version,
+        'mineflayer-pathfinder': require('mineflayer-pathfinder/package.json').version,
+        'minecraft-data': require('minecraft-data/package.json').version,
+    };
+}
+
+function benchmarkRuntime(overrides = {}) {
+    return {
+        seed: String(overrides.seed ?? BENCHMARK_SEED),
+        episode_id: String(overrides.episode_id ?? BENCHMARK_EPISODE),
+        level_name: String(overrides.level_name ?? BENCHMARK_LEVEL_NAME),
+        server_jar_sha256: String(overrides.server_jar_sha256 ?? BENCHMARK_SERVER_JAR_SHA256).toLowerCase(),
+    };
+}
+
+function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}) {
+    const runtime = benchmarkRuntime(runtimeOverrides);
+    const dependencies = installedBenchmarkDependencies();
+    const serverBrand = String(activeBot?.game?.serverBrand || '');
+    const observedMinecraftVersion = String(activeBot?.version || '');
+    const errors = [];
+    if (runtime.seed !== M1_PROTOCOL.world_seed) {
+        errors.push(`benchmark seed ${runtime.seed || '<missing>'} does not match ${M1_PROTOCOL.world_seed}`);
+    }
+    if (!runtime.episode_id) {
+        errors.push('benchmark episode id is missing');
+    }
+    if (!runtime.level_name || !runtime.level_name.startsWith(`${runtime.episode_id}_`)) {
+        errors.push('benchmark level name is missing or is not unique to the episode');
+    }
+    if (!/^[a-f0-9]{64}$/.test(runtime.server_jar_sha256)) {
+        errors.push('server jar sha256 is missing or invalid');
+    }
+    for (const [name, expected] of Object.entries(M1_PROTOCOL.dependencies || {})) {
+        if (dependencies[name] !== expected) {
+            errors.push(`${name}=${dependencies[name] || '<missing>'}, expected ${expected}`);
+        }
+    }
+    if (activeBot?.entity && !/paper/i.test(serverBrand)) {
+        errors.push(`server brand ${serverBrand || '<missing>'} is not Paper`);
+    }
+    if (activeBot?.entity && observedMinecraftVersion !== M1_PROTOCOL.minecraft_version) {
+        errors.push(`Minecraft version ${observedMinecraftVersion || '<missing>'} does not match ${M1_PROTOCOL.minecraft_version}`);
+    }
+    return {
+        success: true,
+        configured: errors.length === 0,
+        profile: M1_PROTOCOL.profile,
+        protocol_sha256: M1_PROTOCOL_SHA256,
+        minecraft_version: M1_PROTOCOL.minecraft_version,
+        observed_minecraft_version: observedMinecraftVersion,
+        server_type: M1_PROTOCOL.server_type,
+        server_jar_policy: M1_PROTOCOL.server_jar_policy,
+        agent_id: M1_PROTOCOL.agent_id,
+        planner_id: M1_PROTOCOL.planner_id,
+        action_backend_id: M1_PROTOCOL.action_backend_id,
+        verifier_id: M1_PROTOCOL.verifier_id,
+        server_brand: serverBrand,
+        seed: runtime.seed,
+        episode_id: runtime.episode_id,
+        level_name: runtime.level_name,
+        server_jar_sha256: runtime.server_jar_sha256,
+        episode_strategy: M1_PROTOCOL.episode_strategy,
+        dependencies,
+        tasks: M1_PROTOCOL.tasks,
+        reset_supported: true,
+        errors,
+    };
+}
+
+function createBenchmarkProtocolHandler(
+    getState = () => ({ bot, botReady }),
+    runtimeOverrides = {},
+) {
+    return () => {
+        const state = getState() || {};
+        return benchmarkProtocolStatus(state.bot, runtimeOverrides);
+    };
+}
+
+function inventoryCounts(activeBot) {
+    const counts = {};
+    const items = activeBot?.inventory?.items?.() || [];
+    for (const item of items) {
+        if (!item?.name) continue;
+        counts[item.name] = (counts[item.name] || 0) + Number(item.count || 0);
+    }
+    return counts;
+}
+
+function positiveInventoryDelta(before, after) {
+    const delta = {};
+    for (const name of new Set([...Object.keys(before || {}), ...Object.keys(after || {})])) {
+        const change = Number(after?.[name] || 0) - Number(before?.[name] || 0);
+        if (change > 0) delta[name] = change;
+    }
+    return delta;
+}
+
+async function waitForInventoryIncrease(
+    activeBot,
+    before,
+    wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    maxWaitMs = 2000,
+) {
+    const pollMs = 100;
+    for (let elapsed = 0; elapsed <= maxWaitMs; elapsed += pollMs) {
+        const after = inventoryCounts(activeBot);
+        const delta = positiveInventoryDelta(before, after);
+        if (Object.keys(delta).length > 0) {
+            return { observed: true, inventory: after, delta, waited_ms: elapsed };
+        }
+        if (elapsed < maxWaitMs) await wait(pollMs);
+    }
+    return {
+        observed: false,
+        inventory: inventoryCounts(activeBot),
+        delta: {},
+        waited_ms: maxWaitMs,
+    };
+}
+
+function compactPosition(position) {
+    if (!position) return null;
+    return {
+        x: Number(position.x),
+        y: Number(position.y),
+        z: Number(position.z),
+    };
+}
+
+function fixturePosition(spawnPoint) {
+    return new Vec3(
+        Math.floor(Number(spawnPoint.x)) + 1,
+        Math.floor(Number(spawnPoint.y)),
+        Math.floor(Number(spawnPoint.z)),
+    );
+}
+
+function benchmarkBotState(activeBot, spawnPoint) {
+    const fixture = spawnPoint ? fixturePosition(spawnPoint) : null;
+    const fixtureBlock = fixture && activeBot?.blockAt ? activeBot.blockAt(fixture) : null;
+    return {
+        position: compactPosition(activeBot?.entity?.position),
+        spawn_position: compactPosition(spawnPoint),
+        health: Number(activeBot?.health ?? 0),
+        food: Number(activeBot?.food ?? 0),
+        inventory: inventoryCounts(activeBot),
+        game_mode: String(activeBot?.game?.gameMode || ''),
+        difficulty: String(activeBot?.game?.difficulty || ''),
+        dimension: String(activeBot?.game?.dimension || ''),
+        time_of_day: Number(activeBot?.time?.timeOfDay ?? -1),
+        weather: activeBot?.thunderState > 0 ? 'thunder' : activeBot?.rainState > 0 ? 'rain' : 'clear',
+        fixture: fixture ? {
+            position: compactPosition(fixture),
+            block: String(fixtureBlock?.name || 'air'),
+        } : null,
+    };
+}
+
+function inventoryExactlyMatches(actual, expected) {
+    const normalize = (value) => Object.fromEntries(
+        Object.entries(value || {})
+            .filter(([, count]) => Number(count) > 0)
+            .map(([name, count]) => [name, Number(count)])
+            .sort(([a], [b]) => a.localeCompare(b)),
+    );
+    return JSON.stringify(normalize(actual)) === JSON.stringify(normalize(expected));
+}
+
+function positionDistance(a, b) {
+    if (!a || !b) return Number.POSITIVE_INFINITY;
+    return Math.sqrt(
+        Math.pow(Number(a.x) - Number(b.x), 2) +
+        Math.pow(Number(a.y) - Number(b.y), 2) +
+        Math.pow(Number(a.z) - Number(b.z), 2)
+    );
+}
+
+function benchmarkResetChecks(postState, taskSpec) {
+    const expectedBlocks = Array.isArray(taskSpec.initial_blocks) ? taskSpec.initial_blocks : [];
+    const expectedFixture = expectedBlocks[0]?.name || 'air';
+    const finalDistance = positionDistance(postState.position, postState.spawn_position);
+    return {
+        inventory_exact: inventoryExactlyMatches(postState.inventory, taskSpec.initial_inventory),
+        position_at_spawn: finalDistance <= 1.5,
+        position_distance: Number.isFinite(finalDistance) ? Number(finalDistance.toFixed(3)) : null,
+        game_mode: postState.game_mode === M1_PROTOCOL.game_mode,
+        difficulty: postState.difficulty === M1_PROTOCOL.difficulty,
+        dimension: /overworld/i.test(postState.dimension),
+        daytime: postState.time_of_day >= 0 && postState.time_of_day < 12000,
+        time_initialized: Math.abs(postState.time_of_day - Number(M1_PROTOCOL.time_of_day)) <= 600,
+        weather: postState.weather === M1_PROTOCOL.weather,
+        health: postState.health >= 20,
+        food: postState.food >= 20,
+        fixture: postState.fixture?.block === expectedFixture,
+    };
+}
+
+function createBenchmarkResetHandler(
+    getState = () => ({ bot, botReady }),
+    wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    runtimeOverrides = {},
+) {
+    return async (params = {}) => {
+        const state = getState() || {};
+        const activeBot = state.bot;
+        const ready = Boolean(state.botReady && activeBot?.entity);
+        if (!ready) {
+            return { success: false, error: 'bot is not ready for benchmark reset' };
+        }
+        const protocolStatus = benchmarkProtocolStatus(activeBot, runtimeOverrides);
+        if (!protocolStatus.configured) {
+            return {
+                success: false,
+                error: 'M1 benchmark protocol is not configured',
+                protocol_errors: protocolStatus.errors,
+            };
+        }
+        const taskId = String(params.task_id || '');
+        const taskSpec = M1_PROTOCOL.tasks.find((task) => task.id === taskId);
+        if (!taskSpec) {
+            return { success: false, error: `unsupported M1 benchmark task: ${taskId || '<missing>'}` };
+        }
+        const spawnPoint = activeBot.spawnPoint;
+        if (!spawnPoint || ![spawnPoint.x, spawnPoint.y, spawnPoint.z].every(Number.isFinite)) {
+            return { success: false, error: 'bot spawn point is unavailable' };
+        }
+
+        const beforeState = benchmarkBotState(activeBot, spawnPoint);
+        const fixture = fixturePosition(spawnPoint);
+        const fixtureSpec = Array.isArray(taskSpec.initial_blocks) ? taskSpec.initial_blocks[0] : null;
+        const commands = [
+            `/execute in minecraft:overworld run tp @s ${spawnPoint.x} ${spawnPoint.y} ${spawnPoint.z}`,
+            `/gamemode ${M1_PROTOCOL.game_mode} @s`,
+            '/clear @s',
+            '/kill @e[type=minecraft:item,distance=..16]',
+            `/setblock ${fixture.x} ${fixture.y} ${fixture.z} minecraft:air`,
+        ];
+        if (fixtureSpec) {
+            commands.push(`/setblock ${fixture.x} ${fixture.y} ${fixture.z} minecraft:${fixtureSpec.name}`);
+        }
+        commands.push(
+            `/time set ${M1_PROTOCOL.time_of_day}`,
+            `/weather ${M1_PROTOCOL.weather}`,
+            `/difficulty ${M1_PROTOCOL.difficulty}`,
+            '/effect give @s minecraft:instant_health 1 255 true',
+            '/effect give @s minecraft:saturation 1 255 true',
+        );
+        for (const [item, count] of Object.entries(taskSpec.initial_inventory || {})) {
+            commands.push(`/give @s minecraft:${item} ${Number(count)}`);
+        }
+
+        try {
+            for (const command of commands) {
+                activeBot.chat(command);
+                await wait(400);
+            }
+            await wait(600);
+        } catch (error) {
+            return { success: false, error: `benchmark reset command failed: ${error.message}` };
+        }
+
+        const afterState = benchmarkBotState(activeBot, spawnPoint);
+        const checks = benchmarkResetChecks(afterState, taskSpec);
+        const failedChecks = Object.entries(checks)
+            .filter(([name, value]) => name !== 'position_distance' && value !== true)
+            .map(([name]) => name);
+        const success = failedChecks.length === 0;
+        return {
+            success,
+            error: success ? '' : 'benchmark reset postconditions failed; ensure the bot is a server operator',
+            profile: M1_PROTOCOL.profile,
+            protocol_sha256: M1_PROTOCOL_SHA256,
+            episode_id: protocolStatus.episode_id,
+            level_name: protocolStatus.level_name,
+            seed: protocolStatus.seed,
+            server_brand: protocolStatus.server_brand,
+            observed_minecraft_version: protocolStatus.observed_minecraft_version,
+            server_jar_sha256: protocolStatus.server_jar_sha256,
+            task_id: taskId,
+            expected: {
+                initial_inventory: taskSpec.initial_inventory,
+                initial_blocks: taskSpec.initial_blocks,
+                game_mode: M1_PROTOCOL.game_mode,
+                difficulty: M1_PROTOCOL.difficulty,
+                time_of_day: M1_PROTOCOL.time_of_day,
+                weather: M1_PROTOCOL.weather,
+            },
+            before_state: beforeState,
+            after_state: afterState,
+            checks,
+            failed_checks: failedChecks,
+            command_count: commands.length,
+        };
+    };
+}
+
+function createCraftHandler(getState = () => ({ bot, botReady })) {
+    return async (params = {}) => {
+        const state = getState() || {};
+        const activeBot = state.bot;
+        if (!state.botReady || !activeBot?.entity) {
+            return { success: false, error: 'bot is not ready to craft' };
+        }
+        try {
+            const itemName = String(params.item || '');
+            const count = Math.max(1, Number(params.count || 1));
+            const mcData = require('minecraft-data')(activeBot.version);
+            const item = mcData.itemsByName[itemName];
+            if (!item) return { success: false, error: `Unknown item ${itemName}` };
+            const tableType = mcData.blocksByName.crafting_table?.id;
+            const craftingTable = tableType == null ? null : activeBot.findBlock({
+                matching: tableType,
+                maxDistance: 5,
+            });
+            const recipes = activeBot.recipesFor(item.id, null, count, craftingTable);
+            if (!recipes || recipes.length === 0) {
+                return {
+                    success: false,
+                    error: `No recipe for ${itemName}`,
+                    crafting_table_found: Boolean(craftingTable),
+                };
+            }
+            await activeBot.craft(recipes[0], count, craftingTable);
+            return {
+                success: true,
+                item: itemName,
+                count,
+                crafting_table_found: Boolean(craftingTable),
+                crafting_table_position: compactPosition(craftingTable?.position),
+            };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    };
+}
+
+function createDigHandler(
+    getState = () => ({ bot, botReady }),
+    wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+) {
+    return async (params = {}) => {
+        const state = getState() || {};
+        const activeBot = state.bot;
+        if (!state.botReady || !activeBot?.entity?.position) {
+            return { success: false, pickup_observed: false, error: 'bot is not ready to dig' };
+        }
+        try {
+            let block;
+            if (params.x != null && params.y != null && params.z != null) {
+                block = activeBot.blockAt(new Vec3(params.x, params.y, params.z));
+            } else {
+                block = activeBot.blockAt(activeBot.entity.position.offset(0, -1, 0));
+            }
+            if (!block || block.type === 0 || block.name === 'air') {
+                return { success: false, pickup_observed: false, error: 'No block to dig' };
+            }
+            const target = block.position?.clone ? block.position.clone() : new Vec3(block.position.x, block.position.y, block.position.z);
+            const beforeInventory = inventoryCounts(activeBot);
+            const blockName = block.name;
+            const targetBlockBefore = {
+                name: blockName,
+                type: Number(block.type),
+                position: compactPosition(target),
+            };
+            await activeBot.dig(block);
+            const pickup = await waitForInventoryIncrease(activeBot, beforeInventory, wait);
+            const blockAfter = activeBot.blockAt(target);
+            return {
+                success: true,
+                block: blockName,
+                target: compactPosition(target),
+                block_removed: !blockAfter || blockAfter.type === 0 || blockAfter.name !== blockName,
+                target_block_before: targetBlockBefore,
+                target_block_after: {
+                    name: String(blockAfter?.name || 'air'),
+                    type: Number(blockAfter?.type || 0),
+                    position: compactPosition(target),
+                },
+                pickup_observed: pickup.observed,
+                pickup_inventory_delta: pickup.delta,
+                pickup_waited_ms: pickup.waited_ms,
+            };
+        } catch (e) {
+            return { success: false, pickup_observed: false, error: e.message };
+        }
+    };
+}
+
 function connectBot() {
     botReady = false;
     bot = mineflayer.createBot({
@@ -498,8 +900,15 @@ const handlers = {
         bridge_port: BRIDGE_PORT,
         username: MC_USERNAME,
         version: bot?.version || MC_VERSION,
+        server_brand: bot?.game?.serverBrand || '',
         position: botReady && bot?.entity ? bot.entity.position : null,
         last_error: lastBotError,
+        benchmark_protocol: {
+            profile: M1_PROTOCOL.profile,
+            configured: benchmarkProtocolStatus(bot).configured,
+            episode_id: BENCHMARK_EPISODE,
+            seed: BENCHMARK_SEED,
+        },
         screenshot_capture_supported: Boolean(findScreenshotCapture(bot)),
         screenshot_plugin: publicScreenshotPluginStatus(screenshotPluginStatus),
     }),
@@ -597,6 +1006,8 @@ const handlers = {
     },
 
     capture_screenshot: createCaptureScreenshotHandler(),
+    benchmark_protocol: createBenchmarkProtocolHandler(),
+    benchmark_reset: createBenchmarkResetHandler(),
 
     get_nearby_trees: (params) => {
         const radius = Math.min(params.radius || 16, 16);
@@ -632,21 +1043,7 @@ const handlers = {
         }
     },
 
-    dig: async (params) => {
-        try {
-            let block;
-            if (params.x != null && params.y != null && params.z != null) {
-                block = bot.blockAt(new Vec3(params.x, params.y, params.z));
-            } else {
-                block = bot.blockAt(bot.entity.position.offset(0, -1, 0));
-            }
-            if (!block || block.type === 0) return { success: false, error: 'No block to dig' };
-            await bot.dig(block);
-            return { success: true, block: block.name };
-        } catch (e) {
-            return { success: false, error: e.message };
-        }
-    },
+    dig: createDigHandler(),
 
     place: async (params) => {
         try {
@@ -659,17 +1056,7 @@ const handlers = {
         }
     },
 
-    craft: async (params) => {
-        try {
-            const mcData = require('minecraft-data')(bot.version);
-            const recipes = bot.recipesFor(mcData.itemsByName[params.item]?.id || 0, null, 1, null);
-            if (!recipes || recipes.length === 0) return { success: false, error: `No recipe for ${params.item}` };
-            await bot.craft(recipes[0], params.count || 1);
-            return { success: true, item: params.item };
-        } catch (e) {
-            return { success: false, error: e.message };
-        }
-    },
+    craft: createCraftHandler(),
 
     attack: (params) => {
         try {
@@ -755,8 +1142,17 @@ if (require.main === module) {
 }
 
 module.exports = {
+    M1_PROTOCOL,
+    M1_PROTOCOL_SHA256,
     attachScreenshotPlugin,
+    benchmarkBotState,
+    benchmarkProtocolStatus,
+    benchmarkResetChecks,
     createBridgeServer,
+    createBenchmarkProtocolHandler,
+    createBenchmarkResetHandler,
+    createCraftHandler,
+    createDigHandler,
     createCaptureScreenshotHandler,
     createMoveToHandler,
     createWalkToHandler,
@@ -764,6 +1160,7 @@ module.exports = {
     imageBytesFromCaptureResult,
     navigationDistance,
     navigationTimeoutMs,
+    positiveInventoryDelta,
     publicScreenshotPluginStatus,
     resolveScreenshotPluginSpec,
     screenshotPathFromCaptureResult,
