@@ -52,6 +52,14 @@ class Config:
     episode_abort_gate_paths: list[str] = field(default_factory=list)
     episode_abort_task_stream_id: str = ""
     episode_abort_seed_id: str = ""
+    frontier_budget_mode: str = "off"
+    frontier_budget_policy: str = "information"
+    frontier_budget_gate_paths: list[str] = field(default_factory=list)
+    frontier_budget_total_rounds: int = 8
+    frontier_budget_temperature: float = 2.0
+    frontier_budget_exploration_floor: int = 1
+    frontier_budget_task_stream_id: str = ""
+    frontier_budget_seed_id: str = ""
     enable_weighted_memory_retrieval: bool = False
     memory_attribution_gate_paths: list[str] = field(default_factory=list)
     enforce_memory_write_gate: bool = False

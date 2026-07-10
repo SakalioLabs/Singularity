@@ -129,6 +129,41 @@ def test_runtime_profile_requires_attribution_gate_for_weighted_memory_retrieval
     print("PASS: Runtime profile requires attribution gate for weighted memory retrieval")
 
 
+def test_runtime_profile_requires_frontier_gate_only_for_advisory_mode():
+    tmpdir = tempfile.mkdtemp()
+    advisory_path = os.path.join(tmpdir, "runtime_profile_frontier_advisory.json")
+    shadow_path = os.path.join(tmpdir, "runtime_profile_frontier_shadow.json")
+    _write_json(advisory_path, {
+        "type": "runtime_profile",
+        "settings": {
+            "frontier_budget_mode": "advisory",
+            "frontier_budget_policy": "information",
+            "frontier_budget_total_rounds": 8,
+        },
+    })
+    _write_json(shadow_path, {
+        "type": "runtime_profile",
+        "settings": {
+            "frontier_budget_mode": "shadow",
+            "frontier_budget_policy": "uniform",
+            "frontier_budget_total_rounds": 8,
+            "frontier_budget_exploration_floor": 0,
+        },
+    })
+
+    advisory = build_runtime_profile_report([advisory_path])
+    shadow = build_runtime_profile_report([shadow_path])
+
+    assert advisory["readiness"] == "review"
+    assert "frontier_budget_gate_paths" in advisory["missing"]
+    assert advisory["settings"]["frontier_budget_mode"] == "advisory"
+    assert shadow["readiness"] == "approved"
+    assert "frontier_budget_gate_paths" not in shadow["missing"]
+    assert shadow["settings"]["frontier_budget_policy"] == "uniform"
+    assert shadow["settings"]["frontier_budget_exploration_floor"] == 0
+    print("PASS: Runtime profile requires frontier gate only for advisory mode")
+
+
 def test_runtime_profile_rejects_rejected_gate():
     tmpdir = tempfile.mkdtemp()
     gate_path = os.path.join(tmpdir, "skill_runtime_default_gate.json")
@@ -454,6 +489,7 @@ if __name__ == "__main__":
     test_runtime_profile_requires_gate_for_patch_artifacts()
     test_runtime_profile_requires_promptware_gate_for_strict_memory_writes()
     test_runtime_profile_requires_attribution_gate_for_weighted_memory_retrieval()
+    test_runtime_profile_requires_frontier_gate_only_for_advisory_mode()
     test_runtime_profile_rejects_rejected_gate()
     test_runtime_profile_builder_groups_gates_and_artifacts()
     test_runtime_profile_security_audit_accepts_safe_artifact()

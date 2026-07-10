@@ -99,6 +99,7 @@ The Singularity agent uses a modular hybrid architecture (Route F) with clear se
 | Memory System | Multi-layer knowledge store | read/write/search/compress memory |
 | Safety System | Enforce boundaries | validate/check/log actions |
 | Episode Viability | Recall-controlled long-run termination | replay/calibrate/probe -> shadow or gated abort |
+| Frontier Budget | Conserved planner-round allocation over task/curriculum branches | slate + ledger -> shadow trace or gated advisory context |
 
 ## Data Flow
 
@@ -113,6 +114,7 @@ The Singularity agent uses a modular hybrid architecture (Route F) with clear se
 9. Evaluator tracks metrics across sessions
 10. Memory System stores experiences, skills, and knowledge
 11. Episode Viability probes only configured rounds; active abort requires an approved held-out recall certificate and exact runtime provenance
+12. Frontier Budget compares uniform and information-weighted slates under the same total; only a paired live coverage/non-regression gate may expose advice to the LLM planner
 
 ## Key Interfaces
 
@@ -160,3 +162,4 @@ Detailed design for each module:
 - [Action Controller](module-action-controller.md)
 - [Evaluator](module-evaluator.md)
 - [Safety System](module-safety.md)
+- [Frontier Rollout Budget](frontier-rollout-budget.md)

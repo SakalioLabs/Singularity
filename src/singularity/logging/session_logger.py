@@ -93,6 +93,7 @@ class SessionLogger:
         goal_verification_metrics = self._goal_verification_metrics()
         plan_cache_metrics = self._plan_cache_metrics()
         episode_abort_metrics = self._episode_abort_metrics()
+        frontier_budget_metrics = self._frontier_budget_metrics()
         memory_policy_metrics = self._memory_policy_metrics()
         return {
             "session_id": self.session_id,
@@ -108,6 +109,7 @@ class SessionLogger:
             "goal_verification_metrics": goal_verification_metrics,
             "plan_cache_metrics": plan_cache_metrics,
             "episode_abort_metrics": episode_abort_metrics,
+            "frontier_budget_metrics": frontier_budget_metrics,
             "memory_policy_metrics": memory_policy_metrics,
             "log_path": self._log_path,
         }
@@ -174,6 +176,55 @@ class SessionLogger:
             "shadow_would_abort_count": shadow_count,
             "probe_round_counts": round_counts,
             "average_viability_risk_score": round(sum(scores) / len(scores), 6) if scores else 0.0,
+        }
+
+    def _frontier_budget_metrics(self) -> dict:
+        gates = [event for event in self.events if event.get("type") == "frontier_budget_runtime_gate"]
+        allocations = [event for event in self.events if event.get("type") == "frontier_budget_allocation"]
+        contexts = [event for event in self.events if event.get("type") == "frontier_budget_planner_context"]
+        outcomes = [event for event in self.events if event.get("type") == "frontier_budget_outcome"]
+        credits = [event for event in self.events if event.get("type") == "frontier_budget_recovery_credit"]
+        policy_counts = {}
+        allocation_pool = 0
+        allocated_rounds = 0
+        conservation_failure_count = 0
+        for event in allocations:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            policy = str(data.get("policy") or "unknown")
+            policy_counts[policy] = policy_counts.get(policy, 0) + 1
+            ledger = data.get("ledger", {}) if isinstance(data.get("ledger", {}), dict) else {}
+            allocation_pool += int(ledger.get("allocation_pool_rounds", 0) or 0)
+            allocated_rounds += int(ledger.get("allocated_rounds", 0) or 0)
+            if ledger.get("conservation_valid") is not True:
+                conservation_failure_count += 1
+        recovered_rounds = 0
+        for event in credits:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            recovered_rounds += int(data.get("saved_planner_rounds", 0) or 0)
+        consumed_recovered = 0
+        completed = 0
+        for event in outcomes:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            consumed_recovered += int(data.get("reallocated_rounds_consumed", 0) or 0)
+            if data.get("goal_completed") is True:
+                completed += 1
+        latest_gate = gates[-1].get("data", {}) if gates and isinstance(gates[-1].get("data", {}), dict) else {}
+        return {
+            "runtime_gate_event_count": len(gates),
+            "requested_mode": str(latest_gate.get("requested_mode") or "off"),
+            "effective_mode": str(latest_gate.get("effective_mode") or "off"),
+            "policy": str(latest_gate.get("policy") or "information"),
+            "allocation_event_count": len(allocations),
+            "planner_context_event_count": len(contexts),
+            "outcome_event_count": len(outcomes),
+            "completed_outcome_count": completed,
+            "recovery_credit_event_count": len(credits),
+            "recovered_rounds": recovered_rounds,
+            "reallocated_rounds_consumed": consumed_recovered,
+            "allocation_pool_rounds": allocation_pool,
+            "allocated_rounds": allocated_rounds,
+            "budget_conservation_failure_count": conservation_failure_count,
+            "policy_counts": policy_counts,
         }
 
     def _memory_policy_metrics(self) -> dict:

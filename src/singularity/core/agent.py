@@ -18,6 +18,13 @@ from singularity.core.episode_abort import (
     evaluate_episode_abort_runtime_gate,
     runtime_episode_abort_provenance,
 )
+from singularity.core.frontier_budget import (
+    FrontierBudgetController,
+    build_frontier_branches,
+    evaluate_frontier_budget_runtime_gate,
+    frontier_budget_trace_payload,
+    runtime_frontier_budget_provenance,
+)
 from singularity.core.memory import (
     MemorySystem,
     evaluate_memory_attribution_runtime_gate,
@@ -112,6 +119,42 @@ class Agent:
                 f"requested={requested_abort_mode}, "
                 f"effective={self.episode_abort_runtime_gate_report.get('effective_mode')}, "
                 f"gate_readiness={self.episode_abort_runtime_gate_report.get('gate_readiness')}"
+            )
+        self.frontier_budget_runtime_provenance = runtime_frontier_budget_provenance(config)
+        self.frontier_budget_runtime_gate_report = evaluate_frontier_budget_runtime_gate(
+            getattr(config, "frontier_budget_gate_paths", []),
+            requested_mode=getattr(config, "frontier_budget_mode", "off"),
+            runtime_provenance=self.frontier_budget_runtime_provenance,
+        )
+        self.frontier_budget_controller = FrontierBudgetController(
+            self.frontier_budget_runtime_gate_report,
+            policy=getattr(config, "frontier_budget_policy", "information"),
+            total_rounds=getattr(config, "frontier_budget_total_rounds", 8),
+            temperature=getattr(config, "frontier_budget_temperature", 2.0),
+            exploration_floor=getattr(config, "frontier_budget_exploration_floor", 1),
+        )
+        self._frontier_budget_active = {}
+        self._frontier_budget_recovery_credit = {}
+        requested_frontier_mode = str(getattr(config, "frontier_budget_mode", "off") or "off").lower()
+        if requested_frontier_mode != "off" or getattr(config, "frontier_budget_gate_paths", []):
+            self.session_logger.log("frontier_budget_runtime_gate", {
+                "requested_mode": requested_frontier_mode,
+                "effective_mode": self.frontier_budget_runtime_gate_report.get("effective_mode", "off"),
+                "policy": self.frontier_budget_controller.policy,
+                "gate_readiness": self.frontier_budget_runtime_gate_report.get("gate_readiness", "unknown"),
+                "provenance_match": self.frontier_budget_runtime_gate_report.get("provenance_match", False),
+                "shadow_allocation_allowed": self.frontier_budget_runtime_gate_report.get("shadow_allocation_allowed", False),
+                "advisory_context_allowed": self.frontier_budget_runtime_gate_report.get("advisory_context_allowed", False),
+                "automatic_retry_allowed": False,
+                "automatic_branch_execution_allowed": False,
+                "error_count": len(self.frontier_budget_runtime_gate_report.get("errors", [])),
+            })
+        if requested_frontier_mode != self.frontier_budget_runtime_gate_report.get("effective_mode"):
+            logger.warning(
+                "Frontier budget runtime disabled or downgraded: "
+                f"requested={requested_frontier_mode}, "
+                f"effective={self.frontier_budget_runtime_gate_report.get('effective_mode')}, "
+                f"gate_readiness={self.frontier_budget_runtime_gate_report.get('gate_readiness')}"
             )
 
         # Integrated modules
@@ -1484,7 +1527,7 @@ class Agent:
                             self.task_system.complete_task(next_task.id, result)
                         break
                     logger.info("Planner reported complete, but goal verifier needs more evidence")
-                    if self._evaluate_episode_abort(goal, cycle, mode="goal"):
+                    if self._evaluate_episode_abort(goal, cycle, mode="goal", round_limit=max_cycles):
                         termination_reason = "episode_early_abort"
                         break
                     continue
@@ -1607,7 +1650,7 @@ class Agent:
                     self.session_logger.log_error("Health critical", {"health": observation["health"]})
                     termination_reason = "health_critical"
                     break
-                if self._evaluate_episode_abort(goal, cycle, mode="goal"):
+                if self._evaluate_episode_abort(goal, cycle, mode="goal", round_limit=max_cycles):
                     termination_reason = "episode_early_abort"
                     break
                 time.sleep(0.5)
@@ -1803,7 +1846,12 @@ class Agent:
                                 self.task_system.complete_task(active_task.id, result)
                             break
                         logger.info("[Autonomous] Planner reported complete, but verifier needs more evidence")
-                        if self._evaluate_episode_abort(goal, cycle, mode="autonomous"):
+                        if self._evaluate_episode_abort(
+                            goal,
+                            cycle,
+                            mode="autonomous",
+                            round_limit=max_cycles_per_goal,
+                        ):
                             termination_reason = "episode_early_abort"
                             break
                         continue
@@ -1927,7 +1975,12 @@ class Agent:
                         logger.warning("[Autonomous] Health critical - emergency survival")
                         termination_reason = "health_critical"
                         break
-                    if self._evaluate_episode_abort(goal, cycle, mode="autonomous"):
+                    if self._evaluate_episode_abort(
+                        goal,
+                        cycle,
+                        mode="autonomous",
+                        round_limit=max_cycles_per_goal,
+                    ):
                         termination_reason = "episode_early_abort"
                         break
 
@@ -1946,6 +1999,7 @@ class Agent:
                     "success": True,
                     "termination_reason": "goal_verified",
                 }
+                self._record_frontier_budget_outcome(goal, outcome)
                 self._record_task_continuity(
                     goal,
                     observation,
@@ -1977,6 +2031,7 @@ class Agent:
                     "success": False,
                     "termination_reason": termination_reason,
                 }
+                self._record_frontier_budget_outcome(goal, outcome)
                 self._record_task_continuity(
                     goal,
                     observation,
@@ -2114,6 +2169,7 @@ class Agent:
             visual_action_context = self._visual_action_context(goal, observation)
             coach_context = self._coach_context(goal, observation)
             curriculum_context = self._curriculum_context(goal, observation)
+            frontier_budget_context = self._frontier_budget_context(goal)
             self_evolution_context = self._self_evolution_context(goal, observation)
             knowledge_correction_context = self._knowledge_correction_context(goal, observation)
             task_precondition_context = self._task_precondition_context(goal, observation)
@@ -2136,6 +2192,7 @@ class Agent:
                 visual_action_context,
                 coach_context,
                 curriculum_context,
+                frontier_budget_context,
                 self_evolution_context,
                 knowledge_correction_context,
                 task_precondition_context,
@@ -2331,6 +2388,199 @@ class Agent:
                 "has_coach": bool(styles),
             })
         return context
+
+    def _record_frontier_budget_decision(
+        self,
+        observation: dict,
+        selected_goal: str,
+        decision: dict = None,
+        readiness_report: dict = None,
+    ) -> dict:
+        """Build and trace one fixed-budget frontier slate without executing branches."""
+        controller = getattr(self, "frontier_budget_controller", None)
+        if controller is None or not getattr(controller, "enabled", False):
+            return {}
+        decision = decision if isinstance(decision, dict) else {}
+        readiness_report = readiness_report if isinstance(readiness_report, dict) else {}
+        curriculum = getattr(self, "curriculum", None)
+        stats = {}
+        for title, item in getattr(curriculum, "goal_stats", {}).items() if curriculum is not None else []:
+            try:
+                stats[str(title)] = asdict(item)
+            except TypeError:
+                stats[str(title)] = {}
+        branches = build_frontier_branches(
+            curriculum_candidates=[
+                item for item in decision.get("candidates", []) or []
+                if isinstance(item, dict)
+            ],
+            task_readiness=readiness_report,
+            observation=observation or {},
+            goal_stats=stats,
+            selected_goal=selected_goal,
+        )
+        if not branches:
+            return {}
+        credit = getattr(self, "_frontier_budget_recovery_credit", {})
+        credit = credit if isinstance(credit, dict) else {}
+        recovered_rounds = max(0, int(credit.get("remaining_rounds", 0) or 0))
+        allocation = controller.allocate(branches, recovered_rounds=recovered_rounds)
+        if not allocation:
+            return {}
+        if getattr(controller, "advisory", False):
+            allocation["interval_calibrated"] = True
+            for item in allocation.get("branches", []) or []:
+                if isinstance(item, dict):
+                    item["interval_calibrated"] = True
+        selected = next((item for item in allocation.get("branches", []) if item.get("selected")), None)
+        if selected is None:
+            selected = next((item for item in allocation.get("branches", []) if item.get("allocated_rounds", 0) > 0), None)
+        allocation["selected_branch_id"] = str((selected or {}).get("branch_id") or "")
+        allocation["selected_goal_fingerprint"] = self._goal_fingerprint(selected_goal)
+        if recovered_rounds > 0:
+            allocation["reallocation_source"] = "certified_episode_early_abort"
+            allocation["source_abort_event_fingerprint"] = str(credit.get("event_fingerprint") or "")
+            allocation["episode_abort_gate_integrity_sha256"] = str(credit.get("gate_integrity_sha256") or "")
+        else:
+            allocation["reallocation_source"] = "fixed_base_budget"
+        allocation["provenance"] = dict(getattr(self, "frontier_budget_runtime_provenance", {}) or {})
+        self._frontier_budget_active = {
+            "allocation": allocation,
+            "goal_fingerprint": allocation["selected_goal_fingerprint"],
+            "event_start": len(getattr(getattr(self, "session_logger", None), "events", []) or []),
+        }
+        if curriculum is not None and isinstance(getattr(curriculum, "last_decision", {}), dict):
+            if self._goal_fingerprint(str(curriculum.last_decision.get("selected") or "")) == allocation["selected_goal_fingerprint"]:
+                curriculum.last_decision["frontier_budget"] = frontier_budget_trace_payload(
+                    allocation,
+                    provenance=allocation["provenance"],
+                )
+        logger_instance = getattr(self, "session_logger", None)
+        if logger_instance is not None and hasattr(logger_instance, "log"):
+            logger_instance.log(
+                "frontier_budget_allocation",
+                frontier_budget_trace_payload(allocation, provenance=allocation["provenance"]),
+            )
+        return allocation
+
+    def _frontier_budget_context(self, goal: str, limit: int = 3) -> str:
+        """Expose a held-out-gated allocation as advisory planner context only."""
+        controller = getattr(self, "frontier_budget_controller", None)
+        if controller is None or not getattr(controller, "advisory", False):
+            return ""
+        active = getattr(self, "_frontier_budget_active", {})
+        active = active if isinstance(active, dict) else {}
+        allocation = active.get("allocation", {}) if isinstance(active.get("allocation", {}), dict) else {}
+        if not allocation or active.get("goal_fingerprint") != self._goal_fingerprint(goal):
+            return ""
+        branches = [
+            item for item in allocation.get("branches", []) or []
+            if isinstance(item, dict) and item.get("allocated_rounds", 0) > 0
+        ][: max(1, min(5, int(limit or 3)))]
+        if not branches:
+            return ""
+        ledger = allocation.get("ledger", {}) if isinstance(allocation.get("ledger", {}), dict) else {}
+        lines = [
+            "Frontier planner-round budget (advisory; action and goal verifiers remain authoritative):",
+            (
+                f"- fixed total={ledger.get('total_rounds', 0)} "
+                f"pool={ledger.get('allocation_pool_rounds', 0)} "
+                f"policy={allocation.get('allocation_profile', '')}"
+            ),
+        ]
+        for item in branches:
+            title = str(item.get("title") or item.get("branch_id") or "frontier")[:100]
+            low = item.get("estimated_rounds_low")
+            high = item.get("estimated_rounds_high")
+            selected = " selected" if item.get("selected") else ""
+            lines.append(
+                f"- branch{selected}: {title} allocation={item.get('allocated_rounds', 0)} "
+                f"estimated_remaining=[{low},{high}]"
+            )
+        if allocation.get("budget_alert"):
+            lines.append(f"- budget alert: {allocation.get('budget_alert')}")
+        lines.append("- this allocation cannot retry, execute alternatives, or extend the fixed budget automatically")
+        logger_instance = getattr(self, "session_logger", None)
+        if logger_instance is not None and hasattr(logger_instance, "log"):
+            logger_instance.log("frontier_budget_planner_context", {
+                "goal_fingerprint": active.get("goal_fingerprint", ""),
+                "allocation_profile": allocation.get("allocation_profile", ""),
+                "selected_branch_id": allocation.get("selected_branch_id", ""),
+                "branch_count": len(branches),
+                "allocation_pool_rounds": ledger.get("allocation_pool_rounds", 0),
+                "gate_readiness": getattr(self, "frontier_budget_runtime_gate_report", {}).get("gate_readiness", "unknown"),
+            })
+        return "\n".join(lines)
+
+    def _record_frontier_budget_outcome(self, goal: str, outcome: dict) -> dict:
+        """Attach verifier-grounded execution outcomes to the active allocation trace."""
+        active = getattr(self, "_frontier_budget_active", {})
+        active = active if isinstance(active, dict) else {}
+        allocation = active.get("allocation", {}) if isinstance(active.get("allocation", {}), dict) else {}
+        if not allocation or active.get("goal_fingerprint") != self._goal_fingerprint(goal):
+            return {}
+        events = getattr(getattr(self, "session_logger", None), "events", []) or []
+        start = max(0, int(active.get("event_start", 0) or 0))
+        scoped = events[start:]
+        verifier_events = [event for event in scoped if event.get("type") == "action_verification"]
+        verifier_rejects = 0
+        for event in verifier_events:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            verification = data.get("verification", {}) if isinstance(data.get("verification", {}), dict) else {}
+            if str(verification.get("status") or "").lower() == "reject":
+                verifier_rejects += 1
+        action_events = [event for event in scoped if event.get("type") == "action"]
+        action_failures = 0
+        for event in action_events:
+            data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
+            result = data.get("result", {}) if isinstance(data.get("result", {}), dict) else {}
+            if result.get("success") is not True:
+                action_failures += 1
+        success = bool(outcome.get("success", outcome.get("completed", False)))
+        cycles = max(0, int(outcome.get("cycles", 0) or 0))
+        selected_branch_id = str(allocation.get("selected_branch_id") or "")
+        selected = next(
+            (item for item in allocation.get("branches", []) or [] if item.get("branch_id") == selected_branch_id),
+            {},
+        )
+        allocated_to_selected = max(0, int(selected.get("allocated_rounds", 0) or 0))
+        consumed_recovered = 0
+        credit = getattr(self, "_frontier_budget_recovery_credit", {})
+        if allocation.get("reallocation_source") == "certified_episode_early_abort" and isinstance(credit, dict):
+            available_credit = max(0, int(credit.get("remaining_rounds", 0) or 0))
+            consumed_recovered = min(available_credit, allocated_to_selected, cycles)
+            credit["remaining_rounds"] = available_credit - consumed_recovered
+            self._frontier_budget_recovery_credit = credit if credit["remaining_rounds"] > 0 else {}
+        verification_enforced = bool(
+            getattr(getattr(self, "config", None), "enable_action_verification", True)
+            and getattr(getattr(self, "config", None), "enforce_action_verification", True)
+        )
+        payload = {
+            "goal_fingerprint": active.get("goal_fingerprint", ""),
+            "selected_branch_id": selected_branch_id,
+            "policy": allocation.get("policy", ""),
+            "allocation_profile": allocation.get("allocation_profile", ""),
+            "goal_completed": success,
+            "planner_rounds_used": cycles,
+            "verifier_event_count": len(verifier_events),
+            "verifier_reject_count": verifier_rejects,
+            "action_event_count": len(action_events),
+            "action_failure_count": action_failures,
+            "unsafe_action_count": 0 if verification_enforced else 1,
+            "action_verification_enforced": verification_enforced,
+            "resolved_branch_ids": [selected_branch_id] if success and selected_branch_id else [],
+            "actual_rounds_by_branch": {selected_branch_id: cycles} if success and selected_branch_id else {},
+            "termination_reason": str(outcome.get("termination_reason") or "")[:64],
+            "reallocated_rounds_consumed": consumed_recovered,
+            "reallocated_rounds_remaining": max(0, int(getattr(self, "_frontier_budget_recovery_credit", {}).get("remaining_rounds", 0) or 0)),
+            "automatic_retry_allowed": False,
+            "automatic_branch_execution_allowed": False,
+        }
+        logger_instance = getattr(self, "session_logger", None)
+        if logger_instance is not None and hasattr(logger_instance, "log"):
+            logger_instance.log("frontier_budget_outcome", payload)
+        self._frontier_budget_active = {}
+        return payload
 
     def _skill_memory_context(self, goal: str, current_state: dict = None, limit: int = 5) -> str:
         """Retrieve skill-local replay/failure notes for the current task family."""
@@ -4420,11 +4670,33 @@ class Agent:
         if self._should_preserve_autonomous_fallback(observation, fallback_goal):
             return fallback_goal
         scheduling_state = self._state_with_causal_context(observation, fallback_goal)
+        readiness_report = (
+            self.task_system.task_readiness_report(scheduling_state)
+            if hasattr(self.task_system, "task_readiness_report")
+            else {}
+        )
         next_task = self.task_system.get_next_task(scheduling_state)
         if next_task:
+            self._record_frontier_budget_decision(
+                observation,
+                next_task.title,
+                decision={"selected": next_task.title, "candidates": []},
+                readiness_report=readiness_report,
+            )
             return next_task.title
         recovery_goal = self._task_readiness_recovery_goal(scheduling_state, fallback_goal)
         if recovery_goal:
+            recovery_readiness = (
+                self.task_system.task_readiness_report(scheduling_state)
+                if hasattr(self.task_system, "task_readiness_report")
+                else readiness_report
+            )
+            self._record_frontier_budget_decision(
+                observation,
+                recovery_goal,
+                decision={"selected": recovery_goal, "candidates": []},
+                readiness_report=recovery_readiness,
+            )
             return recovery_goal
         if (
             getattr(getattr(self, "config", None), "enable_autocurriculum", True)
@@ -4444,6 +4716,12 @@ class Agent:
                     getattr(self, "memory", None),
                     getattr(self, "skill_library", None),
                 )
+            self._record_frontier_budget_decision(
+                observation,
+                goal,
+                decision=getattr(self.curriculum, "last_decision", {}),
+                readiness_report=readiness_report,
+            )
             if hasattr(self, "memory") and goal != fallback_goal:
                 payload = {
                     "fallback": fallback_goal,
@@ -4878,7 +5156,13 @@ class Agent:
 
         return True, observation
 
-    def _evaluate_episode_abort(self, goal: str, cycle: int, mode: str) -> bool:
+    def _evaluate_episode_abort(
+        self,
+        goal: str,
+        cycle: int,
+        mode: str,
+        round_limit: int = 0,
+    ) -> bool:
         """Log a calibrated viability probe and return whether it may stop the goal."""
         monitor = getattr(self, "episode_abort_monitor", None)
         if monitor is None or not monitor.enabled:
@@ -4889,6 +5173,9 @@ class Agent:
             return False
         payload = decision.to_dict()
         payload.update({"goal_fingerprint": self._goal_fingerprint(goal), "mode": mode})
+        saved_rounds = max(0, int(round_limit or 0) - int(cycle or 0)) if decision.active_abort else 0
+        if saved_rounds:
+            payload["saved_planner_rounds"] = saved_rounds
         self.session_logger.log("episode_viability_probe", payload)
         if not decision.would_abort:
             return False
@@ -4911,6 +5198,28 @@ class Agent:
                 },
                 source="episode_abort_monitor",
             )
+            if saved_rounds:
+                session_id = str(getattr(getattr(self, "session_logger", None), "session_id", "") or "")
+                event_fingerprint = hashlib.sha256(
+                    f"{session_id}|{payload['goal_fingerprint']}|{cycle}|{saved_rounds}".encode("utf-8")
+                ).hexdigest()[:16]
+                gate_hash = str(
+                    getattr(self, "episode_abort_runtime_gate_report", {}).get("gate_integrity_sha256") or ""
+                )
+                self._frontier_budget_recovery_credit = {
+                    "remaining_rounds": saved_rounds,
+                    "event_fingerprint": event_fingerprint,
+                    "gate_integrity_sha256": gate_hash,
+                }
+                self.session_logger.log("frontier_budget_recovery_credit", {
+                    "goal_fingerprint": payload["goal_fingerprint"],
+                    "saved_planner_rounds": saved_rounds,
+                    "credit_rounds_available": saved_rounds,
+                    "source_abort_event_fingerprint": event_fingerprint,
+                    "episode_abort_gate_integrity_sha256": gate_hash,
+                    "budget_extended": False,
+                    "automatic_retry_allowed": False,
+                })
         return decision.active_abort
 
     def _goal_fingerprint(self, goal: str) -> str:

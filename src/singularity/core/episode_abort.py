@@ -595,6 +595,7 @@ def evaluate_episode_abort_runtime_gate(
         "provenance_match": False,
         "active_abort_allowed": False,
         "shadow_probe_allowed": False,
+        "gate_integrity_sha256": "",
         "errors": [],
     }
     if requested_mode == "off":
@@ -631,6 +632,7 @@ def evaluate_episode_abort_runtime_gate(
         "runtime_provenance": {key: runtime_provenance.get(key, "") for key in compared_keys},
         "active_abort_allowed": bool(gate.get("active_abort_allowed")),
         "shadow_probe_allowed": bool(gate.get("shadow_probe_allowed")),
+        "gate_integrity_sha256": str(gate.get("gate_integrity_sha256") or ""),
     })
     if not provenance_match:
         report["gate_readiness"] = "rejected"

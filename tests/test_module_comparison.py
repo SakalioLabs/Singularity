@@ -35,6 +35,20 @@ def _baseline_failure_events():
 def _candidate_module_events():
     return [
         {"type": "episode_abort_runtime_gate", "data": {"requested_mode": "shadow", "effective_mode": "shadow"}},
+        {"type": "frontier_budget_runtime_gate", "data": {"requested_mode": "shadow", "effective_mode": "shadow", "policy": "information"}},
+        {
+            "type": "frontier_budget_allocation",
+            "data": {
+                "policy": "information",
+                "ledger": {
+                    "allocation_pool_rounds": 8,
+                    "allocated_rounds": 8,
+                    "conservation_valid": True,
+                },
+            },
+        },
+        {"type": "frontier_budget_planner_context", "data": {"selected_branch_id": "coal"}},
+        {"type": "frontier_budget_outcome", "data": {"goal_completed": True, "reallocated_rounds_consumed": 2}},
         {"type": "goal_start", "data": {"goal": "Craft torches"}},
         {"type": "memory_read", "data": {"memory_type": "episodic", "read_filter_report": {"filtered_entries": 1, "filter_reasons": {"stale": 1}}}},
         {"type": "skill_memory_hint", "data": {"task_family": "crafting", "hint_count": 2}},
@@ -132,6 +146,9 @@ def test_agent_module_comparison_approves_active_candidate():
     assert report["candidate"]["modules"]["plan_cache"]["hybrid_hint_count"] == 1
     assert report["candidate"]["modules"]["plan_cache"]["workflow_intervention_count"] == 2
     assert report["candidate"]["modules"]["episode_early_abort"]["probe_count"] == 1
+    assert report["candidate"]["modules"]["frontier_budget"]["allocation_count"] == 1
+    assert report["candidate"]["modules"]["frontier_budget"]["planner_context_count"] == 1
+    assert report["candidate"]["modules"]["frontier_budget"]["conservation_failure_count"] == 0
     assert report["candidate"]["modules"]["visual_action_grounding"]["intervention_count"] == 1
     assert report["candidate"]["modules"]["action_candidate_selection"]["repaired_reject_count"] == 1
     assert report["candidate"]["modules"]["skill_memory"]["hint_count"] == 2
@@ -139,7 +156,9 @@ def test_agent_module_comparison_approves_active_candidate():
     assert report["candidate"]["modules"]["control_policy"]["event_count"] == 1
     assert "plan_cache" in report["module_activity"]["candidate_active_modules"]
     assert "episode_early_abort" in report["module_activity"]["candidate_active_modules"]
+    assert "frontier_budget" in report["module_activity"]["candidate_active_modules"]
     assert "rebuild_episode_early_abort_gate_on_disjoint_live_logs_before_active_termination" in report["recommendations"]
+    assert "compare_uniform_and_information_frontier_budgets_on_paired_live_sessions_before_advisory_context" in report["recommendations"]
     assert "package_candidate_artifacts_in_runtime_profile_after_dedicated_gates_pass" in report["recommendations"]
     print("PASS: Agent module comparison approves active candidate")
 

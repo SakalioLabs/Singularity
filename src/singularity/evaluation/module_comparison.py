@@ -11,6 +11,7 @@ from typing import Any
 MODULE_ORDER = [
     "plan_cache",
     "episode_early_abort",
+    "frontier_budget",
     "visual_action_grounding",
     "action_verification",
     "action_candidate_selection",
@@ -157,6 +158,19 @@ def _empty_summary(label: str, session_log_paths: list[str]) -> dict:
                 "round_counts": {},
                 "activity_count": 0,
             },
+            "frontier_budget": {
+                "gate_event_count": 0,
+                "allocation_count": 0,
+                "planner_context_count": 0,
+                "outcome_count": 0,
+                "completed_outcome_count": 0,
+                "recovery_credit_count": 0,
+                "recovered_rounds": 0,
+                "reallocated_rounds_consumed": 0,
+                "conservation_failure_count": 0,
+                "policy_counts": {},
+                "activity_count": 0,
+            },
             "visual_action_grounding": {
                 "suggestion_event_count": 0,
                 "suggestion_count": 0,
@@ -258,6 +272,14 @@ def _ingest_event(summary: dict, event: dict):
         _ingest_plan_cache(summary, event_type)
     elif event_type in {"episode_abort_runtime_gate", "episode_viability_probe", "episode_early_abort"}:
         _ingest_episode_abort(summary, event_type, data)
+    elif event_type in {
+        "frontier_budget_runtime_gate",
+        "frontier_budget_allocation",
+        "frontier_budget_planner_context",
+        "frontier_budget_outcome",
+        "frontier_budget_recovery_credit",
+    }:
+        _ingest_frontier_budget(summary, event_type, data)
     elif event_type in {"visual_action_suggestion", "visual_action_intervention"}:
         _ingest_visual_action(summary, event_type, data)
     elif event_type == "action_verification":
@@ -334,6 +356,29 @@ def _ingest_episode_abort(summary: dict, event_type: str, data: dict):
         module["active_abort_count"] += 1
     elif data.get("would_abort") is True:
         module["shadow_abort_count"] += 1
+
+
+def _ingest_frontier_budget(summary: dict, event_type: str, data: dict):
+    module = summary["modules"]["frontier_budget"]
+    if event_type == "frontier_budget_runtime_gate":
+        module["gate_event_count"] += 1
+    elif event_type == "frontier_budget_allocation":
+        module["allocation_count"] += 1
+        policy = str(data.get("policy") or "unknown")
+        _increment(module["policy_counts"], policy)
+        ledger = data.get("ledger", {}) if isinstance(data.get("ledger", {}), dict) else {}
+        if ledger.get("conservation_valid") is not True:
+            module["conservation_failure_count"] += 1
+    elif event_type == "frontier_budget_planner_context":
+        module["planner_context_count"] += 1
+    elif event_type == "frontier_budget_outcome":
+        module["outcome_count"] += 1
+        if data.get("goal_completed") is True:
+            module["completed_outcome_count"] += 1
+        module["reallocated_rounds_consumed"] += _safe_int(data.get("reallocated_rounds_consumed"), 0)
+    elif event_type == "frontier_budget_recovery_credit":
+        module["recovery_credit_count"] += 1
+        module["recovered_rounds"] += _safe_int(data.get("saved_planner_rounds"), 0)
 
 
 def _ingest_visual_action(summary: dict, event_type: str, data: dict):
@@ -519,6 +564,15 @@ def _finalize_summary(summary: dict):
         + episode_abort["probe_count"]
         + episode_abort["would_abort_count"]
         + episode_abort["active_abort_count"]
+    )
+
+    frontier_budget = summary["modules"]["frontier_budget"]
+    frontier_budget["activity_count"] = (
+        frontier_budget["gate_event_count"]
+        + frontier_budget["allocation_count"]
+        + frontier_budget["planner_context_count"]
+        + frontier_budget["outcome_count"]
+        + frontier_budget["recovery_credit_count"]
     )
 
     visual = summary["modules"]["visual_action_grounding"]
@@ -745,6 +799,8 @@ def _comparison_recommendations(candidate: dict, deltas: dict, module_activity: 
         recommendations.append("run_entry_scoped_plan_cache_runtime_report_before_deterministic_reuse")
     if "episode_early_abort" in active:
         recommendations.append("rebuild_episode_early_abort_gate_on_disjoint_live_logs_before_active_termination")
+    if "frontier_budget" in active:
+        recommendations.append("compare_uniform_and_information_frontier_budgets_on_paired_live_sessions_before_advisory_context")
     if "visual_action_grounding" in active:
         recommendations.append("run_visual_action_ablation_or_visual_review_pipeline_before_visual_policy_promotion")
     if "action_verification" in active or "action_candidate_selection" in active:

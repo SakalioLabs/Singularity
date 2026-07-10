@@ -36,6 +36,7 @@ Current report outcome:
 - Added a verifier-calibrated soft-retirement pipeline. It measures false-pass bias per judge with injected defects, compares each learned skill to a fixed-control no-skill baseline, requires live provenance and distinct sessions, and applies approved results only as a task-family runtime overlay. Built-ins cannot be quarantined, synthetic fixtures are runtime-ineligible, skill files are never mutated, and every gate hard-codes `automatic_delete_allowed=false`.
 - Upgraded AgenticCache reuse with Progressive Crystallization and EvoSOP lifecycle constraints. Schema-v2 cache reports can grant only hybrid planner guidance from offline traces; runtime reports aggregate exact executable-workflow matches, independent sessions, goal outcomes, action failures, and verifier rejects per entry. Three matched successes across three complete live sessions are required by default for deterministic reuse, while regressions demote only the affected entry.
 - Added a hosted-API-compatible recall-controlled episode viability cascade. `behavior_surface_v1` scores only typed action/verifier/progress events, calibrates exact binomial survival bounds per round, searches budgets on a separate validation split, certifies global success recall on held-out test data, and binds `shadow`/`active` runtime use to planner, action backend, verifier, task stream, and seed identities. The implementation explicitly makes no hidden-activation or token-savings claim.
+- Added `frontier_information_budget_v1` with an exact uniform control, fixed integer planner-round ledger, deterministic soft allocation, exploration floor, typed prerequisite/verifier/novelty/risk signals, and BAGEN-style remaining-round intervals. Active episode-abort savings can become bounded recovery credit but never extend the ledger. `frontier-rollout-budget-report` accepts offline fixtures for shadow review yet permits planner-facing advice only from distinct paired uniform/information JSONL sessions whose allocations replay exactly, outcomes do not regress, interval coverage has an exact one-sided certificate, and any recovered rounds link to an approved abort gate. Automatic retry, branch execution, and budget extension are structurally impossible.
 
 ## Evidence That Still Matters
 
@@ -53,6 +54,7 @@ Current report outcome:
 - Skill soft retirement has deterministic offline coverage but no live defect-injection calibration or paired no-skill Minecraft traces. No current skill is justified for runtime quarantine by tracked evidence.
 - Workflow crystallization is offline-verified, but no existing Minecraft cache entry has the three-session live evidence required for deterministic execution. Existing schema-v1 gates are intentionally rejected.
 - Episode early-abort mechanics are offline-verified only. Existing logs do not provide disjoint successful calibration/validation/test populations, so no live gate is approved and runtime remains off by default.
+- Frontier-budget mechanics are offline-verified only. The three built-in prerequisite cases conserve an eight-round budget and target later synthetic resolutions better than uniform, but they provide only three interval observations and no connected paired Minecraft sessions. No advisory runtime gate is approved; default mode remains off and shadow mode cannot change planner context.
 
 ## Research Direction
 
@@ -72,6 +74,8 @@ Current report outcome:
 - Progressive Crystallization and EvoSOP: treat exploration as workflow discovery, keep offline procedures hybrid, promote entries individually after repeated live verification, and demote regressions without erasing evidence.
 - Recall-Controlled Early Abort: use exact sample-complexity-aware certificates and shadow deployment before behavior-changing termination; behavior-only Minecraft signals must not inherit hidden-state probe claims.
 - IGRPO: when retries or branch rollouts become available, allocate a fixed planner-round budget toward frontier nodes that reduce verifier uncertainty or reveal prerequisites, and compare against uniform allocation before online suppression.
+- BAGEN: treat planner rounds as an active progressive ledger, report conservative remaining-cost intervals, and measure optimistic misses separately from task completion.
+- AgentTether: localize retry value along prerequisite/dependency paths, carry fixed versus unresolved state across attempts, and use cooldown/minimal-intervention guards rather than blind retry.
 
 ## Immediate Sequence
 
@@ -84,3 +88,4 @@ Current report outcome:
 7. Collect per-judge defect-injection controls and paired no-skill skill-contribution traces across at least three distinct live sessions before applying a runtime retirement overlay; preserve all skill files for audit and recovery.
 8. Run schema-v2 hybrid workflow guidance on fresh M1/M2 traces, then regenerate runtime reports and permit deterministic reuse only for entries with three distinct exact matched successes and no regression.
 9. Build disjoint fixed-control M1/M2 episode-abort splits, run `behavior_surface_v1` in shadow mode, and permit active termination only after validation and held-out test global-recall certificates pass with positive failed-episode savings.
+10. Collect at least 12 distinct matched uniform/information frontier-budget sessions under one fixed task stream and seed protocol, then require exact allocation replay, non-regressing completion/verifier/action outcomes, positive prerequisite-resolution targeting, and a held-out interval-coverage certificate before advisory planner context.

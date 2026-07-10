@@ -119,6 +119,14 @@ python -m singularity.main plan-cache-gate --plan-cache-report logs/benchmarks/p
 # Active termination remains unavailable unless the saved gate carries held-out global-recall certificates.
 python -m singularity.main episode-early-abort-gate --calibration-log logs/calibration_1.jsonl --validation-log logs/validation_1.jsonl --test-log logs/test_1.jsonl --evidence-kind live_trace --planner-id rule-based-v1 --action-backend mineflayer-bridge-v1 --verifier-id goal-action-verifier-v1 --task-stream-id m1-fixed-v1 --seed WORLD_SEED --output logs/benchmarks/episode_early_abort_gate.json
 python -m singularity.main run --goal "Gather 3 oak logs" --episode-abort-mode shadow --episode-abort-gate logs/benchmarks/episode_early_abort_gate.json --episode-abort-task-stream-id m1-fixed-v1 --episode-abort-seed-id WORLD_SEED
+# Compare an eight-round task-frontier ledger. Built-ins are synthetic and shadow-only.
+python -m singularity.main frontier-rollout-budget-report --include-builtins --evidence-kind synthetic_control --total-rounds 8 --planner-id builtin-fixed-planner-v1 --action-backend synthetic-no-execution --verifier-id builtin-milestone-verifier-v1 --task-stream-id builtin-frontier-budget --seed builtin-20260710 --output logs/benchmarks/frontier_budget_builtin.json
+# Collect fixed-control runtime traces; shadow mode never changes planner context.
+python -m singularity.main autonomous --max-goals 10 --frontier-budget-mode shadow --frontier-budget-policy uniform --frontier-budget-rounds 8 --frontier-budget-task-stream-id m1-fixed-v1 --frontier-budget-seed-id WORLD_SEED
+python -m singularity.main autonomous --max-goals 10 --frontier-budget-mode shadow --frontier-budget-policy information --frontier-budget-rounds 8 --frontier-budget-task-stream-id m1-fixed-v1 --frontier-budget-seed-id WORLD_SEED
+# Advisory mode additionally requires exact-control paired live logs. Repeat baseline/candidate flags in order;
+# defaults require at least 12 successful candidate interval observations for the coverage certificate.
+python -m singularity.main frontier-rollout-budget-report --help
 python -m singularity.main benchmark --suite m1 --preflight
 python -m singularity.main benchmark --suite m1 --ingest
 python -m singularity.main benchmark --suite m1 --ingest --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
@@ -178,6 +186,7 @@ python tests/test_m2_comprehensive.py
 python tests/test_action_controller.py
 python tests/test_runtime_supervisor.py
 python tests/test_episode_abort.py
+python tests/test_frontier_budget.py
 python tests/test_bot_bridge.py
 python tests/test_collaboration_benchmark.py
 python tests/test_collaboration_executor.py
@@ -185,7 +194,7 @@ python tests/test_memory_task_system.py
 python tests/test_benchmark_preflight.py
 ```
 
-Coverage includes config, goal generation, exploration, interruptible runtime supervision, recall-controlled episode viability, action safety helpers, memory and experience records, skill extraction/review, task scheduling, rule planning, knowledge loading, session logging, benchmark preflight, bridge health, collaboration benchmark feasibility/execution, Agent-backed collaboration task adapters, and benchmark trace ingestion.
+Coverage includes config, goal generation, exploration, interruptible runtime supervision, recall-controlled episode viability, fixed-budget frontier allocation, action safety helpers, memory and experience records, skill extraction/review, task scheduling, rule planning, knowledge loading, session logging, benchmark preflight, bridge health, collaboration benchmark feasibility/execution, Agent-backed collaboration task adapters, and benchmark trace ingestion.
 
 ## Project Structure
 
@@ -201,6 +210,7 @@ Singularity/
 │   │   │   ├── agent.py          # Main agent: goal-directed + autonomous modes
 │   │   │   ├── config.py         # BotConfig, LLMConfig, Config
 │   │   │   ├── episode_abort.py  # Recall-controlled behavioral viability cascade
+│   │   │   ├── frontier_budget.py # Fixed planner-round frontier allocation and gate
 │   │   │   ├── planner.py        # LLM planner with knowledge injection
 │   │   │   ├── reflector.py      # Failure analysis and re-planning
 │   │   │   ├── rule_planner.py   # Rule-based fallback planner
@@ -239,7 +249,7 @@ Singularity/
 
 ## Research Foundation
 
-- **90 papers** analyzed across Minecraft, game agents, memory, skills, world models, evaluation, safety, and multi-agent execution
+- **92 papers** analyzed across Minecraft, game agents, memory, skills, world models, evaluation, safety, and multi-agent execution
 - **4 key repos** evaluated: Mindcraft, Mineflayer, Baritone, MineDojo
 - **10 research questions** identified and tracked (RQ1-RQ10)
 

@@ -17,6 +17,7 @@ from singularity.core.runtime_profile import (
     load_runtime_profiles,
     merge_arg_profile_list,
     profile_bool_arg,
+    profile_setting,
     profile_str_arg,
 )
 
@@ -112,6 +113,44 @@ def _add_episode_abort_runtime_args(parser):
         default="",
         help="Environment/task seed control id that must match the calibrated episode-abort gate",
     )
+
+
+def _add_frontier_budget_runtime_args(parser):
+    parser.add_argument(
+        "--frontier-budget-mode",
+        choices=["off", "shadow", "advisory"],
+        default="off",
+        help="Trace fixed planner-round allocation or inject it as gate-approved advisory context",
+    )
+    parser.add_argument(
+        "--frontier-budget-policy",
+        choices=["uniform", "information"],
+        default="",
+        help="Allocation policy; uniform is the fixed-control baseline",
+    )
+    parser.add_argument(
+        "--frontier-budget-gate",
+        action="append",
+        default=[],
+        help="Paired live frontier-rollout-budget report required for advisory mode",
+    )
+    parser.add_argument("--frontier-budget-rounds", type=int, default=None, help="Fixed planner-round allocation ledger")
+    parser.add_argument("--frontier-budget-temperature", type=float, default=None, help="Soft information-allocation temperature")
+    parser.add_argument("--frontier-budget-exploration-floor", type=int, default=None, help="Minimum rounds per eligible branch when the ledger permits")
+    parser.add_argument("--frontier-budget-task-stream-id", type=str, default="", help="Task-stream control id required by an advisory gate")
+    parser.add_argument("--frontier-budget-seed-id", type=str, default="", help="Environment/task seed control id required by an advisory gate")
+
+
+def _profile_number_arg(args, attr: str, profiles: list[dict], key: str, default, cast):
+    value = getattr(args, attr, None)
+    if value is None:
+        value = profile_setting(profiles, key)
+    if value in (None, ""):
+        value = default
+    try:
+        return cast(value)
+    except (TypeError, ValueError):
+        return cast(default)
 
 
 def _print_runtime_profile_report(report: dict):
@@ -364,6 +403,20 @@ def _runtime_profile_payload_from_args(args) -> dict:
         settings["episode_abort_task_stream_id"] = getattr(args, "episode_abort_task_stream_id", "")
     if getattr(args, "episode_abort_seed_id", ""):
         settings["episode_abort_seed_id"] = getattr(args, "episode_abort_seed_id", "")
+    if getattr(args, "frontier_budget_mode", ""):
+        settings["frontier_budget_mode"] = getattr(args, "frontier_budget_mode", "")
+    if getattr(args, "frontier_budget_policy", ""):
+        settings["frontier_budget_policy"] = getattr(args, "frontier_budget_policy", "")
+    if getattr(args, "frontier_budget_rounds", None) is not None:
+        settings["frontier_budget_total_rounds"] = getattr(args, "frontier_budget_rounds")
+    if getattr(args, "frontier_budget_temperature", None) is not None:
+        settings["frontier_budget_temperature"] = getattr(args, "frontier_budget_temperature")
+    if getattr(args, "frontier_budget_exploration_floor", None) is not None:
+        settings["frontier_budget_exploration_floor"] = getattr(args, "frontier_budget_exploration_floor")
+    if getattr(args, "frontier_budget_task_stream_id", ""):
+        settings["frontier_budget_task_stream_id"] = getattr(args, "frontier_budget_task_stream_id", "")
+    if getattr(args, "frontier_budget_seed_id", ""):
+        settings["frontier_budget_seed_id"] = getattr(args, "frontier_budget_seed_id", "")
     if getattr(args, "screenshot_dir", ""):
         settings["screenshot_dir"] = getattr(args, "screenshot_dir", "")
     path_fields = {
@@ -380,6 +433,7 @@ def _runtime_profile_payload_from_args(args) -> dict:
         "plan_cache_paths": getattr(args, "plan_cache", []) or [],
         "plan_cache_gate_paths": getattr(args, "plan_cache_gate", []) or [],
         "episode_abort_gate_paths": getattr(args, "episode_abort_gate", []) or [],
+        "frontier_budget_gate_paths": getattr(args, "frontier_budget_gate", []) or [],
         "action_value_feedback_paths": getattr(args, "action_value_feedback", []) or [],
         "action_value_transition_gate_paths": getattr(args, "action_value_transition_gate", []) or [],
         "action_value_transition_evaluator_report_paths": getattr(args, "action_value_transition_evaluator_report", []) or [],
@@ -625,6 +679,7 @@ def main():
     _add_memory_attribution_runtime_args(run_parser)
     _add_plan_cache_runtime_args(run_parser)
     _add_episode_abort_runtime_args(run_parser)
+    _add_frontier_budget_runtime_args(run_parser)
     _add_knowledge_correction_args(run_parser)
     _add_task_precondition_args(run_parser)
     run_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
@@ -671,6 +726,7 @@ def main():
     _add_memory_attribution_runtime_args(auto_parser)
     _add_plan_cache_runtime_args(auto_parser)
     _add_episode_abort_runtime_args(auto_parser)
+    _add_frontier_budget_runtime_args(auto_parser)
     _add_knowledge_correction_args(auto_parser)
     _add_task_precondition_args(auto_parser)
     auto_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
@@ -716,6 +772,7 @@ def main():
     _add_memory_attribution_runtime_args(bench_parser)
     _add_plan_cache_runtime_args(bench_parser)
     _add_episode_abort_runtime_args(bench_parser)
+    _add_frontier_budget_runtime_args(bench_parser)
     _add_knowledge_correction_args(bench_parser)
     _add_task_precondition_args(bench_parser)
     bench_parser.add_argument("--knowledge-correction-preflight", action="store_true", help="Run approved gate and suite-coverage preflight before knowledge-correction-assisted benchmarks")
@@ -1275,6 +1332,35 @@ def main():
     episode_abort_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
     episode_abort_parser.add_argument("--log-level", type=str, default="INFO")
 
+    frontier_budget_parser = subparsers.add_parser(
+        "frontier-rollout-budget-report",
+        help="Compare uniform and information-weighted task-frontier planner-round allocation",
+    )
+    frontier_budget_parser.add_argument("--case-file", action="append", default=[], help="Structured paired frontier-budget JSON or JSONL case file")
+    frontier_budget_parser.add_argument("--baseline-session-log", action="append", default=[], help="Uniform-policy Agent session JSONL; repeat in candidate order")
+    frontier_budget_parser.add_argument("--candidate-session-log", action="append", default=[], help="Information-policy Agent session JSONL; repeat in baseline order")
+    frontier_budget_parser.add_argument("--include-builtins", action="store_true", help="Include deterministic synthetic Minecraft control pairs")
+    frontier_budget_parser.add_argument("--episode-abort-gate", action="append", default=[], help="Approved episode-abort gate that certifies recovered planner rounds")
+    frontier_budget_parser.add_argument("--evidence-kind", choices=["unknown", "synthetic_control", "live_trace"], default="unknown")
+    frontier_budget_parser.add_argument("--total-rounds", type=int, default=8, help="Fixed planner-round ledger shared by both policies")
+    frontier_budget_parser.add_argument("--temperature", type=float, default=2.0, help="Soft information allocation temperature")
+    frontier_budget_parser.add_argument("--exploration-floor", type=int, default=1, help="Minimum rounds per eligible branch when affordable")
+    frontier_budget_parser.add_argument("--planner-id", type=str, default="")
+    frontier_budget_parser.add_argument("--action-backend", type=str, default="")
+    frontier_budget_parser.add_argument("--verifier-id", type=str, default="")
+    frontier_budget_parser.add_argument("--task-stream-id", type=str, default="")
+    frontier_budget_parser.add_argument("--seed", type=str, default="")
+    frontier_budget_parser.add_argument("--min-live-pairs", type=int, default=3)
+    frontier_budget_parser.add_argument("--min-interval-observations", type=int, default=12)
+    frontier_budget_parser.add_argument("--target-interval-coverage", type=float, default=0.75)
+    frontier_budget_parser.add_argument("--confidence-alpha", type=float, default=0.05)
+    frontier_budget_parser.add_argument("--max-optimistic-miss-rate", type=float, default=0.10)
+    frontier_budget_parser.add_argument("--max-completion-regression", type=float, default=0.0)
+    frontier_budget_parser.add_argument("--max-verifier-reject-regression", type=float, default=0.0)
+    frontier_budget_parser.add_argument("--max-action-failure-regression", type=float, default=0.0)
+    frontier_budget_parser.add_argument("--output", type=str, default="", help="Optional JSON report/gate path")
+    frontier_budget_parser.add_argument("--log-level", type=str, default="INFO")
+
     agent_module_parser = subparsers.add_parser(
         "agent-module-comparison-report",
         help="Compare baseline vs candidate session logs across optional agent modules",
@@ -1372,6 +1458,7 @@ def main():
     _add_memory_attribution_runtime_args(collab_parser)
     _add_plan_cache_runtime_args(collab_parser)
     _add_episode_abort_runtime_args(collab_parser)
+    _add_frontier_budget_runtime_args(collab_parser)
     _add_knowledge_correction_args(collab_parser)
     _add_task_precondition_args(collab_parser)
     collab_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value-report JSON to load for advisory action candidate scoring")
@@ -1529,6 +1616,13 @@ def main():
         default="",
         help="Set the calibrated environment/task seed control id",
     )
+    runtime_profile_build_parser.add_argument("--frontier-budget-mode", choices=["off", "shadow", "advisory"], default="", help="Set frontier_budget_mode in profile settings")
+    runtime_profile_build_parser.add_argument("--frontier-budget-policy", choices=["uniform", "information"], default="", help="Set the frontier allocation policy")
+    runtime_profile_build_parser.add_argument("--frontier-budget-rounds", type=int, default=None, help="Set the fixed planner-round ledger")
+    runtime_profile_build_parser.add_argument("--frontier-budget-temperature", type=float, default=None, help="Set the soft allocation temperature")
+    runtime_profile_build_parser.add_argument("--frontier-budget-exploration-floor", type=int, default=None, help="Set the exploration floor")
+    runtime_profile_build_parser.add_argument("--frontier-budget-task-stream-id", type=str, default="", help="Set the frontier-budget task-stream control id")
+    runtime_profile_build_parser.add_argument("--frontier-budget-seed-id", type=str, default="", help="Set the frontier-budget seed control id")
     runtime_profile_build_parser.add_argument("--screenshot-dir", type=str, default="", help="Set screenshot_dir in profile settings")
     runtime_profile_build_parser.add_argument("--goal-critic-gate", action="append", default=[], help="Approved goal-verification-critic-gate JSON")
     runtime_profile_build_parser.add_argument("--mixed-policy-patch", action="append", default=[], help="Approved mixed-policy patch JSON")
@@ -1543,6 +1637,7 @@ def main():
     runtime_profile_build_parser.add_argument("--plan-cache", action="append", default=[], help="Approved plan-transition-cache report JSON")
     runtime_profile_build_parser.add_argument("--plan-cache-gate", action="append", default=[], help="Approved plan-cache gate JSON")
     runtime_profile_build_parser.add_argument("--episode-abort-gate", action="append", default=[], help="Episode early-abort gate JSON")
+    runtime_profile_build_parser.add_argument("--frontier-budget-gate", action="append", default=[], help="Frontier rollout budget gate JSON")
     runtime_profile_build_parser.add_argument("--action-value-feedback", action="append", default=[], help="action-value feedback JSON")
     runtime_profile_build_parser.add_argument("--action-value-transition-gate", action="append", default=[], help="Approved action-value transition gate JSON")
     runtime_profile_build_parser.add_argument("--action-value-transition-evaluator-report", action="append", default=[], help="Approved action-value evaluator report JSON")
@@ -3668,6 +3763,89 @@ def main():
             sys.exit(1)
         return
 
+    if args.command == "frontier-rollout-budget-report":
+        from singularity.core.frontier_budget import (
+            build_frontier_rollout_budget_gate,
+            write_frontier_rollout_budget_gate,
+        )
+
+        case_files = getattr(args, "case_file", []) or []
+        baseline_logs = getattr(args, "baseline_session_log", []) or []
+        candidate_logs = getattr(args, "candidate_session_log", []) or []
+        if not case_files and not baseline_logs and not candidate_logs and not getattr(args, "include_builtins", False):
+            print("frontier-rollout-budget-report requires paired logs, case files, or --include-builtins")
+            sys.exit(1)
+        report = build_frontier_rollout_budget_gate(
+            case_paths=case_files,
+            baseline_log_paths=baseline_logs,
+            candidate_log_paths=candidate_logs,
+            include_builtins=getattr(args, "include_builtins", False),
+            episode_abort_gate_paths=getattr(args, "episode_abort_gate", []) or [],
+            evidence_kind=getattr(args, "evidence_kind", "unknown"),
+            total_rounds=getattr(args, "total_rounds", 8),
+            temperature=getattr(args, "temperature", 2.0),
+            exploration_floor=getattr(args, "exploration_floor", 1),
+            planner_id=getattr(args, "planner_id", ""),
+            action_backend=getattr(args, "action_backend", ""),
+            verifier_id=getattr(args, "verifier_id", ""),
+            task_stream_id=getattr(args, "task_stream_id", ""),
+            seed=getattr(args, "seed", ""),
+            min_live_pairs=getattr(args, "min_live_pairs", 3),
+            min_interval_observations=getattr(args, "min_interval_observations", 12),
+            target_interval_coverage=getattr(args, "target_interval_coverage", 0.75),
+            confidence_alpha=getattr(args, "confidence_alpha", 0.05),
+            max_optimistic_miss_rate=getattr(args, "max_optimistic_miss_rate", 0.10),
+            max_completion_regression=getattr(args, "max_completion_regression", 0.0),
+            max_verifier_reject_regression=getattr(args, "max_verifier_reject_regression", 0.0),
+            max_action_failure_regression=getattr(args, "max_action_failure_regression", 0.0),
+        )
+        allocation = report.get("allocation_metrics", {}) if isinstance(report.get("allocation_metrics", {}), dict) else {}
+        interval = report.get("interval_metrics", {}) if isinstance(report.get("interval_metrics", {}), dict) else {}
+        deltas = report.get("deltas", {}) if isinstance(report.get("deltas", {}), dict) else {}
+        print("\nFrontier Rollout Budget Report")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(f"  reason: {report.get('reason', '')}")
+        print(
+            "  evidence: "
+            f"kind={report.get('evidence_kind')}, "
+            f"pairs={report.get('pair_count', 0)}, "
+            f"runtime_eligible={report.get('runtime_eligible', False)}, "
+            f"advisory_allowed={report.get('advisory_context_allowed', False)}"
+        )
+        print(
+            "  allocation: "
+            f"changed_pairs={allocation.get('changed_pair_count', 0)}, "
+            f"conserved={allocation.get('budget_conservation_pair_count', 0)}/{report.get('pair_count', 0)}, "
+            f"resolution_targeting_gain={allocation.get('mean_candidate_resolution_targeting_gain', 0)}"
+        )
+        print(
+            "  outcomes: "
+            f"completion_delta={deltas.get('completion_rate', 0)}, "
+            f"verifier_reject_delta={deltas.get('verifier_reject_rate', 0)}, "
+            f"action_failure_delta={deltas.get('action_failure_rate', 0)}"
+        )
+        print(
+            "  interval: "
+            f"observations={interval.get('observation_count', 0)}, "
+            f"coverage={interval.get('coverage_rate', 0)}, "
+            f"lower_bound={interval.get('coverage_lower_bound', 0)}, "
+            f"optimistic_miss_rate={interval.get('optimistic_miss_rate', 0)}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for check in report.get("checks", []):
+            marker = "+" if check.get("status") == "pass" else "x"
+            print(f"  [{marker}] {check.get('name')}: {check.get('detail')}")
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            write_frontier_rollout_budget_gate(report, args.output)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") in {"error", "rejected"}:
+            sys.exit(1)
+        return
+
     if args.command == "agent-module-comparison-report":
         from singularity.evaluation.module_comparison import (
             build_agent_module_comparison_report,
@@ -3984,6 +4162,14 @@ def main():
                     episode_abort_gate_paths=merge_arg_profile_list(args, "episode_abort_gate", runtime_profiles, "episode_abort_gate_paths"),
                     episode_abort_task_stream_id=profile_str_arg(args, "episode_abort_task_stream_id", runtime_profiles, "episode_abort_task_stream_id", default=""),
                     episode_abort_seed_id=profile_str_arg(args, "episode_abort_seed_id", runtime_profiles, "episode_abort_seed_id", default=""),
+                    frontier_budget_mode=profile_str_arg(args, "frontier_budget_mode", runtime_profiles, "frontier_budget_mode", default="off"),
+                    frontier_budget_policy=profile_str_arg(args, "frontier_budget_policy", runtime_profiles, "frontier_budget_policy", default="information"),
+                    frontier_budget_gate_paths=merge_arg_profile_list(args, "frontier_budget_gate", runtime_profiles, "frontier_budget_gate_paths"),
+                    frontier_budget_total_rounds=max(1, _profile_number_arg(args, "frontier_budget_rounds", runtime_profiles, "frontier_budget_total_rounds", 8, int)),
+                    frontier_budget_temperature=max(0.05, _profile_number_arg(args, "frontier_budget_temperature", runtime_profiles, "frontier_budget_temperature", 2.0, float)),
+                    frontier_budget_exploration_floor=max(0, _profile_number_arg(args, "frontier_budget_exploration_floor", runtime_profiles, "frontier_budget_exploration_floor", 1, int)),
+                    frontier_budget_task_stream_id=profile_str_arg(args, "frontier_budget_task_stream_id", runtime_profiles, "frontier_budget_task_stream_id", default=""),
+                    frontier_budget_seed_id=profile_str_arg(args, "frontier_budget_seed_id", runtime_profiles, "frontier_budget_seed_id", default=""),
                     plan_cache_min_confidence=getattr(args, "plan_cache_min_confidence", 0.75),
                     enable_task_continuity_context=not getattr(args, "no_task_continuity_context", False),
                     enable_skill_frontier_routing=not getattr(args, "no_skill_frontier_routing", False),
@@ -5922,6 +6108,14 @@ def main():
         episode_abort_gate_paths=merge_arg_profile_list(args, "episode_abort_gate", runtime_profiles, "episode_abort_gate_paths"),
         episode_abort_task_stream_id=profile_str_arg(args, "episode_abort_task_stream_id", runtime_profiles, "episode_abort_task_stream_id", default=""),
         episode_abort_seed_id=profile_str_arg(args, "episode_abort_seed_id", runtime_profiles, "episode_abort_seed_id", default=""),
+        frontier_budget_mode=profile_str_arg(args, "frontier_budget_mode", runtime_profiles, "frontier_budget_mode", default="off"),
+        frontier_budget_policy=profile_str_arg(args, "frontier_budget_policy", runtime_profiles, "frontier_budget_policy", default="information"),
+        frontier_budget_gate_paths=merge_arg_profile_list(args, "frontier_budget_gate", runtime_profiles, "frontier_budget_gate_paths"),
+        frontier_budget_total_rounds=max(1, _profile_number_arg(args, "frontier_budget_rounds", runtime_profiles, "frontier_budget_total_rounds", 8, int)),
+        frontier_budget_temperature=max(0.05, _profile_number_arg(args, "frontier_budget_temperature", runtime_profiles, "frontier_budget_temperature", 2.0, float)),
+        frontier_budget_exploration_floor=max(0, _profile_number_arg(args, "frontier_budget_exploration_floor", runtime_profiles, "frontier_budget_exploration_floor", 1, int)),
+        frontier_budget_task_stream_id=profile_str_arg(args, "frontier_budget_task_stream_id", runtime_profiles, "frontier_budget_task_stream_id", default=""),
+        frontier_budget_seed_id=profile_str_arg(args, "frontier_budget_seed_id", runtime_profiles, "frontier_budget_seed_id", default=""),
         enable_task_continuity_context=not getattr(args, "no_task_continuity_context", False),
         enable_skill_frontier_routing=not getattr(args, "no_skill_frontier_routing", False),
         enable_bounded_planning_context=not getattr(args, "no_bounded_planning_context", False),

@@ -1625,8 +1625,45 @@
 - **Key Results**: Reports consistent gains over strong baselines on seven QA benchmarks under matched rollout budgets
 - **Scores**: R=4, N=5, R=3, E=4
 - **Value to Project**: Motivates reallocating certified saved planner rounds toward informative Minecraft task-frontier branches under a fixed total budget
+- **Implementation Mapping**: `frontier_information_budget_v1` now provides deterministic soft integer allocation, an exact uniform control, exploration floors, typed information proxies, and a conserved recovered-round ledger; it does not reproduce IGRPO training
 - **Reproduction Priority**: P2
 - **Card**: `2026-07-10-igrpo.md`
+
+---
+
+## P-091: BAGEN
+
+- **Title**: BAGEN: Are LLM Agents Budget-Aware?
+- **Source**: https://arxiv.org/abs/2606.00198
+- **Year**: 2026
+- **Type**: Progressive agent budget estimation and feasibility detection
+- **Task Type**: Sokoban, search, software repair, and coupled warehouse budgets
+- **Core Method**: Replays trajectory prefixes and predicts a remaining-cost interval or an explicit impossible state at every turn
+- **Memory**: Treats cumulative use and partial progress as a changing budget belief state
+- **Key Results**: Reports widespread optimistic bias, 28%-64% failed-trajectory token savings from early stopping, and difficult interval calibration
+- **Scores**: R=4, N=5, R=4, E=5
+- **Value to Project**: Requires active planner-round ledgers, infeasibility alerts, and held-out interval coverage rather than post-hoc cost reporting
+- **Implementation Mapping**: `frontier_budget_interval_v1` emits explicit uncalibrated intervals; paired live promotion uses an exact one-sided coverage lower bound and optimistic-miss cap
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-10-bagen.md`
+
+---
+
+## P-092: AgentTether
+
+- **Title**: AgentTether: Graph-Guided Diagnosis and Runtime Intervention for Reliable LLM Agent Operation
+- **Source**: https://arxiv.org/abs/2607.06273
+- **Year**: 2026
+- **Type**: Dependency-aware agent failure diagnosis and guarded repair
+- **Task Type**: Stateful multi-step tool workflows on tau-bench
+- **Core Method**: Builds a Critical Transition Graph over decision-execution-feedback units, localizes upstream failure causes, and carries scoped repair memory through bounded re-execution
+- **Memory**: Tracks fixed and unresolved repair state across attempts
+- **Key Results**: Reports substantial repair gains over blind retry and one-shot feedback across domains and model backends
+- **Scores**: R=4, N=5, R=3, E=4
+- **Value to Project**: Motivates spending diagnostic rounds on upstream prerequisite transitions and forbidding blind retry or unconstrained intervention
+- **Implementation Mapping**: Frontier scoring now rewards prerequisite closure and verifier uncertainty while penalizing repeated attempts/risk; automatic retry and branch execution remain impossible
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-10-agenttether.md`
 
 ---
 
@@ -1724,3 +1761,5 @@
 | P-088 | Progressive Crystallization | 2026 | R5/N5/R4/E5 | P1 |
 | P-089 | Recall-Controlled Early Abort | 2026 | R4/N5/R4/E4 | P2 |
 | P-090 | Information Gain-based Rollout Policy Optimization | 2026 | R4/N5/R3/E4 | P2 |
+| P-091 | BAGEN | 2026 | R4/N5/R4/E5 | P1 |
+| P-092 | AgentTether | 2026 | R4/N5/R3/E4 | P2 |

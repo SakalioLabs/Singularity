@@ -24,6 +24,10 @@ LIST_FIELDS = {
         "gates",
         ("episode_early_abort", "episode_abort_gate", "episode_abort_gate_paths"),
     ),
+    "frontier_budget_gate_paths": (
+        "gates",
+        ("frontier_rollout_budget", "frontier_budget_gate", "frontier_budget_gate_paths"),
+    ),
     "memory_attribution_gate_paths": ("gates", ("memory_attribution", "memory_attribution_gate", "memory_attribution_gate_paths")),
     "action_value_feedback_paths": ("artifacts", ("action_value_feedback", "action_value_feedback_paths")),
     "action_value_transition_gate_paths": ("gates", ("action_value_transition", "action_value_transition_gate", "action_value_transition_gate_paths")),
@@ -75,6 +79,7 @@ GATE_FIELDS = {
     "memory_attribution_gate_paths",
     "plan_cache_gate_paths",
     "episode_abort_gate_paths",
+    "frontier_budget_gate_paths",
     "coach_style_gate_paths",
 }
 
@@ -292,11 +297,22 @@ def build_runtime_profile_report_from_profiles(
         "episode_abort_mode": str(profile_setting(profiles, "episode_abort_mode") or ""),
         "episode_abort_task_stream_id": str(profile_setting(profiles, "episode_abort_task_stream_id") or ""),
         "episode_abort_seed_id": str(profile_setting(profiles, "episode_abort_seed_id") or ""),
+        "frontier_budget_mode": str(profile_setting(profiles, "frontier_budget_mode") or ""),
+        "frontier_budget_policy": str(profile_setting(profiles, "frontier_budget_policy") or ""),
+        "frontier_budget_total_rounds": profile_setting(profiles, "frontier_budget_total_rounds"),
+        "frontier_budget_temperature": profile_setting(profiles, "frontier_budget_temperature"),
+        "frontier_budget_exploration_floor": profile_setting(profiles, "frontier_budget_exploration_floor"),
+        "frontier_budget_task_stream_id": str(profile_setting(profiles, "frontier_budget_task_stream_id") or ""),
+        "frontier_budget_seed_id": str(profile_setting(profiles, "frontier_budget_seed_id") or ""),
         "enable_weighted_memory_retrieval": _truthy(profile_setting(profiles, "enable_weighted_memory_retrieval", "weighted_memory_retrieval")),
         "enforce_memory_write_gate": _truthy(profile_setting(profiles, "enforce_memory_write_gate", "memory_write_gate")),
         "coach_style": str(profile_setting(profiles, "coach_style") or ""),
     }
-    report["settings"] = {key: value for key, value in settings.items() if value not in ("", False, None)}
+    report["settings"] = {
+        key: value
+        for key, value in settings.items()
+        if value is not None and value != "" and value is not False
+    }
 
     for field in sorted(GATE_FIELDS):
         paths = collect_profile_list(profiles, field)
@@ -363,6 +379,10 @@ def _gate_summary(field: str, path: str) -> dict:
             from singularity.core.episode_abort import validate_episode_abort_gate_payload
 
             validate_episode_abort_gate_payload(payload)
+        if field == "frontier_budget_gate_paths":
+            from singularity.core.frontier_budget import validate_frontier_budget_gate_payload
+
+            validate_frontier_budget_gate_payload(payload)
         summary.update({
             "readiness": str(payload.get("readiness", "") or "unknown").strip().lower(),
             "decision": str(payload.get("decision", "") or ""),
@@ -389,6 +409,9 @@ def _add_missing_runtime_profile_requirements(report: dict, profiles: list[dict]
             report["missing"].append(gate_field)
     if _truthy(profile_setting(profiles, "enable_plan_cache", "plan_cache")) and not collect_profile_list(profiles, "plan_cache_paths"):
         report["missing"].append("plan_cache_paths")
+    frontier_mode = str(profile_setting(profiles, "frontier_budget_mode") or "").strip().lower()
+    if frontier_mode == "advisory" and not collect_profile_list(profiles, "frontier_budget_gate_paths"):
+        report["missing"].append("frontier_budget_gate_paths")
     report["missing"] = dedupe(report["missing"])
 
 
