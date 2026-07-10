@@ -339,7 +339,8 @@
 - [x] Add task-decomposition/frontier-driven skill routing with missing-precondition closure, assigned-skill precedence, governance filtering, a bounded route trace, and a fixed legacy baseline.
 - [x] Add `skill-frontier-routing-ablation`; built-in fixtures improve expected top-1 from 0/3 to 3/3 with full frontier coverage, but remain synthetic and gate-ineligible.
 - [ ] Run fresh M1/M2 baseline versus frontier-router task streams and compare completion, environment steps, verifier rejects, tokens, and latency across distinct sessions.
-- [ ] Add a Blind-Curator-style soft-retirement audit only after verifier-backed defect-injection cases and per-skill no-skill baselines exist; never auto-delete skill files.
+- [x] Add a Blind-Curator-style soft-retirement audit with per-judge defect injection, fixed-control no-skill contribution reports, live-evidence gating, and a runtime-only overlay; never auto-delete skill files.
+- [ ] Collect live calibration and paired contribution cases across at least three distinct candidate sessions before applying any learned-skill soft-retirement gate.
 
 ## Research Priorities
 - [ ] Run live policy-skill benchmark ablation after Minecraft server and bot bridge are ready.

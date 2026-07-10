@@ -492,6 +492,19 @@ python -m singularity.main run --goal "Craft torches" --skill-runtime-default-ga
 # Benchmark automatically preflights configured runtime-default gates before live suite execution.
 # The preflight requires approved candidates whose task family overlaps the selected benchmark suite:
 python -m singularity.main benchmark --suite m1 --skill-runtime-default-gate logs/benchmarks/skill_runtime_default_gate.json --skill-runtime-default-preflight-output logs/benchmarks/skill_runtime_default_preflight.json
+# Calibrate each retirement judge with verifier-backed injected failures and non-defect controls.
+# Live cases must identify judge/verifier/task stream/session/seed/source and hold non-verifier modules fixed.
+python -m singularity.main skill-verifier-calibration-report --case-file workspace/evals/skill_verifier_calibration_cases.jsonl --output logs/benchmarks/skill_verifier_calibration.json
+# Compare a learned skill against a no-skill baseline with planner/backend/task stream/seed held fixed.
+# At least three distinct candidate sessions and verifier-backed candidate failures are required by default.
+python -m singularity.main skill-contribution-report --case-file workspace/evals/skill_contribution_cases.jsonl --output logs/benchmarks/skill_contribution.json
+# Join both evidence stages. This command always writes automatic_delete_allowed=false.
+python -m singularity.main skill-retirement-gate --verifier-calibration-report logs/benchmarks/skill_verifier_calibration.json --skill-contribution-report logs/benchmarks/skill_contribution.json --output logs/benchmarks/skill_retirement_gate.json
+# Apply approved candidates as an in-memory, task-family-scoped overlay. Skill JSONL files remain unchanged.
+python -m singularity.main run --goal "Craft torches" --skill-runtime-default-gate logs/benchmarks/skill_runtime_default_gate.json --skill-retirement-gate logs/benchmarks/skill_retirement_gate.json
+# Built-in fixtures are schema smoke tests only; the Agent rejects gates that do not require live evidence.
+python -m singularity.main skill-verifier-calibration-report --include-builtins --output logs/benchmarks/skill_verifier_calibration_builtin.json
+python -m singularity.main skill-contribution-report --include-builtins --output logs/benchmarks/skill_contribution_builtin.json
 # Approved skill candidates seed promotion/transfer memories automatically, and
 # live failure-correction skills append success/failure memories during Agent runs.
 # Skill-memory hints are retrieved into LLM planner context by inferred task family

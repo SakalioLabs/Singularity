@@ -120,6 +120,7 @@ class Agent:
         )
         self.skill_library = SkillLibrary(storage_path=config.skill_dir, persist=True)
         self.skill_runtime_default_gate_report = self._load_skill_runtime_default_gates()
+        self.skill_retirement_gate_report = self._load_skill_retirement_gates()
         self.skill_memory_quality_feedback_report = self._load_skill_memory_quality_feedback()
         self.knowledge_correction_feedback = {
             "dependency_corrections": [],
@@ -979,6 +980,129 @@ class Agent:
         logger.info(
             "Skill runtime-default gates loaded: "
             f"{report['loaded_count']} files, approved_skills={report['approved_skill_count']}"
+        )
+        return report
+
+    def _load_skill_retirement_gates(self) -> dict:
+        """Load approved runtime-only skill quarantine overlays."""
+        gate_paths = [
+            path for path in (getattr(self.config, "skill_retirement_gate_paths", []) or [])
+            if path
+        ]
+        report = {
+            "gate_paths": list(gate_paths),
+            "gate_required": bool(gate_paths),
+            "gate_approved": False,
+            "gate_readiness": "not_required",
+            "loaded_count": 0,
+            "skipped_count": 0,
+            "quarantined_skill_count": 0,
+            "automatic_delete_allowed": False,
+            "gate_reports": [],
+            "errors": [],
+        }
+        if not gate_paths:
+            return report
+
+        readinesses = []
+        loaded_gates = []
+        for path in gate_paths:
+            summary = {
+                "path": path,
+                "readiness": "error",
+                "decision": "",
+                "reason": "",
+                "approved_candidate_count": 0,
+                "soft_quarantine_allowed": False,
+                "automatic_delete_allowed": False,
+            }
+            try:
+                with open(path, "r", encoding="utf-8-sig") as f:
+                    gate = json.load(f)
+                if gate.get("type") != "skill_retirement_gate" or self._small_int(gate.get("schema_version")) != 1:
+                    raise ValueError("expected skill_retirement_gate schema 1")
+                readiness = str(gate.get("readiness") or "unknown").strip().lower()
+                thresholds = gate.get("thresholds", {}) if isinstance(gate.get("thresholds"), dict) else {}
+                approved_candidates = [
+                    candidate for candidate in gate.get("candidates", [])
+                    if isinstance(candidate, dict) and candidate.get("candidate_readiness") == "approved"
+                ] if isinstance(gate.get("candidates"), list) else []
+                min_sessions = max(1, self._small_int(thresholds.get("min_distinct_candidate_sessions", 3)))
+                candidates_safe = bool(approved_candidates) and all(
+                    str(candidate.get("skill") or "").strip()
+                    and str(candidate.get("task_family") or "").strip()
+                    and candidate.get("automatic_delete_allowed") is False
+                    and not candidate.get("issues")
+                    and len(candidate.get("candidate_session_ids", [])) >= min_sessions
+                    and bool(candidate.get("judge_ids"))
+                    and bool(candidate.get("verifier_ids"))
+                    for candidate in approved_candidates
+                )
+                safe_overlay = (
+                    gate.get("soft_quarantine_allowed") is True
+                    and gate.get("automatic_delete_allowed") is False
+                    and gate.get("deletion_policy") == "prohibited"
+                    and thresholds.get("require_live_evidence") is True
+                    and self._small_int(gate.get("approved_candidate_count")) == len(approved_candidates)
+                    and candidates_safe
+                )
+                if readiness == "approved" and not safe_overlay:
+                    readiness = "rejected"
+                summary.update({
+                    "readiness": readiness,
+                    "decision": str(gate.get("decision") or "").strip(),
+                    "reason": str(gate.get("reason") or "").strip()[:300],
+                    "approved_candidate_count": self._small_int(gate.get("approved_candidate_count", 0)),
+                    "soft_quarantine_allowed": gate.get("soft_quarantine_allowed") is True,
+                    "automatic_delete_allowed": False,
+                })
+                loaded_gates.append(gate)
+            except Exception as e:
+                readiness = "error"
+                summary["error"] = str(e)
+                report["errors"].append(f"{path}: {e}")
+                logger.warning(f"Failed to load skill retirement gate {path}: {e}")
+            readinesses.append(readiness)
+            report["gate_reports"].append(summary)
+
+        if any(readiness == "error" for readiness in readinesses):
+            report["gate_readiness"] = "error"
+        elif all(readiness == "approved" for readiness in readinesses):
+            report["gate_readiness"] = "approved"
+            report["gate_approved"] = True
+        elif any(readiness == "rejected" for readiness in readinesses):
+            report["gate_readiness"] = "rejected"
+        elif any(readiness == "review" for readiness in readinesses):
+            report["gate_readiness"] = "review"
+        else:
+            report["gate_readiness"] = "unknown"
+
+        if not report["gate_approved"]:
+            self.skill_library.record_skill_retirement_gate({
+                "readiness": report["gate_readiness"],
+                "decision": "keep_skills_active_pending_retirement_review",
+                "reason": "configured skill retirement gate is not approved",
+                "paths": gate_paths,
+                "soft_quarantine_allowed": False,
+                "automatic_delete_allowed": False,
+                "candidates": [],
+            })
+            report["skipped_count"] = len(gate_paths)
+            logger.warning(
+                "Skill retirement gate loading skipped: "
+                f"gate_readiness={report['gate_readiness']}, gate_paths={len(gate_paths)}"
+            )
+            return report
+
+        for gate, path in zip(loaded_gates, gate_paths):
+            gate = dict(gate)
+            gate["paths"] = [path]
+            applied = self.skill_library.record_skill_retirement_gate(gate)
+            report["loaded_count"] += 1
+            report["quarantined_skill_count"] += int(applied or 0)
+        logger.info(
+            "Skill retirement gates loaded: "
+            f"{report['loaded_count']} files, quarantined_skills={report['quarantined_skill_count']}"
         )
         return report
 

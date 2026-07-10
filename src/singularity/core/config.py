@@ -74,6 +74,7 @@ class Config:
     skill_memory_quality_feedback_paths: list[str] = field(default_factory=list)
     skill_memory_quality_gate_paths: list[str] = field(default_factory=list)
     skill_runtime_default_gate_paths: list[str] = field(default_factory=list)
+    skill_retirement_gate_paths: list[str] = field(default_factory=list)
     enable_self_evolution_policy: bool = True
     enable_screenshot_capture: bool = False
     screenshot_dir: str = "logs/screenshots"

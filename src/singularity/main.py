@@ -352,6 +352,7 @@ def _runtime_profile_payload_from_args(args) -> dict:
         "skill_memory_quality_feedback_paths": getattr(args, "skill_memory_quality_feedback", []) or [],
         "skill_memory_quality_gate_paths": getattr(args, "skill_memory_quality_gate", []) or [],
         "skill_runtime_default_gate_paths": getattr(args, "skill_runtime_default_gate", []) or [],
+        "skill_retirement_gate_paths": getattr(args, "skill_retirement_gate", []) or [],
         "memory_promptware_gate_paths": getattr(args, "memory_promptware_gate", []) or [],
         "memory_attribution_gate_paths": getattr(args, "memory_attribution_gate", []) or [],
         "coach_style_ablation_paths": getattr(args, "coach_style_ablation", []) or [],
@@ -385,6 +386,15 @@ def _add_skill_runtime_default_args(parser):
         action="append",
         default=[],
         help="Approved skill-runtime-default-gate JSON required before learned skills act as task-family defaults",
+    )
+
+
+def _add_skill_retirement_args(parser):
+    parser.add_argument(
+        "--skill-retirement-gate",
+        action="append",
+        default=[],
+        help="Approved verifier-calibrated gate for runtime-only learned-skill quarantine",
     )
 
 
@@ -588,6 +598,7 @@ def main():
     run_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     run_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     _add_skill_runtime_default_args(run_parser)
+    _add_skill_retirement_args(run_parser)
     _add_skill_frontier_routing_args(run_parser)
     _add_coaching_args(run_parser)
     run_parser.add_argument("--log-level", type=str, default="INFO")
@@ -632,6 +643,7 @@ def main():
     auto_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     auto_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     _add_skill_runtime_default_args(auto_parser)
+    _add_skill_retirement_args(auto_parser)
     _add_skill_frontier_routing_args(auto_parser)
     _add_coaching_args(auto_parser)
     auto_parser.add_argument("--log-level", type=str, default="INFO")
@@ -682,6 +694,7 @@ def main():
     bench_parser.add_argument("--skill-memory-quality-preflight", action="store_true", help="Run gate and offline ranking preflight before quality-feedback-assisted benchmarks")
     bench_parser.add_argument("--skill-memory-quality-preflight-output", type=str, default="", help="Optional JSON path for the skill-memory quality benchmark preflight report")
     _add_skill_runtime_default_args(bench_parser)
+    _add_skill_retirement_args(bench_parser)
     _add_skill_frontier_routing_args(bench_parser)
     bench_parser.add_argument("--skill-runtime-default-preflight", action="store_true", help="Run approved runtime-default gate coverage preflight before learned default-skill benchmarks")
     bench_parser.add_argument("--skill-runtime-default-preflight-output", type=str, default="", help="Optional JSON path for the skill runtime-default benchmark preflight report")
@@ -802,6 +815,49 @@ def main():
     skill_runtime_gate_parser.add_argument("--min-runtime-candidates", type=int, default=1, help="Minimum approved runtime-default candidates required")
     skill_runtime_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
     skill_runtime_gate_parser.add_argument("--log-level", type=str, default="INFO")
+
+    verifier_calibration_parser = subparsers.add_parser(
+        "skill-verifier-calibration-report",
+        help="Calibrate skill-retirement judges with verifier-backed defect injection",
+    )
+    verifier_calibration_parser.add_argument("--case-file", action="append", default=[], help="JSON/JSONL calibration cases")
+    verifier_calibration_parser.add_argument("--include-builtins", action="store_true", help="Include synthetic audit fixtures; never runtime eligible")
+    verifier_calibration_parser.add_argument("--allow-synthetic-evidence", action="store_true", help="Score non-builtin synthetic controls for offline review only")
+    verifier_calibration_parser.add_argument("--min-defect-probes", type=int, default=3)
+    verifier_calibration_parser.add_argument("--min-control-passes", type=int, default=1)
+    verifier_calibration_parser.add_argument("--max-false-pass-rate", type=float, default=0.10)
+    verifier_calibration_parser.add_argument("--min-failure-detection-recall", type=float, default=0.90)
+    verifier_calibration_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    verifier_calibration_parser.add_argument("--log-level", type=str, default="INFO")
+
+    skill_contribution_parser = subparsers.add_parser(
+        "skill-contribution-report",
+        help="Compare learned skills with fixed-control no-skill baselines",
+    )
+    skill_contribution_parser.add_argument("--case-file", action="append", default=[], help="JSON/JSONL paired contribution cases")
+    skill_contribution_parser.add_argument("--include-builtins", action="store_true", help="Include synthetic audit fixtures; never runtime eligible")
+    skill_contribution_parser.add_argument("--allow-synthetic-evidence", action="store_true", help="Score non-builtin synthetic controls for offline review only")
+    skill_contribution_parser.add_argument("--min-paired-cases", type=int, default=3)
+    skill_contribution_parser.add_argument("--min-baseline-trials", type=int, default=3)
+    skill_contribution_parser.add_argument("--min-candidate-trials", type=int, default=3)
+    skill_contribution_parser.add_argument("--min-distinct-candidate-sessions", type=int, default=3)
+    skill_contribution_parser.add_argument("--min-verified-candidate-failures", type=int, default=2)
+    skill_contribution_parser.add_argument("--min-negative-delta", type=float, default=0.20)
+    skill_contribution_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    skill_contribution_parser.add_argument("--log-level", type=str, default="INFO")
+
+    skill_retirement_parser = subparsers.add_parser(
+        "skill-retirement-gate",
+        help="Gate runtime-only skill quarantine with calibrated contribution evidence",
+    )
+    skill_retirement_parser.add_argument("--verifier-calibration-report", action="append", default=[], help="Saved skill-verifier-calibration-report JSON")
+    skill_retirement_parser.add_argument("--skill-contribution-report", action="append", default=[], help="Saved skill-contribution-report JSON")
+    skill_retirement_parser.add_argument("--min-paired-cases", type=int, default=3)
+    skill_retirement_parser.add_argument("--min-distinct-candidate-sessions", type=int, default=3)
+    skill_retirement_parser.add_argument("--min-verified-candidate-failures", type=int, default=2)
+    skill_retirement_parser.add_argument("--min-negative-delta", type=float, default=0.20)
+    skill_retirement_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
+    skill_retirement_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Offline skill-memory quality report
     skill_memory_quality_parser = subparsers.add_parser(
@@ -1248,6 +1304,7 @@ def main():
     collab_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     collab_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     _add_skill_runtime_default_args(collab_parser)
+    _add_skill_retirement_args(collab_parser)
     _add_skill_frontier_routing_args(collab_parser)
     collab_parser.add_argument("--runtime-profile-suite-report", action="append", default=[], help="Approved runtime-profile-suite-report JSON required before profile-assisted M7 Agent collaboration")
     collab_parser.add_argument("--runtime-profile-suite-preflight", action="store_true", help="Run runtime profile suite coverage preflight before M7 Agent collaboration")
@@ -1397,6 +1454,7 @@ def main():
     runtime_profile_build_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory quality feedback JSON")
     runtime_profile_build_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory quality gate JSON")
     runtime_profile_build_parser.add_argument("--skill-runtime-default-gate", action="append", default=[], help="Approved skill runtime-default gate JSON")
+    runtime_profile_build_parser.add_argument("--skill-retirement-gate", action="append", default=[], help="Approved runtime-only skill retirement gate JSON")
     runtime_profile_build_parser.add_argument("--memory-promptware-gate", action="append", default=[], help="Approved memory-promptware gate JSON")
     runtime_profile_build_parser.add_argument("--memory-attribution-gate", action="append", default=[], help="Approved memory-attribution gate JSON")
     runtime_profile_build_parser.add_argument("--coach-style-ablation", action="append", default=[], help="coach-style ablation JSON")
@@ -2115,6 +2173,98 @@ def main():
         runner.print_skill_runtime_default_gate_report(report)
         if getattr(args, "output", ""):
             runner.save_skill_runtime_default_gate_report(report, getattr(args, "output", ""))
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "skill-verifier-calibration-report":
+        from singularity.evaluation.skill_retirement import (
+            BUILTIN_VERIFIER_CALIBRATION_CASES,
+            build_verifier_calibration_report,
+            load_case_files,
+            print_verifier_calibration_report,
+            save_report,
+        )
+
+        cases, errors = load_case_files(getattr(args, "case_file", []) or [])
+        if getattr(args, "include_builtins", False):
+            cases = list(BUILTIN_VERIFIER_CALIBRATION_CASES) + cases
+        if not cases and not errors:
+            print("skill-verifier-calibration-report requires --case-file or --include-builtins")
+            sys.exit(1)
+        report = build_verifier_calibration_report(
+            cases,
+            require_live_evidence=not getattr(args, "allow_synthetic_evidence", False),
+            min_defect_probes=getattr(args, "min_defect_probes", 3),
+            min_control_passes=getattr(args, "min_control_passes", 1),
+            max_false_pass_rate=getattr(args, "max_false_pass_rate", 0.10),
+            min_failure_detection_recall=getattr(args, "min_failure_detection_recall", 0.90),
+            load_errors=errors,
+        )
+        print_verifier_calibration_report(report)
+        if getattr(args, "output", ""):
+            save_report(report, args.output)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "skill-contribution-report":
+        from singularity.evaluation.skill_retirement import (
+            BUILTIN_SKILL_CONTRIBUTION_CASES,
+            build_skill_contribution_report,
+            load_case_files,
+            print_skill_contribution_report,
+            save_report,
+        )
+
+        cases, errors = load_case_files(getattr(args, "case_file", []) or [])
+        if getattr(args, "include_builtins", False):
+            cases = list(BUILTIN_SKILL_CONTRIBUTION_CASES) + cases
+        if not cases and not errors:
+            print("skill-contribution-report requires --case-file or --include-builtins")
+            sys.exit(1)
+        report = build_skill_contribution_report(
+            cases,
+            require_live_evidence=not getattr(args, "allow_synthetic_evidence", False),
+            min_paired_cases=getattr(args, "min_paired_cases", 3),
+            min_baseline_trials=getattr(args, "min_baseline_trials", 3),
+            min_candidate_trials=getattr(args, "min_candidate_trials", 3),
+            min_distinct_candidate_sessions=getattr(args, "min_distinct_candidate_sessions", 3),
+            min_verified_candidate_failures=getattr(args, "min_verified_candidate_failures", 2),
+            min_negative_delta=getattr(args, "min_negative_delta", 0.20),
+            load_errors=errors,
+        )
+        print_skill_contribution_report(report)
+        if getattr(args, "output", ""):
+            save_report(report, args.output)
+            print(f"\nReport saved to {args.output}")
+        return
+
+    if args.command == "skill-retirement-gate":
+        from singularity.evaluation.skill_retirement import (
+            build_skill_retirement_gate,
+            print_skill_retirement_gate,
+            save_report,
+        )
+
+        calibration_paths = getattr(args, "verifier_calibration_report", []) or []
+        contribution_paths = getattr(args, "skill_contribution_report", []) or []
+        if not calibration_paths:
+            print("skill-retirement-gate requires at least one --verifier-calibration-report")
+            sys.exit(1)
+        if not contribution_paths:
+            print("skill-retirement-gate requires at least one --skill-contribution-report")
+            sys.exit(1)
+        report = build_skill_retirement_gate(
+            calibration_report_paths=calibration_paths,
+            contribution_report_paths=contribution_paths,
+            require_live_evidence=True,
+            min_paired_cases=getattr(args, "min_paired_cases", 3),
+            min_distinct_candidate_sessions=getattr(args, "min_distinct_candidate_sessions", 3),
+            min_verified_candidate_failures=getattr(args, "min_verified_candidate_failures", 2),
+            min_negative_delta=getattr(args, "min_negative_delta", 0.20),
+        )
+        print_skill_retirement_gate(report)
+        if getattr(args, "output", ""):
+            save_report(report, args.output)
             print(f"\nReport saved to {args.output}")
         return
 
@@ -3642,6 +3792,7 @@ def main():
                     skill_memory_quality_feedback_paths=merge_arg_profile_list(args, "skill_memory_quality_feedback", runtime_profiles, "skill_memory_quality_feedback_paths"),
                     skill_memory_quality_gate_paths=merge_arg_profile_list(args, "skill_memory_quality_gate", runtime_profiles, "skill_memory_quality_gate_paths"),
                     skill_runtime_default_gate_paths=merge_arg_profile_list(args, "skill_runtime_default_gate", runtime_profiles, "skill_runtime_default_gate_paths"),
+                    skill_retirement_gate_paths=merge_arg_profile_list(args, "skill_retirement_gate", runtime_profiles, "skill_retirement_gate_paths"),
                     screenshot_dir=profile_str_arg(args, "screenshot_dir", runtime_profiles, "screenshot_dir", default="logs/screenshots"),
                     screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),
                 ), bridge_port_base=getattr(args, "bridge_port_base", 0) or None, role_bridge_ports=role_bridge_ports)
@@ -5578,6 +5729,7 @@ def main():
         skill_memory_quality_feedback_paths=merge_arg_profile_list(args, "skill_memory_quality_feedback", runtime_profiles, "skill_memory_quality_feedback_paths"),
         skill_memory_quality_gate_paths=merge_arg_profile_list(args, "skill_memory_quality_gate", runtime_profiles, "skill_memory_quality_gate_paths"),
         skill_runtime_default_gate_paths=merge_arg_profile_list(args, "skill_runtime_default_gate", runtime_profiles, "skill_runtime_default_gate_paths"),
+        skill_retirement_gate_paths=merge_arg_profile_list(args, "skill_retirement_gate", runtime_profiles, "skill_retirement_gate_paths"),
         enable_screenshot_capture=profile_bool_arg(args, "capture_screenshots", runtime_profiles, "enable_screenshot_capture", "capture_screenshots"),
         screenshot_dir=profile_str_arg(args, "screenshot_dir", runtime_profiles, "screenshot_dir", default="logs/screenshots"),
         screenshot_min_interval_s=getattr(args, "screenshot_min_interval", 2.0),

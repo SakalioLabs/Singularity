@@ -109,6 +109,9 @@ python -m singularity.main task-continuity-restoration-report --include-builtins
 python -m singularity.main task-continuity-restoration-gate --lineage-ablation logs/benchmarks/task_continuity_lineage_ablation.json --restoration-report logs/benchmarks/task_continuity_restoration_report.json --output logs/benchmarks/task_continuity_restoration_gate.json
 # Synthetic router fixtures compare legacy goal/success ranking with task-frontier transition routing.
 python -m singularity.main skill-frontier-routing-ablation --include-builtins --output logs/benchmarks/skill_frontier_routing.json
+# Synthetic retirement fixtures exercise report schemas only and can never approve runtime quarantine.
+python -m singularity.main skill-verifier-calibration-report --include-builtins --output logs/benchmarks/skill_verifier_calibration_builtin.json
+python -m singularity.main skill-contribution-report --include-builtins --output logs/benchmarks/skill_contribution_builtin.json
 python -m singularity.main benchmark --suite m1 --preflight
 python -m singularity.main benchmark --suite m1 --ingest
 python -m singularity.main benchmark --suite m1 --ingest --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL

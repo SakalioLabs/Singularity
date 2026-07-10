@@ -18,4 +18,4 @@
 - Separate genuine retirement from capacity eviction or file pruning.
 - Require verifier-backed injected failures and a no-skill baseline before runtime quarantine.
 
-**Project Action**: Frontier routing already excludes verifier-rejected skills through the existing governance contract. A full soft-retirement gate remains future work and must calibrate false-pass behavior before it can quarantine learned skills; no skill is deleted automatically.
+**Project Action**: Implemented per-judge defect-injection calibration, fixed-control no-skill contribution reports, and a live-evidence retirement gate. Approved results can only add task-family exclusions to an in-memory `SkillLibrary` overlay; built-ins remain available, skill files are preserved, and automatic deletion is always disabled. Live Minecraft evidence is still pending.

@@ -43,6 +43,7 @@ class SkillLibrary:
         self._skill_memory_quality_policies: dict[str, dict] = {}
         self._skill_memory_quality_items: dict[tuple[str, str, str], dict] = {}
         self._runtime_default_gate_profile: dict = self._empty_runtime_default_gate_profile()
+        self._skill_retirement_profile: dict = self._empty_skill_retirement_profile()
         self.last_skill_router_trace: dict = {}
         os.makedirs(storage_path, exist_ok=True)
         self._load_builtin_skills()
@@ -720,9 +721,138 @@ class SkillLibrary:
             "rejected_skills": [],
         }
 
+    def record_skill_retirement_gate(self, gate: dict) -> int:
+        """Apply an approved soft-retirement gate as an in-memory overlay only."""
+        if not isinstance(gate, dict):
+            return 0
+        readiness = str(gate.get("readiness") or "unknown").strip().lower()
+        profile = self._skill_retirement_profile
+        profile["gate_required"] = True
+        profile["gate_readiness"] = readiness
+        profile["decision"] = str(gate.get("decision") or "").strip()
+        profile["reason"] = str(gate.get("reason") or "").strip()
+        paths = gate.get("paths", [])
+        paths = paths if isinstance(paths, (list, tuple)) else [paths]
+        profile["paths"].extend(str(path) for path in paths if path)
+        profile["automatic_delete_allowed"] = False
+
+        candidates = gate.get("candidates", []) if isinstance(gate.get("candidates"), list) else []
+        thresholds = gate.get("thresholds", {}) if isinstance(gate.get("thresholds"), dict) else {}
+        if (
+            readiness != "approved"
+            or gate.get("type") != "skill_retirement_gate"
+            or gate.get("schema_version") != 1
+            or gate.get("soft_quarantine_allowed") is not True
+            or gate.get("automatic_delete_allowed") is not False
+            or gate.get("deletion_policy") != "prohibited"
+            or thresholds.get("require_live_evidence") is not True
+        ):
+            profile["gate_approved"] = False
+            for candidate in candidates:
+                if not isinstance(candidate, dict):
+                    continue
+                name = str(candidate.get("skill") or "").strip()
+                if name and name not in profile["review_skills"]:
+                    profile["review_skills"].append(name)
+            profile["review_skills"] = sorted(profile["review_skills"])
+            return 0
+
+        profile["gate_approved"] = True
+        added = 0
+        builtin_names = self._builtin_skill_names()
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            name = str(candidate.get("skill") or "").strip()
+            candidate_readiness = str(candidate.get("candidate_readiness") or "").strip().lower()
+            if not name or name in builtin_names:
+                continue
+            candidate_safe = (
+                candidate_readiness == "approved"
+                and candidate.get("automatic_delete_allowed") is False
+                and not candidate.get("issues")
+                and bool(candidate.get("candidate_session_ids"))
+                and bool(candidate.get("judge_ids"))
+                and bool(candidate.get("verifier_ids"))
+            )
+            if not candidate_safe:
+                if name not in profile["review_skills"]:
+                    profile["review_skills"].append(name)
+                continue
+            family = str(candidate.get("task_family") or "").strip().lower()
+            if name not in profile["quarantined_skills"]:
+                profile["quarantined_skills"].append(name)
+                added += 1
+            families = profile["quarantined_skill_families"].setdefault(name, [])
+            if family not in families:
+                families.append(family)
+            family_skills = profile["quarantined_family_skills"].setdefault(family, [])
+            if name not in family_skills:
+                family_skills.append(name)
+
+        for key in ("quarantined_skills", "review_skills"):
+            profile[key] = sorted(profile[key])
+        for key in ("quarantined_skill_families", "quarantined_family_skills"):
+            profile[key] = {
+                name: sorted(values)
+                for name, values in sorted(profile[key].items())
+            }
+        return added
+
+    def skill_retirement_profile(self) -> dict:
+        """Return the active runtime-only soft-retirement overlay."""
+        profile = self._skill_retirement_profile
+        return {
+            "gate_required": bool(profile.get("gate_required", False)),
+            "gate_approved": bool(profile.get("gate_approved", False)),
+            "gate_readiness": str(profile.get("gate_readiness", "not_required")),
+            "quarantined_skills": list(profile.get("quarantined_skills", [])),
+            "quarantined_skill_families": {
+                name: list(values)
+                for name, values in profile.get("quarantined_skill_families", {}).items()
+            },
+            "quarantined_family_skills": {
+                family: list(values)
+                for family, values in profile.get("quarantined_family_skills", {}).items()
+            },
+            "review_skills": list(profile.get("review_skills", [])),
+            "automatic_delete_allowed": False,
+            "decision": str(profile.get("decision", "")),
+            "reason": str(profile.get("reason", "")),
+        }
+
+    def _empty_skill_retirement_profile(self) -> dict:
+        return {
+            "gate_required": False,
+            "gate_approved": False,
+            "gate_readiness": "not_required",
+            "decision": "",
+            "reason": "",
+            "paths": [],
+            "quarantined_skills": [],
+            "quarantined_skill_families": {},
+            "quarantined_family_skills": {},
+            "review_skills": [],
+            "automatic_delete_allowed": False,
+        }
+
+    def _skill_retirement_allowed(self, skill_name: str, task_family: str = "", built_in: bool = False) -> bool:
+        if built_in:
+            return True
+        name = str(skill_name or "").strip()
+        if not name:
+            return False
+        families = self._skill_retirement_profile.get("quarantined_skill_families", {}).get(name, [])
+        if not families:
+            return True
+        family = str(task_family or "").strip().lower()
+        return "" not in families and family not in families
+
     def _runtime_default_skill_allowed(self, skill_name: str, task_family: str = "", built_in: bool = False) -> bool:
         if built_in:
             return True
+        if not self._skill_retirement_allowed(skill_name, task_family, built_in=False):
+            return False
         profile = self._runtime_default_gate_profile
         if not profile.get("gate_required"):
             return True
