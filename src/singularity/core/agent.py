@@ -217,7 +217,7 @@ class Agent:
                 "loaded_entry_count": 0,
                 "skipped_entry_count": len(paths),
             }
-        report = self.plan_cache.load_reports(paths)
+        report = self.plan_cache.load_reports(paths, execution_profile=gate_report)
         load_errors = list(report.get("errors", []))
         report.update(gate_report)
         report["errors"] = load_errors + list(gate_report.get("errors", []))
@@ -2051,6 +2051,17 @@ class Agent:
             knowledge_correction_context = self._knowledge_correction_context(goal, observation)
             task_precondition_context = self._task_precondition_context(goal, observation)
             skill_memory_context = self._skill_memory_context(goal, observation)
+            previous_defer = getattr(self, "_defer_plan_cache_miss", False)
+            self._defer_plan_cache_miss = True
+            try:
+                cached_plan = self._plan_cache_lookup(goal, observation)
+            finally:
+                self._defer_plan_cache_miss = previous_defer
+            if cached_plan:
+                return self._attach_planning_context_contract(cached_plan, planning_contract)
+            hybrid_workflow_context = self._plan_cache_hybrid_context(goal, observation)
+            if not hybrid_workflow_context:
+                self._log_plan_cache_miss(goal)
             combined_memory = "\n".join(part for part in (
                 planning_memory,
                 task_readiness_context,
@@ -2063,10 +2074,8 @@ class Agent:
                 task_precondition_context,
                 skill_memory_context,
                 skill_hint,
+                hybrid_workflow_context,
             ) if part)
-            cached_plan = self._plan_cache_lookup(goal, observation)
-            if cached_plan:
-                return self._attach_planning_context_contract(cached_plan, planning_contract)
             plan = self.planner.plan_from_goal(goal, observation, combined_memory)
             self._record_plan_cache_signature(plan, goal, observation, source="llm_planner")
         except Exception as e:
@@ -2075,7 +2084,7 @@ class Agent:
             plan = {"status": "error", "actions": [], "reasoning": str(e)}
         return self._attach_planning_context_contract(plan, planning_contract)
 
-    def _plan_cache_lookup(self, goal: str, observation: dict) -> dict | None:
+    def _plan_cache_lookup(self, goal: str, observation: dict, log_miss: bool = True) -> dict | None:
         """Try an approved plan-transition cache before spending an LLM call."""
         if not getattr(self.config, "enable_plan_cache", False):
             return None
@@ -2090,7 +2099,12 @@ class Agent:
             "entry_count": len(cache.entries),
         }
         if not hit:
-            if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            if (
+                log_miss
+                and not getattr(self, "_defer_plan_cache_miss", False)
+                and hasattr(self, "session_logger")
+                and hasattr(self.session_logger, "log")
+            ):
                 self.session_logger.log("plan_cache_miss", payload)
             return None
         payload.update({
@@ -2101,6 +2115,9 @@ class Agent:
             "support_count": hit.get("support_count"),
             "success_rate": hit.get("success_rate"),
             "source_report": hit.get("source_report"),
+            "execution_stage": hit.get("execution_stage"),
+            "plan_signature": hit.get("plan_signature"),
+            "workflow_signature": hit.get("workflow_signature"),
         })
         if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
             self.session_logger.log("plan_cache_hit", payload)
@@ -2113,6 +2130,54 @@ class Agent:
                 logger.warning(f"Plan cache task creation failed: {e}")
         self._record_plan_cache_signature(plan, goal, observation, source="plan_transition_cache")
         return plan
+
+    def _log_plan_cache_miss(self, goal: str):
+        if not getattr(self.config, "enable_plan_cache", False):
+            return
+        cache = getattr(self, "plan_cache", None)
+        if not cache or not getattr(cache, "entries", []):
+            return
+        previous = getattr(self, "_last_plan_cache_signature", START_PLAN_SIGNATURE) or START_PLAN_SIGNATURE
+        if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("plan_cache_miss", {
+                "goal": goal,
+                "previous_plan_signature": previous,
+                "entry_count": len(cache.entries),
+            })
+
+    def _plan_cache_hybrid_context(self, goal: str, observation: dict) -> str:
+        """Expose a hybrid workflow as bounded planner guidance, never as a direct plan."""
+        if not getattr(self.config, "enable_plan_cache", False):
+            return ""
+        cache = getattr(self, "plan_cache", None)
+        if not cache or not getattr(cache, "entries", []):
+            return ""
+        previous = getattr(self, "_last_plan_cache_signature", START_PLAN_SIGNATURE) or START_PLAN_SIGNATURE
+        hit = cache.query_hybrid(goal, observation, previous)
+        if not hit:
+            return ""
+        context = cache.format_hybrid_guidance(
+            hit,
+            char_budget=min(600, max(1, int(getattr(self.config, "planning_memory_read_limit_chars", 600) or 600))),
+        )
+        if not context:
+            return ""
+        if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+            self.session_logger.log("plan_cache_hybrid_hint", {
+                "goal": goal,
+                "entry_id": hit.get("entry_id"),
+                "confidence": hit.get("confidence"),
+                "score": hit.get("score"),
+                "state_similarity": hit.get("state_similarity"),
+                "support_count": hit.get("support_count"),
+                "success_rate": hit.get("success_rate"),
+                "source_report": hit.get("source_report"),
+                "execution_stage": "hybrid",
+                "plan_signature": hit.get("plan_signature"),
+                "workflow_signature": hit.get("workflow_signature"),
+                "context_chars": len(context),
+            })
+        return context
 
     def _record_plan_cache_signature(self, plan: dict, goal: str, observation: dict, source: str = "planner"):
         """Remember the last plan signature so future cache lookups model transitions."""

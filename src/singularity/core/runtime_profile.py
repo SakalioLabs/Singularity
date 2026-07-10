@@ -341,6 +341,15 @@ def _gate_summary(field: str, path: str) -> dict:
             payload = json.load(f)
         if not isinstance(payload, dict):
             raise ValueError("gate JSON must be an object")
+        if field == "plan_cache_gate_paths":
+            if payload.get("type") != "plan_cache_gate" or payload.get("schema_version") != 2:
+                raise ValueError("plan cache gate must use schema 2")
+            if payload.get("automatic_demotion_enabled") is not True:
+                raise ValueError("plan cache gate must enable automatic demotion")
+            if payload.get("execution_taxonomy") != ["agentic", "hybrid", "deterministic"]:
+                raise ValueError("plan cache gate execution taxonomy is invalid")
+            if payload.get("readiness") == "approved" and not payload.get("entry_profiles"):
+                raise ValueError("approved plan cache gate has no entry profiles")
         summary.update({
             "readiness": str(payload.get("readiness", "") or "unknown").strip().lower(),
             "decision": str(payload.get("decision", "") or ""),

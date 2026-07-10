@@ -112,6 +112,9 @@ python -m singularity.main skill-frontier-routing-ablation --include-builtins --
 # Synthetic retirement fixtures exercise report schemas only and can never approve runtime quarantine.
 python -m singularity.main skill-verifier-calibration-report --include-builtins --output logs/benchmarks/skill_verifier_calibration_builtin.json
 python -m singularity.main skill-contribution-report --include-builtins --output logs/benchmarks/skill_contribution_builtin.json
+# Offline plan-cache entries are hybrid-only; direct reuse requires three matched live sessions by default.
+python -m singularity.main plan-cache-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/plan_cache.json
+python -m singularity.main plan-cache-gate --plan-cache-report logs/benchmarks/plan_cache.json --output logs/benchmarks/plan_cache_hybrid_gate.json
 python -m singularity.main benchmark --suite m1 --preflight
 python -m singularity.main benchmark --suite m1 --ingest
 python -m singularity.main benchmark --suite m1 --ingest --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL

@@ -112,24 +112,30 @@ class SessionLogger:
 
     def _plan_cache_metrics(self) -> dict:
         hits = [event for event in self.events if event.get("type") == "plan_cache_hit"]
+        hybrid_hints = [event for event in self.events if event.get("type") == "plan_cache_hybrid_hint"]
         misses = [event for event in self.events if event.get("type") == "plan_cache_miss"]
         signatures = [event for event in self.events if event.get("type") == "plan_cache_signature"]
         hit_entries = {}
         hit_goals = set()
-        for event in hits:
+        stage_counts = {"hybrid": len(hybrid_hints), "deterministic": len(hits)}
+        for event in hits + hybrid_hints:
             data = event.get("data", {}) if isinstance(event.get("data", {}), dict) else {}
             entry_id = str(data.get("entry_id") or "unknown")
             hit_entries[entry_id] = hit_entries.get(entry_id, 0) + 1
             if data.get("goal"):
                 hit_goals.add(str(data["goal"]))
-        total = len(hits) + len(misses)
+        intervention_count = len(hits) + len(hybrid_hints)
+        total = intervention_count + len(misses)
         return {
             "plan_cache_hit_count": len(hits),
+            "plan_cache_hybrid_hint_count": len(hybrid_hints),
+            "plan_cache_workflow_intervention_count": intervention_count,
             "plan_cache_miss_count": len(misses),
             "plan_cache_signature_count": len(signatures),
-            "plan_cache_hit_rate": round(len(hits) / total, 3) if total else 0.0,
+            "plan_cache_hit_rate": round(intervention_count / total, 3) if total else 0.0,
             "plan_cache_hit_entries": hit_entries,
             "plan_cache_hit_goals": sorted(hit_goals),
+            "plan_cache_execution_stage_counts": stage_counts,
         }
 
     def _memory_policy_metrics(self) -> dict:

@@ -81,9 +81,9 @@ def _add_memory_attribution_runtime_args(parser):
 
 
 def _add_plan_cache_runtime_args(parser):
-    parser.add_argument("--enable-plan-cache", action="store_true", help="Reuse approved AgenticCache-style plan-transition cache entries before LLM planning")
-    parser.add_argument("--plan-cache", action="append", default=[], help="Approved plan-transition-cache-report JSON for runtime plan reuse")
-    parser.add_argument("--plan-cache-gate", action="append", default=[], help="Approved plan-cache-gate JSON required before runtime plan-cache loading")
+    parser.add_argument("--enable-plan-cache", action="store_true", help="Enable staged hybrid guidance and evidence-qualified deterministic plan reuse")
+    parser.add_argument("--plan-cache", action="append", default=[], help="Approved plan-transition-cache-report JSON for staged workflow reuse")
+    parser.add_argument("--plan-cache-gate", action="append", default=[], help="Approved schema-v2 entry-scoped crystallization gate required before cache loading")
     parser.add_argument("--plan-cache-min-confidence", type=float, default=0.75, help="Minimum confidence for runtime plan-cache entries")
 
 
@@ -1175,17 +1175,23 @@ def main():
 
     plan_cache_parser = subparsers.add_parser("plan-cache-report", help="Mine AgenticCache-style plan transitions from session logs")
     plan_cache_parser.add_argument("--session-log", action="append", default=[], help="Agent session JSONL log to mine")
-    plan_cache_parser.add_argument("--min-support", type=int, default=1, help="Minimum repeated transition support for runtime cache approval")
-    plan_cache_parser.add_argument("--min-success-rate", type=float, default=0.6, help="Minimum action/goal success rate for runtime cache approval")
+    plan_cache_parser.add_argument("--min-support", type=int, default=1, help="Minimum repeated transition support for hybrid workflow guidance")
+    plan_cache_parser.add_argument("--min-success-rate", type=float, default=0.6, help="Minimum action/goal success rate for hybrid workflow guidance")
     plan_cache_parser.add_argument("--max-entries", type=int, default=200, help="Maximum cache entries to include")
     plan_cache_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     plan_cache_parser.add_argument("--log-level", type=str, default="INFO")
 
     plan_cache_runtime_parser = subparsers.add_parser("plan-cache-runtime-report", help="Audit runtime plan-cache hits from session logs")
     plan_cache_runtime_parser.add_argument("--session-log", action="append", default=[], help="Agent session JSONL log with plan-cache hit/miss events")
-    plan_cache_runtime_parser.add_argument("--min-cache-hits", type=int, default=1, help="Minimum cache hits required for approval")
+    plan_cache_runtime_parser.add_argument("--min-cache-hits", type=int, default=1, help="Minimum matched hybrid or deterministic executions required for approval")
     plan_cache_runtime_parser.add_argument("--max-rejected-action-rate", type=float, default=0.0, help="Maximum verifier-rejected action rate after cache hits")
     plan_cache_runtime_parser.add_argument("--max-action-failure-rate", type=float, default=0.3, help="Maximum failed action rate after cache hits")
+    plan_cache_runtime_parser.add_argument("--evidence-kind", type=str, default="unknown", choices=["unknown", "synthetic_control", "live_trace"], help="Evidence provenance; only complete live_trace reports can promote deterministic entries")
+    plan_cache_runtime_parser.add_argument("--planner-id", type=str, default="", help="Fixed planner identifier for this runtime report")
+    plan_cache_runtime_parser.add_argument("--action-backend", type=str, default="", help="Fixed action backend identifier")
+    plan_cache_runtime_parser.add_argument("--verifier-id", type=str, default="", help="Fixed verifier identifier")
+    plan_cache_runtime_parser.add_argument("--task-stream-id", type=str, default="", help="Fixed task-stream identifier")
+    plan_cache_runtime_parser.add_argument("--seed", type=str, default="", help="Fixed environment/task seed identifier")
     plan_cache_runtime_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     plan_cache_runtime_parser.add_argument("--log-level", type=str, default="INFO")
 
@@ -1193,10 +1199,14 @@ def main():
     plan_cache_gate_parser.add_argument("--plan-cache-report", action="append", default=[], help="Saved plan-cache-report JSON")
     plan_cache_gate_parser.add_argument("--runtime-report", action="append", default=[], help="Optional saved plan-cache-runtime-report JSON")
     plan_cache_gate_parser.add_argument("--min-accepted-entries", type=int, default=1, help="Minimum accepted cache entries required")
-    plan_cache_gate_parser.add_argument("--min-runtime-hits", type=int, default=0, help="Minimum runtime cache hits required when runtime reports are supplied")
+    plan_cache_gate_parser.add_argument("--min-runtime-hits", type=int, default=3, help="Minimum attributed executions per entry for deterministic promotion")
+    plan_cache_gate_parser.add_argument("--min-deterministic-sessions", type=int, default=3, help="Minimum distinct live sessions per deterministic entry")
+    plan_cache_gate_parser.add_argument("--min-deterministic-successes", type=int, default=3, help="Minimum verified goal successes per deterministic entry")
+    plan_cache_gate_parser.add_argument("--min-plan-match-rate", type=float, default=1.0, help="Minimum exact plan-signature match rate for deterministic promotion")
     plan_cache_gate_parser.add_argument("--max-promptware-threats", type=int, default=0, help="Maximum promptware threats allowed across cache reports")
     plan_cache_gate_parser.add_argument("--max-rejected-action-rate", type=float, default=0.0, help="Maximum verifier-rejected action rate after cache hits")
-    plan_cache_gate_parser.add_argument("--max-action-failure-rate", type=float, default=0.3, help="Maximum failed action rate after cache hits")
+    plan_cache_gate_parser.add_argument("--max-action-failure-rate", type=float, default=0.0, help="Maximum failed action rate before entry demotion")
+    plan_cache_gate_parser.add_argument("--max-goal-failure-rate", type=float, default=0.0, help="Maximum failed-goal rate before entry demotion")
     plan_cache_gate_parser.add_argument("--output", type=str, default="", help="Optional JSON gate report path")
     plan_cache_gate_parser.add_argument("--log-level", type=str, default="INFO")
 
@@ -3376,14 +3386,28 @@ def main():
             min_cache_hits=getattr(args, "min_cache_hits", 1),
             max_rejected_action_rate=getattr(args, "max_rejected_action_rate", 0.0),
             max_action_failure_rate=getattr(args, "max_action_failure_rate", 0.3),
+            evidence_kind=getattr(args, "evidence_kind", "unknown"),
+            planner_id=getattr(args, "planner_id", ""),
+            action_backend=getattr(args, "action_backend", ""),
+            verifier_id=getattr(args, "verifier_id", ""),
+            task_stream_id=getattr(args, "task_stream_id", ""),
+            seed=getattr(args, "seed", ""),
         )
         print("\nPlan Cache Runtime Report")
         print(f"  readiness: {report.get('readiness', 'unknown')}")
         print(f"  decision: {report.get('decision', 'unknown')}")
         print(f"  reason: {report.get('reason', '')}")
         print(
+            "  evidence: "
+            f"kind={report.get('evidence_kind', 'unknown')}, "
+            f"runtime_eligible={report.get('runtime_eligible', False)}, "
+            f"connected={report.get('connected_session_count', 0)}/{report.get('session_log_count', 0)}"
+        )
+        print(
             "  cache: "
             f"hits={report.get('plan_cache_hit_count', 0)}, "
+            f"hybrid_hints={report.get('plan_cache_hybrid_hint_count', 0)}, "
+            f"attributed={report.get('attributed_execution_count', 0)}, "
             f"misses={report.get('plan_cache_miss_count', 0)}, "
             f"hit_rate={report.get('plan_cache_hit_rate', 0)}"
         )
@@ -3398,6 +3422,8 @@ def main():
         for item in report.get("hit_examples", [])[:8]:
             print(
                 f"  [+] {item.get('entry_id', '-')}: "
+                f"stage={item.get('execution_stage', 'unknown')}, "
+                f"matched={item.get('plan_match')}, "
                 f"actions={item.get('action_count', 0)}, "
                 f"failures={item.get('action_failure_count', 0)}, "
                 f"rejects={item.get('verification_reject_count', 0)}, "
@@ -3419,10 +3445,14 @@ def main():
             cache_report_paths=getattr(args, "plan_cache_report", []) or [],
             runtime_report_paths=getattr(args, "runtime_report", []) or [],
             min_accepted_entries=getattr(args, "min_accepted_entries", 1),
-            min_runtime_hits=getattr(args, "min_runtime_hits", 0),
+            min_runtime_hits=getattr(args, "min_runtime_hits", 3),
+            min_deterministic_sessions=getattr(args, "min_deterministic_sessions", 3),
+            min_deterministic_successes=getattr(args, "min_deterministic_successes", 3),
+            min_plan_match_rate=getattr(args, "min_plan_match_rate", 1.0),
             max_promptware_threats=getattr(args, "max_promptware_threats", 0),
             max_rejected_action_rate=getattr(args, "max_rejected_action_rate", 0.0),
-            max_action_failure_rate=getattr(args, "max_action_failure_rate", 0.3),
+            max_action_failure_rate=getattr(args, "max_action_failure_rate", 0.0),
+            max_goal_failure_rate=getattr(args, "max_goal_failure_rate", 0.0),
         )
         print("\nPlan Cache Gate")
         print(f"  readiness: {report.get('readiness', 'unknown')}")
@@ -3432,19 +3462,36 @@ def main():
             "  inputs: "
             f"cache_reports={report.get('approved_cache_report_count', 0)}/{report.get('cache_report_count', 0)} approved, "
             f"runtime_reports={report.get('approved_runtime_report_count', 0)}/{report.get('runtime_report_count', 0)} approved, "
+            f"runtime_eligible={report.get('runtime_eligible_report_count', 0)}, "
             f"accepted_entries={report.get('accepted_entry_count', 0)}, "
             f"runtime_hits={report.get('runtime_hit_count', 0)}"
         )
         print(
+            "  stages: "
+            f"agentic={report.get('agentic_entry_count', 0)}, "
+            f"hybrid={report.get('hybrid_entry_count', 0)}, "
+            f"deterministic={report.get('deterministic_entry_count', 0)}, "
+            f"demoted={report.get('demoted_entry_count', 0)}"
+        )
+        print(
             "  runtime rates: "
             f"failure={report.get('runtime_action_failure_rate', 0)}, "
-            f"verifier_reject={report.get('runtime_action_verification_reject_rate', 0)}"
+            f"verifier_reject={report.get('runtime_action_verification_reject_rate', 0)}, "
+            f"goal_failure={report.get('runtime_goal_failure_rate', 0)}"
         )
         if report.get("missing"):
             print(f"  missing: {', '.join(report.get('missing', []))}")
         for check in report.get("checks", [])[:12]:
             marker = "+" if check.get("status") == "pass" else "x" if check.get("status") == "fail" else "!"
             print(f"  [{marker}] {check.get('kind')} {check.get('source')}: {check.get('readiness')}")
+        for profile in report.get("entry_profiles", [])[:12]:
+            marker = "+" if profile.get("execution_stage") == "deterministic" else "~" if profile.get("execution_stage") == "hybrid" else "x"
+            print(
+                f"  [{marker}] {profile.get('entry_id')}: stage={profile.get('execution_stage')} "
+                f"sessions={profile.get('distinct_session_count', 0)} "
+                f"successes={profile.get('goal_completed_count', 0)} "
+                f"match={profile.get('plan_match_rate', 0)}"
+            )
         for error in report.get("errors", []):
             print(f"  error: {error}")
         if getattr(args, "output", ""):

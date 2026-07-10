@@ -1578,6 +1578,40 @@
 
 ---
 
+## P-088: Progressive Crystallization
+
+- **Title**: Progressive Crystallization: Turning Agent Exploration into Deterministic, Lower-Cost Workflows in Production
+- **Source**: https://arxiv.org/abs/2607.07052
+- **Year**: 2026
+- **Type**: Evidence-based agent workflow lifecycle
+- **Task Type**: Repeated production workflows with deterministic fallback paths
+- **Core Method**: Promotes exploration traces through agentic, hybrid, and deterministic execution stages and demotes regressions
+- **Memory**: Stores validated workflow traces as progressively stronger procedural assets
+- **Key Results**: Reports 45% deterministic execution and more than 70% lower per-incident agent cost in one AIOps deployment
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Requires offline Minecraft plans to remain advisory until repeated entry-scoped live evidence permits deterministic reuse
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-10-progressive-crystallization.md`
+
+---
+
+## P-089: Recall-Controlled Early Abort
+
+- **Title**: Doomed from the Start: Early Abort of LLM Agent Episodes via a Recall-Controlled Probe Cascade
+- **Source**: https://arxiv.org/abs/2607.06503
+- **Year**: 2026
+- **Type**: Calibrated agent-episode efficiency gate
+- **Task Type**: Multi-round TextCraft episodes
+- **Core Method**: Jointly calibrates per-round failure probes against a global successful-episode recall target
+- **Memory**: Uses early trajectory signals to stop likely failures without exhausting the full interaction budget
+- **Key Results**: Reports 37.2%-47.1% inference-compute savings at a 90% global recall target across two models
+- **Scores**: R=4, N=5, R=4, E=4
+- **Value to Project**: Motivates a held-out recall gate before early-aborting expensive Minecraft episodes
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-10-early-abort-cascade.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1669,3 +1703,5 @@
 | P-085 | The Blind Curator | 2026 | R5/N5/R4/E5 | P1 |
 | P-086 | SkillCenter | 2026 | R4/N5/R3/E4 | P2 |
 | P-087 | EvoSOP | 2026 | R4/N5/R3/E4 | P2 |
+| P-088 | Progressive Crystallization | 2026 | R5/N5/R4/E5 | P1 |
+| P-089 | Recall-Controlled Early Abort | 2026 | R4/N5/R4/E4 | P2 |

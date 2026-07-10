@@ -230,12 +230,17 @@ python -m singularity.main plan-action-compliance-report --session-log logs/sess
 python -m singularity.main plan-act-latency-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/plan_act_latency.json
 python -m singularity.main plan-act-latency-report --collab-report logs/benchmarks/bm701_collab_report.json --output logs/benchmarks/bm701_plan_act_latency.json
 python -m singularity.main plan-act-latency-gate --baseline-plan-act-report logs/benchmarks/bm701_baseline_plan_act_latency.json --candidate-plan-act-report logs/benchmarks/bm701_interruptible_plan_act_latency.json --baseline-verifier-report logs/benchmarks/bm701_baseline_action_verification.json --candidate-verifier-report logs/benchmarks/bm701_interruptible_action_verification.json --output logs/benchmarks/bm701_plan_act_latency_gate.json
-# Mine AgenticCache-style plan transitions for explicit, default-off runtime reuse.
+# Mine AgenticCache-style plan transitions. Offline entries are hybrid planner guidance only.
 python -m singularity.main plan-cache-report --session-log logs/session_xxx.jsonl --output logs/benchmarks/plan_cache.json
-# Optional runtime audit after a cache-assisted run; use it to prove cached plans stay verifier-safe.
-python -m singularity.main plan-cache-runtime-report --session-log logs/session_cache_run.jsonl --output logs/benchmarks/plan_cache_runtime.json
-python -m singularity.main plan-cache-gate --plan-cache-report logs/benchmarks/plan_cache.json --runtime-report logs/benchmarks/plan_cache_runtime.json --min-runtime-hits 1 --output logs/benchmarks/plan_cache_gate.json
+# The first gate allows bounded hybrid guidance but no direct plan reuse.
+python -m singularity.main plan-cache-gate --plan-cache-report logs/benchmarks/plan_cache.json --output logs/benchmarks/plan_cache_hybrid_gate.json
+python -m singularity.main run --goal "Craft torches" --enable-plan-cache --plan-cache logs/benchmarks/plan_cache.json --plan-cache-gate logs/benchmarks/plan_cache_hybrid_gate.json
+# Audit matched hybrid/deterministic executions per entry. Deterministic promotion defaults to
+# three attributed successes in three distinct sessions with exact plan matching and no regressions.
+python -m singularity.main plan-cache-runtime-report --session-log logs/session_cache_run_1.jsonl --session-log logs/session_cache_run_2.jsonl --session-log logs/session_cache_run_3.jsonl --evidence-kind live_trace --planner-id PLANNER_VERSION --action-backend BRIDGE_VERSION --verifier-id VERIFIER_VERSION --task-stream-id M1_CRAFTING_STREAM --seed WORLD_SEED --min-cache-hits 3 --output logs/benchmarks/plan_cache_runtime.json
+python -m singularity.main plan-cache-gate --plan-cache-report logs/benchmarks/plan_cache.json --runtime-report logs/benchmarks/plan_cache_runtime.json --min-runtime-hits 3 --min-deterministic-sessions 3 --min-deterministic-successes 3 --min-plan-match-rate 1.0 --output logs/benchmarks/plan_cache_gate.json
 python -m singularity.main run --goal "Craft torches" --enable-plan-cache --plan-cache logs/benchmarks/plan_cache.json --plan-cache-gate logs/benchmarks/plan_cache_gate.json
+# A verifier reject, excessive action-failure rate, or failed-goal rate demotes only the affected entry to agentic execution.
 # Compare an ungated baseline against a module-assisted candidate across plan cache,
 # visual grounding, action verification, skill memory, memory policy, and control policy signals.
 python -m singularity.main agent-module-comparison-report --baseline-session-log logs/session_baseline.jsonl --candidate-session-log logs/session_candidate.jsonl --baseline-label m1_plain --candidate-label m1_module_profile --output logs/benchmarks/agent_module_comparison.json

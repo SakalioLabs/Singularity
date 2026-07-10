@@ -38,6 +38,7 @@ def _candidate_module_events():
         {"type": "memory_read", "data": {"memory_type": "episodic", "read_filter_report": {"filtered_entries": 1, "filter_reasons": {"stale": 1}}}},
         {"type": "skill_memory_hint", "data": {"task_family": "crafting", "hint_count": 2}},
         {"type": "plan_cache_hit", "data": {"entry_id": "pc-1", "goal": "Craft torches"}},
+        {"type": "plan_cache_hybrid_hint", "data": {"entry_id": "pc-2", "goal": "Craft torches"}},
         {"type": "plan_cache_signature", "data": {"entry_id": "pc-1", "plan_signature": "sig"}},
         {
             "type": "visual_action_suggestion",
@@ -126,6 +127,8 @@ def test_agent_module_comparison_approves_active_candidate():
     assert report["deltas"]["completion_rate_delta"] == 1.0
     assert report["deltas"]["action_failure_rate_delta"] == -1.0
     assert report["candidate"]["modules"]["plan_cache"]["hit_count"] == 1
+    assert report["candidate"]["modules"]["plan_cache"]["hybrid_hint_count"] == 1
+    assert report["candidate"]["modules"]["plan_cache"]["workflow_intervention_count"] == 2
     assert report["candidate"]["modules"]["visual_action_grounding"]["intervention_count"] == 1
     assert report["candidate"]["modules"]["action_candidate_selection"]["repaired_reject_count"] == 1
     assert report["candidate"]["modules"]["skill_memory"]["hint_count"] == 2

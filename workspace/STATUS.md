@@ -47,6 +47,7 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 - Added a Goal Frontier Capsule for planner-facing task continuity. It preserves active leaf/path identifiers, goal prerequisites, missing preconditions, and continuation actions under a declared character budget; runtime logs identify the capsule profile without recording raw memory text.
 - Added task-frontier skill routing with a legacy baseline switch, governance filtering, prerequisite/target-state scoring, bounded reason-coded planner context, and a 3-case fixed-control ablation. The built-in 3/3 result remains offline-only.
 - Added Blind-Curator-style skill retirement audits: per-judge defect-injection calibration, fixed-control no-skill contribution reports, and a live-evidence gate. Approved candidates become task-family-scoped in-memory exclusions only; built-ins remain usable, skill files are untouched, and automatic deletion is prohibited.
+- Upgraded plan caching to `progressive_workflow_crystallization_v1`: offline transitions are bounded hybrid planner hints, while direct deterministic reuse requires entry-scoped matched success across three distinct live sessions by default. Action, goal, or verifier regressions demote only the affected entry to agentic execution.
 
 ## Next Acceptance Work
 
@@ -58,3 +59,4 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 6. Run lineage ablation and shadow restoration reports on fresh fixed-control M1/M3/M5 sessions; verify capsule profile, probe retention, token/latency savings, and three distinct candidate sessions before shadow selection review, while keeping automatic restoration disabled.
 7. Compare frontier skill routing against `--no-skill-frontier-routing` on fresh M1/M2 task streams, measuring task completion, environment steps, verifier rejects, token cost, and latency before treating the synthetic top-1 gain as operational evidence.
 8. Collect live defect-injection calibration and paired no-skill contribution traces across at least three distinct candidate sessions before loading any `--skill-retirement-gate`; the built-in fixtures remain runtime-ineligible.
+9. Run hybrid plan-cache guidance on fresh M1/M2 sessions, collect three exact matched successes per candidate entry, and compare planner calls, token cost, actions, completion, and verifier outcomes before any deterministic promotion.

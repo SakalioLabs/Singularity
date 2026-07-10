@@ -139,6 +139,8 @@ def _empty_summary(label: str, session_log_paths: list[str]) -> dict:
         "modules": {
             "plan_cache": {
                 "hit_count": 0,
+                "hybrid_hint_count": 0,
+                "workflow_intervention_count": 0,
                 "miss_count": 0,
                 "query_count": 0,
                 "signature_count": 0,
@@ -242,7 +244,7 @@ def _ingest_event(summary: dict, event: dict):
         _ingest_plan(summary, data)
     elif event_type == "action":
         _ingest_action(summary, data)
-    elif event_type in {"plan_cache_hit", "plan_cache_miss", "plan_cache_signature"}:
+    elif event_type in {"plan_cache_hit", "plan_cache_hybrid_hint", "plan_cache_miss", "plan_cache_signature"}:
         _ingest_plan_cache(summary, event_type)
     elif event_type in {"visual_action_suggestion", "visual_action_intervention"}:
         _ingest_visual_action(summary, event_type, data)
@@ -297,6 +299,8 @@ def _ingest_plan_cache(summary: dict, event_type: str):
     module = summary["modules"]["plan_cache"]
     if event_type == "plan_cache_hit":
         module["hit_count"] += 1
+    elif event_type == "plan_cache_hybrid_hint":
+        module["hybrid_hint_count"] += 1
     elif event_type == "plan_cache_miss":
         module["miss_count"] += 1
     elif event_type == "plan_cache_signature":
@@ -471,9 +475,14 @@ def _finalize_summary(summary: dict):
     summary["empty_plan_rate"] = _ratio(summary["empty_plan_count"], summary["plan_count"])
 
     plan_cache = summary["modules"]["plan_cache"]
-    plan_cache["query_count"] = plan_cache["hit_count"] + plan_cache["miss_count"]
-    plan_cache["hit_rate"] = _ratio(plan_cache["hit_count"], plan_cache["query_count"])
-    plan_cache["activity_count"] = plan_cache["hit_count"] + plan_cache["miss_count"] + plan_cache["signature_count"]
+    plan_cache["workflow_intervention_count"] = plan_cache["hit_count"] + plan_cache["hybrid_hint_count"]
+    plan_cache["query_count"] = plan_cache["workflow_intervention_count"] + plan_cache["miss_count"]
+    plan_cache["hit_rate"] = _ratio(plan_cache["workflow_intervention_count"], plan_cache["query_count"])
+    plan_cache["activity_count"] = (
+        plan_cache["workflow_intervention_count"]
+        + plan_cache["miss_count"]
+        + plan_cache["signature_count"]
+    )
 
     visual = summary["modules"]["visual_action_grounding"]
     visual["activity_count"] = (
@@ -696,7 +705,7 @@ def _comparison_recommendations(candidate: dict, deltas: dict, module_activity: 
     if not active:
         recommendations.append("run_candidate_with_module_runtime_switches_or_profile_enabled")
     if "plan_cache" in active:
-        recommendations.append("run_plan_cache_runtime_report_and_plan_cache_gate_before_runtime_reuse")
+        recommendations.append("run_entry_scoped_plan_cache_runtime_report_before_deterministic_reuse")
     if "visual_action_grounding" in active:
         recommendations.append("run_visual_action_ablation_or_visual_review_pipeline_before_visual_policy_promotion")
     if "action_verification" in active or "action_candidate_selection" in active:
