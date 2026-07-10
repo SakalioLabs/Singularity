@@ -236,6 +236,7 @@ class RuleBasedPlanner:
         actions.append({
             "type": "dig",
             "parameters": {
+                "block": name,
                 "x": round(tpos.get("x", 0)),
                 "y": round(tpos.get("y", (pos or {}).get("y", 64))),
                 "z": round(tpos.get("z", 0)),
@@ -309,17 +310,30 @@ class RuleBasedPlanner:
         oak_logs = inv.get("oak_log", 0)
         if oak_logs >= target_count:
             return {"status": "complete", "reasoning": f"Have {oak_logs} oak logs", "actions": []}
-        if trees:
-            nearest = trees[0]
+        oak_trees = [
+            tree for tree in trees
+            if str(tree.get("name", "")).lower() == "oak_log"
+        ]
+        if oak_trees:
+            nearest = min(oak_trees, key=lambda tree: float(tree.get("distance", 999) or 999))
             tpos = nearest.get("position", {})
-            dist = nearest.get("distance", 999)
-            # Stand close enough that the block drop can be observed in inventory.
-            if dist <= 1.75:
+            dist = float(nearest.get("distance", 999) or 999)
+            flat_dist = self._flat_distance(pos, tpos) if "x" in tpos and "z" in tpos else dist
+            # Navigation is horizontal; Mineflayer can dig a vertically offset block within reach.
+            if flat_dist <= 1.75 and dist <= 4.5:
                 return {
                     "status": "in_progress",
                     "reasoning": f"Digging {nearest['name']} at distance {dist:.1f}",
                     "actions": [
-                        {"type": "dig", "parameters": {"x": tpos.get("x", 0), "y": tpos.get("y", 0), "z": tpos.get("z", 0)}},
+                        {
+                            "type": "dig",
+                            "parameters": {
+                                "block": nearest["name"],
+                                "x": tpos.get("x", 0),
+                                "y": tpos.get("y", 0),
+                                "z": tpos.get("z", 0),
+                            },
+                        },
                     ]
                 }
             # Navigation must be re-observed before a dependent world-changing action.
@@ -400,11 +414,17 @@ class RuleBasedPlanner:
                     f"Need {target_count - int(inv.get('cobblestone', 0) or 0)} more cobblestone",
                 )
                 return visible_plan
-            return {
-                "status": "blocked",
-                "reasoning": "No observed stone block has grounded coordinates; observe stone before mining cobblestone",
-                "actions": [],
-            }
+            search_plan = self._plan_explore_frontier(
+                "Explore frontier and inspect stone",
+                observed_state,
+                pos or {},
+            )
+            search_plan = dict(search_plan)
+            search_plan["reasoning"] = self._append_reasoning(
+                "No observed stone block has grounded coordinates",
+                search_plan.get("reasoning", ""),
+            )
+            return search_plan
         fallback = self._plan_craft_wooden_pickaxe(inv, trees or [], pos or {})
         fallback = dict(fallback)
         reasoning = fallback.get("reasoning", "")

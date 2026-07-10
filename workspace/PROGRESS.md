@@ -1,14 +1,14 @@
 # PROGRESS.md -- Evidence-Backed Progress
 
-## Convergence Freeze
+## Convergence Result
 
-M1 is the sole active milestone. Research expansion and M2-M7 runtime work are paused until BM-001..005 each have three distinct live successes grounded in post-observation state and the goal verifier. The active gate is `G0_RUNTIME_AVAILABLE`; see `workspace/CONVERGENCE_PLAN.md` and `workspace/evals/m1_failure_ledger.json`.
+M1 reached `repeat_verified`. BM-001..005 each have three distinct live successes grounded in post-observation state and the Goal Verifier. See `workspace/CONVERGENCE_PLAN.md` and `workspace/evals/m1_failure_ledger.json` for the fixed protocol and retained failure chain.
 
 ## Current Assessment
 
 Singularity has broad source coverage and a large passing offline test surface, but the full Minecraft Agent system is not complete. The authoritative capability report is `workspace/evals/capability_evidence_current.json`.
 
-The current loop provisioned the ignored local runtime without changing capability status. Official Paper 1.20.4 build 499 is hash-pinned, bootstrapped, and configured with the fixed seed, local bind, offline bot identity, and operator record. `eula=false` is now the sole blocker, so M1 remains `live_failing` with every task at `0/3` and zero live progress.
+Official Paper 1.20.4 build 499 is hash-pinned and all 15 counted runs use the same jar and protocol hashes. Across 23 real attempts, 15 successes are eligible and globally distinct by session, episode, level, session hash, and result hash. Five tasks are each `3/3`; M1 is complete while the overall system remains incomplete.
 
 Current report outcome:
 
@@ -19,8 +19,8 @@ Current report outcome:
 - Supported completion claims: 1 (M0 research baseline)
 - Contradicted completion claims: 0 after status correction
 - Unsupported completion claims: 0 after status correction
-- Failing live phases: 4 (M1, M3, M5, M6)
-- Repeat-verified runtime phases: 0
+- Failing live phases: 3 (M3, M5, M6)
+- Repeat-verified runtime phases: 1 (M1)
 
 ## Engineering Delivered
 
@@ -50,12 +50,13 @@ Current report outcome:
 - Pinned and provisioned official Paper 1.20.4 build 499, verified its published SHA-256, generated EULA/config files without accepting the EULA, and prepared the localhost-only fixed server configuration.
 - Added state-grounded M1 transition validation. Dig must remove an observed source block and increase the target inventory; craft must increase the requested item; copied sessions, repeated episodes/hashes, nested reset payloads, and mixed server jars are ineligible.
 - Added a bounded post-dig pickup window and closer grounded resource approach so the post-action observation can prove pickup instead of racing the item entity.
+- Completed M1 live convergence: exact oak targeting, per-species 32-block tree visibility, measured navigation recovery, grounded drop collection, deterministic stone search, Minecraft-data drop mapping, target-specific pickup waits, and non-replayed dig commands now support 15/15 eligible successes.
 
 ## Evidence That Still Matters
 
-- Latest tracked M1 benchmark file records BM-001..005 as failures with empty inventories.
-- Latest runtime evidence, `logs/benchmarks/m1_runtime_blocker_20260710_151512.json`, proves the jar/config/operator are ready and stops only because `eula_accepted=false`; it counts toward no capability total.
-- The fixed M1 harness passes offline unit/integration coverage only. No reset, action transition, or task success has yet been observed in Minecraft.
+- M1 has 15 eligible live successes: BM-001..005 each 3/3. Every counted session has verified reset, action transition, terminal criteria, and an achieved Goal Verifier event.
+- The retained runtime blocker and eight convergence failures remain ineligible historical evidence; they are not rewritten or counted as successes.
+- The capability report independently deduplicates session IDs, episode IDs, logs, hashes, and Paper jars and now reports M1 as `repeat_verified`.
 - The new tracked critical-transition replay localizes all five historical M1 failures: four contain 100 actionless non-terminal plans each, while the only 200-action run first exhibits repeated no-progress navigation. These diagnoses have no manual critical-unit labels and do not upgrade M1 evidence.
 - No tracked successful M2 benchmark suite is available.
 - No three-run first-night survival evidence is available.
@@ -98,8 +99,6 @@ The material below is retained as historical context and is not active work whil
 
 ## Immediate Sequence
 
-1. The user reads the Minecraft EULA and manually sets `eula=true` only if accepted.
-2. Run `powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001` and verify the canonical reset in a real fresh world.
-3. Localize only BM-001's earliest failing live transition.
-4. Extend to BM-002..005 only after the preceding gate is truthful and regression-tested.
-5. Accumulate fifteen distinct passing sessions, regenerate capability evidence, and keep M2-M7 frozen until M1 reads `repeat_verified`.
+1. Preserve and audit the immutable M1 evidence set.
+2. Keep M1's deterministic baseline isolated from later milestone features.
+3. Choose the next milestone by its own earliest evidence failure; the M1 freeze is complete.

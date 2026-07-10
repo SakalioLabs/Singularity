@@ -167,13 +167,14 @@ async function testDigHandlerWaitsForObservedPickup() {
     let items = [{ name: 'wooden_pickaxe', count: 1 }];
     let polls = 0;
     const bot = {
+        version: '1.20.4',
         entity: { position: new Vec3(10, 64, 10) },
         inventory: { items: () => items },
         blockAt(position) {
             if (position.x === target.x && position.y === target.y && position.z === target.z) {
                 return removed
                     ? { name: 'air', type: 0, position: target }
-                    : { name: 'stone', type: 1, position: target };
+                    : { name: 'stone', type: 1, drops: [35], position: target };
             }
             return { name: 'air', type: 0, position };
         },
@@ -185,6 +186,7 @@ async function testDigHandlerWaitsForObservedPickup() {
         () => ({ bot, botReady: true }),
         async () => {
             polls += 1;
+            if (polls === 1) items = [...items, { name: 'dirt', count: 1 }];
             if (polls === 2) items = [...items, { name: 'cobblestone', count: 1 }];
         },
     );
@@ -195,9 +197,66 @@ async function testDigHandlerWaitsForObservedPickup() {
     assert.strictEqual(result.target_block_before.name, 'stone');
     assert.strictEqual(result.target_block_after.name, 'air');
     assert.strictEqual(result.pickup_observed, true);
-    assert.deepStrictEqual(result.pickup_inventory_delta, { cobblestone: 1 });
+    assert.deepStrictEqual(result.expected_drops, ['cobblestone']);
+    assert.deepStrictEqual(result.pickup_inventory_delta, { dirt: 1, cobblestone: 1 });
     assert(result.pickup_waited_ms > 0);
     console.log('PASS: Dig execution waits for a bounded, observed inventory pickup');
+}
+
+async function testDigHandlerApproachesObservedDropForPickup() {
+    const target = new Vec3(11, 64, 10);
+    const drop = {
+        id: 7,
+        name: 'item',
+        position: new Vec3(13, 64, 10),
+        getDroppedItem: () => ({ name: 'cobblestone' }),
+    };
+    let removed = false;
+    let items = [];
+    let navigationCalls = 0;
+    let navigationGoal = null;
+    const bot = {
+        version: '1.20.4',
+        entity: { position: new Vec3(10, 64, 10) },
+        entities: { 7: drop },
+        inventory: { items: () => items },
+        blockAt(position) {
+            if (position.x === target.x && position.y === target.y && position.z === target.z) {
+                return removed
+                    ? { name: 'air', type: 0, position: target }
+                    : { name: 'stone', type: 1, drops: [35], position: target };
+            }
+            return { name: 'air', type: 0, position };
+        },
+        async dig() {
+            removed = true;
+        },
+        pathfinder: {
+            async goto(goal) {
+                navigationCalls += 1;
+                navigationGoal = goal;
+                bot.entity.position = drop.position.clone();
+                items = [{ name: 'cobblestone', count: 1 }];
+            },
+            stop() {},
+        },
+    };
+    const handler = createDigHandler(
+        () => ({ bot, botReady: true }),
+        async () => {},
+    );
+    const result = await handler({ x: 11, y: 64, z: 10 });
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.block_removed, true);
+    assert.strictEqual(result.pickup_observed, true);
+    assert.deepStrictEqual(result.expected_drops, ['cobblestone']);
+    assert.deepStrictEqual(result.pickup_inventory_delta, { cobblestone: 1 });
+    assert.strictEqual(result.pickup_collection.detected, true);
+    assert.strictEqual(result.pickup_collection.attempted, true);
+    assert.strictEqual(navigationCalls, 1);
+    assert.strictEqual(navigationGoal.constructor.name, 'GoalNear');
+    console.log('PASS: Dig execution approaches its observed drop and verifies pickup');
 }
 
 async function main() {
@@ -207,6 +266,7 @@ async function main() {
     await testBenchmarkResetRejectsUnappliedServerCommands();
     await testCraftHandlerUsesGroundedNearbyTable();
     await testDigHandlerWaitsForObservedPickup();
+    await testDigHandlerApproachesObservedDropForPickup();
     console.log('\nBot server benchmark reset tests PASSED');
 }
 

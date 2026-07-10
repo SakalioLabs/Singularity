@@ -10,27 +10,24 @@ M2-M7, vision, learned skills, weighted memory, plan cache, self-evolution, fron
 
 ## Current Gate
 
-`G0_RUNTIME_AVAILABLE`: **failing**
+`G5_CAPABILITY_REPORT`: **complete**
 
-- Paper `1.20.4` build `499` is provisioned at `mc-server/server.jar` and matches the pinned SHA-256.
-- `server.properties` now fixes seed `12345`, localhost binding, offline identity, peaceful difficulty, survival mode, and port `25565`; the deterministic `Singularity` operator record is present.
-- Paper completed its first bootstrap under Java 25 and generated `eula.txt` with `eula=false`.
-- The only remaining blocker is legal/manual: the user must read the Minecraft EULA and decide whether to set `eula=true`. Singularity never edits this file.
-- Latest raw evidence: `logs/benchmarks/m1_runtime_blocker_20260710_151512.json` (`sha256=dd04abe0e8a5eedc092b18dd6fb28c83aa0e341931d439b5d833729d60b8362b`).
-- The blocker report is explicitly non-capability evidence. No live task ran in this loop.
-
-`G1_HARNESS_VALID` is implemented and offline-tested, but it remains live-unverified behind G0.
+- The user authorized EULA acceptance; the controlled Paper `1.20.4` build `499` runtime then passed live preflight in every counted episode.
+- BM-001..005 each have three distinct protocol-eligible live successes: `15/15` total.
+- All 15 successes use distinct session IDs, episode IDs, level names, session hashes, and result hashes under one pinned Paper jar hash and one protocol hash.
+- The authoritative capability report reads M1 as `repeat_verified`; offline, mock, synthetic, setup, and failed evidence contribute zero successes.
+- Paper and the Bridge are stopped after collection; ports `25565` and `30000` are not left listening.
 
 ## Ordered Gates
 
 | Gate | Exit condition | Current state |
 |---|---|---|
-| G0 Runtime available | Controlled Paper 1.20.4 server; fixed seed; manually accepted EULA; valid bridge/session/harness | Failing only on manual EULA acceptance |
-| G1 Harness valid | Fresh level per task; verified reset; exact task inventory/fixture; deterministic isolated runtime; immutable session | Offline ready, live unverified |
-| G2 BM-001 live observed | Three oak logs plus Goal Verifier; truthful navigation and dig/pickup deltas | 0 successes |
-| G3 BM-002..005 live observed | One eligible live success per task with craft/dig state deltas | 0/4 tasks |
-| G4 Repeat verified | Three distinct eligible successes for each BM-001..005 under one server-jar hash | 0/15 successes |
-| G5 Capability report | M1 reads `repeat_verified`; offline/mock/synthetic contribute zero | Failing |
+| G0 Runtime available | Controlled Paper 1.20.4 server; fixed seed; accepted EULA; valid bridge/session/harness | Complete |
+| G1 Harness valid | Fresh level per task; verified reset; exact task inventory/fixture; deterministic isolated runtime; immutable session | Complete |
+| G2 BM-001 live observed | Three oak logs plus Goal Verifier; truthful navigation and dig/pickup deltas | Complete: 3/3 |
+| G3 BM-002..005 live observed | One eligible live success per task with craft/dig state deltas | Complete: 4/4 tasks observed |
+| G4 Repeat verified | Three distinct eligible successes for each BM-001..005 under one server-jar hash | Complete: 15/15 |
+| G5 Capability report | M1 reads `repeat_verified`; offline/mock/synthetic contribute zero | Complete |
 
 Only the earliest failing gate changes in a convergence loop. A downstream result cannot upgrade an upstream gate.
 
@@ -74,13 +71,13 @@ Fixed identities and environment:
 - Nonempty pre/post payloads prove action success: false; target inventory and source-block deltas are now checked.
 - Reusing a session under another result path can satisfy repeats: false; session, episode, log hash, and Paper jar hash are deduplicated.
 
-## Current Repair Hypothesis
+## Resolved Failure Chain
 
-The earliest causal blocker is manual EULA acceptance, not another code or planner defect. Once the user accepts the EULA, the highest-information experiment is one fresh BM-001 attempt. Its first unrecovered transition will determine the next code change.
+Live traces localized and resolved the M1 blockers in order: exact oak targeting, horizontal interaction reach, per-species tree visibility, measured navigation completion, active item pickup, stone search, source-to-drop mapping, three-dimensional pickup approach, target-specific inventory waiting, and non-replayed dig commands. The failure ledger retains every rejected run and its superseding evidence.
 
 ## One-Command Run
 
-In the current workspace, all runtime assets and settings are ready. After reading the Minecraft EULA and manually setting `eula=true` in `mc-server/eula.txt`, run:
+The runtime is provisioned and EULA acceptance is recorded in the ignored local server directory. Reproduce one fresh task with:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001
@@ -92,10 +89,10 @@ The script creates a fresh level, uses bridge port `30000`, records the exact se
 
 | Task | Eligible live successes | Required |
 |---|---:|---:|
-| BM-001 | 0 | 3 |
-| BM-002 | 0 | 3 |
-| BM-003 | 0 | 3 |
-| BM-004 | 0 | 3 |
-| BM-005 | 0 | 3 |
+| BM-001 | 3 | 3 |
+| BM-002 | 3 | 3 |
+| BM-003 | 3 | 3 |
+| BM-004 | 3 | 3 |
+| BM-005 | 3 | 3 |
 
-Next experiment: the user manually accepts the EULA, then runs the exact BM-001 command above. Do not start another feature branch while G0 is failing.
+No M1 acceptance work remains. Later milestone work may resume only under its own evidence gates; M1 evidence remains immutable.

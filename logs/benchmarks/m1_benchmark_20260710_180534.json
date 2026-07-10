@@ -1,0 +1,267 @@
+[
+  {
+    "task_id": "BM-002",
+    "task_name": "Craft workbench",
+    "status": "pass",
+    "cycles": 1,
+    "duration_s": 5.65,
+    "inventory": {
+      "crafting_table": 1
+    },
+    "error": "",
+    "failure_reason": "",
+    "intervention_metrics": {
+      "policy_hint_count": 0,
+      "policy_intervention_count": 0,
+      "policy_intervention_actions": 0,
+      "policy_intervention_successes": 0,
+      "policy_intervention_failures": 0,
+      "policy_intervention_success_rate": 0.0,
+      "policy_intervention_skills": [],
+      "visual_action_suggestion_event_count": 0,
+      "visual_action_suggestion_count": 0,
+      "visual_action_intervention_count": 0,
+      "visual_action_suggestion_kinds": {},
+      "visual_action_intervention_kinds": {},
+      "visual_action_intervention_phases": {},
+      "visual_action_action_types": {},
+      "visual_action_goals": [],
+      "skill_memory_hint_event_count": 0,
+      "skill_memory_hint_count": 0,
+      "skill_memory_task_families": {},
+      "action_verification_event_count": 1,
+      "action_verification_status_counts": {
+        "accept": 1
+      },
+      "action_verification_action_types": {
+        "craft": 1
+      },
+      "action_verification_blocked_count": 0,
+      "action_candidate_selection_event_count": 0,
+      "action_candidate_selection_repaired_reject_count": 0,
+      "action_candidate_selection_selected_types": {}
+    },
+    "memory_policy_metrics": {
+      "memory_write_count": 7,
+      "memory_read_count": 1,
+      "memory_manage_count": 0,
+      "memory_write_layers": {
+        "episodic": 4,
+        "context": 3
+      },
+      "memory_write_types": {
+        "goal_start": 1,
+        "context": 3,
+        "action_verification": 1,
+        "action": 1,
+        "goal_verification": 1
+      },
+      "memory_read_types": {
+        "opportunity_context": 1
+      },
+      "memory_manage_operations": {},
+      "memory_policy_decisions": {
+        "write_blocked": 7,
+        "read_allowed": 1
+      },
+      "memory_read_filter_event_count": 0,
+      "memory_read_filtered_entries": 0,
+      "memory_read_filter_reasons": {},
+      "memory_retrieval_trace_event_count": 0,
+      "weighted_memory_read_count": 0,
+      "weighted_memory_match_count": 0,
+      "weighted_transfer_match_count": 0,
+      "memory_attribution_policy_counts": {}
+    },
+    "log": "logs\\session_8679dd7e-ecb.jsonl",
+    "session_id": "8679dd7e-ecb",
+    "session_sha256": "6aa293ef8fab2f69756f27d945c68085dbf706ac4f39dc215e3c2878fbaba150",
+    "goal_verified": true,
+    "criteria_verified": true,
+    "termination_reason": "goal_verified",
+    "setup_evidence": {
+      "success": true,
+      "error": "",
+      "profile": "m1-fixed-v1",
+      "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "episode_id": "m1_episode_20260710_180534",
+      "level_name": "m1_episode_20260710_180534_bm_002",
+      "seed": "12345",
+      "server_brand": "Paper",
+      "observed_minecraft_version": "1.20.4",
+      "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+      "task_id": "BM-002",
+      "expected": {
+        "initial_inventory": {
+          "oak_planks": 4
+        },
+        "initial_blocks": [],
+        "game_mode": "survival",
+        "difficulty": "peaceful",
+        "time_of_day": 1000,
+        "weather": "clear"
+      },
+      "before_state": {
+        "position": {
+          "x": 87.5,
+          "y": 140,
+          "z": -40.5
+        },
+        "spawn_position": {
+          "x": 96,
+          "y": 144,
+          "z": -32
+        },
+        "health": 20,
+        "food": 20,
+        "inventory": {},
+        "game_mode": "survival",
+        "difficulty": "peaceful",
+        "dimension": "overworld",
+        "time_of_day": 97,
+        "weather": "clear",
+        "fixture": {
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -32
+          },
+          "block": "air"
+        }
+      },
+      "after_state": {
+        "position": {
+          "x": 96.5,
+          "y": 144,
+          "z": -31.5
+        },
+        "spawn_position": {
+          "x": 96,
+          "y": 144,
+          "z": -32
+        },
+        "health": 20,
+        "food": 20,
+        "inventory": {
+          "oak_planks": 4
+        },
+        "game_mode": "survival",
+        "difficulty": "peaceful",
+        "dimension": "overworld",
+        "time_of_day": 1038,
+        "weather": "clear",
+        "fixture": {
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -32
+          },
+          "block": "air"
+        }
+      },
+      "checks": {
+        "inventory_exact": true,
+        "position_at_spawn": true,
+        "position_distance": 0.707,
+        "game_mode": true,
+        "difficulty": true,
+        "dimension": true,
+        "daytime": true,
+        "time_initialized": true,
+        "weather": true,
+        "health": true,
+        "food": true,
+        "fixture": true
+      },
+      "failed_checks": [],
+      "command_count": 11
+    },
+    "evidence_validation": {
+      "profile": "m1_session_evidence_v1",
+      "protocol": "m1-fixed-v1",
+      "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "passed": true,
+      "runtime_profile_isolated": true,
+      "reset_verified": true,
+      "goal_verifier_event_achieved": true,
+      "action_event_count": 1,
+      "relevant_action_type": "craft",
+      "relevant_success_count": 1,
+      "transition_proof_count": 1,
+      "transition_proofs": [
+        {
+          "relevant": true,
+          "passed": true,
+          "action_type": "craft",
+          "target_item": "crafting_table",
+          "before_count": 0,
+          "after_count": 1,
+          "inventory_delta": 1,
+          "issues": [],
+          "crafted_item": "crafting_table"
+        }
+      ],
+      "navigation_proof_count": 0,
+      "unreached_navigation_count": 0,
+      "dependent_after_unreached_count": 0,
+      "initial_inventory": {
+        "oak_planks": 4
+      },
+      "final_inventory": {
+        "crafting_table": 1
+      },
+      "inventory_delta": {
+        "crafting_table": 1,
+        "oak_planks": -4
+      },
+      "issues": []
+    },
+    "runtime_profile": {
+      "profile": "m1_minimal_runtime_v1",
+      "protocol": "m1-fixed-v1",
+      "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "agent_id": "singularity-agent-v1",
+      "planner_id": "rule-based-v1",
+      "action_backend_id": "mineflayer-bridge-v1",
+      "verifier_id": "goal-action-verifier-v1",
+      "isolated": true,
+      "settings": {
+        "force_rule_planner": true,
+        "llm_planner": false,
+        "policy_skills": false,
+        "skill_frontier_routing": false,
+        "autocurriculum": false,
+        "memory_policy": false,
+        "planning_memory": false,
+        "memory_persistence": false,
+        "task_memory": false,
+        "task_continuity": false,
+        "task_readiness": false,
+        "task_readiness_recovery": false,
+        "bounded_planning_context": false,
+        "skill_memory": false,
+        "curriculum_planner_context": false,
+        "knowledge_correction_context": false,
+        "task_precondition_context": false,
+        "plan_cache": false,
+        "episode_abort_mode": "off",
+        "frontier_budget_mode": "off",
+        "weighted_memory": false,
+        "coaching": false,
+        "vision": false,
+        "visual_action_grounding": false,
+        "screenshot_capture": false,
+        "self_evolution": false,
+        "goal_critic": false,
+        "world_model_curriculum": false,
+        "action_candidate_selection": false,
+        "multiagent": false,
+        "goal_verification": true,
+        "action_verification": true,
+        "ungated_artifact_path_count": 0
+      }
+    },
+    "evidence_kind": "live_minecraft",
+    "protocol_eligible": true
+  }
+]

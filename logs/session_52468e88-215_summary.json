@@ -1,0 +1,157 @@
+{
+  "session_id": "52468e88-215",
+  "duration_s": 6.7,
+  "total_events": 24,
+  "action_count": 1,
+  "error_count": 0,
+  "intervention_metrics": {
+    "policy_hint_count": 0,
+    "policy_intervention_count": 0,
+    "policy_intervention_actions": 0,
+    "policy_intervention_successes": 0,
+    "policy_intervention_failures": 0,
+    "policy_intervention_success_rate": 0.0,
+    "policy_intervention_skills": [],
+    "visual_action_suggestion_event_count": 0,
+    "visual_action_suggestion_count": 0,
+    "visual_action_intervention_count": 0,
+    "visual_action_suggestion_kinds": {},
+    "visual_action_intervention_kinds": {},
+    "visual_action_intervention_phases": {},
+    "visual_action_action_types": {},
+    "visual_action_goals": [],
+    "skill_memory_hint_event_count": 0,
+    "skill_memory_hint_count": 0,
+    "skill_memory_task_families": {},
+    "action_verification_event_count": 1,
+    "action_verification_status_counts": {
+      "accept": 1
+    },
+    "action_verification_action_types": {
+      "craft": 1
+    },
+    "action_verification_blocked_count": 0,
+    "action_candidate_selection_event_count": 0,
+    "action_candidate_selection_repaired_reject_count": 0,
+    "action_candidate_selection_selected_types": {}
+  },
+  "visual_action_metrics": {
+    "visual_action_suggestion_event_count": 0,
+    "visual_action_suggestion_count": 0,
+    "visual_action_intervention_count": 0,
+    "visual_action_suggestion_kinds": {},
+    "visual_action_intervention_kinds": {},
+    "visual_action_intervention_phases": {},
+    "visual_action_action_types": {},
+    "visual_action_goals": []
+  },
+  "skill_memory_metrics": {
+    "skill_memory_hint_event_count": 0,
+    "skill_memory_hint_count": 0,
+    "skill_memory_task_families": {}
+  },
+  "action_verification_metrics": {
+    "action_verification_event_count": 1,
+    "action_verification_status_counts": {
+      "accept": 1
+    },
+    "action_verification_action_types": {
+      "craft": 1
+    },
+    "action_verification_blocked_count": 0
+  },
+  "action_candidate_selection_metrics": {
+    "action_candidate_selection_event_count": 0,
+    "action_candidate_selection_repaired_reject_count": 0,
+    "action_candidate_selection_selected_types": {}
+  },
+  "goal_verification_metrics": {
+    "count": 1,
+    "achieved": 1,
+    "failed": 0,
+    "unknown": 0,
+    "accepted": 1,
+    "rejected": 0,
+    "acceptance_reasons": {}
+  },
+  "plan_cache_metrics": {
+    "plan_cache_hit_count": 0,
+    "plan_cache_hybrid_hint_count": 0,
+    "plan_cache_workflow_intervention_count": 0,
+    "plan_cache_miss_count": 0,
+    "plan_cache_signature_count": 0,
+    "plan_cache_hit_rate": 0.0,
+    "plan_cache_hit_entries": {},
+    "plan_cache_hit_goals": [],
+    "plan_cache_execution_stage_counts": {
+      "hybrid": 0,
+      "deterministic": 0
+    }
+  },
+  "episode_abort_metrics": {
+    "runtime_gate_event_count": 0,
+    "requested_mode": "off",
+    "effective_mode": "off",
+    "gate_readiness": "not_configured",
+    "viability_probe_count": 0,
+    "early_abort_trigger_count": 0,
+    "active_early_abort_count": 0,
+    "shadow_would_abort_count": 0,
+    "probe_round_counts": {},
+    "average_viability_risk_score": 0.0
+  },
+  "frontier_budget_metrics": {
+    "runtime_gate_event_count": 0,
+    "requested_mode": "off",
+    "effective_mode": "off",
+    "policy": "information",
+    "allocation_event_count": 0,
+    "planner_context_event_count": 0,
+    "outcome_event_count": 0,
+    "completed_outcome_count": 0,
+    "recovery_credit_event_count": 0,
+    "recovered_rounds": 0,
+    "reallocated_rounds_consumed": 0,
+    "allocation_pool_rounds": 0,
+    "allocated_rounds": 0,
+    "budget_conservation_failure_count": 0,
+    "policy_counts": {}
+  },
+  "memory_policy_metrics": {
+    "memory_write_count": 8,
+    "memory_read_count": 1,
+    "memory_manage_count": 1,
+    "memory_write_layers": {
+      "episodic": 5,
+      "context": 3
+    },
+    "memory_write_types": {
+      "goal_start": 1,
+      "context": 3,
+      "action_verification": 1,
+      "action": 1,
+      "goal_verification": 1,
+      "goal_end": 1
+    },
+    "memory_read_types": {
+      "opportunity_context": 1
+    },
+    "memory_manage_operations": {
+      "save_session": 1
+    },
+    "memory_policy_decisions": {
+      "write_blocked": 8,
+      "read_allowed": 1,
+      "manage_blocked": 1
+    },
+    "memory_read_filter_event_count": 0,
+    "memory_read_filtered_entries": 0,
+    "memory_read_filter_reasons": {},
+    "memory_retrieval_trace_event_count": 0,
+    "weighted_memory_read_count": 0,
+    "weighted_memory_match_count": 0,
+    "weighted_transfer_match_count": 0,
+    "memory_attribution_policy_counts": {}
+  },
+  "log_path": "logs\\session_52468e88-215.jsonl"
+}

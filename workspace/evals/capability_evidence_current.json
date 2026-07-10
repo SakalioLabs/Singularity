@@ -1,7 +1,7 @@
 {
   "type": "capability_evidence_report",
   "schema_version": 2,
-  "generated_at": "2026-07-10T07:22:10.590724+00:00",
+  "generated_at": "2026-07-10T10:39:41.058460+00:00",
   "readiness": "rejected",
   "claim_readiness": "approved",
   "system_status": "incomplete",
@@ -21,7 +21,29 @@
     "status_path": "workspace/STATUS.md",
     "source_root": ".",
     "benchmark_result_paths": [
-      "logs/benchmarks/benchmark_results.json"
+      "logs/benchmarks/m1_benchmark_20260710_174239.json",
+      "logs/benchmarks/m1_benchmark_20260710_174806.json",
+      "logs/benchmarks/m1_benchmark_20260710_175231.json",
+      "logs/benchmarks/m1_benchmark_20260710_175931.json",
+      "logs/benchmarks/m1_benchmark_20260710_180117.json",
+      "logs/benchmarks/m1_benchmark_20260710_180210.json",
+      "logs/benchmarks/m1_benchmark_20260710_180422.json",
+      "logs/benchmarks/m1_benchmark_20260710_180456.json",
+      "logs/benchmarks/m1_benchmark_20260710_180534.json",
+      "logs/benchmarks/m1_benchmark_20260710_180608.json",
+      "logs/benchmarks/m1_benchmark_20260710_180643.json",
+      "logs/benchmarks/m1_benchmark_20260710_180714.json",
+      "logs/benchmarks/m1_benchmark_20260710_180752.json",
+      "logs/benchmarks/m1_benchmark_20260710_181023.json",
+      "logs/benchmarks/m1_benchmark_20260710_181400.json",
+      "logs/benchmarks/m1_benchmark_20260710_181649.json",
+      "logs/benchmarks/m1_benchmark_20260710_181909.json",
+      "logs/benchmarks/m1_benchmark_20260710_182225.json",
+      "logs/benchmarks/m1_benchmark_20260710_182346.json",
+      "logs/benchmarks/m1_benchmark_20260710_182505.json",
+      "logs/benchmarks/m1_benchmark_20260710_182625.json",
+      "logs/benchmarks/m1_benchmark_20260710_182705.json",
+      "logs/benchmarks/m1_benchmark_20260710_182736.json"
     ],
     "phase_evidence_paths": {
       "M3": [
@@ -37,86 +59,16 @@
       ]
     }
   },
-  "runtime_evidence": {
-    "ok": false,
-    "checks": [
-      {
-        "name": "python:pydantic",
-        "status": "pass",
-        "detail": "import available",
-        "remedy": ""
-      },
-      {
-        "name": "python:openai",
-        "status": "pass",
-        "detail": "import available",
-        "remedy": ""
-      },
-      {
-        "name": "python:anthropic",
-        "status": "warn",
-        "detail": "optional provider package missing",
-        "remedy": "pip install anthropic if using this provider"
-      },
-      {
-        "name": "java",
-        "status": "pass",
-        "detail": "openjdk version \"25.0.1\" 2025-10-21 LTS",
-        "remedy": ""
-      },
-      {
-        "name": "node",
-        "status": "pass",
-        "detail": "v22.16.0",
-        "remedy": ""
-      },
-      {
-        "name": "npm",
-        "status": "pass",
-        "detail": "11.4.2",
-        "remedy": ""
-      },
-      {
-        "name": "node_dependencies",
-        "status": "pass",
-        "detail": "mineflayer dependencies installed",
-        "remedy": ""
-      },
-      {
-        "name": "bot_bridge",
-        "status": "fail",
-        "detail": "127.0.0.1:3000 accepted TCP but is not a healthy Singularity bridge (Empty response from bot bridge for command 'health')",
-        "remedy": "choose an unused bridge port (for example 30000) instead of 127.0.0.1:3000; pass that same --bridge-port to the Node bridge and Python"
-      },
-      {
-        "name": "bot_session",
-        "status": "fail",
-        "detail": "not checked because the bot_bridge protocol check failed",
-        "remedy": "choose an unused bridge port (for example 30000) instead of 127.0.0.1:3000; pass that same --bridge-port to the Node bridge and Python"
-      },
-      {
-        "name": "m1_harness",
-        "status": "fail",
-        "detail": "not checked because the live bridge session is unavailable",
-        "remedy": "start the controlled M1 runtime with scripts/m1-runtime.ps1"
-      },
-      {
-        "name": "minecraft_server",
-        "status": "fail",
-        "detail": "localhost:25565 unavailable (timed out)",
-        "remedy": "start the Minecraft server and confirm host/port"
-      }
-    ]
-  },
+  "runtime_evidence": {},
   "summary": {
     "phase_count": 8,
-    "declared_complete_count": 1,
-    "supported_completion_count": 1,
+    "declared_complete_count": 2,
+    "supported_completion_count": 2,
     "contradicted_completion_count": 0,
     "unsupported_completion_count": 0,
-    "repeat_verified_phase_count": 0,
+    "repeat_verified_phase_count": 1,
     "live_observed_phase_count": 0,
-    "failing_phase_count": 4,
+    "failing_phase_count": 3,
     "system_complete": false
   },
   "contradicted_phases": [],
@@ -175,15 +127,15 @@
       "id": "M1",
       "name": "Minimum Viable Bot",
       "evidence_kind": "benchmark",
-      "status": "failing",
-      "completion_claim_allowed": false,
+      "status": "repeat_verified",
+      "completion_claim_allowed": true,
       "declared": {
         "name": "Minimum Viable Bot",
-        "status": "Live failing",
-        "progress": "BM-001..005 each 0/3; 0/15 required live successes"
+        "status": "Complete (repeat verified)",
+        "progress": "BM-001..005 each 3/3; 15/15 distinct eligible live successes"
       },
-      "declared_complete": false,
-      "claim_assessment": "not_claimed_complete",
+      "declared_complete": true,
+      "claim_assessment": "supported",
       "source_ready": true,
       "source_checks": [
         {
@@ -204,85 +156,225 @@
         }
       ],
       "required_benchmark_count": 5,
-      "live_observed_benchmark_count": 0,
-      "repeat_verified_benchmark_count": 0,
+      "live_observed_benchmark_count": 5,
+      "repeat_verified_benchmark_count": 5,
       "benchmarks": [
         {
           "task_id": "BM-001",
-          "status": "failing",
-          "attempts": 1,
-          "successes": 0,
-          "failures": 1,
-          "ineligible_successes": 0,
-          "ineligibility_reasons": [],
+          "status": "repeat_verified",
+          "attempts": 12,
+          "successes": 3,
+          "failures": 3,
+          "ineligible_successes": 6,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "benchmark_reset_not_successful",
+            "benchmark_reset_task_mismatch",
+            "benchmark_reset_seed_mismatch",
+            "benchmark_minecraft_version_mismatch",
+            "benchmark_server_brand_not_paper",
+            "benchmark_server_jar_hash_mismatch",
+            "benchmark_reset_checks_not_verified",
+            "fresh_episode_level_not_proven",
+            "session_evidence_validation_not_passed",
+            "m1_runtime_not_isolated",
+            "m1_agent_identity_mismatch",
+            "m1_planner_identity_mismatch",
+            "m1_action_backend_identity_mismatch",
+            "m1_verifier_identity_mismatch",
+            "setup_protocol_hash_mismatch",
+            "validation_protocol_hash_mismatch"
+          ],
           "repeats_required": 3,
           "evidence_refs": [
-            "logs\\session_2818ff2a-612.jsonl"
+            "8ddbc702-6e0:logs\\session_8ddbc702-6e0.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_174239.json:$[0].setup_evidence",
+            "f633f0c0-1de:logs\\session_f633f0c0-1de.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_174806.json:$[0].setup_evidence",
+            "a6441b83-31e:logs\\session_a6441b83-31e.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_175231.json:$[0].setup_evidence",
+            "f0d8e29a-df0:logs\\session_f0d8e29a-df0.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_175931.json:$[0].setup_evidence",
+            "df255fd9-1e8:logs\\session_df255fd9-1e8.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_180117.json:$[0].setup_evidence",
+            "f4d54be2-914:logs\\session_f4d54be2-914.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_180210.json:$[0].setup_evidence"
           ]
         },
         {
           "task_id": "BM-002",
-          "status": "failing",
-          "attempts": 1,
-          "successes": 0,
-          "failures": 1,
-          "ineligible_successes": 0,
-          "ineligibility_reasons": [],
+          "status": "repeat_verified",
+          "attempts": 6,
+          "successes": 3,
+          "failures": 0,
+          "ineligible_successes": 3,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "benchmark_reset_not_successful",
+            "benchmark_reset_task_mismatch",
+            "benchmark_reset_seed_mismatch",
+            "benchmark_minecraft_version_mismatch",
+            "benchmark_server_brand_not_paper",
+            "benchmark_server_jar_hash_mismatch",
+            "benchmark_reset_checks_not_verified",
+            "benchmark_reset_inventory_mismatch",
+            "fresh_episode_level_not_proven",
+            "session_evidence_validation_not_passed",
+            "m1_runtime_not_isolated",
+            "m1_agent_identity_mismatch",
+            "m1_planner_identity_mismatch",
+            "m1_action_backend_identity_mismatch",
+            "m1_verifier_identity_mismatch",
+            "setup_protocol_hash_mismatch"
+          ],
           "repeats_required": 3,
           "evidence_refs": [
-            "logs\\session_bcd06511-00a.jsonl"
+            "1d4c1893-f9f:logs\\session_1d4c1893-f9f.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_180422.json:$[0].setup_evidence",
+            "0fdd3cde-efa:logs\\session_0fdd3cde-efa.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_180456.json:$[0].setup_evidence",
+            "8679dd7e-ecb:logs\\session_8679dd7e-ecb.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_180534.json:$[0].setup_evidence"
           ]
         },
         {
           "task_id": "BM-003",
-          "status": "failing",
-          "attempts": 1,
-          "successes": 0,
-          "failures": 1,
-          "ineligible_successes": 0,
-          "ineligibility_reasons": [],
+          "status": "repeat_verified",
+          "attempts": 6,
+          "successes": 3,
+          "failures": 0,
+          "ineligible_successes": 3,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "benchmark_reset_not_successful",
+            "benchmark_reset_task_mismatch",
+            "benchmark_reset_seed_mismatch",
+            "benchmark_minecraft_version_mismatch",
+            "benchmark_server_brand_not_paper",
+            "benchmark_server_jar_hash_mismatch",
+            "benchmark_reset_checks_not_verified",
+            "benchmark_reset_inventory_mismatch",
+            "fresh_episode_level_not_proven",
+            "session_evidence_validation_not_passed",
+            "m1_runtime_not_isolated",
+            "m1_agent_identity_mismatch",
+            "m1_planner_identity_mismatch",
+            "m1_action_backend_identity_mismatch",
+            "m1_verifier_identity_mismatch",
+            "setup_protocol_hash_mismatch"
+          ],
           "repeats_required": 3,
           "evidence_refs": [
-            "logs\\session_dc8fff18-00b.jsonl"
+            "0de69547-12e:logs\\session_0de69547-12e.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_180608.json:$[0].setup_evidence",
+            "0b5c8694-31f:logs\\session_0b5c8694-31f.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_180643.json:$[0].setup_evidence",
+            "52468e88-215:logs\\session_52468e88-215.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_180714.json:$[0].setup_evidence"
           ]
         },
         {
           "task_id": "BM-004",
-          "status": "failing",
-          "attempts": 1,
-          "successes": 0,
-          "failures": 1,
-          "ineligible_successes": 0,
-          "ineligibility_reasons": [],
+          "status": "repeat_verified",
+          "attempts": 16,
+          "successes": 3,
+          "failures": 5,
+          "ineligible_successes": 8,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "benchmark_reset_not_successful",
+            "benchmark_reset_task_mismatch",
+            "benchmark_reset_seed_mismatch",
+            "benchmark_minecraft_version_mismatch",
+            "benchmark_server_brand_not_paper",
+            "benchmark_server_jar_hash_mismatch",
+            "benchmark_reset_checks_not_verified",
+            "benchmark_reset_inventory_mismatch",
+            "fresh_episode_level_not_proven",
+            "session_evidence_validation_not_passed",
+            "m1_runtime_not_isolated",
+            "m1_agent_identity_mismatch",
+            "m1_planner_identity_mismatch",
+            "m1_action_backend_identity_mismatch",
+            "m1_verifier_identity_mismatch",
+            "setup_protocol_hash_mismatch"
+          ],
           "repeats_required": 3,
           "evidence_refs": [
-            "logs\\session_4138b270-949.jsonl"
+            "80471d30-a4c:logs\\session_80471d30-a4c.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_180752.json:$[0].setup_evidence",
+            "2cd17442-323:logs\\session_2cd17442-323.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_181023.json:$[0].setup_evidence",
+            "6069bf83-671:logs\\session_6069bf83-671.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_181400.json:$[0].setup_evidence",
+            "879f0bf0-111:logs\\session_879f0bf0-111.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_181649.json:$[0].setup_evidence",
+            "0a26b8b3-d12:logs\\session_0a26b8b3-d12.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_181909.json:$[0].setup_evidence",
+            "78004a77-cf0:logs\\session_78004a77-cf0.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_182225.json:$[0].setup_evidence",
+            "af9c0ca8-a60:logs\\session_af9c0ca8-a60.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_182346.json:$[0].setup_evidence",
+            "dc63e525-8c8:logs\\session_dc63e525-8c8.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_182505.json:$[0].setup_evidence"
           ]
         },
         {
           "task_id": "BM-005",
-          "status": "failing",
-          "attempts": 1,
-          "successes": 0,
-          "failures": 1,
-          "ineligible_successes": 0,
-          "ineligibility_reasons": [],
+          "status": "repeat_verified",
+          "attempts": 6,
+          "successes": 3,
+          "failures": 0,
+          "ineligible_successes": 3,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "benchmark_reset_not_successful",
+            "benchmark_reset_task_mismatch",
+            "benchmark_reset_seed_mismatch",
+            "benchmark_minecraft_version_mismatch",
+            "benchmark_server_brand_not_paper",
+            "benchmark_server_jar_hash_mismatch",
+            "benchmark_reset_checks_not_verified",
+            "benchmark_reset_inventory_mismatch",
+            "fresh_episode_level_not_proven",
+            "session_evidence_validation_not_passed",
+            "m1_runtime_not_isolated",
+            "m1_agent_identity_mismatch",
+            "m1_planner_identity_mismatch",
+            "m1_action_backend_identity_mismatch",
+            "m1_verifier_identity_mismatch",
+            "setup_protocol_hash_mismatch"
+          ],
           "repeats_required": 3,
           "evidence_refs": [
-            "logs\\session_67ba45ce-2e1.jsonl"
+            "96ed78a1-bbd:logs\\session_96ed78a1-bbd.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_182625.json:$[0].setup_evidence",
+            "6f3c70d4-57b:logs\\session_6f3c70d4-57b.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_182705.json:$[0].setup_evidence",
+            "659a69fe-6fc:logs\\session_659a69fe-6fc.jsonl",
+            "logs/benchmarks/m1_benchmark_20260710_182736.json:$[0].setup_evidence"
           ]
         }
       ],
       "live_evidence": {},
       "required_live_execution_count": 0,
       "live_observed_execution_count": 0,
-      "missing_evidence": [
-        "BM-001:needs_3_more_successes",
-        "BM-002:needs_3_more_successes",
-        "BM-003:needs_3_more_successes",
-        "BM-004:needs_3_more_successes",
-        "BM-005:needs_3_more_successes"
-      ]
+      "missing_evidence": []
     },
     {
       "id": "M2",
@@ -2751,8 +2843,6 @@
   ],
   "errors": [],
   "recommendations": [
-    "restore_live_minecraft_preflight_before_new_capability_claims",
-    "diagnose_and_rerun_m1_benchmarks",
     "run_m2_benchmarks",
     "diagnose_and_rerun_m3_live_evidence",
     "run_m4_benchmarks",

@@ -388,6 +388,35 @@ class TestRulePlanner(unittest.TestCase):
             {"type": "move_to", "parameters": {"x": 10, "z": 10, "tolerance": 1.75}},
         ])
 
+    def test_gather_wood_digs_after_horizontal_navigation_reaches_target(self):
+        obs = {
+            "inventory": {},
+            "position": {"x": 99.3633, "y": 145, "z": -31.5},
+            "trees_found": [{
+                "name": "oak_log",
+                "position": {"x": 99, "y": 143, "z": -33},
+                "distance": 2.236,
+            }],
+        }
+        plan = self.planner.plan_from_goal("Gather 3 oak logs", obs)
+        self.assertEqual(plan["actions"], [
+            {"type": "dig", "parameters": {"block": "oak_log", "x": 99, "y": 143, "z": -33}},
+        ])
+
+    def test_gather_wood_ignores_other_log_species(self):
+        obs = {
+            "inventory": {},
+            "position": {"x": 96.5, "y": 144, "z": -31.5},
+            "trees_found": [{
+                "name": "dark_oak_log",
+                "position": {"x": 99, "y": 143, "z": -33},
+                "distance": 2.236,
+            }],
+        }
+        plan = self.planner.plan_from_goal("Gather 3 oak logs", obs)
+        self.assertNotEqual(plan["actions"][0].get("parameters", {}).get("x"), 99)
+        self.assertEqual(plan["reasoning"], "Exploring direction 45deg to find trees")
+
     def test_gather_wood_explore(self):
         obs = {"inventory": {}, "trees_found": []}
         plan = self.planner.plan_from_goal("Gather 3 oak logs", obs)
@@ -464,10 +493,15 @@ class TestRulePlanner(unittest.TestCase):
         self.assertIn("Need pickaxe", plan["reasoning"])
 
     def test_mine_cobblestone_have_pickaxe(self):
-        obs = {"inventory": {"wooden_pickaxe": 1}}
+        obs = {
+            "inventory": {"wooden_pickaxe": 1},
+            "position": {"x": 0, "y": 64, "z": 0},
+            "nearby_blocks": [],
+        }
         plan = self.planner.plan_from_goal("Mine cobblestone", obs)
-        self.assertEqual(plan["status"], "blocked")
-        self.assertEqual(plan["actions"], [])
+        self.assertEqual(plan["status"], "in_progress")
+        self.assertEqual([action["type"] for action in plan["actions"]], ["move_to", "look_at", "wait"])
+        self.assertNotIn("dig", [action["type"] for action in plan["actions"]])
         self.assertIn("grounded coordinates", plan["reasoning"])
 
     def test_mine_five_cobblestone_uses_observed_stone_coordinates(self):
@@ -485,7 +519,7 @@ class TestRulePlanner(unittest.TestCase):
         move = next(action for action in plan["actions"] if action["type"] == "move_to")
         self.assertEqual(move["parameters"]["tolerance"], 1.75)
         dig = next(action for action in plan["actions"] if action["type"] == "dig")
-        self.assertEqual(dig["parameters"], {"x": 2, "y": 63, "z": 1})
+        self.assertEqual(dig["parameters"], {"block": "stone", "x": 2, "y": 63, "z": 1})
         self.assertIn("Need 2 more cobblestone", plan["reasoning"])
 
     def test_mine_visible_goal_resource(self):

@@ -1,11 +1,11 @@
 # STATUS.md | Last updated: 2026-07-10
 
-## M1 Convergence Freeze
+## M1 Convergence Result
 
-- Sole active capability gate: move M1 from `live_failing` to `repeat_verified`.
-- Current gate: `G0_RUNTIME_AVAILABLE` is failing.
-- Earliest blocker: Paper is provisioned and configured, but `mc-server/eula.txt` remains `eula=false`; only the user may accept it.
-- M2-M7 feature work and research-driven runtime changes are frozen until all five M1 tasks have three distinct verified live successes.
+- M1 is `repeat_verified`.
+- G0 through G5 are complete under the fixed `m1-fixed-v1` protocol.
+- BM-001..005 each have three distinct verified live successes: `15/15` total.
+- The M1 convergence freeze is lifted; M2-M7 retain their own current evidence statuses.
 - Ordered gates, fixed protocol, and stop conditions are in `workspace/CONVERGENCE_PLAN.md`; failure-level evidence is in `workspace/evals/m1_failure_ledger.json`.
 
 ## Evidence Policy
@@ -23,7 +23,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | Phase | Name | Status | Progress |
 |-------|------|--------|----------|
 | M0 | Research Baseline | **Complete (source verified)** | Research deliverables present |
-| M1 | Minimum Viable Bot | **Live failing** | BM-001..005 each 0/3; 0/15 required live successes |
+| M1 | Minimum Viable Bot | **Complete (repeat verified)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Evidence pending** | BM-006..010: no tracked execution evidence |
 | M3 | Skill Library & Memory | **Live failing** | 0/37 sessions qualify; no memory reads/writes and 2,601 unbounded context cycles |
 | M4 | Autonomous Survival | **Evidence pending** | BM-011..014: no tracked execution evidence |
@@ -37,11 +37,11 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 
 - Python, Java, Node.js, npm, and Mineflayer dependencies pass local preflight.
 - Pinned Paper 1.20.4 build 499 is present in the ignored runtime directory and its SHA-256 is verified.
-- Paper generated `server.properties` and `eula.txt`; fixed server settings and the offline `Singularity` operator are ready, while EULA acceptance remains false.
+- Paper generated `server.properties` and `eula.txt`; the user authorized EULA acceptance, and the fixed server settings plus offline `Singularity` operator passed live preflight.
 - Port `3000` accepts TCP through `svchost.exe`, but fails the Singularity `health` protocol and now correctly fails the `bot_bridge` check.
-- Raw current evidence is `logs/benchmarks/m1_runtime_blocker_20260710_151512.json`; runtime blocker evidence is explicitly ineligible for live capability counts.
+- Immutable result, preflight, manifest, and session evidence covers 23 live attempts; exactly 15 eligible successes count toward M1.
 - `scripts/m1-runtime.ps1` provides a controlled one-task startup path on bridge port `30000`, creates a fresh level, records the server jar hash, restores server properties, and never accepts or edits the Minecraft EULA.
-- The G1 harness is implemented and offline-tested: canonical reset state, BM-004's five-cobblestone threshold, per-task limits, deterministic runtime isolation, transition evidence, and immutable sessions are enforced. G1 remains live-unverified behind G0.
+- The G1 harness is live-verified: canonical reset state, BM-004's five-cobblestone threshold, per-task limits, deterministic runtime isolation, transition evidence, and immutable sessions are enforced.
 
 ## Latest Verified Engineering Changes
 
@@ -75,8 +75,6 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 
 ## Next Acceptance Work
 
-1. Read the Minecraft EULA and, only if accepted, manually set `eula=true` in `mc-server/eula.txt`.
-2. Run `powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001`.
-3. Localize BM-001's first unrecovered live transition and change only that layer.
-4. Progress BM-002..005 in dependency order, never overwriting evidence.
-5. Collect 15 distinct successes under one Paper jar hash and regenerate capability evidence; only `repeat_verified` reopens later milestones.
+1. Preserve the 15 counted M1 sessions and their immutable result/preflight/manifest files.
+2. Keep the deterministic M1 baseline unchanged unless a future regression produces new live evidence.
+3. Select the next milestone from its own earliest failing evidence gate; M1 no longer blocks that choice.

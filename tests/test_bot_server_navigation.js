@@ -6,6 +6,7 @@ const {
     createWalkToHandler,
     navigationDistance,
     navigationTimeoutMs,
+    prioritizeTreeResults,
 } = require('../src/bot/bot_server');
 
 function mockBot(position = new Vec3(0, 64, 0)) {
@@ -58,6 +59,26 @@ async function testMoveToRejectsFalseSuccessfulPathfinderCompletion() {
     assert.match(result.error, /without reaching/);
     assert.ok(result.distance_to_target > result.tolerance);
     console.log('PASS: move_to rejects pathfinder completion outside target tolerance');
+}
+
+async function testMoveToAcceptsMeasuredArrivalAfterLatePathfinderError() {
+    const bot = mockBot();
+    bot.pathfinder.goto = async () => {
+        bot.entity.position = new Vec3(9, 64, 0);
+        throw new Error('late pathfinder failure');
+    };
+    const handler = createMoveToHandler(
+        () => ({ bot, botReady: true }),
+        { goalFactory },
+    );
+
+    const result = await handler({ x: 10, z: 0, tolerance: 2 });
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.reached, true);
+    assert.ok(result.distance_to_target <= result.tolerance);
+    assert.match(result.pathfinder_warning, /late pathfinder failure/);
+    console.log('PASS: move_to uses measured arrival after a late pathfinder error');
 }
 
 async function testMoveToRejectsInvalidCoordinatesAndUnavailableBot() {
@@ -133,13 +154,34 @@ function testNavigationMetricsAreBoundedAndDeterministic() {
     console.log('PASS: navigation distance and timeout metrics are bounded');
 }
 
+function testTreeResultsPreserveNearestCandidatePerSpecies() {
+    const trees = Array.from({ length: 12 }, (_, index) => ({
+        name: 'dark_oak_log',
+        position: { x: index, y: 64, z: 0 },
+        distance: index + 1,
+    }));
+    trees.push({
+        name: 'oak_log',
+        position: { x: 14, y: 64, z: 0 },
+        distance: 14,
+    });
+
+    const selected = prioritizeTreeResults(trees, 10);
+
+    assert.strictEqual(selected.filter(tree => tree.name === 'dark_oak_log').length, 10);
+    assert.strictEqual(selected.filter(tree => tree.name === 'oak_log').length, 1);
+    console.log('PASS: tree scan preserves a nearest candidate for every observed species');
+}
+
 (async () => {
     await testMoveToSucceedsOnlyInsideTolerance();
     await testMoveToRejectsFalseSuccessfulPathfinderCompletion();
+    await testMoveToAcceptsMeasuredArrivalAfterLatePathfinderError();
     await testMoveToRejectsInvalidCoordinatesAndUnavailableBot();
     await testMoveToSelectsHorizontalOrThreeDimensionalGoal();
     await testWalkToUsesHorizontalDistanceUnlessYIsExplicit();
     testNavigationMetricsAreBoundedAndDeterministic();
+    testTreeResultsPreserveNearestCandidatePerSpecies();
     console.log('\nBot server navigation tests PASSED');
 })().catch((error) => {
     console.error(error);

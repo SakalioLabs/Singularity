@@ -217,6 +217,8 @@ class BotBridge:
             except (TypeError, ValueError):
                 action_seconds = 2.0
             action_seconds = max(0.1, min(10.0, action_seconds))
+        elif command == "dig":
+            action_seconds = 10.0
         else:
             action_seconds = baseline
         return min(
@@ -251,7 +253,7 @@ class BotBridge:
         return self._send_command("look_at", {"x": x, "y": y, "z": z})
 
     def dig(self, x: int = None, y: int = None, z: int = None) -> dict:
-        return self._send_command("dig", {"x": x, "y": y, "z": z})
+        return self._send_command_single("dig", {"x": x, "y": y, "z": z})
 
     def place(self, x: int, y: int, z: int, item_name: str = None) -> dict:
         return self._send_command("place", {"x": x, "y": y, "z": z, "item": item_name})

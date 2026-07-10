@@ -319,6 +319,19 @@ function navigationTimeoutMs(distance, requested) {
     return Math.max(5000, Math.min(60000, Math.round(estimated)));
 }
 
+function prioritizeTreeResults(trees, limit = 10) {
+    const sorted = [...(trees || [])].sort((a, b) => Number(a.distance) - Number(b.distance));
+    const selected = sorted.slice(0, Math.max(1, Number(limit) || 10));
+    const selectedNames = new Set(selected.map(tree => tree.name));
+    for (const tree of sorted) {
+        if (!selectedNames.has(tree.name)) {
+            selected.push(tree);
+            selectedNames.add(tree.name);
+        }
+    }
+    return selected.sort((a, b) => Number(a.distance) - Number(b.distance));
+}
+
 function createMoveToHandler(
     getState = () => ({ bot, botReady }),
     options = {},
@@ -395,15 +408,22 @@ function createMoveToHandler(
                 activeBot.pathfinder.stop();
             }
             const finalPosition = activeBot.entity?.position;
-            return {
-                success: false,
-                reached: false,
-                error: e.message,
+            const distance = navigationDistance(finalPosition, target, explicitY !== null);
+            const reached = distance !== null && distance <= tolerance;
+            const result = {
+                success: reached,
+                reached,
                 position: positionPayload(finalPosition),
                 target: positionPayload(target),
-                distance_to_target: navigationDistance(finalPosition, target, explicitY !== null),
+                distance_to_target: distance,
                 tolerance,
             };
+            if (reached) {
+                result.pathfinder_warning = e.message;
+            } else {
+                result.error = e.message;
+            }
+            return result;
         } finally {
             if (timer) clearTimeout(timer);
         }
@@ -568,12 +588,17 @@ async function waitForInventoryIncrease(
     before,
     wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     maxWaitMs = 2000,
+    expectedItems = [],
 ) {
     const pollMs = 100;
+    const expected = new Set(expectedItems || []);
     for (let elapsed = 0; elapsed <= maxWaitMs; elapsed += pollMs) {
         const after = inventoryCounts(activeBot);
         const delta = positiveInventoryDelta(before, after);
-        if (Object.keys(delta).length > 0) {
+        const expectedObserved = expected.size === 0
+            ? Object.keys(delta).length > 0
+            : [...expected].some(name => Number(delta[name] || 0) > 0);
+        if (expectedObserved) {
             return { observed: true, inventory: after, delta, waited_ms: elapsed };
         }
         if (elapsed < maxWaitMs) await wait(pollMs);
@@ -584,6 +609,88 @@ async function waitForInventoryIncrease(
         delta: {},
         waited_ms: maxWaitMs,
     };
+}
+
+function blockDropNames(activeBot, block) {
+    try {
+        const mcData = require('minecraft-data')(activeBot.version);
+        return (block?.drops || [])
+            .map(drop => mcData.items[Number(drop?.id ?? drop)]?.name)
+            .filter(Boolean);
+    } catch (_) {
+        return [];
+    }
+}
+
+function nearestDroppedItem(activeBot, target, expectedItems = []) {
+    const expected = new Set(expectedItems || []);
+    const candidates = [];
+    for (const entity of Object.values(activeBot?.entities || {})) {
+        if (!entity?.position || entity === activeBot.entity) continue;
+        let stack = null;
+        try {
+            stack = typeof entity.getDroppedItem === 'function' ? entity.getDroppedItem() : null;
+        } catch (_) {
+            stack = null;
+        }
+        if (entity.name !== 'item' && !stack) continue;
+        if (stack?.name && expected.size > 0 && !expected.has(stack.name)) continue;
+        const targetDistance = navigationDistance(entity.position, target, true);
+        if (targetDistance === null || targetDistance > 8) continue;
+        candidates.push({
+            entity,
+            item_name: stack?.name || '',
+            target_distance: targetDistance,
+            player_distance: navigationDistance(activeBot.entity.position, entity.position, true),
+        });
+    }
+    candidates.sort((a, b) => Number(a.player_distance) - Number(b.player_distance));
+    return candidates[0] || null;
+}
+
+async function approachDroppedItem(activeBot, target, expectedItems, timeoutMs = 6000) {
+    const drop = nearestDroppedItem(activeBot, target, expectedItems);
+    if (!drop) return { detected: false, attempted: false };
+    const details = {
+        detected: true,
+        attempted: false,
+        entity_id: drop.entity.id ?? null,
+        item_name: drop.item_name,
+        position: positionPayload(drop.entity.position),
+        initial_distance: drop.player_distance,
+    };
+    if (!activeBot.pathfinder || typeof activeBot.pathfinder.goto !== 'function') {
+        return { ...details, error: 'pathfinder is unavailable for pickup collection' };
+    }
+
+    const dropPosition = drop.entity.position.clone
+        ? drop.entity.position.clone()
+        : new Vec3(drop.entity.position.x, drop.entity.position.y, drop.entity.position.z);
+    let timer = null;
+    try {
+        details.attempted = true;
+        const navigation = Promise.resolve(activeBot.pathfinder.goto(
+            new goals.GoalNear(
+                Math.floor(dropPosition.x),
+                Math.floor(dropPosition.y),
+                Math.floor(dropPosition.z),
+                0,
+            ),
+        ));
+        const timeout = new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error(`pickup navigation timed out after ${timeoutMs}ms`)), timeoutMs);
+        });
+        await Promise.race([navigation, timeout]);
+        details.success = true;
+    } catch (error) {
+        details.success = false;
+        details.error = error.message;
+        if (typeof activeBot.pathfinder.stop === 'function') activeBot.pathfinder.stop();
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+    details.final_distance = navigationDistance(activeBot.entity.position, dropPosition, true);
+    return details;
 }
 
 function compactPosition(position) {
@@ -825,17 +932,28 @@ function createDigHandler(
             const target = block.position?.clone ? block.position.clone() : new Vec3(block.position.x, block.position.y, block.position.z);
             const beforeInventory = inventoryCounts(activeBot);
             const blockName = block.name;
+            const expectedDrops = blockDropNames(activeBot, block);
             const targetBlockBefore = {
                 name: blockName,
                 type: Number(block.type),
                 position: compactPosition(target),
             };
             await activeBot.dig(block);
-            const pickup = await waitForInventoryIncrease(activeBot, beforeInventory, wait);
+            let pickup = await waitForInventoryIncrease(activeBot, beforeInventory, wait, 1000, expectedDrops);
+            let pickupCollection = { detected: false, attempted: false };
+            if (!pickup.observed) {
+                pickupCollection = await approachDroppedItem(activeBot, target, expectedDrops);
+                const collected = await waitForInventoryIncrease(activeBot, beforeInventory, wait, 1500, expectedDrops);
+                pickup = {
+                    ...collected,
+                    waited_ms: pickup.waited_ms + collected.waited_ms,
+                };
+            }
             const blockAfter = activeBot.blockAt(target);
             return {
                 success: true,
                 block: blockName,
+                expected_drops: expectedDrops,
                 target: compactPosition(target),
                 block_removed: !blockAfter || blockAfter.type === 0 || blockAfter.name !== blockName,
                 target_block_before: targetBlockBefore,
@@ -847,6 +965,7 @@ function createDigHandler(
                 pickup_observed: pickup.observed,
                 pickup_inventory_delta: pickup.delta,
                 pickup_waited_ms: pickup.waited_ms,
+                pickup_collection: pickupCollection,
             };
         } catch (e) {
             return { success: false, pickup_observed: false, error: e.message };
@@ -1012,8 +1131,8 @@ const handlers = {
     benchmark_protocol: createBenchmarkProtocolHandler(),
     benchmark_reset: createBenchmarkResetHandler(),
 
-    get_nearby_trees: (params) => {
-        const radius = Math.min(params.radius || 16, 16);
+    get_nearby_trees: (params = {}) => {
+        const radius = Math.max(1, Math.min(Number(params.radius) || 16, 32));
         const treeNames = new Set(['oak_log','birch_log','spruce_log','jungle_log','acacia_log','dark_oak_log']);
         const trees = [];
         const pos = bot.entity.position;
@@ -1031,8 +1150,7 @@ const handlers = {
                 }
             }
         }
-        trees.sort((a, b) => a.distance - b.distance);
-        return { trees: trees.slice(0, 10) };
+        return { trees: prioritizeTreeResults(trees, 10) };
     },
     walk_to: createWalkToHandler(),
     move_to: createMoveToHandler(),
@@ -1163,6 +1281,7 @@ module.exports = {
     imageBytesFromCaptureResult,
     navigationDistance,
     navigationTimeoutMs,
+    prioritizeTreeResults,
     positiveInventoryDelta,
     publicScreenshotPluginStatus,
     resolveScreenshotPluginSpec,

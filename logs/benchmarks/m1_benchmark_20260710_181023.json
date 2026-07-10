@@ -1,0 +1,693 @@
+[
+  {
+    "task_id": "BM-004",
+    "task_name": "Mine 5 cobblestone",
+    "status": "fail",
+    "cycles": 23,
+    "duration_s": 125.42,
+    "inventory": {
+      "wooden_pickaxe": 1,
+      "cobblestone": 5
+    },
+    "error": "",
+    "failure_reason": "m1_protocol_evidence_ineligible",
+    "intervention_metrics": {
+      "policy_hint_count": 0,
+      "policy_intervention_count": 0,
+      "policy_intervention_actions": 0,
+      "policy_intervention_successes": 0,
+      "policy_intervention_failures": 0,
+      "policy_intervention_success_rate": 0.0,
+      "policy_intervention_skills": [],
+      "visual_action_suggestion_event_count": 0,
+      "visual_action_suggestion_count": 0,
+      "visual_action_intervention_count": 0,
+      "visual_action_suggestion_kinds": {},
+      "visual_action_intervention_kinds": {},
+      "visual_action_intervention_phases": {},
+      "visual_action_action_types": {},
+      "visual_action_goals": [],
+      "skill_memory_hint_event_count": 0,
+      "skill_memory_hint_count": 0,
+      "skill_memory_task_families": {},
+      "action_verification_event_count": 58,
+      "action_verification_status_counts": {
+        "accept": 58
+      },
+      "action_verification_action_types": {
+        "move_to": 12,
+        "look_at": 23,
+        "wait": 3,
+        "dig": 20
+      },
+      "action_verification_blocked_count": 0,
+      "action_candidate_selection_event_count": 0,
+      "action_candidate_selection_repaired_reject_count": 0,
+      "action_candidate_selection_selected_types": {}
+    },
+    "memory_policy_metrics": {
+      "memory_write_count": 274,
+      "memory_read_count": 23,
+      "memory_manage_count": 0,
+      "memory_write_layers": {
+        "episodic": 170,
+        "context": 104
+      },
+      "memory_write_types": {
+        "goal_start": 1,
+        "context": 104,
+        "action_verification": 58,
+        "task_state_update": 52,
+        "action": 58,
+        "goal_verification": 1
+      },
+      "memory_read_types": {
+        "opportunity_context": 23
+      },
+      "memory_manage_operations": {},
+      "memory_policy_decisions": {
+        "write_blocked": 274,
+        "read_allowed": 23
+      },
+      "memory_read_filter_event_count": 0,
+      "memory_read_filtered_entries": 0,
+      "memory_read_filter_reasons": {},
+      "memory_retrieval_trace_event_count": 0,
+      "weighted_memory_read_count": 0,
+      "weighted_memory_match_count": 0,
+      "weighted_transfer_match_count": 0,
+      "memory_attribution_policy_counts": {}
+    },
+    "log": "logs\\session_2cd17442-323.jsonl",
+    "session_id": "2cd17442-323",
+    "session_sha256": "136cc215e257e4be0c2fe3ab069185a459585e4d282dfc5e1cc73a920e17fffa",
+    "goal_verified": true,
+    "criteria_verified": true,
+    "termination_reason": "goal_verified",
+    "setup_evidence": {
+      "success": true,
+      "error": "",
+      "profile": "m1-fixed-v1",
+      "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "episode_id": "m1_episode_20260710_181023",
+      "level_name": "m1_episode_20260710_181023_bm_004",
+      "seed": "12345",
+      "server_brand": "Paper",
+      "observed_minecraft_version": "1.20.4",
+      "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+      "task_id": "BM-004",
+      "expected": {
+        "initial_inventory": {
+          "wooden_pickaxe": 1
+        },
+        "initial_blocks": [],
+        "game_mode": "survival",
+        "difficulty": "peaceful",
+        "time_of_day": 1000,
+        "weather": "clear"
+      },
+      "before_state": {
+        "position": {
+          "x": 86.5,
+          "y": 131,
+          "z": -35.5
+        },
+        "spawn_position": {
+          "x": 96,
+          "y": 144,
+          "z": -32
+        },
+        "health": 20,
+        "food": 20,
+        "inventory": {},
+        "game_mode": "survival",
+        "difficulty": "peaceful",
+        "dimension": "overworld",
+        "time_of_day": 117,
+        "weather": "clear",
+        "fixture": {
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -32
+          },
+          "block": "air"
+        }
+      },
+      "after_state": {
+        "position": {
+          "x": 96.5,
+          "y": 144,
+          "z": -31.5
+        },
+        "spawn_position": {
+          "x": 96,
+          "y": 144,
+          "z": -32
+        },
+        "health": 20,
+        "food": 20,
+        "inventory": {
+          "wooden_pickaxe": 1
+        },
+        "game_mode": "survival",
+        "difficulty": "peaceful",
+        "dimension": "overworld",
+        "time_of_day": 1056,
+        "weather": "clear",
+        "fixture": {
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -32
+          },
+          "block": "air"
+        }
+      },
+      "checks": {
+        "inventory_exact": true,
+        "position_at_spawn": true,
+        "position_distance": 0.707,
+        "game_mode": true,
+        "difficulty": true,
+        "dimension": true,
+        "daytime": true,
+        "time_initialized": true,
+        "weather": true,
+        "health": true,
+        "food": true,
+        "fixture": true
+      },
+      "failed_checks": [],
+      "command_count": 11
+    },
+    "evidence_validation": {
+      "profile": "m1_session_evidence_v1",
+      "protocol": "m1-fixed-v1",
+      "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "passed": false,
+      "runtime_profile_isolated": true,
+      "reset_verified": true,
+      "goal_verifier_event_achieved": true,
+      "action_event_count": 58,
+      "relevant_action_type": "dig",
+      "relevant_success_count": 20,
+      "transition_proof_count": 5,
+      "transition_proofs": [
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 0,
+          "after_count": 0,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 156,
+            "y": 133,
+            "z": 27
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 0,
+          "after_count": 0,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 156,
+            "y": 133,
+            "z": 26
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 0,
+          "after_count": 0,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 158,
+            "y": 135,
+            "z": 26
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 0,
+          "after_count": 0,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 158,
+            "y": 137,
+            "z": 28
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": true,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 0,
+          "after_count": 1,
+          "inventory_delta": 1,
+          "issues": [],
+          "grounded_position": {
+            "x": 158,
+            "y": 138,
+            "z": 29
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 1,
+          "after_count": 1,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 158,
+            "y": 137,
+            "z": 29
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 1,
+          "after_count": 1,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 159,
+            "y": 138,
+            "z": 28
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": true,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 1,
+          "after_count": 2,
+          "inventory_delta": 1,
+          "issues": [],
+          "grounded_position": {
+            "x": 160,
+            "y": 139,
+            "z": 28
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 2,
+          "after_count": 2,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 159,
+            "y": 139,
+            "z": 29
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 2,
+          "after_count": 2,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 160,
+            "y": 140,
+            "z": 29
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 2,
+          "after_count": 2,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 159,
+            "y": 140,
+            "z": 30
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 2,
+          "after_count": 2,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 160,
+            "y": 141,
+            "z": 30
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 2,
+          "after_count": 2,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 159,
+            "y": 142,
+            "z": 31
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": true,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 2,
+          "after_count": 3,
+          "inventory_delta": 1,
+          "issues": [],
+          "grounded_position": {
+            "x": 160,
+            "y": 143,
+            "z": 31
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 3,
+          "after_count": 3,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 160,
+            "y": 142,
+            "z": 31
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 3,
+          "after_count": 3,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 159,
+            "y": 143,
+            "z": 32
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 3,
+          "after_count": 3,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 159,
+            "y": 144,
+            "z": 32
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": true,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 3,
+          "after_count": 4,
+          "inventory_delta": 1,
+          "issues": [],
+          "grounded_position": {
+            "x": 160,
+            "y": 145,
+            "z": 32
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": false,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 4,
+          "after_count": 4,
+          "inventory_delta": 0,
+          "issues": [
+            "target_inventory_did_not_increase"
+          ],
+          "grounded_position": {
+            "x": 160,
+            "y": 144,
+            "z": 32
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        },
+        {
+          "relevant": true,
+          "passed": true,
+          "action_type": "dig",
+          "target_item": "cobblestone",
+          "before_count": 4,
+          "after_count": 5,
+          "inventory_delta": 1,
+          "issues": [],
+          "grounded_position": {
+            "x": 160,
+            "y": 146,
+            "z": 32
+          },
+          "before_block": "stone",
+          "after_block": "air",
+          "source_blocks": [
+            "stone"
+          ]
+        }
+      ],
+      "navigation_proof_count": 12,
+      "unreached_navigation_count": 0,
+      "dependent_after_unreached_count": 0,
+      "initial_inventory": {
+        "wooden_pickaxe": 1
+      },
+      "final_inventory": {
+        "wooden_pickaxe": 1,
+        "cobblestone": 5
+      },
+      "inventory_delta": {
+        "cobblestone": 5
+      },
+      "issues": [
+        "dig_state_transition_unverified"
+      ]
+    },
+    "runtime_profile": {
+      "profile": "m1_minimal_runtime_v1",
+      "protocol": "m1-fixed-v1",
+      "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "agent_id": "singularity-agent-v1",
+      "planner_id": "rule-based-v1",
+      "action_backend_id": "mineflayer-bridge-v1",
+      "verifier_id": "goal-action-verifier-v1",
+      "isolated": true,
+      "settings": {
+        "force_rule_planner": true,
+        "llm_planner": false,
+        "policy_skills": false,
+        "skill_frontier_routing": false,
+        "autocurriculum": false,
+        "memory_policy": false,
+        "planning_memory": false,
+        "memory_persistence": false,
+        "task_memory": false,
+        "task_continuity": false,
+        "task_readiness": false,
+        "task_readiness_recovery": false,
+        "bounded_planning_context": false,
+        "skill_memory": false,
+        "curriculum_planner_context": false,
+        "knowledge_correction_context": false,
+        "task_precondition_context": false,
+        "plan_cache": false,
+        "episode_abort_mode": "off",
+        "frontier_budget_mode": "off",
+        "weighted_memory": false,
+        "coaching": false,
+        "vision": false,
+        "visual_action_grounding": false,
+        "screenshot_capture": false,
+        "self_evolution": false,
+        "goal_critic": false,
+        "world_model_curriculum": false,
+        "action_candidate_selection": false,
+        "multiagent": false,
+        "goal_verification": true,
+        "action_verification": true,
+        "ungated_artifact_path_count": 0
+      }
+    },
+    "evidence_kind": "live_minecraft",
+    "protocol_eligible": false
+  }
+]

@@ -88,6 +88,8 @@ powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -T
 
 The M1 protocol pins Paper 1.20.4 build 499 and its SHA-256. The script uses the deterministic RuleBasedPlanner profile, Bridge port `30000`, a fresh level, verified reset state, and timestamped evidence. BM-001..005 each require three distinct live successes; offline tests do not count.
 
+Current status: M1 is `repeat_verified` with BM-001..005 each at 3/3 (`15/15` distinct eligible live successes). The authoritative audit is `workspace/evals/capability_evidence_current.json`.
+
 ### Development Commands
 
 ```bash

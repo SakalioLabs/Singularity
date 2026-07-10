@@ -88,11 +88,13 @@ def test_navigation_commands_omit_null_y_and_forward_pathfinder_controls():
     bridge.walk_to(3, 4, ms=750)
     bridge.move_to(8, 9, tolerance=3, timeout_ms=7000)
     bridge.move_to(8, 9, y=64)
+    bridge.dig(8, 63, 9)
 
     assert bridge.calls == [
         ("walk_to", {"x": 3, "z": 4, "ms": 750}),
         ("move_to", {"x": 8, "z": 9, "tolerance": 3, "timeout_ms": 7000}),
         ("move_to", {"x": 8, "z": 9, "y": 64}),
+        ("dig", {"x": 8, "y": 63, "z": 9}),
     ]
     print("PASS: BotBridge preserves horizontal navigation and pathfinder controls")
 
@@ -121,6 +123,7 @@ def test_single_shot_navigation_extends_and_restores_socket_timeout():
     assert b'"timeout_ms": 30000' in bridge._socket.sent
     assert BotBridge._single_response_timeout("move_to", {}, 10.0) == 65.0
     assert BotBridge._single_response_timeout("walk_to", {"ms": 10000}, 10.0) == 15.0
+    assert BotBridge._single_response_timeout("dig", {}, 10.0) == 15.0
     print("PASS: Single-shot navigation aligns socket and action timeout budgets")
 
 

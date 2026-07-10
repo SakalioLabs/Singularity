@@ -1,11 +1,11 @@
 {
   "type": "m1_failure_ledger",
   "schema_version": 1,
-  "updated_at_utc": "2026-07-10T07:17:49Z",
+  "updated_at_utc": "2026-07-10T10:30:05Z",
   "milestone": "M1",
-  "status": "live_failing",
-  "current_gate": "G0_RUNTIME_AVAILABLE",
-  "repeat_verified": false,
+  "status": "repeat_verified",
+  "current_gate": "G5_CAPABILITY_REPORT_COMPLETE",
+  "repeat_verified": true,
   "evidence_policy": {
     "required_successes_per_task": 3,
     "required_distinct_sessions": true,
@@ -15,17 +15,27 @@
     "planner_text_counts_as_success": false,
     "post_observation_and_goal_verifier_required": true
   },
-  "current_earliest_blocker": {
-    "layer": "environment_eula",
-    "failure_class": "manual_eula_acceptance_required",
-    "detail": "Pinned Paper 1.20.4 build 499, fixed server properties, and the Singularity operator are ready; eula.txt exists with eula=false and must only be changed by the user after reading the Minecraft EULA",
-    "evidence": "logs/benchmarks/m1_runtime_blocker_20260710_151512.json",
-    "evidence_sha256": "dd04abe0e8a5eedc092b18dd6fb28c83aa0e341931d439b5d833729d60b8362b",
-    "counts_toward_live_observed": false,
-    "next_test": "After manual EULA acceptance: powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001"
+  "current_earliest_blocker": null,
+  "repeat_verification": {
+    "eligible_successes": 15,
+    "required_successes": 15,
+    "distinct_sessions": 15,
+    "distinct_episodes": 15,
+    "distinct_levels": 15,
+    "distinct_session_hashes": 15,
+    "distinct_result_hashes": 15,
+    "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+    "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+    "tasks": {
+      "BM-001": ["logs/benchmarks/m1_benchmark_20260710_175931.json", "logs/benchmarks/m1_benchmark_20260710_180117.json", "logs/benchmarks/m1_benchmark_20260710_180210.json"],
+      "BM-002": ["logs/benchmarks/m1_benchmark_20260710_180422.json", "logs/benchmarks/m1_benchmark_20260710_180456.json", "logs/benchmarks/m1_benchmark_20260710_180534.json"],
+      "BM-003": ["logs/benchmarks/m1_benchmark_20260710_180608.json", "logs/benchmarks/m1_benchmark_20260710_180643.json", "logs/benchmarks/m1_benchmark_20260710_180714.json"],
+      "BM-004": ["logs/benchmarks/m1_benchmark_20260710_182225.json", "logs/benchmarks/m1_benchmark_20260710_182346.json", "logs/benchmarks/m1_benchmark_20260710_182505.json"],
+      "BM-005": ["logs/benchmarks/m1_benchmark_20260710_182625.json", "logs/benchmarks/m1_benchmark_20260710_182705.json", "logs/benchmarks/m1_benchmark_20260710_182736.json"]
+    }
   },
   "harness_audit": {
-    "status": "offline_ready_live_unverified",
+    "status": "live_verified",
     "prior_findings": [
       "BenchmarkRunner does not apply canonical starting inventories or teleport/daytime reset before M1 tasks",
       "The source definition for BM-004 currently requires 3 cobblestone while the canonical protocol requires 5",
@@ -34,14 +44,14 @@
     ],
     "patch_summary": "Added shared m1-fixed-v1 definitions, allowlisted observed reset postconditions, BM-004=5, task cycle/duration limits, forced RuleBasedPlanner isolation, strict navigation and action-transition evidence, fresh one-task episodes, immutable result/session hashes, and duplicate/server-jar rejection.",
     "offline_retest": "passed: all 28 Python standalone test files and all 4 Node test files; pytest aggregation was unavailable because pytest is not installed",
-    "acceptance_effect": "The source harness is ready for the first controlled live BM-001 attempt, but contributes zero live successes until G0 passes."
+    "acceptance_effect": "The harness produced 15 distinct protocol-eligible successes and the capability report accepted all five M1 tasks as repeat_verified."
   },
   "task_summary": {
-    "BM-001": {"successes": 0, "failures": 1, "distinct_success_sessions": 0, "required_successes": 3},
-    "BM-002": {"successes": 0, "failures": 1, "distinct_success_sessions": 0, "required_successes": 3},
-    "BM-003": {"successes": 0, "failures": 1, "distinct_success_sessions": 0, "required_successes": 3},
-    "BM-004": {"successes": 0, "failures": 1, "distinct_success_sessions": 0, "required_successes": 3},
-    "BM-005": {"successes": 0, "failures": 1, "distinct_success_sessions": 0, "required_successes": 3}
+    "BM-001": {"successes": 3, "failures": 4, "distinct_success_sessions": 3, "required_successes": 3},
+    "BM-002": {"successes": 3, "failures": 1, "distinct_success_sessions": 3, "required_successes": 3},
+    "BM-003": {"successes": 3, "failures": 1, "distinct_success_sessions": 3, "required_successes": 3},
+    "BM-004": {"successes": 3, "failures": 6, "distinct_success_sessions": 3, "required_successes": 3},
+    "BM-005": {"successes": 3, "failures": 1, "distinct_success_sessions": 3, "required_successes": 3}
   },
   "failures": [
     {
@@ -68,8 +78,8 @@
       "root_cause": "Historical move_to reported success without displacement or tolerance proof, allowing repeated no-progress exploration",
       "change_since_attempt": "Pathfinder navigation now requires final-distance verification and defers dependent suffixes when unreached; no live rerun exists",
       "patch_commit_or_summary": "Strict pathfinder tolerance, reached=true evidence, dependent-suffix deferral, close resource approach, bounded pickup wait, and state-delta validation are implemented in the current worktree.",
-      "retest_result": "offline regression passed; live BM-001 retest blocked by G0 runtime provisioning",
-      "next_test": "After G0/G1, run BM-001 and require reached=true plus final_distance<=tolerance on every successful move"
+      "retest_result": "Superseded by three distinct eligible BM-001 successes with reached=true navigation and complete dig/pickup transitions.",
+      "next_test": "No M1 retest required; retain this historical failure as non-counting evidence."
     },
     {
       "benchmark_id": "BM-002",
@@ -94,8 +104,8 @@
       "suspected_root_cause": "Canonical starting inventory of four oak planks was not applied, so the planner remained blocked with no executable transition",
       "root_cause": "Canonical starting inventory of four oak planks was not applied, so the planner remained blocked with no executable transition",
       "patch_commit_or_summary": "BM-002 reset now clears inventory, gives exactly four oak planks, and verifies observed postconditions before planning.",
-      "retest_result": "offline reset and craft-transition tests passed; no live retest behind G0",
-      "next_test": "Verify reset pre/post inventory equals exactly four oak planks before issuing the craft goal"
+      "retest_result": "Superseded by three distinct eligible BM-002 successes with exact reset and craft deltas.",
+      "next_test": "No M1 retest required; retain this historical failure as non-counting evidence."
     },
     {
       "benchmark_id": "BM-003",
@@ -120,8 +130,8 @@
       "suspected_root_cause": "Canonical starting inventory of three oak planks and two sticks was not applied",
       "root_cause": "Canonical starting inventory of three oak planks, two sticks, and an observed nearby crafting table was not applied",
       "patch_commit_or_summary": "BM-003 reset now verifies exact materials and a nearby table; Mineflayer craft receives the observed table and pre/post item delta is required.",
-      "retest_result": "offline reset/workbench-grounding tests passed; no live retest behind G0",
-      "next_test": "Verify reset inventory before planning and craft success from the observed inventory delta"
+      "retest_result": "Superseded by three distinct eligible BM-003 successes with observed workbench grounding and craft deltas.",
+      "next_test": "No M1 retest required; retain this historical failure as non-counting evidence."
     },
     {
       "benchmark_id": "BM-004",
@@ -146,8 +156,8 @@
       "suspected_root_cause": "Starting wooden pickaxe was not applied; source success criteria also drifted from canonical five cobblestone to three",
       "root_cause": "Starting wooden pickaxe was not applied; source success criteria also drifted from canonical five cobblestone to three",
       "patch_commit_or_summary": "BM-004 now starts with one wooden pickaxe, requires five cobblestone, and permits dig only at observed stone coordinates with block-removal/pickup deltas.",
-      "retest_result": "offline protocol/planner/transition tests passed; no live retest behind G0",
-      "next_test": "Set and observe one wooden pickaxe, require five cobblestone, and prove each dig/pickup through pre/post state"
+      "retest_result": "Superseded by three distinct eligible BM-004 successes with five grounded stone removals and cobblestone deltas per session.",
+      "next_test": "No M1 retest required; retain this historical failure as non-counting evidence."
     },
     {
       "benchmark_id": "BM-005",
@@ -172,8 +182,8 @@
       "suspected_root_cause": "Canonical starting inventory of three cobblestone and two sticks was not applied",
       "root_cause": "Canonical starting inventory of three cobblestone, two sticks, and an observed nearby crafting table was not applied",
       "patch_commit_or_summary": "BM-005 reset now verifies exact materials and a nearby table; Mineflayer craft receives the observed table and pre/post item delta is required.",
-      "retest_result": "offline reset/workbench-grounding tests passed; no live retest behind G0",
-      "next_test": "Verify reset inventory before planning and require a post-observation stone_pickaxe delta"
+      "retest_result": "Superseded by three distinct eligible BM-005 successes with observed workbench grounding and stone-pickaxe deltas.",
+      "next_test": "No M1 retest required; retain this historical failure as non-counting evidence."
     },
     {
       "task_id": "M1-RUNTIME",
@@ -213,8 +223,8 @@
       },
       "root_cause": "The controlled Paper 1.20.4 server assets and manually accepted EULA are not provisioned; no code-only action can create an acceptance-eligible world.",
       "patch_commit_or_summary": "Prepared a one-command fresh-episode runner, protocol-aware preflight, verified reset, deterministic profile, state-transition checks, and immutable evidence for the next live attempt.",
-      "retest_result": "Superseded as earliest blocker: the pinned Paper jar, fixed properties, and operator are now provisioned; EULA remains manual and no live benchmark was run.",
-      "next_test": "powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001"
+      "retest_result": "Superseded: the provisioned runtime passed live preflight and produced 15 eligible M1 successes.",
+      "next_test": "No M1 runtime retest required."
     },
     {
       "task_id": "M1-RUNTIME",
@@ -262,8 +272,160 @@
       },
       "root_cause": "Minecraft requires the server operator to read and accept its EULA; project policy forbids Singularity from making that legal decision or editing eula.txt.",
       "patch_commit_or_summary": "Pinned official Paper build 499 and its hash, provisioned the ignored jar/config/operator, and added immutable runtime blocker reports without accepting the EULA.",
-      "retest_result": "Runtime script now stops deterministically at eula=false and writes non-capability blocker evidence; all 28 Python and 4 Node test files pass; no live benchmark ran.",
-      "next_test": "After the user accepts the EULA, run powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001"
+      "retest_result": "Superseded after explicit user authorization: EULA acceptance enabled controlled live runs and 15 eligible M1 successes.",
+      "next_test": "No M1 runtime retest required."
+    },
+    {
+      "benchmark_id": "BM-001",
+      "task_id": "BM-001",
+      "session_id": "8ddbc702-6e0",
+      "seed": "12345",
+      "failure_layer": "planner_target_and_reach_mismatch",
+      "status": "failed",
+      "evidence_kind": "live_minecraft",
+      "source_log": "logs/benchmarks/m1_benchmark_20260710_174239.json",
+      "source_sha256": "6e21c648873a9467181c3c8f8d40c89708cdb7e96de6f47f5b83192bd8f3da6e",
+      "session_log": "logs/session_8ddbc702-6e0.jsonl",
+      "session_sha256": "94a6a7484829abbe9898890b4db05d81e50859f7d98c3ebc6def49537b7dc7d1",
+      "terminal": {"cycles": 50, "duration_s": 35.06, "inventory": {}, "goal_verified": false},
+      "first_unrecovered_transition": {"cycle": 1, "constraint": "exact_oak_target_not_selected", "category": "planner_grounding"},
+      "root_cause": "The exact oak_log task selected dark_oak_log, then compared three-dimensional block distance with a horizontal navigation tolerance and repeated an already reached move.",
+      "patch_commit_or_summary": "Filter exact oak targets and use bounded horizontal interaction reach after measured navigation.",
+      "retest_result": "Superseded by three distinct eligible BM-001 successes.",
+      "counts_toward_repeat_verified": false
+    },
+    {
+      "benchmark_id": "BM-001",
+      "task_id": "BM-001",
+      "session_id": "f633f0c0-1de",
+      "seed": "12345",
+      "failure_layer": "perception_tree_scan_coverage",
+      "status": "failed",
+      "evidence_kind": "live_minecraft",
+      "source_log": "logs/benchmarks/m1_benchmark_20260710_174806.json",
+      "source_sha256": "3fc93ac335f6ec1f29e56151f1fcae84ca2353f072f949129d99165bcdcd27dd",
+      "session_log": "logs/session_f633f0c0-1de.jsonl",
+      "session_sha256": "d7c09b4954c3c2a5ffe8ecf53c168525b68c8966cb7a9359c5e8dd7d850f18b8",
+      "terminal": {"cycles": 14, "duration_s": 124.76, "inventory": {}, "goal_verified": false},
+      "first_unrecovered_transition": {"cycle": 1, "constraint": "oak_candidate_hidden_by_dense_other_species", "category": "perception_coverage"},
+      "root_cause": "The bridge capped tree scans at 16 blocks and returned only the ten nearest logs, allowing dense dark oak to hide a valid oak candidate.",
+      "patch_commit_or_summary": "Honor the 32-block request, retain the nearest candidate per species, and reconcile late pathfinder errors against final measured distance.",
+      "retest_result": "Superseded by three distinct eligible BM-001 successes.",
+      "counts_toward_repeat_verified": false
+    },
+    {
+      "benchmark_id": "BM-001",
+      "task_id": "BM-001",
+      "session_id": "a6441b83-31e",
+      "seed": "12345",
+      "failure_layer": "drop_pickup_grounding",
+      "status": "failed",
+      "evidence_kind": "live_minecraft",
+      "source_log": "logs/benchmarks/m1_benchmark_20260710_175231.json",
+      "source_sha256": "707bb1f2adfbb2181b494ac02b96cc98d9605b4cf35e0c09c46488198ed9823c",
+      "session_log": "logs/session_a6441b83-31e.jsonl",
+      "session_sha256": "724bd89fb74c29715f90b85b0d5f8e36448a5d68becd123c6675e2d16f834248",
+      "terminal": {"cycles": 50, "duration_s": 70.83, "inventory": {}, "goal_verified": false},
+      "first_unrecovered_transition": {"cycle": 2, "constraint": "removed_oak_without_inventory_pickup", "category": "action_postcondition"},
+      "root_cause": "Four oak blocks were removed, but their item entities remained 1.9-2.3 blocks away and the dig action never actively collected them.",
+      "patch_commit_or_summary": "Use bounded Pathfinder collection of the observed drop and include the grounded block name in action verification.",
+      "retest_result": "Superseded by three distinct eligible BM-001 successes.",
+      "counts_toward_repeat_verified": false
+    },
+    {
+      "benchmark_id": "BM-004",
+      "task_id": "BM-004",
+      "session_id": "80471d30-a4c",
+      "seed": "12345",
+      "failure_layer": "planner_search_missing",
+      "status": "failed",
+      "evidence_kind": "live_minecraft",
+      "source_log": "logs/benchmarks/m1_benchmark_20260710_180752.json",
+      "source_sha256": "ed538c68caaa90f3e472fd62de87c13b8aeadb852a3091563e8d1866ea84be6b",
+      "session_log": "logs/session_80471d30-a4c.jsonl",
+      "session_sha256": "ee42ea9d87ca780b24edacec9aca035ef1fe0c5a75184ab851c7c546626fc043",
+      "terminal": {"cycles": 1, "duration_s": 5.27, "inventory": {"wooden_pickaxe": 1}, "goal_verified": false},
+      "first_unrecovered_transition": {"cycle": 1, "constraint": "no_search_action_for_unobserved_stone", "category": "planner_grounding"},
+      "root_cause": "The planner returned blocked when no stone was visible at the canopy spawn instead of searching and re-observing.",
+      "patch_commit_or_summary": "Generate a deterministic single-frontier search plan without guessed dig coordinates.",
+      "retest_result": "Superseded by three distinct eligible BM-004 successes.",
+      "counts_toward_repeat_verified": false
+    },
+    {
+      "benchmark_id": "BM-004",
+      "task_id": "BM-004",
+      "session_id": "2cd17442-323",
+      "seed": "12345",
+      "failure_layer": "drop_name_mismatch",
+      "status": "failed",
+      "evidence_kind": "live_minecraft",
+      "source_log": "logs/benchmarks/m1_benchmark_20260710_181023.json",
+      "source_sha256": "4c019fd21bf273a1c6f520e012966143aa426cb74e8815498e211f9ff909b4e1",
+      "session_log": "logs/session_2cd17442-323.jsonl",
+      "session_sha256": "136cc215e257e4be0c2fe3ab069185a459585e4d282dfc5e1cc73a920e17fffa",
+      "terminal": {"cycles": 23, "duration_s": 125.42, "inventory": {"wooden_pickaxe": 1, "cobblestone": 5}, "goal_verified": true},
+      "first_unrecovered_transition": {"cycle": 4, "constraint": "stone_drop_filtered_as_not_stone", "category": "action_postcondition"},
+      "root_cause": "Drop collection filtered item entities by source name stone even though Minecraft 1.20.4 maps stone to cobblestone.",
+      "patch_commit_or_summary": "Resolve allowed drop names from minecraft-data before selecting item entities.",
+      "retest_result": "Superseded by three distinct eligible BM-004 successes.",
+      "counts_toward_repeat_verified": false
+    },
+    {
+      "benchmark_id": "BM-004",
+      "task_id": "BM-004",
+      "session_id": "6069bf83-671",
+      "seed": "12345",
+      "failure_layer": "pickup_vertical_grounding",
+      "status": "failed",
+      "evidence_kind": "live_minecraft",
+      "source_log": "logs/benchmarks/m1_benchmark_20260710_181400.json",
+      "source_sha256": "6593e0c6c8ae8dcf1d8a8883650ec43e54eeed4b9537cfbda78c3c8094c9f12f",
+      "session_log": "logs/session_6069bf83-671.jsonl",
+      "session_sha256": "e464a1a4cfb8a776611b5094a7239d80f74ed9b4d59150ef0b64e1eb51abfb95",
+      "terminal": {"cycles": 11, "duration_s": 82.61, "inventory": {"wooden_pickaxe": 1, "cobblestone": 6}, "goal_verified": true},
+      "first_unrecovered_transition": {"cycle": 7, "constraint": "horizontal_pickup_goal_ignored_vertical_gap", "category": "action_postcondition"},
+      "root_cause": "The collector reached the item's X/Z column while remaining two blocks above it, so several drops were collected only in a later batch.",
+      "patch_commit_or_summary": "Use a three-dimensional GoalNear for dropped-item collection.",
+      "retest_result": "Superseded by three distinct eligible BM-004 successes.",
+      "counts_toward_repeat_verified": false
+    },
+    {
+      "benchmark_id": "BM-004",
+      "task_id": "BM-004",
+      "session_id": "879f0bf0-111",
+      "seed": "12345",
+      "failure_layer": "pickup_target_race",
+      "status": "failed",
+      "evidence_kind": "live_minecraft",
+      "source_log": "logs/benchmarks/m1_benchmark_20260710_181649.json",
+      "source_sha256": "1fbaf03d0675fc5efab972c36f4c0a801a1d2595a4a1388cb46c1814540be52f",
+      "session_log": "logs/session_879f0bf0-111.jsonl",
+      "session_sha256": "2e4557e4256aefa681c3a2df0e8c868ceadae554a646937dfb922f11afb120e8",
+      "terminal": {"cycles": 8, "duration_s": 51.4, "inventory": {"wooden_pickaxe": 1, "dirt": 2, "cobblestone": 5}, "goal_verified": true},
+      "first_unrecovered_transition": {"cycle": 4, "constraint": "unrelated_dirt_delta_ended_stone_pickup_wait", "category": "action_postcondition"},
+      "root_cause": "An unrelated dirt pickup satisfied the generic inventory-change wait before the expected cobblestone arrived.",
+      "patch_commit_or_summary": "End pickup waiting only when an allowed drop item increases.",
+      "retest_result": "Superseded by three distinct eligible BM-004 successes.",
+      "counts_toward_repeat_verified": false
+    },
+    {
+      "benchmark_id": "BM-004",
+      "task_id": "BM-004",
+      "session_id": "0a26b8b3-d12",
+      "seed": "12345",
+      "failure_layer": "pickup_navigation_budget",
+      "status": "failed",
+      "evidence_kind": "live_minecraft",
+      "source_log": "logs/benchmarks/m1_benchmark_20260710_181909.json",
+      "source_sha256": "8337cdc8453e8ca1d473786c9a76e9bff541ca145dedf8e36dc6573a6c6f3722",
+      "session_log": "logs/session_0a26b8b3-d12.jsonl",
+      "session_sha256": "a7e59daf49469eda321080bb0c0468c5ce871c8a4a99aaba167590ad65fec46e",
+      "terminal": {"cycles": 7, "duration_s": 51.36, "inventory": {"wooden_pickaxe": 1, "dirt": 6, "cobblestone": 5}, "goal_verified": true},
+      "first_unrecovered_transition": {"cycle": 3, "constraint": "pickup_path_timed_out_or_stopped_outside_collision_range", "category": "action_postcondition"},
+      "root_cause": "The three-second pickup path budget and one-block goal radius allowed collection to stop outside item collision range.",
+      "patch_commit_or_summary": "Use an exact three-dimensional item goal, a six-second bounded path, and a single-shot non-replayed dig response budget.",
+      "retest_result": "Superseded by three distinct eligible BM-004 successes.",
+      "counts_toward_repeat_verified": false
     }
   ],
   "supporting_evidence": [
@@ -272,6 +434,21 @@
     "logs/benchmarks/m1_harness_offline_20260710_143606.json",
     "logs/benchmarks/m1_runtime_blocker_20260710_151512.json",
     "logs/benchmarks/m1_runtime_provisioning_20260710_151512.json",
+    "logs/benchmarks/m1_benchmark_20260710_175931.json",
+    "logs/benchmarks/m1_benchmark_20260710_180117.json",
+    "logs/benchmarks/m1_benchmark_20260710_180210.json",
+    "logs/benchmarks/m1_benchmark_20260710_180422.json",
+    "logs/benchmarks/m1_benchmark_20260710_180456.json",
+    "logs/benchmarks/m1_benchmark_20260710_180534.json",
+    "logs/benchmarks/m1_benchmark_20260710_180608.json",
+    "logs/benchmarks/m1_benchmark_20260710_180643.json",
+    "logs/benchmarks/m1_benchmark_20260710_180714.json",
+    "logs/benchmarks/m1_benchmark_20260710_182225.json",
+    "logs/benchmarks/m1_benchmark_20260710_182346.json",
+    "logs/benchmarks/m1_benchmark_20260710_182505.json",
+    "logs/benchmarks/m1_benchmark_20260710_182625.json",
+    "logs/benchmarks/m1_benchmark_20260710_182705.json",
+    "logs/benchmarks/m1_benchmark_20260710_182736.json",
     "workspace/evals/critical_transition_m1_2026-07-10.json",
     "workspace/evals/capability_evidence_current.json"
   ]
