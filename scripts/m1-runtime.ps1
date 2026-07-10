@@ -28,6 +28,7 @@ $runtimeLogRoot = Join-Path $repoRoot "logs\benchmarks\runtime"
 $preflightPath = Join-Path $repoRoot "logs\benchmarks\m1_preflight_$timestamp.json"
 $manifestPath = Join-Path $repoRoot "logs\benchmarks\m1_runtime_manifest_$timestamp.json"
 $benchmarkPath = Join-Path $repoRoot "logs\benchmarks\m1_benchmark_$timestamp.json"
+$blockerPath = Join-Path $repoRoot "logs\benchmarks\m1_runtime_blocker_$timestamp.json"
 $serverProcess = $null
 $bridgeProcess = $null
 $originalServerProperties = $null
@@ -153,7 +154,7 @@ function Assert-File {
 Push-Location $repoRoot
 try {
     New-Item -ItemType Directory -Force -Path $runtimeLogRoot | Out-Null
-    foreach ($evidencePath in @($preflightPath, $manifestPath, $benchmarkPath)) {
+    foreach ($evidencePath in @($preflightPath, $manifestPath, $benchmarkPath, $blockerPath)) {
         if (Test-Path -LiteralPath $evidencePath) {
             throw "M1 runtime blocked: refusing to overwrite evidence at $evidencePath."
         }
@@ -187,6 +188,9 @@ try {
     $protocolPath = Join-Path $repoRoot "src\singularity\data\m1_protocol.json"
     $protocolSha256 = (Get-FileHash -LiteralPath $protocolPath -Algorithm SHA256).Hash.ToLower()
     $protocol = Get-Content -LiteralPath $protocolPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($serverJarSha256 -ne [string]$protocol.server_jar_sha256) {
+        throw "M1 runtime blocked: server.jar SHA-256 does not match pinned $($protocol.server_build)."
+    }
 
     if ($RunBenchmark) {
         $opsPath = Join-Path $serverRoot "ops.json"
@@ -266,6 +270,7 @@ try {
         task_id = $TaskId
         minecraft_version = "1.20.4"
         server_type = "Paper"
+        server_build = [string]$protocol.server_build
         server_brand = [string]$health.server_brand
         server_jar_sha256 = $serverJarSha256
         protocol_sha256 = $protocolSha256
@@ -323,6 +328,52 @@ try {
         $serverProcess = $null
         $bridgeProcess = $null
     }
+}
+catch {
+    $message = [string]$_.Exception.Message
+    $jarHash = ""
+    if (Test-Path -LiteralPath $jarPath -PathType Leaf) {
+        $jarHash = (Get-FileHash -LiteralPath $jarPath -Algorithm SHA256).Hash.ToLower()
+    }
+    $protocolHash = ""
+    $protocolFile = Join-Path $repoRoot "src\singularity\data\m1_protocol.json"
+    if (Test-Path -LiteralPath $protocolFile -PathType Leaf) {
+        $protocolHash = (Get-FileHash -LiteralPath $protocolFile -Algorithm SHA256).Hash.ToLower()
+    }
+    $eulaAccepted = $false
+    if (Test-Path -LiteralPath $eulaPath -PathType Leaf) {
+        $eulaAccepted = [bool](Select-String -LiteralPath $eulaPath -Pattern '^\s*eula\s*=\s*true\s*$' -Quiet)
+    }
+    $blocker = [ordered]@{
+        type = "m1_runtime_blocker"
+        schema_version = 1
+        generated_at_utc = (Get-Date).ToUniversalTime().ToString("o")
+        evidence_kind = "runtime_setup_failure"
+        counts_toward_live_observed = $false
+        counts_toward_repeat_verified = $false
+        task_id = $TaskId
+        run_benchmark = [bool]$RunBenchmark
+        failure_layer = if ($message -match "EULA|eula") { "environment_eula" } else { "environment_runtime" }
+        blocker = $message
+        server_jar_present = [bool](Test-Path -LiteralPath $jarPath -PathType Leaf)
+        server_jar_sha256 = $jarHash
+        protocol_sha256 = $protocolHash
+        eula_present = [bool](Test-Path -LiteralPath $eulaPath -PathType Leaf)
+        eula_accepted = $eulaAccepted
+        server_properties_present = [bool](Test-Path -LiteralPath $propertiesPath -PathType Leaf)
+        ops_present = [bool](Test-Path -LiteralPath (Join-Path $serverRoot "ops.json") -PathType Leaf)
+        manual_action_required = [bool]($message -match "EULA|eula")
+        next_command = "powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001"
+    }
+    if (-not (Test-Path -LiteralPath $blockerPath)) {
+        [System.IO.File]::WriteAllText(
+            $blockerPath,
+            ($blocker | ConvertTo-Json -Depth 5),
+            [System.Text.UTF8Encoding]::new($false)
+        )
+        Write-Host "Blocker evidence: $blockerPath"
+    }
+    throw
 }
 finally {
     Stop-OwnedProcess -Process $bridgeProcess

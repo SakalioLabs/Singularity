@@ -949,7 +949,6 @@ def _load_benchmark_records(paths: Iterable[str]) -> tuple[list[dict], list[str]
     seen_m1_sessions = set()
     seen_m1_hashes = set()
     seen_m1_episodes = set()
-    m1_server_jar_sha256 = ""
     for raw_path in paths:
         path_text = str(raw_path or "").strip()
         if not path_text:
@@ -978,15 +977,12 @@ def _load_benchmark_records(paths: Iterable[str]) -> tuple[list[dict], list[str]
                 session_id = normalized.get("session_id", "")
                 session_hash = normalized.get("session_sha256", "")
                 episode_id = normalized.get("episode_id", "")
-                server_hash = normalized.get("server_jar_sha256", "")
                 if session_id in seen_m1_sessions:
                     duplicate_reasons.append("duplicate_m1_session")
                 if session_hash in seen_m1_hashes:
                     duplicate_reasons.append("duplicate_m1_session_log")
                 if episode_id in seen_m1_episodes:
                     duplicate_reasons.append("duplicate_m1_episode")
-                if m1_server_jar_sha256 and server_hash != m1_server_jar_sha256:
-                    duplicate_reasons.append("m1_server_jar_mismatch")
                 if duplicate_reasons:
                     normalized["outcome"] = "ineligible"
                     normalized["eligibility_reasons"].extend(duplicate_reasons)
@@ -994,8 +990,6 @@ def _load_benchmark_records(paths: Iterable[str]) -> tuple[list[dict], list[str]
                     seen_m1_sessions.add(session_id)
                     seen_m1_hashes.add(session_hash)
                     seen_m1_episodes.add(episode_id)
-                    if not m1_server_jar_sha256:
-                        m1_server_jar_sha256 = server_hash
             records.append(normalized)
     return records, errors, loaded_paths
 
@@ -1084,8 +1078,8 @@ def _m1_live_eligibility_issues(record: dict, source_path: str) -> list[str]:
     if "paper" not in str(setup.get("server_brand") or "").lower():
         issues.append("benchmark_server_brand_not_paper")
     server_hash = str(setup.get("server_jar_sha256") or "").lower()
-    if len(server_hash) != 64 or any(ch not in "0123456789abcdef" for ch in server_hash):
-        issues.append("benchmark_server_jar_hash_invalid")
+    if server_hash != M1_PROTOCOL["server_jar_sha256"]:
+        issues.append("benchmark_server_jar_hash_mismatch")
     checks = setup.get("checks", {}) if isinstance(setup.get("checks"), dict) else {}
     if not checks or any(value is not True for name, value in checks.items() if name != "position_distance"):
         issues.append("benchmark_reset_checks_not_verified")
@@ -1208,7 +1202,7 @@ def _m1_session_log_issues(path: Path, session_id: str, task_id: str) -> list[st
         or str(reset.get("seed") or "") != str(M1_PROTOCOL["world_seed"])
         or reset.get("observed_minecraft_version") != M1_PROTOCOL["minecraft_version"]
         or "paper" not in str(reset.get("server_brand") or "").lower()
-        or len(str(reset.get("server_jar_sha256") or "")) != 64
+        or str(reset.get("server_jar_sha256") or "").lower() != M1_PROTOCOL["server_jar_sha256"]
         or not reset_episode
         or not reset_level.startswith(f"{reset_episode}_")
         or not reset_checks

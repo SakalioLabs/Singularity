@@ -127,7 +127,7 @@ def _write_m1_live_session(path: str, task_id: str, session_id: str):
                 "task_id": task_id,
                 "protocol_sha256": M1_PROTOCOL_SHA256,
                 "seed": M1_PROTOCOL["world_seed"],
-                "server_jar_sha256": "a" * 64,
+                "server_jar_sha256": M1_PROTOCOL["server_jar_sha256"],
                 "server_brand": "Paper",
                 "observed_minecraft_version": M1_PROTOCOL["minecraft_version"],
                 "episode_id": session_id,
@@ -177,7 +177,7 @@ def _eligible_m1_result(task_id: str, log_path: str, session_id: str) -> dict:
             "task_id": task_id,
             "protocol_sha256": M1_PROTOCOL_SHA256,
             "seed": M1_PROTOCOL["world_seed"],
-            "server_jar_sha256": "a" * 64,
+            "server_jar_sha256": M1_PROTOCOL["server_jar_sha256"],
             "server_brand": "Paper",
             "observed_minecraft_version": M1_PROTOCOL["minecraft_version"],
             "episode_id": session_id,
@@ -350,7 +350,7 @@ def test_capability_evidence_requires_distinct_repeated_runs():
     assert m1["benchmarks"][0]["ineligible_successes"] == 3
     assert "duplicate_m1_session" in m1["benchmarks"][0]["ineligibility_reasons"]
     assert "dig_state_transition_unverified" in m1["benchmarks"][0]["ineligibility_reasons"]
-    assert "m1_server_jar_mismatch" in m1["benchmarks"][0]["ineligibility_reasons"]
+    assert "benchmark_server_jar_hash_mismatch" in m1["benchmarks"][0]["ineligibility_reasons"]
     assert all(task["attempts"] == 3 for task in m1["benchmarks"][1:])
     assert report["system_complete"] is False
     print("PASS: Capability evidence requires distinct repeated runs")

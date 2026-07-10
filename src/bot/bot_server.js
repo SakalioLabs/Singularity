@@ -493,6 +493,8 @@ function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}) {
     }
     if (!/^[a-f0-9]{64}$/.test(runtime.server_jar_sha256)) {
         errors.push('server jar sha256 is missing or invalid');
+    } else if (runtime.server_jar_sha256 !== M1_PROTOCOL.server_jar_sha256) {
+        errors.push(`server jar sha256 does not match pinned ${M1_PROTOCOL.server_build}`);
     }
     for (const [name, expected] of Object.entries(M1_PROTOCOL.dependencies || {})) {
         if (dependencies[name] !== expected) {
@@ -513,6 +515,7 @@ function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}) {
         minecraft_version: M1_PROTOCOL.minecraft_version,
         observed_minecraft_version: observedMinecraftVersion,
         server_type: M1_PROTOCOL.server_type,
+        server_build: M1_PROTOCOL.server_build,
         server_jar_policy: M1_PROTOCOL.server_jar_policy,
         agent_id: M1_PROTOCOL.agent_id,
         planner_id: M1_PROTOCOL.planner_id,

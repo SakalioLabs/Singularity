@@ -15,7 +15,7 @@ const runtime = {
     seed: '12345',
     episode_id: 'offline-test-episode',
     level_name: 'offline-test-episode_bm003',
-    server_jar_sha256: 'a'.repeat(64),
+    server_jar_sha256: M1_PROTOCOL.server_jar_sha256,
 };
 
 function createResetBot(applyCommands = true) {
@@ -82,6 +82,7 @@ async function testProtocolStatusPinsRuntimeAndDependencies() {
     assert.strictEqual(status.success, true);
     assert.strictEqual(status.configured, true);
     assert.strictEqual(status.profile, 'm1-fixed-v1');
+    assert.strictEqual(status.server_build, 'paper-1.20.4-499');
     assert.strictEqual(status.protocol_sha256, M1_PROTOCOL_SHA256);
     assert.strictEqual(status.tasks.length, 5);
     assert.strictEqual(status.tasks[3].success_criteria.cobblestone, 5);

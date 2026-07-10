@@ -5,7 +5,7 @@ The machine-readable source of truth is `src/singularity/data/m1_protocol.json`.
 ## Fixed Runtime
 
 - Minecraft: `1.20.4`
-- Server: Paper for Minecraft 1.20.4; one server-jar SHA-256 must be shared by every eligible session in a campaign
+- Server: Paper `1.20.4` build `499`, SHA-256 `cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b`
 - Dependencies: Mineflayer `4.37.1`, mineflayer-pathfinder `2.4.5`, minecraft-data `3.111.0`
 - World: seed `12345`, a new level name for every task attempt, world spawn as the reset origin
 - Player: survival, peaceful, full health/food

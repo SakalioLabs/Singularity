@@ -12,11 +12,12 @@ M2-M7, vision, learned skills, weighted memory, plan cache, self-evolution, fron
 
 `G0_RUNTIME_AVAILABLE`: **failing**
 
-- `mc-server/server.jar`, `mc-server/server.properties`, and manually accepted `mc-server/eula.txt` are absent.
-- No Minecraft server is listening on `localhost:25565`.
-- `127.0.0.1:3000` is an unrelated Windows service and fails the Singularity health protocol.
-- Latest raw evidence: `logs/benchmarks/m1_preflight_20260710_142227.json` (`sha256=e542670efd191db84298690e252eb9561688fcaea35bca10c70b7ddaf7cd2c41`).
-- The preflight is explicitly non-capability evidence. No live task ran in this loop.
+- Paper `1.20.4` build `499` is provisioned at `mc-server/server.jar` and matches the pinned SHA-256.
+- `server.properties` now fixes seed `12345`, localhost binding, offline identity, peaceful difficulty, survival mode, and port `25565`; the deterministic `Singularity` operator record is present.
+- Paper completed its first bootstrap under Java 25 and generated `eula.txt` with `eula=false`.
+- The only remaining blocker is legal/manual: the user must read the Minecraft EULA and decide whether to set `eula=true`. Singularity never edits this file.
+- Latest raw evidence: `logs/benchmarks/m1_runtime_blocker_20260710_151512.json` (`sha256=dd04abe0e8a5eedc092b18dd6fb28c83aa0e341931d439b5d833729d60b8362b`).
+- The blocker report is explicitly non-capability evidence. No live task ran in this loop.
 
 `G1_HARNESS_VALID` is implemented and offline-tested, but it remains live-unverified behind G0.
 
@@ -24,7 +25,7 @@ M2-M7, vision, learned skills, weighted memory, plan cache, self-evolution, fron
 
 | Gate | Exit condition | Current state |
 |---|---|---|
-| G0 Runtime available | Controlled Paper 1.20.4 server; fixed seed; manually accepted EULA; valid bridge/session/harness | Failing |
+| G0 Runtime available | Controlled Paper 1.20.4 server; fixed seed; manually accepted EULA; valid bridge/session/harness | Failing only on manual EULA acceptance |
 | G1 Harness valid | Fresh level per task; verified reset; exact task inventory/fixture; deterministic isolated runtime; immutable session | Offline ready, live unverified |
 | G2 BM-001 live observed | Three oak logs plus Goal Verifier; truthful navigation and dig/pickup deltas | 0 successes |
 | G3 BM-002..005 live observed | One eligible live success per task with craft/dig state deltas | 0/4 tasks |
@@ -47,7 +48,7 @@ The source of truth is `src/singularity/data/m1_protocol.json`.
 
 Fixed identities and environment:
 
-- Minecraft `1.20.4`; Paper; a single server-jar SHA-256 across all eligible sessions
+- Minecraft `1.20.4`; Paper build `499`; jar SHA-256 `cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b`
 - Mineflayer `4.37.1`; pathfinder `2.4.5`; minecraft-data `3.111.0`
 - Seed `12345`; fresh level per task; world spawn; peaceful; survival; tick `1000`; clear weather
 - Agent `singularity-agent-v1`; planner `rule-based-v1`; backend `mineflayer-bridge-v1`; verifier `goal-action-verifier-v1`
@@ -61,7 +62,7 @@ Fixed identities and environment:
 - Dig requires grounded coordinates, an observed source block before the action, its removal after the action, and target-item pickup in inventory.
 - Craft requires the requested target item to increase in pre/post inventory observations; 3x3 recipes require an observed nearby workbench.
 - An unreached movement terminates its dependent plan suffix before dig/place/craft.
-- Session ID, episode ID, session hash, and server-jar hash are independently checked. Copies and mixed-server campaigns are ineligible.
+- Session ID, episode ID, session hash, and pinned server-jar hash are independently checked. Copies and any other Paper build are ineligible.
 - Offline, mock, synthetic, planner text, and backend success text contribute zero live successes.
 
 ## Eliminated Hypotheses
@@ -75,11 +76,11 @@ Fixed identities and environment:
 
 ## Current Repair Hypothesis
 
-The earliest causal blocker is external runtime provisioning, not another planner feature. Once a controlled Paper runtime is available, the highest-information experiment is one fresh BM-001 attempt. Its first unrecovered transition will determine the next code change.
+The earliest causal blocker is manual EULA acceptance, not another code or planner defect. Once the user accepts the EULA, the highest-information experiment is one fresh BM-001 attempt. Its first unrecovered transition will determine the next code change.
 
 ## One-Command Run
 
-After placing Paper 1.20.4 at `mc-server/server.jar`, manually accepting the EULA, setting `level-seed=12345`, `online-mode=false`, `server-port=25565`, and adding `Singularity` to `ops.json`, run:
+In the current workspace, all runtime assets and settings are ready. After reading the Minecraft EULA and manually setting `eula=true` in `mc-server/eula.txt`, run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001
@@ -97,4 +98,4 @@ The script creates a fresh level, uses bridge port `30000`, records the exact se
 | BM-004 | 0 | 3 |
 | BM-005 | 0 | 3 |
 
-Next experiment: provision the external server prerequisites and run the exact BM-001 command above. Do not start another feature branch while G0 is failing.
+Next experiment: the user manually accepts the EULA, then runs the exact BM-001 command above. Do not start another feature branch while G0 is failing.

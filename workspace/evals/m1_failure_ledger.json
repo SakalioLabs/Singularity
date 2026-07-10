@@ -1,7 +1,7 @@
 {
   "type": "m1_failure_ledger",
   "schema_version": 1,
-  "updated_at_utc": "2026-07-10T06:36:06Z",
+  "updated_at_utc": "2026-07-10T07:17:49Z",
   "milestone": "M1",
   "status": "live_failing",
   "current_gate": "G0_RUNTIME_AVAILABLE",
@@ -16,13 +16,13 @@
     "post_observation_and_goal_verifier_required": true
   },
   "current_earliest_blocker": {
-    "layer": "environment_runtime",
-    "failure_class": "controlled_minecraft_runtime_unavailable",
-    "detail": "mc-server/server.jar, server.properties, and manually accepted eula.txt are absent; localhost:25565 has no Minecraft server; 127.0.0.1:3000 is an unrelated TCP service and fails the Singularity health protocol",
-    "evidence": "logs/benchmarks/m1_preflight_20260710_142227.json",
-    "evidence_sha256": "e542670efd191db84298690e252eb9561688fcaea35bca10c70b7ddaf7cd2c41",
+    "layer": "environment_eula",
+    "failure_class": "manual_eula_acceptance_required",
+    "detail": "Pinned Paper 1.20.4 build 499, fixed server properties, and the Singularity operator are ready; eula.txt exists with eula=false and must only be changed by the user after reading the Minecraft EULA",
+    "evidence": "logs/benchmarks/m1_runtime_blocker_20260710_151512.json",
+    "evidence_sha256": "dd04abe0e8a5eedc092b18dd6fb28c83aa0e341931d439b5d833729d60b8362b",
     "counts_toward_live_observed": false,
-    "next_test": "powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001"
+    "next_test": "After manual EULA acceptance: powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001"
   },
   "harness_audit": {
     "status": "offline_ready_live_unverified",
@@ -213,14 +213,65 @@
       },
       "root_cause": "The controlled Paper 1.20.4 server assets and manually accepted EULA are not provisioned; no code-only action can create an acceptance-eligible world.",
       "patch_commit_or_summary": "Prepared a one-command fresh-episode runner, protocol-aware preflight, verified reset, deterministic profile, state-transition checks, and immutable evidence for the next live attempt.",
-      "retest_result": "Expected preflight failure reproduced; all focused offline harness/regression tests pass; no live benchmark was run.",
+      "retest_result": "Superseded as earliest blocker: the pinned Paper jar, fixed properties, and operator are now provisioned; EULA remains manual and no live benchmark was run.",
       "next_test": "powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001"
+    },
+    {
+      "task_id": "M1-RUNTIME",
+      "session_id": "m1_runtime_blocker_20260710_151512",
+      "seed": "12345_configured_not_live_observed",
+      "status": "failed",
+      "evidence_kind": "runtime_setup_failure",
+      "source_log": "logs/benchmarks/m1_runtime_blocker_20260710_151512.json",
+      "source_sha256": "dd04abe0e8a5eedc092b18dd6fb28c83aa0e341931d439b5d833729d60b8362b",
+      "first_unrecovered_transition": {
+        "stage": "controlled_runtime_bootstrap",
+        "constraint": "eula_not_manually_accepted",
+        "category": "environment_eula"
+      },
+      "failure_layer": "environment_eula",
+      "before_state": {
+        "server_build": "paper-1.20.4-499",
+        "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+        "server_properties": {
+          "level-seed": "12345",
+          "online-mode": "false",
+          "server-ip": "127.0.0.1",
+          "server-port": "25565",
+          "difficulty": "peaceful",
+          "gamemode": "survival"
+        },
+        "ops_present": true,
+        "eula_present": true,
+        "eula_accepted": false
+      },
+      "attempted_action": {
+        "command": "powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001"
+      },
+      "backend_result": {
+        "exit_code": 1,
+        "failure_class": "environment_eula",
+        "manual_action_required": true,
+        "live_process_started": false
+      },
+      "after_state": {
+        "eula_accepted": false,
+        "live_task_started": false,
+        "counts_toward_live_observed": false,
+        "counts_toward_repeat_verified": false
+      },
+      "root_cause": "Minecraft requires the server operator to read and accept its EULA; project policy forbids Singularity from making that legal decision or editing eula.txt.",
+      "patch_commit_or_summary": "Pinned official Paper build 499 and its hash, provisioned the ignored jar/config/operator, and added immutable runtime blocker reports without accepting the EULA.",
+      "retest_result": "Runtime script now stops deterministically at eula=false and writes non-capability blocker evidence; all 28 Python and 4 Node test files pass; no live benchmark ran.",
+      "next_test": "After the user accepts the EULA, run powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001"
     }
   ],
   "supporting_evidence": [
     "logs/benchmarks/benchmark_results.json",
     "logs/benchmarks/m1_preflight_20260710_142227.json",
     "logs/benchmarks/m1_harness_offline_20260710_143606.json",
+    "logs/benchmarks/m1_runtime_blocker_20260710_151512.json",
+    "logs/benchmarks/m1_runtime_provisioning_20260710_151512.json",
     "workspace/evals/critical_transition_m1_2026-07-10.json",
     "workspace/evals/capability_evidence_current.json"
   ]

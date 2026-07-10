@@ -31,6 +31,7 @@ def protocol_response(**overrides):
         "minecraft_version": M1_PROTOCOL["minecraft_version"],
         "observed_minecraft_version": M1_PROTOCOL["minecraft_version"],
         "server_type": M1_PROTOCOL["server_type"],
+        "server_build": M1_PROTOCOL["server_build"],
         "server_jar_policy": M1_PROTOCOL["server_jar_policy"],
         "agent_id": M1_PROTOCOL["agent_id"],
         "planner_id": M1_PROTOCOL["planner_id"],
@@ -40,7 +41,7 @@ def protocol_response(**overrides):
         "seed": M1_PROTOCOL["world_seed"],
         "episode_id": "offline-test-episode",
         "level_name": "offline-test-episode_bm002",
-        "server_jar_sha256": "a" * 64,
+        "server_jar_sha256": M1_PROTOCOL["server_jar_sha256"],
         "episode_strategy": M1_PROTOCOL["episode_strategy"],
         "dependencies": M1_PROTOCOL["dependencies"],
         "tasks": M1_PROTOCOL["tasks"],
@@ -103,7 +104,7 @@ class FakeBenchmarkBot:
             "episode_id": "offline-test-episode",
             "level_name": "offline-test-episode_bm002",
             "seed": "12345",
-            "server_jar_sha256": "a" * 64,
+            "server_jar_sha256": M1_PROTOCOL["server_jar_sha256"],
             "server_brand": "Paper",
             "observed_minecraft_version": M1_PROTOCOL["minecraft_version"],
             "task_id": task_id,
@@ -197,6 +198,8 @@ def run_fake_task(task, *, reset_success=True, goal_verified=True, connect_succe
 
 def test_m1_protocol_definitions_are_canonical():
     tasks = {task.id: task for task in M1_BENCHMARKS}
+    assert M1_PROTOCOL["server_build"] == "paper-1.20.4-499"
+    assert M1_PROTOCOL["server_jar_sha256"] == "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b"
     assert list(tasks) == ["BM-001", "BM-002", "BM-003", "BM-004", "BM-005"]
     assert tasks["BM-001"].initial_inventory == {}
     assert tasks["BM-002"].initial_inventory == {"oak_planks": 4}

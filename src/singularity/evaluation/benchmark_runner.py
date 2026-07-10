@@ -3592,7 +3592,7 @@ class BenchmarkRunner:
             and setup_evidence.get("task_id") == task.id
             and setup_evidence.get("protocol_sha256") == M1_PROTOCOL_SHA256
             and str(setup_evidence.get("seed") or "") == str(M1_PROTOCOL["world_seed"])
-            and len(str(setup_evidence.get("server_jar_sha256") or "")) == 64
+            and str(setup_evidence.get("server_jar_sha256") or "") == M1_PROTOCOL["server_jar_sha256"]
             and reset_checks
             and all(value is True for key, value in reset_checks.items() if key != "position_distance")
         )
@@ -20168,6 +20168,7 @@ class BenchmarkRunner:
                 "protocol_sha256": M1_PROTOCOL_SHA256,
                 "minecraft_version": M1_PROTOCOL["minecraft_version"],
                 "server_type": M1_PROTOCOL["server_type"],
+                "server_build": M1_PROTOCOL["server_build"],
                 "server_jar_policy": M1_PROTOCOL["server_jar_policy"],
                 "agent_id": M1_PROTOCOL["agent_id"],
                 "planner_id": M1_PROTOCOL["planner_id"],
@@ -20201,8 +20202,8 @@ class BenchmarkRunner:
                     f"does not match {M1_PROTOCOL['minecraft_version']!r}"
                 )
             server_hash = str(report.get("server_jar_sha256") or "")
-            if len(server_hash) != 64 or any(ch not in "0123456789abcdef" for ch in server_hash.lower()):
-                mismatches.append("server jar sha256 is missing or invalid")
+            if server_hash != M1_PROTOCOL["server_jar_sha256"]:
+                mismatches.append(f"server jar sha256 does not match pinned {M1_PROTOCOL['server_build']}")
 
             if mismatches:
                 return PreflightCheck(

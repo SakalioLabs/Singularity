@@ -1,14 +1,14 @@
 ﻿# Server Setup Guide
 
 ## Prerequisites
-- Java 17+ (Paper 1.20.4)
+- Java 21+ (the current workspace bootstrapped successfully with Java 25)
 - Node.js 18+
 - Python 3.10+
 
 ## Controlled M1 Setup
 
-1. Install Java 17+ and download a Paper server for Minecraft 1.20.4.
-2. Place the exact jar at `mc-server/server.jar`.
+1. Install Java 21+ and download official Paper `1.20.4` build `499`.
+2. Place it at `mc-server/server.jar` and verify SHA-256 `cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b`.
 3. Start it once from `mc-server/` with `java -Xmx2G -jar server.jar nogui`.
 4. Read the Minecraft EULA. Accept it manually by setting `eula=true` in `mc-server/eula.txt`. No Singularity script edits this file.
 5. Set these values in `mc-server/server.properties`:
@@ -27,7 +27,7 @@
    powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001
    ```
 
-The script uses Bridge port `30000`, creates a unique level name, records the Paper jar SHA-256, verifies the fixed M1 protocol/reset, runs exactly one task, restores `server.properties`, and stops only processes it started. Repeat the command with BM-002 through BM-005 only after the preceding gate is truthful.
+The current workspace already has the pinned jar, fixed properties, and deterministic operator record in the ignored `mc-server/` directory. Only manual EULA acceptance remains. The script uses Bridge port `30000`, creates a unique level name, verifies the fixed M1 protocol/reset, runs exactly one task, restores `server.properties`, and stops only processes it started.
 
 ## Preflight Gates
 

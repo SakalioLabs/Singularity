@@ -4,7 +4,7 @@
 
 - Sole active capability gate: move M1 from `live_failing` to `repeat_verified`.
 - Current gate: `G0_RUNTIME_AVAILABLE` is failing.
-- Earliest blocker: no controlled Minecraft server on `localhost:25565`; port `3000` is an unrelated Windows service, not a Singularity bridge.
+- Earliest blocker: Paper is provisioned and configured, but `mc-server/eula.txt` remains `eula=false`; only the user may accept it.
 - M2-M7 feature work and research-driven runtime changes are frozen until all five M1 tasks have three distinct verified live successes.
 - Ordered gates, fixed protocol, and stop conditions are in `workspace/CONVERGENCE_PLAN.md`; failure-level evidence is in `workspace/evals/m1_failure_ledger.json`.
 
@@ -36,9 +36,10 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 ## Current Runtime Readiness
 
 - Python, Java, Node.js, npm, and Mineflayer dependencies pass local preflight.
-- `localhost:25565` is unavailable; no Minecraft server assets are present in the repository workspace.
+- Pinned Paper 1.20.4 build 499 is present in the ignored runtime directory and its SHA-256 is verified.
+- Paper generated `server.properties` and `eula.txt`; fixed server settings and the offline `Singularity` operator are ready, while EULA acceptance remains false.
 - Port `3000` accepts TCP through `svchost.exe`, but fails the Singularity `health` protocol and now correctly fails the `bot_bridge` check.
-- Raw current evidence is `logs/benchmarks/m1_preflight_20260710_142227.json`; preflight evidence is explicitly ineligible for live capability counts.
+- Raw current evidence is `logs/benchmarks/m1_runtime_blocker_20260710_151512.json`; runtime blocker evidence is explicitly ineligible for live capability counts.
 - `scripts/m1-runtime.ps1` provides a controlled one-task startup path on bridge port `30000`, creates a fresh level, records the server jar hash, restores server properties, and never accepts or edits the Minecraft EULA.
 - The G1 harness is implemented and offline-tested: canonical reset state, BM-004's five-cobblestone threshold, per-task limits, deterministic runtime isolation, transition evidence, and immutable sessions are enforced. G1 remains live-unverified behind G0.
 
@@ -47,6 +48,8 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 - Made bridge preflight protocol-aware so an unrelated TCP listener cannot pass as Singularity; bot readiness and requested username/version/MC-port identity remain separate checks.
 - Added timestampable JSON preflight evidence marked as non-capability evidence, plus a controlled M1 runtime launcher that never signs the EULA or stops unknown processes.
 - Added one shared fixed M1 protocol for tasks, reset fixtures, versions, runtime identities, limits, and exact dependency versions; Node and Python reject protocol drift.
+- Pinned the server to official Paper 1.20.4 build 499 and its published SHA-256; the launcher, bridge, runner, and capability gate reject any other jar.
+- Provisioned and bootstrapped the ignored local Paper runtime without accepting the EULA, then fixed server properties and the deterministic offline operator identity.
 - Added allowlisted reset commands with observed postcondition checks for inventory, spawn, fixture, mode, difficulty, time, weather, health, and food.
 - Forced RuleBasedPlanner and isolated memory persistence/context, skills, vision, plan cache, self-evolution, frontier budgets, episode abort, LLM critics, and action candidate selection for M1.
 - Hardened action evidence: navigation requires strict tolerance, unreached movement defers dependent actions, dig waits for a bounded pickup observation, and dig/craft require real pre/post block and inventory deltas.
@@ -72,7 +75,7 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 
 ## Next Acceptance Work
 
-1. Provision Paper 1.20.4 at `mc-server/server.jar`, read and accept the EULA manually, configure seed/offline mode/port, and operator-enable `Singularity`.
+1. Read the Minecraft EULA and, only if accepted, manually set `eula=true` in `mc-server/eula.txt`.
 2. Run `powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001`.
 3. Localize BM-001's first unrecovered live transition and change only that layer.
 4. Progress BM-002..005 in dependency order, never overwriting evidence.

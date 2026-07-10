@@ -86,7 +86,7 @@ Provision Paper and manually accept the EULA as described in `docs/SERVER_SETUP.
 powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001
 ```
 
-The M1 script uses the deterministic RuleBasedPlanner profile, Bridge port `30000`, a fresh level, verified reset state, and timestamped evidence. BM-001..005 each require three distinct live successes; offline tests do not count.
+The M1 protocol pins Paper 1.20.4 build 499 and its SHA-256. The script uses the deterministic RuleBasedPlanner profile, Bridge port `30000`, a fresh level, verified reset state, and timestamped evidence. BM-001..005 each require three distinct live successes; offline tests do not count.
 
 ### Development Commands
 

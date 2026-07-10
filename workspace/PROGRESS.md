@@ -8,7 +8,7 @@ M1 is the sole active milestone. Research expansion and M2-M7 runtime work are p
 
 Singularity has broad source coverage and a large passing offline test surface, but the full Minecraft Agent system is not complete. The authoritative capability report is `workspace/evals/capability_evidence_current.json`.
 
-The current loop improved harness readiness and evidence integrity rather than capability status. A shared protocol now fixes reset state, task limits, deterministic runtime identity, dependency versions, fresh episodes, and one Paper jar hash across eligible sessions. Minecraft remains unavailable, so M1 remains `live_failing` with every task at `0/3` and zero live progress.
+The current loop provisioned the ignored local runtime without changing capability status. Official Paper 1.20.4 build 499 is hash-pinned, bootstrapped, and configured with the fixed seed, local bind, offline bot identity, and operator record. `eula=false` is now the sole blocker, so M1 remains `live_failing` with every task at `0/3` and zero live progress.
 
 Current report outcome:
 
@@ -47,13 +47,14 @@ Current report outcome:
 - Fixed Mineflayer navigation truthfulness: `move_to` now uses pathfinder and succeeds only inside target tolerance, absent/null Y values preserve horizontal goals, action/socket timeout budgets align without replay, and unreached partial navigation defers the remaining plan suffix before any dependent world action.
 - Added `m1-fixed-v1` as the shared Node/Python source of truth for BM-001..005, including canonical fixtures, BM-004's five-cobblestone threshold, cycle/time limits, runtime identities, and exact Mineflayer dependency versions.
 - Added a reset-capable controlled runner that creates one fresh level per task, verifies all reset postconditions, forces the minimal RuleBasedPlanner profile, records the exact Paper jar hash, and refuses multi-task M1 acceptance runs in one episode.
+- Pinned and provisioned official Paper 1.20.4 build 499, verified its published SHA-256, generated EULA/config files without accepting the EULA, and prepared the localhost-only fixed server configuration.
 - Added state-grounded M1 transition validation. Dig must remove an observed source block and increase the target inventory; craft must increase the requested item; copied sessions, repeated episodes/hashes, nested reset payloads, and mixed server jars are ineligible.
 - Added a bounded post-dig pickup window and closer grounded resource approach so the post-action observation can prove pickup instead of racing the item entity.
 
 ## Evidence That Still Matters
 
 - Latest tracked M1 benchmark file records BM-001..005 as failures with empty inventories.
-- Latest runtime evidence, `logs/benchmarks/m1_preflight_20260710_142227.json`, still fails at the absent Minecraft server and invalid service on port `3000`; it counts toward no capability total.
+- Latest runtime evidence, `logs/benchmarks/m1_runtime_blocker_20260710_151512.json`, proves the jar/config/operator are ready and stops only because `eula_accepted=false`; it counts toward no capability total.
 - The fixed M1 harness passes offline unit/integration coverage only. No reset, action transition, or task success has yet been observed in Minecraft.
 - The new tracked critical-transition replay localizes all five historical M1 failures: four contain 100 actionless non-terminal plans each, while the only 200-action run first exhibits repeated no-progress navigation. These diagnoses have no manual critical-unit labels and do not upgrade M1 evidence.
 - No tracked successful M2 benchmark suite is available.
@@ -97,7 +98,7 @@ The material below is retained as historical context and is not active work whil
 
 ## Immediate Sequence
 
-1. Provision Paper/Mineflayer prerequisites; EULA acceptance and `op Singularity` remain manual.
+1. The user reads the Minecraft EULA and manually sets `eula=true` only if accepted.
 2. Run `powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001` and verify the canonical reset in a real fresh world.
 3. Localize only BM-001's earliest failing live transition.
 4. Extend to BM-002..005 only after the preceding gate is truthful and regression-tested.
