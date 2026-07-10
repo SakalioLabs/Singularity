@@ -204,9 +204,14 @@
 - [x] Add benchmark-level `--knowledge-correction-preflight` so knowledge-correction-assisted live suites require approved gates and selected-suite goal overlap before execution.
 - [x] Add offline `knowledge-correction-ablation` so approved XENON feedback can be inspected for actual planner-context changes before live runs.
 - [x] Add item-level `knowledge-correction-review-template` and `knowledge-correction-review-validate` so only manually approved XENON correction items are repackaged as runtime feedback.
+- [x] Review AgentRx and TrajAudit as complements to AgentTether for guarded constraint validation, first-unrecovered failure localization, and compact long-trajectory evidence packets.
+- [x] Add `minecraft_transition_unit_v1`, execution dependency edges, `first_unrecovered_constraint_v1`, typed review-only Repair Memory candidates, and `critical-transition-report` CLI controls.
+- [x] Replay the five tracked M1 failures into `workspace/evals/critical_transition_m1_2026-07-10.json`; all five localize, but no manual labels exist and runtime authority remains false.
+- [x] Replace false-success bridge navigation with pathfinder-backed tolerance verification, preserve absent Y as a horizontal goal, and defer every dependent plan suffix after unreached partial navigation.
 
 ## Current Engineering Priorities
 - [ ] Run BM-001 through BM-005 once Node dependencies and Minecraft server are available.
+- [ ] Manually label fresh M1 critical units/categories and compare baseline/candidate localization plus repair outcomes before any Repair Memory planner gate is designed.
 - [ ] Restart `node src/bot/bot_server.js` so the new `health` command is live.
 - [ ] Start Minecraft server on `localhost:25565`, then re-run `python -m singularity.main preflight`.
 - [ ] Run live M7 with `--single-agent-baseline --output logs/benchmarks/bm701_collab_report.json` and review the collaboration-vs-baseline comparison.

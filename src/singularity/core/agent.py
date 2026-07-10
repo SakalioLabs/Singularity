@@ -1621,6 +1621,9 @@ class Agent:
                         if verified:
                             success = True
                             break
+                        if result.get("requires_replan"):
+                            logger.info("Navigation target not reached; deferring the remaining plan suffix")
+                            break
                     else:
                         self._record_skill_usage(action, False)
                         corrected, observation = self._attempt_failure_correction(
@@ -1944,6 +1947,12 @@ class Agent:
                             )
                             if verified:
                                 goal_success = True
+                                break
+                            if result.get("requires_replan"):
+                                logger.info(
+                                    "[Autonomous] Navigation target not reached; "
+                                    "deferring the remaining plan suffix"
+                                )
                                 break
                         else:
                             self._record_skill_usage(action, False)

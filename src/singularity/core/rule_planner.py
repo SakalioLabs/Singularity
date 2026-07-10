@@ -305,13 +305,12 @@ class RuleBasedPlanner:
                         {"type": "dig", "parameters": {"x": tpos.get("x", 0), "y": tpos.get("y", 0), "z": tpos.get("z", 0)}},
                     ]
                 }
-            # Otherwise navigate to tree then dig
+            # Navigation must be re-observed before a dependent world-changing action.
             return {
                 "status": "in_progress",
                 "reasoning": f"Navigating to {nearest['name']} at {dist:.1f} blocks",
                 "actions": [
-                    {"type": "walk_to", "parameters": {"x": tpos.get("x", 0), "z": tpos.get("z", 0), "ms": 1500}},
-                    {"type": "dig", "parameters": {"x": tpos.get("x", 0), "y": tpos.get("y", 0), "z": tpos.get("z", 0)}},
+                    {"type": "move_to", "parameters": {"x": tpos.get("x", 0), "z": tpos.get("z", 0)}},
                 ]
             }
         # No trees found - explore in expanding directions

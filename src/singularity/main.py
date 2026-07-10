@@ -1361,6 +1361,20 @@ def main():
     frontier_budget_parser.add_argument("--output", type=str, default="", help="Optional JSON report/gate path")
     frontier_budget_parser.add_argument("--log-level", type=str, default="INFO")
 
+    critical_transition_parser = subparsers.add_parser(
+        "critical-transition-report",
+        help="Build dependency-aware failure localization from Agent session trajectories",
+    )
+    critical_transition_parser.add_argument("--session-log", action="append", default=[], help="Agent session JSONL log to diagnose")
+    critical_transition_parser.add_argument("--case-file", action="append", default=[], help="Structured JSON/JSONL cases containing events and optional expected labels")
+    critical_transition_parser.add_argument("--label-file", action="append", default=[], help="Manual critical-unit/category labels matched by session or case id")
+    critical_transition_parser.add_argument("--include-builtins", action="store_true", help="Include deterministic synthetic localization controls")
+    critical_transition_parser.add_argument("--evidence-kind", choices=["unknown", "synthetic_control", "live_trace"], default="unknown")
+    critical_transition_parser.add_argument("--max-units", type=int, default=1024, help="Maximum action Transition Units per trajectory")
+    critical_transition_parser.add_argument("--include-graphs", action="store_true", help="Include every sanitized Transition Unit and dependency edge instead of compact evidence packets")
+    critical_transition_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    critical_transition_parser.add_argument("--log-level", type=str, default="INFO")
+
     agent_module_parser = subparsers.add_parser(
         "agent-module-comparison-report",
         help="Compare baseline vs candidate session logs across optional agent modules",
@@ -3843,6 +3857,69 @@ def main():
             write_frontier_rollout_budget_gate(report, args.output)
             print(f"\nReport saved to {args.output}")
         if report.get("readiness") in {"error", "rejected"}:
+            sys.exit(1)
+        return
+
+    if args.command == "critical-transition-report":
+        from singularity.evaluation.critical_transition import (
+            build_critical_transition_report,
+            write_critical_transition_report,
+        )
+
+        session_logs = getattr(args, "session_log", []) or []
+        case_files = getattr(args, "case_file", []) or []
+        if not session_logs and not case_files and not getattr(args, "include_builtins", False):
+            print("critical-transition-report requires session logs, case files, or --include-builtins")
+            sys.exit(1)
+        report = build_critical_transition_report(
+            session_log_paths=session_logs,
+            case_paths=case_files,
+            label_paths=getattr(args, "label_file", []) or [],
+            include_builtins=getattr(args, "include_builtins", False),
+            evidence_kind=getattr(args, "evidence_kind", "unknown"),
+            max_units_per_trajectory=getattr(args, "max_units", 1024),
+            include_graphs=getattr(args, "include_graphs", False),
+        )
+        metrics = report.get("metrics", {}) if isinstance(report.get("metrics", {}), dict) else {}
+        localization = report.get("localization_metrics", {}) if isinstance(report.get("localization_metrics", {}), dict) else {}
+        print("\nCritical Transition Report")
+        print(f"  readiness: {report.get('readiness', 'unknown')}")
+        print(f"  decision: {report.get('decision', 'unknown')}")
+        print(
+            "  trajectories: "
+            f"total={report.get('trajectory_count', 0)}, "
+            f"failed={metrics.get('failed_trajectory_count', 0)}, "
+            f"localized={metrics.get('critical_transition_found_count', 0)}"
+        )
+        print(
+            "  graph: "
+            f"units={metrics.get('transition_unit_count', 0)}, "
+            f"edges={metrics.get('dependency_edge_count', 0)}, "
+            f"coverage={metrics.get('mean_unit_coverage_rate', 0)}, "
+            f"violations={metrics.get('violation_count', 0)}"
+        )
+        print(
+            "  labels: "
+            f"count={localization.get('labeled_trajectory_count', 0)}, "
+            f"external={localization.get('externally_labeled_trajectory_count', 0)}, "
+            f"exact={localization.get('exact_unit_accuracy', 0)}, "
+            f"category={localization.get('category_accuracy', 0)}, "
+            f"gain_vs_recency={localization.get('localizer_exact_gain_over_recency', 0)}"
+        )
+        print(
+            "  authority: "
+            f"planner_guidance={report.get('planner_guidance_allowed', False)}, "
+            f"automatic_retry={report.get('automatic_retry_allowed', False)}, "
+            f"runtime_intervention={report.get('runtime_intervention_allowed', False)}"
+        )
+        if report.get("missing"):
+            print(f"  missing: {', '.join(report.get('missing', []))}")
+        for error in report.get("errors", []):
+            print(f"  error: {error}")
+        if getattr(args, "output", ""):
+            write_critical_transition_report(report, args.output)
+            print(f"\nReport saved to {args.output}")
+        if report.get("readiness") == "error":
             sys.exit(1)
         return
 

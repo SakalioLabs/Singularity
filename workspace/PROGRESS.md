@@ -37,10 +37,13 @@ Current report outcome:
 - Upgraded AgenticCache reuse with Progressive Crystallization and EvoSOP lifecycle constraints. Schema-v2 cache reports can grant only hybrid planner guidance from offline traces; runtime reports aggregate exact executable-workflow matches, independent sessions, goal outcomes, action failures, and verifier rejects per entry. Three matched successes across three complete live sessions are required by default for deterministic reuse, while regressions demote only the affected entry.
 - Added a hosted-API-compatible recall-controlled episode viability cascade. `behavior_surface_v1` scores only typed action/verifier/progress events, calibrates exact binomial survival bounds per round, searches budgets on a separate validation split, certifies global success recall on held-out test data, and binds `shadow`/`active` runtime use to planner, action backend, verifier, task stream, and seed identities. The implementation explicitly makes no hidden-activation or token-savings claim.
 - Added `frontier_information_budget_v1` with an exact uniform control, fixed integer planner-round ledger, deterministic soft allocation, exploration floor, typed prerequisite/verifier/novelty/risk signals, and BAGEN-style remaining-round intervals. Active episode-abort savings can become bounded recovery credit but never extend the ledger. `frontier-rollout-budget-report` accepts offline fixtures for shadow review yet permits planner-facing advice only from distinct paired uniform/information JSONL sessions whose allocations replay exactly, outcomes do not regress, interval coverage has an exact one-sided certificate, and any recovered rounds link to an approved abort gate. Automatic retry, branch execution, and budget extension are structurally impossible.
+- Added AgentRx/AgentTether-style critical-transition diagnosis. `minecraft_transition_unit_v1` normalizes both action cycles and actionless planner responses; deterministic constraints feed a temporal/plan/target/artifact/error dependency graph and `first_unrecovered_constraint_v1`. Five synthetic failures match 5/5 critical units and categories versus 3/5 for a recency baseline. Repair candidates are typed and review-only, with no planner, retry, intervention, memory-promotion, or skill-mutation authority.
+- Fixed Mineflayer navigation truthfulness: `move_to` now uses pathfinder and succeeds only inside target tolerance, absent/null Y values preserve horizontal goals, action/socket timeout budgets align without replay, and unreached partial navigation defers the remaining plan suffix before any dependent world action.
 
 ## Evidence That Still Matters
 
 - Latest tracked M1 benchmark file records BM-001..005 as failures with empty inventories.
+- The new tracked critical-transition replay localizes all five historical M1 failures: four contain 100 actionless non-terminal plans each, while the only 200-action run first exhibits repeated no-progress navigation. These diagnoses have no manual critical-unit labels and do not upgrade M1 evidence.
 - No tracked successful M2 benchmark suite is available.
 - No three-run first-night survival evidence is available.
 - Existing M3 traces show no memory reads or writes, no completed goals, and 2,601 unbounded context cycles.
@@ -76,11 +79,12 @@ Current report outcome:
 - IGRPO: when retries or branch rollouts become available, allocate a fixed planner-round budget toward frontier nodes that reduce verifier uncertainty or reveal prerequisites, and compare against uniform allocation before online suppression.
 - BAGEN: treat planner rounds as an active progressive ledger, report conservative remaining-cost intervals, and measure optimistic misses separately from task completion.
 - AgentTether: localize retry value along prerequisite/dependency paths, carry fixed versus unresolved state across attempts, and use cooldown/minimal-intervention guards rather than blind retry.
+- AgentRx and TrajAudit: audit guarded execution constraints, identify the first unrecovered transition, and keep full traces outside a compact dependency-linked evidence packet until manual labels establish localization quality.
 
 ## Immediate Sequence
 
 1. Restore a healthy Minecraft server and bridge runtime.
-2. Re-run M1 and use the new readiness recovery path on missing-resource failures.
+2. Re-run M1 with pathfinder-backed truthful navigation and readiness recovery; compare empty plans, unreached navigation, dependent world actions, and no-progress transitions against the tracked critical-transition report.
 3. Promote no capability until the ledger reports `repeat_verified`.
 4. Re-run M3/M5 with the new bounded-memory and autonomous-event contracts, then collect three distinct qualifying sessions for each adapter; M6 still requires screenshot-backed visual interventions.
 5. Continue research-driven improvements only with baseline/candidate traces and regression gates.

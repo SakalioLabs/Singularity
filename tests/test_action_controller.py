@@ -30,6 +30,16 @@ class FakeBot:
         return {"success": True}
 
 
+class NavigationBot(FakeBot):
+    def walk_to(self, x, z, y=None, ms=2000):
+        self.calls.append(("walk_to", x, z, y, ms))
+        return {"success": True, "reached": False, "partial": True}
+
+    def move_to(self, x, z, y=None, tolerance=None, timeout_ms=None):
+        self.calls.append(("move_to", x, z, y, tolerance, timeout_ms))
+        return {"success": True, "reached": True}
+
+
 def _write_mixed_policy_patch(tmpdir):
     patch_path = os.path.join(tmpdir, "mixed_policy_patch.json")
     with open(patch_path, "w", encoding="utf-8") as f:
@@ -450,6 +460,32 @@ def test_use_item_equips_requested_item_first():
     assert result["control_policy"]["preferred_control"] == "mineflayer_api_ok"
     assert bot.calls == [("equip", "bread", "hand"), ("use_item",)]
     print("PASS: ActionController equips item before use_item")
+
+
+def test_partial_navigation_requires_replanning_before_plan_suffix():
+    bot = NavigationBot()
+    controller = ActionController(bot, Config())
+
+    partial = controller.execute(
+        {"type": "walk_to", "parameters": {"x": 12, "z": 4, "ms": 500}},
+        {"health": 20},
+    )
+    reached = controller.execute(
+        {
+            "type": "move_to",
+            "parameters": {"x": 12, "z": 4, "tolerance": 3},
+        },
+        {"health": 20},
+    )
+
+    assert partial["success"] is True
+    assert partial["navigation_reached"] is False
+    assert partial["requires_replan"] is True
+    assert partial["replan_reason"] == "navigation_target_unreached"
+    assert reached["navigation_reached"] is True
+    assert reached["requires_replan"] is False
+    assert bot.calls[-1] == ("move_to", 12, 4, None, 3, 30000)
+    print("PASS: Partial navigation defers the remaining plan suffix")
 
 
 def test_action_mapper_desktop_backend_is_planned_not_executable():
@@ -1132,6 +1168,7 @@ def test_action_candidate_selector_uses_failure_correction_pairs():
 if __name__ == "__main__":
     test_self_evolution_policy_formats_advisory_context()
     test_use_item_equips_requested_item_first()
+    test_partial_navigation_requires_replanning_before_plan_suffix()
     test_action_mapper_desktop_backend_is_planned_not_executable()
     test_action_controller_rejects_non_executable_backend()
     test_action_controller_rejects_unknown_canonical_action()

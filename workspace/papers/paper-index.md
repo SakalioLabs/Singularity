@@ -1661,9 +1661,45 @@
 - **Key Results**: Reports substantial repair gains over blind retry and one-shot feedback across domains and model backends
 - **Scores**: R=4, N=5, R=3, E=4
 - **Value to Project**: Motivates spending diagnostic rounds on upstream prerequisite transitions and forbidding blind retry or unconstrained intervention
-- **Implementation Mapping**: Frontier scoring now rewards prerequisite closure and verifier uncertainty while penalizing repeated attempts/risk; automatic retry and branch execution remain impossible
+- **Implementation Mapping**: `minecraft_transition_unit_v1` plus `first_unrecovered_constraint_v1` now provide deterministic dependency-aware localization and typed review-only Repair Memory candidates; learned anomaly detection and runtime intervention are not reproduced
 - **Reproduction Priority**: P2
 - **Card**: `2026-07-10-agenttether.md`
+
+---
+
+## P-093: AgentRx
+
+- **Title**: AgentRx: Diagnosing AI Agent Failures from Execution Trajectories
+- **Source**: https://arxiv.org/abs/2602.02475
+- **Year**: 2026
+- **Type**: Constraint-backed agent trajectory failure localization
+- **Task Type**: API workflows, incident management, and open-ended web/file agents
+- **Core Method**: Synthesizes guarded global/dynamic constraints, builds an auditable step-indexed violation log, and attributes the first unrecoverable critical failure
+- **Memory**: Preserves trajectory-prefix obligations and evidence for downstream diagnosis
+- **Key Results**: Reports 23.6 percentage points absolute localization improvement and 22.9 points root-cause attribution improvement in its evaluated setup
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Defines machine-checkable Minecraft execution constraints and manual-label metrics before repair guidance can influence planning
+- **Implementation Mapping**: `first_unrecovered_constraint_v1` evaluates typed navigation/schema/effect/verifier/progress constraints and excludes later-repaired failures
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-10-agentrx.md`
+
+---
+
+## P-094: TrajAudit
+
+- **Title**: TrajAudit: Automated Failure Diagnosis for Agentic Coding Systems
+- **Source**: https://arxiv.org/abs/2605.26563
+- **Year**: 2026
+- **Type**: Noise-filtered long-trajectory failure diagnosis
+- **Task Type**: Repository-level coding-agent failures
+- **Core Method**: Filters irrelevant trajectory content, uses failure priors, and retrieves details on demand for an investigator agent
+- **Memory**: Keeps the complete trace externally while exposing a compact diagnostic working set
+- **Key Results**: Reports over 24.4 percentage points localization gain and at least 18% token reduction on RootSE
+- **Scores**: R=3, N=4, R=3, E=4
+- **Value to Project**: Supports compact dependency-linked evidence packets instead of injecting full Minecraft traces into an analyst or planner
+- **Implementation Mapping**: Critical-transition reports default to local evidence packets and require `--include-graphs` for complete sanitized graph export
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-10-trajaudit.md`
 
 ---
 
@@ -1763,3 +1799,5 @@
 | P-090 | Information Gain-based Rollout Policy Optimization | 2026 | R4/N5/R3/E4 | P2 |
 | P-091 | BAGEN | 2026 | R4/N5/R4/E5 | P1 |
 | P-092 | AgentTether | 2026 | R4/N5/R3/E4 | P2 |
+| P-093 | AgentRx | 2026 | R5/N5/R4/E5 | P1 |
+| P-094 | TrajAudit | 2026 | R3/N4/R3/E4 | P2 |

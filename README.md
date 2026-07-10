@@ -127,6 +127,10 @@ python -m singularity.main autonomous --max-goals 10 --frontier-budget-mode shad
 # Advisory mode additionally requires exact-control paired live logs. Repeat baseline/candidate flags in order;
 # defaults require at least 12 successful candidate interval observations for the coverage certificate.
 python -m singularity.main frontier-rollout-budget-report --help
+# Normalize Observation-Plan-Action-Feedback cycles and localize the first unrecovered failure.
+# Built-ins are synthetic controls; typed repair candidates remain review-only in every report.
+python -m singularity.main critical-transition-report --include-builtins --evidence-kind synthetic_control --output logs/benchmarks/critical_transition_builtin.json
+python -m singularity.main critical-transition-report --session-log logs/session_xxx.jsonl --label-file workspace/reviews/critical_transition_labels.jsonl --evidence-kind live_trace --output logs/benchmarks/critical_transition_live.json
 python -m singularity.main benchmark --suite m1 --preflight
 python -m singularity.main benchmark --suite m1 --ingest
 python -m singularity.main benchmark --suite m1 --ingest --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL
@@ -187,14 +191,16 @@ python tests/test_action_controller.py
 python tests/test_runtime_supervisor.py
 python tests/test_episode_abort.py
 python tests/test_frontier_budget.py
+python tests/test_critical_transition.py
 python tests/test_bot_bridge.py
 python tests/test_collaboration_benchmark.py
 python tests/test_collaboration_executor.py
 python tests/test_memory_task_system.py
 python tests/test_benchmark_preflight.py
+node tests/test_bot_server_navigation.js
 ```
 
-Coverage includes config, goal generation, exploration, interruptible runtime supervision, recall-controlled episode viability, fixed-budget frontier allocation, action safety helpers, memory and experience records, skill extraction/review, task scheduling, rule planning, knowledge loading, session logging, benchmark preflight, bridge health, collaboration benchmark feasibility/execution, Agent-backed collaboration task adapters, and benchmark trace ingestion.
+Coverage includes config, goal generation, exploration, interruptible runtime supervision, recall-controlled episode viability, fixed-budget frontier allocation, dependency-aware failure localization, truthful navigation completion, action safety helpers, memory and experience records, skill extraction/review, task scheduling, rule planning, knowledge loading, session logging, benchmark preflight, bridge health, collaboration benchmark feasibility/execution, Agent-backed collaboration task adapters, and benchmark trace ingestion.
 
 ## Project Structure
 
@@ -221,6 +227,7 @@ Singularity/
 │   │   │   ├── goal_generator.py # M4 survival goal prioritization
 │   │   │   └── explorer.py       # M5 exploration with landmarks
 │   │   ├── llm/provider.py       # Swappable LLM (OpenAI/Anthropic/Ollama)
+│   │   ├── evaluation/critical_transition.py # Auditable execution dependency diagnosis
 │   │   ├── observation/observer.py # Game state collection
 │   │   ├── action/controller.py  # Action execution with safety
 │   │   ├── bot/bridge.py         # Python-Node.js TCP bridge
@@ -249,7 +256,7 @@ Singularity/
 
 ## Research Foundation
 
-- **92 papers** analyzed across Minecraft, game agents, memory, skills, world models, evaluation, safety, and multi-agent execution
+- **94 papers** analyzed across Minecraft, game agents, memory, skills, world models, evaluation, safety, and multi-agent execution
 - **4 key repos** evaluated: Mindcraft, Mineflayer, Baritone, MineDojo
 - **10 research questions** identified and tracked (RQ1-RQ10)
 

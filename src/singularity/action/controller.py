@@ -8,6 +8,8 @@ from singularity.action.policy import ActionGranularityPolicy, ActionPolicyDecis
 
 logger = logging.getLogger("singularity.action")
 
+NAVIGATION_ACTIONS = frozenset({"walk_to", "move_to"})
+
 
 class ActionController:
     """Executes actions on the Minecraft bot with pre/post validation."""
@@ -100,6 +102,12 @@ class ActionController:
         result["backend_command"] = command.command
         result["backend_params"] = command.params
         result["control_policy"] = policy_decision.as_dict()
+        if action_type in NAVIGATION_ACTIONS:
+            reached = result.get("reached") is True
+            result["navigation_reached"] = reached
+            result["requires_replan"] = result.get("success") is True and not reached
+            if result["requires_replan"]:
+                result["replan_reason"] = "navigation_target_unreached"
         return result
 
     def _select_action_policy(self, action: dict) -> ActionPolicyDecision:
@@ -132,7 +140,16 @@ class ActionController:
         x = params.get("x", 0)
         z = params.get("z", 0)
         y = params.get("y")
-        return self.bot.move_to(x, z, y)
+        timeout_ms = params.get("timeout_ms")
+        if timeout_ms is None:
+            timeout_ms = getattr(self.config, "max_action_timeout", 30000)
+        return self.bot.move_to(
+            x,
+            z,
+            y,
+            tolerance=params.get("tolerance"),
+            timeout_ms=timeout_ms,
+        )
 
     def _look_at(self, params: dict) -> dict:
         x = params.get("x", 0)

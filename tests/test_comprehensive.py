@@ -384,7 +384,9 @@ class TestRulePlanner(unittest.TestCase):
         ]}
         plan = self.planner.plan_from_goal("Gather 3 oak logs", obs)
         self.assertEqual(plan["status"], "in_progress")
-        self.assertTrue(len(plan["actions"]) > 0)
+        self.assertEqual(plan["actions"], [
+            {"type": "move_to", "parameters": {"x": 10, "z": 10}},
+        ])
 
     def test_gather_wood_explore(self):
         obs = {"inventory": {}, "trees_found": []}

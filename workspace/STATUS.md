@@ -50,11 +50,13 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 - Upgraded plan caching to `progressive_workflow_crystallization_v1`: offline transitions are bounded hybrid planner hints, while direct deterministic reuse requires entry-scoped matched success across three distinct live sessions by default. Action, goal, or verifier regressions demote only the affected entry to agentic execution.
 - Added `behavior_surface_v1` recall-controlled episode viability. It uses exact per-round Clopper-Pearson calibration, disjoint calibration/validation/test splits, held-out global-recall certificates, and fixed runtime provenance. It is off by default and has no approved live Minecraft gate.
 - Added `frontier_information_budget_v1` and a uniform fixed-control baseline. Curriculum/task-frontier branches now receive a conserved integer planner-round slate with explicit remaining-round intervals; paired raw session logs, exact allocation replay, outcome non-regression, and an interval-coverage certificate are required before advisory planner context. Built-ins remain shadow-only, and automatic retry, branch execution, and budget extension are forbidden.
+- Added `critical-transition-report` with action and planner-response Transition Units, guarded Minecraft execution constraints, temporal/plan/artifact/target/error dependencies, first-unrecovered localization, compact evidence packets, and review-only typed Repair Memory candidates. Synthetic localization is 5/5; historical M1 diagnoses remain unlabeled and cannot affect runtime.
+- Replaced the bridge's fixed-duration false-success `move_to` with Mineflayer pathfinder goals plus final-distance verification. Missing Y values remain horizontal, pathfinder controls are forwarded, and unreached partial navigation forces replanning before the actor can execute a dependent plan suffix.
 
 ## Next Acceptance Work
 
 1. Provision a Minecraft 1.20.4 test server after explicit EULA acceptance and restart the bridge.
-2. Re-run BM-001..005, diagnose failures, and collect three successful runs per task.
+2. Re-run BM-001..005, verify every successful `move_to` has `reached=true`, confirm no dependent world action follows an unreached navigation result, compare critical-transition diagnoses, and collect three successful runs per task.
 3. Run BM-006..010 only after M1 is live-observed.
 4. Re-run M3/M5 with the new bounded-memory and autonomous subgoal events; re-run M6 after screenshot capture and visual-action interventions are available.
 5. Start distinct M7 role bridges and run BM-701 against the single-agent baseline.
@@ -64,3 +66,4 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 9. Run hybrid plan-cache guidance on fresh M1/M2 sessions, collect three exact matched successes per candidate entry, and compare planner calls, token cost, actions, completion, and verifier outcomes before any deterministic promotion.
 10. Collect disjoint fixed-control M1/M2 calibration, validation, and test trajectories; run episode viability in shadow mode first, and keep active abort disabled until held-out recall is certified and failed-episode planner-round savings are positive.
 11. Run matched uniform and information frontier-budget shadow sessions on the same M1/M2 task stream. Collect at least 12 successful candidate interval observations across distinct paired sessions before generating an advisory gate; keep branch execution and retries manual even after approval.
+12. Manually label critical units and categories on fresh baseline/candidate M1 failures, compare exact/within-one/category accuracy plus repair outcomes, and keep Repair Memory outside planner context until a separate gate exists.

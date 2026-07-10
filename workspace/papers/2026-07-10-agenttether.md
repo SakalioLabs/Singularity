@@ -20,6 +20,6 @@
 - Carry unresolved/fixed state across attempts, but cap attempts under one conserved budget.
 - Never turn a diagnosis directly into an unverified world-state mutation or blind retry.
 
-**Project Action**: `frontier_information_budget_v1` rewards typed prerequisite closure and verifier/no-progress uncertainty while penalizing repeated attempts and mapped risk. Active episode-abort savings become bounded allocation credit, but the controller hard-codes no automatic retry, branch execution, or budget extension. A future Critical Transition Graph should replace the current local typed proxies once live dependency traces exist.
+**Project Action**: Added `minecraft_transition_unit_v1`, temporal/plan/artifact/target/error dependency edges, and `first_unrecovered_constraint_v1`. The deterministic localizer emits compact evidence packets plus typed unresolved Repair Memory candidates, while planner guidance, automatic retry, runtime intervention, memory promotion, and skill mutation remain disabled. `frontier_information_budget_v1` still uses local typed proxies until manually labeled live graph evidence supports a stronger gate.
 
 **Non-Claim**: Singularity has not reproduced AgentTether's graph detector, repair model, or tau-bench results. This milestone transfers its causal-allocation and bounded-intervention constraints only.

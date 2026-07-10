@@ -1,0 +1,1415 @@
+{
+  "type": "critical_transition_report",
+  "schema_version": 1,
+  "unit_profile": "minecraft_transition_unit_v1",
+  "graph_profile": "minecraft_execution_dependency_graph_v1",
+  "localizer_profile": "first_unrecovered_constraint_v1",
+  "repair_memory_profile": "typed_repair_memory_candidate_v1",
+  "readiness": "review",
+  "decision": "emit_review_only_critical_transition_diagnostics",
+  "reason": "critical-transition diagnoses require manual labels and repair-outcome evidence before planner use",
+  "evidence_kind": "live_trace",
+  "runtime_eligible": false,
+  "planner_guidance_allowed": false,
+  "automatic_retry_allowed": false,
+  "runtime_intervention_allowed": false,
+  "automatic_memory_promotion_allowed": false,
+  "automatic_skill_mutation_allowed": false,
+  "trajectory_count": 5,
+  "trajectories": [
+    {
+      "case_id": "2818ff2a-612",
+      "source_kind": "session_log",
+      "session_id": "2818ff2a-612",
+      "session_id_explicit": true,
+      "connected": true,
+      "terminal": {
+        "complete_boundary": true,
+        "event_type": "goal_end",
+        "completed": false,
+        "cycles": 100
+      },
+      "event_count": 403,
+      "action_event_count": 200,
+      "action_transition_unit_count": 200,
+      "transition_unit_count": 200,
+      "unit_coverage_rate": 1.0,
+      "planner_response_unit_count": 0,
+      "dependency_edge_count": 497,
+      "dependency_edge_counts": {
+        "plan_order": 100,
+        "shared_artifact": 101,
+        "shared_target": 97,
+        "temporal": 199
+      },
+      "violation_count": 2,
+      "recovered_violation_count": 0,
+      "unrecovered_violation_count": 2,
+      "violation_counts": {
+        "repeated_no_progress": 2
+      },
+      "diagnosis": {
+        "found": true,
+        "localizer_profile": "first_unrecovered_constraint_v1",
+        "critical_unit_id": "9d7864a38c6e806a",
+        "critical_unit_ordinal": 13,
+        "critical_event_index": 28,
+        "critical_score": 0.895,
+        "category": "plan_adherence_failure",
+        "constraint_id": "repeated_no_progress",
+        "action_type": "move_to",
+        "target_signature": "8bcac8f931b17c1b",
+        "unrecovered_violation_count": 1,
+        "distance_to_terminal_units": 187,
+        "evidence_packet": [
+          {
+            "unit_id": "9d7864a38c6e806a",
+            "unit_kind": "action_cycle",
+            "ordinal": 13,
+            "event_index": 28,
+            "plan_event_index": 27,
+            "plan_id": "700317cfce942778",
+            "plan_status": "in_progress",
+            "belief_present": true,
+            "belief_fingerprint": "8b9c5f0c55681e48",
+            "planned_action_index": 0,
+            "planned_action_count": 2,
+            "planned_actions_omitted": 0,
+            "planned_actions_deferred": 0,
+            "omitted_action_signatures": [],
+            "observation_before_index": 26,
+            "observation_after_index": 30,
+            "verification_event_index": -1,
+            "verification_status": "not_observed",
+            "goal_fingerprint": "0095aa547d088f8d",
+            "action_type": "move_to",
+            "action_signature": "6a337a3cbe754808",
+            "argument_keys": [
+              "x",
+              "z"
+            ],
+            "target": {
+              "position": "20,20"
+            },
+            "target_signature": "8bcac8f931b17c1b",
+            "result_success": true,
+            "result_error_signature": "",
+            "result_reached": false,
+            "plan_suffix_deferred": false,
+            "inventory_delta": {},
+            "state_before": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_after": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_changed": false,
+            "effect_confirmed": false,
+            "navigation_confirmed": true,
+            "dependency_artifacts": [
+              "target:position:20,20"
+            ],
+            "violations": [
+              {
+                "constraint_id": "repeated_no_progress",
+                "category": "plan_adherence_failure",
+                "severity": 0.75,
+                "event_index": 28,
+                "evidence": {
+                  "repeat_count": 93,
+                  "action_signature": "6a337a3cbe754808"
+                },
+                "recovery_key": "3879ec1e2fcb5f4f",
+                "recovered": false,
+                "recovery_unit_id": ""
+              }
+            ]
+          },
+          {
+            "unit_id": "03a898aa8f0e8fe7",
+            "unit_kind": "action_cycle",
+            "ordinal": 12,
+            "event_index": 25,
+            "plan_event_index": 23,
+            "plan_id": "1fa3d4fe44680516",
+            "plan_status": "in_progress",
+            "belief_present": true,
+            "belief_fingerprint": "a0e2bbe386c9c21b",
+            "planned_action_index": 1,
+            "planned_action_count": 2,
+            "planned_actions_omitted": 0,
+            "planned_actions_deferred": 0,
+            "omitted_action_signatures": [],
+            "observation_before_index": 22,
+            "observation_after_index": 26,
+            "verification_event_index": -1,
+            "verification_status": "not_observed",
+            "goal_fingerprint": "0095aa547d088f8d",
+            "action_type": "dig",
+            "action_signature": "b02e18442f554e14",
+            "argument_keys": [
+              "x",
+              "y",
+              "z"
+            ],
+            "target": {
+              "position": "22,69,20"
+            },
+            "target_signature": "7cd53c7d6565a6e6",
+            "result_success": true,
+            "result_error_signature": "",
+            "result_reached": false,
+            "plan_suffix_deferred": false,
+            "inventory_delta": {},
+            "state_before": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_after": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_changed": false,
+            "effect_confirmed": true,
+            "navigation_confirmed": false,
+            "dependency_artifacts": [
+              "result:block:oak_log",
+              "target:position:22,69,20"
+            ],
+            "violations": []
+          },
+          {
+            "unit_id": "4773b1a7e95db69c",
+            "unit_kind": "action_cycle",
+            "ordinal": 14,
+            "event_index": 29,
+            "plan_event_index": 27,
+            "plan_id": "700317cfce942778",
+            "plan_status": "in_progress",
+            "belief_present": true,
+            "belief_fingerprint": "8b9c5f0c55681e48",
+            "planned_action_index": 1,
+            "planned_action_count": 2,
+            "planned_actions_omitted": 0,
+            "planned_actions_deferred": 0,
+            "omitted_action_signatures": [],
+            "observation_before_index": 26,
+            "observation_after_index": 30,
+            "verification_event_index": -1,
+            "verification_status": "not_observed",
+            "goal_fingerprint": "0095aa547d088f8d",
+            "action_type": "wait",
+            "action_signature": "a623f96c0cc10c02",
+            "argument_keys": [
+              "ms"
+            ],
+            "target": {},
+            "target_signature": "",
+            "result_success": true,
+            "result_error_signature": "",
+            "result_reached": false,
+            "plan_suffix_deferred": false,
+            "inventory_delta": {},
+            "state_before": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_after": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_changed": false,
+            "effect_confirmed": false,
+            "navigation_confirmed": false,
+            "dependency_artifacts": [],
+            "violations": [
+              {
+                "constraint_id": "repeated_no_progress",
+                "category": "plan_adherence_failure",
+                "severity": 0.75,
+                "event_index": 29,
+                "evidence": {
+                  "repeat_count": 93,
+                  "action_signature": "a623f96c0cc10c02"
+                },
+                "recovery_key": "68635670bfa7bd90",
+                "recovered": false,
+                "recovery_unit_id": ""
+              }
+            ]
+          },
+          {
+            "unit_id": "6269a60f30ac00b3",
+            "unit_kind": "action_cycle",
+            "ordinal": 7,
+            "event_index": 16,
+            "plan_event_index": 15,
+            "plan_id": "a88b7c516bad92d3",
+            "plan_status": "in_progress",
+            "belief_present": true,
+            "belief_fingerprint": "8b9c5f0c55681e48",
+            "planned_action_index": 0,
+            "planned_action_count": 2,
+            "planned_actions_omitted": 0,
+            "planned_actions_deferred": 0,
+            "omitted_action_signatures": [],
+            "observation_before_index": 14,
+            "observation_after_index": 18,
+            "verification_event_index": -1,
+            "verification_status": "not_observed",
+            "goal_fingerprint": "0095aa547d088f8d",
+            "action_type": "move_to",
+            "action_signature": "6a337a3cbe754808",
+            "argument_keys": [
+              "x",
+              "z"
+            ],
+            "target": {
+              "position": "20,20"
+            },
+            "target_signature": "8bcac8f931b17c1b",
+            "result_success": true,
+            "result_error_signature": "",
+            "result_reached": false,
+            "plan_suffix_deferred": false,
+            "inventory_delta": {},
+            "state_before": {
+              "position": {
+                "x": -11.5,
+                "y": 66.0,
+                "z": 1.47
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_after": {
+              "position": {
+                "x": 20.67,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_changed": true,
+            "effect_confirmed": false,
+            "navigation_confirmed": true,
+            "dependency_artifacts": [
+              "target:position:20,20"
+            ],
+            "violations": []
+          },
+          {
+            "unit_id": "703563be0697b7e9",
+            "unit_kind": "action_cycle",
+            "ordinal": 15,
+            "event_index": 32,
+            "plan_event_index": 31,
+            "plan_id": "cb5c5859bdfac844",
+            "plan_status": "in_progress",
+            "belief_present": true,
+            "belief_fingerprint": "8b9c5f0c55681e48",
+            "planned_action_index": 0,
+            "planned_action_count": 2,
+            "planned_actions_omitted": 0,
+            "planned_actions_deferred": 0,
+            "omitted_action_signatures": [],
+            "observation_before_index": 30,
+            "observation_after_index": 34,
+            "verification_event_index": -1,
+            "verification_status": "not_observed",
+            "goal_fingerprint": "0095aa547d088f8d",
+            "action_type": "move_to",
+            "action_signature": "6a337a3cbe754808",
+            "argument_keys": [
+              "x",
+              "z"
+            ],
+            "target": {
+              "position": "20,20"
+            },
+            "target_signature": "8bcac8f931b17c1b",
+            "result_success": true,
+            "result_error_signature": "",
+            "result_reached": false,
+            "plan_suffix_deferred": false,
+            "inventory_delta": {},
+            "state_before": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_after": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_changed": false,
+            "effect_confirmed": false,
+            "navigation_confirmed": true,
+            "dependency_artifacts": [
+              "target:position:20,20"
+            ],
+            "violations": []
+          }
+        ],
+        "baselines": {
+          "recency_unit_ordinal": 14,
+          "first_unrecovered_unit_ordinal": 13
+        }
+      },
+      "repair_memory_candidate": {
+        "repair_key": "d1259b108f2b1d61",
+        "profile": "typed_repair_memory_candidate_v1",
+        "state": "unresolved",
+        "directive_code": "change_strategy_after_verified_no_progress",
+        "constraint_id": "repeated_no_progress",
+        "category": "plan_adherence_failure",
+        "action_family": "move_to",
+        "target_signature": "8bcac8f931b17c1b",
+        "source_session_fingerprint": "2559c518da5a2e6c",
+        "source_unit_id": "9d7864a38c6e806a",
+        "evidence_grounded": true,
+        "cooldown_required": true,
+        "minimal_intervention_required": true,
+        "planner_context_allowed": false,
+        "automatic_retry_allowed": false,
+        "runtime_intervention_allowed": false
+      },
+      "expected_label": {
+        "available": false
+      },
+      "label_evaluation": {
+        "available": false
+      },
+      "graph_summary": {
+        "unit_profile": "minecraft_transition_unit_v1",
+        "graph_profile": "minecraft_execution_dependency_graph_v1",
+        "full_graph_included": false,
+        "unit_count": 200,
+        "edge_count": 497
+      }
+    },
+    {
+      "case_id": "bcd06511-00a",
+      "source_kind": "session_log",
+      "session_id": "bcd06511-00a",
+      "session_id_explicit": true,
+      "connected": true,
+      "terminal": {
+        "complete_boundary": true,
+        "event_type": "goal_end",
+        "completed": false,
+        "cycles": 100
+      },
+      "event_count": 203,
+      "action_event_count": 0,
+      "action_transition_unit_count": 0,
+      "transition_unit_count": 100,
+      "unit_coverage_rate": 1.0,
+      "planner_response_unit_count": 100,
+      "dependency_edge_count": 99,
+      "dependency_edge_counts": {
+        "temporal": 99
+      },
+      "violation_count": 100,
+      "recovered_violation_count": 0,
+      "unrecovered_violation_count": 100,
+      "violation_counts": {
+        "empty_plan_without_transition": 100
+      },
+      "diagnosis": {
+        "found": true,
+        "localizer_profile": "first_unrecovered_constraint_v1",
+        "critical_unit_id": "0399c659742f2e54",
+        "critical_unit_ordinal": 1,
+        "critical_event_index": 3,
+        "critical_score": 0.925,
+        "category": "intent_plan_misalignment",
+        "constraint_id": "empty_plan_without_transition",
+        "action_type": "planner_response",
+        "target_signature": "",
+        "unrecovered_violation_count": 1,
+        "distance_to_terminal_units": 99,
+        "evidence_packet": [
+          {
+            "unit_id": "0399c659742f2e54",
+            "unit_kind": "planner_response",
+            "ordinal": 1,
+            "event_index": 3,
+            "plan_event_index": 3,
+            "plan_id": "8a64a71a69329577",
+            "plan_status": "blocked",
+            "belief_present": true,
+            "belief_fingerprint": "dde58eea2b66f105",
+            "planned_action_index": -1,
+            "planned_action_count": 0,
+            "planned_actions_omitted": 0,
+            "planned_actions_deferred": 0,
+            "omitted_action_signatures": [],
+            "observation_before_index": 2,
+            "observation_after_index": 4,
+            "verification_event_index": -1,
+            "verification_status": "not_observed",
+            "goal_fingerprint": "cdf117c7229f8f24",
+            "action_type": "planner_response",
+            "action_signature": "d4d48efc8470f42b",
+            "argument_keys": [],
+            "target": {},
+            "target_signature": "",
+            "result_success": false,
+            "result_error_signature": "",
+            "result_reached": false,
+            "plan_suffix_deferred": false,
+            "inventory_delta": {},
+            "state_before": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_after": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_changed": false,
+            "effect_confirmed": false,
+            "navigation_confirmed": false,
+            "dependency_artifacts": [],
+            "violations": [
+              {
+                "constraint_id": "empty_plan_without_transition",
+                "category": "intent_plan_misalignment",
+                "severity": 0.9,
+                "event_index": 3,
+                "evidence": {
+                  "plan_status": "blocked"
+                },
+                "recovery_key": "1f638848f73e94dd",
+                "recovered": false,
+                "recovery_unit_id": ""
+              }
+            ]
+          },
+          {
+            "unit_id": "f7a1f9d4c0b8b340",
+            "unit_kind": "planner_response",
+            "ordinal": 2,
+            "event_index": 5,
+            "plan_event_index": 5,
+            "plan_id": "2fabae28ffb4ffa9",
+            "plan_status": "blocked",
+            "belief_present": true,
+            "belief_fingerprint": "dde58eea2b66f105",
+            "planned_action_index": -1,
+            "planned_action_count": 0,
+            "planned_actions_omitted": 0,
+            "planned_actions_deferred": 0,
+            "omitted_action_signatures": [],
+            "observation_before_index": 4,
+            "observation_after_index": 6,
+            "verification_event_index": -1,
+            "verification_status": "not_observed",
+            "goal_fingerprint": "cdf117c7229f8f24",
+            "action_type": "planner_response",
+            "action_signature": "324f9647eb85b8be",
+            "argument_keys": [],
+            "target": {},
+            "target_signature": "",
+            "result_success": false,
+            "result_error_signature": "",
+            "result_reached": false,
+            "plan_suffix_deferred": false,
+            "inventory_delta": {},
+            "state_before": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_after": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_changed": false,
+            "effect_confirmed": false,
+            "navigation_confirmed": false,
+            "dependency_artifacts": [],
+            "violations": [
+              {
+                "constraint_id": "empty_plan_without_transition",
+                "category": "intent_plan_misalignment",
+                "severity": 0.9,
+                "event_index": 5,
+                "evidence": {
+                  "plan_status": "blocked"
+                },
+                "recovery_key": "1f638848f73e94dd",
+                "recovered": false,
+                "recovery_unit_id": ""
+              }
+            ]
+          }
+        ],
+        "baselines": {
+          "recency_unit_ordinal": 100,
+          "first_unrecovered_unit_ordinal": 1
+        }
+      },
+      "repair_memory_candidate": {
+        "repair_key": "c6f7d24cccbfa0f3",
+        "profile": "typed_repair_memory_candidate_v1",
+        "state": "unresolved",
+        "directive_code": "produce_executable_or_prerequisite_recovery_action",
+        "constraint_id": "empty_plan_without_transition",
+        "category": "intent_plan_misalignment",
+        "action_family": "planner_response",
+        "target_signature": "",
+        "source_session_fingerprint": "d5ac81423f3a9777",
+        "source_unit_id": "0399c659742f2e54",
+        "evidence_grounded": true,
+        "cooldown_required": true,
+        "minimal_intervention_required": true,
+        "planner_context_allowed": false,
+        "automatic_retry_allowed": false,
+        "runtime_intervention_allowed": false
+      },
+      "expected_label": {
+        "available": false
+      },
+      "label_evaluation": {
+        "available": false
+      },
+      "graph_summary": {
+        "unit_profile": "minecraft_transition_unit_v1",
+        "graph_profile": "minecraft_execution_dependency_graph_v1",
+        "full_graph_included": false,
+        "unit_count": 100,
+        "edge_count": 99
+      }
+    },
+    {
+      "case_id": "dc8fff18-00b",
+      "source_kind": "session_log",
+      "session_id": "dc8fff18-00b",
+      "session_id_explicit": true,
+      "connected": true,
+      "terminal": {
+        "complete_boundary": true,
+        "event_type": "goal_end",
+        "completed": false,
+        "cycles": 100
+      },
+      "event_count": 203,
+      "action_event_count": 0,
+      "action_transition_unit_count": 0,
+      "transition_unit_count": 100,
+      "unit_coverage_rate": 1.0,
+      "planner_response_unit_count": 100,
+      "dependency_edge_count": 99,
+      "dependency_edge_counts": {
+        "temporal": 99
+      },
+      "violation_count": 100,
+      "recovered_violation_count": 0,
+      "unrecovered_violation_count": 100,
+      "violation_counts": {
+        "empty_plan_without_transition": 100
+      },
+      "diagnosis": {
+        "found": true,
+        "localizer_profile": "first_unrecovered_constraint_v1",
+        "critical_unit_id": "78ed20a86b2ced72",
+        "critical_unit_ordinal": 1,
+        "critical_event_index": 3,
+        "critical_score": 0.925,
+        "category": "intent_plan_misalignment",
+        "constraint_id": "empty_plan_without_transition",
+        "action_type": "planner_response",
+        "target_signature": "",
+        "unrecovered_violation_count": 1,
+        "distance_to_terminal_units": 99,
+        "evidence_packet": [
+          {
+            "unit_id": "78ed20a86b2ced72",
+            "unit_kind": "planner_response",
+            "ordinal": 1,
+            "event_index": 3,
+            "plan_event_index": 3,
+            "plan_id": "a95fb850f5e0a55f",
+            "plan_status": "blocked",
+            "belief_present": true,
+            "belief_fingerprint": "ebd448960f377ded",
+            "planned_action_index": -1,
+            "planned_action_count": 0,
+            "planned_actions_omitted": 0,
+            "planned_actions_deferred": 0,
+            "omitted_action_signatures": [],
+            "observation_before_index": 2,
+            "observation_after_index": 4,
+            "verification_event_index": -1,
+            "verification_status": "not_observed",
+            "goal_fingerprint": "8d831d8752430fe3",
+            "action_type": "planner_response",
+            "action_signature": "c94bbccef9d33bd0",
+            "argument_keys": [],
+            "target": {},
+            "target_signature": "",
+            "result_success": false,
+            "result_error_signature": "",
+            "result_reached": false,
+            "plan_suffix_deferred": false,
+            "inventory_delta": {},
+            "state_before": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_after": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_changed": false,
+            "effect_confirmed": false,
+            "navigation_confirmed": false,
+            "dependency_artifacts": [],
+            "violations": [
+              {
+                "constraint_id": "empty_plan_without_transition",
+                "category": "intent_plan_misalignment",
+                "severity": 0.9,
+                "event_index": 3,
+                "evidence": {
+                  "plan_status": "blocked"
+                },
+                "recovery_key": "55976ef2f96c82e9",
+                "recovered": false,
+                "recovery_unit_id": ""
+              }
+            ]
+          },
+          {
+            "unit_id": "b373d6e0892f9137",
+            "unit_kind": "planner_response",
+            "ordinal": 2,
+            "event_index": 5,
+            "plan_event_index": 5,
+            "plan_id": "78287bb89a50b306",
+            "plan_status": "blocked",
+            "belief_present": true,
+            "belief_fingerprint": "ebd448960f377ded",
+            "planned_action_index": -1,
+            "planned_action_count": 0,
+            "planned_actions_omitted": 0,
+            "planned_actions_deferred": 0,
+            "omitted_action_signatures": [],
+            "observation_before_index": 4,
+            "observation_after_index": 6,
+            "verification_event_index": -1,
+            "verification_status": "not_observed",
+            "goal_fingerprint": "8d831d8752430fe3",
+            "action_type": "planner_response",
+            "action_signature": "c2fdc431c734853d",
+            "argument_keys": [],
+            "target": {},
+            "target_signature": "",
+            "result_success": false,
+            "result_error_signature": "",
+            "result_reached": false,
+            "plan_suffix_deferred": false,
+            "inventory_delta": {},
+            "state_before": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_after": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_changed": false,
+            "effect_confirmed": false,
+            "navigation_confirmed": false,
+            "dependency_artifacts": [],
+            "violations": [
+              {
+                "constraint_id": "empty_plan_without_transition",
+                "category": "intent_plan_misalignment",
+                "severity": 0.9,
+                "event_index": 5,
+                "evidence": {
+                  "plan_status": "blocked"
+                },
+                "recovery_key": "55976ef2f96c82e9",
+                "recovered": false,
+                "recovery_unit_id": ""
+              }
+            ]
+          }
+        ],
+        "baselines": {
+          "recency_unit_ordinal": 100,
+          "first_unrecovered_unit_ordinal": 1
+        }
+      },
+      "repair_memory_candidate": {
+        "repair_key": "c6f7d24cccbfa0f3",
+        "profile": "typed_repair_memory_candidate_v1",
+        "state": "unresolved",
+        "directive_code": "produce_executable_or_prerequisite_recovery_action",
+        "constraint_id": "empty_plan_without_transition",
+        "category": "intent_plan_misalignment",
+        "action_family": "planner_response",
+        "target_signature": "",
+        "source_session_fingerprint": "7f6159de7d3e805f",
+        "source_unit_id": "78ed20a86b2ced72",
+        "evidence_grounded": true,
+        "cooldown_required": true,
+        "minimal_intervention_required": true,
+        "planner_context_allowed": false,
+        "automatic_retry_allowed": false,
+        "runtime_intervention_allowed": false
+      },
+      "expected_label": {
+        "available": false
+      },
+      "label_evaluation": {
+        "available": false
+      },
+      "graph_summary": {
+        "unit_profile": "minecraft_transition_unit_v1",
+        "graph_profile": "minecraft_execution_dependency_graph_v1",
+        "full_graph_included": false,
+        "unit_count": 100,
+        "edge_count": 99
+      }
+    },
+    {
+      "case_id": "4138b270-949",
+      "source_kind": "session_log",
+      "session_id": "4138b270-949",
+      "session_id_explicit": true,
+      "connected": true,
+      "terminal": {
+        "complete_boundary": true,
+        "event_type": "goal_end",
+        "completed": false,
+        "cycles": 100
+      },
+      "event_count": 203,
+      "action_event_count": 0,
+      "action_transition_unit_count": 0,
+      "transition_unit_count": 100,
+      "unit_coverage_rate": 1.0,
+      "planner_response_unit_count": 100,
+      "dependency_edge_count": 99,
+      "dependency_edge_counts": {
+        "temporal": 99
+      },
+      "violation_count": 100,
+      "recovered_violation_count": 0,
+      "unrecovered_violation_count": 100,
+      "violation_counts": {
+        "empty_plan_without_transition": 100
+      },
+      "diagnosis": {
+        "found": true,
+        "localizer_profile": "first_unrecovered_constraint_v1",
+        "critical_unit_id": "32521e75c5c96bf3",
+        "critical_unit_ordinal": 1,
+        "critical_event_index": 3,
+        "critical_score": 0.925,
+        "category": "intent_plan_misalignment",
+        "constraint_id": "empty_plan_without_transition",
+        "action_type": "planner_response",
+        "target_signature": "",
+        "unrecovered_violation_count": 1,
+        "distance_to_terminal_units": 99,
+        "evidence_packet": [
+          {
+            "unit_id": "32521e75c5c96bf3",
+            "unit_kind": "planner_response",
+            "ordinal": 1,
+            "event_index": 3,
+            "plan_event_index": 3,
+            "plan_id": "9c71279bd718c121",
+            "plan_status": "blocked",
+            "belief_present": true,
+            "belief_fingerprint": "cf19851b9d39336c",
+            "planned_action_index": -1,
+            "planned_action_count": 0,
+            "planned_actions_omitted": 0,
+            "planned_actions_deferred": 0,
+            "omitted_action_signatures": [],
+            "observation_before_index": 2,
+            "observation_after_index": 4,
+            "verification_event_index": -1,
+            "verification_status": "not_observed",
+            "goal_fingerprint": "cb6b9a7c9d351882",
+            "action_type": "planner_response",
+            "action_signature": "ff8781f42fd8a047",
+            "argument_keys": [],
+            "target": {},
+            "target_signature": "",
+            "result_success": false,
+            "result_error_signature": "",
+            "result_reached": false,
+            "plan_suffix_deferred": false,
+            "inventory_delta": {},
+            "state_before": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_after": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_changed": false,
+            "effect_confirmed": false,
+            "navigation_confirmed": false,
+            "dependency_artifacts": [],
+            "violations": [
+              {
+                "constraint_id": "empty_plan_without_transition",
+                "category": "intent_plan_misalignment",
+                "severity": 0.9,
+                "event_index": 3,
+                "evidence": {
+                  "plan_status": "blocked"
+                },
+                "recovery_key": "86741f2c8e5df8ac",
+                "recovered": false,
+                "recovery_unit_id": ""
+              }
+            ]
+          },
+          {
+            "unit_id": "08df414fc1d4c5cd",
+            "unit_kind": "planner_response",
+            "ordinal": 2,
+            "event_index": 5,
+            "plan_event_index": 5,
+            "plan_id": "0abd604f4d5d87c4",
+            "plan_status": "blocked",
+            "belief_present": true,
+            "belief_fingerprint": "cf19851b9d39336c",
+            "planned_action_index": -1,
+            "planned_action_count": 0,
+            "planned_actions_omitted": 0,
+            "planned_actions_deferred": 0,
+            "omitted_action_signatures": [],
+            "observation_before_index": 4,
+            "observation_after_index": 6,
+            "verification_event_index": -1,
+            "verification_status": "not_observed",
+            "goal_fingerprint": "cb6b9a7c9d351882",
+            "action_type": "planner_response",
+            "action_signature": "090f83d52b2d726a",
+            "argument_keys": [],
+            "target": {},
+            "target_signature": "",
+            "result_success": false,
+            "result_error_signature": "",
+            "result_reached": false,
+            "plan_suffix_deferred": false,
+            "inventory_delta": {},
+            "state_before": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_after": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_changed": false,
+            "effect_confirmed": false,
+            "navigation_confirmed": false,
+            "dependency_artifacts": [],
+            "violations": [
+              {
+                "constraint_id": "empty_plan_without_transition",
+                "category": "intent_plan_misalignment",
+                "severity": 0.9,
+                "event_index": 5,
+                "evidence": {
+                  "plan_status": "blocked"
+                },
+                "recovery_key": "86741f2c8e5df8ac",
+                "recovered": false,
+                "recovery_unit_id": ""
+              }
+            ]
+          }
+        ],
+        "baselines": {
+          "recency_unit_ordinal": 100,
+          "first_unrecovered_unit_ordinal": 1
+        }
+      },
+      "repair_memory_candidate": {
+        "repair_key": "c6f7d24cccbfa0f3",
+        "profile": "typed_repair_memory_candidate_v1",
+        "state": "unresolved",
+        "directive_code": "produce_executable_or_prerequisite_recovery_action",
+        "constraint_id": "empty_plan_without_transition",
+        "category": "intent_plan_misalignment",
+        "action_family": "planner_response",
+        "target_signature": "",
+        "source_session_fingerprint": "7bcea2c571dfcbcf",
+        "source_unit_id": "32521e75c5c96bf3",
+        "evidence_grounded": true,
+        "cooldown_required": true,
+        "minimal_intervention_required": true,
+        "planner_context_allowed": false,
+        "automatic_retry_allowed": false,
+        "runtime_intervention_allowed": false
+      },
+      "expected_label": {
+        "available": false
+      },
+      "label_evaluation": {
+        "available": false
+      },
+      "graph_summary": {
+        "unit_profile": "minecraft_transition_unit_v1",
+        "graph_profile": "minecraft_execution_dependency_graph_v1",
+        "full_graph_included": false,
+        "unit_count": 100,
+        "edge_count": 99
+      }
+    },
+    {
+      "case_id": "67ba45ce-2e1",
+      "source_kind": "session_log",
+      "session_id": "67ba45ce-2e1",
+      "session_id_explicit": true,
+      "connected": true,
+      "terminal": {
+        "complete_boundary": true,
+        "event_type": "goal_end",
+        "completed": false,
+        "cycles": 100
+      },
+      "event_count": 203,
+      "action_event_count": 0,
+      "action_transition_unit_count": 0,
+      "transition_unit_count": 100,
+      "unit_coverage_rate": 1.0,
+      "planner_response_unit_count": 100,
+      "dependency_edge_count": 99,
+      "dependency_edge_counts": {
+        "temporal": 99
+      },
+      "violation_count": 100,
+      "recovered_violation_count": 0,
+      "unrecovered_violation_count": 100,
+      "violation_counts": {
+        "empty_plan_without_transition": 100
+      },
+      "diagnosis": {
+        "found": true,
+        "localizer_profile": "first_unrecovered_constraint_v1",
+        "critical_unit_id": "497309e7239ef6b8",
+        "critical_unit_ordinal": 1,
+        "critical_event_index": 3,
+        "critical_score": 0.925,
+        "category": "intent_plan_misalignment",
+        "constraint_id": "empty_plan_without_transition",
+        "action_type": "planner_response",
+        "target_signature": "",
+        "unrecovered_violation_count": 1,
+        "distance_to_terminal_units": 99,
+        "evidence_packet": [
+          {
+            "unit_id": "497309e7239ef6b8",
+            "unit_kind": "planner_response",
+            "ordinal": 1,
+            "event_index": 3,
+            "plan_event_index": 3,
+            "plan_id": "0457f03c4d303b74",
+            "plan_status": "blocked",
+            "belief_present": true,
+            "belief_fingerprint": "ec547db0f4b0ab6c",
+            "planned_action_index": -1,
+            "planned_action_count": 0,
+            "planned_actions_omitted": 0,
+            "planned_actions_deferred": 0,
+            "omitted_action_signatures": [],
+            "observation_before_index": 2,
+            "observation_after_index": 4,
+            "verification_event_index": -1,
+            "verification_status": "not_observed",
+            "goal_fingerprint": "111d89c51c757260",
+            "action_type": "planner_response",
+            "action_signature": "1f319f333da1e07a",
+            "argument_keys": [],
+            "target": {},
+            "target_signature": "",
+            "result_success": false,
+            "result_error_signature": "",
+            "result_reached": false,
+            "plan_suffix_deferred": false,
+            "inventory_delta": {},
+            "state_before": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_after": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_changed": false,
+            "effect_confirmed": false,
+            "navigation_confirmed": false,
+            "dependency_artifacts": [],
+            "violations": [
+              {
+                "constraint_id": "empty_plan_without_transition",
+                "category": "intent_plan_misalignment",
+                "severity": 0.9,
+                "event_index": 3,
+                "evidence": {
+                  "plan_status": "blocked"
+                },
+                "recovery_key": "de770b9ae6b1671d",
+                "recovered": false,
+                "recovery_unit_id": ""
+              }
+            ]
+          },
+          {
+            "unit_id": "4cbac36c6439dca8",
+            "unit_kind": "planner_response",
+            "ordinal": 2,
+            "event_index": 5,
+            "plan_event_index": 5,
+            "plan_id": "323b0d9b2932970a",
+            "plan_status": "blocked",
+            "belief_present": true,
+            "belief_fingerprint": "ec547db0f4b0ab6c",
+            "planned_action_index": -1,
+            "planned_action_count": 0,
+            "planned_actions_omitted": 0,
+            "planned_actions_deferred": 0,
+            "omitted_action_signatures": [],
+            "observation_before_index": 4,
+            "observation_after_index": 6,
+            "verification_event_index": -1,
+            "verification_status": "not_observed",
+            "goal_fingerprint": "111d89c51c757260",
+            "action_type": "planner_response",
+            "action_signature": "c4b87a9e5596eee8",
+            "argument_keys": [],
+            "target": {},
+            "target_signature": "",
+            "result_success": false,
+            "result_error_signature": "",
+            "result_reached": false,
+            "plan_suffix_deferred": false,
+            "inventory_delta": {},
+            "state_before": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_after": {
+              "position": {
+                "x": 21.5,
+                "y": 67.0,
+                "z": 20.5
+              },
+              "health": 20.0,
+              "inventory": {}
+            },
+            "state_changed": false,
+            "effect_confirmed": false,
+            "navigation_confirmed": false,
+            "dependency_artifacts": [],
+            "violations": [
+              {
+                "constraint_id": "empty_plan_without_transition",
+                "category": "intent_plan_misalignment",
+                "severity": 0.9,
+                "event_index": 5,
+                "evidence": {
+                  "plan_status": "blocked"
+                },
+                "recovery_key": "de770b9ae6b1671d",
+                "recovered": false,
+                "recovery_unit_id": ""
+              }
+            ]
+          }
+        ],
+        "baselines": {
+          "recency_unit_ordinal": 100,
+          "first_unrecovered_unit_ordinal": 1
+        }
+      },
+      "repair_memory_candidate": {
+        "repair_key": "c6f7d24cccbfa0f3",
+        "profile": "typed_repair_memory_candidate_v1",
+        "state": "unresolved",
+        "directive_code": "produce_executable_or_prerequisite_recovery_action",
+        "constraint_id": "empty_plan_without_transition",
+        "category": "intent_plan_misalignment",
+        "action_family": "planner_response",
+        "target_signature": "",
+        "source_session_fingerprint": "cc079af48cac04e3",
+        "source_unit_id": "497309e7239ef6b8",
+        "evidence_grounded": true,
+        "cooldown_required": true,
+        "minimal_intervention_required": true,
+        "planner_context_allowed": false,
+        "automatic_retry_allowed": false,
+        "runtime_intervention_allowed": false
+      },
+      "expected_label": {
+        "available": false
+      },
+      "label_evaluation": {
+        "available": false
+      },
+      "graph_summary": {
+        "unit_profile": "minecraft_transition_unit_v1",
+        "graph_profile": "minecraft_execution_dependency_graph_v1",
+        "full_graph_included": false,
+        "unit_count": 100,
+        "edge_count": 99
+      }
+    }
+  ],
+  "metrics": {
+    "failed_trajectory_count": 5,
+    "completed_trajectory_count": 0,
+    "critical_transition_found_count": 5,
+    "action_event_count": 200,
+    "action_transition_unit_count": 200,
+    "planner_response_unit_count": 400,
+    "transition_unit_count": 600,
+    "dependency_edge_count": 893,
+    "violation_count": 402,
+    "recovered_violation_count": 0,
+    "mean_unit_coverage_rate": 1.0
+  },
+  "localization_metrics": {
+    "labeled_trajectory_count": 0,
+    "externally_labeled_trajectory_count": 0,
+    "exact_unit_match_count": 0,
+    "exact_unit_accuracy": 0.0,
+    "within_one_unit_count": 0,
+    "within_one_unit_accuracy": 0.0,
+    "category_match_count": 0,
+    "category_accuracy": 0.0,
+    "recency_baseline_exact_count": 0,
+    "recency_baseline_accuracy": 0.0,
+    "first_unrecovered_baseline_exact_count": 0,
+    "first_unrecovered_baseline_accuracy": 0.0,
+    "localizer_exact_gain_over_recency": 0.0
+  },
+  "repair_memory_candidates": [
+    {
+      "repair_key": "c6f7d24cccbfa0f3",
+      "profile": "typed_repair_memory_candidate_v1",
+      "state": "unresolved",
+      "directive_code": "produce_executable_or_prerequisite_recovery_action",
+      "constraint_id": "empty_plan_without_transition",
+      "category": "intent_plan_misalignment",
+      "action_family": "planner_response",
+      "target_signature": "",
+      "source_session_fingerprint": "d5ac81423f3a9777",
+      "source_unit_id": "0399c659742f2e54",
+      "evidence_grounded": true,
+      "cooldown_required": true,
+      "minimal_intervention_required": true,
+      "planner_context_allowed": false,
+      "automatic_retry_allowed": false,
+      "runtime_intervention_allowed": false,
+      "support_count": 4,
+      "source_session_fingerprints": [
+        "d5ac81423f3a9777",
+        "7f6159de7d3e805f",
+        "7bcea2c571dfcbcf",
+        "cc079af48cac04e3"
+      ]
+    },
+    {
+      "repair_key": "d1259b108f2b1d61",
+      "profile": "typed_repair_memory_candidate_v1",
+      "state": "unresolved",
+      "directive_code": "change_strategy_after_verified_no_progress",
+      "constraint_id": "repeated_no_progress",
+      "category": "plan_adherence_failure",
+      "action_family": "move_to",
+      "target_signature": "8bcac8f931b17c1b",
+      "source_session_fingerprint": "2559c518da5a2e6c",
+      "source_unit_id": "9d7864a38c6e806a",
+      "evidence_grounded": true,
+      "cooldown_required": true,
+      "minimal_intervention_required": true,
+      "planner_context_allowed": false,
+      "automatic_retry_allowed": false,
+      "runtime_intervention_allowed": false,
+      "support_count": 1,
+      "source_session_fingerprints": [
+        "2559c518da5a2e6c"
+      ]
+    }
+  ],
+  "evidence_integrity": {
+    "input_paths_unique": true,
+    "source_manifests_valid": true,
+    "explicit_session_ids": true,
+    "distinct_session_count": 5,
+    "complete_terminal_count": 5,
+    "connected_session_count": 5,
+    "source_kind_counts": {
+      "session_log": 5
+    },
+    "builtin_case_count": 0
+  },
+  "source_manifests": [
+    {
+      "name": "session_2818ff2a-612.jsonl",
+      "path_fingerprint": "83bf343a6402ecab",
+      "content_sha256": "0a70fac5f2ead55cabff644d3d53913255ce159a5b86a2f303fc6ab430ceb419",
+      "bytes": 729308
+    },
+    {
+      "name": "session_bcd06511-00a.jsonl",
+      "path_fingerprint": "e04a5e5a7a99c1eb",
+      "content_sha256": "e3e1c9b8bca1822b82c5e77cd592697f65e8b2f280d7f16c6837f82ebcb9140c",
+      "bytes": 658223
+    },
+    {
+      "name": "session_dc8fff18-00b.jsonl",
+      "path_fingerprint": "fc0507ad4fa4bf8b",
+      "content_sha256": "ffad15dff1c8cb728200a6ee0ef5c227556d96198c60fd5c748fb458562de9bc",
+      "bytes": 658420
+    },
+    {
+      "name": "session_4138b270-949.jsonl",
+      "path_fingerprint": "80ed4121cbe3e069",
+      "content_sha256": "bed74e9d63a2f1cdac171c73ae01cc8a879e16e1f702003baaf67c33b06446d5",
+      "bytes": 658535
+    },
+    {
+      "name": "session_67ba45ce-2e1.jsonl",
+      "path_fingerprint": "173e31d9a3d80aa0",
+      "content_sha256": "8f5bb6c43483aad8e6aee728f755846994e175008c17a6f0c65af078ee6c471f",
+      "bytes": 660367
+    }
+  ],
+  "missing": [
+    "external_manual_critical_transition_labels"
+  ],
+  "errors": []
+}

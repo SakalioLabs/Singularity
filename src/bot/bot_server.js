@@ -274,6 +274,171 @@ function createCaptureScreenshotHandler(getState = () => ({ bot, botReady })) {
     };
 }
 
+function numericCoordinate(params, key) {
+    const raw = params?.[key];
+    if (raw === null || raw === undefined) return null;
+    if (typeof raw === 'string' && raw.trim() === '') return null;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : null;
+}
+
+function positionPayload(position) {
+    if (!position) return null;
+    return {
+        x: Number(position.x),
+        y: Number(position.y),
+        z: Number(position.z),
+    };
+}
+
+function navigationDistance(position, target, includeY = true) {
+    if (!position || !target) return null;
+    const dx = Number(position.x) - Number(target.x);
+    const dy = includeY ? Number(position.y) - Number(target.y) : 0;
+    const dz = Number(position.z) - Number(target.z);
+    if (![dx, dy, dz].every(Number.isFinite)) return null;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+function navigationTimeoutMs(distance, requested) {
+    const explicit = Number(requested);
+    if (Number.isFinite(explicit) && explicit > 0) {
+        return Math.max(1000, Math.min(60000, Math.round(explicit)));
+    }
+    const estimated = 5000 + (Math.max(0, Number(distance) || 0) / 2.5) * 1000;
+    return Math.max(5000, Math.min(60000, Math.round(estimated)));
+}
+
+function createMoveToHandler(
+    getState = () => ({ bot, botReady }),
+    options = {},
+) {
+    const goalFactory = options.goalFactory || ((target, tolerance, hasExplicitY) => (
+        hasExplicitY
+            ? new goals.GoalNear(
+                Math.floor(target.x),
+                Math.floor(target.y),
+                Math.floor(target.z),
+                Math.max(1, Math.ceil(tolerance)),
+            )
+            : new goals.GoalNearXZ(
+                Math.floor(target.x),
+                Math.floor(target.z),
+                Math.max(1, Math.ceil(tolerance)),
+            )
+    ));
+    return async (params = {}) => {
+        const state = getState() || {};
+        const activeBot = state.bot;
+        if (!state.botReady || !activeBot?.entity?.position) {
+            return { success: false, reached: false, error: 'bot is not ready for navigation' };
+        }
+        const x = numericCoordinate(params, 'x');
+        const z = numericCoordinate(params, 'z');
+        const explicitY = numericCoordinate(params, 'y');
+        const y = explicitY ?? Number(activeBot.entity.position.y);
+        if (x === null || z === null || !Number.isFinite(y)) {
+            return { success: false, reached: false, error: 'move_to requires finite x and z coordinates' };
+        }
+        if (!activeBot.pathfinder || typeof activeBot.pathfinder.goto !== 'function') {
+            return { success: false, reached: false, error: 'pathfinder is unavailable' };
+        }
+
+        const target = new Vec3(x, y, z);
+        const toleranceValue = numericCoordinate(params, 'tolerance');
+        const tolerance = Number.isFinite(toleranceValue)
+            ? Math.max(1, Math.min(8, toleranceValue))
+            : 2;
+        const initialDistance = navigationDistance(activeBot.entity.position, target, explicitY !== null);
+        const timeoutMs = navigationTimeoutMs(initialDistance, params.timeout_ms);
+        let timer = null;
+        try {
+            const navigation = Promise.resolve(activeBot.pathfinder.goto(goalFactory(target, tolerance, explicitY !== null)));
+            const timeout = new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error(`navigation timed out after ${timeoutMs}ms`)), timeoutMs);
+            });
+            await Promise.race([navigation, timeout]);
+            const finalPosition = activeBot.entity.position;
+            const distance = navigationDistance(finalPosition, target, explicitY !== null);
+            const reached = distance !== null && distance <= tolerance + 0.75;
+            if (!reached) {
+                return {
+                    success: false,
+                    reached: false,
+                    error: 'pathfinder completed without reaching the target tolerance',
+                    position: positionPayload(finalPosition),
+                    target: positionPayload(target),
+                    distance_to_target: distance,
+                    tolerance,
+                };
+            }
+            return {
+                success: true,
+                reached: true,
+                position: positionPayload(finalPosition),
+                target: positionPayload(target),
+                distance_to_target: distance,
+                tolerance,
+            };
+        } catch (e) {
+            if (activeBot.pathfinder && typeof activeBot.pathfinder.stop === 'function') {
+                activeBot.pathfinder.stop();
+            }
+            const finalPosition = activeBot.entity?.position;
+            return {
+                success: false,
+                reached: false,
+                error: e.message,
+                position: positionPayload(finalPosition),
+                target: positionPayload(target),
+                distance_to_target: navigationDistance(finalPosition, target, explicitY !== null),
+                tolerance,
+            };
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
+    };
+}
+
+function createWalkToHandler(getState = () => ({ bot, botReady })) {
+    return async (params = {}) => {
+        const state = getState() || {};
+        const activeBot = state.bot;
+        if (!state.botReady || !activeBot?.entity?.position) {
+            return { success: false, reached: false, error: 'bot is not ready for navigation' };
+        }
+        const x = numericCoordinate(params, 'x');
+        const z = numericCoordinate(params, 'z');
+        const explicitY = numericCoordinate(params, 'y');
+        const y = explicitY ?? Number(activeBot.entity.position.y);
+        if (x === null || z === null || !Number.isFinite(y)) {
+            return { success: false, reached: false, error: 'walk_to requires finite x and z coordinates' };
+        }
+        const target = new Vec3(x, y, z);
+        try {
+            await activeBot.lookAt(target);
+            activeBot.setControlState('forward', true);
+            const durationMs = Math.max(100, Math.min(10000, Number(params.ms) || 2000));
+            await new Promise(resolve => setTimeout(resolve, durationMs));
+            activeBot.setControlState('forward', false);
+            const finalPosition = activeBot.entity.position;
+            const distance = navigationDistance(finalPosition, target, explicitY !== null);
+            const reached = distance !== null && distance <= 2.75;
+            return {
+                success: true,
+                reached,
+                partial: !reached,
+                position: positionPayload(finalPosition),
+                target: positionPayload(target),
+                distance_to_target: distance,
+            };
+        } catch (e) {
+            activeBot.setControlState('forward', false);
+            return { success: false, reached: false, error: e.message };
+        }
+    };
+}
+
 function installConfiguredScreenshotPlugin(botInstance) {
     screenshotPluginStatus = attachScreenshotPlugin(botInstance, SCREENSHOT_PLUGIN, SCREENSHOT_OPTIONS);
     screenshotPluginCapture = screenshotPluginStatus.capture || null;
@@ -455,38 +620,8 @@ const handlers = {
         trees.sort((a, b) => a.distance - b.distance);
         return { trees: trees.slice(0, 10) };
     },
-        walk_to: async (params) => {
-        const target = new Vec3(params.x, params.y || bot.entity.position.y, params.z);
-        try {
-            await bot.lookAt(target);
-            bot.setControlState("forward", true);
-            const maxTime = params.ms || 2000;
-            await new Promise(r => setTimeout(r, maxTime));
-            bot.setControlState("forward", false);
-            return { success: true, position: bot.entity.position };
-        } catch (e) {
-            bot.setControlState("forward", false);
-            return { success: false, error: e.message };
-        }
-    },
-    move_to: async (params) => {
-        const target = new Vec3(params.x, params.y || bot.entity.position.y, params.z);
-        try {
-            await bot.lookAt(target);
-            bot.setControlState("forward", true);
-            let waited = 0;
-            while (bot.entity.position.distanceTo(target) > 2 && waited < 3000) {
-                await new Promise(r => setTimeout(r, 100));
-                bot.lookAt(target);
-                waited += 100;
-            }
-            bot.setControlState("forward", false);
-            return { success: true, position: bot.entity.position };
-        } catch (e) {
-            bot.setControlState("forward", false);
-            return { success: false, error: e.message };
-        }
-    },
+    walk_to: createWalkToHandler(),
+    move_to: createMoveToHandler(),
 
     look_at: async (params) => {
         try {
@@ -623,8 +758,12 @@ module.exports = {
     attachScreenshotPlugin,
     createBridgeServer,
     createCaptureScreenshotHandler,
+    createMoveToHandler,
+    createWalkToHandler,
     fileStatusForScreenshot,
     imageBytesFromCaptureResult,
+    navigationDistance,
+    navigationTimeoutMs,
     publicScreenshotPluginStatus,
     resolveScreenshotPluginSpec,
     screenshotPathFromCaptureResult,
