@@ -19329,6 +19329,7 @@ class BenchmarkRunner:
             self._check_python_import("pydantic", required=True),
             self._check_python_import("openai", required=False),
             self._check_python_import("anthropic", required=False),
+            self._check_command("java", ["java", "-version"], required=True),
             self._check_command("node", ["node", "--version"], required=True),
             self._check_command("npm", ["npm", "--version"], required=True),
             self._check_node_dependencies(),
@@ -19336,13 +19337,8 @@ class BenchmarkRunner:
         if check_screenshot_renderer:
             checks.append(self._check_screenshot_renderer())
         if check_network:
-            checks.append(self._check_tcp(
-                "bot_bridge",
-                self.config.bot.bridge_host,
-                self.config.bot.bridge_port,
-                required=True,
-            ))
-            checks.append(self._check_bot_session())
+            bridge_check, session_check = self._check_bot_bridge_and_session()
+            checks.extend([bridge_check, session_check])
             checks.append(self._check_tcp("minecraft_server", self.config.bot.host, self.config.bot.port, required=True))
         ok = all(c.status != "fail" for c in checks)
         return PreflightReport(ok=ok, checks=checks)
@@ -19542,46 +19538,140 @@ class BenchmarkRunner:
             )
             return PreflightCheck(name, "fail" if required else "warn", f"{host}:{port} unavailable ({e})", remedy)
 
-    def _check_bot_session(self) -> PreflightCheck:
+    def _check_bot_bridge_and_session(self) -> tuple[PreflightCheck, PreflightCheck]:
+        endpoint = f"{self.config.bot.bridge_host}:{self.config.bot.bridge_port}"
+        launch_command = f"node src/bot/bot_server.js --bridge-port {self.config.bot.bridge_port}"
+        protocol_remedy = (
+            f"choose an unused bridge port (for example 30000) instead of {endpoint}; "
+            "pass that same --bridge-port to the Node bridge and Python"
+        )
         bridge = self.bridge_factory(self.config.bot)
         try:
             if not bridge.connect():
-                return PreflightCheck(
+                bridge_check = PreflightCheck(
+                    "bot_bridge",
+                    "fail",
+                    f"{endpoint} unavailable",
+                    launch_command,
+                )
+                session_check = PreflightCheck(
                     "bot_session",
                     "fail",
-                    "could not connect to bot bridge",
-                    f"start node src/bot/bot_server.js --bridge-port {self.config.bot.bridge_port}",
+                    "not checked because the Singularity bridge is unavailable",
+                    launch_command,
                 )
+                return bridge_check, session_check
             health = bridge.health()
-            if not health.get("success"):
-                detail = health.get("error", "bridge did not return health")
-                return PreflightCheck(
+            if not isinstance(health, dict):
+                detail = f"non-object health response ({type(health).__name__})"
+            elif not health.get("success"):
+                detail = str(health.get("error") or "health command failed")
+            elif health.get("bridge") is not True:
+                detail = "health response is missing bridge=true identity"
+            else:
+                detail = ""
+
+            if detail:
+                bridge_check = PreflightCheck(
+                    "bot_bridge",
+                    "fail",
+                    f"{endpoint} accepted TCP but is not a healthy Singularity bridge ({detail})",
+                    protocol_remedy,
+                )
+                session_check = PreflightCheck(
                     "bot_session",
                     "fail",
-                    detail,
-                    f"restart node src/bot/bot_server.js --bridge-port {self.config.bot.bridge_port} after the Minecraft server is running",
+                    "not checked because the bot_bridge protocol check failed",
+                    protocol_remedy,
                 )
+                return bridge_check, session_check
+
+            bridge_check = PreflightCheck(
+                "bot_bridge",
+                "pass",
+                f"Singularity health protocol confirmed at {endpoint}",
+            )
             if not health.get("bot_ready"):
                 detail = health.get("last_error") or f"bot not spawned on {health.get('mc_host', self.config.bot.host)}:{health.get('mc_port', self.config.bot.port)}"
-                return PreflightCheck(
+                session_check = PreflightCheck(
                     "bot_session",
                     "fail",
                     detail,
                     f"start the Minecraft server, then restart the bot bridge on port {self.config.bot.bridge_port}",
                 )
-            return PreflightCheck("bot_session", "pass", f"bot spawned as {health.get('username', self.config.bot.username)}")
+                return bridge_check, session_check
+            session_mismatches = []
+            if str(health.get("username") or "") != self.config.bot.username:
+                session_mismatches.append(
+                    f"username={health.get('username')!r}, expected {self.config.bot.username!r}"
+                )
+            if str(health.get("version") or "") != self.config.bot.version:
+                session_mismatches.append(
+                    f"version={health.get('version')!r}, expected {self.config.bot.version!r}"
+                )
+            try:
+                reported_mc_port = int(health.get("mc_port"))
+            except (TypeError, ValueError):
+                reported_mc_port = None
+            if reported_mc_port != self.config.bot.port:
+                session_mismatches.append(
+                    f"mc_port={health.get('mc_port')!r}, expected {self.config.bot.port}"
+                )
+            if session_mismatches:
+                session_check = PreflightCheck(
+                    "bot_session",
+                    "fail",
+                    "bridge session does not match requested M1 runtime (" + "; ".join(session_mismatches) + ")",
+                    f"restart `{launch_command}` with the requested username, Minecraft port, and version 1.20.4",
+                )
+                return bridge_check, session_check
+            session_check = PreflightCheck(
+                "bot_session",
+                "pass",
+                f"bot spawned as {health.get('username', self.config.bot.username)}",
+            )
+            return bridge_check, session_check
         except Exception as e:
-            return PreflightCheck(
+            bridge_check = PreflightCheck(
+                "bot_bridge",
+                "fail",
+                f"{endpoint} failed the Singularity health protocol ({e})",
+                protocol_remedy,
+            )
+            session_check = PreflightCheck(
                 "bot_session",
                 "fail",
-                str(e),
-                f"restart node src/bot/bot_server.js --bridge-port {self.config.bot.bridge_port} after the Minecraft server is running",
+                "not checked because the bot_bridge protocol check failed",
+                protocol_remedy,
             )
+            return bridge_check, session_check
         finally:
             try:
                 bridge.disconnect()
             except Exception:
                 pass
+
+    def _check_bot_session(self) -> PreflightCheck:
+        return self._check_bot_bridge_and_session()[1]
+
+    def save_preflight(self, report: PreflightReport, path: str) -> str:
+        output_path = os.path.abspath(path)
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        if os.path.exists(output_path):
+            raise FileExistsError(f"refusing to overwrite preflight evidence: {output_path}")
+        payload = {
+            "type": "benchmark_preflight",
+            "schema_version": 2,
+            "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "evidence_kind": "runtime_preflight",
+            "counts_toward_live_observed": False,
+            "counts_toward_repeat_verified": False,
+            "ok": report.ok,
+            "checks": [asdict(check) for check in report.checks],
+        }
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+        return output_path
 
     def save_results(self, filename: str = "benchmark_results.json"):
         import os

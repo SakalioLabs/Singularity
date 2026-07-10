@@ -1,5 +1,13 @@
 # STATUS.md | Last updated: 2026-07-10
 
+## M1 Convergence Freeze
+
+- Sole active capability gate: move M1 from `live_failing` to `repeat_verified`.
+- Current gate: `G0_RUNTIME_AVAILABLE` is failing.
+- Earliest blocker: no controlled Minecraft server on `localhost:25565`; port `3000` is an unrelated Windows service, not a Singularity bridge.
+- M2-M7 feature work and research-driven runtime changes are frozen until all five M1 tasks have three distinct verified live successes.
+- Ordered gates, fixed protocol, and stop conditions are in `workspace/CONVERGENCE_PLAN.md`; failure-level evidence is in `workspace/evals/m1_failure_ledger.json`.
+
 ## Evidence Policy
 
 Capability status is derived from `workspace/evals/capability_evidence_current.json`.
@@ -27,13 +35,17 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 
 ## Current Runtime Readiness
 
-- Python, Node.js, npm, and Mineflayer dependencies pass local preflight.
+- Python, Java, Node.js, npm, and Mineflayer dependencies pass local preflight.
 - `localhost:25565` is unavailable; no Minecraft server assets are present in the repository workspace.
-- Port `3000` is reachable, but the existing bridge returns an empty `health` response.
-- Ports `3001` and `3002` required for the current M7 role plan are not running.
+- Port `3000` accepts TCP through `svchost.exe`, but fails the Singularity `health` protocol and now correctly fails the `bot_bridge` check.
+- Raw current evidence is `logs/benchmarks/m1_preflight_20260710_131157.json`; preflight evidence is explicitly ineligible for live capability counts.
+- `scripts/m1-runtime.ps1` provides a controlled startup/preflight path on bridge port `30000`, checks fixed seed/server settings, and never accepts or edits the Minecraft EULA.
+- The next internal gate is also known: the M1 runner does not yet apply canonical per-task inventory/spawn/daytime resets, BM-004 source criteria still say three cobblestone instead of five, and excluded advanced modules are enabled by default. No new run may count until that gate is fixed.
 
 ## Latest Verified Engineering Changes
 
+- Made bridge preflight protocol-aware so an unrelated TCP listener cannot pass as Singularity; bot readiness and requested username/version/MC-port identity remain separate checks.
+- Added timestampable JSON preflight evidence marked as non-capability evidence, plus a controlled M1 runtime launcher that never signs the EULA or stops unknown processes.
 - Added task-readiness recovery that turns inventory blockers into concrete prerequisite goals.
 - Preserved critical health, nearby-hostile, and night-survival goals ahead of scheduled work.
 - Added knowledge-backed tool checks and grounded-coordinate checks to generic mining fallback.
@@ -55,15 +67,8 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 
 ## Next Acceptance Work
 
-1. Provision a Minecraft 1.20.4 test server after explicit EULA acceptance and restart the bridge.
-2. Re-run BM-001..005, verify every successful `move_to` has `reached=true`, confirm no dependent world action follows an unreached navigation result, compare critical-transition diagnoses, and collect three successful runs per task.
-3. Run BM-006..010 only after M1 is live-observed.
-4. Re-run M3/M5 with the new bounded-memory and autonomous subgoal events; re-run M6 after screenshot capture and visual-action interventions are available.
-5. Start distinct M7 role bridges and run BM-701 against the single-agent baseline.
-6. Run lineage ablation and shadow restoration reports on fresh fixed-control M1/M3/M5 sessions; verify capsule profile, probe retention, token/latency savings, and three distinct candidate sessions before shadow selection review, while keeping automatic restoration disabled.
-7. Compare frontier skill routing against `--no-skill-frontier-routing` on fresh M1/M2 task streams, measuring task completion, environment steps, verifier rejects, token cost, and latency before treating the synthetic top-1 gain as operational evidence.
-8. Collect live defect-injection calibration and paired no-skill contribution traces across at least three distinct candidate sessions before loading any `--skill-retirement-gate`; the built-in fixtures remain runtime-ineligible.
-9. Run hybrid plan-cache guidance on fresh M1/M2 sessions, collect three exact matched successes per candidate entry, and compare planner calls, token cost, actions, completion, and verifier outcomes before any deterministic promotion.
-10. Collect disjoint fixed-control M1/M2 calibration, validation, and test trajectories; run episode viability in shadow mode first, and keep active abort disabled until held-out recall is certified and failed-episode planner-round savings are positive.
-11. Run matched uniform and information frontier-budget shadow sessions on the same M1/M2 task stream. Collect at least 12 successful candidate interval observations across distinct paired sessions before generating an advisory gate; keep branch execution and retries manual even after approval.
-12. Manually label critical units and categories on fresh baseline/candidate M1 failures, compare exact/within-one/category accuracy plus repair outcomes, and keep Repair Memory outside planner context until a separate gate exists.
+1. Provision Paper 1.20.4 under `mc-server/`, read and accept the EULA manually, set seed `12345` and offline mode, then pass `scripts/m1-runtime.ps1`.
+2. Implement and verify canonical per-task reset postconditions, correct BM-004 to five cobblestone, bind task-specific limits, and enforce the deterministic minimal M1 runtime profile before collecting evidence.
+3. Run the first live BM-001 attempt with advanced modules isolated; require truthful navigation, post-observation inventory, and goal-verifier success.
+4. Fix only the earliest observed transition failure, rerun its smallest targeted test, then run BM-001..005 without overwriting history.
+5. Collect three distinct verified successes per task and regenerate capability evidence; only `repeat_verified` reopens later milestones.

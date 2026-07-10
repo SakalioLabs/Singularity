@@ -841,6 +841,7 @@ def main():
     preflight_parser.add_argument("--bridge-port", type=int, default=3000)
     preflight_parser.add_argument("--skip-network", action="store_true", help="Skip bot bridge and MC server TCP checks")
     preflight_parser.add_argument("--screenshot-renderer", action="store_true", help="Check optional prismarine-viewer screenshot renderer dependencies")
+    preflight_parser.add_argument("--output", type=str, default="", help="Write a timestamped runtime-preflight JSON report")
     preflight_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Screenshot bridge runtime smoke test
@@ -6291,6 +6292,9 @@ def main():
             check_screenshot_renderer=getattr(args, "screenshot_renderer", False),
         )
         runner.print_preflight(report)
+        if getattr(args, "output", ""):
+            output_path = runner.save_preflight(report, args.output)
+            print(f"\nReport saved to {output_path}")
         if not report.ok:
             sys.exit(1)
 

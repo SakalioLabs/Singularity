@@ -1,8 +1,14 @@
 # PROGRESS.md -- Evidence-Backed Progress
 
+## Convergence Freeze
+
+M1 is the sole active milestone. Research expansion and M2-M7 runtime work are paused until BM-001..005 each have three distinct live successes grounded in post-observation state and the goal verifier. The active gate is `G0_RUNTIME_AVAILABLE`; see `workspace/CONVERGENCE_PLAN.md` and `workspace/evals/m1_failure_ledger.json`.
+
 ## Current Assessment
 
 Singularity has broad source coverage and a large passing offline test surface, but the full Minecraft Agent system is not complete. The authoritative capability report is `workspace/evals/capability_evidence_current.json`.
+
+The current loop improved evidence integrity rather than capability status: preflight now rejects the unrelated listener on port `3000`, emits timestamped non-capability JSON evidence, and has a controlled startup script on port `30000`. Minecraft remains unavailable, so M1 remains `live_failing` with zero verified successes.
 
 Current report outcome:
 
@@ -59,7 +65,9 @@ Current report outcome:
 - Episode early-abort mechanics are offline-verified only. Existing logs do not provide disjoint successful calibration/validation/test populations, so no live gate is approved and runtime remains off by default.
 - Frontier-budget mechanics are offline-verified only. The three built-in prerequisite cases conserve an eight-round budget and target later synthetic resolutions better than uniform, but they provide only three interval observations and no connected paired Minecraft sessions. No advisory runtime gate is approved; default mode remains off and shadow mode cannot change planner context.
 
-## Research Direction
+## Frozen Research Backlog
+
+The material below is retained as historical context and is not active work while the M1 convergence freeze is in force.
 
 - MineExplorer: hidden prerequisite graphs and rule-based milestones should define progress rather than final-text claims.
 - MineNPC-Task: task attempts should be scored against explicit dependencies, bounded knowledge, and machine-checkable validators.
@@ -83,13 +91,8 @@ Current report outcome:
 
 ## Immediate Sequence
 
-1. Restore a healthy Minecraft server and bridge runtime.
-2. Re-run M1 with pathfinder-backed truthful navigation and readiness recovery; compare empty plans, unreached navigation, dependent world actions, and no-progress transitions against the tracked critical-transition report.
-3. Promote no capability until the ledger reports `repeat_verified`.
-4. Re-run M3/M5 with the new bounded-memory and autonomous-event contracts, then collect three distinct qualifying sessions for each adapter; M6 still requires screenshot-backed visual interventions.
-5. Continue research-driven improvements only with baseline/candidate traces and regression gates.
-6. Collect fixed-control live lineage and shadow-restoration traces on at least three distinct candidate sessions, verifying `goal_frontier_capsule_v1` memory-read events and actual token/latency deltas; keep automatic restoration disabled even if shadow selection is approved.
-7. Collect per-judge defect-injection controls and paired no-skill skill-contribution traces across at least three distinct live sessions before applying a runtime retirement overlay; preserve all skill files for audit and recovery.
-8. Run schema-v2 hybrid workflow guidance on fresh M1/M2 traces, then regenerate runtime reports and permit deterministic reuse only for entries with three distinct exact matched successes and no regression.
-9. Build disjoint fixed-control M1/M2 episode-abort splits, run `behavior_surface_v1` in shadow mode, and permit active termination only after validation and held-out test global-recall certificates pass with positive failed-episode savings.
-10. Collect at least 12 distinct matched uniform/information frontier-budget sessions under one fixed task stream and seed protocol, then require exact allocation replay, non-regressing completion/verifier/action outcomes, positive prerequisite-resolution targeting, and a held-out interval-coverage certificate before advisory planner context.
+1. Pass controlled Paper/Mineflayer preflight with `scripts/m1-runtime.ps1`; EULA acceptance remains manual.
+2. Enforce and observe canonical reset state for all five tasks, including BM-004's five-cobblestone criterion.
+3. Run the smallest real task, BM-001, and localize only its earliest failing transition.
+4. Extend to BM-002..005 only after the preceding gate is truthful and regression-tested.
+5. Accumulate fifteen distinct passing sessions, regenerate capability evidence, and keep M2-M7 frozen until M1 reads `repeat_verified`.

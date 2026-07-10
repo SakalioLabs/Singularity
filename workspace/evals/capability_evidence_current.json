@@ -1,7 +1,7 @@
 {
   "type": "capability_evidence_report",
   "schema_version": 2,
-  "generated_at": "2026-07-09T21:35:52.014459+00:00",
+  "generated_at": "2026-07-10T05:12:46.061135+00:00",
   "readiness": "rejected",
   "claim_readiness": "approved",
   "system_status": "incomplete",
@@ -59,6 +59,12 @@
         "remedy": "pip install anthropic if using this provider"
       },
       {
+        "name": "java",
+        "status": "pass",
+        "detail": "openjdk version \"25.0.1\" 2025-10-21 LTS",
+        "remedy": ""
+      },
+      {
         "name": "node",
         "status": "pass",
         "detail": "v22.16.0",
@@ -78,15 +84,15 @@
       },
       {
         "name": "bot_bridge",
-        "status": "pass",
-        "detail": "127.0.0.1:3000 reachable",
-        "remedy": ""
+        "status": "fail",
+        "detail": "127.0.0.1:3000 accepted TCP but is not a healthy Singularity bridge (Empty response from bot bridge for command 'health')",
+        "remedy": "choose an unused bridge port (for example 30000) instead of 127.0.0.1:3000; pass that same --bridge-port to the Node bridge and Python"
       },
       {
         "name": "bot_session",
         "status": "fail",
-        "detail": "Empty response from bot bridge for command 'health'",
-        "remedy": "restart node src/bot/bot_server.js --bridge-port 3000 after the Minecraft server is running"
+        "detail": "not checked because the bot_bridge protocol check failed",
+        "remedy": "choose an unused bridge port (for example 30000) instead of 127.0.0.1:3000; pass that same --bridge-port to the Node bridge and Python"
       },
       {
         "name": "minecraft_server",

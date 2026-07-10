@@ -113,7 +113,14 @@ class ReadyBridge:
         return True
 
     def health(self):
-        return {"success": True, "bot_ready": True, "username": self.config.username}
+        return {
+            "success": True,
+            "bridge": True,
+            "bot_ready": True,
+            "username": self.config.username,
+            "version": self.config.version,
+            "mc_port": self.config.port,
+        }
 
     def disconnect(self):
         self.closed = True
@@ -123,11 +130,24 @@ class NotReadyBridge(ReadyBridge):
     def health(self):
         return {
             "success": True,
+            "bridge": True,
             "bot_ready": False,
             "mc_host": self.config.host,
             "mc_port": self.config.port,
             "last_error": "connect ECONNREFUSED",
         }
+
+
+class UnrelatedTcpServiceBridge(ReadyBridge):
+    def health(self):
+        return {"success": False, "error": "Empty response from bot bridge for command 'health'"}
+
+
+class WrongVersionBridge(ReadyBridge):
+    def health(self):
+        health = super().health()
+        health["version"] = "1.21.1"
+        return health
 
 
 class ScreenshotReadyBridge(ReadyBridge):
@@ -162,6 +182,7 @@ def test_preflight_report_without_network():
     names = {check.name for check in report.checks}
 
     assert "python:pydantic" in names
+    assert "java" in names
     assert "node" in names
     assert "npm" in names
     assert "node_dependencies" in names
@@ -173,14 +194,29 @@ def test_preflight_report_without_network():
 
 def test_bot_session_preflight_check():
     ready_runner = BenchmarkRunner(Config(), bridge_factory=ReadyBridge)
-    ready = ready_runner._check_bot_session()
-    assert ready.status == "pass"
+    ready_bridge, ready_session = ready_runner._check_bot_bridge_and_session()
+    assert ready_bridge.status == "pass"
+    assert ready_session.status == "pass"
 
     not_ready_runner = BenchmarkRunner(Config(), bridge_factory=NotReadyBridge)
-    not_ready = not_ready_runner._check_bot_session()
-    assert not_ready.status == "fail"
-    assert "Minecraft server" in not_ready.remedy
-    print("PASS: Bot session preflight distinguishes TCP bridge from spawned bot")
+    not_ready_bridge, not_ready_session = not_ready_runner._check_bot_bridge_and_session()
+    assert not_ready_bridge.status == "pass"
+    assert not_ready_session.status == "fail"
+    assert "Minecraft server" in not_ready_session.remedy
+
+    unrelated_runner = BenchmarkRunner(Config(), bridge_factory=UnrelatedTcpServiceBridge)
+    unrelated_bridge, unrelated_session = unrelated_runner._check_bot_bridge_and_session()
+    assert unrelated_bridge.status == "fail"
+    assert "not a healthy Singularity bridge" in unrelated_bridge.detail
+    assert unrelated_session.status == "fail"
+    assert "protocol check failed" in unrelated_session.detail
+
+    wrong_version_runner = BenchmarkRunner(Config(), bridge_factory=WrongVersionBridge)
+    wrong_version_bridge, wrong_version_session = wrong_version_runner._check_bot_bridge_and_session()
+    assert wrong_version_bridge.status == "pass"
+    assert wrong_version_session.status == "fail"
+    assert "version='1.21.1'" in wrong_version_session.detail
+    print("PASS: Benchmark preflight distinguishes unrelated TCP, bridge health, and bot spawn")
 
 
 def test_preflight_uses_configured_bridge_endpoint():
@@ -188,22 +224,50 @@ def test_preflight_uses_configured_bridge_endpoint():
         def __init__(self, config):
             super().__init__(config)
             self.tcp_checks = []
+            self.bridge_checks = []
 
         def _check_tcp(self, name, host, port, required):
             self.tcp_checks.append((name, host, port, required))
             return PreflightCheck(name, "pass", f"{host}:{port}")
 
-        def _check_bot_session(self):
-            return PreflightCheck("bot_session", "pass", "fake")
+        def _check_bot_bridge_and_session(self):
+            self.bridge_checks.append((self.config.bot.bridge_host, self.config.bot.bridge_port))
+            return (
+                PreflightCheck("bot_bridge", "pass", "fake"),
+                PreflightCheck("bot_session", "pass", "fake"),
+            )
 
     config = Config(bot=BotConfig(host="mc.local", port=25570, bridge_host="127.0.0.9", bridge_port=3012))
     runner = CapturingRunner(config)
     report = runner.preflight(check_network=True)
 
     assert report.ok
-    assert ("bot_bridge", "127.0.0.9", 3012, True) in runner.tcp_checks
+    assert ("127.0.0.9", 3012) in runner.bridge_checks
     assert ("minecraft_server", "mc.local", 25570, True) in runner.tcp_checks
     print("PASS: Benchmark preflight uses configured bridge endpoint")
+
+
+def test_preflight_report_save_is_explicitly_non_capability_evidence():
+    runner = BenchmarkRunner(Config())
+    report = runner.preflight(check_network=False)
+    with tempfile.TemporaryDirectory() as tmp:
+        path = runner.save_preflight(report, os.path.join(tmp, "preflight.json"))
+        with open(path, "r", encoding="utf-8") as f:
+            saved = json.load(f)
+        try:
+            runner.save_preflight(report, path)
+            overwrite_blocked = False
+        except FileExistsError:
+            overwrite_blocked = True
+
+    assert saved["type"] == "benchmark_preflight"
+    assert saved["evidence_kind"] == "runtime_preflight"
+    assert saved["counts_toward_live_observed"] is False
+    assert saved["counts_toward_repeat_verified"] is False
+    assert saved["ok"] == report.ok
+    assert len(saved["checks"]) == len(report.checks)
+    assert overwrite_blocked
+    print("PASS: Saved preflight reports cannot count as Minecraft capability evidence")
 
 
 def test_preflight_checks_screenshot_renderer_dependencies():
@@ -6125,6 +6189,7 @@ if __name__ == "__main__":
     test_preflight_report_without_network()
     test_bot_session_preflight_check()
     test_preflight_uses_configured_bridge_endpoint()
+    test_preflight_report_save_is_explicitly_non_capability_evidence()
     test_preflight_checks_screenshot_renderer_dependencies()
     test_screenshot_smoke_test_verifies_local_image_file()
     test_screenshot_smoke_test_explains_container_file_visibility()
