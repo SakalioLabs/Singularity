@@ -43,6 +43,7 @@ class SkillLibrary:
         self._skill_memory_quality_policies: dict[str, dict] = {}
         self._skill_memory_quality_items: dict[tuple[str, str, str], dict] = {}
         self._runtime_default_gate_profile: dict = self._empty_runtime_default_gate_profile()
+        self.last_skill_router_trace: dict = {}
         os.makedirs(storage_path, exist_ok=True)
         self._load_builtin_skills()
         if self.persist:
@@ -137,8 +138,44 @@ class SkillLibrary:
             self._rewrite_custom_skills()
         return record
 
-    def get_recommended_skills(self, goal: str, world_state: dict) -> list[Skill]:
-        """Return skills that match the current context, sorted by success rate and policy relevance."""
+    def get_recommended_skills(
+        self,
+        goal: str,
+        world_state: dict,
+        task_frontier: Optional[list[dict]] = None,
+        use_frontier_router: bool = True,
+        limit: int = 5,
+    ) -> list[Skill]:
+        """Return governed skills, preferring state-transition fit when a task frontier exists."""
+        if use_frontier_router and task_frontier:
+            route = self.get_frontier_skill_route(
+                goal,
+                world_state,
+                task_frontier=task_frontier,
+                limit=limit,
+            )
+            if route["skills"]:
+                return route["skills"]
+        skills = self._legacy_recommended_skills(goal, world_state, limit=limit)
+        self.last_skill_router_trace = {
+            "schema_version": 1,
+            "profile": "legacy_skill_rank_v1",
+            "frontier_task_count": len(task_frontier or []),
+            "candidate_count": len(skills),
+            "blocked_candidate_count": 0,
+            "selected_skill_names": [skill.name for skill in skills],
+            "covered_task_ids": [],
+            "uncovered_task_ids": [
+                str(task.get("id") or "")
+                for task in (task_frontier or [])
+                if isinstance(task, dict) and task.get("id")
+            ],
+            "selected": [],
+        }
+        return skills
+
+    def _legacy_recommended_skills(self, goal: str, world_state: dict, limit: int = 5) -> list[Skill]:
+        """Preserve the pre-router ranking as a fixed-control baseline."""
         scored: dict[str, tuple[float, Skill]] = {}
         builtin_names = self._builtin_skill_names()
         task_family = self.infer_task_family(goal, {})
@@ -168,7 +205,314 @@ class SkillLibrary:
             key=lambda item: (item[0], item[1].success_rate, item[1].total_uses),
             reverse=True,
         )
-        return [skill for _, skill in ranked[:5]]
+        return [skill for _, skill in ranked[:max(1, int(limit or 5))]]
+
+    def get_frontier_skill_route(
+        self,
+        goal: str,
+        world_state: dict,
+        task_frontier: list[dict],
+        limit: int = 5,
+    ) -> dict:
+        """Rerank skills against decomposed task intervals and unresolved state transitions."""
+        tasks = [
+            self._normalize_skill_frontier_task(task, index)
+            for index, task in enumerate(task_frontier or [], start=1)
+            if isinstance(task, dict)
+        ]
+        tasks = [task for task in tasks if task]
+        builtin_names = self._builtin_skill_names()
+        frontier_families = {
+            self.infer_task_family(task["text"], {}) for task in tasks
+        } or {"general"}
+        candidates = []
+        blocked_candidate_count = 0
+        for skill in self.skills.values():
+            built_in = skill.name in builtin_names
+            allowed = built_in or any(
+                self._runtime_default_skill_allowed(skill.name, family, built_in=False)
+                for family in frontier_families
+            )
+            if not allowed:
+                blocked_candidate_count += 1
+                continue
+            candidate = self._frontier_skill_candidate(
+                skill,
+                goal,
+                world_state or {},
+                tasks,
+                built_in=built_in,
+            )
+            if candidate.get("blocked"):
+                blocked_candidate_count += 1
+                continue
+            if candidate.get("score", 0.0) > 0:
+                candidates.append(candidate)
+
+        candidates.sort(
+            key=lambda item: (
+                item["score"],
+                item["gap_match_count"],
+                item["assigned_match_count"],
+                item["reliability"],
+                item["total_uses"],
+                item["skill_name"],
+            ),
+            reverse=True,
+        )
+        selected_candidates = candidates[:max(1, int(limit or 5))]
+        selected_skills = [
+            self.skills[item["skill_name"]]
+            for item in selected_candidates
+            if item["skill_name"] in self.skills
+        ]
+        covered_task_ids = sorted({
+            task_id
+            for item in selected_candidates
+            for task_id in item["covered_task_ids"]
+            if task_id
+        })
+        frontier_ids = [task["id"] for task in tasks if task["id"]]
+        uncovered_task_ids = [task_id for task_id in frontier_ids if task_id not in covered_task_ids]
+        trace_candidates = [self._skill_router_trace_candidate(item) for item in selected_candidates]
+        self.last_skill_router_trace = {
+            "schema_version": 1,
+            "profile": "frontier_transition_skill_router_v1",
+            "frontier_task_count": len(tasks),
+            "ready_task_count": sum(1 for task in tasks if task["ready"]),
+            "blocked_task_count": sum(1 for task in tasks if not task["ready"]),
+            "candidate_count": len(candidates),
+            "blocked_candidate_count": blocked_candidate_count,
+            "selected_skill_names": [skill.name for skill in selected_skills],
+            "covered_task_ids": covered_task_ids,
+            "uncovered_task_ids": uncovered_task_ids,
+            "selected": trace_candidates,
+        }
+        return {
+            "skills": selected_skills,
+            "trace": self.get_last_skill_router_trace(),
+        }
+
+    def get_last_skill_router_trace(self) -> dict:
+        trace = dict(self.last_skill_router_trace)
+        trace["selected_skill_names"] = list(trace.get("selected_skill_names", []))
+        trace["covered_task_ids"] = list(trace.get("covered_task_ids", []))
+        trace["uncovered_task_ids"] = list(trace.get("uncovered_task_ids", []))
+        trace["selected"] = [dict(item) for item in trace.get("selected", []) if isinstance(item, dict)]
+        return trace
+
+    def format_frontier_skill_route(
+        self,
+        trace: Optional[dict] = None,
+        limit: int = 5,
+        char_budget: int = 600,
+    ) -> str:
+        """Format a compact planner hint from a sanitized skill-route trace."""
+        trace = trace if isinstance(trace, dict) else self.last_skill_router_trace
+        if trace.get("profile") != "frontier_transition_skill_router_v1":
+            return ""
+        lines = ["Frontier skill route (state-transition fit; verifier still controls actions):"]
+        for item in trace.get("selected", [])[:max(1, int(limit or 5))]:
+            if not isinstance(item, dict):
+                continue
+            parts = [
+                f"- {item.get('skill_name', 'skill')} score={item.get('score', 0.0):.2f}",
+            ]
+            if item.get("covered_task_ids"):
+                parts.append("covers=" + ",".join(item["covered_task_ids"][:3]))
+            if item.get("gap_terms"):
+                parts.append("closes=" + ",".join(item["gap_terms"][:4]))
+            if item.get("reason_codes"):
+                parts.append("why=" + ",".join(item["reason_codes"][:4]))
+            lines.append(" ".join(parts))
+        if len(lines) <= 1:
+            return ""
+        try:
+            budget = max(0, int(char_budget))
+        except (TypeError, ValueError):
+            budget = 600
+        packed = []
+        used = 0
+        for line in lines:
+            separator = 1 if packed else 0
+            if used + separator + len(line) > budget:
+                break
+            packed.append(line)
+            used += separator + len(line)
+        return "\n".join(packed) if len(packed) > 1 else ""
+
+    def _normalize_skill_frontier_task(self, task: dict, index: int) -> dict:
+        task_id = str(task.get("id") or f"frontier-{index}")[:64]
+        title = str(task.get("title") or task.get("name") or "")[:160]
+        task_type = str(task.get("type") or "general")[:64]
+        tags = task.get("tags", []) if isinstance(task.get("tags", []), list) else []
+        triggers = task.get("opportunity_triggers", [])
+        triggers = triggers if isinstance(triggers, list) else []
+        missing = task.get("missing_preconditions", {})
+        missing = missing if isinstance(missing, dict) else {}
+        success = task.get("success_criteria", {})
+        success = success if isinstance(success, dict) else {}
+        preconditions = task.get("preconditions", {})
+        preconditions = preconditions if isinstance(preconditions, dict) else {}
+        assigned_skill = str(task.get("assigned_skill") or "")[:96]
+        text = " ".join([
+            title,
+            task_type,
+            " ".join(str(value) for value in tags[:8]),
+            " ".join(str(value) for value in triggers[:8]),
+            str(task.get("rationale") or "")[:240],
+        ])
+        return {
+            "id": task_id,
+            "title": title,
+            "type": task_type,
+            "text": text,
+            "terms": self._skill_route_terms(text),
+            "gap_terms": self._skill_route_terms(json.dumps(missing, sort_keys=True, default=str)),
+            "target_terms": self._skill_route_terms(json.dumps(success, sort_keys=True, default=str)),
+            "precondition_terms": self._skill_route_terms(json.dumps(preconditions, sort_keys=True, default=str)),
+            "assigned_skill": assigned_skill,
+            "ready": task.get("ready") is True,
+            "priority": self._skill_route_priority(task.get("priority", 3)),
+        }
+
+    def _frontier_skill_candidate(
+        self,
+        skill: Skill,
+        goal: str,
+        world_state: dict,
+        tasks: list[dict],
+        built_in: bool,
+    ) -> dict:
+        contract = self._skill_contract_profile(skill, goal, world_state)
+        if contract.get("readiness") == "blocked":
+            return {"blocked": True, "skill_name": skill.name}
+        capability_terms = self._skill_route_terms(" ".join([
+            skill.name,
+            skill.description,
+            json.dumps(skill.parameters, sort_keys=True, default=str),
+            json.dumps(skill.postconditions, sort_keys=True, default=str),
+            str(skill.implementation or "")[:4000],
+        ]))
+        postcondition_terms = self._skill_route_terms(
+            json.dumps(skill.postconditions, sort_keys=True, default=str)
+        )
+        skill_family = self.infer_task_family(" ".join([skill.name, skill.description]), {})
+        task_matches = []
+        all_gap_terms = set()
+        reason_codes = set()
+        assigned_match_count = 0
+        gap_match_count = 0
+        for task in tasks:
+            assigned_match = bool(
+                task["assigned_skill"]
+                and task["assigned_skill"].casefold() == skill.name.casefold()
+            )
+            text_matches = sorted(task["terms"] & capability_terms)
+            gap_matches = sorted(task["gap_terms"] & capability_terms)
+            target_matches = sorted(task["target_terms"] & (postcondition_terms or capability_terms))
+            task_family = self.infer_task_family(task["text"], {})
+            family_match = bool(task_family != "general" and task_family == skill_family)
+            score = 0.0
+            if assigned_match:
+                score += 14.0
+                assigned_match_count += 1
+                reason_codes.add("assigned_skill")
+            if gap_matches:
+                score += min(18.0, len(gap_matches) * 7.0)
+                gap_match_count += len(gap_matches)
+                all_gap_terms.update(gap_matches)
+                reason_codes.add("closes_frontier_gap")
+            if target_matches:
+                score += min(10.0, len(target_matches) * 4.0)
+                reason_codes.add("matches_target_state")
+            if text_matches:
+                score += min(6.0, len(text_matches) * 1.2)
+                reason_codes.add("matches_task_interval")
+            if family_match:
+                score += 2.0
+                reason_codes.add("task_family_match")
+            if task["ready"]:
+                score += 0.5
+            score += max(0.0, (5 - task["priority"]) * 0.15)
+            substantive_match = bool(
+                assigned_match or gap_matches or target_matches or text_matches
+            )
+            if substantive_match and score >= 2.0:
+                task_matches.append({"id": task["id"], "score": round(score, 4)})
+
+        task_matches.sort(key=lambda item: (item["score"], item["id"]), reverse=True)
+        best_score = task_matches[0]["score"] if task_matches else 0.0
+        coverage_bonus = sum(item["score"] for item in task_matches[1:]) * 0.2
+        reliability = round(
+            (float(skill.successful_uses or 0) + 1.0) / (float(skill.total_uses or 0) + 2.0),
+            4,
+        )
+        governance = self._skill_governance(skill, built_in=built_in)
+        governance_bonus = 0.5 if built_in else 1.0 if governance.get("gate_readiness") == "approved" else 0.0
+        readiness_penalty = 0.75 if contract.get("readiness") == "review" else 0.0
+        score = 0.0
+        if task_matches:
+            score = max(0.0, best_score + coverage_bonus + reliability + governance_bonus - readiness_penalty)
+        if skill.total_uses:
+            reason_codes.add("empirical_reliability")
+        if governance_bonus:
+            reason_codes.add("governed_skill")
+        return {
+            "blocked": False,
+            "skill_name": skill.name,
+            "score": round(score, 4),
+            "reliability": reliability,
+            "total_uses": int(skill.total_uses or 0),
+            "readiness": contract.get("readiness", ""),
+            "assigned_match_count": assigned_match_count,
+            "gap_match_count": gap_match_count,
+            "gap_terms": sorted(all_gap_terms)[:8],
+            "covered_task_ids": [item["id"] for item in task_matches],
+            "reason_codes": sorted(reason_codes),
+        }
+
+    def _skill_router_trace_candidate(self, candidate: dict) -> dict:
+        return {
+            "skill_name": str(candidate.get("skill_name") or "")[:96],
+            "score": round(float(candidate.get("score", 0.0) or 0.0), 4),
+            "reliability": round(float(candidate.get("reliability", 0.0) or 0.0), 4),
+            "readiness": str(candidate.get("readiness") or "")[:24],
+            "assigned_match_count": int(candidate.get("assigned_match_count", 0) or 0),
+            "gap_match_count": int(candidate.get("gap_match_count", 0) or 0),
+            "gap_terms": [str(value)[:48] for value in candidate.get("gap_terms", [])[:8]],
+            "covered_task_ids": [str(value)[:64] for value in candidate.get("covered_task_ids", [])[:8]],
+            "reason_codes": [str(value)[:48] for value in candidate.get("reason_codes", [])[:8]],
+        }
+
+    def _skill_route_terms(self, value) -> set[str]:
+        base = self._keywords(str(value or ""))
+        expanded = set(base)
+        for token in list(base):
+            expanded.update(part for part in token.split("_") if len(part) > 2)
+        aliases = {
+            "logs": {"log", "wood"},
+            "log": {"wood"},
+            "planks": {"plank", "wood"},
+            "plank": {"wood"},
+            "cobblestone": {"stone"},
+            "wooden": {"wood"},
+            "mining": {"mine"},
+            "crafting": {"craft"},
+            "building": {"build"},
+            "navigation": {"navigate"},
+        }
+        for token in list(expanded):
+            expanded.update(aliases.get(token, set()))
+            if token.endswith("s") and len(token) > 4:
+                expanded.add(token[:-1])
+        return expanded
+
+    def _skill_route_priority(self, value) -> int:
+        try:
+            return max(0, min(5, int(value)))
+        except (TypeError, ValueError):
+            return 3
 
     def get_policy_skill_hints(self, goal: str, world_state: dict, limit: int = 5) -> list[str]:
         """Return concise online hints from approved causal/failure-correction skills."""

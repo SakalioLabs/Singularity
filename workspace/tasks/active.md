@@ -336,6 +336,10 @@
 - [ ] Confirm `goal_frontier_capsule_v1` on fresh live planner cycles and compare actual input tokens, planner latency, verifier outcomes, and task completion against the rich-context baseline.
 - [ ] Run schema-v2 task continuity on fresh M1/M3/M5 sessions and inspect lineage issues, active paths, revision candidates, and terminal checkpoint validity.
 - [ ] Compare SelfMem-style planning-memory budget/layer variants offline, then promote only variants with held-out transfer and runtime-cost evidence.
+- [x] Add task-decomposition/frontier-driven skill routing with missing-precondition closure, assigned-skill precedence, governance filtering, a bounded route trace, and a fixed legacy baseline.
+- [x] Add `skill-frontier-routing-ablation`; built-in fixtures improve expected top-1 from 0/3 to 3/3 with full frontier coverage, but remain synthetic and gate-ineligible.
+- [ ] Run fresh M1/M2 baseline versus frontier-router task streams and compare completion, environment steps, verifier rejects, tokens, and latency across distinct sessions.
+- [ ] Add a Blind-Curator-style soft-retirement audit only after verifier-backed defect-injection cases and per-skill no-skill baselines exist; never auto-delete skill files.
 
 ## Research Priorities
 - [ ] Run live policy-skill benchmark ablation after Minecraft server and bot bridge are ready.

@@ -411,6 +411,96 @@ class PolicySkillAblationReport:
 
 
 @dataclass
+class SkillFrontierRoutingCase:
+    id: str
+    name: str
+    goal: str
+    world_state: dict
+    task_frontier: list[dict]
+    expected_top_skill: str
+    forbidden_skills: list[str] = field(default_factory=list)
+    skill_overrides: list[dict] = field(default_factory=list)
+    planner_id: str = ""
+    action_backend: str = ""
+    verifier_id: str = ""
+    task_stream_id: str = ""
+    seed: str = ""
+    evidence_kind: str = "offline_replay"
+    source: str = ""
+
+
+@dataclass
+class SkillFrontierRoutingResult:
+    case_id: str
+    case_name: str
+    goal: str
+    expected_top_skill: str
+    baseline_skill_names: list[str] = field(default_factory=list)
+    candidate_skill_names: list[str] = field(default_factory=list)
+    baseline_top1_hit: bool = False
+    candidate_top1_hit: bool = False
+    forbidden_skills: list[str] = field(default_factory=list)
+    present_forbidden_skills: list[str] = field(default_factory=list)
+    frontier_task_count: int = 0
+    candidate_covered_task_count: int = 0
+    candidate_frontier_coverage: float = 0.0
+    candidate_count: int = 0
+    blocked_candidate_count: int = 0
+    baseline_context_chars: int = 0
+    candidate_context_chars: int = 0
+    route_profile: str = ""
+    fixed_controls: bool = False
+    candidate_helped: bool = False
+    candidate_regressed: bool = False
+    ready_for_review: bool = False
+    issues: list[str] = field(default_factory=list)
+    planner_id: str = ""
+    action_backend: str = ""
+    verifier_id: str = ""
+    task_stream_id: str = ""
+    seed: str = ""
+    evidence_kind: str = "offline_replay"
+    source: str = ""
+
+
+@dataclass
+class SkillFrontierRoutingReport:
+    cases: list[SkillFrontierRoutingResult] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def ready_case_count(self) -> int:
+        return sum(1 for case in self.cases if case.ready_for_review)
+
+    @property
+    def non_builtin_ready_case_count(self) -> int:
+        return sum(
+            1 for case in self.cases
+            if case.ready_for_review and case.evidence_kind != "builtin"
+        )
+
+    @property
+    def helped_count(self) -> int:
+        return sum(1 for case in self.cases if case.candidate_helped)
+
+    @property
+    def regression_count(self) -> int:
+        return sum(1 for case in self.cases if case.candidate_regressed)
+
+    @property
+    def baseline_top1_hit_count(self) -> int:
+        return sum(1 for case in self.cases if case.baseline_top1_hit)
+
+    @property
+    def candidate_top1_hit_count(self) -> int:
+        return sum(1 for case in self.cases if case.candidate_top1_hit)
+
+    @property
+    def average_candidate_frontier_coverage(self) -> float:
+        return _average_optional([case.candidate_frontier_coverage for case in self.cases]) or 0.0
+
+
+@dataclass
 class PolicySkillBenchmarkAblationResult:
     task_id: str
     task_name: str
@@ -2765,6 +2855,97 @@ POLICY_SKILL_ABLATION_CASES = [
             ],
             "evidence": {"failure_why": "Missing coal"},
         },
+    ),
+]
+
+
+SKILL_FRONTIER_ROUTING_CASES = [
+    SkillFrontierRoutingCase(
+        id="SKILL-ROUTE-001",
+        name="Route blocked shelter work through missing logs",
+        goal="Build a safe shelter",
+        world_state={"inventory": {}, "nearby_blocks": [{"name": "oak_log"}]},
+        task_frontier=[{
+            "id": "walls",
+            "title": "Build shelter walls",
+            "type": "building",
+            "ready": False,
+            "priority": 2,
+            "missing_preconditions": {"inventory": {"oak_log": 6}},
+            "success_criteria": {"structure": {"walls": True}},
+            "tags": ["shelter", "building"],
+        }],
+        expected_top_skill="gather_wood",
+        forbidden_skills=["unsafe_log_shortcut"],
+        skill_overrides=[{
+            "name": "unsafe_log_shortcut",
+            "description": "Gather oak logs through an unverified shortcut",
+            "implementation": '{"type":"action_sequence","actions":[{"type":"dig","parameters":{"block":"oak_log"}}]}',
+            "postconditions": {"inventory": {"oak_log": 6}},
+            "gate": {"decision": "reject", "verification": {"decision": "reject"}},
+            "provenance": {"source_log": "synthetic-rejected"},
+        }],
+        planner_id="fixed-frontier-router-v1",
+        action_backend="skill-selection-only",
+        verifier_id="expected-prerequisite-skill-v1",
+        task_stream_id="minecraft-shelter-prerequisite",
+        seed="101",
+        evidence_kind="builtin",
+        source="builtin",
+    ),
+    SkillFrontierRoutingCase(
+        id="SKILL-ROUTE-002",
+        name="Route stone pickaxe work through cobblestone acquisition",
+        goal="Craft a stone pickaxe",
+        world_state={"inventory": {"stick": 2, "crafting_table": 1}},
+        task_frontier=[{
+            "id": "craft-pickaxe",
+            "title": "Craft stone pickaxe",
+            "type": "crafting",
+            "ready": False,
+            "priority": 2,
+            "missing_preconditions": {"inventory": {"cobblestone": 3}},
+            "success_criteria": {"inventory": {"stone_pickaxe": 1}},
+            "tags": ["crafting", "tool_progression"],
+        }],
+        expected_top_skill="mine_stone",
+        forbidden_skills=["build_shelter"],
+        planner_id="fixed-frontier-router-v1",
+        action_backend="skill-selection-only",
+        verifier_id="expected-prerequisite-skill-v1",
+        task_stream_id="minecraft-tool-progression",
+        seed="102",
+        evidence_kind="builtin",
+        source="builtin",
+    ),
+    SkillFrontierRoutingCase(
+        id="SKILL-ROUTE-003",
+        name="Honor an explicitly assigned combat skill",
+        goal="Survive a hostile attack",
+        world_state={
+            "health": 14,
+            "inventory": {"stone_sword": 1},
+            "nearby_entities": [{"name": "zombie", "hostile": True, "distance": 3}],
+        },
+        task_frontier=[{
+            "id": "defend",
+            "title": "Defend against hostile mobs",
+            "type": "combat",
+            "ready": True,
+            "priority": 0,
+            "assigned_skill": "defend_self",
+            "success_criteria": {"nearby_hostile_count": 0},
+            "tags": ["combat", "safety"],
+        }],
+        expected_top_skill="defend_self",
+        forbidden_skills=["gather_wood"],
+        planner_id="fixed-frontier-router-v1",
+        action_backend="skill-selection-only",
+        verifier_id="expected-assigned-skill-v1",
+        task_stream_id="minecraft-combat-safety",
+        seed="103",
+        evidence_kind="builtin",
+        source="builtin",
     ),
 ]
 
@@ -18033,6 +18214,192 @@ class BenchmarkRunner:
             return self._gate_check(source, "task_continuity_restoration_report", "warn", "shadow cases do not cover enough distinct candidate sessions", metrics)
         return self._gate_check(source, "task_continuity_restoration_report", "pass", "shadow proposals preserve state, reach verified ancestors, and avoid completion regression", metrics)
 
+    def run_skill_frontier_routing_ablation(
+        self,
+        cases: Optional[list[SkillFrontierRoutingCase]] = None,
+    ) -> SkillFrontierRoutingReport:
+        """Compare legacy skill ranking with task-frontier transition routing."""
+        report = SkillFrontierRoutingReport()
+        source_cases = SKILL_FRONTIER_ROUTING_CASES if cases is None else cases
+        for case in source_cases:
+            try:
+                report.cases.append(self._run_skill_frontier_routing_case(case))
+            except Exception as e:
+                report.errors.append(f"{case.id}: {e}")
+        return report
+
+    def load_skill_frontier_routing_cases(self, case_files: list[str]) -> list[SkillFrontierRoutingCase]:
+        cases = []
+        for path in case_files or []:
+            for index, record in enumerate(self._load_case_records(path), start=1):
+                if not isinstance(record, dict):
+                    continue
+                frontier = record.get("task_frontier", [])
+                expected = str(record.get("expected_top_skill") or "")
+                if not isinstance(frontier, list) or not frontier or not expected:
+                    continue
+                cases.append(SkillFrontierRoutingCase(
+                    id=str(record.get("id") or f"SKILL-ROUTE-FILE-{index:03d}"),
+                    name=str(record.get("name") or f"Skill frontier routing case {index}"),
+                    goal=str(record.get("goal") or ""),
+                    world_state=record.get("world_state", {})
+                    if isinstance(record.get("world_state", {}), dict) else {},
+                    task_frontier=frontier,
+                    expected_top_skill=expected,
+                    forbidden_skills=self._dedupe_strings([
+                        str(value) for value in record.get("forbidden_skills", [])
+                    ]) if isinstance(record.get("forbidden_skills", []), list) else [],
+                    skill_overrides=record.get("skill_overrides", [])
+                    if isinstance(record.get("skill_overrides", []), list) else [],
+                    planner_id=str(record.get("planner_id") or ""),
+                    action_backend=str(record.get("action_backend") or ""),
+                    verifier_id=str(record.get("verifier_id") or ""),
+                    task_stream_id=str(record.get("task_stream_id") or ""),
+                    seed=str(record.get("seed") or ""),
+                    evidence_kind=str(record.get("evidence_kind") or "offline_replay"),
+                    source=path,
+                ))
+        return cases
+
+    def _run_skill_frontier_routing_case(
+        self,
+        case: SkillFrontierRoutingCase,
+    ) -> SkillFrontierRoutingResult:
+        from singularity.core.skill_library import Skill, SkillLibrary
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            skill_library = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"), persist=False)
+            for payload in case.skill_overrides or []:
+                if not isinstance(payload, dict):
+                    continue
+                filtered = skill_library._filter_skill_fields(payload)
+                if filtered.get("name"):
+                    skill = Skill(**filtered)
+                    skill_library.skills[skill.name] = skill
+
+            baseline = skill_library.get_recommended_skills(
+                case.goal,
+                case.world_state,
+                task_frontier=case.task_frontier,
+                use_frontier_router=False,
+            )
+            candidate = skill_library.get_recommended_skills(
+                case.goal,
+                case.world_state,
+                task_frontier=case.task_frontier,
+                use_frontier_router=True,
+            )
+            trace = skill_library.get_last_skill_router_trace()
+            baseline_names = [skill.name for skill in baseline]
+            candidate_names = [skill.name for skill in candidate]
+            expected = str(case.expected_top_skill or "")
+            baseline_top1_hit = bool(baseline_names and baseline_names[0] == expected)
+            candidate_top1_hit = bool(candidate_names and candidate_names[0] == expected)
+            present_forbidden = [
+                skill for skill in case.forbidden_skills if skill in candidate_names
+            ]
+            frontier_ids = self._dedupe_strings([
+                str(task.get("id") or f"frontier-{index}")
+                for index, task in enumerate(case.task_frontier, start=1)
+                if isinstance(task, dict)
+            ])
+            covered_ids = {
+                str(value) for value in trace.get("covered_task_ids", []) if value
+            }
+            covered_count = sum(1 for task_id in frontier_ids if task_id in covered_ids)
+            coverage = round(covered_count / len(frontier_ids), 4) if frontier_ids else 0.0
+            fixed_controls = all(str(value or "").strip() for value in (
+                case.planner_id,
+                case.action_backend,
+                case.verifier_id,
+                case.task_stream_id,
+                case.seed,
+            ))
+            issues = []
+            if not case.task_frontier:
+                issues.append("missing_task_frontier")
+            if not expected:
+                issues.append("missing_expected_top_skill")
+            if not fixed_controls:
+                issues.append("non_router_controls_missing")
+            if trace.get("profile") != "frontier_transition_skill_router_v1":
+                issues.append("frontier_router_trace_missing")
+            if not candidate_top1_hit:
+                issues.append("candidate_missed_expected_top_skill")
+            if present_forbidden:
+                issues.append("candidate_forbidden_skill_leakage")
+            if frontier_ids and coverage <= 0:
+                issues.append("candidate_frontier_uncovered")
+            candidate_regressed = bool(
+                not candidate_top1_hit
+                or present_forbidden
+                or (baseline_top1_hit and not candidate_top1_hit)
+            )
+            candidate_helped = bool(
+                candidate_top1_hit
+                and not baseline_top1_hit
+                and not present_forbidden
+            )
+            ready = bool(
+                case.task_frontier
+                and expected
+                and fixed_controls
+                and candidate_top1_hit
+                and not present_forbidden
+                and coverage > 0
+                and trace.get("profile") == "frontier_transition_skill_router_v1"
+            )
+            baseline_context = "Recommended skills (legacy): " + ", ".join(baseline_names)
+            candidate_context = skill_library.format_frontier_skill_route(trace)
+            return SkillFrontierRoutingResult(
+                case_id=case.id,
+                case_name=case.name,
+                goal=case.goal,
+                expected_top_skill=expected,
+                baseline_skill_names=baseline_names,
+                candidate_skill_names=candidate_names,
+                baseline_top1_hit=baseline_top1_hit,
+                candidate_top1_hit=candidate_top1_hit,
+                forbidden_skills=list(case.forbidden_skills),
+                present_forbidden_skills=present_forbidden,
+                frontier_task_count=len(frontier_ids),
+                candidate_covered_task_count=covered_count,
+                candidate_frontier_coverage=coverage,
+                candidate_count=self._safe_int(trace.get("candidate_count"), default=0),
+                blocked_candidate_count=self._safe_int(trace.get("blocked_candidate_count"), default=0),
+                baseline_context_chars=len(baseline_context),
+                candidate_context_chars=len(candidate_context),
+                route_profile=str(trace.get("profile") or ""),
+                fixed_controls=fixed_controls,
+                candidate_helped=candidate_helped,
+                candidate_regressed=candidate_regressed,
+                ready_for_review=ready,
+                issues=sorted(set(issues)),
+                planner_id=case.planner_id,
+                action_backend=case.action_backend,
+                verifier_id=case.verifier_id,
+                task_stream_id=case.task_stream_id,
+                seed=str(case.seed),
+                evidence_kind=case.evidence_kind,
+                source=case.source,
+            )
+
+    def skill_frontier_routing_payload(self, report: SkillFrontierRoutingReport) -> dict:
+        return {
+            "type": "skill_frontier_routing_ablation",
+            "schema_version": 1,
+            "case_count": len(report.cases),
+            "ready_case_count": report.ready_case_count,
+            "non_builtin_ready_case_count": report.non_builtin_ready_case_count,
+            "helped_count": report.helped_count,
+            "regression_count": report.regression_count,
+            "baseline_top1_hit_count": report.baseline_top1_hit_count,
+            "candidate_top1_hit_count": report.candidate_top1_hit_count,
+            "average_candidate_frontier_coverage": report.average_candidate_frontier_coverage,
+            "cases": [asdict(case) for case in report.cases],
+            "errors": list(report.errors),
+        }
+
     def run_policy_skill_ablation(
         self,
         cases: Optional[list[PolicySkillAblationCase]] = None,
@@ -21778,6 +22145,31 @@ class BenchmarkRunner:
         for case in report.get("dangerous_cases", [])[:5]:
             print(f"  false approve: {case.get('goal', '')} ({case.get('source_log', '')})")
         for error in report.get("errors", []):
+            print(f"  error: {error}")
+
+    def print_skill_frontier_routing_report(self, report: SkillFrontierRoutingReport):
+        print("\nSkill Frontier Routing Ablation")
+        print(
+            f"  cases: {report.ready_case_count}/{len(report.cases)} ready, "
+            f"helped={report.helped_count}, regressions={report.regression_count}"
+        )
+        print(
+            f"  top-1 hits: legacy={report.baseline_top1_hit_count}, "
+            f"frontier={report.candidate_top1_hit_count}, "
+            f"coverage={report.average_candidate_frontier_coverage:.3f}"
+        )
+        for case in report.cases:
+            marker = "+" if case.ready_for_review and not case.candidate_regressed else "!"
+            baseline = case.baseline_skill_names[0] if case.baseline_skill_names else "none"
+            candidate = case.candidate_skill_names[0] if case.candidate_skill_names else "none"
+            print(
+                f"  [{marker}] {case.case_id}: expected={case.expected_top_skill}, "
+                f"top1={baseline}->{candidate}, coverage={case.candidate_frontier_coverage:.2f}, "
+                f"blocked_candidates={case.blocked_candidate_count}"
+            )
+            if case.issues:
+                print(f"      issues: {', '.join(case.issues)}")
+        for error in report.errors:
             print(f"  error: {error}")
 
     def print_policy_skill_ablation_report(self, report: PolicySkillAblationReport):

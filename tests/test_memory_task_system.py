@@ -1537,6 +1537,7 @@ def test_task_system_reports_readiness_blockers():
         "Inspect frontier coal",
         status=TaskStatus.ACCEPTED,
         priority=2,
+        assigned_skill="inspect_resource",
         depends_on=[navigate.id],
         preconditions={
             "inventory": {"torch": 1},
@@ -1560,6 +1561,9 @@ def test_task_system_reports_readiness_blockers():
     assert inspect_report["missing_preconditions"]["inventory"]["torch"] == 1
     assert inspect_report["missing_preconditions"]["flags"] == ["safe_route"]
     assert inspect_report["missing_preconditions"]["nearby_block_present"] == ["coal_ore"]
+    assert inspect_report["assigned_skill"] == "inspect_resource"
+    assert inspect_report["preconditions"]["inventory"]["torch"] == 1
+    assert inspect_report["success_criteria"] == {"observed": "coal_ore"}
 
     tasks.complete_task(navigate.id)
     ready_report = tasks.task_readiness_report({
@@ -2241,6 +2245,23 @@ def test_agent_passes_task_readiness_context_to_llm_planner():
     assert "blocked: Inspect coal before mining" in memory_context
     assert "nearby_block_present coal_ore" in memory_context
     assert any(event["type"] == "task_readiness_planner_context" for event in agent.session_logger.events)
+    route_event = next(event for event in agent.session_logger.events if event["type"] == "skill_frontier_route")
+    assert "Frontier skill route" in memory_context
+    assert route_event["data"]["profile"] == "frontier_transition_skill_router_v1"
+    assert route_event["data"]["frontier_task_count"] == 1
+    assert route_event["data"]["selected_skill_names"]
+    assert "goal" not in route_event["data"]
+
+    agent.config = Config(
+        enable_task_readiness_context=True,
+        enable_skill_frontier_routing=False,
+    )
+    agent.session_logger.events = []
+    agent.planner.calls = []
+    agent._think_llm({"inventory": {}, "nearby_blocks": [{"name": "stone"}]}, "Mine coal")
+    legacy_context = agent.planner.calls[0]["memory_context"]
+    assert "Recommended skills (by success rate)" in legacy_context
+    assert not any(event["type"] == "skill_frontier_route" for event in agent.session_logger.events)
     print("PASS: Agent passes task readiness context to LLM planner")
 
 
@@ -3017,6 +3038,97 @@ def test_skill_library_recommends_policy_skills_and_corrections():
     assert match
     assert match[0].name == "correct_craft_torch_via_dig_coal_ore"
     print("PASS: SkillLibrary recommends policy skills and corrections")
+
+
+def test_skill_library_routes_frontier_state_transitions():
+    skills = SkillLibrary(persist=False)
+    skills.create_skill(
+        "unsafe_log_shortcut",
+        "Gather oak logs through an unverified shortcut",
+        json.dumps({"type": "action_sequence", "actions": [{"type": "dig", "parameters": {"block": "oak_log"}}]}),
+        postconditions={"inventory": {"oak_log": 6}},
+        gate={"decision": "reject", "verification": {"decision": "reject"}},
+        provenance={"source_log": "synthetic-rejected"},
+    )
+    frontier = [{
+        "id": "walls",
+        "title": "Build shelter walls",
+        "type": "building",
+        "ready": False,
+        "priority": 2,
+        "missing_preconditions": {"inventory": {"oak_log": 6}},
+        "success_criteria": {"structure": {"walls": True}},
+        "tags": ["shelter", "building"],
+    }]
+
+    legacy = skills.get_recommended_skills(
+        "Build a safe shelter",
+        {"inventory": {}},
+        task_frontier=frontier,
+        use_frontier_router=False,
+    )
+    routed = skills.get_recommended_skills(
+        "Build a safe shelter",
+        {"inventory": {}},
+        task_frontier=frontier,
+        use_frontier_router=True,
+    )
+    trace = skills.get_last_skill_router_trace()
+    context = skills.format_frontier_skill_route(trace)
+
+    assert legacy[0].name == "build_shelter"
+    assert routed[0].name == "gather_wood"
+    assert "unsafe_log_shortcut" not in [skill.name for skill in routed]
+    assert trace["profile"] == "frontier_transition_skill_router_v1"
+    assert trace["blocked_candidate_count"] == 1
+    assert trace["covered_task_ids"] == ["walls"]
+    assert trace["uncovered_task_ids"] == []
+    assert trace["selected"][0]["gap_match_count"] > 0
+    assert "closes_frontier_gap" in trace["selected"][0]["reason_codes"]
+    assert "Frontier skill route" in context
+    assert len(context) <= 600
+    assert "Build shelter walls" not in json.dumps(trace)
+
+    skills.create_skill(
+        "approved_wall_builder",
+        "Build verified shelter walls",
+        json.dumps({"type": "action_sequence", "actions": [{"type": "place", "parameters": {"item": "oak_planks"}}]}),
+        postconditions={"structure": {"walls": True}},
+        gate={"decision": "approve", "verification": {"status": "achieved"}},
+    )
+    skills.record_skill_runtime_default_gate({
+        "readiness": "approved",
+        "decision": "allow_task_family_runtime_default_skills",
+        "candidates": [{
+            "skill": "approved_wall_builder",
+            "task_family": "building",
+            "candidate_readiness": "approved",
+        }],
+    })
+    mixed_frontier = [
+        {
+            "id": "craft-table",
+            "title": "Craft a workbench",
+            "type": "crafting",
+            "ready": True,
+            "priority": 2,
+        },
+        {
+            "id": "build-walls",
+            "title": "Build shelter walls",
+            "type": "building",
+            "ready": True,
+            "priority": 1,
+            "assigned_skill": "approved_wall_builder",
+        },
+    ]
+    mixed_route = skills.get_recommended_skills(
+        "Prepare and build shelter",
+        {"inventory": {"oak_planks": 12}},
+        task_frontier=mixed_frontier,
+    )
+    assert mixed_route[0].name == "approved_wall_builder"
+    print("PASS: SkillLibrary routes frontier state transitions")
 
 
 def test_skill_library_runtime_default_gate_filters_learned_skills():
@@ -4256,6 +4368,7 @@ if __name__ == "__main__":
     test_causal_evidence_gate_controls_causal_summary_promotion()
     test_skill_extractor_promotes_failure_correction_candidate()
     test_skill_library_recommends_policy_skills_and_corrections()
+    test_skill_library_routes_frontier_state_transitions()
     test_skill_library_runtime_default_gate_filters_learned_skills()
     test_skill_library_reports_skill_graph_governance()
     test_skill_library_reports_contract_readiness_and_recommends_matches()

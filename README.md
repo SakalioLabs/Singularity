@@ -107,6 +107,8 @@ python -m singularity.main task-continuity-revision --failed-checkpoint CHECKPOI
 python -m singularity.main task-continuity-lineage-ablation --include-builtins --capsule-char-budget 600 --output logs/benchmarks/task_continuity_lineage_ablation.json
 python -m singularity.main task-continuity-restoration-report --include-builtins --output logs/benchmarks/task_continuity_restoration_report.json
 python -m singularity.main task-continuity-restoration-gate --lineage-ablation logs/benchmarks/task_continuity_lineage_ablation.json --restoration-report logs/benchmarks/task_continuity_restoration_report.json --output logs/benchmarks/task_continuity_restoration_gate.json
+# Synthetic router fixtures compare legacy goal/success ranking with task-frontier transition routing.
+python -m singularity.main skill-frontier-routing-ablation --include-builtins --output logs/benchmarks/skill_frontier_routing.json
 python -m singularity.main benchmark --suite m1 --preflight
 python -m singularity.main benchmark --suite m1 --ingest
 python -m singularity.main benchmark --suite m1 --ingest --promotion-critic --llm-provider openai --llm-model MODEL_NAME --llm-base-url PROVIDER_URL

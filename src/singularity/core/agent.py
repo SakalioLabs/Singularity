@@ -1879,18 +1879,38 @@ class Agent:
                 ),
             ],
         )
-        task_readiness_context = self._task_readiness_context(goal, observation)
+        task_readiness_report = self._task_readiness_report(observation)
+        task_readiness_context = self._task_readiness_context(
+            goal,
+            observation,
+            report=task_readiness_report,
+        )
 
         # Get skill recommendations
-        recommended = self.skill_library.get_recommended_skills(goal, observation)
+        skill_frontier = task_readiness_report.get("tasks", [])
+        recommended = self.skill_library.get_recommended_skills(
+            goal,
+            observation,
+            task_frontier=skill_frontier,
+            use_frontier_router=getattr(self.config, "enable_skill_frontier_routing", True),
+        )
+        route_trace = {}
+        trace_reader = getattr(self.skill_library, "get_last_skill_router_trace", None)
+        if callable(trace_reader):
+            route_trace = trace_reader()
         policy_hints = []
         if self.config.enable_policy_skills:
             policy_hints = self.skill_library.get_policy_skill_hints(goal, observation)
         skill_hint = ""
-        if recommended:
+        route_formatter = getattr(self.skill_library, "format_frontier_skill_route", None)
+        if callable(route_formatter):
+            skill_hint = route_formatter(route_trace)
+        if recommended and not skill_hint:
             skill_hint = "\nRecommended skills (by success rate): " + ", ".join(
                 f"{s.name} ({s.success_rate:.0%})" for s in recommended[:5]
             )
+        if route_trace.get("profile") == "frontier_transition_skill_router_v1":
+            self._log_skill_frontier_route(route_trace)
         if policy_hints:
             skill_hint += "\nReviewed causal/correction skills:\n- " + "\n- ".join(policy_hints)
             self._log_policy_intervention("hint", {
@@ -2841,18 +2861,28 @@ class Agent:
         )
         return result
 
-    def _task_readiness_context(self, goal: str, current_state: dict = None, limit: int = 4) -> str:
-        """Expose verified task graph readiness and blockers as compact planner context."""
-        if not getattr(getattr(self, "config", None), "enable_task_readiness_context", True):
-            return ""
+    def _task_readiness_report(self, current_state: dict = None) -> dict:
         task_system = getattr(self, "task_system", None)
         if not task_system or not hasattr(task_system, "task_readiness_report"):
-            return ""
+            return {}
         try:
             report = task_system.task_readiness_report(current_state or {})
         except Exception as e:
-            logger.warning(f"Task readiness context failed: {e}")
+            logger.warning(f"Task readiness report failed: {e}")
+            return {}
+        return report if isinstance(report, dict) else {}
+
+    def _task_readiness_context(
+        self,
+        goal: str,
+        current_state: dict = None,
+        limit: int = 4,
+        report: dict = None,
+    ) -> str:
+        """Expose verified task graph readiness and blockers as compact planner context."""
+        if not getattr(getattr(self, "config", None), "enable_task_readiness_context", True):
             return ""
+        report = report if isinstance(report, dict) else self._task_readiness_report(current_state)
         tasks = [task for task in report.get("tasks", []) if isinstance(task, dict)]
         if not tasks:
             return ""
@@ -2887,6 +2917,39 @@ class Agent:
         if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
             self.session_logger.log("task_readiness_planner_context", payload)
         return "\n".join(line for line in lines if line)
+
+    def _log_skill_frontier_route(self, trace: dict):
+        if not hasattr(self, "session_logger") or not hasattr(self.session_logger, "log"):
+            return
+        selected = []
+        for item in trace.get("selected", [])[:5]:
+            if not isinstance(item, dict):
+                continue
+            selected.append({
+                "skill_name": str(item.get("skill_name") or "")[:96],
+                "score": item.get("score", 0.0),
+                "reliability": item.get("reliability", 0.0),
+                "readiness": str(item.get("readiness") or "")[:24],
+                "assigned_match_count": item.get("assigned_match_count", 0),
+                "gap_match_count": item.get("gap_match_count", 0),
+                "covered_task_ids": [str(value)[:64] for value in item.get("covered_task_ids", [])[:8]],
+                "reason_codes": [str(value)[:48] for value in item.get("reason_codes", [])[:8]],
+            })
+        self.session_logger.log("skill_frontier_route", {
+            "schema_version": 1,
+            "profile": "frontier_transition_skill_router_v1",
+            "frontier_task_count": trace.get("frontier_task_count", 0),
+            "ready_task_count": trace.get("ready_task_count", 0),
+            "blocked_task_count": trace.get("blocked_task_count", 0),
+            "candidate_count": trace.get("candidate_count", 0),
+            "blocked_candidate_count": trace.get("blocked_candidate_count", 0),
+            "selected_skill_names": [
+                str(value)[:96] for value in trace.get("selected_skill_names", [])[:8]
+            ],
+            "covered_task_ids": [str(value)[:64] for value in trace.get("covered_task_ids", [])[:12]],
+            "uncovered_task_ids": [str(value)[:64] for value in trace.get("uncovered_task_ids", [])[:12]],
+            "selected": selected,
+        })
 
     def _format_task_readiness_line(self, task: dict, ready: bool) -> str:
         title = str(task.get("title") or "task")[:120]

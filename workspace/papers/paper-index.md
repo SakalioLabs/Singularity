@@ -1493,6 +1493,91 @@
 
 ---
 
+## P-083: Task Decomposition-Guided Skill Reranking
+
+- **Title**: Task Decomposition-Guided Reranking for Adaptive Agent Skill Retrieval
+- **Source**: https://arxiv.org/abs/2607.06283
+- **Year**: 2026
+- **Type**: Inference-time structured skill retrieval
+- **Task Type**: ALFWorld and ScienceWorld long-horizon tasks
+- **Core Method**: Decomposes task and skill transitions into a DAG, then reranks skills per execution interval
+- **Memory**: Treats skills as state-transition edges rather than independent semantic documents
+- **Key Results**: Reports higher success, fewer environment steps, and lower token use across three backbones
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Direct basis for task-frontier and missing-precondition skill routing
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-10-skill-reranker.md`
+
+---
+
+## P-084: Gold-Standard Lightweight Game Agent
+
+- **Title**: A Gold-Standard Study of What Makes a Lightweight Game-Playing Agent Strong
+- **Source**: https://arxiv.org/abs/2607.06854
+- **Year**: 2026
+- **Type**: Fixed-expert game-agent component study
+- **Task Type**: Gin Rummy and Leduc Hold'em
+- **Core Method**: Uses a strong fixed expert only as a yardstick while isolating training ingredients over repeated runs
+- **Memory**: Shows that better information and evaluation can matter more than larger encoders
+- **Key Results**: Reports robust gains from a targeted lightweight recipe and several negative results for heavier alternatives
+- **Scores**: R=4, N=5, R=4, E=5
+- **Value to Project**: Motivates fixed deterministic Minecraft skill-routing expectations and explicit regression counts
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-10-lightweight-game-agent-gold-standard.md`
+
+---
+
+## P-085: The Blind Curator
+
+- **Title**: The Blind Curator: How a Biased Judge Silently Disables Skill Retirement in Self-Evolving Agents
+- **Source**: https://arxiv.org/abs/2607.07436
+- **Year**: 2026
+- **Type**: Skill-retirement safety analysis
+- **Task Type**: Reference-free report writing with code-generation cross-check
+- **Core Method**: Injects controlled reward corruption and separates true retirement from capacity eviction
+- **Memory**: Demonstrates that false-pass bias can silently preserve harmful skills
+- **Key Results**: Identifies a sharp false-pass regime where more data cannot restore contribution-based retirement
+- **Scores**: R=5, N=5, R=4, E=5
+- **Value to Project**: Requires verifier-calibrated soft retirement rather than LLM-only skill deletion
+- **Reproduction Priority**: P1
+- **Card**: `2026-07-10-blind-curator.md`
+
+---
+
+## P-086: SkillCenter
+
+- **Title**: SkillCenter: A Large-Scale Source-Grounded Skill Library for Autonomous AI Agents
+- **Source**: https://arxiv.org/abs/2607.07676
+- **Year**: 2026
+- **Type**: Large source-grounded agent skill library
+- **Task Type**: Cross-domain autonomous-agent operational knowledge
+- **Core Method**: Multi-source acquisition, quality gate, template generation, source grounding, and controlled publishing
+- **Memory**: Stores source traceability alongside searchable skill bundles
+- **Key Results**: Reports 216,938 skills across 24 bundles, including 114,565 source-grounded skills
+- **Scores**: R=4, N=5, R=3, E=4
+- **Value to Project**: Reinforces provenance-aware skill contracts and compact reason-coded retrieval traces
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-10-skillcenter.md`
+
+---
+
+## P-087: EvoSOP
+
+- **Title**: From Atomic Actions to Standard Operating Procedures: Iterative Tool Optimization for Self-Evolving LLM Agents
+- **Source**: https://arxiv.org/abs/2607.07321
+- **Year**: 2026
+- **Type**: Self-evolving higher-order tool lifecycle
+- **Task Type**: Repeated multi-step agent workflows
+- **Core Method**: Constructs, merges, evaluates, and prunes SOPs synthesized from atomic-action trajectories
+- **Memory**: Promotes recurring verified workflows into callable procedural assets
+- **Key Results**: Reports higher task success and fewer interaction rounds than static atomic toolsets
+- **Scores**: R=4, N=5, R=3, E=4
+- **Value to Project**: Defines a future path from verified Minecraft routes to governed composite skills
+- **Reproduction Priority**: P2
+- **Card**: `2026-07-10-evosop.md`
+
+---
+
 ## Summary Table
 
 | ID | Paper | Year | Scores | Priority |
@@ -1579,3 +1664,8 @@
 | P-080 | MemGym | 2026 | R4/N5/R4/E4 | P2 |
 | P-081 | Goal-Oriented Graphs for Minecraft | 2025/2026 | R5/N4/R4/E5 | P1 |
 | P-082 | Active Context Compression | 2026 | R4/N4/R3/E4 | P2 |
+| P-083 | Task Decomposition-Guided Skill Reranking | 2026 | R5/N5/R4/E5 | P1 |
+| P-084 | Gold-Standard Lightweight Game Agent | 2026 | R4/N5/R4/E5 | P1 |
+| P-085 | The Blind Curator | 2026 | R5/N5/R4/E5 | P1 |
+| P-086 | SkillCenter | 2026 | R4/N5/R3/E4 | P2 |
+| P-087 | EvoSOP | 2026 | R4/N5/R3/E4 | P2 |

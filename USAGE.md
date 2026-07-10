@@ -474,6 +474,12 @@ python -m singularity.main skill-graph-report --skill-storage-path workspace/ski
 # Score approved/custom skill contracts against a goal and current world state
 python -m singularity.main skill-contract-report --skill-storage-path workspace/skills --goal "Craft torches" --world-state-json '{"inventory":{"coal":1,"stick":2},"nearby_blocks":[{"name":"coal_ore"}]}' --output logs/benchmarks/skill_contracts.json
 
+# Compare legacy skill ranking with prerequisite/target-state routing over fixed task intervals.
+# Built-ins are synthetic smoke tests and do not count as live Minecraft evidence.
+python -m singularity.main skill-frontier-routing-ablation --include-builtins --output logs/benchmarks/skill_frontier_routing.json
+# Use the old ranker during live baseline collection.
+python -m singularity.main run --goal "Build a safe shelter" --no-skill-frontier-routing
+
 # Audit MUSE-style per-skill replay, failure, and transfer memories
 python -m singularity.main skill-memory-report --skill-storage-path workspace/skills --goal "Craft torches" --task-family crafting --output logs/benchmarks/skill_memory.json
 # Audit the full skill lifecycle before treating task-family skills as runtime defaults

@@ -45,6 +45,7 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 - Added schema-v2 task execution-state lineage with active-path retrieval, failed-branch isolation, terminal `compress` checkpoints, validation evidence, and review-only revision proposals.
 - Added fixed-control task-lineage ablation, critical-player-state shadow validation, and a live-evidence gate that can authorize only shadow revision selection. Built-in fixtures remain review-only and `automatic_restore_allowed` is always false.
 - Added a Goal Frontier Capsule for planner-facing task continuity. It preserves active leaf/path identifiers, goal prerequisites, missing preconditions, and continuation actions under a declared character budget; runtime logs identify the capsule profile without recording raw memory text.
+- Added task-frontier skill routing with a legacy baseline switch, governance filtering, prerequisite/target-state scoring, bounded reason-coded planner context, and a 3-case fixed-control ablation. The built-in 3/3 result remains offline-only.
 
 ## Next Acceptance Work
 
@@ -54,3 +55,4 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 4. Re-run M3/M5 with the new bounded-memory and autonomous subgoal events; re-run M6 after screenshot capture and visual-action interventions are available.
 5. Start distinct M7 role bridges and run BM-701 against the single-agent baseline.
 6. Run lineage ablation and shadow restoration reports on fresh fixed-control M1/M3/M5 sessions; verify capsule profile, probe retention, token/latency savings, and three distinct candidate sessions before shadow selection review, while keeping automatic restoration disabled.
+7. Compare frontier skill routing against `--no-skill-frontier-routing` on fresh M1/M2 task streams, measuring task completion, environment steps, verifier rejects, token cost, and latency before treating the synthetic top-1 gain as operational evidence.

@@ -4885,6 +4885,33 @@ def test_policy_skill_ablation_compares_enabled_and_disabled_modes():
     print("PASS: Policy skill ablation compares enabled and disabled modes")
 
 
+def test_skill_frontier_routing_ablation_uses_fixed_task_intervals():
+    runner = BenchmarkRunner(Config())
+    report = runner.run_skill_frontier_routing_ablation()
+    payload = runner.skill_frontier_routing_payload(report)
+    cases = {case.case_id: case for case in report.cases}
+
+    assert payload["type"] == "skill_frontier_routing_ablation"
+    assert payload["schema_version"] == 1
+    assert payload["case_count"] == 3
+    assert payload["ready_case_count"] == 3
+    assert payload["non_builtin_ready_case_count"] == 0
+    assert payload["baseline_top1_hit_count"] == 0
+    assert payload["candidate_top1_hit_count"] == 3
+    assert payload["helped_count"] == 3
+    assert payload["regression_count"] == 0
+    assert payload["average_candidate_frontier_coverage"] == 1.0
+    assert cases["SKILL-ROUTE-001"].candidate_skill_names[0] == "gather_wood"
+    assert cases["SKILL-ROUTE-001"].blocked_candidate_count == 1
+    assert cases["SKILL-ROUTE-001"].present_forbidden_skills == []
+    assert cases["SKILL-ROUTE-002"].candidate_skill_names[0] == "mine_stone"
+    assert cases["SKILL-ROUTE-003"].candidate_skill_names[0] == "defend_self"
+    assert all(case.candidate_context_chars <= 600 for case in report.cases)
+    assert all(case.fixed_controls for case in report.cases)
+    assert report.errors == []
+    print("PASS: Skill frontier routing ablation uses fixed task intervals")
+
+
 def test_policy_skill_ablation_loads_cases_from_skill_library():
     tmpdir = tempfile.mkdtemp()
     skill_dir = os.path.join(tmpdir, "skills")
@@ -6167,6 +6194,7 @@ if __name__ == "__main__":
     test_visual_action_ablation_compares_enabled_and_disabled_modes()
     test_visual_action_ablation_replays_session_log_interventions()
     test_policy_skill_ablation_compares_enabled_and_disabled_modes()
+    test_skill_frontier_routing_ablation_uses_fixed_task_intervals()
     test_policy_skill_ablation_loads_cases_from_skill_library()
     test_policy_skill_benchmark_ablation_compares_live_suite_modes()
     test_skill_memory_benchmark_ablation_compares_policy_only_baseline()

@@ -31,6 +31,7 @@ class Config:
     memory_dir: str = "workspace/memory"
     skill_dir: str = "workspace/skills"
     enable_policy_skills: bool = True
+    enable_skill_frontier_routing: bool = True
     enable_autocurriculum: bool = True
     enable_memory_policy: bool = True
     enable_task_memory_context: bool = True

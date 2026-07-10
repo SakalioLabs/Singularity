@@ -388,6 +388,14 @@ def _add_skill_runtime_default_args(parser):
     )
 
 
+def _add_skill_frontier_routing_args(parser):
+    parser.add_argument(
+        "--no-skill-frontier-routing",
+        action="store_true",
+        help="Use the legacy success/relevance skill ranking instead of task-frontier transition routing",
+    )
+
+
 def _add_task_continuity_args(parser):
     parser.add_argument(
         "--no-task-continuity-context",
@@ -580,6 +588,7 @@ def main():
     run_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     run_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     _add_skill_runtime_default_args(run_parser)
+    _add_skill_frontier_routing_args(run_parser)
     _add_coaching_args(run_parser)
     run_parser.add_argument("--log-level", type=str, default="INFO")
 
@@ -623,6 +632,7 @@ def main():
     auto_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     auto_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     _add_skill_runtime_default_args(auto_parser)
+    _add_skill_frontier_routing_args(auto_parser)
     _add_coaching_args(auto_parser)
     auto_parser.add_argument("--log-level", type=str, default="INFO")
 
@@ -672,6 +682,7 @@ def main():
     bench_parser.add_argument("--skill-memory-quality-preflight", action="store_true", help="Run gate and offline ranking preflight before quality-feedback-assisted benchmarks")
     bench_parser.add_argument("--skill-memory-quality-preflight-output", type=str, default="", help="Optional JSON path for the skill-memory quality benchmark preflight report")
     _add_skill_runtime_default_args(bench_parser)
+    _add_skill_frontier_routing_args(bench_parser)
     bench_parser.add_argument("--skill-runtime-default-preflight", action="store_true", help="Run approved runtime-default gate coverage preflight before learned default-skill benchmarks")
     bench_parser.add_argument("--skill-runtime-default-preflight-output", type=str, default="", help="Optional JSON path for the skill runtime-default benchmark preflight report")
     bench_parser.add_argument("--runtime-profile-suite-report", action="append", default=[], help="Approved runtime-profile-suite-report JSON required before profile-assisted benchmarks")
@@ -1237,6 +1248,7 @@ def main():
     collab_parser.add_argument("--skill-memory-quality-feedback", action="append", default=[], help="skill-memory-quality-report JSON to load for advisory skill-memory retrieval ranking")
     collab_parser.add_argument("--skill-memory-quality-gate", action="append", default=[], help="Approved skill-memory-quality-gate JSON required before loading quality feedback")
     _add_skill_runtime_default_args(collab_parser)
+    _add_skill_frontier_routing_args(collab_parser)
     collab_parser.add_argument("--runtime-profile-suite-report", action="append", default=[], help="Approved runtime-profile-suite-report JSON required before profile-assisted M7 Agent collaboration")
     collab_parser.add_argument("--runtime-profile-suite-preflight", action="store_true", help="Run runtime profile suite coverage preflight before M7 Agent collaboration")
     collab_parser.add_argument("--runtime-profile-suite-preflight-output", type=str, default="", help="Optional JSON path for the runtime profile suite M7 preflight report")
@@ -1769,6 +1781,15 @@ def main():
     visual_pipeline_parser.add_argument("--failure-corrections", action="store_true", help="Include repeated failure-correction promotion candidates")
     visual_pipeline_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
     visual_pipeline_parser.add_argument("--log-level", type=str, default="INFO")
+
+    skill_route_parser = subparsers.add_parser(
+        "skill-frontier-routing-ablation",
+        help="Compare legacy skill ranking with task-frontier transition routing",
+    )
+    skill_route_parser.add_argument("--case-file", action="append", default=[], help="JSON/JSONL routing cases")
+    skill_route_parser.add_argument("--include-builtins", action="store_true", help="Include synthetic fixed-control Minecraft fixtures")
+    skill_route_parser.add_argument("--output", type=str, default="", help="Optional JSON report path")
+    skill_route_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Offline reviewed policy-skill ablation
     policy_parser = subparsers.add_parser("policy-skill-ablation", help="Compare reviewed policy skills disabled vs enabled")
@@ -3597,6 +3618,7 @@ def main():
                     plan_cache_gate_paths=merge_arg_profile_list(args, "plan_cache_gate", runtime_profiles, "plan_cache_gate_paths"),
                     plan_cache_min_confidence=getattr(args, "plan_cache_min_confidence", 0.75),
                     enable_task_continuity_context=not getattr(args, "no_task_continuity_context", False),
+                    enable_skill_frontier_routing=not getattr(args, "no_skill_frontier_routing", False),
                     enable_skill_memory_context=not getattr(args, "no_skill_memory_context", False),
                     enable_coaching_policy=not getattr(args, "no_coaching_policy", False),
                     coach_style=profile_str_arg(args, "coach_style", runtime_profiles, "coach_style", default=""),
@@ -5437,6 +5459,30 @@ def main():
             sys.exit(1)
         return
 
+    if args.command == "skill-frontier-routing-ablation":
+        from singularity.evaluation.benchmark_runner import (
+            BenchmarkRunner,
+            SKILL_FRONTIER_ROUTING_CASES,
+        )
+
+        runner = BenchmarkRunner(Config())
+        cases = list(SKILL_FRONTIER_ROUTING_CASES) if getattr(args, "include_builtins", False) else []
+        cases.extend(runner.load_skill_frontier_routing_cases(getattr(args, "case_file", []) or []))
+        if not cases:
+            print("skill-frontier-routing-ablation requires --case-file or --include-builtins")
+            sys.exit(1)
+        report = runner.run_skill_frontier_routing_ablation(cases)
+        payload = runner.skill_frontier_routing_payload(report)
+        runner.print_skill_frontier_routing_report(report)
+        if getattr(args, "output", ""):
+            output_dir = os.path.dirname(args.output)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+            with open(args.output, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2, ensure_ascii=False)
+            print(f"\nReport saved to {args.output}")
+        return
+
     if args.command == "policy-skill-ablation":
         from dataclasses import asdict
         from singularity.evaluation.benchmark_runner import BenchmarkRunner
@@ -5504,6 +5550,7 @@ def main():
         plan_cache_gate_paths=merge_arg_profile_list(args, "plan_cache_gate", runtime_profiles, "plan_cache_gate_paths"),
         plan_cache_min_confidence=getattr(args, "plan_cache_min_confidence", 0.75),
         enable_task_continuity_context=not getattr(args, "no_task_continuity_context", False),
+        enable_skill_frontier_routing=not getattr(args, "no_skill_frontier_routing", False),
         enable_bounded_planning_context=not getattr(args, "no_bounded_planning_context", False),
         planning_memory_read_limit_chars=max(1, int(getattr(args, "planning_memory_read_limit", 600) or 600)),
         planning_memory_cycle_limit_chars=max(1, int(getattr(args, "planning_memory_cycle_limit", 2400) or 2400)),
