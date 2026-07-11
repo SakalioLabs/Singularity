@@ -1,9 +1,12 @@
 """Runtime supervisor for interruptible planner/actor execution."""
+import math
 import time
 from dataclasses import dataclass, field
 from typing import Optional
 
 from singularity.core.config import Config
+from singularity.core.goal_generator import GoalGenerator
+from singularity.evaluation.m4_shelter import is_machine_verified_shelter
 
 
 @dataclass
@@ -21,6 +24,15 @@ class InterruptDecision:
 class RuntimeSupervisor:
     """Evaluates fast actor-side interrupts between planner cycles."""
 
+    SURVIVAL_INTERRUPT_REASONS = frozenset({
+        "hostile_nearby",
+        "health_critical",
+        "hunger_critical",
+        "dusk_shelter_required",
+        "night_shelter_required",
+        "night_safety_maintenance",
+    })
+
     def __init__(self, config: Config, explorer=None):
         self.config = config
         self.explorer = explorer
@@ -30,6 +42,8 @@ class RuntimeSupervisor:
         checks = [
             self._health_interrupt(observation),
             self._hostile_interrupt(observation),
+            self._hunger_interrupt(observation),
+            self._night_interrupt(observation),
             self._deadline_interrupt(active_task),
             self._return_to_base_interrupt(observation),
         ]
@@ -40,14 +54,14 @@ class RuntimeSupervisor:
         return applicable[0]
 
     def _health_interrupt(self, observation: dict) -> InterruptDecision:
-        health = observation.get("health", 20)
+        health = self._number(observation.get("health", 20), 20.0)
         if health >= self.config.health_critical_threshold:
             return InterruptDecision(False)
         action = self._food_action(observation.get("inventory", {}))
         return InterruptDecision(
             True,
             reason="health_critical",
-            priority=100,
+            priority=110,
             recommended_goal="Recover health before continuing",
             emergency_action=action,
             evidence={"health": health, "threshold": self.config.health_critical_threshold},
@@ -56,20 +70,75 @@ class RuntimeSupervisor:
     def _hostile_interrupt(self, observation: dict) -> InterruptDecision:
         hostiles = [
             entity for entity in observation.get("nearby_entities", [])
-            if entity.get("hostile") and entity.get("distance", 999) <= 6
+            if (
+                isinstance(entity, dict)
+                and entity.get("hostile")
+                and self._number(entity.get("distance", 999), 999.0) <= 8
+            )
         ]
         if not hostiles:
             return InterruptDecision(False)
-        nearest = sorted(hostiles, key=lambda entity: entity.get("distance", 999))[0]
-        action = self._weapon_action(observation.get("inventory", {}))
+        nearest = sorted(
+            hostiles,
+            key=lambda entity: self._number(entity.get("distance", 999), 999.0),
+        )[0]
+        action = self._hostile_action(observation, nearest)
         return InterruptDecision(
             True,
             reason="hostile_nearby",
-            priority=90,
+            priority=120,
             recommended_goal="Handle nearby hostile entity",
             emergency_action=action,
             evidence={"entity": nearest},
         )
+
+    def _hunger_interrupt(self, observation: dict) -> InterruptDecision:
+        hunger = self._number(observation.get("hunger", observation.get("food", 20)), 20.0)
+        if hunger > GoalGenerator.LOW_HUNGER:
+            return InterruptDecision(False)
+        return InterruptDecision(
+            True,
+            reason="hunger_critical",
+            priority=100,
+            recommended_goal=(
+                "Eat available food to restore hunger"
+                if self._food_action(observation.get("inventory", {}))
+                else "Find food and gather a safe supply before continuing"
+            ),
+            emergency_action=self._food_action(observation.get("inventory", {})),
+            evidence={"hunger": hunger, "threshold": GoalGenerator.LOW_HUNGER},
+        )
+
+    def _night_interrupt(self, observation: dict) -> InterruptDecision:
+        time_of_day = int(self._number(observation.get("time_of_day", 0), 0.0)) % 24000
+        shelter_verified = is_machine_verified_shelter(observation.get("shelter_verification"))
+        if GoalGenerator.DUSK_START <= time_of_day < GoalGenerator.NIGHT_START:
+            if shelter_verified:
+                return InterruptDecision(False)
+            return InterruptDecision(
+                True,
+                reason="dusk_shelter_required",
+                priority=80,
+                recommended_goal="Build verified shelter before nightfall",
+                evidence={"time_of_day": time_of_day, "shelter_verified": False},
+            )
+        if GoalGenerator.NIGHT_START <= time_of_day < GoalGenerator.NIGHT_END:
+            if not shelter_verified:
+                return InterruptDecision(
+                    True,
+                    reason="night_shelter_required",
+                    priority=90,
+                    recommended_goal="Reach or build emergency verified shelter immediately",
+                    evidence={"time_of_day": time_of_day, "shelter_verified": False},
+                )
+            return InterruptDecision(
+                True,
+                reason="night_safety_maintenance",
+                priority=85,
+                recommended_goal="Remain in verified shelter until dawn",
+                evidence={"time_of_day": time_of_day, "shelter_verified": True},
+            )
+        return InterruptDecision(False)
 
     def _deadline_interrupt(self, active_task) -> InterruptDecision:
         if not active_task or not getattr(active_task, "deadline", None):
@@ -127,3 +196,69 @@ class RuntimeSupervisor:
             if inventory.get(item, 0) > 0:
                 return {"type": "equip", "parameters": {"item": item, "destination": "hand"}}
         return None
+
+    def _hostile_action(self, observation: dict, hostile: dict) -> Optional[dict]:
+        equip_action = self._weapon_action(observation.get("inventory", {}))
+        if equip_action:
+            weapon = str(equip_action.get("parameters", {}).get("item") or "")
+            equipped = {
+                str(item.get("name") or "")
+                for item in observation.get("equipment", [])
+                if isinstance(item, dict)
+            }
+            entity_id = hostile.get("id")
+            if weapon in equipped and entity_id is not None:
+                return {"type": "attack", "parameters": {"entity_id": entity_id}}
+            return equip_action
+
+        player = observation.get("position", {})
+        target = hostile.get("position", {})
+        if not isinstance(player, dict) or not isinstance(target, dict):
+            return None
+        try:
+            px, pz = float(player["x"]), float(player["z"])
+            tx, tz = float(target["x"]), float(target["z"])
+        except (KeyError, TypeError, ValueError):
+            return None
+        dx, dz = px - tx, pz - tz
+        length = (dx * dx + dz * dz) ** 0.5
+        if length < 0.001:
+            dx, dz, length = 1.0, 0.0, 1.0
+        params = {
+            "x": round(px + 8.0 * dx / length, 3),
+            "z": round(pz + 8.0 * dz / length, 3),
+        }
+        if "y" in player:
+            params["y"] = player["y"]
+        return {"type": "move_to", "parameters": params}
+
+    @classmethod
+    def goal_is_aligned(cls, reason: str, goal: str) -> bool:
+        text = str(goal or "").strip().lower()
+        if reason == "hostile_nearby":
+            return text.startswith(("attack nearest hostile", "flee from the nearest hostile"))
+        if reason == "health_critical":
+            return text.startswith(("eat available food to recover critical health", "find food and avoid danger"))
+        if reason == "hunger_critical":
+            return text.startswith(("eat available food to restore hunger", "find food and gather a safe supply"))
+        if reason == "dusk_shelter_required":
+            return text.startswith((
+                "build verified shelter before nightfall",
+                "reach or build emergency verified shelter",
+            ))
+        if reason == "night_shelter_required":
+            return text.startswith((
+                "build verified shelter before nightfall",
+                "reach or build emergency verified shelter",
+            ))
+        if reason == "night_safety_maintenance":
+            return text.startswith("remain in verified shelter until dawn")
+        return False
+
+    @staticmethod
+    def _number(value, default: float) -> float:
+        try:
+            number = float(value)
+            return number if math.isfinite(number) else float(default)
+        except (TypeError, ValueError):
+            return float(default)

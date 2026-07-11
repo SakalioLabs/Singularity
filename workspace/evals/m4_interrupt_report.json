@@ -1,10 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-11T15:23:18.1293914Z",
+  "generated_at": "2026-07-11T20:30:14.2007255Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
-  "readiness": "not_run",
+  "readiness": "approved",
+  "decision": "allow_g5_first_survival_episode_after_grounding_retest",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -12,7 +13,60 @@
     "dusk_shelter_interrupt",
     "night_survival_interrupt"
   ],
-  "verified_cases": [],
+  "verified_cases": [
+    "hostile_interrupt",
+    "critical_health_interrupt",
+    "hunger_interrupt",
+    "dusk_shelter_interrupt",
+    "night_survival_interrupt"
+  ],
+  "priority_order": [
+    "hostile_interrupt",
+    "critical_health_interrupt",
+    "hunger_interrupt",
+    "night_shelter_interrupt",
+    "night_safety_maintenance",
+    "dusk_shelter_interrupt",
+    "task_deadline_elapsed",
+    "return_to_base"
+  ],
+  "lifecycle_contract": {
+    "single_trigger_per_condition": true,
+    "duplicate_observation_policy": "maintenance_same_trigger",
+    "non_emergency_root_outcome": "suspended",
+    "aligned_survival_goal_may_execute": true,
+    "frontier_statuses_preserved": ["proposed", "accepted", "active", "waiting", "blocked"],
+    "matching_recovery_required": true,
+    "recovery_policy": "resume_preserved_frontier",
+    "concurrent_root_limit": 1,
+    "dusk_to_night_policy": "escalate_same_shelter_interrupt"
+  },
+  "offline_validation": {
+    "passed": true,
+    "test_file": "tests/test_runtime_supervisor.py",
+    "test_file_case_count": 11,
+    "g4_integration_case_count": 5,
+    "required_case_count": 5,
+    "required_case_status": {
+      "hostile_interrupt": "pass",
+      "critical_health_interrupt": "pass",
+      "hunger_interrupt": "pass",
+      "dusk_shelter_interrupt": "pass",
+      "night_survival_interrupt": "pass"
+    },
+    "lifecycle_checks": [
+      {"name": "one_trigger_and_matching_recovery", "status": "pass"},
+      {"name": "emergency_action_grounding", "status": "pass"},
+      {"name": "aligned_goal_takeover", "status": "pass"},
+      {"name": "task_frontier_preserved", "status": "pass"},
+      {"name": "dusk_night_escalation_without_oscillation", "status": "pass"},
+      {"name": "autonomous_root_exclusivity", "status": "pass"},
+      {"name": "suspended_root_resumption", "status": "pass"}
+    ],
+    "full_python_regression": {"status": "pass", "test_count": 661},
+    "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 30},
+    "controlled_live_episode": false
+  },
   "live_episode_count": 6,
   "latest_live_observation": {
     "episode_id": "m4_episode_20260711_231148_fb3a1544",

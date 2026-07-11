@@ -25,8 +25,8 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G1 | Deterministic survival-goal priority cases | passed |
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
-| G4 | Hostile, health, hunger, dusk, and night interrupt continuity | ready |
-| G5 | First eligible survival-to-dawn episode | locked |
+| G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
+| G5 | First eligible survival-to-dawn episode | ready |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -37,13 +37,29 @@ G2 passed in Probe 6. The Agent gained `oak_log:1` and `dark_oak_sapling:1` befo
 
 G3 passed offline validation. `m4-sealed-cell-shelter-verifier-v1` consumes a complete 36-coordinate Mineflayer snapshot and accepts only a solid floor, two passable interior cells, four two-block-high full-block wall columns, a full-block roof, no hostile inside, complete coordinate evidence, and all nine structural positions attributed to successful placements in the current episode. No natural safe-point strategy is approved in this baseline.
 
+G4 passed strict offline integration. RuntimeSupervisor applies the fixed hostile, critical-health, hunger, dusk-shelter, and night-safety order; Observer preserves hostile IDs and positions for grounded attack or flee actions. Agent records one trigger per condition, suspends rather than fails a non-emergency root, keeps its task frontier active, allows the aligned survival goal to act, emits a matching recovery when the condition clears, and never holds two root goals concurrently.
+
 ## Current Hypothesis
 
-The G3 hypothesis is confirmed offline: a strong shelter baseline can be accepted without prose, flags, visual claims, or a Planner self-report by combining a bounded raw world snapshot with observed placement deltas from the current episode. The verifier rejects missing walls, missing cover, unsafe or nonstandable interiors, an internal hostile, truncated snapshots, partial provenance, spoofed machine claims, and reports missing any pinned check.
+The G4 hypothesis is confirmed offline: survival interrupts can preserve autonomous continuity with a small deterministic lifecycle rather than a new scheduler. Hostile, health, hunger, dusk, and night cases each produce one trigger; repeated observations produce maintenance rather than duplicate roots; the aligned survival goal is allowed to execute; and condition clearance emits a matching recovery with the original frontier still active. Dusk-to-night changes escalate the same shelter interrupt instead of oscillating between roots.
 
 The earliest unrecovered runtime transition is now session event index 138 at monotonic 256257.687. For cycle 6 of `Gather 6 oak logs for tools and shelter`, Planner call `llm-7f64b5bbb62f4bc8` returned a schema-valid planning envelope whose `dig` action used alias parameters `block_name` plus nested `position`. The canonical primitive requires top-level `x`, `y`, and `z`, with optional `block`, so ActionVerifier rejected the action without execution. Inventory remained `oak_log:1` and `dark_oak_sapling:1` while world time advanced from 9932 to 9952.
 
-Later evidence does not displace this first transition. Seventeen alias-style `dig` actions were rejected in total; the first earlier rejection recovered through a valid `move_to` and `dig`, but all 16 rejections from event 138 onward were unrecovered. Twenty failed actions were reflection-suppressed with zero legacy reflection writes, and 11 unique task-deadline interrupts received 11 matching recoveries while terminalizing 96 unique expired tasks. The retained runtime hypothesis is `planner_action_parameter_grounding`, but gate order now requires G4 interrupt-continuity validation before any new G5 live attempt. G3 made no claim about that later runtime blocker and ran no live episode.
+Later evidence does not displace this first transition. Seventeen alias-style `dig` actions were rejected in total; the first earlier rejection recovered through a valid `move_to` and `dig`, but all 16 rejections from event 138 onward were unrecovered. Twenty failed actions were reflection-suppressed with zero legacy reflection writes, and 11 unique task-deadline interrupts received 11 matching recoveries while terminalizing 96 unique expired tasks. With G3 and G4 now passed offline, the single next runtime hypothesis is `planner_action_parameter_grounding`: canonicalizing or rejecting alias-shaped primitive parameters before execution should prevent the first unrecovered Probe 6 transition. That change must pass offline regression before exactly one fresh G5 live episode.
+
+## G4 Offline Evidence
+
+- Required cases: hostile, critical health, hunger, dusk shelter, and night safety maintenance
+- Priority: hostile threat, critical health, hunger, unverified night shelter, verified night maintenance, dusk shelter, task deadline, and return-to-base
+- Grounded actions: weapon equip followed by entity-ID attack, vector flee when unarmed, and verified inventory item use for health or hunger
+- Pause semantics: a non-emergency autonomous root ends with `status=suspended` and `auto_goal_interrupted`, not `auto_goal_failed`
+- Frontier semantics: proposed, accepted, active, waiting, and blocked tasks are preserved; trigger and recovery evidence carry the same paused task ID and trigger ID
+- Takeover semantics: the matching GoalGenerator survival goal runs without recursively interrupting itself
+- Recovery semantics: condition clearance emits exactly one `runtime_interrupt_recovery` with `resume_preserved_frontier`
+- Hysteresis: repeated same-state checks emit maintenance under one trigger; dusk-to-night emits escalation under that trigger rather than another root transition
+- Root exclusivity: strict integration observed only zero or one open root between every `goal_start` and `goal_end`
+- Offline tests: `tests/test_runtime_supervisor.py`
+- Live evidence: none; prior Probe 6 task-deadline events remain non-G4 observations and do not count toward this gate
 
 ## G3 Offline Evidence
 

@@ -8,8 +8,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from singularity.core.agent import Agent
 from singularity.core.config import Config
+from singularity.core.goal_generator import GoalGenerator
 from singularity.core.runtime import RuntimeSupervisor
 from singularity.core.task_system import TaskStatus, TaskSystem
+from singularity.evaluation.m4_shelter import (
+    M4_SHELTER_CONTRACT_SHA256,
+    M4_SHELTER_REQUIRED_CHECKS,
+    M4_SHELTER_VERIFIER_ID,
+)
 
 
 class FakeExplorer:
@@ -128,6 +134,34 @@ def runtime_agent(config=None):
     return agent
 
 
+def verified_shelter_report():
+    return {
+        "type": "m4_shelter_state_verification",
+        "schema_version": 1,
+        "verifier_id": M4_SHELTER_VERIFIER_ID,
+        "contract_sha256": M4_SHELTER_CONTRACT_SHA256,
+        "source": "machine_state",
+        "strategy": "sealed_cell_v1",
+        "passed": True,
+        "safe_state": True,
+        "issues": [],
+        "checks": [{"name": "machine_snapshot", "passed": True}] + [
+            {"name": name, "passed": True}
+            for name in M4_SHELTER_REQUIRED_CHECKS
+        ],
+        "episode_block_delta": {
+            "required_position_count": 9,
+            "matched_position_count": 9,
+        },
+        "coordinate_evidence": {
+            "entrance": {
+                "state": "fully_sealed",
+                "sealed_boundary_columns": [{}, {}, {}, {}],
+            },
+        },
+    }
+
+
 def test_runtime_interrupts_on_health_and_hostiles():
     supervisor = RuntimeSupervisor(Config())
 
@@ -173,6 +207,245 @@ def test_runtime_interrupts_deadlines_and_return_to_base():
     assert returning.reason == "return_to_base"
     assert returning.emergency_action["type"] == "move_to"
     print("PASS: RuntimeSupervisor interrupts deadlines and return-to-base")
+
+
+def test_m4_runtime_interrupt_priority_matrix_and_grounded_actions():
+    supervisor = RuntimeSupervisor(Config())
+    base = {
+        "health": 20,
+        "hunger": 20,
+        "inventory": {},
+        "equipment": [],
+        "nearby_entities": [],
+        "position": {"x": 0, "y": 64, "z": 0},
+        "time_of_day": 5000,
+    }
+
+    hostile_state = dict(base, inventory={"stone_sword": 1}, nearby_entities=[{
+        "id": 17,
+        "type": "zombie",
+        "hostile": True,
+        "distance": 4,
+        "position": {"x": 4, "y": 64, "z": 0},
+    }])
+    hostile = supervisor.evaluate_interrupt(hostile_state)
+    assert hostile.reason == "hostile_nearby"
+    assert hostile.priority == 120
+    assert hostile.emergency_action["type"] == "equip"
+
+    armed = supervisor.evaluate_interrupt(dict(hostile_state, equipment=[{"name": "stone_sword"}]))
+    assert armed.emergency_action == {"type": "attack", "parameters": {"entity_id": 17}}
+
+    flee = supervisor.evaluate_interrupt(dict(hostile_state, inventory={}))
+    assert flee.emergency_action["type"] == "move_to"
+    assert flee.emergency_action["parameters"]["x"] < 0
+
+    health = supervisor.evaluate_interrupt(dict(base, health=2, inventory={"bread": 1}))
+    assert health.reason == "health_critical"
+    assert health.emergency_action["type"] == "use_item"
+
+    hunger = supervisor.evaluate_interrupt(dict(base, hunger=5, inventory={"bread": 1}))
+    assert hunger.reason == "hunger_critical"
+    assert hunger.emergency_action["type"] == "use_item"
+
+    dusk = supervisor.evaluate_interrupt(dict(base, time_of_day=11000))
+    assert dusk.reason == "dusk_shelter_required"
+    assert dusk.recommended_goal == "Build verified shelter before nightfall"
+
+    night = supervisor.evaluate_interrupt(dict(
+        base,
+        time_of_day=15000,
+        shelter_verification=verified_shelter_report(),
+    ))
+    assert night.reason == "night_safety_maintenance"
+    assert night.recommended_goal == "Remain in verified shelter until dawn"
+
+    combined = supervisor.evaluate_interrupt(dict(hostile_state, health=1, hunger=1, time_of_day=15000))
+    assert combined.reason == "hostile_nearby"
+    assert not supervisor.goal_is_aligned(
+        "dusk_shelter_required",
+        "Gather 6 oak logs for tools and shelter",
+    )
+    assert supervisor.goal_is_aligned(
+        "night_shelter_required",
+        "Build verified shelter before nightfall",
+    )
+    print("PASS: G4 priority matrix covers hostile, health, hunger, dusk, and night")
+
+
+def test_m4_survival_interrupt_lifecycle_preserves_frontier():
+    base = {
+        "health": 20,
+        "hunger": 20,
+        "inventory": {},
+        "inventory_count": 0,
+        "equipment": [],
+        "nearby_entities": [],
+        "position": {"x": 0, "y": 64, "z": 0},
+        "time_of_day": 5000,
+    }
+    cases = [
+        (
+            "hostile_nearby",
+            dict(base, inventory={"stone_sword": 1}, nearby_entities=[{
+                "id": 17,
+                "type": "zombie",
+                "hostile": True,
+                "distance": 4,
+                "position": {"x": 4, "y": 64, "z": 0},
+            }]),
+            "Attack nearest hostile mob",
+            base,
+            "equip",
+        ),
+        (
+            "health_critical",
+            dict(base, health=2, inventory={"bread": 1}),
+            "Eat available food to recover critical health",
+            base,
+            "use_item",
+        ),
+        (
+            "hunger_critical",
+            dict(base, hunger=5, inventory={"bread": 1}),
+            "Eat available food to restore hunger",
+            base,
+            "use_item",
+        ),
+        (
+            "dusk_shelter_required",
+            dict(base, time_of_day=11000),
+            "Build verified shelter before nightfall",
+            base,
+            None,
+        ),
+        (
+            "night_safety_maintenance",
+            dict(base, time_of_day=15000, shelter_verification=verified_shelter_report()),
+            "Remain in verified shelter until dawn",
+            dict(base, time_of_day=23000, shelter_verification=verified_shelter_report()),
+            None,
+        ),
+    ]
+
+    for reason, triggered, aligned_goal, cleared, emergency_type in cases:
+        agent = runtime_agent(Config(planner_protocol="m4-fixed-v1"))
+        task = agent.task_system.create_task(
+            "Gather 6 oak logs for tools and shelter",
+            status=TaskStatus.ACTIVE,
+            priority=3,
+        )
+        agent.task_system.drain_transition_events()
+        agent._apply_action_feedback = lambda action, result, state, context=None: state
+        agent._log_action_event = lambda *args, **kwargs: None
+        agent._record_action_value = lambda *args, **kwargs: None
+        agent._write_memory_episode = lambda *args, **kwargs: None
+
+        first, _ = agent._handle_runtime_interrupt(triggered, task.title, {"cycle": 1, "mode": "autonomous"})
+        second, _ = agent._handle_runtime_interrupt(triggered, task.title, {"cycle": 2, "mode": "autonomous"})
+        aligned, _ = agent._handle_runtime_interrupt(triggered, aligned_goal, {"cycle": 3, "mode": "autonomous"})
+        recovered, _ = agent._handle_runtime_interrupt(cleared, task.title, {"cycle": 4, "mode": "autonomous"})
+
+        assert first is True and second is True
+        assert aligned is False and recovered is False
+        assert task.status == TaskStatus.ACTIVE
+        triggers = [event for event in agent.session_logger.events if event["type"] == "runtime_interrupt"]
+        maintenance = [event for event in agent.session_logger.events if event["type"] == "runtime_interrupt_maintenance"]
+        recoveries = [event for event in agent.session_logger.events if event["type"] == "runtime_interrupt_recovery"]
+        assert len(triggers) == 1, reason
+        assert len(maintenance) == 1, reason
+        assert len(recoveries) == 1, reason
+        assert triggers[0]["data"]["reason"] == reason
+        assert recoveries[0]["data"]["trigger_id"] == triggers[0]["data"]["trigger_id"]
+        assert recoveries[0]["data"]["frontier_preserved"] is True
+        assert recoveries[0]["data"]["paused_task_id"] == task.id
+        assert recoveries[0]["data"]["resume_policy"] == "resume_preserved_frontier"
+        if emergency_type:
+            assert agent.action_controller.actions
+            assert agent.action_controller.actions[0]["type"] == emergency_type
+        else:
+            assert not agent.action_controller.actions
+
+    print("PASS: every G4 interrupt has one trigger, aligned takeover, and matching frontier recovery")
+
+
+def test_m4_dusk_to_night_escalates_without_root_oscillation():
+    agent = runtime_agent(Config(planner_protocol="m4-fixed-v1"))
+    task = agent.task_system.create_task(
+        "Gather 6 oak logs for tools and shelter",
+        status=TaskStatus.ACTIVE,
+        priority=3,
+    )
+    agent.task_system.drain_transition_events()
+    agent._apply_action_feedback = lambda action, result, state, context=None: state
+    agent._log_action_event = lambda *args, **kwargs: None
+    agent._record_action_value = lambda *args, **kwargs: None
+    agent._write_memory_episode = lambda *args, **kwargs: None
+    dusk = {
+        "health": 20,
+        "hunger": 20,
+        "inventory": {},
+        "inventory_count": 0,
+        "nearby_entities": [],
+        "position": {"x": 0, "y": 64, "z": 0},
+        "time_of_day": 11000,
+    }
+    night = dict(dusk, time_of_day=15000)
+    dawn = dict(dusk, time_of_day=23000)
+
+    interrupted, _ = agent._handle_runtime_interrupt(dusk, task.title, {"cycle": 1})
+    aligned, _ = agent._handle_runtime_interrupt(
+        night,
+        "Build verified shelter before nightfall",
+        {"cycle": 2},
+    )
+    cleared, _ = agent._handle_runtime_interrupt(dawn, task.title, {"cycle": 3})
+
+    assert interrupted is True and aligned is False and cleared is False
+    event_types = [event["type"] for event in agent.session_logger.events]
+    assert event_types.count("runtime_interrupt") == 1
+    assert event_types.count("runtime_interrupt_escalation") == 1
+    assert event_types.count("runtime_interrupt_recovery") == 1
+    escalation = next(event["data"] for event in agent.session_logger.events if event["type"] == "runtime_interrupt_escalation")
+    assert escalation["from_reason"] == "dusk_shelter_required"
+    assert escalation["to_reason"] == "night_shelter_required"
+    assert task.status == TaskStatus.ACTIVE
+    print("PASS: dusk-to-night escalation keeps one shelter root and one preserved frontier")
+
+
+def test_m4_clears_survival_lifecycle_before_processing_task_deadline():
+    agent = runtime_agent(Config(planner_protocol="m4-fixed-v1"))
+    task = agent.task_system.create_task(
+        "Gather 6 oak logs for tools and shelter",
+        status=TaskStatus.ACTIVE,
+        priority=3,
+    )
+    agent.task_system.drain_transition_events()
+    agent._write_memory_episode = lambda *args, **kwargs: None
+    dusk = {
+        "health": 20,
+        "hunger": 20,
+        "inventory": {},
+        "inventory_count": 0,
+        "nearby_entities": [],
+        "position": {"x": 0, "y": 64, "z": 0},
+        "time_of_day": 11000,
+    }
+    safe_dusk = dict(dusk, shelter_verification=verified_shelter_report())
+
+    triggered, _ = agent._handle_runtime_interrupt(dusk, task.title, {"cycle": 1})
+    task.deadline = time.time() - 1
+    deadline, _ = agent._handle_runtime_interrupt(safe_dusk, task.title, {"cycle": 2})
+
+    assert triggered is True and deadline is True
+    recoveries = [event["data"] for event in agent.session_logger.events if event["type"] == "runtime_interrupt_recovery"]
+    assert recoveries[0]["reason"] == "dusk_shelter_required"
+    assert recoveries[0]["resolution"] == "condition_cleared"
+    assert recoveries[0]["frontier_preserved"] is True
+    assert recoveries[1]["reason"] == "task_deadline_elapsed"
+    assert task.status == TaskStatus.FAILED
+    assert agent._active_runtime_interrupt == {}
+    print("PASS: resolved survival state closes before an overdue task is terminalized")
 
 
 def test_agent_handles_runtime_interrupt_with_emergency_action():
@@ -364,6 +637,117 @@ def test_autonomous_loop_replans_once_then_resumes_actions():
     print("PASS: Autonomous loop recovers tasks, suppresses reflection, and resumes actions")
 
 
+def test_m4_autonomous_interrupt_suspends_then_resumes_root_frontier():
+    agent = runtime_agent(Config(planner_protocol="m4-fixed-v1"))
+    agent.goal_generator = GoalGenerator()
+    agent.curriculum = FakeCurriculum()
+    agent.planner = None
+    agent.reflector = None
+    agent._use_llm = True
+    agent._active_skill_execution = {}
+    agent._skill_fallback_goals = set()
+    agent._skill_episode_start_index = 0
+    resource_goal = "Gather 6 oak logs for tools and shelter"
+    resource_task = agent.task_system.create_task(
+        resource_goal,
+        status=TaskStatus.ACTIVE,
+        priority=3,
+    )
+    agent.task_system.drain_transition_events()
+
+    day = {
+        "health": 20,
+        "hunger": 20,
+        "inventory": {},
+        "inventory_count": 0,
+        "equipment": [],
+        "nearby_entities": [],
+        "position": {"x": 0, "y": 64, "z": 0},
+        "time_of_day": 5000,
+    }
+    dusk = dict(day, time_of_day=11000)
+    safe_day = dict(day, shelter_verification=verified_shelter_report())
+    state = {"value": day, "observe_count": 0}
+
+    def observe():
+        state["observe_count"] += 1
+        if state["observe_count"] == 2:
+            state["value"] = dusk
+        return dict(state["value"])
+
+    agent._observe = observe
+    agent._select_autonomous_goal = lambda current, fallback: fallback
+    agent._think = lambda current, override_goal=None: {
+        "status": "planning",
+        "reasoning": "controlled G4 action",
+        "actions": [{"type": "wait", "parameters": {"ms": 1}}],
+    }
+    agent._record_task_continuity = lambda *args, **kwargs: None
+    agent._state_with_causal_context = lambda current, goal="": current
+    agent._select_action_for_execution = lambda action, *args, **kwargs: (action, None)
+    agent._verify_action_for_execution = lambda *args, **kwargs: (None, None)
+    agent._record_action_value = lambda *args, **kwargs: None
+    agent._record_skill_usage = lambda *args, **kwargs: None
+    agent._attempt_failure_correction = lambda *args, **kwargs: (False, state["value"])
+    agent._evaluate_episode_abort = lambda *args, **kwargs: False
+    agent._record_frontier_budget_outcome = lambda *args, **kwargs: None
+    agent._finalize_skill_learning_episode = lambda *args, **kwargs: None
+    agent._complete_verified_m2_task_paths = lambda *args, **kwargs: []
+    agent._write_memory_episode = lambda *args, **kwargs: None
+    agent._write_memory_context = lambda *args, **kwargs: None
+
+    class Verification:
+        def to_dict(self):
+            return {"achieved": True, "source": "controlled_g4_fixture"}
+
+    def verify(goal, current, context, recent_actions=None):
+        return (context.get("phase") == "post_action", Verification())
+
+    agent._goal_is_verified = verify
+
+    def feedback(action, result, current, context=None):
+        if str((context or {}).get("goal") or "").startswith("Build verified shelter"):
+            state["value"] = safe_day
+        return dict(state["value"])
+
+    agent._apply_action_feedback = feedback
+
+    with patch("singularity.core.agent.time.sleep", lambda _seconds: None):
+        result = agent.run_autonomous(
+            max_goals=3,
+            max_cycles_per_goal=1,
+            max_duration_s=30.0,
+        )
+
+    events = agent.session_logger.events
+    auto_goals = [event["data"]["goal"] for event in events if event["type"] == "auto_goal"]
+    assert auto_goals == [
+        resource_goal,
+        "Build verified shelter before nightfall",
+        resource_goal,
+    ]
+    assert result["goals_interrupted"] == 1
+    assert result["goals_completed"] == 2
+    assert result["goals_failed"] == 0
+    assert [event["type"] for event in events].count("auto_goal_interrupted") == 1
+    assert not any(event["type"] == "auto_goal_failed" for event in events)
+    recovery = next(event["data"] for event in events if event["type"] == "runtime_interrupt_recovery")
+    assert recovery["paused_task_id"] == resource_task.id
+    assert recovery["frontier_preserved"] is True
+    assert len(agent.action_controller.actions) == 2
+    assert resource_task.status == TaskStatus.ACTIVE
+
+    open_roots = 0
+    for event in events:
+        if event["type"] == "goal_start":
+            open_roots += 1
+        elif event["type"] == "goal_end":
+            open_roots -= 1
+        assert open_roots in {0, 1}
+    assert open_roots == 0
+    print("PASS: autonomous G4 takeover suspends one root, resolves shelter, and resumes its frontier")
+
+
 def test_non_m4_reflection_behavior_is_preserved():
     agent = runtime_agent()
     agent._use_llm = True
@@ -392,8 +776,13 @@ def test_non_m4_reflection_behavior_is_preserved():
 if __name__ == "__main__":
     test_runtime_interrupts_on_health_and_hostiles()
     test_runtime_interrupts_deadlines_and_return_to_base()
+    test_m4_runtime_interrupt_priority_matrix_and_grounded_actions()
+    test_m4_survival_interrupt_lifecycle_preserves_frontier()
+    test_m4_dusk_to_night_escalates_without_root_oscillation()
+    test_m4_clears_survival_lifecycle_before_processing_task_deadline()
     test_agent_handles_runtime_interrupt_with_emergency_action()
     test_agent_expires_all_overdue_tasks_and_interrupts_once()
     test_autonomous_loop_replans_once_then_resumes_actions()
+    test_m4_autonomous_interrupt_suspends_then_resumes_root_frontier()
     test_non_m4_reflection_behavior_is_preserved()
     print("\nRuntime supervisor tests PASSED")

@@ -62,10 +62,12 @@ class Observer:
         summarized = []
         for e in entities:
             summarized.append({
+                "id": e.get("id"),
                 "type": e.get("name", "unknown"),
                 "distance": round(e.get("distance", 0), 1),
                 "hostile": e.get("hostile", False),
                 "health": e.get("health"),
+                "position": e.get("position", {}),
             })
         summarized.sort(key=lambda x: x["distance"])
         return summarized[:20]

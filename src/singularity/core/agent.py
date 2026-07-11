@@ -241,6 +241,9 @@ class Agent:
         self.m4_shelter_verifier = M4ShelterVerifier()
         self._m4_episode_block_delta = {"placed": {}, "removed": {}}
         self._m4_shelter_verification_fingerprint = ""
+        self._active_runtime_interrupt: dict = {}
+        self._runtime_interrupt_sequence = 0
+        self._last_runtime_interrupt_yield = ""
         self.goal_critic_gate_report = self._evaluate_goal_critic_runtime_gate()
         self.explorer = Explorer()
         self.rule_planner = RuleBasedPlanner()
@@ -1909,6 +1912,7 @@ class Agent:
         self.running = True
         goals_completed = 0
         goals_failed = 0
+        goals_interrupted = 0
         total_cycles = 0
         strict_m4 = str(getattr(self.config, "planner_protocol", "") or "") == "m4-fixed-v1"
         deadline_policy = {}
@@ -1932,6 +1936,9 @@ class Agent:
             max_total_cycles = int(M4_PROTOCOL["limits"]["max_total_cycles"])
             self._m4_episode_block_delta = {"placed": {}, "removed": {}}
             self._m4_shelter_verification_fingerprint = ""
+            self._active_runtime_interrupt = {}
+            self._runtime_interrupt_sequence = 0
+            self._last_runtime_interrupt_yield = ""
         elif max_duration_s is not None:
             max_duration_s = max(0.0, float(max_duration_s))
 
@@ -2003,7 +2010,7 @@ class Agent:
         pos = observation.get("position", {})
         self.explorer.set_base(pos.get("x", 0), pos.get("y", 64), pos.get("z", 0))
 
-        while self.running and (goals_completed + goals_failed) < max_goals:
+        while self.running and (goals_completed + goals_failed + goals_interrupted) < max_goals:
             if deadline_exceeded("pre_goal"):
                 break
             if max_total_cycles is not None and total_cycles >= max_total_cycles:
@@ -2017,7 +2024,7 @@ class Agent:
             )
             goal = self._select_autonomous_goal(observation, generated_goal)
             self._last_plan_cache_signature = START_PLAN_SIGNATURE
-            goal_index = goals_completed + goals_failed + 1
+            goal_index = goals_completed + goals_failed + goals_interrupted + 1
             goal_decision = dict(getattr(self, "_last_autonomous_goal_decision", {}) or {})
             if goal_decision.get("goal") != goal:
                 self._set_autonomous_goal_decision(goal, {}, source="curriculum")
@@ -2240,6 +2247,9 @@ class Agent:
                             {"cycle": total_cycles, "mode": "autonomous"},
                         )
                         if interrupted:
+                            interrupt_reason = str(getattr(self, "_last_runtime_interrupt_yield", "") or "")
+                            if interrupt_reason in RuntimeSupervisor.SURVIVAL_INTERRUPT_REASONS:
+                                termination_reason = f"runtime_interrupt:{interrupt_reason}"
                             break
                         before_action_observation = observation
                         action, action_selection = self._select_action_for_execution(
@@ -2353,7 +2363,10 @@ class Agent:
 
                     if goal_success:
                         break
-                    if termination_reason in {"episode_deadline", "max_total_cycles"}:
+                    if (
+                        termination_reason in {"episode_deadline", "max_total_cycles"}
+                        or termination_reason.startswith("runtime_interrupt:")
+                    ):
                         break
 
                     if observation.get("health", 20) < self.config.health_critical_threshold:
@@ -2417,6 +2430,38 @@ class Agent:
                 self._write_memory_episode("auto_goal_complete", outcome, source="autonomous")
                 self._finalize_skill_learning_episode(goal, True, observation, outcome)
                 self.curriculum.record_goal_outcome(goal, True, cycle)
+            elif termination_reason.startswith("runtime_interrupt:"):
+                goals_interrupted += 1
+                interrupt_reason = termination_reason.split(":", 1)[1]
+                logger.info(f"[Autonomous] Goal suspended by {interrupt_reason}: {goal}")
+                outcome = {
+                    "goal": goal,
+                    "cycles": cycle,
+                    "completed": False,
+                    "success": False,
+                    "status": "suspended",
+                    "termination_reason": termination_reason,
+                    "resume_policy": "regenerate_survival_goal_then_resume_frontier",
+                }
+                self._record_frontier_budget_outcome(goal, outcome)
+                self._record_task_continuity(
+                    goal,
+                    observation,
+                    last_plan,
+                    source="auto_goal_interrupted",
+                    context={"cycles": cycle, "mode": "autonomous", "success": False},
+                    operation="maintain",
+                    validation_status="unverified",
+                    validation_evidence={
+                        "goal_success": False,
+                        "interrupt_reason": interrupt_reason,
+                        "verification_source": "runtime_interrupt",
+                    },
+                    branch_status="active",
+                )
+                self.session_logger.log("auto_goal_interrupted", outcome, level="WARNING")
+                self.session_logger.log_goal_end(goal, outcome)
+                self._write_memory_episode("auto_goal_interrupted", outcome, source="autonomous")
             else:
                 goals_failed += 1
                 logger.info(f"[Autonomous] Goal failed/blocked: {goal}")
@@ -2465,6 +2510,7 @@ class Agent:
             "mode": "autonomous",
             "goals_completed": goals_completed,
             "goals_failed": goals_failed,
+            "goals_interrupted": goals_interrupted,
             "total_cycles": total_cycles,
             "termination_reason": episode_termination_reason or "max_goals_or_stopped",
             "elapsed_s": round(elapsed_s, 3),
@@ -2476,13 +2522,17 @@ class Agent:
                 self._episode_deadline_monotonic is None
                 or ended_monotonic < self._episode_deadline_monotonic
             ),
+            "active_runtime_interrupt": dict(getattr(self, "_active_runtime_interrupt", {}) or {}),
             "landmarks_discovered": len(self.explorer.landmarks),
             "curriculum": self.curriculum.summary(),
             "summary": self.session_logger.get_summary(),
         }
         self.session_logger.log("autonomous_end", result)
         self._write_memory_episode("autonomous_end", result, source="autonomous")
-        logger.info(f"Autonomous mode ended: {goals_completed} completed, {goals_failed} failed, {total_cycles} total cycles")
+        logger.info(
+            f"Autonomous mode ended: {goals_completed} completed, {goals_failed} failed, "
+            f"{goals_interrupted} interrupted, {total_cycles} total cycles"
+        )
         if hasattr(planner, "set_deadline"):
             planner.set_deadline(None, 0.0)
         if hasattr(action_controller, "set_episode_deadline"):
@@ -6729,17 +6779,38 @@ class Agent:
         """Let the actor loop yield when fast runtime safety checks fire."""
         task = self.task_system.get_next_task(observation)
         decision = self.runtime.evaluate_interrupt(observation, goal=goal, active_task=task)
+        self._last_runtime_interrupt_yield = ""
+        active = dict(getattr(self, "_active_runtime_interrupt", {}) or {})
         if not decision.should_interrupt:
+            if active:
+                self._close_runtime_interrupt(
+                    active,
+                    observation,
+                    goal,
+                    context or {},
+                    resolution="condition_cleared",
+                    resume_policy="resume_preserved_frontier",
+                )
             return False, observation
 
-        payload = asdict(decision)
-        payload["goal"] = goal
-        payload["context"] = context or {}
-        logger.warning(f"Runtime interrupt: {decision.reason}")
-        self.session_logger.log("runtime_interrupt", payload, level="WARNING")
-        self._write_memory_episode("runtime_interrupt", payload, source="runtime")
+        if active and decision.reason not in RuntimeSupervisor.SURVIVAL_INTERRUPT_REASONS:
+            self._close_runtime_interrupt(
+                active,
+                observation,
+                goal,
+                context or {},
+                resolution="condition_cleared",
+                resume_policy="resume_preserved_frontier",
+            )
+            active = {}
 
         if decision.reason == "task_deadline_elapsed" and task:
+            payload = asdict(decision)
+            payload["goal"] = goal
+            payload["context"] = context or {}
+            logger.warning(f"Runtime interrupt: {decision.reason}")
+            self.session_logger.log("runtime_interrupt", payload, level="WARNING")
+            self._write_memory_episode("runtime_interrupt", payload, source="runtime")
             evaluated_at = decision.evidence.get("evaluated_at_wallclock")
             expired_tasks = self.task_system.expire_overdue_tasks(evaluated_at)
             recovery = {
@@ -6765,27 +6836,252 @@ class Agent:
             )
             return True, observation
 
-        if decision.emergency_action:
-            if self._episode_deadline_reached():
-                payload["emergency_action_suppressed"] = "episode_deadline"
-                return True, observation
-            before_emergency_observation = observation
-            result = self.action_controller.execute(decision.emergency_action, observation)
-            self._write_memory_episode(
-                "runtime_emergency_action",
-                {"action": decision.emergency_action, "result": result},
-                source="runtime",
-            )
-            observation = self._apply_action_feedback(decision.emergency_action, result, observation, context or {})
-            self._log_action_event(
-                decision.emergency_action,
-                result,
-                pre_observation=before_emergency_observation,
-                post_observation=observation,
-                context={**(context or {}), "goal": goal, "mode": "runtime_interrupt"},
-            )
+        if decision.reason in RuntimeSupervisor.SURVIVAL_INTERRUPT_REASONS:
+            if self.runtime.goal_is_aligned(decision.reason, goal):
+                if active and active.get("reason") != decision.reason:
+                    transition = {
+                        "trigger_id": active.get("trigger_id"),
+                        "from_reason": active.get("reason"),
+                        "to_reason": decision.reason,
+                        "goal": goal,
+                        "context": context or {},
+                        "frontier_preserved": True,
+                    }
+                    active.update({
+                        "reason": decision.reason,
+                        "recommended_goal": decision.recommended_goal,
+                        "evidence": dict(decision.evidence or {}),
+                    })
+                    self._active_runtime_interrupt = active
+                    self.session_logger.log("runtime_interrupt_escalation", transition, level="WARNING")
+                    self._write_memory_episode("runtime_interrupt_escalation", transition, source="runtime")
+                return False, observation
 
+            if active and active.get("reason") != decision.reason:
+                self._close_runtime_interrupt(
+                    active,
+                    observation,
+                    goal,
+                    context or {},
+                    resolution="superseded",
+                    resume_policy="remain_paused_for_higher_priority_interrupt",
+                )
+                active = {}
+
+            if not active:
+                self._runtime_interrupt_sequence = int(
+                    getattr(self, "_runtime_interrupt_sequence", 0) or 0
+                ) + 1
+                paused_task = self._runtime_task_snapshot(task)
+                active = {
+                    "trigger_id": f"interrupt-{self._runtime_interrupt_sequence:04d}",
+                    "reason": decision.reason,
+                    "recommended_goal": decision.recommended_goal,
+                    "paused_goal": goal,
+                    "paused_task": paused_task,
+                    "frontier_before": self._runtime_frontier_snapshot(),
+                    "trigger_context": dict(context or {}),
+                    "evidence": dict(decision.evidence or {}),
+                }
+                self._active_runtime_interrupt = active
+                payload = {
+                    **asdict(decision),
+                    "trigger_id": active["trigger_id"],
+                    "goal": goal,
+                    "context": context or {},
+                    "paused_task": paused_task,
+                    "frontier_before": active["frontier_before"],
+                    "resume_policy": "regenerate_survival_goal_then_resume_frontier",
+                }
+                logger.warning(f"Runtime interrupt: {decision.reason}")
+                self.session_logger.log("runtime_interrupt", payload, level="WARNING")
+                self._write_memory_episode("runtime_interrupt", payload, source="runtime")
+            else:
+                maintenance = {
+                    "trigger_id": active.get("trigger_id"),
+                    "reason": decision.reason,
+                    "goal": goal,
+                    "context": context or {},
+                    "emergency_action": decision.emergency_action,
+                }
+                self.session_logger.log("runtime_interrupt_maintenance", maintenance, level="WARNING")
+                self._write_memory_episode("runtime_interrupt_maintenance", maintenance, source="runtime")
+
+            self._last_runtime_interrupt_yield = decision.reason
+            if decision.emergency_action:
+                observation = self._execute_runtime_emergency_action(
+                    decision.emergency_action,
+                    observation,
+                    goal,
+                    context or {},
+                    trigger_id=active.get("trigger_id", ""),
+                )
+            return True, observation
+
+        payload = asdict(decision)
+        payload["goal"] = goal
+        payload["context"] = context or {}
+        logger.warning(f"Runtime interrupt: {decision.reason}")
+        self.session_logger.log("runtime_interrupt", payload, level="WARNING")
+        self._write_memory_episode("runtime_interrupt", payload, source="runtime")
+        if decision.emergency_action:
+            observation = self._execute_runtime_emergency_action(
+                decision.emergency_action,
+                observation,
+                goal,
+                context or {},
+                trigger_id="",
+            )
         return True, observation
+
+    def _execute_runtime_emergency_action(
+        self,
+        action: dict,
+        observation: dict,
+        goal: str,
+        context: dict,
+        trigger_id: str,
+    ) -> dict:
+        if self._episode_deadline_reached():
+            payload = {
+                "trigger_id": trigger_id,
+                "goal": goal,
+                "action": action,
+                "emergency_action_suppressed": "episode_deadline",
+            }
+            self.session_logger.log("runtime_emergency_action", payload, level="WARNING")
+            return observation
+
+        selected_action = action
+        selection = None
+        try:
+            selected_action, selection = self._select_action_for_execution(
+                action,
+                observation,
+                goal,
+                {**context, "mode": "runtime_interrupt"},
+            )
+        except Exception:
+            selected_action, selection = action, None
+        verification = None
+        rejected_result = None
+        try:
+            verification, rejected_result = self._verify_action_for_execution(
+                selected_action,
+                observation,
+                goal,
+                {**context, "mode": "runtime_interrupt"},
+            )
+        except Exception:
+            verification, rejected_result = None, None
+        before = observation
+        if rejected_result:
+            result = rejected_result
+        else:
+            result = self.action_controller.execute(selected_action, observation)
+            if verification:
+                result["action_verification"] = verification
+        if selection:
+            result["action_candidate_selection"] = selection
+        self._record_action_value(selected_action, result, goal, verification)
+        event = {
+            "trigger_id": trigger_id,
+            "goal": goal,
+            "context": context,
+            "action": selected_action,
+            "result": result,
+        }
+        self.session_logger.log("runtime_emergency_action", event)
+        self._write_memory_episode("runtime_emergency_action", event, source="runtime")
+        observation = self._apply_action_feedback(selected_action, result, observation, context)
+        self._log_action_event(
+            selected_action,
+            result,
+            pre_observation=before,
+            post_observation=observation,
+            context={**context, "goal": goal, "mode": "runtime_interrupt", "trigger_id": trigger_id},
+        )
+        return observation
+
+    def _close_runtime_interrupt(
+        self,
+        active: dict,
+        observation: dict,
+        goal: str,
+        context: dict,
+        resolution: str,
+        resume_policy: str,
+    ):
+        paused_task = active.get("paused_task", {}) if isinstance(active.get("paused_task"), dict) else {}
+        paused_task_id = str(paused_task.get("task_id") or "")
+        current_task = self.task_system.tasks.get(paused_task_id) if paused_task_id else None
+        current_status = current_task.status.value if current_task else ""
+        frontier_preserved = bool(
+            not paused_task_id
+            or (
+                current_task is not None
+                and current_task.status in {
+                    TaskStatus.PROPOSED,
+                    TaskStatus.ACCEPTED,
+                    TaskStatus.ACTIVE,
+                    TaskStatus.WAITING,
+                    TaskStatus.BLOCKED,
+                }
+            )
+        )
+        recovery = {
+            "trigger_id": active.get("trigger_id"),
+            "reason": active.get("reason"),
+            "resolution": resolution,
+            "goal": goal,
+            "context": context,
+            "paused_goal": active.get("paused_goal"),
+            "paused_task_id": paused_task_id,
+            "paused_task_status_at_trigger": paused_task.get("status", ""),
+            "paused_task_status_at_recovery": current_status,
+            "frontier_preserved": frontier_preserved,
+            "frontier_after": self._runtime_frontier_snapshot(),
+            "resume_policy": resume_policy,
+            "recovered": frontier_preserved,
+            "cleared_observation": {
+                "health": observation.get("health"),
+                "hunger": observation.get("hunger", observation.get("food")),
+                "time_of_day": observation.get("time_of_day"),
+                "shelter_verified": GoalGenerator._has_verified_shelter(observation),
+            },
+        }
+        self.session_logger.log("runtime_interrupt_recovery", recovery)
+        self._write_memory_episode("runtime_interrupt_recovery", recovery, source="runtime")
+        self._active_runtime_interrupt = {}
+
+    @staticmethod
+    def _runtime_task_snapshot(task) -> dict:
+        if task is None:
+            return {}
+        status = getattr(task, "status", "")
+        return {
+            "task_id": str(getattr(task, "id", "") or ""),
+            "title": str(getattr(task, "title", "") or ""),
+            "status": status.value if hasattr(status, "value") else str(status or ""),
+            "priority": getattr(task, "priority", None),
+        }
+
+    def _runtime_frontier_snapshot(self) -> list[dict]:
+        statuses = {
+            TaskStatus.PROPOSED,
+            TaskStatus.ACCEPTED,
+            TaskStatus.ACTIVE,
+            TaskStatus.WAITING,
+            TaskStatus.BLOCKED,
+        }
+        return [
+            self._runtime_task_snapshot(task)
+            for task in sorted(
+                self.task_system.tasks.values(),
+                key=lambda item: (getattr(item, "priority", 0), str(getattr(item, "id", ""))),
+            )
+            if getattr(task, "status", None) in statuses
+        ][:16]
 
     def _evaluate_episode_abort(
         self,
