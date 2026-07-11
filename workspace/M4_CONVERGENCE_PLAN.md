@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | diagnose_probe_8_craft_parameter_grounding |
+| G5 | First eligible survival-to-dawn episode | ready_for_one_live_probe_after_craft_grounding |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -49,7 +49,21 @@ The dusk interrupt itself behaved coherently: one `dusk_shelter_required` trigge
 
 The task-completion/readiness hypothesis passed live in Probe 8. At cycle 9, one `m4_task_state_reconciliation` event completed seven duplicate gather nodes as soon as the machine observation reached `oak_log:6`; the next selected behavior entered crafting instead of gathering. Non-inventory criteria remained outside the reconciliation path.
 
-The new earliest unrecovered transition is craft action-parameter grounding. Session event index 207 at monotonic 280930.390 attempted `craft` with `recipe=oak_planks` and `count=4`; ActionVerifier requires canonical `item`, so it rejected the action before execution. All 11 craft attempts repeated the same alias family, producing zero planks and no shelter placements. Later readiness-format warnings and the final deadline overrun do not displace this earlier transition. The next round may change only M4 craft parameter grounding and must pass offline tests before another live episode.
+The new earliest unrecovered transition is craft action-parameter grounding. Session event index 207 at monotonic 280930.390 attempted `craft` with `recipe=oak_planks` and `count=4`; ActionVerifier requires canonical `item`, so it rejected the action before execution. All 11 craft attempts repeated the same alias family, producing zero planks and no shelter placements. Later readiness-format warnings and the final deadline overrun do not displace this earlier transition.
+
+Craft parameter grounding is now addressed offline in the same M4 Planner boundary used for dig. `recipe` is normalized to canonical `item` before schema acceptance, while conflicts, missing or invalid item names, non-positive/non-integer counts, and unknown keys reject the plan before execution. The fixed prompt states the canonical craft contract. Full regression passed with 667 Python tests and all six fixed Node suites; one fresh G5 retest is authorized, with no second live episode in the same round.
+
+## G5 Preflight: Craft Parameter Grounding
+
+- Scope: M4 Planner output only; ActionVerifier, task reconciliation, M1/M2 contracts, and protocol hash are unchanged
+- Canonical `craft`: nonempty `item`, with optional positive integer `count`
+- Accepted normalization: `recipe` to `item` only when values are nonconflicting
+- Rejected drift: unknown keys, missing/invalid item, `item`/`recipe` conflicts, booleans, fractions, zero, and negative counts
+- Evidence: `m4_action_parameter_grounding` now reports `craft_action_count`, original parameter hash, alias list, and canonical parameters
+- Prompt grounding: M4 fixed output contract now states `item` and forbids `recipe`
+- Offline tests: `tests/test_m4_deadline.py`
+- Regression: 667 Python tests and all six fixed Node suites passed
+- Live authorization: one fresh G5 BM-011 episode; stop after evidence generation and diagnose its first unrecovered transition
 
 ## G5 Preflight: Task Completion Readiness
 

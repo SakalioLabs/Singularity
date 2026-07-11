@@ -444,6 +444,52 @@ def test_m4_planner_rejects_conflicting_missing_or_unknown_dig_parameters():
     print("PASS: M4 dig grounding fails closed on conflicts, missing coordinates, and unknown aliases")
 
 
+def test_m4_planner_canonicalizes_probe_8_craft_recipe_alias():
+    grounded, report = Planner._ground_m4_action_parameters({
+        "status": "planning",
+        "reasoning": "craft planks",
+        "subtasks": [],
+        "actions": [{
+            "type": "craft",
+            "parameters": {"recipe": "oak_planks", "count": 4},
+        }],
+    })
+
+    assert grounded["actions"] == [{
+        "type": "craft",
+        "parameters": {"item": "oak_planks", "count": 4},
+    }]
+    assert report["passed"] is True
+    assert report["craft_action_count"] == 1
+    assert report["normalized_action_count"] == 1
+    assert report["normalizations"][0]["aliases"] == ["recipe->item"]
+    decision = ActionVerifier().verify(
+        grounded["actions"][0],
+        {"inventory": {"oak_log": 6}},
+        goal="Build verified shelter before nightfall",
+    )
+    assert decision.status == "accept"
+
+
+def test_m4_craft_grounding_fails_closed_on_drift():
+    fixtures = [
+        ({"item": "oak_planks", "recipe": "stick", "count": 4}, "craft_item_conflict"),
+        ({"count": 4}, "craft_item_missing"),
+        ({"recipe": "oak_planks", "count": 0}, "craft_count_invalid"),
+        ({"recipe": "oak_planks", "count": 4, "table": True}, "craft_unknown_parameters:table"),
+    ]
+    for parameters, suffix in fixtures:
+        grounded, report = Planner._ground_m4_action_parameters({
+            "status": "planning",
+            "reasoning": "fixture",
+            "subtasks": [],
+            "actions": [{"type": "craft", "parameters": parameters}],
+        })
+        assert report["passed"] is False
+        assert any(issue.endswith(suffix) for issue in report["issues"])
+        assert grounded["actions"][0]["type"] == "craft"
+
+
 def test_m4_autonomous_loop_recovers_invalid_planner_envelope():
     clock = FakeClock()
     planner = RuntimePlanner()

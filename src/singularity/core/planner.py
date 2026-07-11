@@ -429,7 +429,9 @@ M4 FIXED OUTPUT CONTRACT:
 - If the observed machine state appears to satisfy the exact goal, use status complete and let the machine GoalVerifier decide; prose never completes a goal.
 - Use status blocked only when no grounded progress action exists.
 - A dig action must use top-level finite x, y, and z parameters and may use top-level block; never use block_name, position, target, or block_position aliases.
-- Example: {"type":"dig","parameters":{"x":103,"y":139,"z":-30,"block":"oak_log"}}."""
+- Example: {"type":"dig","parameters":{"x":103,"y":139,"z":-30,"block":"oak_log"}}.
+- A craft action must use item and may use a positive integer count; never use recipe as an alias.
+- Example: {"type":"craft","parameters":{"item":"oak_planks","count":4}}."""
         return prompt
 
     def _m2_system_prompt(self) -> str:
@@ -598,6 +600,7 @@ Plan the steps to achieve this goal."""
                 "passed": True,
                 "action_count": 0,
                 "dig_action_count": 0,
+                "craft_action_count": 0,
                 "normalized_action_count": 0,
                 "normalizations": [],
                 "issues": [],
@@ -606,6 +609,7 @@ Plan the steps to achieve this goal."""
         issues: list[str] = []
         normalizations = []
         dig_action_count = 0
+        craft_action_count = 0
 
         for index, action in enumerate(actions):
             if not isinstance(action, dict):
@@ -613,14 +617,21 @@ Plan the steps to achieve this goal."""
                 continue
             grounded_action = dict(action)
             action_type = str(action.get("type") or "")
-            if action_type != "dig":
+            if action_type not in {"dig", "craft"}:
                 grounded_actions.append(grounded_action)
                 continue
-            dig_action_count += 1
-            canonical, evidence = cls._ground_m4_dig_parameters(
-                action.get("parameters"),
-                action_index=index,
-            )
+            if action_type == "dig":
+                dig_action_count += 1
+                canonical, evidence = cls._ground_m4_dig_parameters(
+                    action.get("parameters"),
+                    action_index=index,
+                )
+            else:
+                craft_action_count += 1
+                canonical, evidence = cls._ground_m4_craft_parameters(
+                    action.get("parameters"),
+                    action_index=index,
+                )
             grounded_action["parameters"] = canonical
             grounded_actions.append(grounded_action)
             issues.extend(evidence["issues"])
@@ -634,6 +645,7 @@ Plan the steps to achieve this goal."""
             "passed": not issues,
             "action_count": len(actions),
             "dig_action_count": dig_action_count,
+            "craft_action_count": craft_action_count,
             "normalized_action_count": len(normalizations),
             "normalizations": normalizations,
             "issues": sorted(set(issues)),
@@ -727,6 +739,68 @@ Plan the steps to achieve this goal."""
         return canonical, {
             "action_index": action_index,
             "action_type": "dig",
+            "normalized": normalized,
+            "aliases": sorted(set(aliases)),
+            "original_parameters_sha256": cls._parameter_sha256(params),
+            "canonical_parameters": canonical,
+            "issues": sorted(set(issues)),
+        }
+
+    @classmethod
+    def _ground_m4_craft_parameters(cls, value, *, action_index: int) -> tuple[dict, dict]:
+        prefix = f"action[{action_index}]:"
+        if not isinstance(value, dict):
+            return {}, {
+                "action_index": action_index,
+                "action_type": "craft",
+                "normalized": False,
+                "aliases": [],
+                "original_parameters_sha256": cls._parameter_sha256(value),
+                "canonical_parameters": {},
+                "issues": [prefix + "craft_parameters_not_object"],
+            }
+
+        params = dict(value)
+        issues: list[str] = []
+        aliases: list[str] = []
+        unknown = sorted(str(key) for key in params if key not in {"item", "count", "recipe"})
+        if unknown:
+            issues.append(prefix + "craft_unknown_parameters:" + ",".join(unknown))
+
+        item = params.get("item")
+        recipe = params.get("recipe")
+        if "recipe" in params:
+            aliases.append("recipe->item")
+        if item is not None and (not isinstance(item, str) or not item.strip()):
+            issues.append(prefix + "craft_item_invalid")
+            item = None
+        if recipe is not None and (not isinstance(recipe, str) or not recipe.strip()):
+            issues.append(prefix + "craft_recipe_invalid")
+            recipe = None
+        if isinstance(item, str):
+            item = item.strip()
+        if isinstance(recipe, str):
+            recipe = recipe.strip()
+        if item and recipe and item != recipe:
+            issues.append(prefix + "craft_item_conflict")
+        selected_item = item or recipe
+        canonical = {}
+        if selected_item:
+            canonical["item"] = selected_item
+        else:
+            issues.append(prefix + "craft_item_missing")
+
+        if "count" in params:
+            count = params.get("count")
+            if isinstance(count, bool) or not isinstance(count, int) or count <= 0:
+                issues.append(prefix + "craft_count_invalid")
+            else:
+                canonical["count"] = count
+
+        normalized = bool(aliases or canonical != params)
+        return canonical, {
+            "action_index": action_index,
+            "action_type": "craft",
             "normalized": normalized,
             "aliases": sorted(set(aliases)),
             "original_parameters_sha256": cls._parameter_sha256(params),
