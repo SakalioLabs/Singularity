@@ -1,7 +1,7 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-11T10:19:25.6880528Z",
+  "generated_at": "2026-07-11T10:54:12.4628038Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "not_run",
@@ -13,11 +13,20 @@
     "night_survival_interrupt"
   ],
   "verified_cases": [],
-  "live_episode_count": 2,
+  "live_episode_count": 3,
   "latest_live_observation": {
-    "episode_id": "m4_episode_20260711_180909_9129569c",
+    "episode_id": "m4_episode_20260711_183833_d5ef78a8",
     "required_g4_case_verified": false,
     "non_g4_interrupt": "task_deadline_elapsed",
-    "non_g4_interrupt_count": 23
+    "non_g4_interrupt_count": 21,
+    "task_id": "af7fad99",
+    "task_status_at_first_interrupt": "active",
+    "first_interrupt_monotonic": 239869.781,
+    "last_interrupt_monotonic": 240062.031,
+    "first_seconds_left": -1.8,
+    "last_seconds_left": -194.04,
+    "affected_goal_count": 3,
+    "post_interrupt_action_count": 0,
+    "terminal_task_transition_observed": false
   }
 }

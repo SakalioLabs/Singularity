@@ -23,7 +23,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 |---|---|---|
 | G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed |
 | G1 | Deterministic survival-goal priority cases | passed |
-| G2 | One live preparation episode with machine-visible progress | failed_probe_2 |
+| G2 | One live preparation episode with machine-visible progress | failed_probe_3 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | locked |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | locked |
 | G5 | First eligible survival-to-dawn episode | locked |
@@ -35,11 +35,28 @@ G1 passed offline validation. GoalGenerator and Curriculum preserve the fixed or
 
 ## Current Hypothesis
 
-The provider-thinking hypothesis is confirmed and closed by the second G2 probe. All 32 real schema-valid Planner calls used `thinking.type=disabled`, returned `finish_reason=stop`, emitted zero reasoning bytes, and passed the provider-controls gate. Maximum Planner latency fell from 61.687 seconds to 10.391 seconds. The Agent completed move, look, and leaf-dig actions before world time 9628, but recorded no qualifying pre-dusk resource acquisition.
+The bridge action-budget hypothesis is confirmed and closed by the third G2 probe. All 6 actions succeeded, including an oak-log `dig` that retained `timeout_ms=60000`, completed in 4.046 seconds, removed the observed target, and produced `oak_log:1`. The bridge remained connected. All 26 real schema-valid Planner calls also retained the pinned provider controls, emitted zero reasoning bytes, and completed within 12.781 seconds.
 
-The earliest unrecovered transition is now the first oak-log `dig` at monotonic 238094.421. The target was machine-observed one block away and the action retained a 60-second budget, but the Python bridge timed out after 15.015 seconds, closed its persistent socket without replay, and left seven later actions with `Not connected to bot bridge`. The single current hypothesis is that the bridge's fixed 15-second dig response timeout is shorter than the bounded Mineflayer dig plus pickup-collection lifecycle. The next change is limited to aligning that response timeout with the action and episode budgets and proving the bound offline before one fresh G2 episode in a later round. Repeated goals, target-verifier wording, and preparation block-delta timing remain secondary observations and are not changed in this round.
+The preparation report surfaces the first goal's eventual `max_cycles` outcome, but the session contains an earlier unrecovered runtime transition. At monotonic 239869.781, active task `af7fad99` (`Find and move to oak logs`) emitted `task_deadline_elapsed` with `seconds_left=-1.8`. `_handle_runtime_interrupt` recorded the interrupt but did not terminate, pause, replace, or otherwise recover the expired task. `TaskSystem.get_next_task()` therefore selected the same active task before later actions, producing 21 identical interrupts through cycle 26 across resource, dusk-shelter, and night-shelter goals. No action followed the first interrupt.
+
+The single current hypothesis is that an expired-task interrupt lacks a one-shot task lifecycle transition, creating permanent actor preemption. The next change is limited to deterministic expired-task recovery in the runtime interrupt/task lifecycle path, with focused offline tests before one fresh G2 episode in a later round. Planner wording, shelter construction, and other task scheduling behavior remain secondary observations and are not changed in this round.
 
 ## G2 Live Evidence
+
+### Probe 3: Bridge Action Budget Bound
+
+- Episode: `m4_episode_20260711_183833_d5ef78a8`
+- Session: `15173437-4b6`
+- Preflight: passed
+- G2: failed
+- BM-011 eligible: false; eligible successes remain 0/3
+- Planner controls: passed; 26/26 real schema-valid calls, zero reasoning bytes, maximum latency 12.781 seconds
+- Autonomous goals: 4; priority moved from resource progression to dusk/night shelter preparation
+- Actions: 6 attempted and 6 successful; pre-dusk inventory gained `oak_log:1` and `oak_sapling:1`
+- Bridge retest: oak-log `dig` completed in 4.046 seconds with a 60-second transport bound; the bridge stayed connected
+- First unrecovered transition: expired active task `af7fad99` interrupted action execution at monotonic 239869.781, then repeated 21 times without a task state transition
+- Deadline: ineligible; manifest evidence ended 0.094 seconds after the absolute deadline, with no post-deadline action, plan, or Planner call
+- Evidence: `logs/benchmarks/m4/m4_episode_20260711_183833_d5ef78a8/`
 
 ### Probe 2: Provider Controls Pinned
 

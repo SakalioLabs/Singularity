@@ -1,0 +1,187 @@
+{
+  "type": "m4_preparation_report",
+  "schema_version": 1,
+  "task_id": "BM-011",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+  "readiness": "review",
+  "decision": "diagnose_first_unrecovered_transition",
+  "g2_passed": false,
+  "counts_toward_bm011_success": false,
+  "episode_id": "m4_episode_20260711_183833_d5ef78a8",
+  "session_id": "15173437-4b6",
+  "level_name": "m4_episode_20260711_183833_d5ef78a8_bm011",
+  "required_recording": {
+    "autonomous_goals": true,
+    "resource_acquisition": true,
+    "crafting_behavior_recorded": false,
+    "shelter_or_safe_point_intent": true,
+    "planner_provider_controls": true,
+    "time_remaining_recorded": true,
+    "inventory_world_delta_recorded": true,
+    "loop_metrics_recorded": true
+  },
+  "autonomous_goals": [
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 1,
+      "max_goals": 4,
+      "selection_source": "goal_generator",
+      "selection_reason": "wood_reserve_below_target;curriculum_retained_fallback",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Build verified shelter before nightfall",
+      "goal_index": 2,
+      "max_goals": 4,
+      "selection_source": "goal_generator",
+      "selection_reason": "dusk_without_machine_verified_shelter",
+      "priority": 4,
+      "priority_class": "shelter_preparation"
+    },
+    {
+      "goal": "Build verified shelter before nightfall",
+      "goal_index": 3,
+      "max_goals": 4,
+      "selection_source": "goal_generator",
+      "selection_reason": "dusk_without_machine_verified_shelter",
+      "priority": 4,
+      "priority_class": "shelter_preparation"
+    },
+    {
+      "goal": "Reach or build emergency verified shelter immediately",
+      "goal_index": 4,
+      "max_goals": 4,
+      "selection_source": "goal_generator",
+      "selection_reason": "night_without_machine_verified_shelter",
+      "priority": 4,
+      "priority_class": "shelter_preparation"
+    }
+  ],
+  "planner_provider_controls": {
+    "passed": true,
+    "call_count": 26,
+    "real_call_count": 26,
+    "schema_valid_real_call_count": 26,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 0,
+    "max_call_duration_ms": 12781.0,
+    "total_token_usage": 73340,
+    "violations": []
+  },
+  "action_count": 6,
+  "successful_action_count": 6,
+  "crafting_action_count": 0,
+  "shelter_goal_count": 4,
+  "shelter_plan_count": 26,
+  "inventory_delta": {
+    "oak_log": 1,
+    "oak_sapling": 1
+  },
+  "world_block_delta": [
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 139,
+        "z": -30
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 140,
+        "z": -30
+      },
+      "before": "oak_log",
+      "after": "air"
+    }
+  ],
+  "machine_visible_progress": true,
+  "pre_dusk_inventory_delta": {
+    "oak_log": 1,
+    "oak_sapling": 1
+  },
+  "pre_dusk_world_block_delta": [],
+  "pre_dusk_machine_visible_progress": true,
+  "pre_dusk_last_state": {
+    "position": {
+      "x": 103.5333199289351,
+      "y": 140,
+      "z": -28.50000000000018
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {
+      "oak_sapling": 1,
+      "oak_log": 1
+    },
+    "time_of_day": 9969,
+    "nearby_hostile_count": 0
+  },
+  "time_of_day_before": 9129,
+  "time_of_day_after": 13929,
+  "time_remaining_s": 0.0,
+  "same_goal_max_consecutive": 2,
+  "same_plan_max_consecutive": 9,
+  "same_failed_action_max_count": 0,
+  "goal_switch_count": 2,
+  "no_progress_observation_transitions": 3,
+  "first_unrecovered_transition": {
+    "event_type": "auto_goal_failed",
+    "goal": "Gather 6 oak logs for tools and shelter",
+    "detail": {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "cycles": 8,
+      "completed": false,
+      "success": false,
+      "termination_reason": "max_cycles"
+    },
+    "monotonic_s": 239881.843
+  },
+  "before_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 9129,
+    "nearby_hostile_count": 0
+  },
+  "after_state": {
+    "position": {
+      "x": 103.5333199289351,
+      "y": 140,
+      "z": -28.50000000000018
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {
+      "oak_sapling": 1,
+      "oak_log": 1
+    },
+    "time_of_day": 13929,
+    "nearby_hostile_count": 0
+  },
+  "deadline_eligible": false,
+  "evidence_eligible": false,
+  "eligibility_issues": [
+    "event:terminal_survival_verification",
+    "next_dawn_observed",
+    "terminal_machine_verification",
+    "episode_within_deadline",
+    "result_duration_eligible"
+  ]
+}
