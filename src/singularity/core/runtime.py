@@ -74,7 +74,8 @@ class RuntimeSupervisor:
     def _deadline_interrupt(self, active_task) -> InterruptDecision:
         if not active_task or not getattr(active_task, "deadline", None):
             return InterruptDecision(False)
-        seconds_left = active_task.deadline - time.time()
+        evaluated_at = time.time()
+        seconds_left = active_task.deadline - evaluated_at
         if seconds_left > 0:
             return InterruptDecision(False)
         return InterruptDecision(
@@ -82,7 +83,13 @@ class RuntimeSupervisor:
             reason="task_deadline_elapsed",
             priority=70,
             recommended_goal=f"Replan overdue task: {active_task.title}",
-            evidence={"task_id": active_task.id, "task": active_task.title, "seconds_left": round(seconds_left, 2)},
+            evidence={
+                "task_id": active_task.id,
+                "task": active_task.title,
+                "deadline_wallclock": active_task.deadline,
+                "evaluated_at_wallclock": evaluated_at,
+                "seconds_left": round(seconds_left, 2),
+            },
         )
 
     def _return_to_base_interrupt(self, observation: dict) -> InterruptDecision:

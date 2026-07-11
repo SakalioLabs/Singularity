@@ -2,6 +2,7 @@
 import os
 import sys
 import time
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -12,6 +13,8 @@ from singularity.core.task_system import TaskStatus, TaskSystem
 
 
 class FakeExplorer:
+    landmarks = []
+
     def should_return(self, position, inventory_count):
         return inventory_count >= 36, "Inventory full"
 
@@ -21,12 +24,16 @@ class FakeExplorer:
     def record_position(self, position):
         pass
 
+    def set_base(self, x, y, z):
+        self.base = (x, y, z)
+
 
 class FakeLogger:
     def __init__(self):
         self.events = []
         self.actions = []
         self.observations = []
+        self.session_id = "runtime-supervisor-fixture"
 
     def log(self, event_type, data, level="INFO"):
         self.events.append({"type": event_type, "data": data, "level": level})
@@ -36,6 +43,22 @@ class FakeLogger:
 
     def log_observation(self, observation):
         self.observations.append(observation)
+        self.log("observation", observation)
+
+    def log_plan(self, plan):
+        self.log("plan", plan)
+
+    def log_goal_start(self, goal):
+        self.log("goal_start", {"goal": goal})
+
+    def log_goal_end(self, goal, result):
+        self.log("goal_end", {"goal": goal, "result": result})
+
+    def log_error(self, error, context=None):
+        self.log("error", {"error": error, "context": context or {}}, level="ERROR")
+
+    def get_summary(self):
+        return {"event_count": len(self.events)}
 
 
 class FakeMemory:
@@ -53,15 +76,56 @@ class FakeMemory:
 class FakeActionController:
     def __init__(self):
         self.actions = []
+        self.deadline_calls = []
 
     def execute(self, action, observation):
         self.actions.append(action)
         return {"success": True, "action_type": action.get("type")}
 
+    def set_episode_deadline(self, deadline_monotonic, action_timeout_limit_s=None):
+        self.deadline_calls.append((deadline_monotonic, action_timeout_limit_s))
+
 
 class FakeObserver:
     def observe(self):
         return {"health": 20, "inventory": {}, "inventory_count": 0, "nearby_entities": [], "position": {}}
+
+
+class FakeGoalGenerator:
+    last_decision = {
+        "selection_source": "goal_generator",
+        "selection_reason": "wood_reserve_below_target",
+        "priority": 6,
+        "priority_class": "tool_resource_progression",
+    }
+
+    def next_goal(self, observation):
+        return "Gather 6 oak logs for tools and shelter"
+
+
+class FakeCurriculum:
+    def __init__(self):
+        self.outcomes = []
+
+    def record_goal_outcome(self, goal, success, cycles):
+        self.outcomes.append((goal, success, cycles))
+
+    def summary(self):
+        return {"outcome_count": len(self.outcomes)}
+
+
+def runtime_agent(config=None):
+    config = config or Config()
+    agent = object.__new__(Agent)
+    agent.config = config
+    agent.task_system = TaskSystem()
+    agent.runtime = RuntimeSupervisor(config)
+    agent.session_logger = FakeLogger()
+    agent.memory = FakeMemory()
+    agent.action_controller = FakeActionController()
+    agent.observer = FakeObserver()
+    agent.explorer = FakeExplorer()
+    return agent
 
 
 def test_runtime_interrupts_on_health_and_hostiles():
@@ -95,6 +159,8 @@ def test_runtime_interrupts_deadlines_and_return_to_base():
     deadline = supervisor.evaluate_interrupt({"health": 20, "inventory": {}, "nearby_entities": []}, active_task=task)
     assert deadline.should_interrupt
     assert deadline.reason == "task_deadline_elapsed"
+    assert deadline.evidence["deadline_wallclock"] == task.deadline
+    assert deadline.evidence["evaluated_at_wallclock"] >= task.deadline
 
     returning = supervisor.evaluate_interrupt({
         "health": 20,
@@ -110,14 +176,7 @@ def test_runtime_interrupts_deadlines_and_return_to_base():
 
 
 def test_agent_handles_runtime_interrupt_with_emergency_action():
-    agent = object.__new__(Agent)
-    agent.task_system = TaskSystem()
-    agent.runtime = RuntimeSupervisor(Config())
-    agent.session_logger = FakeLogger()
-    agent.memory = FakeMemory()
-    agent.action_controller = FakeActionController()
-    agent.observer = FakeObserver()
-    agent.explorer = FakeExplorer()
+    agent = runtime_agent()
 
     interrupted, observation = agent._handle_runtime_interrupt(
         {"health": 1, "inventory": {"bread": 1}, "inventory_count": 1, "nearby_entities": [], "position": {}},
@@ -133,8 +192,150 @@ def test_agent_handles_runtime_interrupt_with_emergency_action():
     print("PASS: Agent handles runtime interrupt and emergency action")
 
 
+def test_agent_expires_all_overdue_tasks_and_interrupts_once():
+    agent = runtime_agent()
+    now = time.time()
+    trigger = agent.task_system.create_task(
+        "Find and move to oak logs",
+        status=TaskStatus.ACTIVE,
+        priority=1,
+        deadline=now - 2,
+    )
+    stale = agent.task_system.create_task(
+        "Move to oak log",
+        status=TaskStatus.ACCEPTED,
+        priority=2,
+        deadline=now - 1,
+    )
+    future = agent.task_system.create_task(
+        "Gather another oak log",
+        status=TaskStatus.ACCEPTED,
+        priority=3,
+        deadline=now + 60,
+    )
+    agent.task_system.drain_transition_events()
+    observation = {
+        "health": 20,
+        "inventory": {"oak_log": 1},
+        "inventory_count": 1,
+        "nearby_entities": [],
+        "position": {"x": 103, "y": 140, "z": -28},
+    }
+
+    interrupted, _ = agent._handle_runtime_interrupt(
+        observation,
+        "Gather 6 oak logs for tools and shelter",
+        {"cycle": 6, "mode": "autonomous"},
+    )
+
+    assert interrupted
+    assert trigger.status == TaskStatus.FAILED
+    assert stale.status == TaskStatus.FAILED
+    assert future.status == TaskStatus.ACCEPTED
+    assert trigger.result["failed_by"] == "task_deadline_elapsed"
+    assert stale.result["failed_by"] == "task_deadline_elapsed"
+    transitions = [event for event in agent.session_logger.events if event["type"] == "task_state_transition"]
+    assert len(transitions) == 2
+    assert all(event["data"]["reason"] == "task_deadline_elapsed" for event in transitions)
+    recovery = next(event for event in agent.session_logger.events if event["type"] == "runtime_interrupt_recovery")
+    assert recovery["data"]["trigger_task_id"] == trigger.id
+    assert recovery["data"]["expired_task_count"] == 2
+    assert set(recovery["data"]["expired_task_ids"]) == {trigger.id, stale.id}
+    assert recovery["data"]["resume_policy"] == "replan_next_cycle"
+    assert recovery["data"]["recovered"] is True
+
+    repeated, _ = agent._handle_runtime_interrupt(
+        observation,
+        "Gather 6 oak logs for tools and shelter",
+        {"cycle": 7, "mode": "autonomous"},
+    )
+    assert not repeated
+    interrupts = [event for event in agent.session_logger.events if event["type"] == "runtime_interrupt"]
+    assert len(interrupts) == 1
+    print("PASS: Agent expires every overdue task and does not repeat the interrupt")
+
+
+def test_autonomous_loop_replans_once_then_resumes_actions():
+    agent = runtime_agent(Config(planner_protocol="m4-fixed-v1"))
+    agent.goal_generator = FakeGoalGenerator()
+    agent.curriculum = FakeCurriculum()
+    agent.planner = None
+    agent.reflector = None
+    agent._active_skill_execution = {}
+    agent._skill_fallback_goals = set()
+    agent._skill_episode_start_index = 0
+    observation = {
+        "health": 20,
+        "hunger": 20,
+        "inventory": {"oak_log": 1},
+        "inventory_count": 1,
+        "nearby_entities": [],
+        "position": {"x": 103, "y": 140, "z": -28},
+    }
+    agent._observe = lambda: dict(observation)
+    agent._select_autonomous_goal = lambda state, fallback: fallback
+    plan_calls = []
+
+    def plan(state, override_goal=None):
+        plan_calls.append(override_goal)
+        if len(plan_calls) == 1:
+            deadline = time.time() - 1
+            agent.task_system.create_task(
+                "Expired active route",
+                status=TaskStatus.PROPOSED,
+                priority=1,
+                deadline=deadline,
+            )
+            agent.task_system.create_task(
+                "Expired accepted route",
+                status=TaskStatus.PROPOSED,
+                priority=2,
+                deadline=deadline,
+            )
+        return {
+            "status": "planning",
+            "reasoning": "continue gathering after task recovery",
+            "actions": [{"type": "wait", "parameters": {"ms": 1}}],
+        }
+
+    agent._think = plan
+    agent._record_task_continuity = lambda *args, **kwargs: None
+    agent._state_with_causal_context = lambda state, goal="": state
+    agent._goal_is_verified = lambda *args, **kwargs: (False, None)
+    agent._select_action_for_execution = lambda action, *args, **kwargs: (action, None)
+    agent._verify_action_for_execution = lambda *args, **kwargs: (None, None)
+    agent._record_action_value = lambda *args, **kwargs: None
+    agent._apply_action_feedback = lambda action, result, state, context=None: state
+    agent._record_skill_usage = lambda *args, **kwargs: None
+    agent._evaluate_episode_abort = lambda *args, **kwargs: False
+    agent._record_frontier_budget_outcome = lambda *args, **kwargs: None
+    agent._finalize_skill_learning_episode = lambda *args, **kwargs: None
+    agent._write_memory_episode = lambda *args, **kwargs: None
+    agent._write_memory_context = lambda *args, **kwargs: None
+
+    with patch("singularity.core.agent.time.sleep", lambda _seconds: None):
+        result = agent.run_autonomous(
+            max_goals=1,
+            max_cycles_per_goal=2,
+            max_duration_s=30.0,
+        )
+
+    event_types = [event["type"] for event in agent.session_logger.events]
+    assert len(plan_calls) == 2
+    assert len(agent.action_controller.actions) == 1
+    assert agent.action_controller.actions[0]["type"] == "wait"
+    assert event_types.count("runtime_interrupt") == 1
+    assert event_types.count("runtime_interrupt_recovery") == 1
+    assert event_types.count("action") == 1
+    assert all(task.status == TaskStatus.FAILED for task in agent.task_system.tasks.values())
+    assert result["total_cycles"] == 2
+    print("PASS: Autonomous loop yields once, replans, and resumes action execution")
+
+
 if __name__ == "__main__":
     test_runtime_interrupts_on_health_and_hostiles()
     test_runtime_interrupts_deadlines_and_return_to_base()
     test_agent_handles_runtime_interrupt_with_emergency_action()
+    test_agent_expires_all_overdue_tasks_and_interrupts_once()
+    test_autonomous_loop_replans_once_then_resumes_actions()
     print("\nRuntime supervisor tests PASSED")

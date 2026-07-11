@@ -165,6 +165,43 @@ class TaskSystem:
     def fail_task(self, task_id: str, reason: str):
         self.update_task(task_id, status=TaskStatus.FAILED, observations=[f"FAILURE: {reason}"])
 
+    def expire_overdue_tasks(self, now_wallclock: Optional[float] = None) -> list[Task]:
+        """Terminalize every runnable task whose planner deadline has elapsed."""
+        now = time.time() if now_wallclock is None else float(now_wallclock)
+        overdue = []
+        for task in self.tasks.values():
+            if task.status not in (TaskStatus.ACCEPTED, TaskStatus.ACTIVE) or not task.deadline:
+                continue
+            try:
+                deadline = float(task.deadline)
+            except (TypeError, ValueError):
+                continue
+            if deadline <= now:
+                overdue.append((deadline, task))
+
+        overdue.sort(key=lambda item: (item[0], item[1].priority, item[1].created_at, item[1].id))
+        expired = []
+        for deadline, task in overdue:
+            seconds_overdue = round(max(0.0, now - deadline), 3)
+            task.observations.append({
+                "type": "task_deadline_elapsed",
+                "deadline_wallclock": deadline,
+                "expired_at_wallclock": now,
+                "seconds_overdue": seconds_overdue,
+            })
+            if "task deadline elapsed" not in task.blockers:
+                task.blockers.append("task deadline elapsed")
+            task.attempts += 1
+            task.result = {
+                "failed_by": "task_deadline_elapsed",
+                "deadline_wallclock": deadline,
+                "expired_at_wallclock": now,
+                "seconds_overdue": seconds_overdue,
+            }
+            self._set_status(task, TaskStatus.FAILED, "task_deadline_elapsed")
+            expired.append(task)
+        return expired
+
     def complete_task(self, task_id: str, result: dict = None):
         self.update_task(task_id, status=TaskStatus.COMPLETED, result=result or {})
 

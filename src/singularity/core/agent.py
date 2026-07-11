@@ -6562,6 +6562,32 @@ class Agent:
         self.session_logger.log("runtime_interrupt", payload, level="WARNING")
         self._write_memory_episode("runtime_interrupt", payload, source="runtime")
 
+        if decision.reason == "task_deadline_elapsed" and task:
+            evaluated_at = decision.evidence.get("evaluated_at_wallclock")
+            expired_tasks = self.task_system.expire_overdue_tasks(evaluated_at)
+            recovery = {
+                "reason": decision.reason,
+                "goal": goal,
+                "context": context or {},
+                "trigger_task_id": task.id,
+                "expired_task_ids": [expired.id for expired in expired_tasks],
+                "expired_task_count": len(expired_tasks),
+                "terminal_status": TaskStatus.FAILED.value,
+                "resume_policy": "replan_next_cycle",
+                "recovered": bool(expired_tasks),
+            }
+            self._flush_task_state_transitions({
+                "source": "runtime_interrupt_recovery",
+                **(context or {}),
+            })
+            self.session_logger.log("runtime_interrupt_recovery", recovery)
+            self._write_memory_episode(
+                "runtime_interrupt_recovery",
+                recovery,
+                source="runtime",
+            )
+            return True, observation
+
         if decision.emergency_action:
             if self._episode_deadline_reached():
                 payload["emergency_action_suppressed"] = "episode_deadline"
