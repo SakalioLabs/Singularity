@@ -62,9 +62,14 @@ class PlannerLLM:
 class DeadlineBot:
     def __init__(self):
         self.deadline_calls = []
+        self.dig_calls = []
 
     def set_action_deadline(self, deadline_monotonic, action_timeout_limit_s=None):
         self.deadline_calls.append((deadline_monotonic, action_timeout_limit_s))
+
+    def dig(self, x, y, z, timeout_ms=None):
+        self.dig_calls.append((x, y, z, timeout_ms))
+        return {"success": True}
 
 
 class ScriptedSocket:
@@ -269,6 +274,14 @@ def test_m4_action_controller_enforces_episode_and_action_deadlines():
         assert len(captured) == 1
 
         clock.value = 100.0
+        controller.set_episode_deadline(200.0, 60.0)
+        dig = controller.execute(
+            {"type": "dig", "parameters": {"x": 3, "y": 64, "z": 4}},
+            {"health": 20, "inventory": {}},
+        )
+        assert dig["success"] is True
+        assert dig["backend_params"]["timeout_ms"] == 60000
+        assert bot.dig_calls == [(3, 64, 4, 60000)]
 
         def late_wait(params):
             clock.advance(3.1)
@@ -312,6 +325,16 @@ def test_m4_bridge_uses_remaining_budget_without_replay():
     assert suppressed["deadline_suppressed"] is True
     assert suppressed["command_replayed"] is False
     assert bridge._socket.sent == []
+
+    bridge._socket = ScriptedSocket()
+    bridge._action_deadline_monotonic = 160.0
+    clock.value = 100.0
+    with patch("singularity.bot.bridge.time.monotonic", clock.monotonic):
+        dig = bridge._send_command("dig", {"x": 3, "y": 64, "z": 4, "timeout_ms": 60000})
+
+    assert dig["success"] is True
+    assert bridge._socket.timeout_history == [60.0, 10.0]
+    assert len(bridge._socket.sent) == 1
 
     reconnect_calls = []
     bridge._connected = True

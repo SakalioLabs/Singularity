@@ -244,7 +244,10 @@ class ActionController:
         x = params.get("x")
         y = params.get("y")
         z = params.get("z")
-        return self.bot.dig(x, y, z)
+        timeout_ms = params.get("timeout_ms")
+        if timeout_ms is None:
+            return self.bot.dig(x, y, z)
+        return self.bot.dig(x, y, z, timeout_ms=timeout_ms)
 
     def _place(self, params: dict) -> dict:
         x = params.get("x")

@@ -280,7 +280,12 @@ class BotBridge:
                 action_seconds = 2.0
             action_seconds = max(0.1, min(10.0, action_seconds))
         elif command == "dig":
-            action_seconds = 10.0
+            requested = params.get("timeout_ms")
+            try:
+                action_seconds = float(requested) / 1000.0 if requested is not None else 10.0
+            except (TypeError, ValueError):
+                action_seconds = 10.0
+            action_seconds = max(1.0, min(60.0, action_seconds))
         elif command == "build_shelter_5x5":
             try:
                 action_seconds = float(params.get("timeout_ms", 360000)) / 1000.0
@@ -320,8 +325,17 @@ class BotBridge:
     def look_at(self, x: float, y: float, z: float) -> dict:
         return self._send_command("look_at", {"x": x, "y": y, "z": z})
 
-    def dig(self, x: int = None, y: int = None, z: int = None) -> dict:
-        return self._send_command_single("dig", {"x": x, "y": y, "z": z})
+    def dig(
+        self,
+        x: int = None,
+        y: int = None,
+        z: int = None,
+        timeout_ms: int = None,
+    ) -> dict:
+        params = {"x": x, "y": y, "z": z}
+        if timeout_ms is not None:
+            params["timeout_ms"] = timeout_ms
+        return self._send_command_single("dig", params)
 
     def place(self, x: int, y: int, z: int, item_name: str = None) -> dict:
         return self._send_command("place", {"x": x, "y": y, "z": z, "item": item_name})
