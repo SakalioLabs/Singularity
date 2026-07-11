@@ -106,12 +106,16 @@ class RuntimePlanner:
     def __init__(self):
         self.deadline_calls = []
         self.episodes = []
+        self.replan_reasons = []
 
     def set_deadline(self, deadline_monotonic, action_guard_s=0.0):
         self.deadline_calls.append((deadline_monotonic, action_guard_s))
 
     def start_episode(self, goal, episode_id=""):
         self.episodes.append((goal, episode_id))
+
+    def request_replan(self, reason):
+        self.replan_reasons.append(reason)
 
 
 class RuntimeActionController:
@@ -239,6 +243,147 @@ def test_m4_planner_suppresses_call_after_deadline():
     assert plan["actions"] == []
     assert planner.last_call_evidence["error"] == "m4_total_deadline_exhausted_before_planner_call"
     print("PASS: M4 planner never starts a call after the episode deadline")
+
+
+def test_m4_planner_rejects_empty_planning_response_and_marks_replan():
+    clock = FakeClock()
+
+    class SequencePlannerLLM(PlannerLLM):
+        def __init__(self, responses):
+            super().__init__(clock)
+            self.responses = list(responses)
+
+        def chat(self, messages, **kwargs):
+            super().chat(messages, **kwargs)
+            return json.dumps(self.responses.pop(0))
+
+    llm = SequencePlannerLLM([
+        {
+            "status": "planning",
+            "reasoning": "dark oak can substitute, so the exact oak goal is complete",
+            "subtasks": [],
+            "actions": [],
+        },
+        {
+            "status": "planning",
+            "reasoning": "continue gathering the exact named item",
+            "subtasks": [],
+            "actions": [{"type": "wait", "parameters": {"ms": 1}}],
+        },
+    ])
+    planner = Planner(llm, TaskSystem(), protocol="m4-fixed-v1")
+    planner.start_episode("Gather 6 oak logs", "m4-envelope-fixture")
+    planner.set_deadline(200.0, 0.0)
+
+    with patch("singularity.core.planner.time.monotonic", clock.monotonic):
+        rejected = planner.plan_from_goal(
+            "Gather 6 oak logs",
+            {"inventory": {"dark_oak_log": 6}},
+        )
+        planner.request_replan("planning response omitted executable actions")
+        recovered = planner.plan_from_goal(
+            "Gather 6 oak logs",
+            {"inventory": {"dark_oak_log": 6}},
+        )
+
+    assert rejected["status"] == "error"
+    assert rejected["actions"] == []
+    assert rejected["schema_validation"]["type"] == "m4_plan_envelope_validation"
+    assert rejected["schema_validation"]["issues"] == ["planning_actions_missing"]
+    assert rejected["planner_evidence"]["schema_valid"] is False
+    assert recovered["status"] == "planning"
+    assert recovered["schema_validation"]["passed"] is True
+    assert recovered["planner_evidence"]["plan_kind"] == "replan"
+    system_prompt = llm.calls[0]["messages"][0]["content"]
+    assert "Do not substitute one item species" in system_prompt
+    assert "prose never completes a goal" in system_prompt
+    print("PASS: M4 rejects planning-status empty output and grounds the next replan")
+
+
+def test_m4_autonomous_loop_recovers_invalid_planner_envelope():
+    clock = FakeClock()
+    planner = RuntimePlanner()
+    action_controller = RuntimeActionController()
+    agent = object.__new__(Agent)
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    agent.session_logger = RuntimeSessionLogger(clock)
+    agent.planner = planner
+    agent.task_system = TaskSystem()
+    agent.action_controller = action_controller
+    agent.goal_generator = RuntimeGoalGenerator()
+    agent.explorer = RuntimeExplorer()
+    agent.curriculum = RuntimeCurriculum()
+    agent._episode_deadline_monotonic = None
+    agent._skill_episode_start_index = 0
+    agent._active_skill_execution = {}
+    agent._skill_fallback_goals = set()
+    agent._observe = lambda: {
+        "position": {"x": 0, "y": 64, "z": 0},
+        "inventory": {"dark_oak_log": 6},
+        "inventory_count": 1,
+        "health": 20,
+    }
+    agent._select_autonomous_goal = lambda observation, fallback: fallback
+    plans = iter([
+        {
+            "status": "error",
+            "reasoning": "Planner output rejected before execution: planning_actions_missing",
+            "actions": [],
+            "planner_call_id": "m4-empty-fixture",
+            "schema_validation": {
+                "passed": False,
+                "status": "planning",
+                "action_count": 0,
+                "issues": ["planning_actions_missing"],
+            },
+        },
+        {
+            "status": "complete",
+            "reasoning": "machine verifier must decide",
+            "actions": [],
+            "schema_validation": {"passed": True, "issues": []},
+        },
+    ])
+    agent._think = lambda observation, override_goal=None: next(plans)
+    agent._accept_planned_tasks = lambda: None
+    agent._record_task_continuity = lambda *args, **kwargs: None
+    agent._state_with_causal_context = lambda observation, goal="": observation
+    agent._goal_is_verified = lambda *args, **kwargs: (False, None)
+    accepted = GoalVerification(
+        goal="Prepare shelter before night",
+        achieved=True,
+        status="achieved",
+        confidence=1.0,
+        evidence=["fixture verifier accepted exact goal"],
+    )
+    agent._accept_plan_completion = lambda *args, **kwargs: (True, accepted)
+    agent._write_memory_episode = lambda *args, **kwargs: None
+    agent._write_memory_context = lambda *args, **kwargs: None
+    agent._record_frontier_budget_outcome = lambda *args, **kwargs: None
+    agent._finalize_skill_learning_episode = lambda *args, **kwargs: None
+
+    with patch("singularity.core.agent.time.monotonic", clock.monotonic):
+        result = agent.run_autonomous(
+            max_goals=1,
+            max_cycles_per_goal=2,
+            max_duration_s=5.0,
+        )
+
+    event_types = [event["type"] for event in agent.session_logger.events]
+    assert result["goals_completed"] == 1
+    assert result["goals_failed"] == 0
+    assert result["total_cycles"] == 2
+    assert len(planner.replan_reasons) == 1
+    assert "planning status requires an executable action" in planner.replan_reasons[0]
+    assert "m4_planner_output_recovery" in event_types
+    assert "empty_plan" not in event_types
+    recovery = next(
+        event for event in agent.session_logger.events
+        if event["type"] == "m4_planner_output_recovery"
+    )
+    assert recovery["data"]["rejected_status"] == "planning"
+    assert recovery["data"]["action_count"] == 0
+    print("PASS: M4 keeps the same autonomous goal active after an invalid empty plan")
 
 
 def test_m4_action_controller_enforces_episode_and_action_deadlines():
@@ -477,6 +622,8 @@ def test_m4_autonomous_loop_shares_deadline_and_suppresses_plan_suffix():
 if __name__ == "__main__":
     test_m4_planner_bounds_call_and_rejects_inflight_return()
     test_m4_planner_suppresses_call_after_deadline()
+    test_m4_planner_rejects_empty_planning_response_and_marks_replan()
+    test_m4_autonomous_loop_recovers_invalid_planner_envelope()
     test_m4_action_controller_enforces_episode_and_action_deadlines()
     test_m4_bridge_uses_remaining_budget_without_replay()
     test_m4_verifier_return_after_deadline_is_rejected()

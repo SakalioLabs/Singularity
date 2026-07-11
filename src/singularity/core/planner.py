@@ -1,4 +1,4 @@
-"""LLM-powered goal decomposition with optional strict M2 root-plan evidence."""
+"""LLM-powered goal decomposition with fixed M2/M4 planner evidence."""
 
 import hashlib
 import json
@@ -79,7 +79,7 @@ class Planner:
     def plan_from_goal(self, goal: str, world_state: dict, memory_context: str = "") -> dict:
         if self.strict_m2 and self._call_index == 0:
             plan_kind = "root"
-        elif self.strict_m2 and self._pending_replan_reason:
+        elif (self.strict_m2 or self.strict_m4) and self._pending_replan_reason:
             plan_kind = "replan"
             memory_context = "\n".join(
                 part for part in (
@@ -288,6 +288,12 @@ class Planner:
                 expected_goal=goal,
                 expected_kind=plan_kind,
             )
+        elif self.strict_m4 and not call_error and not parse_error:
+            schema_validation = self._validate_m4_plan_envelope(
+                raw_plan,
+                expected_goal=goal,
+                expected_kind=plan_kind,
+            )
 
         schema_valid = bool(schema_validation.get("passed"))
         if schema_valid:
@@ -362,7 +368,7 @@ class Planner:
     def _planner_system_prompt(self) -> str:
         if self.strict_m2:
             return self._m2_system_prompt()
-        return f"""You are a Minecraft survival planner. Given a goal and current world state, decompose it into subtasks and immediate actions.
+        prompt = f"""You are a Minecraft survival planner. Given a goal and current world state, decompose it into subtasks and immediate actions.
 
 Available actions: move_to, look_at, dig, place, craft, attack, equip, use_item, chat, wait.
 
@@ -401,6 +407,16 @@ Output JSON:
 }}
 
 Be practical and safe. Check inventory before crafting. Follow tool progression."""
+        if self.strict_m4:
+            prompt += """
+
+M4 FIXED OUTPUT CONTRACT:
+- Treat the current machine observation and the exact goal wording as authoritative.
+- Do not substitute one item species for another exact named target unless the goal explicitly permits alternatives.
+- If status is planning, return at least one immediate executable action; never pair planning status with completion prose and an empty actions array.
+- If the observed machine state appears to satisfy the exact goal, use status complete and let the machine GoalVerifier decide; prose never completes a goal.
+- Use status blocked only when no grounded progress action exists."""
+        return prompt
 
     def _m2_system_prompt(self) -> str:
         from singularity.evaluation.m2_protocol import PROTOCOL
@@ -489,6 +505,12 @@ Episode successful-action summary: {json.dumps(action_summary, sort_keys=True, d
 Current observed world state: {json.dumps(observed_state, sort_keys=True, default=str)[:5000]}
 Planner context: {memory_context[:1000] if memory_context else 'none'}
 Return strict JSON now."""
+        if self.strict_m4:
+            return f"""Exact autonomous goal: {goal}
+Plan kind: {self._expected_plan_kind}
+Current observed machine state: {json.dumps(world_state, sort_keys=True, default=str)[:3000]}
+Planner context: {memory_context[:1000] if memory_context else 'none'}
+Honor exact item identifiers. Return a contract-valid JSON plan now."""
         return f"""Goal: {goal}
 
 World state:
@@ -497,6 +519,37 @@ World state:
 {f'Relevant memory: {memory_context}' if memory_context else ''}
 
 Plan the steps to achieve this goal."""
+
+    @staticmethod
+    def _validate_m4_plan_envelope(
+        plan: dict,
+        expected_goal: str,
+        expected_kind: str,
+    ) -> dict:
+        """Validate only the M4 status/action envelope before runtime execution."""
+        issues: list[str] = []
+        status = str(plan.get("status") or "")
+        if status not in {"planning", "complete", "blocked"}:
+            issues.append("status_invalid")
+
+        actions = plan.get("actions")
+        if not isinstance(actions, list):
+            issues.append("actions_not_array")
+            actions = []
+        if status == "planning" and not actions:
+            issues.append("planning_actions_missing")
+
+        return {
+            "type": "m4_plan_envelope_validation",
+            "schema_version": 1,
+            "passed": not issues,
+            "expected_goal": str(expected_goal or ""),
+            "expected_kind": str(expected_kind or ""),
+            "status": status,
+            "action_count": len(actions),
+            "completion_requires_machine_verifier": True,
+            "issues": sorted(set(issues)),
+        }
 
     def _m2_action_summary(self, world_state: dict) -> dict:
         from singularity.evaluation.m2_protocol import PROTOCOL

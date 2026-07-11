@@ -2168,6 +2168,9 @@ class Agent:
                             self.task_system.complete_task(active_task.id, {"goal": goal, "cycle": total_cycles, "verification": verification.to_dict()})
                         break
 
+                    if self._recover_m4_invalid_plan(goal, plan, total_cycles):
+                        continue
+
                     if plan.get("status") == "complete":
                         accepted, verification = self._accept_plan_completion(
                             goal,
@@ -5195,6 +5198,44 @@ class Agent:
             "goal": str(self.current_goal or ""),
             "reason": str(reason or "action_failure")[:500],
         })
+
+    def _recover_m4_invalid_plan(self, goal: str, plan: dict, cycle: int) -> bool:
+        """Keep an M4 goal active when a planning response omits all actions."""
+        if str(getattr(self.config, "planner_protocol", "") or "") != "m4-fixed-v1":
+            return False
+        if self._episode_deadline_reached():
+            return False
+
+        validation = plan.get("schema_validation", {}) if isinstance(plan, dict) else {}
+        issues = validation.get("issues", []) if isinstance(validation, dict) else []
+        issues = [str(issue) for issue in issues if str(issue)] if isinstance(issues, list) else []
+        if "planning_actions_missing" not in issues:
+            return False
+
+        planner = getattr(self, "planner", None)
+        if not hasattr(planner, "request_replan"):
+            return False
+        reason = "M4 planner output rejected: planning status requires an executable action"
+        planner.request_replan(reason)
+        payload = {
+            "goal": str(goal or ""),
+            "cycle": int(cycle),
+            "planner_call_id": str(plan.get("planner_call_id") or ""),
+            "status": str(plan.get("status") or ""),
+            "rejected_status": str(validation.get("status") or ""),
+            "schema_issues": issues,
+            "action_count": int(validation.get("action_count", 0) or 0),
+            "recovered": True,
+            "resume_policy": "replan_next_cycle",
+            "reason": reason,
+        }
+        self.session_logger.log("m4_planner_output_recovery", payload)
+        self._write_memory_episode(
+            "m4_planner_output_recovery",
+            payload,
+            source="autonomous_planner",
+        )
+        return True
 
     # ── Helpers ────────────────────────────────────────────────────────
 
