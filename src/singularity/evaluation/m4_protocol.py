@@ -40,6 +40,17 @@ def protocol_integrity_report() -> dict:
         issues.append("mob_spawning_required")
     if PROTOCOL.get("initial_inventory") != {}:
         issues.append("initial_inventory_must_be_empty")
+    controls = PROTOCOL.get("baseline_runtime_controls", {})
+    if controls.get("skill_execution_mode") != "off":
+        issues.append("learned_skill_execution_must_be_off")
+    for name in (
+        "learned_executable_skills_enabled",
+        "quarantined_skills_enabled",
+        "vision_enabled",
+        "multi_agent_enabled",
+    ):
+        if controls.get(name) is not False:
+            issues.append(f"baseline_control_mismatch:{name}")
     return {
         "passed": not issues,
         "issues": issues,
@@ -91,7 +102,20 @@ def validate_preflight(preflight: dict, task_id: str = "BM-011") -> dict:
     require("weather", preflight.get("weather") == PROTOCOL["weather"])
     require("gamerules", _mapping_contains(preflight.get("gamerules", {}), PROTOCOL["gamerules"]))
     require("runtime_versions", _mapping_contains(preflight.get("runtime_versions", {}), PROTOCOL["runtime_versions"]))
+    require("llm", _mapping_contains(preflight.get("llm", {}), PROTOCOL["llm"]))
     require("identities", _mapping_contains(preflight.get("identities", {}), PROTOCOL["identities"]))
+    require(
+        "baseline_runtime_controls",
+        _mapping_contains(preflight.get("runtime_controls", {}), PROTOCOL["baseline_runtime_controls"]),
+    )
+    source_checks = preflight.get("source_checks", {})
+    require(
+        "runtime_source_binding",
+        isinstance(source_checks, dict)
+        and bool(source_checks)
+        and all(value is True for value in source_checks.values()),
+        source_checks,
+    )
     require("episode_id", bool(str(preflight.get("episode_id") or "").strip()))
     require("level_name", bool(str(preflight.get("level_name") or "").strip()))
     return {"passed": not issues, "issues": issues, "checks": checks}
@@ -132,6 +156,20 @@ def evaluate_bm011_episode(
     require(
         "manifest_deadline_policy",
         manifest.get("deadline_policy_id") == PROTOCOL["deadline_policy"]["id"],
+    )
+    require(
+        "manifest_runtime_controls",
+        _mapping_contains(manifest.get("runtime_controls", {}), PROTOCOL["baseline_runtime_controls"]),
+    )
+    runtime_limits = manifest.get("runtime_limits", {})
+    task_limit = task_spec("BM-011")
+    require(
+        "manifest_runtime_limits",
+        isinstance(runtime_limits, dict)
+        and _bounded_positive(runtime_limits.get("max_duration_s"), task_limit.get("max_duration_s"))
+        and _bounded_positive(runtime_limits.get("max_goals"), PROTOCOL["limits"]["max_autonomous_goals"])
+        and _bounded_positive(runtime_limits.get("max_cycles_per_goal"), PROTOCOL["limits"]["max_cycles_per_goal"]),
+        runtime_limits,
     )
 
     evidence_hashes = result.get("evidence_hashes", {}) if isinstance(result.get("evidence_hashes"), dict) else {}
@@ -405,6 +443,12 @@ def _player_state_matches(actual: dict) -> bool:
 
 def _number_near(value, expected, tolerance: float) -> bool:
     return _finite_number(value) and abs(float(value) - float(expected)) <= float(tolerance)
+
+
+def _bounded_positive(value, maximum) -> bool:
+    number = _finite_or_none(value)
+    limit = _finite_or_none(maximum)
+    return number is not None and limit is not None and 0 < number <= limit
 
 
 def _normalized_time(value) -> int | None:

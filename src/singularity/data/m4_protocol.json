@@ -14,6 +14,31 @@
     "mineflayer_pathfinder": "2.4.5",
     "minecraft_data": "3.111.0"
   },
+  "llm": {
+    "provider": "openai",
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash",
+    "temperature": 0.0,
+    "max_tokens": 4096
+  },
+  "baseline_runtime_controls": {
+    "skill_execution_mode": "off",
+    "learned_executable_skills_enabled": false,
+    "quarantined_skills_enabled": false,
+    "policy_skills_enabled": false,
+    "skill_memory_context_enabled": false,
+    "memory_persistence_enabled": false,
+    "vision_enabled": false,
+    "visual_action_grounding_enabled": false,
+    "screenshot_capture_enabled": false,
+    "self_evolution_policy_enabled": false,
+    "world_model_curriculum_feedback_enabled": false,
+    "multi_agent_enabled": false,
+    "autocurriculum_enabled": true,
+    "goal_verification_enabled": true,
+    "action_verification_enabled": true,
+    "action_verification_enforced": true
+  },
   "world_seed": "12345",
   "episode_strategy": "fresh_level_per_run_v1",
   "spawn_strategy": "world_spawn",
@@ -105,6 +130,7 @@
     },
     "survival": {
       "preparation_start_time": 9000,
+      "dusk_start_time": 10000,
       "night_start_time": 12000,
       "dawn_start_time": 23000,
       "next_day_wrap_time": 1000,
@@ -146,7 +172,7 @@
       "runtime_manifest_required": true
     }
   },
-  "validation_protocol_sha256": "436f04fd0d0286a1fdd26994097951dbf3626ecf60ef95d0c5c68cd35c78e7e7",
+  "validation_protocol_sha256": "349e873f0f5be76fe46290fca51299ec8f3051c4bbec316ec07c1b5d714e61e6",
   "tasks": [
     {
       "id": "BM-011",

@@ -36,7 +36,10 @@ def _preflight():
         "weather": PROTOCOL["weather"],
         "gamerules": dict(PROTOCOL["gamerules"]),
         "runtime_versions": dict(PROTOCOL["runtime_versions"]),
+        "llm": dict(PROTOCOL["llm"]),
         "identities": dict(PROTOCOL["identities"]),
+        "runtime_controls": dict(PROTOCOL["baseline_runtime_controls"]),
+        "source_checks": {"protocol_status_bound": True, "reset_bound": True},
         "episode_id": "m4-fixture-episode-01",
         "level_name": "m4_fixture_level_01",
     }
@@ -57,6 +60,12 @@ def _manifest():
         "episode_started_monotonic": 100.0,
         "episode_deadline_monotonic": 1300.0,
         "episode_ended_monotonic": 805.0,
+        "runtime_controls": dict(PROTOCOL["baseline_runtime_controls"]),
+        "runtime_limits": {
+            "max_duration_s": 1200,
+            "max_goals": 24,
+            "max_cycles_per_goal": 40,
+        },
     }
 
 

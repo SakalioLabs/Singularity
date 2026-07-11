@@ -49,6 +49,10 @@ const M2_PROTOCOL_PATH = path.resolve(__dirname, '..', 'singularity', 'data', 'm
 const M2_PROTOCOL_BYTES = fs.readFileSync(M2_PROTOCOL_PATH);
 const M2_PROTOCOL = JSON.parse(M2_PROTOCOL_BYTES.toString('utf8'));
 const M2_PROTOCOL_SHA256 = crypto.createHash('sha256').update(M2_PROTOCOL_BYTES).digest('hex');
+const M4_PROTOCOL_PATH = path.resolve(__dirname, '..', 'singularity', 'data', 'm4_protocol.json');
+const M4_PROTOCOL_BYTES = fs.readFileSync(M4_PROTOCOL_PATH);
+const M4_PROTOCOL = JSON.parse(M4_PROTOCOL_BYTES.toString('utf8'));
+const M4_PROTOCOL_SHA256 = crypto.createHash('sha256').update(M4_PROTOCOL_BYTES).digest('hex');
 
 let bot = null;
 let botReady = false;
@@ -524,6 +528,9 @@ function benchmarkRuntime(overrides = {}) {
 
 function benchmarkProtocolBundle(profile = '') {
     const requested = String(profile || '').trim().toLowerCase();
+    if (requested === M4_PROTOCOL.profile.toLowerCase() || requested === 'm4') {
+        return { protocol: M4_PROTOCOL, protocolSha256: M4_PROTOCOL_SHA256 };
+    }
     if (requested === M2_PROTOCOL.profile.toLowerCase() || requested === 'm2') {
         return { protocol: M2_PROTOCOL, protocolSha256: M2_PROTOCOL_SHA256 };
     }
@@ -532,6 +539,9 @@ function benchmarkProtocolBundle(profile = '') {
 
 function benchmarkTaskBundle(taskId = '') {
     const normalized = String(taskId || '').trim().toUpperCase();
+    if (M4_PROTOCOL.tasks.some(task => task.id === normalized)) {
+        return { protocol: M4_PROTOCOL, protocolSha256: M4_PROTOCOL_SHA256 };
+    }
     if (M2_PROTOCOL.tasks.some(task => task.id === normalized)) {
         return { protocol: M2_PROTOCOL, protocolSha256: M2_PROTOCOL_SHA256 };
     }
@@ -559,7 +569,15 @@ function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}, profile = '')
     } else if (runtime.server_jar_sha256 !== protocol.server_jar_sha256) {
         errors.push(`server jar sha256 does not match pinned ${protocol.server_build}`);
     }
-    for (const [name, expected] of Object.entries(protocol.dependencies || {})) {
+    const expectedDependencies = Object.keys(protocol.dependencies || {}).length > 0
+        ? protocol.dependencies
+        : {
+            mineflayer: protocol.runtime_versions?.mineflayer,
+            'mineflayer-pathfinder': protocol.runtime_versions?.mineflayer_pathfinder,
+            'minecraft-data': protocol.runtime_versions?.minecraft_data,
+        };
+    for (const [name, expected] of Object.entries(expectedDependencies)) {
+        if (!expected) continue;
         if (dependencies[name] !== expected) {
             errors.push(`${name}=${dependencies[name] || '<missing>'}, expected ${expected}`);
         }
@@ -585,16 +603,20 @@ function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}, profile = '')
         server_type: protocol.server_type,
         server_build: protocol.server_build,
         server_jar_policy: protocol.server_jar_policy,
-        agent_id: protocol.agent_id,
-        planner_id: protocol.planner_id,
+        agent_id: protocol.agent_id || protocol.identities?.agent || '',
+        goal_generator_id: protocol.identities?.goal_generator || '',
+        curriculum_id: protocol.identities?.curriculum || '',
+        planner_id: protocol.planner_id || protocol.identities?.planner || '',
         planner_schema_id: protocol.planner_schema_id || '',
         planner_schema_sha256: protocol.planner_schema_sha256 || '',
-        action_backend_id: protocol.action_backend_id,
-        verifier_id: protocol.verifier_id,
-        skill_runtime_profile_id: protocol.skill_runtime_profile_id || '',
+        action_backend_id: protocol.action_backend_id || protocol.identities?.action_backend || '',
+        verifier_id: protocol.verifier_id || protocol.identities?.goal_verifier || '',
+        runtime_interrupt_id: protocol.identities?.runtime_interrupt || '',
+        skill_runtime_profile_id: protocol.skill_runtime_profile_id || protocol.identities?.skill_runtime_profile || '',
         reset_protocol_sha256: protocol.reset_protocol_sha256 || '',
         validation_protocol_sha256: protocol.validation_protocol_sha256 || '',
         llm: protocol.llm || {},
+        runtime_controls: protocol.baseline_runtime_controls || {},
         server_brand: serverBrand,
         seed: runtime.seed,
         episode_id: runtime.episode_id,
@@ -608,7 +630,7 @@ function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}, profile = '')
         },
         tasks: protocol.tasks,
         reset_supported: true,
-        validation_supported: protocol.profile === M2_PROTOCOL.profile,
+        validation_supported: protocol.profile !== M1_PROTOCOL.profile,
         errors,
     };
 }
@@ -832,6 +854,7 @@ function benchmarkBotState(activeBot, spawnPoint, taskSpec = null) {
         spawn_position: compactPosition(spawnPoint),
         health: Number(activeBot?.health ?? 0),
         food: Number(activeBot?.food ?? 0),
+        food_saturation: Number(activeBot?.foodSaturation ?? 0),
         inventory: inventoryCounts(activeBot),
         game_mode: String(activeBot?.game?.gameMode || ''),
         difficulty: String(activeBot?.game?.difficulty || ''),
@@ -867,23 +890,30 @@ function positionDistance(a, b) {
 
 function benchmarkResetChecks(postState, taskSpec, protocol = M1_PROTOCOL) {
     const expectedBlocks = Array.isArray(taskSpec.initial_blocks) ? taskSpec.initial_blocks : [];
+    const expectedInventory = taskSpec.initial_inventory || protocol.initial_inventory || {};
+    const expectedTime = Number(protocol.time_of_day ?? protocol.initial_time_of_day);
+    const expectedPlayer = protocol.initial_player_state || {};
+    const isM4 = protocol.profile === M4_PROTOCOL.profile;
     const expectedFixture = expectedBlocks[0]?.name || 'air';
     const finalDistance = positionDistance(postState.position, postState.spawn_position);
     const fixturesMatch = expectedBlocks.length === postState.fixture_blocks.length
         && postState.fixture_blocks.every(item => item.name === item.expected_name);
     return {
-        inventory_exact: inventoryExactlyMatches(postState.inventory, taskSpec.initial_inventory),
+        inventory_exact: inventoryExactlyMatches(postState.inventory, expectedInventory),
         position_at_spawn: finalDistance <= 1.5,
         position_distance: Number.isFinite(finalDistance) ? Number(finalDistance.toFixed(3)) : null,
         game_mode: postState.game_mode === protocol.game_mode,
         difficulty: postState.difficulty === protocol.difficulty,
         dimension: /overworld/i.test(postState.dimension),
         daytime: postState.time_of_day >= 0 && postState.time_of_day < 12000,
-        time_initialized: Math.abs(postState.time_of_day - Number(protocol.time_of_day)) <= 600,
+        time_initialized: Math.abs(postState.time_of_day - expectedTime) <= 600,
         weather: postState.weather === protocol.weather,
-        health: postState.health >= 20,
-        food: postState.food >= 20,
-        fixture: protocol.profile === M1_PROTOCOL.profile
+        health: postState.health >= Number(expectedPlayer.health ?? 20),
+        food: postState.food >= Number(expectedPlayer.food ?? 20),
+        saturation: !isM4 || Math.abs(postState.food_saturation - Number(expectedPlayer.saturation ?? 5)) <= 0.25,
+        fixture: isM4
+            ? true
+            : protocol.profile === M1_PROTOCOL.profile
             ? postState.fixture?.block === expectedFixture
             : fixturesMatch,
     };
@@ -919,7 +949,9 @@ function createBenchmarkResetHandler(
         }
         const taskSpec = protocol.tasks.find((task) => task.id === taskId);
         if (!taskSpec) {
-            const suite = protocol.profile === M1_PROTOCOL.profile ? 'M1' : 'M2';
+            const suite = protocol.profile === M1_PROTOCOL.profile
+                ? 'M1'
+                : protocol.profile === M2_PROTOCOL.profile ? 'M2' : 'M4';
             return { success: false, error: `unsupported ${suite} benchmark task: ${taskId || '<missing>'}` };
         }
         const spawnPoint = activeBot.spawnPoint;
@@ -928,6 +960,9 @@ function createBenchmarkResetHandler(
         }
 
         const beforeState = benchmarkBotState(activeBot, spawnPoint, taskSpec);
+        const isM4 = protocol.profile === M4_PROTOCOL.profile;
+        const initialInventory = taskSpec.initial_inventory || protocol.initial_inventory || {};
+        const initialTime = Number(protocol.time_of_day ?? protocol.initial_time_of_day);
         const commands = [
             `/execute in minecraft:overworld run tp @s ${spawnPoint.x} ${spawnPoint.y} ${spawnPoint.z}`,
             `/gamemode ${protocol.game_mode} @s`,
@@ -955,13 +990,22 @@ function createBenchmarkResetHandler(
             commands.push(`/setblock ${position.x} ${position.y} ${position.z} minecraft:${spec.name}`);
         }
         commands.push(
-            `/time set ${protocol.time_of_day}`,
+            `/time set ${initialTime}`,
             `/weather ${protocol.weather}`,
             `/difficulty ${protocol.difficulty}`,
-            '/effect give @s minecraft:instant_health 1 255 true',
-            '/effect give @s minecraft:saturation 1 255 true',
         );
-        for (const [item, count] of Object.entries(taskSpec.initial_inventory || {})) {
+        if (isM4) {
+            commands.push('/effect clear @s');
+            for (const [name, value] of Object.entries(protocol.gamerules || {})) {
+                commands.push(`/gamerule ${name} ${value ? 'true' : 'false'}`);
+            }
+        } else {
+            commands.push(
+                '/effect give @s minecraft:instant_health 1 255 true',
+                '/effect give @s minecraft:saturation 1 255 true',
+            );
+        }
+        for (const [item, count] of Object.entries(initialInventory)) {
             commands.push(`/give @s minecraft:${item} ${Number(count)}`);
         }
 
@@ -997,12 +1041,13 @@ function createBenchmarkResetHandler(
             server_jar_sha256: protocolStatus.server_jar_sha256,
             task_id: taskId,
             expected: {
-                initial_inventory: taskSpec.initial_inventory,
+                initial_inventory: initialInventory,
                 initial_blocks: taskSpec.initial_blocks,
                 game_mode: protocol.game_mode,
                 difficulty: protocol.difficulty,
-                time_of_day: protocol.time_of_day,
+                time_of_day: initialTime,
                 weather: protocol.weather,
+                gamerules: protocol.gamerules || {},
             },
             before_state: beforeState,
             after_state: afterState,
@@ -1010,6 +1055,7 @@ function createBenchmarkResetHandler(
             checks,
             failed_checks: failedChecks,
             command_count: commands.length,
+            gamerules: protocol.gamerules || {},
         };
     };
 }
@@ -1791,6 +1837,8 @@ module.exports = {
     M1_PROTOCOL_SHA256,
     M2_PROTOCOL,
     M2_PROTOCOL_SHA256,
+    M4_PROTOCOL,
+    M4_PROTOCOL_SHA256,
     attachScreenshotPlugin,
     benchmarkBotState,
     benchmarkProtocolBundle,

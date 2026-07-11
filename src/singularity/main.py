@@ -33,6 +33,8 @@ def _llm_config_from_args(args) -> LLMConfig:
             or os.environ.get("OPENAI_API_KEY", "")
         ),
         base_url=getattr(args, "llm_base_url", "") or os.environ.get("SINGULARITY_LLM_BASE_URL", ""),
+        max_tokens=int(getattr(args, "llm_max_tokens", 4096) or 4096),
+        temperature=float(getattr(args, "llm_temperature", 0.7)),
     )
 
 
@@ -714,6 +716,8 @@ def main():
     auto_parser.add_argument("--llm-provider", type=str, default="openai")
     auto_parser.add_argument("--llm-model", type=str, default="gpt-4o-mini")
     auto_parser.add_argument("--llm-base-url", type=str, default="")
+    auto_parser.add_argument("--llm-temperature", type=float, default=0.7)
+    auto_parser.add_argument("--llm-max-tokens", type=int, default=4096)
     auto_parser.add_argument("--api-key", type=str, default="")
     auto_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
     _add_goal_critic_runtime_gate_args(auto_parser)

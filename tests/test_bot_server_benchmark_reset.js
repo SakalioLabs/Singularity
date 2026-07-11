@@ -135,9 +135,14 @@ async function testBenchmarkResetRejectsUnappliedServerCommands() {
 async function testCraftHandlerUsesGroundedNearbyTable() {
     const table = { name: 'crafting_table', position: new Vec3(11, 64, 10) };
     const calls = {};
+    let items = [
+        { name: 'oak_planks', count: 3 },
+        { name: 'stick', count: 2 },
+    ];
     const bot = {
         entity: { position: new Vec3(10, 64, 10) },
         version: '1.20.4',
+        inventory: { items: () => items },
         findBlock(options) {
             calls.find = options;
             return table;
@@ -148,9 +153,13 @@ async function testCraftHandlerUsesGroundedNearbyTable() {
         },
         async craft(recipe, count, craftingTable) {
             calls.craft = { recipe, count, craftingTable };
+            items = [{ name: 'wooden_pickaxe', count: 1 }];
         },
     };
-    const handler = createCraftHandler(() => ({ bot, botReady: true }));
+    const handler = createCraftHandler(
+        () => ({ bot, botReady: true }),
+        async () => {},
+    );
     const result = await handler({ item: 'wooden_pickaxe', count: 1 });
 
     assert.strictEqual(result.success, true);

@@ -3,7 +3,7 @@
 ## Current Gate
 
 - Protocol: `m4-fixed-v1`
-- Protocol SHA-256: `a44723f6bd86110a1a5d0ead3378850cd906f9d272c27f3f7fed5fa87db7d1ce`
+- Protocol SHA-256: `031d35021141e6b4dc34fa7151a6c9cdb8154454b6d9e8187d1dfb337523a2ce`
 - Current target: BM-011 Survive the first night
 - Eligible successes: 0/3
 - M4 canonical status: `not_run`
