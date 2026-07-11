@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | diagnose_probe_7_task_readiness_grounding |
+| G5 | First eligible survival-to-dawn episode | ready_for_one_live_probe_after_task_reconciliation |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -45,7 +45,22 @@ Probe 7 confirms the M4 action-parameter-grounding fix in live execution. All 22
 
 The new earliest unrecovered transition is task-completion/readiness grounding. At session event index 366 the machine observation already contained `oak_log:9`. Planner call `llm-1ef73e3cdfab47e3` at index 376 nevertheless treated the fulfilled `Gather 6 oak logs` task as ready and emitted another `dig` rather than the dependent craft/build step. The next successful action raised inventory to 10 logs, and subsequent plans continued gathering. Across 21 actions there were 15 successes but zero crafting actions and zero placement actions; the shelter remained unverified.
 
-The dusk interrupt itself behaved coherently: one `dusk_shelter_required` trigger suspended the resource goal, preserved its frontier, selected the aligned shelter goal, and escalated the same trigger to `night_shelter_required` without creating a competing root. The run ultimately consumed the remaining 58.14 seconds in a deadline-bound `move_to`, ended 0.016 seconds after the absolute deadline, and was independently rejected. The next round may change only the task-completion/readiness subsystem and must pass offline tests before another single live episode.
+The dusk interrupt itself behaved coherently: one `dusk_shelter_required` trigger suspended the resource goal, preserved its frontier, selected the aligned shelter goal, and escalated the same trigger to `night_shelter_required` without creating a competing root. The run ultimately consumed the remaining 58.14 seconds in a deadline-bound `move_to`, ended 0.016 seconds after the absolute deadline, and was independently rejected.
+
+The task-completion/readiness hypothesis is now addressed offline. Before each M4 Planner call, the Agent reconciles only tasks whose pure inventory success criteria are already satisfied by the current machine observation. It records `m4_task_state_reconciliation`, completes the fulfilled node, and thereby unlocks its dependent craft/build frontier. Non-inventory criteria, unverified shelter flags, and every non-M4 protocol remain outside this path. Full regression passed with 665 Python tests and all six fixed Node suites; one fresh G5 retest is authorized, with no second live episode in the same round.
+
+## G5 Preflight: Task Completion Readiness
+
+- Scope: M4 autonomous loop and task lifecycle only; Planner schema, ActionVerifier, M1/M2 contracts, and protocol hash are unchanged
+- Trigger: current machine observation satisfies every item/count in a task's pure `inventory` success criteria
+- Transition: accepted or active task becomes completed with reason `machine_state_success_criteria_satisfied`
+- Dependency effect: dependent craft/build tasks become schedulable before the next Planner context is assembled
+- Evidence: `m4_task_state_reconciliation` records cycle, root goal, task ID/title, and machine-checkable criteria
+- Fail-closed boundary: criteria containing flags, structure, action, result, position, observed names, or mixed keys are not auto-completed
+- Protocol boundary: reconciliation is disabled unless `planner_protocol=m4-fixed-v1`
+- Offline tests: `tests/test_memory_task_system.py`
+- Regression: 665 Python tests and all six fixed Node suites passed
+- Live authorization: one fresh G5 BM-011 episode; stop after evidence generation and diagnose its first unrecovered transition
 
 ## G5 Preflight: Action Parameter Grounding
 

@@ -2140,6 +2140,8 @@ class Agent:
                         source="autonomous_observation",
                     )
 
+                    self._reconcile_m4_satisfied_tasks(observation, goal, total_cycles)
+
                     plan = self._think(observation, override_goal=goal)
                     last_plan = plan
                     self.session_logger.log_plan(plan)
@@ -4475,6 +4477,35 @@ class Agent:
             logger.warning(f"Task readiness report failed: {e}")
             return {}
         return report if isinstance(report, dict) else {}
+
+    def _reconcile_m4_satisfied_tasks(self, observation: dict, goal: str, cycle: int) -> list:
+        if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
+            return []
+        task_system = getattr(self, "task_system", None)
+        if not task_system or not hasattr(task_system, "complete_state_satisfied_tasks"):
+            return []
+        completed = task_system.complete_state_satisfied_tasks(
+            observation if isinstance(observation, dict) else {},
+            allowed_criteria={"inventory"},
+        )
+        if completed and hasattr(getattr(self, "session_logger", None), "log"):
+            self.session_logger.log("m4_task_state_reconciliation", {
+                "schema_version": 1,
+                "goal": goal,
+                "cycle": cycle,
+                "source": "machine_observation",
+                "allowed_criteria": ["inventory"],
+                "completed_task_count": len(completed),
+                "completed_tasks": [
+                    {
+                        "task_id": task.id,
+                        "title": task.title,
+                        "success_criteria": dict(task.success_criteria or {}),
+                    }
+                    for task in completed[:20]
+                ],
+            })
+        return completed
 
     def _task_readiness_context(
         self,

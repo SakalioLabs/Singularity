@@ -2352,6 +2352,75 @@ def test_agent_passes_task_readiness_context_to_llm_planner():
     print("PASS: Agent passes task readiness context to LLM planner")
 
 
+def test_m4_reconciles_inventory_satisfied_tasks_before_planning():
+    agent = _initialize_bare_agent_runtime_state(object.__new__(Agent))
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    agent.session_logger = FakeSessionLogger()
+    agent.task_system = TaskSystem()
+    gather = agent.task_system.create_task(
+        "Gather 6 oak logs",
+        status=TaskStatus.ACTIVE,
+        success_criteria={"inventory": {"oak_log": 6}},
+    )
+    craft = agent.task_system.create_task(
+        "Craft oak planks",
+        status=TaskStatus.ACCEPTED,
+        depends_on=[gather.id],
+        preconditions={"inventory": {"oak_log": 6}},
+        success_criteria={"inventory": {"oak_planks": 24}},
+    )
+
+    completed = agent._reconcile_m4_satisfied_tasks(
+        {"inventory": {"oak_log": 9}, "time_of_day": 11829},
+        "Build verified shelter before nightfall",
+        9,
+    )
+
+    assert [task.id for task in completed] == [gather.id]
+    assert gather.status == TaskStatus.COMPLETED
+    assert agent.task_system.get_next_task({"inventory": {"oak_log": 9}}).id == craft.id
+    event = agent.session_logger.events[-1]
+    assert event["type"] == "m4_task_state_reconciliation"
+    assert event["data"]["source"] == "machine_observation"
+    assert event["data"]["completed_tasks"][0]["success_criteria"] == {
+        "inventory": {"oak_log": 6}
+    }
+
+
+def test_m4_reconciliation_does_not_accept_non_inventory_claims_or_change_other_protocols():
+    agent = _initialize_bare_agent_runtime_state(object.__new__(Agent))
+    agent.session_logger = FakeSessionLogger()
+    agent.task_system = TaskSystem()
+    shelter = agent.task_system.create_task(
+        "Build shelter",
+        status=TaskStatus.ACTIVE,
+        success_criteria={"flags": ["shelter_complete"]},
+    )
+    gather = agent.task_system.create_task(
+        "Gather logs",
+        status=TaskStatus.ACTIVE,
+        success_criteria={"inventory": {"oak_log": 6}},
+    )
+    observation = {
+        "inventory": {"oak_log": 9},
+        "flags": ["shelter_complete"],
+    }
+
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    completed = agent._reconcile_m4_satisfied_tasks(observation, "Survive", 1)
+    assert [task.id for task in completed] == [gather.id]
+    assert shelter.status == TaskStatus.ACTIVE
+
+    other = agent.task_system.create_task(
+        "Gather more logs",
+        status=TaskStatus.ACTIVE,
+        success_criteria={"inventory": {"oak_log": 6}},
+    )
+    agent.config = Config(planner_protocol="")
+    assert agent._reconcile_m4_satisfied_tasks(observation, "Gather", 2) == []
+    assert other.status == TaskStatus.ACTIVE
+
+
 def test_agent_injects_skill_memory_context_for_planner():
     tmpdir = tempfile.mkdtemp()
     agent = object.__new__(Agent)

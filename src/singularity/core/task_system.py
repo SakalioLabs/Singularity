@@ -154,6 +154,36 @@ class TaskSystem:
         ready = self.get_ready_tasks(world_state)
         return ready[0] if ready else None
 
+    def complete_state_satisfied_tasks(
+        self,
+        world_state: Optional[dict] = None,
+        allowed_criteria: Optional[set[str]] = None,
+    ) -> list[Task]:
+        """Complete runnable tasks whose machine-state criteria already hold."""
+        world_state = world_state or {}
+        allowed = set(allowed_criteria or set())
+        completed = []
+        candidates = sorted(
+            (
+                task for task in self.tasks.values()
+                if task.status in (TaskStatus.ACCEPTED, TaskStatus.ACTIVE)
+            ),
+            key=lambda task: (task.created_at, task.id),
+        )
+        for task in candidates:
+            criteria = task.success_criteria if isinstance(task.success_criteria, dict) else {}
+            if not criteria or (allowed and not set(criteria).issubset(allowed)):
+                continue
+            if not self._success_criteria_satisfied(task, {}, {}, world_state):
+                continue
+            self._set_status(task, TaskStatus.COMPLETED, "machine_state_success_criteria_satisfied")
+            task.result = {
+                "completed_by": "machine_state",
+                "world_state": self._compact_world_state(world_state),
+            }
+            completed.append(task)
+        return completed
+
     def get_task_tree(self) -> dict:
         def build_tree(task_id):
             task = self.tasks.get(task_id)
