@@ -201,9 +201,44 @@ def evaluate_bm011_episode(
     ended = _finite_or_none(manifest.get("episode_ended_monotonic"))
     deadline = _finite_or_none(manifest.get("episode_deadline_monotonic"))
     duration = ended - started if started is not None and ended is not None else None
+    active_event_times = [
+        _event_monotonic(event)
+        for event in active_events
+    ]
+    bounded_event_times = [
+        value
+        for event, value in zip(active_events, active_event_times)
+        if event.get("type") != "autonomous_end"
+    ]
     task = task_spec("BM-011")
     require("monotonic_runtime", duration is not None and duration >= 0 and deadline is not None)
-    require("episode_within_deadline", duration is not None and duration <= float(task["max_duration_s"]) and ended <= deadline)
+    require(
+        "active_event_monotonic_complete",
+        bool(active_event_times) and all(value is not None for value in active_event_times),
+    )
+    require(
+        "active_event_monotonic_ordered",
+        bool(active_event_times)
+        and all(value is not None for value in active_event_times)
+        and all(current >= previous for previous, current in zip(active_event_times, active_event_times[1:])),
+    )
+    require(
+        "active_event_monotonic_bounds",
+        bool(bounded_event_times)
+        and all(value is not None for value in bounded_event_times)
+        and started is not None
+        and ended is not None
+        and bounded_event_times[0] >= started
+        and bounded_event_times[-1] <= ended,
+    )
+    require(
+        "episode_within_deadline",
+        duration is not None
+        and ended is not None
+        and deadline is not None
+        and duration <= float(task["max_duration_s"])
+        and ended <= deadline,
+    )
     require("result_duration_eligible", _result_duration_eligible(result, task))
     require("no_post_deadline_execution", not _post_deadline_execution(active_events, deadline))
 
@@ -324,10 +359,15 @@ def _post_deadline_execution(events: list[dict], deadline: float | None) -> bool
     for event in events:
         if event.get("type") not in executable_types:
             continue
-        value = _finite_or_none(event.get("monotonic_s", (event.get("data") or {}).get("monotonic_s")))
-        if value is not None and value >= deadline:
+        value = _event_monotonic(event)
+        if value is None or value >= deadline:
             return True
     return False
+
+
+def _event_monotonic(event: dict) -> float | None:
+    data = event.get("data", {}) if isinstance(event.get("data"), dict) else {}
+    return _finite_or_none(event.get("monotonic_s", data.get("monotonic_s")))
 
 
 def _result_duration_eligible(result: dict, task: dict) -> bool:

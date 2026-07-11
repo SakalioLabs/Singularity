@@ -44,6 +44,7 @@ class Planner:
         self.task_system = task_system
         self.protocol = str(protocol or "")
         self.strict_m2 = self.protocol == "m2-fixed-v1"
+        self.strict_m4 = self.protocol == "m4-fixed-v1"
         self.last_call_evidence: dict = {}
         self._episode_goal = ""
         self._episode_id = ""
@@ -121,11 +122,16 @@ class Planner:
         request_timeout_s = None
         deadline_evidence = {}
         transport_evidence = {}
-        if self.strict_m2:
-            from singularity.evaluation.m2_protocol import PROTOCOL
+        deadline_protocol = None
+        strict_deadline = self.strict_m2 or self.strict_m4
+        if strict_deadline:
+            if self.strict_m2:
+                from singularity.evaluation.m2_protocol import PROTOCOL as deadline_protocol
+            else:
+                from singularity.evaluation.m4_protocol import PROTOCOL as deadline_protocol
 
-            policy = PROTOCOL["deadline_policy"]
-            expected_guard_s = float(policy["action_guard_ms"]) / 1000.0
+            policy = deadline_protocol["deadline_policy"]
+            expected_guard_s = float(policy.get("action_guard_ms", 0)) / 1000.0
             remaining_s = (
                 self._goal_deadline_monotonic - time.monotonic()
                 if self._goal_deadline_monotonic is not None
@@ -136,6 +142,11 @@ class Planner:
                 if remaining_s is not None
                 else None
             )
+            if self.strict_m4 and planner_budget_s is not None:
+                planner_budget_s = min(
+                    planner_budget_s,
+                    float(policy["llm_call_timeout_s"]),
+                )
             deadline_evidence = {
                 "policy_id": str(policy["id"]),
                 "remaining_before_call_s": round(remaining_s, 3) if remaining_s is not None else None,
@@ -144,17 +155,17 @@ class Planner:
                 "max_retries": int(policy["planner_max_retries"]),
             }
             if self._goal_deadline_monotonic is None:
-                call_error = "m2_goal_deadline_not_configured"
+                call_error = f"{self.protocol.split('-', 1)[0]}_episode_deadline_not_configured"
             elif abs(self._action_guard_s - expected_guard_s) > 0.001:
-                call_error = "m2_action_guard_mismatch"
+                call_error = f"{self.protocol.split('-', 1)[0]}_action_guard_mismatch"
             elif planner_budget_s is None or planner_budget_s <= 0:
-                call_error = "m2_total_deadline_exhausted_before_planner_call"
+                call_error = f"{self.protocol.split('-', 1)[0]}_total_deadline_exhausted_before_planner_call"
             else:
                 request_timeout_s = planner_budget_s
 
         if not call_error:
             transport_policy = (
-                dict(PROTOCOL["llm_transport_policy"])
+                dict(deadline_protocol["llm_transport_policy"])
                 if self.strict_m2
                 else {
                     "id": "single-attempt",
@@ -167,21 +178,27 @@ class Planner:
             attempts = []
             maximum_attempts = 1 + int(transport_policy["application_max_retries"])
             for attempt_index in range(maximum_attempts):
-                if self.strict_m2:
-                    request_timeout_s = (
+                if strict_deadline:
+                    remaining_request_s = (
                         self._goal_deadline_monotonic
                         - time.monotonic()
                         - self._action_guard_s
                     )
+                    request_timeout_s = remaining_request_s
+                    if self.strict_m4:
+                        request_timeout_s = min(
+                            request_timeout_s,
+                            float(deadline_protocol["deadline_policy"]["llm_call_timeout_s"]),
+                        )
                     deadline_evidence["request_timeout_s"] = round(request_timeout_s, 3)
                     if request_timeout_s <= 0:
-                        call_error = "m2_total_deadline_exhausted_before_planner_retry"
+                        call_error = f"{self.protocol.split('-', 1)[0]}_total_deadline_exhausted_before_planner_retry"
                         break
                 chat_kwargs = {"response_format": {"type": "json_object"}}
                 if request_timeout_s is not None:
                     chat_kwargs["timeout_s"] = request_timeout_s
                 if self.strict_m2:
-                    chat_kwargs["extra_body"] = dict(PROTOCOL["llm"].get("extra_body", {}))
+                    chat_kwargs["extra_body"] = dict(deadline_protocol["llm"].get("extra_body", {}))
                 try:
                     response = self.llm.chat(messages, **chat_kwargs)
                     metadata = dict(getattr(self.llm, "last_call_metadata", {}) or {})
@@ -240,12 +257,12 @@ class Planner:
             }
 
         if (
-            self.strict_m2
+            strict_deadline
             and not call_error
             and self._goal_deadline_monotonic is not None
             and time.monotonic() >= self._goal_deadline_monotonic - self._action_guard_s
         ):
-            call_error = "m2_planner_response_missed_action_window"
+            call_error = f"{self.protocol.split('-', 1)[0]}_planner_response_missed_action_window"
             response = ""
 
         parse_error = ""
@@ -313,7 +330,11 @@ class Planner:
         self.last_call_evidence = {
             "type": "llm_planner_call",
             "schema_version": 1,
-            "planner_id": "llm-root-planner-v1" if self.strict_m2 else "llm-planner-v1",
+            "planner_id": (
+                "llm-root-planner-v1"
+                if self.strict_m2
+                else "llm-autonomous-planner-v1" if self.strict_m4 else "llm-planner-v1"
+            ),
             "protocol": self.protocol,
             "episode_id": self._episode_id,
             "call_id": call_id,

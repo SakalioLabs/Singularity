@@ -217,6 +217,36 @@ def test_bm011_rejects_deadline_overrun_and_post_deadline_action():
     print("PASS: BM-011 gate independently rejects deadline overrun")
 
 
+def test_bm011_rejects_missing_or_unordered_monotonic_event_time():
+    missing = _events()
+    plan = next(event for event in missing if event["type"] == "plan")
+    plan.pop("monotonic_s")
+    missing_report = evaluate_bm011_episode(missing, _result(), _preflight(), _manifest())
+    assert not missing_report["eligible"]
+    assert "active_event_monotonic_complete" in missing_report["issues"]
+    assert "no_post_deadline_execution" in missing_report["issues"]
+
+    unordered = _events()
+    action = next(event for event in unordered if event["type"] == "action")
+    action["monotonic_s"] = 99.0
+    unordered_report = evaluate_bm011_episode(unordered, _result(), _preflight(), _manifest())
+    assert not unordered_report["eligible"]
+    assert "active_event_monotonic_ordered" in unordered_report["issues"]
+
+    missing_deadline = _manifest()
+    missing_deadline.pop("episode_deadline_monotonic")
+    missing_deadline_report = evaluate_bm011_episode(
+        _events(),
+        _result(),
+        _preflight(),
+        missing_deadline,
+    )
+    assert not missing_deadline_report["eligible"]
+    assert "monotonic_runtime" in missing_deadline_report["issues"]
+    assert "episode_within_deadline" in missing_deadline_report["issues"]
+    print("PASS: BM-011 gate rejects missing or unordered monotonic event time")
+
+
 def test_bm011_rejects_scripted_goal_and_quarantined_skill():
     events = _events()
     auto_goal = next(event for event in events if event["type"] == "auto_goal")
@@ -241,5 +271,6 @@ if __name__ == "__main__":
     test_bm011_eligible_machine_state_evidence()
     test_bm011_rejects_active_reset_and_time_command()
     test_bm011_rejects_deadline_overrun_and_post_deadline_action()
+    test_bm011_rejects_missing_or_unordered_monotonic_event_time()
     test_bm011_rejects_scripted_goal_and_quarantined_skill()
     print("\nM4 protocol tests PASSED")

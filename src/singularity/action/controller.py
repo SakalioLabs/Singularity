@@ -27,6 +27,8 @@ class ActionController:
         self.backend = backend
         self.mapper = mapper or ActionMapper()
         self.action_policy = action_policy
+        self._episode_deadline_monotonic = None
+        self._action_timeout_limit_s = None
         self._action_handlers = {
             "walk_to": self._walk_to,
             "move_to": self._move_to,
@@ -42,13 +44,50 @@ class ActionController:
             "build_shelter_5x5": self._build_shelter_5x5,
         }
 
+    def set_episode_deadline(self, deadline_monotonic, action_timeout_limit_s: float = None):
+        """Bind action starts and transport waits to one absolute episode deadline."""
+        self._episode_deadline_monotonic = (
+            float(deadline_monotonic) if deadline_monotonic is not None else None
+        )
+        self._action_timeout_limit_s = (
+            max(0.0, float(action_timeout_limit_s))
+            if action_timeout_limit_s is not None
+            else None
+        )
+        setter = getattr(self.bot, "set_action_deadline", None)
+        if callable(setter):
+            setter(self._episode_deadline_monotonic, self._action_timeout_limit_s)
+
     def execute(self, action: dict, world_state: dict) -> dict:
         """Execute a single action with pre/post checks."""
         policy_decision = self._select_action_policy(action)
         command = self.mapper.map(action, policy_decision.backend)
         action_type = command.command
-        params = command.params
-        start_time = time.time()
+        params = dict(command.params)
+        command.params = params
+        started_monotonic = time.monotonic()
+        action_budget_s = self._remaining_action_budget_s(started_monotonic)
+        if (
+            self._episode_deadline_monotonic is not None
+            and (action_budget_s is None or action_budget_s < 0.001)
+        ):
+            return {
+                "success": False,
+                "error": "action budget exhausted before action",
+                "duration_ms": 0,
+                "action_type": action.get("type", "unknown"),
+                "backend": command.backend,
+                "backend_command": command.command,
+                "backend_params": params,
+                "control_policy": policy_decision.as_dict(),
+                "deadline_suppressed": True,
+                "accepted_within_episode_deadline": False,
+                "accepted_within_action_deadline": False,
+                "action_budget_s": 0.0,
+            }
+        if action_budget_s is not None:
+            params = self._bounded_action_params(action_type, params, action_budget_s)
+            command.params = params
 
         if not command.executable:
             return {
@@ -96,13 +135,30 @@ class ActionController:
             logger.error(f"Action {action_type} failed: {e}")
             result = {"success": False, "error": str(e)}
 
-        duration_ms = int((time.time() - start_time) * 1000)
+        ended_monotonic = time.monotonic()
+        duration_ms = int((ended_monotonic - started_monotonic) * 1000)
         result["duration_ms"] = duration_ms
         result["action_type"] = action.get("type", action_type)
         result["backend"] = command.backend
         result["backend_command"] = command.command
         result["backend_params"] = command.params
         result["control_policy"] = policy_decision.as_dict()
+        if action_budget_s is not None:
+            action_deadline_monotonic = started_monotonic + action_budget_s
+            accepted_episode = ended_monotonic < self._episode_deadline_monotonic
+            accepted_action = ended_monotonic < action_deadline_monotonic
+            result["action_budget_s"] = round(action_budget_s, 3)
+            result["action_deadline_monotonic"] = action_deadline_monotonic
+            result["accepted_within_episode_deadline"] = accepted_episode
+            result["accepted_within_action_deadline"] = accepted_action
+            if not accepted_episode or not accepted_action:
+                result["reported_success_before_deadline_check"] = bool(result.get("success"))
+                result["success"] = False
+                result["error"] = (
+                    "episode deadline exceeded during action"
+                    if not accepted_episode
+                    else "action deadline exceeded during action"
+                )
         if action_type in NAVIGATION_ACTIONS:
             reached = result.get("reached") is True
             result["navigation_reached"] = reached
@@ -110,6 +166,32 @@ class ActionController:
             if result["requires_replan"]:
                 result["replan_reason"] = "navigation_target_unreached"
         return result
+
+    def _remaining_action_budget_s(self, now_monotonic: float = None):
+        if self._episode_deadline_monotonic is None:
+            return None
+        now = time.monotonic() if now_monotonic is None else float(now_monotonic)
+        remaining = max(0.0, self._episode_deadline_monotonic - now)
+        if self._action_timeout_limit_s is not None:
+            remaining = min(remaining, self._action_timeout_limit_s)
+        return remaining
+
+    @staticmethod
+    def _bounded_action_params(action_type: str, params: dict, budget_s: float) -> dict:
+        bounded = dict(params)
+        budget_ms = max(1, int(max(0.0, budget_s) * 1000))
+        try:
+            requested_timeout = int(bounded.get("timeout_ms", budget_ms))
+        except (TypeError, ValueError):
+            requested_timeout = budget_ms
+        bounded["timeout_ms"] = max(1, min(requested_timeout, budget_ms))
+        if action_type in {"wait", "walk_to"}:
+            try:
+                requested_wait = int(bounded.get("ms", 1000))
+            except (TypeError, ValueError):
+                requested_wait = 1000
+            bounded["ms"] = max(1, min(requested_wait, budget_ms))
+        return bounded
 
     def _select_action_policy(self, action: dict) -> ActionPolicyDecision:
         if self.action_policy is None:

@@ -213,6 +213,7 @@ class Agent:
             self.skill_learning_ledger = SkillLearningLedger(config.skill_learning_ledger_path)
         self._active_skill_execution: dict = {}
         self._active_skill_advisory_hint = ""
+        self._episode_deadline_monotonic = None
         self._skill_fallback_goals: set[str] = set()
         self._applied_skill_fault_profiles: set[str] = set()
         self._skill_episode_start_index = 0
@@ -1889,7 +1890,13 @@ class Agent:
 
     # ── Autonomous mode (M4 + M5) ──────────────────────────────────────
 
-    def run_autonomous(self, max_goals: int = 10, max_cycles_per_goal: int = 80) -> dict:
+    def run_autonomous(
+        self,
+        max_goals: int = 10,
+        max_cycles_per_goal: int = 80,
+        max_duration_s: Optional[float] = None,
+        episode_deadline_monotonic: Optional[float] = None,
+    ) -> dict:
         """Run autonomously: generate survival goals, pursue them, explore when idle.
 
         This is the M4 (autonomous survival) + M5 (exploration) integration loop.
@@ -1898,11 +1905,85 @@ class Agent:
         goals_completed = 0
         goals_failed = 0
         total_cycles = 0
+        strict_m4 = str(getattr(self.config, "planner_protocol", "") or "") == "m4-fixed-v1"
+        deadline_policy = {}
+        max_total_cycles = None
+        if strict_m4:
+            from singularity.evaluation.m4_protocol import PROTOCOL as M4_PROTOCOL
+
+            deadline_policy = dict(M4_PROTOCOL["deadline_policy"])
+            protocol_timeout_s = float(deadline_policy["episode_timeout_s"])
+            requested_duration_s = (
+                float(max_duration_s)
+                if max_duration_s is not None
+                else protocol_timeout_s
+            )
+            max_duration_s = min(protocol_timeout_s, max(0.0, requested_duration_s))
+            max_goals = min(int(max_goals), int(M4_PROTOCOL["limits"]["max_autonomous_goals"]))
+            max_cycles_per_goal = min(
+                int(max_cycles_per_goal),
+                int(M4_PROTOCOL["limits"]["max_cycles_per_goal"]),
+            )
+            max_total_cycles = int(M4_PROTOCOL["limits"]["max_total_cycles"])
+        elif max_duration_s is not None:
+            max_duration_s = max(0.0, float(max_duration_s))
+
+        started_monotonic = time.monotonic()
+        if episode_deadline_monotonic is not None:
+            episode_deadline_monotonic = float(episode_deadline_monotonic)
+            if max_duration_s is not None:
+                episode_deadline_monotonic = min(
+                    episode_deadline_monotonic,
+                    started_monotonic + float(max_duration_s),
+                )
+        elif max_duration_s is not None:
+            episode_deadline_monotonic = started_monotonic + float(max_duration_s)
+        self._episode_deadline_monotonic = episode_deadline_monotonic
+        deadline_event_logged = False
+        episode_termination_reason = ""
+
+        def deadline_exceeded(phase: str) -> bool:
+            nonlocal deadline_event_logged, episode_termination_reason
+            if self._episode_deadline_monotonic is None:
+                return False
+            now = time.monotonic()
+            if now < self._episode_deadline_monotonic:
+                return False
+            episode_termination_reason = "episode_deadline"
+            if not deadline_event_logged:
+                elapsed = now - started_monotonic
+                self.session_logger.log("episode_deadline_exceeded", {
+                    "policy_id": str(deadline_policy.get("id") or "autonomous-episode-deadline-v1"),
+                    "phase": phase,
+                    "episode_deadline_monotonic": self._episode_deadline_monotonic,
+                    "elapsed_s": round(elapsed, 3),
+                    "max_duration_s": max_duration_s,
+                    "new_goal_suppressed": True,
+                    "new_action_suppressed": True,
+                    "skill_suppressed": True,
+                }, level="ERROR")
+                deadline_event_logged = True
+            return True
+
+        planner = getattr(self, "planner", None)
+        if hasattr(planner, "set_deadline"):
+            planner.set_deadline(self._episode_deadline_monotonic, 0.0)
+        action_controller = getattr(self, "action_controller", None)
+        if hasattr(action_controller, "set_episode_deadline"):
+            action_controller.set_episode_deadline(
+                self._episode_deadline_monotonic,
+                deadline_policy.get("action_timeout_s") if deadline_policy else None,
+            )
 
         logger.info("Starting autonomous survival mode")
         autonomous_start = {
             "max_goals": max_goals,
             "max_cycles_per_goal": max_cycles_per_goal,
+            "max_total_cycles": max_total_cycles,
+            "max_duration_s": max_duration_s,
+            "episode_started_monotonic": started_monotonic,
+            "episode_deadline_monotonic": self._episode_deadline_monotonic,
+            "deadline_policy_id": str(deadline_policy.get("id") or ""),
         }
         self.session_logger.log("autonomous_start", autonomous_start)
         self._write_memory_episode("autonomous_start", autonomous_start, source="autonomous")
@@ -1910,10 +1991,17 @@ class Agent:
         # Set base on first observation
         observation = self._observe()
         self.session_logger.log_observation(observation)
+        if deadline_exceeded("initial_observation"):
+            self.running = False
         pos = observation.get("position", {})
         self.explorer.set_base(pos.get("x", 0), pos.get("y", 64), pos.get("z", 0))
 
         while self.running and (goals_completed + goals_failed) < max_goals:
+            if deadline_exceeded("pre_goal"):
+                break
+            if max_total_cycles is not None and total_cycles >= max_total_cycles:
+                episode_termination_reason = "max_total_cycles"
+                break
             # Generate next goal from world state
             goal = self.goal_generator.next_goal(observation)
             goal = self._select_autonomous_goal(observation, goal)
@@ -1927,6 +2015,13 @@ class Agent:
             self.session_logger.log("auto_goal", goal_payload)
             self.session_logger.log_goal_start(goal)
             self._write_memory_episode("auto_goal", goal_payload, source="autonomous_goal")
+            if hasattr(planner, "start_episode"):
+                planner.start_episode(
+                    goal,
+                    str(getattr(self.session_logger, "session_id", "") or ""),
+                )
+            if hasattr(planner, "set_deadline"):
+                planner.set_deadline(self._episode_deadline_monotonic, 0.0)
 
             # Check if we should return to base (M5)
             should_ret, reason = self.explorer.should_return(
@@ -1934,6 +2029,8 @@ class Agent:
                 observation.get("inventory_count", 0)
             )
             if should_ret:
+                if deadline_exceeded("pre_return_to_base_action"):
+                    break
                 logger.info(f"[Explorer] Returning to base: {reason}")
                 return_dir = self.explorer.get_return_direction(observation.get("position", {}))
                 return_action = {
@@ -1961,6 +2058,9 @@ class Agent:
                         return_result["action_verification"] = action_verification
                 if action_selection:
                     return_result["action_candidate_selection"] = action_selection
+                if deadline_exceeded("post_return_to_base_action"):
+                    return_result["accepted_within_episode_deadline"] = False
+                    episode_termination_reason = "episode_deadline"
                 self._record_action_value(return_action, return_result, goal, action_verification)
                 observation = self._apply_action_feedback(
                     return_action,
@@ -1987,11 +2087,21 @@ class Agent:
             last_plan = {}
             termination_reason = ""
             while self.running and cycle < max_cycles_per_goal:
+                if deadline_exceeded("cycle_start"):
+                    termination_reason = "episode_deadline"
+                    break
+                if max_total_cycles is not None and total_cycles >= max_total_cycles:
+                    termination_reason = "max_total_cycles"
+                    episode_termination_reason = "max_total_cycles"
+                    break
                 cycle += 1
                 total_cycles += 1
                 try:
                     observation = self._observe()
                     self.session_logger.log_observation(observation)
+                    if deadline_exceeded("post_observation"):
+                        termination_reason = "episode_deadline"
+                        break
                     self.explorer.record_position(observation.get("position", {}))
                     self._write_memory_context(
                         {"auto_cycle": total_cycles, "goal": goal[:80]},
@@ -2001,6 +2111,9 @@ class Agent:
                     plan = self._think(observation, override_goal=goal)
                     last_plan = plan
                     self.session_logger.log_plan(plan)
+                    if deadline_exceeded("post_planner"):
+                        termination_reason = "episode_deadline"
+                        break
                     self._accept_planned_tasks()
                     self._record_task_continuity(
                         goal,
@@ -2027,6 +2140,9 @@ class Agent:
                         observation,
                         {"cycle": total_cycles, "mode": "autonomous", "phase": "pre_plan"},
                     )
+                    if deadline_exceeded("post_goal_verifier"):
+                        termination_reason = "episode_deadline"
+                        break
                     if verified:
                         goal_success = True
                         if active_task:
@@ -2040,6 +2156,9 @@ class Agent:
                             plan,
                             {"cycle": total_cycles, "mode": "autonomous", "phase": "planner_complete"},
                         )
+                        if deadline_exceeded("post_completion_verifier"):
+                            termination_reason = "episode_deadline"
+                            break
                         if accepted:
                             goal_success = True
                             if active_task:
@@ -2084,6 +2203,9 @@ class Agent:
                     for action in actions:
                         if not self.running:
                             break
+                        if deadline_exceeded("pre_action"):
+                            termination_reason = "episode_deadline"
+                            break
                         interrupted, observation = self._handle_runtime_interrupt(
                             observation,
                             goal,
@@ -2112,6 +2234,9 @@ class Agent:
                                 result["action_verification"] = action_verification
                         if action_selection:
                             result["action_candidate_selection"] = action_selection
+                        if deadline_exceeded("post_action"):
+                            result["accepted_within_episode_deadline"] = False
+                            termination_reason = "episode_deadline"
                         self._record_action_value(action, result, goal, action_verification)
                         observation = self._apply_action_feedback(
                             action,
@@ -2132,6 +2257,9 @@ class Agent:
                             source="autonomous_action",
                         )
 
+                        if termination_reason == "episode_deadline":
+                            break
+
                         if result.get("success"):
                             self._record_skill_usage(action, True, result)
                             verified, verification = self._goal_is_verified(
@@ -2145,6 +2273,9 @@ class Agent:
                                     "after_observation": observation,
                                 }],
                             )
+                            if deadline_exceeded("post_action_goal_verifier"):
+                                termination_reason = "episode_deadline"
+                                break
                             if verified:
                                 goal_success = True
                                 break
@@ -2179,6 +2310,8 @@ class Agent:
 
                     if goal_success:
                         break
+                    if termination_reason in {"episode_deadline", "max_total_cycles"}:
+                        break
 
                     if observation.get("health", 20) < self.config.health_critical_threshold:
                         logger.warning("[Autonomous] Health critical - emergency survival")
@@ -2193,10 +2326,22 @@ class Agent:
                         termination_reason = "episode_early_abort"
                         break
 
-                    time.sleep(0.5)
+                    sleep_s = 0.5
+                    if self._episode_deadline_monotonic is not None:
+                        sleep_s = min(
+                            sleep_s,
+                            max(0.0, self._episode_deadline_monotonic - time.monotonic()),
+                        )
+                    if sleep_s <= 0 or deadline_exceeded("pre_cycle_wait"):
+                        termination_reason = "episode_deadline"
+                        break
+                    time.sleep(sleep_s)
                 except Exception as e:
                     logger.error(f"Error in autonomous cycle {total_cycles}: {e}")
                     self.session_logger.log_error(str(e), {"cycle": total_cycles})
+                    if deadline_exceeded("cycle_exception"):
+                        termination_reason = "episode_deadline"
+                        break
 
             if goal_success:
                 goals_completed += 1
@@ -2263,11 +2408,31 @@ class Agent:
                 self._finalize_skill_learning_episode(goal, False, observation, outcome)
                 self.curriculum.record_goal_outcome(goal, False, cycle)
 
+            if episode_termination_reason:
+                break
+
+        ended_monotonic = time.monotonic()
+        elapsed_s = ended_monotonic - started_monotonic
+        if (
+            self._episode_deadline_monotonic is not None
+            and ended_monotonic >= self._episode_deadline_monotonic
+        ):
+            deadline_exceeded("autonomous_finalize")
         result = {
             "mode": "autonomous",
             "goals_completed": goals_completed,
             "goals_failed": goals_failed,
             "total_cycles": total_cycles,
+            "termination_reason": episode_termination_reason or "max_goals_or_stopped",
+            "elapsed_s": round(elapsed_s, 3),
+            "max_duration_s": max_duration_s,
+            "episode_started_monotonic": started_monotonic,
+            "episode_ended_monotonic": ended_monotonic,
+            "episode_deadline_monotonic": self._episode_deadline_monotonic,
+            "deadline_eligible": bool(
+                self._episode_deadline_monotonic is None
+                or ended_monotonic < self._episode_deadline_monotonic
+            ),
             "landmarks_discovered": len(self.explorer.landmarks),
             "curriculum": self.curriculum.summary(),
             "summary": self.session_logger.get_summary(),
@@ -2275,12 +2440,31 @@ class Agent:
         self.session_logger.log("autonomous_end", result)
         self._write_memory_episode("autonomous_end", result, source="autonomous")
         logger.info(f"Autonomous mode ended: {goals_completed} completed, {goals_failed} failed, {total_cycles} total cycles")
+        if hasattr(planner, "set_deadline"):
+            planner.set_deadline(None, 0.0)
+        if hasattr(action_controller, "set_episode_deadline"):
+            action_controller.set_episode_deadline(None, None)
+        self._episode_deadline_monotonic = None
         return result
 
     # ── Thinking / Planning ────────────────────────────────────────────
 
+    def _episode_deadline_reached(self, now_monotonic: float = None) -> bool:
+        deadline = getattr(self, "_episode_deadline_monotonic", None)
+        if deadline is None:
+            return False
+        now = time.monotonic() if now_monotonic is None else float(now_monotonic)
+        return now >= float(deadline)
+
     def _think(self, observation: dict, override_goal: str = None) -> dict:
         goal = override_goal or self.current_goal or "explore"
+        if self._episode_deadline_reached():
+            return {
+                "status": "blocked",
+                "reasoning": "Episode deadline exhausted before planning or skill execution",
+                "actions": [],
+                "deadline_suppressed": True,
+            }
         self._active_skill_advisory_hint = ""
         root_required = bool(getattr(self.config, "require_llm_root_plan", False))
         learned_plan = None
@@ -3815,6 +3999,8 @@ class Agent:
         context: dict = None,
     ) -> tuple[Optional[dict], Optional[dict]]:
         """Verify a candidate action before spending a live bot command on it."""
+        if self._episode_deadline_reached():
+            return self._deadline_action_rejection(action, "before_action_verifier")
         if not getattr(getattr(self, "config", None), "enable_action_verification", True):
             return None, None
         verifier = getattr(self, "action_verifier", None)
@@ -3826,6 +4012,9 @@ class Agent:
         except Exception as e:
             logger.warning(f"Action verification failed: {e}")
             return None, None
+
+        if self._episode_deadline_reached():
+            return self._deadline_action_rejection(action, "after_action_verifier")
 
         verification = decision.as_dict() if hasattr(decision, "as_dict") else dict(decision)
         payload = {
@@ -3849,6 +4038,27 @@ class Agent:
             }
             return verification, result
         return verification, None
+
+    def _deadline_action_rejection(self, action: dict, phase: str) -> tuple[dict, dict]:
+        action_type = action.get("type", "unknown") if isinstance(action, dict) else "unknown"
+        verification = {
+            "action_type": action_type,
+            "status": "reject",
+            "score": 0.0,
+            "reason": "episode deadline exhausted",
+            "deadline_suppressed": True,
+            "phase": phase,
+        }
+        return verification, {
+            "success": False,
+            "error": "Action verification rejected: episode deadline exhausted",
+            "action_type": action_type,
+            "duration_ms": 0,
+            "action_verification": verification,
+            "verification_blocked": True,
+            "deadline_suppressed": True,
+            "accepted_within_episode_deadline": False,
+        }
 
     def _apply_controlled_skill_fault(self, action: dict):
         """Inject one allowlisted verifier-visible failure in research-only runs."""
@@ -4952,6 +5162,8 @@ class Agent:
         recent_actions: list[dict] = None,
     ) -> tuple[bool, object]:
         """Return whether observation proves the goal, logging decisive checks."""
+        if self._episode_deadline_reached():
+            return False, self._deadline_goal_verification(goal, context, "before_goal_verifier")
         if not getattr(getattr(self, "config", None), "enable_goal_verification", True):
             return False, None
         if not hasattr(self, "goal_verifier"):
@@ -4965,9 +5177,28 @@ class Agent:
             )
         else:
             verification = self.goal_verifier.verify(goal, observation, recent_actions=recent_actions or [])
+            if self._episode_deadline_reached():
+                return False, self._deadline_goal_verification(goal, context, "after_goal_verifier")
             if verification.achieved:
                 self._log_goal_verification(verification, {**(context or {}), "accepted": True})
         return verification.achieved, verification
+
+    def _deadline_goal_verification(self, goal: str, context: dict = None, phase: str = ""):
+        from singularity.core.goal_verifier import GoalVerification
+
+        verification = GoalVerification(
+            goal=goal,
+            achieved=False,
+            status="failed",
+            confidence=1.0,
+            missing=["episode deadline exhausted"],
+            matched_rules=["m4:episode_deadline"],
+        )
+        self._log_goal_verification(
+            verification,
+            {**(context or {}), "accepted": False, "deadline_suppressed": True, "phase": phase},
+        )
+        return verification
 
     def _m2_goal_verification(self, goal: str, task_id: str):
         from singularity.core.goal_verifier import GoalVerification
@@ -5022,6 +5253,8 @@ class Agent:
         recent_actions: list[dict] = None,
     ) -> tuple[bool, object]:
         """Gate planner-reported completion through deterministic verification."""
+        if self._episode_deadline_reached():
+            return False, self._deadline_goal_verification(goal, context, "before_completion_verifier")
         if str(getattr(self.config, "m2_task_id", "") or ""):
             return self._goal_is_verified(
                 goal,
@@ -5038,6 +5271,8 @@ class Agent:
         if not hasattr(self, "goal_verifier"):
             return True, None
         verification = self.goal_verifier.verify(goal, observation, recent_actions=recent_actions or [])
+        if self._episode_deadline_reached():
+            return False, self._deadline_goal_verification(goal, context, "after_completion_verifier")
         accepted = verification.achieved or verification.status == "unknown"
         payload = {
             **(context or {}),
@@ -5199,6 +5434,14 @@ class Agent:
         for idx, correction_action in enumerate(sequence):
             if not isinstance(correction_action, dict):
                 continue
+            if self._episode_deadline_reached():
+                self._log_policy_intervention("failed", {
+                    "kind": "failure_correction",
+                    "skill": skill.name,
+                    "reason": "episode_deadline",
+                    "step": idx,
+                })
+                return False, current_observation
             interrupted, current_observation = self._handle_runtime_interrupt(
                 current_observation,
                 goal,
@@ -6216,6 +6459,9 @@ class Agent:
         self._write_memory_episode("runtime_interrupt", payload, source="runtime")
 
         if decision.emergency_action:
+            if self._episode_deadline_reached():
+                payload["emergency_action_suppressed"] = "episode_deadline"
+                return True, observation
             before_emergency_observation = observation
             result = self.action_controller.execute(decision.emergency_action, observation)
             self._write_memory_episode(

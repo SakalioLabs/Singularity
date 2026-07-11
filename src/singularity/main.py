@@ -699,6 +699,13 @@ def main():
     _add_runtime_profile_args(auto_parser)
     auto_parser.add_argument("--max-goals", type=int, default=10, help="Maximum goals to pursue")
     auto_parser.add_argument("--max-cycles", type=int, default=80, help="Max cycles per goal")
+    auto_parser.add_argument("--max-duration", type=float, default=None, help="Absolute autonomous episode duration limit in seconds")
+    auto_parser.add_argument(
+        "--planner-protocol",
+        choices=["m4-fixed-v1"],
+        default="",
+        help="Bind autonomous planning and execution to a fixed protocol",
+    )
     auto_parser.add_argument("--host", type=str, default="localhost")
     auto_parser.add_argument("--port", type=int, default=25565)
     auto_parser.add_argument("--username", type=str, default="Singularity")
@@ -6360,6 +6367,7 @@ def main():
         m2_arm=getattr(args, "m2_arm", "default"),
         m2_pair_id=getattr(args, "m2_pair_id", ""),
         m2_replicate_id=getattr(args, "m2_replicate_id", ""),
+        planner_protocol=getattr(args, "planner_protocol", ""),
         enable_goal_critic=profile_bool_arg(args, "goal_critic", runtime_profiles, "enable_goal_critic", "goal_critic"),
         goal_critic_gate_paths=merge_arg_profile_list(args, "goal_critic_gate", runtime_profiles, "goal_critic_gate_paths"),
         enforce_memory_write_gate=profile_bool_arg(args, "enforce_memory_write_gate", runtime_profiles, "enforce_memory_write_gate", "memory_write_gate"),
@@ -6875,6 +6883,7 @@ def main():
             result = agent.run_autonomous(
                 max_goals=getattr(args, "max_goals", 10),
                 max_cycles_per_goal=getattr(args, "max_cycles", 80),
+                max_duration_s=getattr(args, "max_duration", None),
             )
             print(json.dumps(result, indent=2, default=str))
         finally:

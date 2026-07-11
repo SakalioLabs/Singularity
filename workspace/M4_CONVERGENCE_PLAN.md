@@ -21,19 +21,19 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 
 | Gate | Requirement | State |
 |---|---|---|
-| G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | in_progress |
-| G1 | Deterministic survival-goal priority cases | pending |
+| G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed |
+| G1 | Deterministic survival-goal priority cases | in_progress |
 | G2 | One live preparation episode with machine-visible progress | locked |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | locked |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | locked |
 | G5 | First eligible survival-to-dawn episode | locked |
 | G6 | Three independent fresh eligible episodes | locked |
 
-G0 currently has a pinned protocol and passing offline anti-forgery/deadline eligibility tests. It remains in progress until the autonomous loop, planner, action controller, and post-run evidence gate share `episode_deadline_monotonic`.
+G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
 
-## First Hypothesis
+## Current Hypothesis
 
-The earliest blocker is deadline ownership: `run_goal` has M2 goal-level checks, but `run_autonomous` has no episode-level monotonic deadline and does not bind Planner/action budgets to one absolute value. The next change is limited to deadline propagation and suppression. No live BM-011 episode may run before its deterministic tests pass.
+The earliest blocker is deterministic autonomous goal priority. The next change is limited to G1 fixed-state tests and the smallest required GoalGenerator or Curriculum correction. No live BM-011 episode may run until daytime-empty, daytime-resourced, dusk-without-shelter, dusk-with-shelter, low-food, low-health, hostile-nearby, and repeated-goal cases all pass.
 
 ## Evidence Discipline
 

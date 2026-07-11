@@ -14,6 +14,10 @@ MAX_RETRIES = 3
 RETRY_BASE_DELAY = 1.0  # seconds, exponential backoff
 ACTION_RESPONSE_GRACE_SECONDS = 5.0
 MAX_ACTION_RESPONSE_TIMEOUT_SECONDS = 370.0
+ACTION_COMMANDS = frozenset({
+    "walk_to", "move_to", "look_at", "dig", "place", "craft", "attack",
+    "equip", "use_item", "chat", "build_shelter_5x5",
+})
 
 
 class BotBridge:
@@ -31,6 +35,18 @@ class BotBridge:
         self._bridge_host = config.bridge_host
         self._bridge_port = config.bridge_port
         self._retry_count = 0
+        self._action_deadline_monotonic = None
+        self._action_timeout_limit_s = None
+
+    def set_action_deadline(self, deadline_monotonic, action_timeout_limit_s: float = None):
+        self._action_deadline_monotonic = (
+            float(deadline_monotonic) if deadline_monotonic is not None else None
+        )
+        self._action_timeout_limit_s = (
+            max(0.0, float(action_timeout_limit_s))
+            if action_timeout_limit_s is not None
+            else None
+        )
 
     def connect(self) -> bool:
         """Connect to the Node.js bot bridge with retry logic."""
@@ -63,6 +79,8 @@ class BotBridge:
 
     def _send_command(self, command: str, params: dict = None) -> dict:
         """Send a command to the Node.js bot with retry logic."""
+        if getattr(self, "_action_deadline_monotonic", None) is not None:
+            return self._send_command_single(command, params)
         if not self._connected or not self._socket:
             return {"success": False, "error": "Not connected to bot bridge"}
 
@@ -174,10 +192,31 @@ class BotBridge:
         if not self._connected or not self._socket:
             return {"success": False, "error": "Not connected to bot bridge"}
         params = params or {}
+        deadline_bound = getattr(self, "_action_deadline_monotonic", None) is not None
+        remaining_s = self._remaining_action_time_s() if deadline_bound else None
+        if remaining_s is not None and remaining_s <= 0:
+            return {
+                "success": False,
+                "error": "episode deadline exhausted before bridge command",
+                "deadline_suppressed": True,
+                "command_replayed": False,
+            }
         msg = json.dumps({"command": command, "params": params}) + "\n"
         active_socket = self._socket
         previous_timeout = active_socket.gettimeout()
         response_timeout = self._single_response_timeout(command, params, previous_timeout)
+        if remaining_s is not None:
+            response_timeout = min(response_timeout, remaining_s)
+        action_timeout_limit_s = getattr(self, "_action_timeout_limit_s", None)
+        if action_timeout_limit_s is not None and command in ACTION_COMMANDS:
+            response_timeout = min(response_timeout, action_timeout_limit_s)
+        if response_timeout <= 0:
+            return {
+                "success": False,
+                "error": "action response budget exhausted before bridge action",
+                "deadline_suppressed": True,
+                "command_replayed": False,
+            }
         try:
             active_socket.settimeout(response_timeout)
             active_socket.sendall(msg.encode("utf-8"))
@@ -191,19 +230,38 @@ class BotBridge:
                     break
             return self._decode_response(command, response)
         except (socket.timeout, ConnectionError, BrokenPipeError) as e:
-            logger.warning(f"Single-shot command '{command}' failed: {e}; reconnecting without replay")
-            self._reconnect()
+            if deadline_bound:
+                logger.warning(
+                    f"Deadline-bound command '{command}' failed: {e}; "
+                    "returning without replay or synchronous reconnect"
+                )
+                try:
+                    active_socket.close()
+                except Exception:
+                    pass
+                if self._socket is active_socket:
+                    self._connected = False
+            else:
+                logger.warning(f"Single-shot command '{command}' failed: {e}; reconnecting without replay")
+                self._reconnect()
             return {
                 "success": False,
                 "error": str(e),
                 "command_replayed": False,
-                "bridge_reconnected": self._connected,
+                "bridge_reconnected": self._connected if not deadline_bound else False,
+                "deadline_bound": deadline_bound,
             }
         except Exception as e:
             return {"success": False, "error": str(e), "command_replayed": False}
         finally:
             if self._connected and self._socket is active_socket:
                 active_socket.settimeout(previous_timeout)
+
+    def _remaining_action_time_s(self):
+        deadline = getattr(self, "_action_deadline_monotonic", None)
+        if deadline is None:
+            return None
+        return max(0.0, deadline - time.monotonic())
 
     @staticmethod
     def _single_response_timeout(command: str, params: dict, previous_timeout: float = None) -> float:

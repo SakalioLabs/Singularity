@@ -23,9 +23,11 @@ class SessionLogger:
 
     def log(self, event_type: str, data: dict, level: str = "INFO"):
         """Append one structured event to the session log."""
+        now_wall = time.time()
         entry = {
-            "ts": time.time(),
-            "elapsed_s": round(time.time() - self.start_time, 2),
+            "ts": now_wall,
+            "monotonic_s": time.monotonic(),
+            "elapsed_s": round(now_wall - self.start_time, 2),
             "session": self.session_id,
             "type": event_type,
             "level": level,

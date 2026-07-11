@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-11T07:08:21.9236446Z",
+  "generated_at": "2026-07-11T07:44:19.1506314Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a44723f6bd86110a1a5d0ead3378850cd906f9d272c27f3f7fed5fa87db7d1ce",
-  "readiness": "review",
-  "decision": "hold_live_bm011_until_deadline_runtime_is_shared",
+  "readiness": "approved",
+  "decision": "allow_g1_offline_goal_priority_validation",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -15,21 +15,50 @@
     },
     {
       "name": "planner_shared_deadline",
-      "status": "pending"
+      "status": "pass",
+      "evidence": "tests/test_m4_deadline.py"
+    },
+    {
+      "name": "inflight_planner_return_suppressed",
+      "status": "pass",
+      "evidence": "tests/test_m4_deadline.py"
+    },
+    {
+      "name": "verifier_shared_deadline",
+      "status": "pass",
+      "evidence": "tests/test_m4_deadline.py"
     },
     {
       "name": "action_shared_deadline",
-      "status": "pending"
+      "status": "pass",
+      "evidence": "tests/test_m4_deadline.py"
+    },
+    {
+      "name": "bridge_deadline_bound_commands_single_attempt",
+      "status": "pass",
+      "evidence": "tests/test_m4_deadline.py"
     },
     {
       "name": "autonomous_loop_shared_deadline",
-      "status": "pending"
+      "status": "pass",
+      "evidence": "tests/test_m4_deadline.py"
+    },
+    {
+      "name": "session_monotonic_event_time",
+      "status": "pass",
+      "evidence": "tests/test_m4_deadline.py"
     },
     {
       "name": "independent_duration_overrun_rejection",
       "status": "pass",
       "evidence": "tests/test_m4_protocol.py"
+    },
+    {
+      "name": "missing_or_unordered_event_time_rejection",
+      "status": "pass",
+      "evidence": "tests/test_m4_protocol.py"
     }
   ],
+  "g0_passed": true,
   "live_episode_count": 0
 }
