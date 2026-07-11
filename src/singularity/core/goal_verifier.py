@@ -11,6 +11,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 
+from singularity.evaluation.m4_shelter import is_machine_verified_shelter
+
 logger = logging.getLogger("singularity.goal_verifier")
 
 
@@ -461,6 +463,26 @@ class GoalVerifier:
         goal_lower = goal.lower()
         if "shelter" not in goal_lower and "nightfall" not in goal_lower:
             return None
+        if "shelter_verification" in observation:
+            report = observation.get("shelter_verification")
+            report = report if isinstance(report, dict) else {}
+            achieved = is_machine_verified_shelter(report)
+            issues = [str(issue) for issue in report.get("issues", []) if str(issue)]
+            return GoalVerification(
+                goal=goal,
+                achieved=achieved,
+                status="achieved" if achieved else "failed",
+                confidence=1.0,
+                evidence=(
+                    [
+                        f"machine shelter verifier {report.get('verifier_id')} passed",
+                        f"strategy={report.get('strategy')}",
+                    ]
+                    if achieved else []
+                ),
+                missing=[] if achieved else (issues or ["machine shelter verification did not pass"]),
+                matched_rules=["world:m4_machine_shelter"],
+            )
         flags = set(str(flag).lower() for flag in observation.get("flags", []))
         structures = observation.get("structures", {}) if isinstance(observation.get("structures", {}), dict) else {}
         placed_blocks = observation.get("placed_blocks", []) or []

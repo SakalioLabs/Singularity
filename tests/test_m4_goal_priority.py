@@ -9,6 +9,11 @@ from singularity.core.goal_generator import GoalGenerator
 from singularity.core.agent import Agent
 from singularity.core.config import Config
 from singularity.core.task_system import TaskStatus, TaskSystem
+from singularity.evaluation.m4_shelter import (
+    M4_SHELTER_CONTRACT_SHA256,
+    M4_SHELTER_REQUIRED_CHECKS,
+    M4_SHELTER_VERIFIER_ID,
+)
 
 
 def _observation(**overrides):
@@ -25,9 +30,24 @@ def _observation(**overrides):
 
 def _verified_shelter():
     return {
+        "type": "m4_shelter_state_verification",
+        "verifier_id": M4_SHELTER_VERIFIER_ID,
+        "contract_sha256": M4_SHELTER_CONTRACT_SHA256,
         "passed": True,
         "source": "machine_state",
         "safe_state": True,
+        "checks": [{"name": "machine_snapshot", "passed": True}] + [
+            {"name": name, "passed": True}
+            for name in M4_SHELTER_REQUIRED_CHECKS
+        ],
+        "issues": [],
+        "episode_block_delta": {"required_position_count": 9, "matched_position_count": 9},
+        "coordinate_evidence": {
+            "entrance": {
+                "state": "fully_sealed",
+                "sealed_boundary_columns": [{}, {}, {}, {}],
+            }
+        },
     }
 
 

@@ -24,8 +24,8 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed |
 | G1 | Deterministic survival-goal priority cases | passed |
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
-| G3 | Machine-checkable shelter or approved natural safe-state verification | ready |
-| G4 | Hostile, health, hunger, dusk, and night interrupt continuity | locked |
+| G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
+| G4 | Hostile, health, hunger, dusk, and night interrupt continuity | ready |
 | G5 | First eligible survival-to-dawn episode | locked |
 | G6 | Three independent fresh eligible episodes | locked |
 
@@ -33,13 +33,32 @@ G0 passed offline validation. The autonomous loop, planner, verifier, skill/acti
 
 G1 passed offline validation. GoalGenerator and Curriculum preserve the fixed order of immediate threat, critical health, hunger/food, shelter preparation, night safety maintenance, and tool/resource progression. Shelter safety requires machine-state verification, and every `auto_goal` event carries source, reason, priority, and priority class.
 
+G2 passed in Probe 6. The Agent gained `oak_log:1` and `dark_oak_sapling:1` before dusk at world time 9952 under the fixed live protocol, with all 32 real Planner calls schema-valid and the absolute deadline intact.
+
+G3 passed offline validation. `m4-sealed-cell-shelter-verifier-v1` consumes a complete 36-coordinate Mineflayer snapshot and accepts only a solid floor, two passable interior cells, four two-block-high full-block wall columns, a full-block roof, no hostile inside, complete coordinate evidence, and all nine structural positions attributed to successful placements in the current episode. No natural safe-point strategy is approved in this baseline.
+
 ## Current Hypothesis
 
-The M4 planning-status empty-plan hypothesis is confirmed and closed by the sixth G2 probe. All 32 real Planner calls were schema-valid, every plan passed the M4 plan-envelope check, no `empty_plan` occurred, and the next-cycle `planning_actions_missing` recovery path was not needed. The episode acquired `oak_log:1` and `dark_oak_sapling:1` before dusk at world time 9952, so G2 passed for the first time and G3 is unlocked.
+The G3 hypothesis is confirmed offline: a strong shelter baseline can be accepted without prose, flags, visual claims, or a Planner self-report by combining a bounded raw world snapshot with observed placement deltas from the current episode. The verifier rejects missing walls, missing cover, unsafe or nonstandable interiors, an internal hostile, truncated snapshots, partial provenance, spoofed machine claims, and reports missing any pinned check.
 
 The earliest unrecovered runtime transition is now session event index 138 at monotonic 256257.687. For cycle 6 of `Gather 6 oak logs for tools and shelter`, Planner call `llm-7f64b5bbb62f4bc8` returned a schema-valid planning envelope whose `dig` action used alias parameters `block_name` plus nested `position`. The canonical primitive requires top-level `x`, `y`, and `z`, with optional `block`, so ActionVerifier rejected the action without execution. Inventory remained `oak_log:1` and `dark_oak_sapling:1` while world time advanced from 9932 to 9952.
 
-Later evidence does not displace this first transition. Seventeen alias-style `dig` actions were rejected in total; the first earlier rejection recovered through a valid `move_to` and `dig`, but all 16 rejections from event 138 onward were unrecovered. Twenty failed actions were reflection-suppressed with zero legacy reflection writes, and 11 unique task-deadline interrupts received 11 matching recoveries while terminalizing 96 unique expired tasks. The retained runtime hypothesis is `planner_action_parameter_grounding`, but gate order now requires offline G3 shelter-verifier work first. No further live episode or action-grounding patch is authorized until that verifier gate is ready.
+Later evidence does not displace this first transition. Seventeen alias-style `dig` actions were rejected in total; the first earlier rejection recovered through a valid `move_to` and `dig`, but all 16 rejections from event 138 onward were unrecovered. Twenty failed actions were reflection-suppressed with zero legacy reflection writes, and 11 unique task-deadline interrupts received 11 matching recoveries while terminalizing 96 unique expired tasks. The retained runtime hypothesis is `planner_action_parameter_grounding`, but gate order now requires G4 interrupt-continuity validation before any new G5 live attempt. G3 made no claim about that later runtime blocker and ran no live episode.
+
+## G3 Offline Evidence
+
+- Verifier: `m4-sealed-cell-shelter-verifier-v1`
+- Contract SHA-256: `5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f`
+- Strategy: `sealed_cell_v1`; one standable interior cell, four two-block-high sealed wall columns, and one full-block roof
+- Machine input: exact 3x3x4 Mineflayer snapshot, 36 unique block coordinates, player position/cell, collision state, and nearby hostile positions
+- Provenance: all eight wall blocks and the roof must match successful observed placement deltas from the current episode; pre-existing structures and partial attribution fail
+- Path-risk rule: complete local collision enclosure plus overhead cover and no hostile in the interior cell; an unproven aperture fails closed
+- Entrance evidence: all four boundary columns carry lower/upper coordinates and are recorded as fully sealed; exit requires a later controlled removal
+- Natural alternatives: none approved in this baseline
+- Runtime wiring: Agent records observed `place`, `dig`, and bounded-template deltas, attaches the report to every strict-M4 observation, logs only state changes, and sends a compact decision to Planner
+- Acceptance wiring: GoalGenerator and GoalVerifier require the pinned verifier ID, contract hash, all checks, empty issues, 9/9 placement attribution, and sealed coordinate evidence
+- Offline tests: `tests/test_m4_shelter.py` and `tests/test_bot_server_m4_protocol.js`
+- Live evidence: none; G3 is an offline deterministic gate and does not count toward BM-011
 
 ## G2 Live Evidence
 

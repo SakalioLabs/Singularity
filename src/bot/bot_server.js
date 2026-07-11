@@ -53,6 +53,13 @@ const M4_PROTOCOL_PATH = path.resolve(__dirname, '..', 'singularity', 'data', 'm
 const M4_PROTOCOL_BYTES = fs.readFileSync(M4_PROTOCOL_PATH);
 const M4_PROTOCOL = JSON.parse(M4_PROTOCOL_BYTES.toString('utf8'));
 const M4_PROTOCOL_SHA256 = crypto.createHash('sha256').update(M4_PROTOCOL_BYTES).digest('hex');
+const HOSTILE_ENTITY_NAMES = new Set([
+    'blaze', 'bogged', 'breeze', 'cave_spider', 'creeper', 'drowned', 'elder_guardian',
+    'endermite', 'evoker', 'ghast', 'guardian', 'hoglin', 'husk', 'magma_cube',
+    'phantom', 'piglin_brute', 'pillager', 'ravager', 'shulker', 'silverfish',
+    'skeleton', 'slime', 'spider', 'stray', 'vex', 'vindicator', 'warden', 'witch',
+    'wither', 'wither_skeleton', 'zoglin', 'zombie', 'zombie_villager', 'zombified_piglin',
+]);
 
 let bot = null;
 let botReady = false;
@@ -780,6 +787,147 @@ function compactPosition(position) {
         x: Number(position.x),
         y: Number(position.y),
         z: Number(position.z),
+    };
+}
+
+function entityName(entity) {
+    return String(entity?.name || entity?.mobType || entity?.displayName || entity?.type || 'unknown')
+        .trim()
+        .toLowerCase()
+        .replace(/^minecraft:/, '')
+        .replace(/\s+/g, '_');
+}
+
+function isHostileEntity(entity) {
+    const kind = String(entity?.kind || '').toLowerCase();
+    return Boolean(
+        entity?.hostile === true ||
+        entity?.type === 'hostile' ||
+        kind.includes('hostile') ||
+        HOSTILE_ENTITY_NAMES.has(entityName(entity))
+    );
+}
+
+function shelterBlockState(activeBot, position) {
+    const block = activeBot?.blockAt ? activeBot.blockAt(position) : null;
+    const name = String(block?.name || 'air');
+    const type = Number(block?.type || 0);
+    const collision = String(block?.boundingBox || ((type === 0 || name === 'air') ? 'empty' : 'block'));
+    const solid = type !== 0 && name !== 'air' && collision === 'block';
+    return {
+        name,
+        type,
+        position: compactPosition(position),
+        collision,
+        solid,
+        passable: collision === 'empty',
+    };
+}
+
+function createShelterStateHandler(getState = () => ({ bot, botReady })) {
+    return () => {
+        const state = getState() || {};
+        const activeBot = state.bot;
+        if (!state.botReady || !activeBot?.entity?.position || typeof activeBot.blockAt !== 'function') {
+            return {
+                success: false,
+                type: 'm4_shelter_machine_snapshot',
+                source: 'mineflayer_world_state',
+                error: 'bot is not ready for shelter-state verification',
+            };
+        }
+        const playerPosition = compactPosition(activeBot.entity.position);
+        const playerCell = {
+            x: Math.floor(playerPosition.x),
+            y: Math.floor(playerPosition.y),
+            z: Math.floor(playerPosition.z),
+        };
+        const blocks = [];
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 2; dy++) {
+                for (let dz = -1; dz <= 1; dz++) {
+                    blocks.push(shelterBlockState(
+                        activeBot,
+                        new Vec3(playerCell.x + dx, playerCell.y + dy, playerCell.z + dz),
+                    ));
+                }
+            }
+        }
+        const nearbyHostiles = [];
+        for (const [id, entity] of Object.entries(activeBot.entities || {})) {
+            if (entity === activeBot.entity || !entity?.position || !isHostileEntity(entity)) continue;
+            const distance = activeBot.entity.position.distanceTo(entity.position);
+            if (!Number.isFinite(distance) || distance > 16) continue;
+            const position = compactPosition(entity.position);
+            nearbyHostiles.push({
+                id: Number(id),
+                name: entityName(entity),
+                position,
+                cell: {
+                    x: Math.floor(position.x),
+                    y: Math.floor(position.y),
+                    z: Math.floor(position.z),
+                },
+                distance,
+            });
+        }
+        nearbyHostiles.sort((left, right) => left.distance - right.distance);
+        return {
+            success: true,
+            type: 'm4_shelter_machine_snapshot',
+            schema_version: 1,
+            source: 'mineflayer_world_state',
+            strategy_input: 'sealed_cell_v1',
+            player_position: playerPosition,
+            player_cell: playerCell,
+            bounds: {
+                min: { x: playerCell.x - 1, y: playerCell.y - 1, z: playerCell.z - 1 },
+                max: { x: playerCell.x + 1, y: playerCell.y + 2, z: playerCell.z + 1 },
+            },
+            blocks,
+            nearby_hostiles: nearbyHostiles,
+            observed_at_ms: Date.now(),
+        };
+    };
+}
+
+function createPlaceHandler(getState = () => ({ bot, botReady })) {
+    return async (params = {}) => {
+        const state = getState() || {};
+        const activeBot = state.bot;
+        if (!state.botReady || !activeBot?.entity?.position) {
+            return { success: false, error: 'bot is not ready to place a block' };
+        }
+        const rawCoordinates = [params.x, params.y, params.z];
+        if (!rawCoordinates.every(value => value !== null && value !== undefined && value !== '')) {
+            return { success: false, error: 'place requires finite reference coordinates' };
+        }
+        const coordinates = rawCoordinates.map(Number);
+        if (!coordinates.every(Number.isFinite)) {
+            return { success: false, error: 'place requires finite reference coordinates' };
+        }
+        try {
+            const referencePosition = new Vec3(...coordinates);
+            const referenceBlock = activeBot.blockAt(referencePosition);
+            if (!referenceBlock) return { success: false, error: 'No reference block' };
+            const targetPosition = referencePosition.offset(0, 1, 0);
+            const before = shelterBlockState(activeBot, targetPosition);
+            await activeBot.placeBlock(referenceBlock, new Vec3(0, 1, 0));
+            const after = shelterBlockState(activeBot, targetPosition);
+            const item = String(params.item || '');
+            const observed = after.name !== 'air' && after.name !== before.name && (!item || after.name === item);
+            return {
+                success: observed,
+                error: observed ? '' : 'placed block was not observed at the target',
+                item,
+                reference_position: compactPosition(referencePosition),
+                placed_position: compactPosition(targetPosition),
+                target_block_before: before,
+                target_block_after: after,
+            };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
     };
 }
 
@@ -1645,7 +1793,7 @@ const handlers = {
                     distance: dist,
                     position: entity.position,
                     health: entity.health,
-                    hostile: entity.type === 'hostile',
+                    hostile: isHostileEntity(entity),
                 });
             }
         }
@@ -1695,6 +1843,8 @@ const handlers = {
         return { light_level: block ? block.light : 0 };
     },
 
+    get_shelter_state: createShelterStateHandler(),
+
     capture_screenshot: createCaptureScreenshotHandler(),
     benchmark_protocol: createBenchmarkProtocolHandler(),
     benchmark_reset: createBenchmarkResetHandler(),
@@ -1736,16 +1886,7 @@ const handlers = {
 
     dig: createDigHandler(),
 
-    place: async (params) => {
-        try {
-            const referenceBlock = bot.blockAt(new Vec3(params.x, params.y, params.z));
-            if (!referenceBlock) return { success: false, error: 'No reference block' };
-            await bot.placeBlock(referenceBlock, new Vec3(0, 1, 0));
-            return { success: true };
-        } catch (e) {
-            return { success: false, error: e.message };
-        }
-    },
+    place: createPlaceHandler(),
 
     craft: createCraftHandler(),
 
@@ -1853,6 +1994,8 @@ module.exports = {
     createBuildShelterHandler,
     createCraftHandler,
     createDigHandler,
+    createPlaceHandler,
+    createShelterStateHandler,
     createCaptureScreenshotHandler,
     createMoveToHandler,
     createWalkToHandler,
@@ -1866,6 +2009,7 @@ module.exports = {
     publicScreenshotPluginStatus,
     resolveScreenshotPluginSpec,
     screenshotPathFromCaptureResult,
+    shelterBlockState,
     shelterTemplatePositions,
     startBridge,
 };

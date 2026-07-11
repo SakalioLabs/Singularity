@@ -1,11 +1,15 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-11T15:23:18.1293914Z",
+  "generated_at": "2026-07-11T20:11:04.8706528Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
-  "readiness": "not_run",
-  "decision": "hold_until_machine_safe_state_verifier_exists",
+  "readiness": "approved",
+  "decision": "allow_g4_interrupt_continuity_validation",
+  "verifier_id": "m4-sealed-cell-shelter-verifier-v1",
+  "contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
+  "strategy": "sealed_cell_v1",
+  "evidence_scope": "offline_deterministic_gate",
   "required_checks": [
     "physical_barriers",
     "overhead_cover_or_approved_alternative",
@@ -14,7 +18,48 @@
     "episode_block_delta_or_approved_natural_safe_point",
     "coordinate_evidence"
   ],
-  "verified_checks": [],
+  "verified_checks": [
+    "physical_barriers",
+    "overhead_cover_or_approved_alternative",
+    "hostile_path_risk",
+    "standable_interior",
+    "episode_block_delta_or_approved_natural_safe_point",
+    "coordinate_evidence"
+  ],
+  "contract": {
+    "machine_snapshot_source": "mineflayer_world_state",
+    "snapshot_dimensions": {"x": 3, "y": 4, "z": 3},
+    "snapshot_position_count": 36,
+    "interior_cell_count": 1,
+    "wall_column_count": 4,
+    "wall_height": 2,
+    "roof_block_count": 1,
+    "required_episode_placement_count": 9,
+    "full_block_collision_required": true,
+    "approved_natural_safe_points": []
+  },
+  "offline_validation": {
+    "passed": true,
+    "python_test_file": "tests/test_m4_shelter.py",
+    "python_case_count": 10,
+    "node_test_file": "tests/test_bot_server_m4_protocol.js",
+    "node_m4_case_count": 4,
+    "cases": [
+      {"id": "complete_sealed_cell", "expected": "pass", "status": "pass"},
+      {"id": "wall_aperture", "expected": "reject", "status": "pass"},
+      {"id": "missing_overhead_cover", "expected": "reject", "status": "pass"},
+      {"id": "nonstandable_or_flooded_interior", "expected": "reject", "status": "pass"},
+      {"id": "hostile_inside", "expected": "reject", "status": "pass"},
+      {"id": "truncated_machine_snapshot", "expected": "reject", "status": "pass"},
+      {"id": "partial_episode_provenance", "expected": "reject", "status": "pass"},
+      {"id": "spoofed_machine_claim", "expected": "reject", "status": "pass"},
+      {"id": "missing_pinned_report_check", "expected": "reject", "status": "pass"},
+      {"id": "agent_delta_and_transition_wiring", "expected": "pass", "status": "pass"}
+    ],
+    "full_python_regression": {"status": "pass", "test_count": 656},
+    "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 30},
+    "live_episode_run": false
+  },
   "live_episode_count": 6,
   "latest_live_observation": {
     "episode_id": "m4_episode_20260711_231148_fb3a1544",

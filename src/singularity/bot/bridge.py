@@ -179,6 +179,10 @@ class BotBridge:
         result = self._send_command("get_light_level")
         return result.get("light_level", 0)
 
+    def get_shelter_state(self) -> dict:
+        """Return the bounded raw block snapshot used by the M4 G3 verifier."""
+        return self._send_command("get_shelter_state")
+
     def capture_screenshot(self, output_path: str = "") -> dict:
         """Ask the bridge renderer, if present, to capture the current view."""
         params = {"path": output_path} if output_path else {}

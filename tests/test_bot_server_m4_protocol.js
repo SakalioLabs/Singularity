@@ -7,6 +7,8 @@ const {
     M4_PROTOCOL_SHA256,
     benchmarkProtocolStatus,
     createBenchmarkResetHandler,
+    createPlaceHandler,
+    createShelterStateHandler,
 } = require('../src/bot/bot_server');
 
 const runtime = {
@@ -108,9 +110,79 @@ async function testM4ResetUsesNaturalSurvivalStateWithoutFixtures() {
     console.log('PASS: M4 reset proves empty natural survival state without fixtures or granted items');
 }
 
+function positionKey(position) {
+    return `${Number(position.x)},${Number(position.y)},${Number(position.z)}`;
+}
+
+function createShelterBot() {
+    const blocks = new Map();
+    const player = { position: new Vec3(0.5, 64, 0.5) };
+    const zombie = { name: 'zombie', type: 'mob', position: new Vec3(4, 64, 0) };
+    const bot = {
+        entity: player,
+        entities: { player, 17: zombie },
+        blockAt(position) {
+            const name = blocks.get(positionKey(position)) || 'air';
+            return {
+                name,
+                type: name === 'air' ? 0 : 1,
+                boundingBox: name === 'air' ? 'empty' : 'block',
+                position: position.clone ? position.clone() : new Vec3(position.x, position.y, position.z),
+            };
+        },
+        async placeBlock(reference, face) {
+            const target = reference.position.plus(face);
+            blocks.set(positionKey(target), 'oak_planks');
+        },
+    };
+    blocks.set('0,63,0', 'stone');
+    for (const [dx, dz] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+        blocks.set(`${dx},64,${dz}`, 'oak_planks');
+        blocks.set(`${dx},65,${dz}`, 'oak_planks');
+    }
+    blocks.set('0,66,0', 'oak_planks');
+    return { bot, blocks };
+}
+
+async function testM4ShelterSnapshotReturnsCompleteBoundedMachineState() {
+    const { bot } = createShelterBot();
+    const handler = createShelterStateHandler(() => ({ bot, botReady: true }));
+    const snapshot = await handler();
+
+    assert.strictEqual(snapshot.success, true);
+    assert.strictEqual(snapshot.type, 'm4_shelter_machine_snapshot');
+    assert.strictEqual(snapshot.source, 'mineflayer_world_state');
+    assert.deepStrictEqual(snapshot.player_cell, { x: 0, y: 64, z: 0 });
+    assert.strictEqual(snapshot.blocks.length, 36);
+    assert.strictEqual(snapshot.blocks.filter(block => block.solid).length, 10);
+    assert.strictEqual(snapshot.nearby_hostiles.length, 1);
+    assert.strictEqual(snapshot.nearby_hostiles[0].name, 'zombie');
+    assert(snapshot.blocks.some(block => block.position.x === 0 && block.position.y === 64 && block.position.z === 0 && block.passable));
+    console.log('PASS: M4 bridge emits the complete bounded shelter machine snapshot');
+}
+
+async function testM4PlaceHandlerReturnsObservedCoordinateDelta() {
+    const { bot, blocks } = createShelterBot();
+    blocks.delete('0,64,0');
+    const handler = createPlaceHandler(() => ({ bot, botReady: true }));
+    const missing = await handler({ item: 'oak_planks' });
+    assert.strictEqual(missing.success, false);
+    assert.match(missing.error, /finite reference coordinates/);
+    const result = await handler({ x: 0, y: 63, z: 0, item: 'oak_planks' });
+
+    assert.strictEqual(result.success, true);
+    assert.deepStrictEqual(result.placed_position, { x: 0, y: 64, z: 0 });
+    assert.strictEqual(result.target_block_before.name, 'air');
+    assert.strictEqual(result.target_block_after.name, 'oak_planks');
+    assert.strictEqual(result.target_block_after.solid, true);
+    console.log('PASS: M4 place evidence binds the requested action to an observed block delta');
+}
+
 async function main() {
     await testM4ProtocolStatusPinsAutonomousRuntime();
     await testM4ResetUsesNaturalSurvivalStateWithoutFixtures();
+    await testM4ShelterSnapshotReturnsCompleteBoundedMachineState();
+    await testM4PlaceHandlerReturnsObservedCoordinateDelta();
     console.log('\nBot server M4 protocol tests PASSED');
 }
 

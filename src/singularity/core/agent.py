@@ -59,6 +59,7 @@ from singularity.evaluation.mixed_initiative import (
     MixedInitiativeFeedbackPolicy,
     apply_mixed_initiative_policy_patch,
 )
+from singularity.evaluation.m4_shelter import M4ShelterVerifier
 from singularity.logging.session_logger import SessionLogger
 from singularity.vision.analyzer import VisionAnalyzer
 from singularity.vision.action_advisor import VisualActionAdvisor
@@ -237,6 +238,9 @@ class Agent:
         self.curriculum = CurriculumManager()
         self.world_model_feedback_report = self._load_world_model_feedback()
         self.goal_verifier = GoalVerifier(skill_library=self.skill_library)
+        self.m4_shelter_verifier = M4ShelterVerifier()
+        self._m4_episode_block_delta = {"placed": {}, "removed": {}}
+        self._m4_shelter_verification_fingerprint = ""
         self.goal_critic_gate_report = self._evaluate_goal_critic_runtime_gate()
         self.explorer = Explorer()
         self.rule_planner = RuleBasedPlanner()
@@ -1926,6 +1930,8 @@ class Agent:
                 int(M4_PROTOCOL["limits"]["max_cycles_per_goal"]),
             )
             max_total_cycles = int(M4_PROTOCOL["limits"]["max_total_cycles"])
+            self._m4_episode_block_delta = {"placed": {}, "removed": {}}
+            self._m4_shelter_verification_fingerprint = ""
         elif max_duration_s is not None:
             max_duration_s = max(0.0, float(max_duration_s))
 
@@ -6308,6 +6314,7 @@ class Agent:
     def _observe(self) -> dict:
         """Observe world state and attach lightweight visual grounding when enabled."""
         observation = self.observer.observe()
+        observation = self._attach_m4_shelter_verification(observation)
         benchmark_context = getattr(self, "_m2_benchmark_context", {})
         if isinstance(benchmark_context, dict) and benchmark_context:
             observation = dict(observation)
@@ -6328,6 +6335,109 @@ class Agent:
         enriched = self._merge_visual_analysis(observation, analysis)
         self._log_vision_analysis(analysis, screenshot_path=screenshot_path)
         return enriched
+
+    def _attach_m4_shelter_verification(self, observation: dict) -> dict:
+        if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
+            return observation
+        get_state = getattr(getattr(self, "bot", None), "get_shelter_state", None)
+        if callable(get_state):
+            try:
+                machine_state = get_state()
+            except Exception as exc:
+                machine_state = {"success": False, "error": str(exc)}
+        else:
+            machine_state = {"success": False, "error": "bridge shelter-state command unavailable"}
+        verifier = getattr(self, "m4_shelter_verifier", None) or M4ShelterVerifier()
+        report = verifier.verify(
+            machine_state,
+            getattr(self, "_m4_episode_block_delta", {}),
+        )
+        enriched = dict(observation or {})
+        enriched["shelter_verification"] = report
+
+        fingerprint = json.dumps({
+            "passed": report.get("passed"),
+            "issues": report.get("issues", []),
+            "checks": [
+                (check.get("name"), check.get("passed"))
+                for check in report.get("checks", [])
+                if isinstance(check, dict)
+            ],
+            "matched_delta": (report.get("episode_block_delta") or {}).get("matched_position_count"),
+        }, sort_keys=True, separators=(",", ":"))
+        if fingerprint != getattr(self, "_m4_shelter_verification_fingerprint", ""):
+            self._m4_shelter_verification_fingerprint = fingerprint
+            log = getattr(getattr(self, "session_logger", None), "log", None)
+            if callable(log):
+                log("shelter_state_verification", report)
+        return enriched
+
+    def _record_m4_episode_block_delta(self, action: dict, result: dict):
+        if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
+            return
+        if not isinstance(action, dict) or not isinstance(result, dict) or result.get("success") is not True:
+            return
+        delta = getattr(self, "_m4_episode_block_delta", None)
+        if not isinstance(delta, dict):
+            delta = {"placed": {}, "removed": {}}
+            self._m4_episode_block_delta = delta
+        placed = delta.setdefault("placed", {})
+        removed = delta.setdefault("removed", {})
+        action_type = str(action.get("type") or "")
+
+        if action_type == "place":
+            self._store_m4_block_change(
+                placed,
+                result.get("target_block_before"),
+                result.get("target_block_after"),
+                action_type,
+                "place",
+            )
+        elif action_type == "build_shelter_5x5":
+            material = str(result.get("material") or "")
+            for position in result.get("placed_positions", []) if isinstance(result.get("placed_positions"), list) else []:
+                self._store_m4_block_change(
+                    placed,
+                    {"name": "air", "position": position},
+                    {"name": material, "position": position},
+                    action_type,
+                    "place",
+                )
+        elif action_type == "dig" and result.get("block_removed") is True:
+            self._store_m4_block_change(
+                removed,
+                result.get("target_block_before"),
+                result.get("target_block_after"),
+                action_type,
+                "remove",
+            )
+
+    @staticmethod
+    def _store_m4_block_change(bucket: dict, before, after, action_type: str, operation: str):
+        before = before if isinstance(before, dict) else {}
+        after = after if isinstance(after, dict) else {}
+        position = after.get("position") if isinstance(after.get("position"), dict) else before.get("position")
+        if not isinstance(position, dict):
+            return
+        try:
+            position = {axis: int(float(position[axis])) for axis in ("x", "y", "z")}
+        except (KeyError, TypeError, ValueError):
+            return
+        if not all(float((after.get("position") or before.get("position"))[axis]).is_integer() for axis in ("x", "y", "z")):
+            return
+        before_name = str(before.get("name") or "unknown")
+        after_name = str(after.get("name") or "unknown")
+        if before_name == after_name:
+            return
+        key = f"{position['x']},{position['y']},{position['z']}"
+        bucket[key] = {
+            "operation": operation,
+            "action_type": action_type,
+            "success": True,
+            "position": position,
+            "before": {"name": before_name},
+            "after": {"name": after_name},
+        }
 
     def _maybe_capture_screenshot(self, observation: dict) -> dict:
         """Attach a screenshot path when an optional bridge renderer can provide one."""
@@ -6548,6 +6658,7 @@ class Agent:
             pre_action_task = self.task_system.get_next_task(fallback_observation or {})
             pre_action_task_id = pre_action_task.id if pre_action_task else None
 
+        self._record_m4_episode_block_delta(action, result)
         observation = fallback_observation
         try:
             observation = self._observe()

@@ -1,6 +1,8 @@
 ﻿"""Goal generator - proposes survival goals based on world state for M4 autonomous loop."""
 import logging
 
+from singularity.evaluation.m4_shelter import is_machine_verified_shelter
+
 logger = logging.getLogger("singularity.goal_generator")
 
 
@@ -222,12 +224,7 @@ class GoalGenerator:
 
     @staticmethod
     def _has_verified_shelter(observation: dict) -> bool:
-        verification = observation.get("shelter_verification", {})
-        return bool(
-            isinstance(verification, dict)
-            and verification.get("passed") is True
-            and verification.get("source") == "machine_state"
-        )
+        return is_machine_verified_shelter(observation.get("shelter_verification"))
 
     @staticmethod
     def _normalized_time(value) -> int:

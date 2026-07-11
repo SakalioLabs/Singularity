@@ -506,9 +506,30 @@ Current observed world state: {json.dumps(observed_state, sort_keys=True, defaul
 Planner context: {memory_context[:1000] if memory_context else 'none'}
 Return strict JSON now."""
         if self.strict_m4:
+            shelter = world_state.get("shelter_verification", {}) if isinstance(world_state, dict) else {}
+            shelter = shelter if isinstance(shelter, dict) else {}
+            compact_shelter = {
+                "verifier_id": shelter.get("verifier_id", ""),
+                "passed": shelter.get("passed") is True,
+                "safe_state": shelter.get("safe_state") is True,
+                "strategy": shelter.get("strategy", ""),
+                "issues": list(shelter.get("issues", []) or [])[:8],
+                "checks": {
+                    str(check.get("name") or ""): check.get("passed") is True
+                    for check in shelter.get("checks", [])
+                    if isinstance(check, dict)
+                },
+                "episode_block_delta": {
+                    "matched_position_count": (shelter.get("episode_block_delta") or {}).get("matched_position_count", 0),
+                    "required_position_count": (shelter.get("episode_block_delta") or {}).get("required_position_count", 0),
+                },
+            }
+            observed_state = dict(world_state)
+            observed_state["shelter_verification"] = compact_shelter
             return f"""Exact autonomous goal: {goal}
 Plan kind: {self._expected_plan_kind}
-Current observed machine state: {json.dumps(world_state, sort_keys=True, default=str)[:3000]}
+Current shelter machine state: {json.dumps(compact_shelter, sort_keys=True, default=str)}
+Current observed machine state: {json.dumps(observed_state, sort_keys=True, default=str)[:3000]}
 Planner context: {memory_context[:1000] if memory_context else 'none'}
 Honor exact item identifiers. Return a contract-valid JSON plan now."""
         return f"""Goal: {goal}

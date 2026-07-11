@@ -2,6 +2,11 @@
 import sys
 sys.path.insert(0, "src")
 from singularity.core.goal_generator import GoalGenerator
+from singularity.evaluation.m4_shelter import (
+    M4_SHELTER_CONTRACT_SHA256,
+    M4_SHELTER_REQUIRED_CHECKS,
+    M4_SHELTER_VERIFIER_ID,
+)
 
 gg = GoalGenerator()
 
@@ -29,7 +34,26 @@ def test_night_indoors():
         "health": 20,
         "inventory": {"crafting_table": 1, "furnace": 1, "raw_iron": 4},
         "nearby_entities": [],
-        "shelter_verification": {"passed": True, "source": "machine_state"},
+        "shelter_verification": {
+            "type": "m4_shelter_state_verification",
+            "verifier_id": M4_SHELTER_VERIFIER_ID,
+            "contract_sha256": M4_SHELTER_CONTRACT_SHA256,
+            "passed": True,
+            "safe_state": True,
+            "source": "machine_state",
+            "checks": [{"name": "machine_snapshot", "passed": True}] + [
+                {"name": name, "passed": True}
+                for name in M4_SHELTER_REQUIRED_CHECKS
+            ],
+            "issues": [],
+            "episode_block_delta": {"required_position_count": 9, "matched_position_count": 9},
+            "coordinate_evidence": {
+                "entrance": {
+                    "state": "fully_sealed",
+                    "sealed_boundary_columns": [{}, {}, {}, {}],
+                }
+            },
+        },
     }
     goal = gg.next_goal(obs)
     assert "verified shelter" in goal.lower() and "dawn" in goal.lower()
