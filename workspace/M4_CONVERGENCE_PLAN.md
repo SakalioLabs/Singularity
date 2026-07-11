@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | ready_for_one_live_probe_after_craft_grounding |
+| G5 | First eligible survival-to-dawn episode | diagnose_probe_9_shelter_phase_progression |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -51,7 +51,9 @@ The task-completion/readiness hypothesis passed live in Probe 8. At cycle 9, one
 
 The new earliest unrecovered transition is craft action-parameter grounding. Session event index 207 at monotonic 280930.390 attempted `craft` with `recipe=oak_planks` and `count=4`; ActionVerifier requires canonical `item`, so it rejected the action before execution. All 11 craft attempts repeated the same alias family, producing zero planks and no shelter placements. Later readiness-format warnings and the final deadline overrun do not displace this earlier transition.
 
-Craft parameter grounding is now addressed offline in the same M4 Planner boundary used for dig. `recipe` is normalized to canonical `item` before schema acceptance, while conflicts, missing or invalid item names, non-positive/non-integer counts, and unknown keys reject the plan before execution. The fixed prompt states the canonical craft contract. Full regression passed with 667 Python tests and all six fixed Node suites; one fresh G5 retest is authorized, with no second live episode in the same round.
+Craft parameter grounding passed live in Probe 9. Planner output was normalized to canonical `item`, ActionVerifier accepted it, and one craft action converted four oak logs into 16 observed oak planks.
+
+The new earliest unrecovered transition is shelter-phase progression. Immediately after the 16-plank observation and task reconciliation, Planner call `llm-05670ca498a34ebf` at session event index 302 expanded the shelter goal into additional logs, sticks, a crafting table, pickaxe, cobblestone, and furnace. Its first actions returned to gathering, even though the same plan declared the shelter build precondition as 16 oak planks and that machine state already held. No place action occurred, and the first shelter root exhausted eight cycles at event index 414. The next round may change only Planner shelter-phase progression and must pass offline tests before another live episode.
 
 ## G5 Preflight: Craft Parameter Grounding
 
@@ -121,6 +123,21 @@ Craft parameter grounding is now addressed offline in the same M4 Planner bounda
 - Live evidence: none; G3 is an offline deterministic gate and does not count toward BM-011
 
 ## G2 Live Evidence
+
+### Probe 9: Craft Grounding Passed; Shelter Phase Did Not Start
+
+- Episode: `m4_episode_20260712_061341_1b7218cd`
+- Session: `79e7ed21-129`
+- Preflight: passed
+- G2: failed; pre-dusk inventory gained only `oak_sapling:2`, while the first oak log arrived after dusk
+- BM-011 eligible: false; eligible successes remain 0/3
+- Planner controls: 26/26 real calls schema-valid; one final deadline-bound call timed out, zero reasoning bytes, maximum successful-call latency 9.641 seconds
+- Craft-grounding retest: one canonical craft succeeded and produced `oak_planks:16`; no recipe-alias rejection recurred
+- Actions: 27 attempted, 19 successful, one successful craft, zero place actions
+- First unrecovered transition: after observing 16 planks, Planner call `llm-05670ca498a34ebf` expanded into unrelated tool/furnace work and returned to gathering rather than starting the already-unblocked shelter build
+- Interrupt audit: one dusk shelter trigger preserved the frontier and escalated under the same trigger at night, with no competing root
+- Deadline: ineligible; the final Planner call timed out at 281785.500, 0.016 seconds after the absolute deadline, and no later action executed
+- Evidence: `logs/benchmarks/m4/m4_episode_20260712_061341_1b7218cd/`
 
 ### Probe 8: Task Reconciliation Passed; Craft Parameters Rejected
 

@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-11T22:07:26.1491719Z",
+  "generated_at": "2026-07-11T22:19:14.6951014Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "current_task_id": "BM-011",
@@ -1529,6 +1529,57 @@
       },
       "patch_or_experiment_summary": "Retested only M4 inventory-based task completion reconciliation in one fresh G5 episode. Learned and quarantined skills, memory persistence, vision, visual grounding, and multi-agent execution remained off.",
       "retest_result": "Task reconciliation passed live and advanced the behavior chain from gather to craft. The next earliest unrecovered transition is noncanonical craft parameter grounding: recipe was supplied instead of item on all 11 attempts; no second live episode was run."
+    },
+    {
+      "task_id": "BM-011",
+      "episode_id": "m4_episode_20260712_061341_1b7218cd",
+      "session_id": "79e7ed21-129",
+      "level_name": "m4_episode_20260712_061341_1b7218cd_bm011",
+      "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+      "seed": "12345",
+      "start_monotonic": 281545.484,
+      "end_monotonic": 281785.5,
+      "duration_s": 240.016,
+      "agent_elapsed_s": 240.016,
+      "autonomous_goals": [
+        {"goal_index": 1, "goal": "Gather 6 oak logs for tools and shelter", "priority": 6, "outcome": "suspended", "termination_reason": "runtime_interrupt:dusk_shelter_required"},
+        {"goal_index": 2, "goal": "Build verified shelter before nightfall", "priority": 4, "outcome": "failed", "termination_reason": "max_cycles"},
+        {"goal_index": 3, "goal": "Reach or build emergency verified shelter immediately", "priority": 4, "outcome": "failed", "termination_reason": "max_cycles"},
+        {"goal_index": 4, "goal": "Reach or build emergency verified shelter immediately", "priority": 4, "outcome": "failed", "termination_reason": "episode_deadline"}
+      ],
+      "first_unrecovered_transition": {"event_type": "llm_planner_call", "transition": "shelter_phase_overexpanded_after_material_ready", "goal": "Build verified shelter before nightfall", "call_id": "llm-05670ca498a34ebf", "call_index": 4, "session_event_index": 302, "observed_inventory": {"oak_planks": 16, "oak_sapling": 2}, "emitted_action_types": ["move_to", "dig"], "required_next_phase": "place", "monotonic_s": 281660.062},
+      "failure_layer": "planner_shelter_phase_progression",
+      "before_state": {"observed_monotonic_s": 281651.265, "health": 20, "food": 20, "inventory": {"oak_planks": 16, "oak_sapling": 2}, "time_of_day": 11268, "shelter_verified": false},
+      "attempted_plan_action": {"planner": {"call_id": "llm-05670ca498a34ebf", "schema_valid": true}, "plan": {"declared_build_precondition": {"inventory": {"oak_planks": 16}}, "unrelated_expansion": ["sticks", "crafting_table", "wooden_pickaxe", "cobblestone", "furnace"], "actions": ["move_to", "dig"]}, "place_action_count": 0},
+      "after_state": {"observed_monotonic_s": 281699.671, "health": 20, "food": 20, "inventory": {"oak_planks": 16, "oak_sapling": 2, "dark_oak_log": 5}, "shelter_verified": false, "termination_reason": "max_cycles"},
+      "craft_parameter_grounding": {"craft_action_count": 1, "canonical_item_count": 1, "successful_craft_count": 1, "oak_planks_produced": 16, "recipe_alias_rejection_count": 0, "prior_fix_regression_passed": true},
+      "shelter_phase_progression": {"place_action_count": 0, "shelter_verification_event_count": 7, "machine_verified_safe_state": false, "first_shelter_goal_cycles": 8},
+      "planner_provider_controls": {"passed": true, "call_count": 27, "real_call_count": 26, "schema_valid_real_call_count": 26, "max_call_duration_ms": 9641, "total_token_usage": 87269, "reasoning_content_max_bytes": 0, "violations": []},
+      "skill_attribution": {"skill_execution_mode": "off", "selected_count": 0, "executed_count": 0, "quarantined_count": 0, "contribution": "none"},
+      "deadline_status": {"episode_deadline_monotonic": 281785.484, "agent_end_monotonic": 281785.5, "agent_remaining_s": -0.016, "evidence_end_monotonic": 281785.562, "remaining_s": -0.078, "deadline_eligible": false, "post_deadline_action_count": 0, "no_post_deadline_execution": false},
+      "evidence_eligibility": {"g2_passed": false, "bm011_eligible": false, "eligible_success_count": 0, "issues": ["event:terminal_survival_verification", "next_dawn_observed", "terminal_machine_verification", "episode_within_deadline", "result_duration_eligible", "no_post_deadline_execution"]},
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260712_061341_1b7218cd/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260712_061341_1b7218cd/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260712_061341_1b7218cd/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260712_061341_1b7218cd/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260712_061341_1b7218cd/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260712_061341_1b7218cd/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260712_061341_1b7218cd/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260712_061341_1b7218cd/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "7e4cd4729696a4bb92b891bc224f26042fc2d8cb50f5c7729960a66cf3671764",
+        "manifest": "a9a14575002988139a8f2698def20bb550b02ead8a3098a5de6c13f97e7cb44e",
+        "session": "70cad151e44d1ebee5cd7f9983eefd1a307c44c5b2155cee46b184add3f5ffb5",
+        "result": "8be2c913a00020c1115cf6c7349cba7ae9f666ca23c92c97813b82cce99ff648",
+        "eligibility": "d73a3cd7f48cc7e81eeac879c68fabbc8aba91f0227437b1d5f85a151742f86d",
+        "preparation": "40e429aa1e99e4cb3e496cbef79d4f8e334c693124bed932c8afb3b813c61d84",
+        "protocol_status": "15f1fb95c10e252f30c6d7e9594902ebb3325c26073a1bcad06e5a303f4c4297",
+        "reset": "1a190e1d5c64ff10eab4ba0d60237299038f8143e47199a0dffc8349c2d57e94"
+      },
+      "patch_or_experiment_summary": "Retested only M4 craft parameter grounding in one fresh G5 episode; all optional learned, memory, vision, and multi-agent paths remained off.",
+      "retest_result": "Craft grounding passed live and produced 16 oak planks. The next earliest unrecovered transition is Planner shelter-phase overexpansion despite the declared 16-plank build precondition already being satisfied; no second live episode was run."
     }
   ]
 }
