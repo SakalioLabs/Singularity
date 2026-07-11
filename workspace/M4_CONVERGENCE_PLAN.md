@@ -23,7 +23,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 |---|---|---|
 | G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed |
 | G1 | Deterministic survival-goal priority cases | passed |
-| G2 | One live preparation episode with machine-visible progress | failed_probe_1 |
+| G2 | One live preparation episode with machine-visible progress | failed_probe_2 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | locked |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | locked |
 | G5 | First eligible survival-to-dawn episode | locked |
@@ -35,11 +35,27 @@ G1 passed offline validation. GoalGenerator and Curriculum preserve the fixed or
 
 ## Current Hypothesis
 
-The first G2 live baseline passed the complete preflight but produced no inventory or block delta before dusk. The initial TLS `SSLEOFError` recovered on the next same-goal call. The first unrecovered transition was the first real schema-valid plan consuming 61.687 seconds while only 36.35 seconds remained before fixed dusk. Its provider evidence contains 3098 reasoning bytes and an empty `extra_body`, unlike the bounded M2 transport profile.
+The provider-thinking hypothesis is confirmed and closed by the second G2 probe. All 32 real schema-valid Planner calls used `thinking.type=disabled`, returned `finish_reason=stop`, emitted zero reasoning bytes, and passed the provider-controls gate. Maximum Planner latency fell from 61.687 seconds to 10.391 seconds. The Agent completed move, look, and leaf-dig actions before world time 9628, but recorded no qualifying pre-dusk resource acquisition.
 
-The single current hypothesis is that M4 leaves provider thinking enabled, causing Planner latency to exhaust the fixed preparation window before any action can contribute. The next change is limited to pinning and offline-verifying the M4 provider payload for disabled thinking, followed by one fresh G2 episode. Navigation tolerance and task-deadline recovery remain observed secondary failures and are not changed in the same round.
+The earliest unrecovered transition is now the first oak-log `dig` at monotonic 238094.421. The target was machine-observed one block away and the action retained a 60-second budget, but the Python bridge timed out after 15.015 seconds, closed its persistent socket without replay, and left seven later actions with `Not connected to bot bridge`. The single current hypothesis is that the bridge's fixed 15-second dig response timeout is shorter than the bounded Mineflayer dig plus pickup-collection lifecycle. The next change is limited to aligning that response timeout with the action and episode budgets and proving the bound offline before one fresh G2 episode in a later round. Repeated goals, target-verifier wording, and preparation block-delta timing remain secondary observations and are not changed in this round.
 
 ## G2 Live Evidence
+
+### Probe 2: Provider Controls Pinned
+
+- Episode: `m4_episode_20260711_180909_9129569c`
+- Session: `e2c566f5-1b7`
+- Preflight: passed
+- G2: failed
+- BM-011 eligible: false; eligible successes remain 0/3
+- Planner controls: passed; 32/32 real schema-valid calls, zero reasoning bytes, maximum latency 10.391 seconds
+- Autonomous goals: 4, all generated from `wood_reserve_below_target`
+- Actions: 12 attempted, 4 successful; no qualifying pre-dusk inventory or block delta
+- First unrecovered transition: `dig(103,140,-30)` timed out after 15.015 seconds and disconnected the Python bridge
+- Deadline: eligible; Agent ended 10.234 seconds before the absolute deadline with no post-deadline execution
+- Evidence: `logs/benchmarks/m4/m4_episode_20260711_180909_9129569c/`
+
+### Probe 1: Unpinned Provider Thinking
 
 - Episode: `m4_episode_20260711_170144_4ce51e64`
 - Session: `441d17a2-bde`

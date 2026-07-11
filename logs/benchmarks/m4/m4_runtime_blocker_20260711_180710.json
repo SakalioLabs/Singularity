@@ -1,0 +1,11 @@
+{
+    "type":  "m4_runtime_blocker",
+    "schema_version":  1,
+    "generated_at_utc":  "2026-07-11T10:07:11.2805122Z",
+    "task_id":  "BM-011",
+    "episode_id":  "m4_episode_20260711_180710_9004797b",
+    "level_name":  "m4_episode_20260711_180710_9004797b_bm011",
+    "blocker":  "M4 runtime blocked: Minecraft port is occupied.",
+    "evidence_dir":  "logs\\benchmarks\\m4\\m4_episode_20260711_180710_9004797b",
+    "counts_toward_bm011_success":  false
+}

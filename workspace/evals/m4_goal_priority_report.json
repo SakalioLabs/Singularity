@@ -1,7 +1,7 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-11T09:38:39.6874086Z",
+  "generated_at": "2026-07-11T10:19:25.6880528Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
@@ -35,10 +35,10 @@
     {"name": "curriculum_regression", "status": "pass", "evidence": "tests/test_curriculum.py"},
     {"name": "autonomous_task_selection_regression", "status": "pass", "evidence": "tests/test_memory_task_system.py"}
   ],
-  "live_episode_count": 1,
+  "live_episode_count": 2,
   "latest_live_episode": {
-    "episode_id": "m4_episode_20260711_170144_4ce51e64",
-    "autonomous_goal_count": 2,
+    "episode_id": "m4_episode_20260711_180909_9129569c",
+    "autonomous_goal_count": 4,
     "selection_source": "goal_generator",
     "selection_reason": "wood_reserve_below_target;curriculum_retained_fallback",
     "priority": 6,

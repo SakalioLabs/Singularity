@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-11T09:38:39.6874086Z",
+  "generated_at": "2026-07-11T10:19:25.6880528Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "current_task_id": "BM-011",
@@ -164,6 +164,215 @@
       },
       "patch_or_experiment_summary": "First fixed-control G2 live baseline; learned and quarantined skills, policy skills, memory persistence, vision, and multi-agent execution were off. Diagnostic classification was corrected to treat the recovered TLS error separately from the preparation-window failure.",
       "retest_result": "Offline diagnostic tests passed; no second live episode was run in this round."
+    },
+    {
+      "task_id": "BM-011",
+      "episode_id": "m4_episode_20260711_180909_9129569c",
+      "session_id": "e2c566f5-1b7",
+      "level_name": "m4_episode_20260711_180909_9129569c_bm011",
+      "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+      "seed": "12345",
+      "start_monotonic": 238054.64,
+      "end_monotonic": 238284.406,
+      "duration_s": 229.766,
+      "agent_elapsed_s": 229.766,
+      "autonomous_goals": [
+        {
+          "goal_index": 1,
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "source": "goal_generator",
+          "reason": "wood_reserve_below_target;curriculum_retained_fallback",
+          "priority": 6,
+          "outcome": "failed",
+          "termination_reason": "max_cycles"
+        },
+        {
+          "goal_index": 2,
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "source": "goal_generator",
+          "reason": "wood_reserve_below_target",
+          "priority": 6,
+          "outcome": "failed",
+          "termination_reason": "max_cycles"
+        },
+        {
+          "goal_index": 3,
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "source": "goal_generator",
+          "reason": "wood_reserve_below_target",
+          "priority": 6,
+          "outcome": "failed",
+          "termination_reason": "max_cycles"
+        },
+        {
+          "goal_index": 4,
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "source": "goal_generator",
+          "reason": "wood_reserve_below_target",
+          "priority": 6,
+          "outcome": "failed",
+          "termination_reason": "max_cycles"
+        }
+      ],
+      "goal_transitions": [
+        {
+          "event": "provider_controls_verified",
+          "monotonic_s": 238065.312,
+          "recovered": true,
+          "recovery_evidence": "32 of 32 real schema-valid Planner calls used disabled thinking, stop finish reasons, and zero reasoning bytes"
+        },
+        {
+          "event": "pre_dusk_leaf_dig",
+          "monotonic_s": 238071.875,
+          "recovered": true,
+          "recovery_evidence": "oak_leaves block removal succeeded in 3.141 seconds; no pickup was observed"
+        },
+        {
+          "event": "bridge_dig_response_timeout",
+          "monotonic_s": 238094.421,
+          "recovered": false
+        },
+        {
+          "event": "bridge_transport_unavailable",
+          "monotonic_s": 238114.781,
+          "recovered": false,
+          "detail": "seven later actions returned Not connected to bot bridge"
+        }
+      ],
+      "first_unrecovered_transition": {
+        "event_type": "action",
+        "goal": "Gather 6 oak logs for tools and shelter",
+        "action": {
+          "type": "dig",
+          "parameters": {"x": 103, "y": 140, "z": -30}
+        },
+        "error": "timed out",
+        "duration_s": 15.015,
+        "action_budget_s": 60.0,
+        "bridge_response_timeout_s": 15.0,
+        "command_replayed": false,
+        "bridge_reconnected": false,
+        "monotonic_s": 238094.421
+      },
+      "failure_layer": "bridge_action_response_timeout",
+      "before_state": {
+        "observed_monotonic_s": 238079.39,
+        "position": {"x": 103.5333199289351, "y": 140.9215999984741, "z": -28.50000000000018},
+        "health": 20,
+        "food": 20,
+        "inventory": {},
+        "time_of_day": 9628,
+        "target_block": {
+          "name": "oak_log",
+          "position": {"x": 103, "y": 140, "z": -30},
+          "distance": 1
+        }
+      },
+      "attempted_plan_action": {
+        "planner": {
+          "call_id": "llm-627e381becd044f8",
+          "real_llm_call": true,
+          "schema_valid": true,
+          "duration_ms": 5718,
+          "prompt_tokens": 1770,
+          "completion_tokens": 534,
+          "total_tokens": 2304,
+          "reasoning_content_byte_count": 0,
+          "finish_reason": "stop",
+          "extra_body": {"thinking": {"type": "disabled"}}
+        },
+        "plan": {
+          "status": "planning",
+          "action_count": 12,
+          "action_prefix": ["move_to", "dig"]
+        },
+        "action": {
+          "type": "dig",
+          "parameters": {"x": 103, "y": 140, "z": -30},
+          "backend": "mineflayer",
+          "backend_timeout_ms": 60000,
+          "action_budget_s": 60.0,
+          "result": "timed out"
+        }
+      },
+      "after_state": {
+        "observed_monotonic_s": 238094.421,
+        "observation_available": false,
+        "bridge_connected": false,
+        "position": {},
+        "inventory": {},
+        "time_of_day": 0,
+        "source": "bridge_unavailable_fallback"
+      },
+      "survival_state": {
+        "last_observed_health": 20,
+        "last_observed_food": 20,
+        "last_observed_time_of_day": 9628,
+        "last_observed_inventory": {},
+        "bot_connected": false,
+        "terminal_machine_verified": false
+      },
+      "planner_provider_controls": {
+        "passed": true,
+        "call_count": 32,
+        "real_call_count": 32,
+        "schema_valid_real_call_count": 32,
+        "max_call_duration_ms": 10391,
+        "total_token_usage": 55422,
+        "reasoning_content_max_bytes": 0,
+        "violations": []
+      },
+      "skill_attribution": {
+        "skill_execution_mode": "off",
+        "selected_count": 0,
+        "executed_count": 0,
+        "quarantined_count": 0,
+        "contribution": "none"
+      },
+      "deadline_status": {
+        "episode_deadline_monotonic": 238294.64,
+        "agent_end_monotonic": 238284.406,
+        "remaining_s": 10.234,
+        "deadline_eligible": true,
+        "post_deadline_action_count": 0,
+        "post_deadline_late_plan_evidence_count": 0
+      },
+      "evidence_eligibility": {
+        "g2_passed": false,
+        "bm011_eligible": false,
+        "eligible_success_count": 0,
+        "issues": [
+          "event:terminal_survival_verification",
+          "night_observed",
+          "next_dawn_observed",
+          "natural_time_progression",
+          "terminal_bot_connected",
+          "terminal_machine_verification",
+          "result_duration_eligible"
+        ]
+      },
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260711_180909_9129569c/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260711_180909_9129569c/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260711_180909_9129569c/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260711_180909_9129569c/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260711_180909_9129569c/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260711_180909_9129569c/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260711_180909_9129569c/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260711_180909_9129569c/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "91ec65db21c67b53e157a068337ae045a9c1034968e52495815be7f9f3129714",
+        "manifest": "c6aa67dd36adc3553d021efcee696abd9b24763a87761ad2bbd5331a203ef2f7",
+        "session": "e5f44d7397f40b095c409f4fcd404809b69ea7dbd6514d42a57dec471e315f0e",
+        "result": "ad5397808e9b97dbfad2275cc7b98cbab90fb904d857a02b102dd30fbee7e93d",
+        "eligibility": "11e91988898ea35480f0ba86cb413199814037adfe3c883b7682cee1183a05d8",
+        "preparation": "674cdf9750ccb65cf9bebab2265e837c69de87ad1e7eae83992476d54fcce5f3",
+        "protocol_status": "1715f9978fe58cf1c39daa11d41a75c98c0dbdf999303d173427b464a5393f3c",
+        "reset": "250c02561742b36bb195752efda20b5fef4dfb2dd9d527926c32cedbd4244482"
+      },
+      "patch_or_experiment_summary": "Pinned and independently gated the M4 provider payload with thinking disabled. Learned and quarantined skills, policy skills, memory persistence, vision, and multi-agent execution remained off. A pre-episode transient port blocker did not start a live session; this was the only live episode in the round.",
+      "retest_result": "The provider-control hypothesis was confirmed: all 32 calls passed and maximum Planner latency fell to 10.391 seconds. G2 still failed at the later bridge dig response timeout; no second live episode was run."
     }
   ]
 }

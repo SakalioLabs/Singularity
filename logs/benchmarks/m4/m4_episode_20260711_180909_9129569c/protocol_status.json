@@ -1,0 +1,122 @@
+{
+  "success": true,
+  "configured": true,
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+  "minecraft_version": "1.20.4",
+  "observed_minecraft_version": "1.20.4",
+  "server_type": "Paper",
+  "server_build": "paper-1.20.4-499",
+  "server_jar_policy": "pinned_sha256_v1",
+  "agent_id": "singularity-agent-v1",
+  "goal_generator_id": "survival-goal-generator-v1",
+  "curriculum_id": "autonomous-curriculum-v1",
+  "planner_id": "llm-autonomous-planner-v1",
+  "planner_schema_id": "",
+  "planner_schema_sha256": "",
+  "action_backend_id": "mineflayer-bridge-v1",
+  "verifier_id": "m4-survival-machine-verifier-v1",
+  "runtime_interrupt_id": "m4-survival-interrupt-v1",
+  "skill_runtime_profile_id": "m4-baseline-learned-skills-off-v1",
+  "reset_protocol_sha256": "f2fdc39510e86de9e81f79711cf1fae7f2d3f4c95a4a097b5c33da5f41dd74e3",
+  "validation_protocol_sha256": "e4a2eb388625ef74ff10dbf199502c6a986d844c4fee783326721c982a8f7500",
+  "llm": {
+    "provider": "openai",
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash",
+    "temperature": 0,
+    "max_tokens": 4096,
+    "extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    }
+  },
+  "runtime_controls": {
+    "skill_execution_mode": "off",
+    "learned_executable_skills_enabled": false,
+    "quarantined_skills_enabled": false,
+    "policy_skills_enabled": false,
+    "skill_memory_context_enabled": false,
+    "memory_persistence_enabled": false,
+    "vision_enabled": false,
+    "visual_action_grounding_enabled": false,
+    "screenshot_capture_enabled": false,
+    "self_evolution_policy_enabled": false,
+    "world_model_curriculum_feedback_enabled": false,
+    "multi_agent_enabled": false,
+    "autocurriculum_enabled": true,
+    "goal_verification_enabled": true,
+    "action_verification_enabled": true,
+    "action_verification_enforced": true
+  },
+  "server_brand": "Paper",
+  "seed": "12345",
+  "episode_id": "m4_episode_20260711_180909_9129569c",
+  "level_name": "m4_episode_20260711_180909_9129569c_bm011",
+  "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+  "episode_strategy": "fresh_level_per_run_v1",
+  "dependencies": {
+    "mineflayer": "4.37.1",
+    "mineflayer-pathfinder": "2.4.5",
+    "minecraft-data": "3.111.0"
+  },
+  "runtime_versions": {
+    "node": "22.16.0",
+    "python": "3.12.8"
+  },
+  "tasks": [
+    {
+      "id": "BM-011",
+      "name": "Survive the first night",
+      "terminal_goal": "Survive until the next dawn",
+      "max_duration_s": 1200,
+      "max_autonomous_goals": 24,
+      "max_cycles_per_goal": 40,
+      "success_criteria": {
+        "health_above": 0,
+        "bot_connected": true,
+        "night_crossed": true,
+        "dawn_reached": true,
+        "natural_time_progression": true
+      }
+    },
+    {
+      "id": "BM-012",
+      "name": "Get 8 iron resources",
+      "terminal_goal": "Collect 8 iron resources",
+      "max_duration_s": 600,
+      "success_criteria": {
+        "inventory_any": {
+          "raw_iron": 8,
+          "iron_ore": 8
+        }
+      }
+    },
+    {
+      "id": "BM-013",
+      "name": "Smelt iron ingot",
+      "terminal_goal": "Smelt an iron ingot",
+      "max_duration_s": 300,
+      "success_criteria": {
+        "inventory": {
+          "iron_ingot": 1
+        }
+      }
+    },
+    {
+      "id": "BM-014",
+      "name": "Craft iron pickaxe",
+      "terminal_goal": "Craft an iron pickaxe",
+      "max_duration_s": 300,
+      "success_criteria": {
+        "inventory": {
+          "iron_pickaxe": 1
+        }
+      }
+    }
+  ],
+  "reset_supported": true,
+  "validation_supported": true,
+  "errors": []
+}
