@@ -1,0 +1,17 @@
+{
+  "type": "m4_interrupt_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-11T07:08:21.9236446Z",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "a44723f6bd86110a1a5d0ead3378850cd906f9d272c27f3f7fed5fa87db7d1ce",
+  "readiness": "not_run",
+  "required_cases": [
+    "hostile_interrupt",
+    "critical_health_interrupt",
+    "hunger_interrupt",
+    "dusk_shelter_interrupt",
+    "night_survival_interrupt"
+  ],
+  "verified_cases": [],
+  "live_episode_count": 0
+}

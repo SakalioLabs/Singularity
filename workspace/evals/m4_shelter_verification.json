@@ -1,0 +1,19 @@
+{
+  "type": "m4_shelter_verification_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-11T07:08:21.9236446Z",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "a44723f6bd86110a1a5d0ead3378850cd906f9d272c27f3f7fed5fa87db7d1ce",
+  "readiness": "not_run",
+  "decision": "hold_until_machine_safe_state_verifier_exists",
+  "required_checks": [
+    "physical_barriers",
+    "overhead_cover_or_approved_alternative",
+    "hostile_path_risk",
+    "standable_interior",
+    "episode_block_delta_or_approved_natural_safe_point",
+    "coordinate_evidence"
+  ],
+  "verified_checks": [],
+  "live_episode_count": 0
+}

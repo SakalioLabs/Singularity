@@ -1,0 +1,35 @@
+{
+  "type": "m4_deadline_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-11T07:08:21.9236446Z",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "a44723f6bd86110a1a5d0ead3378850cd906f9d272c27f3f7fed5fa87db7d1ce",
+  "readiness": "review",
+  "decision": "hold_live_bm011_until_deadline_runtime_is_shared",
+  "absolute_deadline_field": "episode_deadline_monotonic",
+  "checks": [
+    {
+      "name": "protocol_deadline_contract",
+      "status": "pass",
+      "evidence": "tests/test_m4_protocol.py"
+    },
+    {
+      "name": "planner_shared_deadline",
+      "status": "pending"
+    },
+    {
+      "name": "action_shared_deadline",
+      "status": "pending"
+    },
+    {
+      "name": "autonomous_loop_shared_deadline",
+      "status": "pending"
+    },
+    {
+      "name": "independent_duration_overrun_rejection",
+      "status": "pass",
+      "evidence": "tests/test_m4_protocol.py"
+    }
+  ],
+  "live_episode_count": 0
+}

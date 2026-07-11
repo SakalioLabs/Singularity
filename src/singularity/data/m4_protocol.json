@@ -1,0 +1,188 @@
+{
+  "type": "m4_fixed_protocol",
+  "schema_version": 1,
+  "profile": "m4-fixed-v1",
+  "minecraft_version": "1.20.4",
+  "server_type": "Paper",
+  "server_build": "paper-1.20.4-499",
+  "server_jar_policy": "pinned_sha256_v1",
+  "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+  "runtime_versions": {
+    "python": "3.12.8",
+    "node": "22.16.0",
+    "mineflayer": "4.37.1",
+    "mineflayer_pathfinder": "2.4.5",
+    "minecraft_data": "3.111.0"
+  },
+  "world_seed": "12345",
+  "episode_strategy": "fresh_level_per_run_v1",
+  "spawn_strategy": "world_spawn",
+  "game_mode": "survival",
+  "difficulty": "normal",
+  "initial_inventory": {},
+  "initial_player_state": {
+    "health": 20,
+    "food": 20,
+    "saturation": 5
+  },
+  "initial_time_of_day": 9000,
+  "weather": "clear",
+  "gamerules": {
+    "doDaylightCycle": true,
+    "doMobSpawning": true,
+    "doWeatherCycle": false,
+    "keepInventory": false,
+    "naturalRegeneration": true
+  },
+  "identities": {
+    "agent": "singularity-agent-v1",
+    "goal_generator": "survival-goal-generator-v1",
+    "curriculum": "autonomous-curriculum-v1",
+    "planner": "llm-autonomous-planner-v1",
+    "action_backend": "mineflayer-bridge-v1",
+    "goal_verifier": "m4-survival-machine-verifier-v1",
+    "runtime_interrupt": "m4-survival-interrupt-v1",
+    "skill_runtime_profile": "m4-baseline-learned-skills-off-v1"
+  },
+  "deadline_policy": {
+    "id": "m4-absolute-episode-deadline-v1",
+    "absolute_deadline_field": "episode_deadline_monotonic",
+    "episode_timeout_s": 1200,
+    "llm_call_timeout_s": 90,
+    "action_timeout_s": 60,
+    "planner_timeout": "min(call_limit,remaining_episode_time)",
+    "action_timeout": "min(action_limit,remaining_episode_time)",
+    "planner_max_retries": 0,
+    "post_call_deadline_check": true,
+    "post_action_deadline_check": true,
+    "eligibility_duration_required": true
+  },
+  "limits": {
+    "max_autonomous_goals": 24,
+    "max_cycles_per_goal": 40,
+    "max_total_cycles": 320
+  },
+  "reset_contract": {
+    "id": "m4-reset-v1",
+    "phase": "pre_episode_only",
+    "fresh_level_required": true,
+    "fixed_seed_required": true,
+    "world_spawn_required": true,
+    "clear_inventory": true,
+    "clear_effects": true,
+    "clear_nearby_drops": true,
+    "verify_empty_inventory": true,
+    "verify_player_state": true,
+    "verify_time_initialized": true,
+    "verify_gamerules": true,
+    "active_episode_forbidden_commands": [
+      "benchmark_reset",
+      "reset_benchmark",
+      "time_set",
+      "teleport",
+      "give",
+      "gamemode"
+    ]
+  },
+  "reset_protocol_sha256": "f2fdc39510e86de9e81f79711cf1fae7f2d3f4c95a4a097b5c33da5f41dd74e3",
+  "validation_contract": {
+    "id": "m4-validation-v1",
+    "autonomy": {
+      "required_events": [
+        "autonomous_start",
+        "observation",
+        "auto_goal",
+        "plan",
+        "action",
+        "goal_end",
+        "terminal_survival_verification",
+        "autonomous_end"
+      ],
+      "goal_selection_source_required": true,
+      "goal_selection_reason_required": true,
+      "goal_priority_required": true,
+      "external_step_script_allowed": false
+    },
+    "survival": {
+      "preparation_start_time": 9000,
+      "night_start_time": 12000,
+      "dawn_start_time": 23000,
+      "next_day_wrap_time": 1000,
+      "night_observation_required": true,
+      "dawn_observation_required": true,
+      "terminal_health_min_exclusive": 0,
+      "terminal_bot_connected_required": true,
+      "natural_time_progression_required": true,
+      "maximum_observation_tick_gap": 6000
+    },
+    "action_evidence": {
+      "pre_observation_required": true,
+      "post_observation_required": true,
+      "action_verifier_required": true
+    },
+    "deadline": {
+      "single_absolute_deadline_required": true,
+      "planner_budget_must_not_exceed_remaining": true,
+      "action_budget_must_not_exceed_remaining": true,
+      "post_deadline_action_allowed": false,
+      "duration_overrun_allowed": false,
+      "monotonic_runtime_required": true
+    },
+    "skills": {
+      "learned_executable_baseline_enabled": false,
+      "quarantined_allowed": false,
+      "strategic_root_skill_allowed": false,
+      "prohibited_root_skills": ["survive_first_night"]
+    },
+    "live_evidence": {
+      "minecraft_required": true,
+      "mock_allowed": false,
+      "synthetic_allowed": false,
+      "replay_allowed": false,
+      "fresh_episode_required": true,
+      "session_sha256_required": true,
+      "result_sha256_required": true,
+      "preflight_required": true,
+      "runtime_manifest_required": true
+    }
+  },
+  "validation_protocol_sha256": "436f04fd0d0286a1fdd26994097951dbf3626ecf60ef95d0c5c68cd35c78e7e7",
+  "tasks": [
+    {
+      "id": "BM-011",
+      "name": "Survive the first night",
+      "terminal_goal": "Survive until the next dawn",
+      "max_duration_s": 1200,
+      "max_autonomous_goals": 24,
+      "max_cycles_per_goal": 40,
+      "success_criteria": {
+        "health_above": 0,
+        "bot_connected": true,
+        "night_crossed": true,
+        "dawn_reached": true,
+        "natural_time_progression": true
+      }
+    },
+    {
+      "id": "BM-012",
+      "name": "Get 8 iron resources",
+      "terminal_goal": "Collect 8 iron resources",
+      "max_duration_s": 600,
+      "success_criteria": {"inventory_any": {"raw_iron": 8, "iron_ore": 8}}
+    },
+    {
+      "id": "BM-013",
+      "name": "Smelt iron ingot",
+      "terminal_goal": "Smelt an iron ingot",
+      "max_duration_s": 300,
+      "success_criteria": {"inventory": {"iron_ingot": 1}}
+    },
+    {
+      "id": "BM-014",
+      "name": "Craft iron pickaxe",
+      "terminal_goal": "Craft an iron pickaxe",
+      "max_duration_s": 300,
+      "success_criteria": {"inventory": {"iron_pickaxe": 1}}
+    }
+  ]
+}
