@@ -1,11 +1,169 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-11T07:08:21.9236446Z",
+  "generated_at": "2026-07-11T09:38:39.6874086Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "031d35021141e6b4dc34fa7151a6c9cdb8154454b6d9e8187d1dfb337523a2ce",
   "current_task_id": "BM-011",
   "eligible_success_count": 0,
   "required_success_count": 3,
-  "entries": []
+  "entries": [
+    {
+      "task_id": "BM-011",
+      "episode_id": "m4_episode_20260711_170144_4ce51e64",
+      "session_id": "441d17a2-bde",
+      "level_name": "m4_episode_20260711_170144_4ce51e64_bm011",
+      "protocol_sha256": "031d35021141e6b4dc34fa7151a6c9cdb8154454b6d9e8187d1dfb337523a2ce",
+      "seed": "12345",
+      "start_monotonic": 234020.687,
+      "end_monotonic": 234261.031,
+      "duration_s": 240.344,
+      "agent_elapsed_s": 240.016,
+      "autonomous_goals": [
+        {
+          "goal_index": 1,
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "source": "goal_generator",
+          "reason": "wood_reserve_below_target;curriculum_retained_fallback",
+          "priority": 6,
+          "outcome": "failed",
+          "termination_reason": "empty_plan"
+        },
+        {
+          "goal_index": 2,
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "source": "goal_generator",
+          "reason": "wood_reserve_below_target;curriculum_retained_fallback",
+          "priority": 6,
+          "outcome": "failed",
+          "termination_reason": "episode_deadline"
+        }
+      ],
+      "goal_transitions": [
+        {
+          "event": "planner_transport_error",
+          "monotonic_s": 234027.046,
+          "error_chain": ["APIConnectionError", "ConnectError", "SSLEOFError"],
+          "recovered": true,
+          "recovery_evidence": "same goal received a real schema-valid plan at monotonic 234089.031"
+        },
+        {
+          "event": "pre_dusk_planning_window_exhausted",
+          "monotonic_s": 234089.031,
+          "recovered": false
+        }
+      ],
+      "first_unrecovered_transition": {
+        "event_type": "llm_planner_call",
+        "transition": "pre_dusk_planning_window_exhausted",
+        "goal": "Gather 6 oak logs for tools and shelter",
+        "call_id": "llm-1615b3ff16f84d08",
+        "call_duration_s": 61.687,
+        "pre_call_time_of_day": 9273,
+        "dusk_start_time": 10000,
+        "preparation_budget_s": 36.35,
+        "nominal_ticks_per_second": 20.0,
+        "monotonic_s": 234089.031
+      },
+      "failure_layer": "planner_latency",
+      "before_state": {
+        "observed_monotonic_s": 234027.328,
+        "position": {"x": 96.5, "y": 144, "z": -31.5},
+        "health": 20,
+        "food": 20,
+        "inventory": {},
+        "time_of_day": 9273,
+        "nearby_oak_log_count": 2
+      },
+      "attempted_plan_action": {
+        "planner": {
+          "real_llm_call": true,
+          "schema_valid": true,
+          "duration_ms": 61687,
+          "prompt_tokens": 1780,
+          "completion_tokens": 1180,
+          "total_tokens": 2960,
+          "reasoning_content_byte_count": 3098,
+          "extra_body": {}
+        },
+        "plan": {
+          "status": "planning",
+          "actions": ["move_to"]
+        },
+        "subsequent_action": {
+          "type": "move_to",
+          "parameters": {"x": 93, "y": 141, "z": -34},
+          "success": false,
+          "error": "pathfinder completed without reaching the target tolerance"
+        }
+      },
+      "after_state": {
+        "observed_monotonic_s": 234090.609,
+        "position": {"x": 93.42022897643135, "y": 142.9215999984741, "z": -33.49478410634213},
+        "health": 20,
+        "food": 20,
+        "inventory": {},
+        "time_of_day": 10533,
+        "nearby_oak_log_count": 2
+      },
+      "survival_state": {
+        "health": 20,
+        "food": 20,
+        "bot_connected": true,
+        "time_of_day": 13933,
+        "inventory": {}
+      },
+      "skill_attribution": {
+        "skill_execution_mode": "off",
+        "selected_count": 0,
+        "executed_count": 0,
+        "quarantined_count": 0,
+        "contribution": "none"
+      },
+      "deadline_status": {
+        "episode_deadline_monotonic": 234260.687,
+        "agent_end_monotonic": 234260.703,
+        "evidence_end_monotonic": 234261.031,
+        "deadline_eligible": false,
+        "post_deadline_action_count": 0,
+        "post_deadline_late_plan_evidence_count": 1,
+        "final_planner_timeout_s": 16.484
+      },
+      "evidence_eligibility": {
+        "g2_passed": false,
+        "bm011_eligible": false,
+        "eligible_success_count": 0,
+        "issues": [
+          "event:terminal_survival_verification",
+          "next_dawn_observed",
+          "terminal_machine_verification",
+          "episode_within_deadline",
+          "result_duration_eligible",
+          "no_post_deadline_execution"
+        ]
+      },
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260711_170144_4ce51e64/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260711_170144_4ce51e64/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260711_170144_4ce51e64/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260711_170144_4ce51e64/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260711_170144_4ce51e64/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260711_170144_4ce51e64/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260711_170144_4ce51e64/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260711_170144_4ce51e64/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "4b227614d4aff085bad1c045ae4d2b16bd07bb7c2a98cb90984a9b04c5fc5ab7",
+        "manifest": "0577a32cc02cc8e6bf06220533dab6b0b3ffc6daae4cff161e004f6e58ce6d43",
+        "session": "5a1944b3273027b1c784d6246a7901d5b0daba7b0b5a5f250448379af514ca96",
+        "result": "5181d81006848a2cac432256f98065c2602052f101b028e946e6cef4acfec657",
+        "eligibility": "7771c5bf7f43661e07b1a164fbf0a5d4405b09fa11dcc703acfd1334c722e079",
+        "preparation": "43c1f7b9d6f611609e0e4e336ac96a010376515043d2e6685a69d924e03511b3",
+        "protocol_status": "462696f5ef6a959e913b6781e458c0f8b824c7aebba7d1b74cef28abf563fc62",
+        "reset": "e2e2989d16345fc42d614eb05a3fccd0b74b0272e1c01da57a0482e949004260"
+      },
+      "patch_or_experiment_summary": "First fixed-control G2 live baseline; learned and quarantined skills, policy skills, memory persistence, vision, and multi-agent execution were off. Diagnostic classification was corrected to treat the recovered TLS error separately from the preparation-window failure.",
+      "retest_result": "Offline diagnostic tests passed; no second live episode was run in this round."
+    }
+  ]
 }

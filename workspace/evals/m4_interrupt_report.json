@@ -1,7 +1,7 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-11T07:08:21.9236446Z",
+  "generated_at": "2026-07-11T09:38:39.6874086Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "031d35021141e6b4dc34fa7151a6c9cdb8154454b6d9e8187d1dfb337523a2ce",
   "readiness": "not_run",
@@ -13,5 +13,11 @@
     "night_survival_interrupt"
   ],
   "verified_cases": [],
-  "live_episode_count": 0
+  "live_episode_count": 1,
+  "latest_live_observation": {
+    "episode_id": "m4_episode_20260711_170144_4ce51e64",
+    "required_g4_case_verified": false,
+    "non_g4_interrupt": "task_deadline_elapsed",
+    "non_g4_interrupt_count": 5
+  }
 }

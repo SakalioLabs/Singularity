@@ -251,9 +251,13 @@ def build_m4_preparation_report(
         1 for previous, current in zip(observations, observations[1:])
         if not _observable_progress(previous, current)
     )
-    first_unrecovered = _first_unrecovered_transition(active)
     machine_visible_progress = bool(inventory_delta or world_block_delta)
     pre_dusk_machine_visible_progress = bool(pre_dusk_inventory_delta or pre_dusk_world_block_delta)
+    first_unrecovered = (
+        _pre_dusk_planner_transition(active)
+        if not pre_dusk_machine_visible_progress
+        else {}
+    ) or _first_unrecovered_transition(active)
     required_recording = {
         "autonomous_goals": bool(goals),
         "resource_acquisition": bool(pre_dusk_inventory_delta),
@@ -432,6 +436,13 @@ def _observable_progress(before: dict, after: dict) -> bool:
 
 
 def _first_unrecovered_transition(events: list[dict]) -> dict:
+    current_goal = ""
+    goal_by_index = {}
+    for index, event in enumerate(events):
+        data = event.get("data", {}) if isinstance(event.get("data"), dict) else {}
+        if event.get("type") == "auto_goal":
+            current_goal = str(data.get("goal") or "")
+        goal_by_index[index] = current_goal
     completed_goals = [
         (index, str((event.get("data") or {}).get("goal") or ""))
         for index, event in enumerate(events)
@@ -444,6 +455,14 @@ def _first_unrecovered_transition(events: list[dict]) -> dict:
         and isinstance(event.get("data"), dict)
         and isinstance(event["data"].get("result"), dict)
         and event["data"]["result"].get("success") is True
+    ]
+    recovered_plans = [
+        (index, goal_by_index.get(index, ""))
+        for index, event in enumerate(events)
+        if event.get("type") == "plan"
+        and isinstance(event.get("data"), dict)
+        and event["data"].get("status") in {"planning", "complete", "blocked"}
+        and bool(event["data"].get("actions"))
     ]
     active_goal = ""
     for index, event in enumerate(events):
@@ -476,7 +495,9 @@ def _first_unrecovered_transition(events: list[dict]) -> dict:
                 }
         if event.get("type") in {"empty_plan", "auto_goal_failed"}:
             goal = str(data.get("goal") or active_goal)
-            if any(later > index and completed_goal == goal for later, completed_goal in completed_goals):
+            recovered = any(later > index and completed_goal == goal for later, completed_goal in completed_goals)
+            recovered = recovered or any(later > index and planned_goal == goal for later, planned_goal in recovered_plans)
+            if recovered:
                 continue
             return {
                 "event_type": event.get("type"),
@@ -484,6 +505,51 @@ def _first_unrecovered_transition(events: list[dict]) -> dict:
                 "detail": data,
                 "monotonic_s": event.get("monotonic_s"),
             }
+    return {}
+
+
+def _pre_dusk_planner_transition(events: list[dict]) -> dict:
+    """Identify a Planner call that consumed the remaining fixed preparation window."""
+    survival = PROTOCOL["validation_contract"]["survival"]
+    preparation_start = int(survival["preparation_start_time"])
+    dusk_start = int(survival["dusk_start_time"])
+    latest_observation = {}
+    active_goal = ""
+    for event in events:
+        data = event.get("data", {}) if isinstance(event.get("data"), dict) else {}
+        if event.get("type") == "observation":
+            latest_observation = data
+            continue
+        if event.get("type") == "auto_goal":
+            active_goal = str(data.get("goal") or "")
+            continue
+        if event.get("type") != "llm_planner_call":
+            continue
+        time_of_day = _number(latest_observation.get("time_of_day"))
+        provider = data.get("provider_metadata", {}) if isinstance(data.get("provider_metadata"), dict) else {}
+        duration_ms = _number(provider.get("duration_ms"))
+        if time_of_day is None or duration_ms is None:
+            continue
+        normalized_time = int(time_of_day) % 24000
+        if not preparation_start <= normalized_time < dusk_start:
+            continue
+        nominal_ticks_per_second = 20.0
+        preparation_budget_s = (dusk_start - normalized_time) / nominal_ticks_per_second
+        duration_s = duration_ms / 1000.0
+        if duration_s < preparation_budget_s:
+            continue
+        return {
+            "event_type": "llm_planner_call",
+            "transition": "pre_dusk_planning_window_exhausted",
+            "goal": str(data.get("goal") or active_goal),
+            "call_id": str(data.get("call_id") or ""),
+            "call_duration_s": round(duration_s, 3),
+            "pre_call_time_of_day": normalized_time,
+            "dusk_start_time": dusk_start,
+            "preparation_budget_s": round(preparation_budget_s, 3),
+            "nominal_ticks_per_second": nominal_ticks_per_second,
+            "monotonic_s": event.get("monotonic_s"),
+        }
     return {}
 
 

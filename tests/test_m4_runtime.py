@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from singularity.evaluation.m4_protocol import PROTOCOL, PROTOCOL_SHA256
 from singularity.evaluation.m4_runtime import (
+    _first_unrecovered_transition,
     attach_m4_evidence_hashes,
     build_m4_preflight,
     build_m4_preparation_report,
@@ -282,9 +283,92 @@ def test_m4_preparation_skips_recovered_action_failure():
     print("PASS: G2 does not mislabel a later-recovered action failure")
 
 
+def test_m4_first_unrecovered_skips_transport_error_after_valid_replan():
+    goal = "Gather 6 oak logs for tools and shelter"
+    events = [
+        {"type": "autonomous_start", "monotonic_s": 100.0, "data": {}},
+        {"type": "auto_goal", "monotonic_s": 101.0, "data": {"goal": goal}},
+        {"type": "plan", "monotonic_s": 102.0, "data": {"status": "error", "actions": []}},
+        {"type": "empty_plan", "monotonic_s": 103.0, "data": {"goal": goal, "status": "error"}},
+        {"type": "auto_goal_failed", "monotonic_s": 104.0, "data": {"goal": goal}},
+        {"type": "auto_goal", "monotonic_s": 105.0, "data": {"goal": goal}},
+        {
+            "type": "plan",
+            "monotonic_s": 106.0,
+            "data": {"status": "planning", "actions": [{"type": "move_to"}]},
+        },
+        {
+            "type": "action",
+            "monotonic_s": 107.0,
+            "data": {
+                "action": {"type": "move_to", "parameters": {"x": 1, "z": 1}},
+                "result": {"success": False, "error": "target tolerance not reached"},
+                "action_context": {"goal": goal},
+            },
+        },
+        {"type": "autonomous_end", "monotonic_s": 108.0, "data": {}},
+    ]
+    transition = _first_unrecovered_transition(events)
+    assert transition["event_type"] == "action"
+    assert transition["error"] == "target tolerance not reached"
+    print("PASS: G2 treats a valid same-goal replan as recovery from a transport-empty plan")
+
+
+def test_m4_preparation_reports_planner_that_consumes_dusk_budget():
+    events = copy.deepcopy(_events())
+    events[1]["data"]["time_of_day"] = 9900
+    planner_event = {
+        "type": "llm_planner_call",
+        "monotonic_s": 106.0,
+        "data": {
+            "goal": "Gather 6 oak logs for tools and shelter",
+            "call_id": "llm-dusk-fixture",
+            "real_llm_call": True,
+            "schema_valid": True,
+            "provider_metadata": {"duration_ms": 6000},
+        },
+    }
+    events.insert(4, planner_event)
+    for event in events:
+        data = event.get("data", {})
+        if event.get("type") == "observation" and data.get("time_of_day") == 9100:
+            data["time_of_day"] = 10100
+        if event.get("type") == "action" and isinstance(data.get("post_observation"), dict):
+            data["post_observation"]["time_of_day"] = 10100
+    preflight = build_m4_preflight(
+        _status(),
+        _reset(),
+        "m4-fixture-episode",
+        "m4-fixture-episode_bm011",
+        fresh_episode=True,
+    )
+    manifest = build_m4_runtime_manifest(
+        preflight,
+        "m4-fixture-session",
+        100.0,
+        1300.0,
+        108.0,
+        runtime_controls=dict(PROTOCOL["baseline_runtime_controls"]),
+    )
+    report = build_m4_preparation_report(
+        events,
+        {"deadline_eligible": True, "terminal_state": events[-2]["data"]},
+        preflight,
+        manifest,
+        {"eligible": False, "issues": []},
+    )
+    transition = report["first_unrecovered_transition"]
+    assert transition["transition"] == "pre_dusk_planning_window_exhausted"
+    assert transition["preparation_budget_s"] == 5.0
+    assert transition["call_duration_s"] == 6.0
+    print("PASS: G2 reports a Planner call that consumes the fixed pre-dusk budget")
+
+
 if __name__ == "__main__":
     test_m4_runtime_builds_valid_preflight_and_manifest()
     test_m4_preparation_report_requires_machine_visible_progress()
     test_m4_preparation_requires_progress_before_fixed_dusk_boundary()
     test_m4_preparation_skips_recovered_action_failure()
+    test_m4_first_unrecovered_skips_transport_error_after_valid_replan()
+    test_m4_preparation_reports_planner_that_consumes_dusk_budget()
     print("\nM4 runtime evidence tests PASSED")

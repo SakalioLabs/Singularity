@@ -1,7 +1,7 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-11T07:44:19.1506314Z",
+  "generated_at": "2026-07-11T09:38:39.6874086Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "031d35021141e6b4dc34fa7151a6c9cdb8154454b6d9e8187d1dfb337523a2ce",
   "readiness": "approved",
@@ -60,5 +60,15 @@
     }
   ],
   "g0_passed": true,
-  "live_episode_count": 0
+  "live_episode_count": 1,
+  "latest_live_episode": {
+    "episode_id": "m4_episode_20260711_170144_4ce51e64",
+    "session_id": "441d17a2-bde",
+    "episode_deadline_monotonic": 234260.687,
+    "agent_end_monotonic": 234260.703,
+    "post_deadline_action_count": 0,
+    "post_deadline_late_plan_evidence_count": 1,
+    "deadline_eligible": false,
+    "eligibility_issue": "no_post_deadline_execution"
+  }
 }

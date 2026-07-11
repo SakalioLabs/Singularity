@@ -23,7 +23,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 |---|---|---|
 | G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed |
 | G1 | Deterministic survival-goal priority cases | passed |
-| G2 | One live preparation episode with machine-visible progress | in_progress |
+| G2 | One live preparation episode with machine-visible progress | failed_probe_1 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | locked |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | locked |
 | G5 | First eligible survival-to-dawn episode | locked |
@@ -35,7 +35,22 @@ G1 passed offline validation. GoalGenerator and Curriculum preserve the fixed or
 
 ## Current Hypothesis
 
-The earliest blocker is the G2 live-preparation evidence path. The next change is limited to a full M4 preflight/runtime manifest and one fresh BM-011 preparation episode that measures autonomous goals, resource and crafting progress, shelter intent, time remaining, inventory/world deltas, and repeated no-progress behavior. It does not count as an eligible first-night success unless the complete BM-011 gate independently passes.
+The first G2 live baseline passed the complete preflight but produced no inventory or block delta before dusk. The initial TLS `SSLEOFError` recovered on the next same-goal call. The first unrecovered transition was the first real schema-valid plan consuming 61.687 seconds while only 36.35 seconds remained before fixed dusk. Its provider evidence contains 3098 reasoning bytes and an empty `extra_body`, unlike the bounded M2 transport profile.
+
+The single current hypothesis is that M4 leaves provider thinking enabled, causing Planner latency to exhaust the fixed preparation window before any action can contribute. The next change is limited to pinning and offline-verifying the M4 provider payload for disabled thinking, followed by one fresh G2 episode. Navigation tolerance and task-deadline recovery remain observed secondary failures and are not changed in the same round.
+
+## G2 Live Evidence
+
+- Episode: `m4_episode_20260711_170144_4ce51e64`
+- Session: `441d17a2-bde`
+- Preflight: passed
+- G2: failed
+- BM-011 eligible: false; eligible successes remain 0/3
+- Autonomous goals: 2, both generated from `wood_reserve_below_target`
+- Actions: 1 attempted, 0 successful
+- Machine-visible inventory/block progress: none
+- First unrecovered transition: `pre_dusk_planning_window_exhausted`
+- Evidence: `logs/benchmarks/m4/m4_episode_20260711_170144_4ce51e64/`
 
 ## Evidence Discipline
 
