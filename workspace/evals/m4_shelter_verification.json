@@ -1,7 +1,7 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-11T21:53:38.9911369Z",
+  "generated_at": "2026-07-11T22:07:26.1491719Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
@@ -60,12 +60,12 @@
     "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 30},
     "live_episode_run": false
   },
-  "live_episode_count": 7,
+  "live_episode_count": 8,
   "latest_live_observation": {
-    "episode_id": "m4_episode_20260712_054638_ac6ac8de",
-    "shelter_priority_goal_count": 3,
-    "shelter_plan_count": 22,
-    "shelter_verification_event_count": 12,
+    "episode_id": "m4_episode_20260712_060223_239f1dde",
+    "shelter_priority_goal_count": 4,
+    "shelter_plan_count": 30,
+    "shelter_verification_event_count": 6,
     "machine_verified_safe_state": false
   }
 }

@@ -1,0 +1,314 @@
+{
+  "type": "m4_episode_eligibility",
+  "task_id": "BM-011",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+  "eligible": false,
+  "success": false,
+  "issues": [
+    "event:terminal_survival_verification",
+    "natural_time_progression",
+    "terminal_bot_connected",
+    "terminal_machine_verification",
+    "episode_within_deadline",
+    "result_duration_eligible",
+    "no_post_deadline_execution"
+  ],
+  "checks": [
+    {
+      "name": "preflight_eligible",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "protocol_integrity",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "manifest_type",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_task",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_profile",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_protocol",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_reset_protocol",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_validation_protocol",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_episode",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_session",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_level",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_deadline_policy",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_runtime_controls",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_runtime_limits",
+      "passed": true,
+      "detail": {
+        "max_duration_s": 240.0,
+        "max_goals": 4,
+        "max_cycles_per_goal": 8
+      }
+    },
+    {
+      "name": "preflight_content_hash",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_content_hash",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "session_content_hash",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "result_content_hash",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:autonomous_start",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:observation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:auto_goal",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:llm_planner_call",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:plan",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:action",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:goal_end",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:terminal_survival_verification",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "event:autonomous_end",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "planner_provider_controls",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "autonomous_goal_present",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "autonomous_goal_source",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "autonomous_goal_reason",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "autonomous_goal_priority",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "external_step_script_absent",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "action_present",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "action_pre_observations",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "action_post_observations",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "action_verifier",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "active_episode_forbidden_commands_absent",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "quarantined_skill_absent",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "strategic_root_skill_absent",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "night_observed",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "next_dawn_observed",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "natural_time_progression",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "terminal_health",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "terminal_bot_connected",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "terminal_machine_verification",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "monotonic_runtime",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "active_event_monotonic_complete",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "active_event_monotonic_ordered",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "active_event_monotonic_bounds",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "episode_within_deadline",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "result_duration_eligible",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "no_post_deadline_execution",
+      "passed": false,
+      "detail": ""
+    }
+  ],
+  "evidence": {
+    "event_count": 752,
+    "action_count": 30,
+    "autonomous_goal_count": 4,
+    "planner_provider_controls": {
+      "passed": true,
+      "call_count": 30,
+      "real_call_count": 30,
+      "schema_valid_real_call_count": 30,
+      "expected_extra_body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "expected_finish_reason": "stop",
+      "reasoning_content_max_bytes": 0,
+      "max_call_duration_ms": 10295.0,
+      "total_token_usage": 96027,
+      "violations": []
+    },
+    "night_observation_index": 36,
+    "dawn_observation_index": 60,
+    "terminal_health": 20,
+    "episode_duration_s": 240.015,
+    "forbidden_events": []
+  }
+}

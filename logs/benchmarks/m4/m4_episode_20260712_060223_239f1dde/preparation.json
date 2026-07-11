@@ -1,0 +1,1260 @@
+{
+  "type": "m4_preparation_report",
+  "schema_version": 1,
+  "task_id": "BM-011",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+  "readiness": "review",
+  "decision": "diagnose_first_unrecovered_transition",
+  "g2_passed": false,
+  "counts_toward_bm011_success": false,
+  "episode_id": "m4_episode_20260712_060223_239f1dde",
+  "session_id": "dd883cea-eb9",
+  "level_name": "m4_episode_20260712_060223_239f1dde_bm011",
+  "required_recording": {
+    "autonomous_goals": true,
+    "resource_acquisition": true,
+    "crafting_behavior_recorded": true,
+    "shelter_or_safe_point_intent": true,
+    "planner_provider_controls": true,
+    "time_remaining_recorded": true,
+    "inventory_world_delta_recorded": true,
+    "loop_metrics_recorded": true
+  },
+  "autonomous_goals": [
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 1,
+      "max_goals": 4,
+      "selection_source": "goal_generator",
+      "selection_reason": "wood_reserve_below_target;curriculum_retained_fallback",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Build verified shelter before nightfall",
+      "goal_index": 2,
+      "max_goals": 4,
+      "selection_source": "goal_generator",
+      "selection_reason": "dusk_without_machine_verified_shelter",
+      "priority": 4,
+      "priority_class": "shelter_preparation"
+    },
+    {
+      "goal": "Build verified shelter before nightfall",
+      "goal_index": 3,
+      "max_goals": 4,
+      "selection_source": "goal_generator",
+      "selection_reason": "dusk_without_machine_verified_shelter",
+      "priority": 4,
+      "priority_class": "shelter_preparation"
+    },
+    {
+      "goal": "Reach or build emergency verified shelter immediately",
+      "goal_index": 4,
+      "max_goals": 4,
+      "selection_source": "goal_generator",
+      "selection_reason": "night_without_machine_verified_shelter",
+      "priority": 4,
+      "priority_class": "shelter_preparation"
+    }
+  ],
+  "planner_provider_controls": {
+    "passed": true,
+    "call_count": 30,
+    "real_call_count": 30,
+    "schema_valid_real_call_count": 30,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 0,
+    "max_call_duration_ms": 10295.0,
+    "total_token_usage": 96027,
+    "violations": []
+  },
+  "action_count": 30,
+  "successful_action_count": 17,
+  "crafting_action_count": 11,
+  "shelter_goal_count": 4,
+  "shelter_plan_count": 30,
+  "inventory_delta": {},
+  "world_block_delta": [
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 101,
+        "y": 139,
+        "z": -29
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 101,
+        "y": 141,
+        "z": -32
+      },
+      "before": "dark_oak_log",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 101,
+        "y": 142,
+        "z": -30
+      },
+      "before": "dark_oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 139,
+        "z": -30
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 139,
+        "z": -29
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 140,
+        "z": -31
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 139,
+        "z": -31
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 139,
+        "z": -30
+      },
+      "before": "air",
+      "after": "oak_log"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 140,
+        "z": -31
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 140,
+        "z": -30
+      },
+      "before": "oak_log",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 141,
+        "z": -32
+      },
+      "before": "air",
+      "after": "dark_oak_log"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 141,
+        "z": -30
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 141,
+        "z": -29
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 104,
+        "y": 140,
+        "z": -30
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 138,
+        "z": -30
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 139,
+        "z": -31
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 140,
+        "z": -31
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 140,
+        "z": -30
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 140,
+        "z": -29
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 141,
+        "z": -30
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 138,
+        "z": -30
+      },
+      "before": "air",
+      "after": "oak_log"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 139,
+        "z": -30
+      },
+      "before": "oak_log",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 139,
+        "z": -29
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 140,
+        "z": -31
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 140,
+        "z": -29
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 104,
+        "y": 139,
+        "z": -30
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 104,
+        "y": 140,
+        "z": -30
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 105,
+        "y": 136,
+        "z": -29
+      },
+      "before": "air",
+      "after": "short_grass"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 110,
+        "y": 136,
+        "z": -36
+      },
+      "before": "air",
+      "after": "grass_block"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 111,
+        "y": 136,
+        "z": -34
+      },
+      "before": "air",
+      "after": "dirt"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 97,
+        "y": 141,
+        "z": -30
+      },
+      "before": "air",
+      "after": "dark_oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 135,
+        "z": -30
+      },
+      "before": "air",
+      "after": "grass_block"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 138,
+        "z": -33
+      },
+      "before": "air",
+      "after": "dark_oak_log"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 138,
+        "z": -31
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 138,
+        "z": -29
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 139,
+        "z": -31
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 139,
+        "z": -30
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 142,
+        "z": -30
+      },
+      "before": "dark_oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 135,
+        "z": -30
+      },
+      "before": "air",
+      "after": "dirt"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 137,
+        "z": -30
+      },
+      "before": "air",
+      "after": "oak_log"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 138,
+        "z": -31
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 138,
+        "z": -30
+      },
+      "before": "oak_log",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 138,
+        "z": -29
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 139,
+        "z": -31
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 139,
+        "z": -29
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 141,
+        "z": -32
+      },
+      "before": "dark_oak_log",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 104,
+        "y": 138,
+        "z": -30
+      },
+      "before": "air",
+      "after": "oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 104,
+        "y": 139,
+        "z": -30
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 110,
+        "y": 136,
+        "z": -36
+      },
+      "before": "grass_block",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 111,
+        "y": 136,
+        "z": -34
+      },
+      "before": "dirt",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 97,
+        "y": 141,
+        "z": -30
+      },
+      "before": "dark_oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 100,
+        "y": 140,
+        "z": -36
+      },
+      "before": "air",
+      "after": "dark_oak_leaves"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 137,
+        "z": -33
+      },
+      "before": "air",
+      "after": "dark_oak_log"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 138,
+        "z": -33
+      },
+      "before": "dark_oak_log",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 136,
+        "z": -30
+      },
+      "before": "air",
+      "after": "oak_log"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 137,
+        "z": -30
+      },
+      "before": "oak_log",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 100,
+        "y": 140,
+        "z": -36
+      },
+      "before": "dark_oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 135,
+        "z": -31
+      },
+      "before": "air",
+      "after": "grass_block"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 135,
+        "z": -29
+      },
+      "before": "air",
+      "after": "grass_block"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 136,
+        "z": -33
+      },
+      "before": "air",
+      "after": "dark_oak_log"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 137,
+        "z": -33
+      },
+      "before": "dark_oak_log",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 138,
+        "z": -31
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 102,
+        "y": 138,
+        "z": -29
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 135,
+        "z": -31
+      },
+      "before": "air",
+      "after": "grass_block"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 135,
+        "z": -29
+      },
+      "before": "air",
+      "after": "grass_block"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 136,
+        "z": -30
+      },
+      "before": "oak_log",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 138,
+        "z": -31
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 103,
+        "y": 138,
+        "z": -29
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 104,
+        "y": 135,
+        "z": -31
+      },
+      "before": "air",
+      "after": "grass_block"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 104,
+        "y": 135,
+        "z": -30
+      },
+      "before": "air",
+      "after": "grass_block"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 104,
+        "y": 138,
+        "z": -30
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 136,
+        "z": -29
+      },
+      "before": "air",
+      "after": "oak_log"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 136,
+        "z": -29
+      },
+      "before": "oak_log",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 137,
+        "z": -29
+      },
+      "before": "air",
+      "after": "oak_log"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 132,
+        "z": -36
+      },
+      "before": "air",
+      "after": "coal_ore"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 132,
+        "z": -29
+      },
+      "before": "air",
+      "after": "stone"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 134,
+        "z": -29
+      },
+      "before": "air",
+      "after": "dirt"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 135,
+        "z": -29
+      },
+      "before": "dirt",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 137,
+        "z": -28
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 108,
+        "y": 135,
+        "z": -29
+      },
+      "before": "air",
+      "after": "grass_block"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 109,
+        "y": 132,
+        "z": -32
+      },
+      "before": "air",
+      "after": "gravel"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 114,
+        "y": 133,
+        "z": -32
+      },
+      "before": "gravel",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 114,
+        "y": 133,
+        "z": -29
+      },
+      "before": "stone",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 115,
+        "y": 134,
+        "z": -29
+      },
+      "before": "coal_ore",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 106,
+        "y": 134,
+        "z": -29
+      },
+      "before": "air",
+      "after": "dirt"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 106,
+        "y": 135,
+        "z": -29
+      },
+      "before": "grass_block",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 104,
+        "y": 131,
+        "z": -24
+      },
+      "before": "air",
+      "after": "iron_ore"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 132,
+        "z": -36
+      },
+      "before": "coal_ore",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 133,
+        "z": -29
+      },
+      "before": "air",
+      "after": "dirt"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 134,
+        "z": -30
+      },
+      "before": "air",
+      "after": "dirt"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 134,
+        "z": -29
+      },
+      "before": "dirt",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 135,
+        "z": -28
+      },
+      "before": "grass_block",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 138,
+        "z": -29
+      },
+      "before": "oak_log",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 108,
+        "y": 131,
+        "z": -34
+      },
+      "before": "air",
+      "after": "coal_ore"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 108,
+        "y": 135,
+        "z": -29
+      },
+      "before": "grass_block",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 111,
+        "y": 136,
+        "z": -28
+      },
+      "before": "air",
+      "after": "oak_log"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 106,
+        "y": 134,
+        "z": -29
+      },
+      "before": "dirt",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 134,
+        "z": -28
+      },
+      "before": "air",
+      "after": "dirt"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 134,
+        "z": -30
+      },
+      "before": "dirt",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 108,
+        "y": 134,
+        "z": -29
+      },
+      "before": "air",
+      "after": "dirt"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 106,
+        "y": 133,
+        "z": -29
+      },
+      "before": "air",
+      "after": "dirt"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 133,
+        "z": -30
+      },
+      "before": "air",
+      "after": "dirt"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 133,
+        "z": -29
+      },
+      "before": "dirt",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 133,
+        "z": -28
+      },
+      "before": "air",
+      "after": "dirt"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 134,
+        "z": -28
+      },
+      "before": "dirt",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 107,
+        "y": 137,
+        "z": -30
+      },
+      "before": "oak_leaves",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 108,
+        "y": 133,
+        "z": -29
+      },
+      "before": "air",
+      "after": "dirt"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 108,
+        "y": 134,
+        "z": -29
+      },
+      "before": "dirt",
+      "after": "air"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 106,
+        "y": 132,
+        "z": -29
+      },
+      "before": "air",
+      "after": "stone"
+    },
+    {
+      "action_type": "dig",
+      "position": {
+        "x": 106,
+        "y": 133,
+        "z": -29
+      },
+      "before": "dirt",
+      "after": "air"
+    }
+  ],
+  "machine_visible_progress": true,
+  "pre_dusk_inventory_delta": {
+    "oak_log": 3,
+    "oak_sapling": 1
+  },
+  "pre_dusk_world_block_delta": [],
+  "pre_dusk_machine_visible_progress": true,
+  "pre_dusk_last_state": {
+    "position": {
+      "x": 103.49999999999991,
+      "y": 138,
+      "z": -29.556086412
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {
+      "oak_sapling": 1,
+      "oak_log": 3
+    },
+    "time_of_day": 9943,
+    "nearby_hostile_count": 0
+  },
+  "time_of_day_before": 9183,
+  "time_of_day_after": 0,
+  "time_remaining_s": 0.0,
+  "same_goal_max_consecutive": 2,
+  "same_plan_max_consecutive": 3,
+  "same_failed_action_max_count": 11,
+  "goal_switch_count": 2,
+  "no_progress_observation_transitions": 11,
+  "first_unrecovered_transition": {
+    "event_type": "action",
+    "goal": "Build verified shelter before nightfall",
+    "action": {
+      "type": "craft",
+      "parameters": {
+        "recipe": "oak_planks",
+        "count": 4
+      }
+    },
+    "error": "Action verification rejected: craft action missing item parameter",
+    "monotonic_s": 280930.39
+  },
+  "before_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 9183,
+    "nearby_hostile_count": 0
+  },
+  "after_state": {
+    "position": {},
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 0,
+    "nearby_hostile_count": 0
+  },
+  "deadline_eligible": false,
+  "evidence_eligible": false,
+  "eligibility_issues": [
+    "event:terminal_survival_verification",
+    "natural_time_progression",
+    "terminal_bot_connected",
+    "terminal_machine_verification",
+    "episode_within_deadline",
+    "result_duration_eligible",
+    "no_post_deadline_execution"
+  ]
+}

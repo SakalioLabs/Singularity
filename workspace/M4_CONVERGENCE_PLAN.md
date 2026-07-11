@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | ready_for_one_live_probe_after_task_reconciliation |
+| G5 | First eligible survival-to-dawn episode | diagnose_probe_8_craft_parameter_grounding |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -47,7 +47,9 @@ The new earliest unrecovered transition is task-completion/readiness grounding. 
 
 The dusk interrupt itself behaved coherently: one `dusk_shelter_required` trigger suspended the resource goal, preserved its frontier, selected the aligned shelter goal, and escalated the same trigger to `night_shelter_required` without creating a competing root. The run ultimately consumed the remaining 58.14 seconds in a deadline-bound `move_to`, ended 0.016 seconds after the absolute deadline, and was independently rejected.
 
-The task-completion/readiness hypothesis is now addressed offline. Before each M4 Planner call, the Agent reconciles only tasks whose pure inventory success criteria are already satisfied by the current machine observation. It records `m4_task_state_reconciliation`, completes the fulfilled node, and thereby unlocks its dependent craft/build frontier. Non-inventory criteria, unverified shelter flags, and every non-M4 protocol remain outside this path. Full regression passed with 665 Python tests and all six fixed Node suites; one fresh G5 retest is authorized, with no second live episode in the same round.
+The task-completion/readiness hypothesis passed live in Probe 8. At cycle 9, one `m4_task_state_reconciliation` event completed seven duplicate gather nodes as soon as the machine observation reached `oak_log:6`; the next selected behavior entered crafting instead of gathering. Non-inventory criteria remained outside the reconciliation path.
+
+The new earliest unrecovered transition is craft action-parameter grounding. Session event index 207 at monotonic 280930.390 attempted `craft` with `recipe=oak_planks` and `count=4`; ActionVerifier requires canonical `item`, so it rejected the action before execution. All 11 craft attempts repeated the same alias family, producing zero planks and no shelter placements. Later readiness-format warnings and the final deadline overrun do not displace this earlier transition. The next round may change only M4 craft parameter grounding and must pass offline tests before another live episode.
 
 ## G5 Preflight: Task Completion Readiness
 
@@ -105,6 +107,21 @@ The task-completion/readiness hypothesis is now addressed offline. Before each M
 - Live evidence: none; G3 is an offline deterministic gate and does not count toward BM-011
 
 ## G2 Live Evidence
+
+### Probe 8: Task Reconciliation Passed; Craft Parameters Rejected
+
+- Episode: `m4_episode_20260712_060223_239f1dde`
+- Session: `dd883cea-eb9`
+- Preflight: passed
+- G2: report returned false because terminal evidence was deadline-ineligible; pre-dusk machine progress was present (`oak_log:3`, `oak_sapling:1` at world time 9943)
+- BM-011 eligible: false; eligible successes remain 0/3
+- Planner controls: passed for 30/30 real schema-valid calls, zero reasoning bytes, maximum latency 10.295 seconds
+- Task-reconciliation retest: one event completed seven fulfilled gather tasks at `oak_log:6`, and the next behavior advanced to craft
+- Actions: 30 attempted, 17 successful; 11 craft attempts, zero successful crafts, zero shelter placements
+- First unrecovered transition: event index 207 attempted `craft` with `recipe=oak_planks` instead of canonical `item=oak_planks`; ActionVerifier rejected it at monotonic 280930.390
+- Interrupt audit: one dusk shelter trigger preserved the frontier and escalated under the same trigger at night, with no competing root
+- Deadline: ineligible; Agent reached the absolute deadline and manifest evidence ended 0.015 seconds later; the deadline-bound final move was not replayed or reconnected
+- Evidence: `logs/benchmarks/m4/m4_episode_20260712_060223_239f1dde/`
 
 ### Probe 7: Action Grounding Passed; Task Readiness Did Not Converge
 
