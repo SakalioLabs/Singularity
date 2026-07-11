@@ -2315,16 +2315,31 @@ class Agent:
                             )
                             if corrected:
                                 continue
-                            # Reflect on failure if LLM available
-                            if self.reflector:
-                                reflection = self.reflector.analyze_failure(
-                                    goal, action, result, observation
-                                )
-                                self._write_memory_episode(
-                                    "failure_reflection",
-                                    reflection,
-                                    source="autonomous_failure",
-                                )
+                            if self.reflector or strict_m4:
+                                reflection = self._reflect(observation, action, result, goal)
+                                if reflection.get("suppressed"):
+                                    suppression = {
+                                        "goal": goal,
+                                        "context": {"cycle": total_cycles, "mode": "autonomous"},
+                                        "action": action,
+                                        "error": str(result.get("error") or "")[:500],
+                                        **reflection,
+                                    }
+                                    self.session_logger.log(
+                                        "failure_reflection_suppressed",
+                                        suppression,
+                                    )
+                                    self._write_memory_episode(
+                                        "failure_reflection_suppressed",
+                                        suppression,
+                                        source="autonomous_failure",
+                                    )
+                                else:
+                                    self._write_memory_episode(
+                                        "failure_reflection",
+                                        reflection,
+                                        source="autonomous_failure",
+                                    )
                             break
 
                     if goal_success:
@@ -5149,11 +5164,21 @@ class Agent:
         self._write_memory_episode("visual_action_intervention", payload, source="visual_action")
 
     def _reflect(self, observation: dict, action: dict, result: dict, goal: str) -> dict:
-        if str(getattr(self.config, "planner_protocol", "") or "") == "m2-fixed-v1":
+        protocol = str(getattr(self.config, "planner_protocol", "") or "")
+        if protocol == "m2-fixed-v1":
             return {
                 "analysis": "M2 action failure recorded for the next schema-validated replan",
                 "suggestion": "replan",
                 "should_retry": True,
+            }
+        if protocol == "m4-fixed-v1":
+            return {
+                "analysis": "M4 suppresses auxiliary failure LLM calls and replans on the next cycle",
+                "suggestion": "replan",
+                "should_retry": True,
+                "suppressed": True,
+                "reason": "m4_fixed_profile_immediate_replan",
+                "episode_deadline_monotonic": getattr(self, "_episode_deadline_monotonic", None),
             }
         if not self._use_llm or not self.reflector:
             return {"analysis": "Rule planner - no reflection available", "suggestion": "retry", "should_retry": True}

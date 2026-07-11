@@ -260,7 +260,16 @@ def test_autonomous_loop_replans_once_then_resumes_actions():
     agent.goal_generator = FakeGoalGenerator()
     agent.curriculum = FakeCurriculum()
     agent.planner = None
-    agent.reflector = None
+    class CountingReflector:
+        def __init__(self):
+            self.calls = []
+
+        def analyze_failure(self, goal, action, result, state):
+            self.calls.append((goal, action, result, state))
+            return {"analysis": "fixture reflection"}
+
+    agent.reflector = CountingReflector()
+    agent._use_llm = True
     agent._active_skill_execution = {}
     agent._skill_fallback_goals = set()
     agent._skill_episode_start_index = 0
@@ -299,6 +308,16 @@ def test_autonomous_loop_replans_once_then_resumes_actions():
         }
 
     agent._think = plan
+    action_results = [
+        {"success": False, "action_type": "wait", "error": "fixture action failure"},
+        {"success": True, "action_type": "wait"},
+    ]
+
+    def execute(action, state):
+        agent.action_controller.actions.append(action)
+        return action_results.pop(0)
+
+    agent.action_controller.execute = execute
     agent._record_task_continuity = lambda *args, **kwargs: None
     agent._state_with_causal_context = lambda state, goal="": state
     agent._goal_is_verified = lambda *args, **kwargs: (False, None)
@@ -306,6 +325,7 @@ def test_autonomous_loop_replans_once_then_resumes_actions():
     agent._verify_action_for_execution = lambda *args, **kwargs: (None, None)
     agent._record_action_value = lambda *args, **kwargs: None
     agent._apply_action_feedback = lambda action, result, state, context=None: state
+    agent._attempt_failure_correction = lambda *args, **kwargs: (False, observation)
     agent._record_skill_usage = lambda *args, **kwargs: None
     agent._evaluate_episode_abort = lambda *args, **kwargs: False
     agent._record_frontier_budget_outcome = lambda *args, **kwargs: None
@@ -316,20 +336,57 @@ def test_autonomous_loop_replans_once_then_resumes_actions():
     with patch("singularity.core.agent.time.sleep", lambda _seconds: None):
         result = agent.run_autonomous(
             max_goals=1,
-            max_cycles_per_goal=2,
+            max_cycles_per_goal=3,
             max_duration_s=30.0,
         )
 
     event_types = [event["type"] for event in agent.session_logger.events]
-    assert len(plan_calls) == 2
-    assert len(agent.action_controller.actions) == 1
+    assert len(plan_calls) == 3
+    assert len(agent.action_controller.actions) == 2
     assert agent.action_controller.actions[0]["type"] == "wait"
+    assert agent.reflector.calls == []
     assert event_types.count("runtime_interrupt") == 1
     assert event_types.count("runtime_interrupt_recovery") == 1
-    assert event_types.count("action") == 1
+    assert event_types.count("failure_reflection_suppressed") == 1
+    assert event_types.count("action") == 2
+    suppression = next(
+        event["data"]
+        for event in agent.session_logger.events
+        if event["type"] == "failure_reflection_suppressed"
+    )
+    assert suppression["reason"] == "m4_fixed_profile_immediate_replan"
+    assert suppression["context"] == {"cycle": 2, "mode": "autonomous"}
+    assert suppression["action"]["type"] == "wait"
+    assert suppression["error"] == "fixture action failure"
+    assert suppression["episode_deadline_monotonic"] is not None
     assert all(task.status == TaskStatus.FAILED for task in agent.task_system.tasks.values())
-    assert result["total_cycles"] == 2
-    print("PASS: Autonomous loop yields once, replans, and resumes action execution")
+    assert result["total_cycles"] == 3
+    print("PASS: Autonomous loop recovers tasks, suppresses reflection, and resumes actions")
+
+
+def test_non_m4_reflection_behavior_is_preserved():
+    agent = runtime_agent()
+    agent._use_llm = True
+
+    class CountingReflector:
+        def __init__(self):
+            self.calls = []
+
+        def analyze_failure(self, goal, action, result, state):
+            self.calls.append((goal, action, result, state))
+            return {"analysis": "non-M4 reflection", "should_retry": True}
+
+    agent.reflector = CountingReflector()
+    reflection = agent._reflect(
+        {"health": 20},
+        {"type": "wait", "parameters": {"ms": 1}},
+        {"success": False, "error": "fixture"},
+        "Explore",
+    )
+
+    assert reflection["analysis"] == "non-M4 reflection"
+    assert len(agent.reflector.calls) == 1
+    print("PASS: Non-M4 profiles retain LLM failure reflection")
 
 
 if __name__ == "__main__":
@@ -338,4 +395,5 @@ if __name__ == "__main__":
     test_agent_handles_runtime_interrupt_with_emergency_action()
     test_agent_expires_all_overdue_tasks_and_interrupts_once()
     test_autonomous_loop_replans_once_then_resumes_actions()
+    test_non_m4_reflection_behavior_is_preserved()
     print("\nRuntime supervisor tests PASSED")
