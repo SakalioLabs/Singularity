@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | ready_for_one_live_probe |
+| G5 | First eligible survival-to-dawn episode | diagnose_probe_7_task_readiness_grounding |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -41,11 +41,11 @@ G4 passed strict offline integration. RuntimeSupervisor applies the fixed hostil
 
 ## Current Hypothesis
 
-The Planner action-parameter-grounding hypothesis is confirmed offline. The exact Probe 6 shape, `dig` with `block_name` plus nested `position`, is converted before schema acceptance into top-level `block`, `x`, `y`, and `z`; the resulting action is accepted by ActionVerifier. Grounding evidence records the action index, recognized aliases, original parameter hash, and canonical parameters. Top-level/nested coordinate conflicts, missing coordinates, unknown parameters, non-finite values, and conflicting block names reject the entire plan before execution.
+Probe 7 confirms the M4 action-parameter-grounding fix in live execution. All 22 real Planner calls were schema-valid, every `dig` used canonical top-level coordinates and optional `block`, all nine `dig` actions passed ActionVerifier, and nine succeeded. The Agent accumulated 11 oak logs, so Probe 6's alias rejection did not recur.
 
-The earliest unrecovered runtime transition is now session event index 138 at monotonic 256257.687. For cycle 6 of `Gather 6 oak logs for tools and shelter`, Planner call `llm-7f64b5bbb62f4bc8` returned a schema-valid planning envelope whose `dig` action used alias parameters `block_name` plus nested `position`. The canonical primitive requires top-level `x`, `y`, and `z`, with optional `block`, so ActionVerifier rejected the action without execution. Inventory remained `oak_log:1` and `dark_oak_sapling:1` while world time advanced from 9932 to 9952.
+The new earliest unrecovered transition is task-completion/readiness grounding. At session event index 366 the machine observation already contained `oak_log:9`. Planner call `llm-1ef73e3cdfab47e3` at index 376 nevertheless treated the fulfilled `Gather 6 oak logs` task as ready and emitted another `dig` rather than the dependent craft/build step. The next successful action raised inventory to 10 logs, and subsequent plans continued gathering. Across 21 actions there were 15 successes but zero crafting actions and zero placement actions; the shelter remained unverified.
 
-Later evidence does not displace this first transition. Seventeen alias-style `dig` actions were rejected in total; the first earlier rejection recovered through a valid `move_to` and `dig`, but all 16 rejections from event 138 onward were unrecovered. Twenty failed actions were reflection-suppressed with zero legacy reflection writes, and 11 unique task-deadline interrupts received 11 matching recoveries while terminalizing 96 unique expired tasks. The fix has now passed 663 Python tests and all 30 Node tests without changing the fixed M4 protocol hash. The first unrecovered transition remains the live retest target until exactly one fresh G5 episode proves whether it is removed; no second episode is authorized in the same round.
+The dusk interrupt itself behaved coherently: one `dusk_shelter_required` trigger suspended the resource goal, preserved its frontier, selected the aligned shelter goal, and escalated the same trigger to `night_shelter_required` without creating a competing root. The run ultimately consumed the remaining 58.14 seconds in a deadline-bound `move_to`, ended 0.016 seconds after the absolute deadline, and was independently rejected. The next round may change only the task-completion/readiness subsystem and must pass offline tests before another single live episode.
 
 ## G5 Preflight: Action Parameter Grounding
 
@@ -90,6 +90,21 @@ Later evidence does not displace this first transition. Seventeen alias-style `d
 - Live evidence: none; G3 is an offline deterministic gate and does not count toward BM-011
 
 ## G2 Live Evidence
+
+### Probe 7: Action Grounding Passed; Task Readiness Did Not Converge
+
+- Episode: `m4_episode_20260712_054638_ac6ac8de`
+- Session: `b2f136c9-aa7`
+- Preflight: passed
+- G2: report returned false because terminal evidence was deadline-ineligible; pre-dusk machine progress itself was present (`oak_log:2`, `dark_oak_sapling:1` at world time 9889)
+- BM-011 eligible: false; eligible successes remain 0/3
+- Planner controls: passed for 22/22 real schema-valid calls, zero reasoning bytes, maximum latency 6.280 seconds
+- Action-grounding retest: 9/9 canonical `dig` actions passed ActionVerifier and succeeded; inventory reached `oak_log:11`
+- Actions: 21 attempted, 15 successful, zero craft actions, zero place actions
+- First unrecovered transition: with `oak_log:9` already observed at event index 366, Planner call `llm-1ef73e3cdfab47e3` at event index 376 continued the fulfilled `Gather 6 oak logs` task instead of advancing to craft/build
+- Interrupt audit: one dusk shelter trigger suspended the resource goal and preserved its frontier; the same trigger escalated at night with no duplicate root, but no recovery occurred before termination
+- Deadline: ineligible; the final deadline-bound `move_to` returned at 280160.234, 0.016 seconds after the absolute deadline, with no replay or reconnect
+- Evidence: `logs/benchmarks/m4/m4_episode_20260712_054638_ac6ac8de/`
 
 ### Probe 6: M4 Plan Envelope Recovery and G2 Passed
 
