@@ -19,7 +19,12 @@
     "base_url": "https://opencode.ai/zen/go/v1",
     "model": "deepseek-v4-flash",
     "temperature": 0.0,
-    "max_tokens": 4096
+    "max_tokens": 4096,
+    "extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    }
   },
   "baseline_runtime_controls": {
     "skill_execution_mode": "off",
@@ -117,6 +122,7 @@
         "autonomous_start",
         "observation",
         "auto_goal",
+        "llm_planner_call",
         "plan",
         "action",
         "goal_end",
@@ -127,6 +133,17 @@
       "goal_selection_reason_required": true,
       "goal_priority_required": true,
       "external_step_script_allowed": false
+    },
+    "planner_evidence": {
+      "real_llm_call_required": true,
+      "schema_valid_call_required": true,
+      "required_extra_body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "finish_reason": "stop",
+      "reasoning_content_max_bytes": 0
     },
     "survival": {
       "preparation_start_time": 9000,
@@ -172,7 +189,7 @@
       "runtime_manifest_required": true
     }
   },
-  "validation_protocol_sha256": "349e873f0f5be76fe46290fca51299ec8f3051c4bbec316ec07c1b5d714e61e6",
+  "validation_protocol_sha256": "e4a2eb388625ef74ff10dbf199502c6a986d844c4fee783326721c982a8f7500",
   "tasks": [
     {
       "id": "BM-011",

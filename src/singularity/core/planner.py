@@ -197,7 +197,7 @@ class Planner:
                 chat_kwargs = {"response_format": {"type": "json_object"}}
                 if request_timeout_s is not None:
                     chat_kwargs["timeout_s"] = request_timeout_s
-                if self.strict_m2:
+                if self.strict_m2 or self.strict_m4:
                     chat_kwargs["extra_body"] = dict(deadline_protocol["llm"].get("extra_body", {}))
                 try:
                     response = self.llm.chat(messages, **chat_kwargs)

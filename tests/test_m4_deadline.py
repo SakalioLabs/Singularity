@@ -47,6 +47,8 @@ class PlannerLLM:
             "timeout_s": kwargs.get("timeout_s"),
             "max_retries": 0,
             "finish_reason": "stop",
+            "extra_body": dict(kwargs.get("extra_body", {})),
+            "reasoning_content_byte_count": 0,
         }
         self.clock.advance(self.advance_s)
         return json.dumps({
@@ -196,6 +198,7 @@ def test_m4_planner_bounds_call_and_rejects_inflight_return():
     assert len(llm.calls) == 1
     assert llm.calls[0]["timeout_s"] == 50.0
     assert llm.calls[0]["timeout_s"] <= PROTOCOL["deadline_policy"]["llm_call_timeout_s"]
+    assert llm.calls[0]["extra_body"] == PROTOCOL["llm"]["extra_body"]
     evidence = planner.last_call_evidence
     assert evidence["planner_id"] == PROTOCOL["identities"]["planner"]
     assert evidence["deadline_policy"]["policy_id"] == PROTOCOL["deadline_policy"]["id"]

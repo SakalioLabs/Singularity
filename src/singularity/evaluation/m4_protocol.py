@@ -51,6 +51,20 @@ def protocol_integrity_report() -> dict:
     ):
         if controls.get(name) is not False:
             issues.append(f"baseline_control_mismatch:{name}")
+    planner_contract = PROTOCOL.get("validation_contract", {}).get("planner_evidence", {})
+    required_extra_body = {"thinking": {"type": "disabled"}}
+    if PROTOCOL.get("llm", {}).get("extra_body") != required_extra_body:
+        issues.append("planner_thinking_must_be_disabled")
+    if planner_contract.get("required_extra_body") != required_extra_body:
+        issues.append("planner_extra_body_contract_mismatch")
+    if planner_contract.get("real_llm_call_required") is not True:
+        issues.append("planner_real_llm_call_must_be_required")
+    if planner_contract.get("schema_valid_call_required") is not True:
+        issues.append("planner_schema_valid_call_must_be_required")
+    if planner_contract.get("finish_reason") != "stop":
+        issues.append("planner_finish_reason_must_be_stop")
+    if planner_contract.get("reasoning_content_max_bytes") != 0:
+        issues.append("planner_reasoning_content_must_be_disabled")
     return {
         "passed": not issues,
         "issues": issues,
@@ -186,6 +200,8 @@ def evaluate_bm011_episode(
         require(f"event:{event_type}", event_type in event_types)
 
     active_events = _active_episode_events(events)
+    planner_controls = planner_provider_controls_report(active_events)
+    require("planner_provider_controls", planner_controls["passed"], planner_controls["violations"])
     auto_goals = [event.get("data", {}) for event in active_events if event.get("type") == "auto_goal"]
     require("autonomous_goal_present", bool(auto_goals))
     require(
@@ -294,12 +310,69 @@ def evaluate_bm011_episode(
             "event_count": len(events),
             "action_count": len(action_events),
             "autonomous_goal_count": len(auto_goals),
+            "planner_provider_controls": planner_controls,
             "night_observation_index": night_index,
             "dawn_observation_index": dawn_index,
             "terminal_health": health,
             "episode_duration_s": round(duration, 3) if duration is not None else None,
             "forbidden_events": forbidden,
         },
+    }
+
+
+def planner_provider_controls_report(events: list[dict]) -> dict:
+    """Verify that real M4 Planner calls used the pinned non-thinking payload."""
+    contract = PROTOCOL["validation_contract"]["planner_evidence"]
+    calls = [
+        event.get("data", {})
+        for event in events
+        if isinstance(event, dict)
+        and event.get("type") == "llm_planner_call"
+        and isinstance(event.get("data"), dict)
+    ]
+    real_calls = [call for call in calls if call.get("real_llm_call") is True]
+    schema_valid_calls = [call for call in real_calls if call.get("schema_valid") is True]
+    violations = []
+    durations = []
+    total_tokens = 0
+    expected_extra_body = contract["required_extra_body"]
+    expected_finish_reason = str(contract["finish_reason"])
+    reasoning_limit = int(contract["reasoning_content_max_bytes"])
+
+    if contract.get("real_llm_call_required") is True and not real_calls:
+        violations.append("real_llm_call_missing")
+    if contract.get("schema_valid_call_required") is True and not schema_valid_calls:
+        violations.append("schema_valid_real_llm_call_missing")
+
+    for index, call in enumerate(real_calls):
+        metadata = call.get("provider_metadata", {}) if isinstance(call.get("provider_metadata"), dict) else {}
+        call_id = str(call.get("call_id") or f"call_{index}")
+        if metadata.get("extra_body") != expected_extra_body:
+            violations.append(f"{call_id}:extra_body_mismatch")
+        if metadata.get("finish_reason") != expected_finish_reason:
+            violations.append(f"{call_id}:finish_reason_mismatch")
+        reasoning_bytes = _finite_or_none(metadata.get("reasoning_content_byte_count"))
+        if reasoning_bytes is None or reasoning_bytes < 0 or reasoning_bytes > reasoning_limit:
+            violations.append(f"{call_id}:reasoning_content_exceeded")
+        duration_ms = _finite_or_none(metadata.get("duration_ms"))
+        if duration_ms is not None:
+            durations.append(duration_ms)
+        try:
+            total_tokens += max(0, int(metadata.get("total_tokens") or 0))
+        except (TypeError, ValueError):
+            pass
+
+    return {
+        "passed": not violations,
+        "call_count": len(calls),
+        "real_call_count": len(real_calls),
+        "schema_valid_real_call_count": len(schema_valid_calls),
+        "expected_extra_body": expected_extra_body,
+        "expected_finish_reason": expected_finish_reason,
+        "reasoning_content_max_bytes": reasoning_limit,
+        "max_call_duration_ms": round(max(durations), 3) if durations else None,
+        "total_token_usage": total_tokens,
+        "violations": violations,
     }
 
 

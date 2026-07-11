@@ -3,7 +3,7 @@
   "schema_version": 1,
   "generated_at": "2026-07-11T09:38:39.6874086Z",
   "profile": "m4-fixed-v1",
-  "protocol_sha256": "031d35021141e6b4dc34fa7151a6c9cdb8154454b6d9e8187d1dfb337523a2ce",
+  "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "not_run",
   "decision": "hold_until_machine_safe_state_verifier_exists",
   "required_checks": [

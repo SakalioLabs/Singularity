@@ -101,6 +101,22 @@ def _events():
             },
         },
         {
+            "type": "llm_planner_call",
+            "monotonic_s": 102.5,
+            "data": {
+                "call_id": "m4-runtime-fixture-planner-01",
+                "real_llm_call": True,
+                "schema_valid": True,
+                "provider_metadata": {
+                    "extra_body": copy.deepcopy(PROTOCOL["llm"]["extra_body"]),
+                    "finish_reason": "stop",
+                    "reasoning_content_byte_count": 0,
+                    "duration_ms": 750,
+                    "total_tokens": 128,
+                },
+            },
+        },
+        {
             "type": "plan",
             "monotonic_s": 103.0,
             "data": {"status": "planning", "actions": [{"type": "dig"}]},
@@ -211,6 +227,8 @@ def test_m4_preparation_report_requires_machine_visible_progress():
     assert preparation["counts_toward_bm011_success"] is False
     assert preparation["inventory_delta"] == {"oak_log": 1}
     assert preparation["machine_visible_progress"] is True
+    assert preparation["planner_provider_controls"]["passed"] is True
+    assert preparation["required_recording"]["planner_provider_controls"] is True
     assert preparation["same_goal_max_consecutive"] == 1
     assert preparation["first_unrecovered_transition"] == {}
     print("PASS: G2 diagnostics separate preparation progress from BM-011 eligibility")
@@ -252,7 +270,7 @@ def test_m4_preparation_requires_progress_before_fixed_dusk_boundary():
 
 def test_m4_preparation_skips_recovered_action_failure():
     events = copy.deepcopy(_events())
-    failed = copy.deepcopy(events[4])
+    failed = copy.deepcopy(next(event for event in events if event["type"] == "action"))
     failed["monotonic_s"] = 103.5
     failed["data"]["result"] = {"success": False, "error": "temporary target miss"}
     failed["data"]["post_observation"] = copy.deepcopy(failed["data"]["pre_observation"])
@@ -317,18 +335,10 @@ def test_m4_first_unrecovered_skips_transport_error_after_valid_replan():
 def test_m4_preparation_reports_planner_that_consumes_dusk_budget():
     events = copy.deepcopy(_events())
     events[1]["data"]["time_of_day"] = 9900
-    planner_event = {
-        "type": "llm_planner_call",
-        "monotonic_s": 106.0,
-        "data": {
-            "goal": "Gather 6 oak logs for tools and shelter",
-            "call_id": "llm-dusk-fixture",
-            "real_llm_call": True,
-            "schema_valid": True,
-            "provider_metadata": {"duration_ms": 6000},
-        },
-    }
-    events.insert(4, planner_event)
+    planner_event = next(event for event in events if event["type"] == "llm_planner_call")
+    planner_event["data"]["goal"] = "Gather 6 oak logs for tools and shelter"
+    planner_event["data"]["call_id"] = "llm-dusk-fixture"
+    planner_event["data"]["provider_metadata"]["duration_ms"] = 6000
     for event in events:
         data = event.get("data", {})
         if event.get("type") == "observation" and data.get("time_of_day") == 9100:

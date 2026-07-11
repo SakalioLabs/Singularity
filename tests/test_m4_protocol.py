@@ -100,6 +100,22 @@ def _events():
                 "priority": 60,
             },
         },
+        {
+            "type": "llm_planner_call",
+            "monotonic_s": 102.5,
+            "data": {
+                "call_id": "m4-fixture-planner-01",
+                "real_llm_call": True,
+                "schema_valid": True,
+                "provider_metadata": {
+                    "extra_body": copy.deepcopy(PROTOCOL["llm"]["extra_body"]),
+                    "finish_reason": "stop",
+                    "reasoning_content_byte_count": 0,
+                    "duration_ms": 750,
+                    "total_tokens": 128,
+                },
+            },
+        },
         {"type": "plan", "monotonic_s": 103.0, "data": {"status": "planning"}},
         {
             "type": "action",
@@ -135,7 +151,8 @@ def _events():
     ]
 
 
-def _result():
+def _result(events=None):
+    session_events = _events() if events is None else events
     result = {
         "completed": True,
         "termination_reason": "terminal_survival_verified",
@@ -150,7 +167,7 @@ def _result():
     result["evidence_hashes"] = {
         "preflight_sha256": canonical_sha256(_preflight()),
         "manifest_sha256": canonical_sha256(_manifest()),
-        "session_sha256": canonical_sha256(_events()),
+        "session_sha256": canonical_sha256(session_events),
         "result_sha256": canonical_sha256(result),
     }
     return result
@@ -190,6 +207,8 @@ def test_m4_preflight_requires_survival_fresh_episode():
 def test_bm011_eligible_machine_state_evidence():
     report = evaluate_bm011_episode(_events(), _result(), _preflight(), _manifest())
     assert report["eligible"], report
+    assert report["evidence"]["planner_provider_controls"]["passed"] is True
+    assert report["evidence"]["planner_provider_controls"]["schema_valid_real_call_count"] == 1
     assert report["evidence"]["night_observation_index"] is not None
     assert report["evidence"]["dawn_observation_index"] is not None
     print("PASS: BM-011 gate accepts bounded autonomous machine-state evidence")
@@ -203,7 +222,7 @@ def test_bm011_rejects_active_reset_and_time_command():
         "data": {"command": "time set day"},
     })
     events.insert(6, {"type": "benchmark_reset", "monotonic_s": 103.6, "data": {"success": True}})
-    report = evaluate_bm011_episode(events, _result(), _preflight(), _manifest())
+    report = evaluate_bm011_episode(events, _result(events), _preflight(), _manifest())
     assert not report["eligible"]
     assert "active_episode_forbidden_commands_absent" in report["issues"]
     print("PASS: BM-011 gate rejects active reset and time manipulation")
@@ -216,7 +235,8 @@ def test_bm011_rejects_deadline_overrun_and_post_deadline_action():
     result = _result()
     result["elapsed_s"] = 1201.0
     events = _events()
-    events.insert(-2, copy.deepcopy(events[5]))
+    action = next(event for event in events if event["type"] == "action")
+    events.insert(-2, copy.deepcopy(action))
     events[-3]["monotonic_s"] = 850.0
     report = evaluate_bm011_episode(events, result, _preflight(), manifest)
     assert not report["eligible"]
@@ -224,6 +244,24 @@ def test_bm011_rejects_deadline_overrun_and_post_deadline_action():
     assert "result_duration_eligible" in report["issues"]
     assert "no_post_deadline_execution" in report["issues"]
     print("PASS: BM-011 gate independently rejects deadline overrun")
+
+
+def test_bm011_rejects_unpinned_planner_provider_controls():
+    events = _events()
+    planner_call = next(event for event in events if event["type"] == "llm_planner_call")
+    planner_call["data"]["provider_metadata"].update({
+        "extra_body": {},
+        "finish_reason": "length",
+        "reasoning_content_byte_count": 64,
+    })
+    report = evaluate_bm011_episode(events, _result(events), _preflight(), _manifest())
+    assert not report["eligible"]
+    assert "planner_provider_controls" in report["issues"]
+    violations = report["evidence"]["planner_provider_controls"]["violations"]
+    assert "m4-fixture-planner-01:extra_body_mismatch" in violations
+    assert "m4-fixture-planner-01:finish_reason_mismatch" in violations
+    assert "m4-fixture-planner-01:reasoning_content_exceeded" in violations
+    print("PASS: BM-011 gate rejects unpinned Planner provider controls")
 
 
 def test_bm011_rejects_missing_or_unordered_monotonic_event_time():
@@ -280,6 +318,7 @@ if __name__ == "__main__":
     test_bm011_eligible_machine_state_evidence()
     test_bm011_rejects_active_reset_and_time_command()
     test_bm011_rejects_deadline_overrun_and_post_deadline_action()
+    test_bm011_rejects_unpinned_planner_provider_controls()
     test_bm011_rejects_missing_or_unordered_monotonic_event_time()
     test_bm011_rejects_scripted_goal_and_quarantined_skill()
     print("\nM4 protocol tests PASSED")

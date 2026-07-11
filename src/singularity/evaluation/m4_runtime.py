@@ -11,6 +11,7 @@ from singularity.evaluation.m4_protocol import (
     PROTOCOL,
     PROTOCOL_SHA256,
     canonical_sha256,
+    planner_provider_controls_report,
     validate_preflight,
 )
 
@@ -251,6 +252,7 @@ def build_m4_preparation_report(
         1 for previous, current in zip(observations, observations[1:])
         if not _observable_progress(previous, current)
     )
+    planner_controls = planner_provider_controls_report(active)
     machine_visible_progress = bool(inventory_delta or world_block_delta)
     pre_dusk_machine_visible_progress = bool(pre_dusk_inventory_delta or pre_dusk_world_block_delta)
     first_unrecovered = (
@@ -263,6 +265,7 @@ def build_m4_preparation_report(
         "resource_acquisition": bool(pre_dusk_inventory_delta),
         "crafting_behavior_recorded": bool(crafting_actions),
         "shelter_or_safe_point_intent": bool(shelter_goals or shelter_plans),
+        "planner_provider_controls": planner_controls["passed"],
         "time_remaining_recorded": _finite(manifest.get("episode_deadline_monotonic"))
         and _finite(manifest.get("episode_ended_monotonic")),
         "inventory_world_delta_recorded": bool(state_samples),
@@ -271,6 +274,7 @@ def build_m4_preparation_report(
     g2_passed = bool(
         preflight.get("passed") is True
         and required_recording["autonomous_goals"]
+        and required_recording["planner_provider_controls"]
         and bool(actions)
         and pre_dusk_machine_visible_progress
         and result.get("deadline_eligible") is True
@@ -290,6 +294,7 @@ def build_m4_preparation_report(
         "level_name": manifest.get("level_name"),
         "required_recording": required_recording,
         "autonomous_goals": goals,
+        "planner_provider_controls": planner_controls,
         "action_count": len(actions),
         "successful_action_count": len(successful_actions),
         "crafting_action_count": len(crafting_actions),
