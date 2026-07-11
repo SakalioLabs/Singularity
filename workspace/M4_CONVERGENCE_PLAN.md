@@ -23,7 +23,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 |---|---|---|
 | G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed |
 | G1 | Deterministic survival-goal priority cases | passed |
-| G2 | One live preparation episode with machine-visible progress | failed_probe_3 |
+| G2 | One live preparation episode with machine-visible progress | failed_probe_4 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | locked |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | locked |
 | G5 | First eligible survival-to-dawn episode | locked |
@@ -35,13 +35,28 @@ G1 passed offline validation. GoalGenerator and Curriculum preserve the fixed or
 
 ## Current Hypothesis
 
-The bridge action-budget hypothesis is confirmed and closed by the third G2 probe. All 6 actions succeeded, including an oak-log `dig` that retained `timeout_ms=60000`, completed in 4.046 seconds, removed the observed target, and produced `oak_log:1`. The bridge remained connected. All 26 real schema-valid Planner calls also retained the pinned provider controls, emitted zero reasoning bytes, and completed within 12.781 seconds.
+The expired-task lifecycle hypothesis is confirmed and closed by the fourth G2 probe. Seven deadline interrupts had seven unique trigger task IDs and seven matching `runtime_interrupt_recovery` events. The recoveries terminalized 28 elapsed tasks, no trigger task repeated, and action execution resumed in cycle 9 after the first recovery. The permanent preemption loop from probe 3 did not recur.
 
-The preparation report surfaces the first goal's eventual `max_cycles` outcome, but the session contains an earlier unrecovered runtime transition. At monotonic 239869.781, active task `af7fad99` (`Find and move to oak logs`) emitted `task_deadline_elapsed` with `seconds_left=-1.8`. `_handle_runtime_interrupt` recorded the interrupt but did not terminate, pause, replace, or otherwise recover the expired task. `TaskSystem.get_next_task()` therefore selected the same active task before later actions, producing 21 identical interrupts through cycle 26 across resource, dusk-shelter, and night-shelter goals. No action followed the first interrupt.
+The episode attempted 19 actions, completed 15, recorded two craft attempts, and ended online with `oak_log:4` and `dark_oak_log:4`. None of that resource progress occurred before fixed dusk. The first actionable plan reached `move_to(94,142,-31)` at monotonic 250718.140 while world time was 9494. The action missed tolerance by 0.029 blocks and requested replan. Instead of immediately continuing, the autonomous failure branch called `Reflector.analyze_failure()`. Its only session evidence is a `failure_reflection` memory write at monotonic 250748.125, 29.985 seconds later; the next observation was world time 10094.
 
-The single current hypothesis is that an expired-task interrupt lacks a one-shot task lifecycle transition, creating permanent actor preemption. The next change is limited to deterministic expired-task recovery in the runtime interrupt/task lifecycle path, with focused offline tests before one fresh G2 episode in a later round. Planner wording, shelter construction, and other task scheduling behavior remain secondary observations and are not changed in this round.
+The reflection call is outside Planner evidence, has no absolute-deadline timeout, and does not receive the M4 pinned provider controls. It consumed more than the 25.3 seconds that remained before dusk and is the earliest unrecovered transition, earlier than the recovered task interrupts and final episode overrun. The single current hypothesis is that autonomous failure reflection bypasses the M4 LLM deadline/provider-control contract and exhausts the preparation window. The next change is limited to binding or suppressing that reflection path under the shared M4 absolute deadline, with focused offline evidence before one fresh G2 episode in a later round. Craft parameter grounding and shelter construction remain later observations and are not changed in this round.
 
 ## G2 Live Evidence
+
+### Probe 4: Expired Task Lifecycle Recovery
+
+- Episode: `m4_episode_20260711_213951_5e37c97d`
+- Session: `c3e63af5-76d`
+- Preflight: passed
+- G2: failed
+- BM-011 eligible: false; eligible successes remain 0/3
+- Planner controls: passed for 17/17 real schema-valid Planner calls, zero reasoning bytes, maximum latency 10.608 seconds
+- Autonomous goals: 4; resource progression switched to emergency shelter priority at night
+- Actions: 19 attempted and 15 successful; terminal inventory gained `oak_log:4` and `dark_oak_log:4`, but pre-dusk inventory delta remained empty
+- Interrupt retest: 7 unique deadline triggers, 7 recoveries, 28 expired tasks terminalized, no repeated trigger task, and actions resumed after the first recovery
+- First unrecovered transition: a failed move at world time 9494 entered an unbounded, unlogged failure-reflection LLM call for 29.985 seconds; the next observation was after dusk at world time 10094
+- Deadline: ineligible; Agent ended 0.016 seconds and manifest evidence ended 0.078 seconds after the absolute deadline, with one late Planner call and plan but no post-deadline action
+- Evidence: `logs/benchmarks/m4/m4_episode_20260711_213951_5e37c97d/`
 
 ### Probe 3: Bridge Action Budget Bound
 
