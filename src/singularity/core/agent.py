@@ -214,6 +214,7 @@ class Agent:
         self._active_skill_execution: dict = {}
         self._active_skill_advisory_hint = ""
         self._episode_deadline_monotonic = None
+        self._last_autonomous_goal_decision: dict = {}
         self._skill_fallback_goals: set[str] = set()
         self._applied_skill_fault_profiles: set[str] = set()
         self._skill_episode_start_index = 0
@@ -2003,11 +2004,29 @@ class Agent:
                 episode_termination_reason = "max_total_cycles"
                 break
             # Generate next goal from world state
-            goal = self.goal_generator.next_goal(observation)
-            goal = self._select_autonomous_goal(observation, goal)
+            generated_goal = self.goal_generator.next_goal(observation)
+            self._set_autonomous_goal_decision(
+                generated_goal,
+                getattr(self.goal_generator, "last_decision", {}),
+            )
+            goal = self._select_autonomous_goal(observation, generated_goal)
             self._last_plan_cache_signature = START_PLAN_SIGNATURE
             goal_index = goals_completed + goals_failed + 1
-            goal_payload = {"goal": goal, "goal_index": goal_index, "max_goals": max_goals}
+            goal_decision = dict(getattr(self, "_last_autonomous_goal_decision", {}) or {})
+            if goal_decision.get("goal") != goal:
+                self._set_autonomous_goal_decision(goal, {}, source="curriculum")
+                goal_decision = dict(self._last_autonomous_goal_decision)
+            goal_payload = {
+                "goal": goal,
+                "goal_index": goal_index,
+                "max_goals": max_goals,
+                "selection_source": goal_decision["selection_source"],
+                "selection_reason": goal_decision["selection_reason"],
+                "priority": goal_decision["priority"],
+                "priority_class": goal_decision["priority_class"],
+            }
+            if goal_decision.get("selection_score") is not None:
+                goal_payload["selection_score"] = goal_decision["selection_score"]
             self._skill_episode_start_index = len(getattr(self.session_logger, "events", []))
             self._active_skill_execution = {}
             self._skill_fallback_goals.discard(self._goal_fingerprint(goal))
@@ -5964,6 +5983,7 @@ class Agent:
     def _select_autonomous_goal(self, observation: dict, fallback_goal: str) -> str:
         """Let ready tasks and open-ended curriculum override generated goals."""
         if self._should_preserve_autonomous_fallback(observation, fallback_goal):
+            self._set_autonomous_goal_decision(fallback_goal, getattr(self, "_last_autonomous_goal_decision", {}))
             return fallback_goal
         scheduling_state = self._state_with_causal_context(observation, fallback_goal)
         readiness_report = (
@@ -5973,6 +5993,14 @@ class Agent:
         )
         next_task = self.task_system.get_next_task(scheduling_state)
         if next_task:
+            self._set_autonomous_goal_decision(
+                next_task.title,
+                {},
+                source="curriculum",
+                reason="ready_task_selected",
+                priority=6,
+                priority_class="tool_resource_progression",
+            )
             self._record_frontier_budget_decision(
                 observation,
                 next_task.title,
@@ -5982,6 +6010,14 @@ class Agent:
             return next_task.title
         recovery_goal = self._task_readiness_recovery_goal(scheduling_state, fallback_goal)
         if recovery_goal:
+            self._set_autonomous_goal_decision(
+                recovery_goal,
+                {},
+                source="curriculum",
+                reason="readiness_recovery_selected",
+                priority=6,
+                priority_class="tool_resource_progression",
+            )
             recovery_readiness = (
                 self.task_system.task_readiness_report(scheduling_state)
                 if hasattr(self.task_system, "task_readiness_report")
@@ -6012,6 +6048,31 @@ class Agent:
                     getattr(self, "memory", None),
                     getattr(self, "skill_library", None),
                 )
+            if goal == fallback_goal:
+                decision = dict(getattr(self, "_last_autonomous_goal_decision", {}) or {})
+                reason = str(decision.get("selection_reason") or "goal_generator_fallback")
+                decision["selection_reason"] = f"{reason};curriculum_retained_fallback"
+                self._set_autonomous_goal_decision(goal, decision)
+            else:
+                curriculum_decision = dict(getattr(self.curriculum, "last_decision", {}) or {})
+                candidates = curriculum_decision.get("candidates", [])
+                selected = next(
+                    (
+                        candidate for candidate in candidates
+                        if isinstance(candidate, dict) and candidate.get("title") == goal
+                    ),
+                    {},
+                )
+                reasons = selected.get("reasons", []) if isinstance(selected.get("reasons", []), list) else []
+                self._set_autonomous_goal_decision(
+                    goal,
+                    {},
+                    source="curriculum",
+                    reason="curriculum_ranked:" + (str(reasons[0]) if reasons else "highest_score"),
+                    priority=6,
+                    priority_class="tool_resource_progression",
+                    score=selected.get("score"),
+                )
             self._record_frontier_budget_decision(
                 observation,
                 goal,
@@ -6030,6 +6091,42 @@ class Agent:
             return goal
         return fallback_goal
 
+    def _set_autonomous_goal_decision(
+        self,
+        goal: str,
+        decision: dict,
+        source: str = "goal_generator",
+        reason: str = "rule_generator",
+        priority: int = 6,
+        priority_class: str = "tool_resource_progression",
+        score=None,
+    ):
+        decision = decision if isinstance(decision, dict) else {}
+        selected_source = str(decision.get("selection_source") or source)
+        if selected_source not in {"goal_generator", "curriculum"}:
+            selected_source = source if source in {"goal_generator", "curriculum"} else "goal_generator"
+        selected_reason = str(decision.get("selection_reason") or reason).strip() or "rule_generator"
+        try:
+            selected_priority = int(decision.get("priority", priority))
+        except (TypeError, ValueError):
+            selected_priority = int(priority)
+        selected_priority = min(6, max(1, selected_priority))
+        selected_score = decision.get("selection_score", score)
+        try:
+            selected_score = float(selected_score) if selected_score is not None else None
+        except (TypeError, ValueError):
+            selected_score = None
+        if selected_score is not None and not math.isfinite(selected_score):
+            selected_score = None
+        self._last_autonomous_goal_decision = {
+            "goal": str(goal or ""),
+            "selection_source": selected_source,
+            "selection_reason": selected_reason,
+            "priority": selected_priority,
+            "priority_class": str(decision.get("priority_class") or priority_class),
+            "selection_score": selected_score,
+        }
+
     def _should_preserve_autonomous_fallback(self, observation: dict, fallback_goal: str) -> bool:
         """Keep urgent survival goals ahead of scheduled or recovery work."""
         observation = observation or {}
@@ -6037,6 +6134,13 @@ class Agent:
         threshold = getattr(config, "health_critical_threshold", 6)
         try:
             if float(observation.get("health", 20)) < float(threshold):
+                return True
+        except (TypeError, ValueError):
+            pass
+
+        try:
+            hunger = float(observation.get("hunger", observation.get("food", 20)))
+            if hunger <= float(GoalGenerator.LOW_HUNGER):
                 return True
         except (TypeError, ValueError):
             pass

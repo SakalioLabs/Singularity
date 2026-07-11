@@ -22,8 +22,8 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | Gate | Requirement | State |
 |---|---|---|
 | G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed |
-| G1 | Deterministic survival-goal priority cases | in_progress |
-| G2 | One live preparation episode with machine-visible progress | locked |
+| G1 | Deterministic survival-goal priority cases | passed |
+| G2 | One live preparation episode with machine-visible progress | in_progress |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | locked |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | locked |
 | G5 | First eligible survival-to-dawn episode | locked |
@@ -31,9 +31,11 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
 
+G1 passed offline validation. GoalGenerator and Curriculum preserve the fixed order of immediate threat, critical health, hunger/food, shelter preparation, night safety maintenance, and tool/resource progression. Shelter safety requires machine-state verification, and every `auto_goal` event carries source, reason, priority, and priority class.
+
 ## Current Hypothesis
 
-The earliest blocker is deterministic autonomous goal priority. The next change is limited to G1 fixed-state tests and the smallest required GoalGenerator or Curriculum correction. No live BM-011 episode may run until daytime-empty, daytime-resourced, dusk-without-shelter, dusk-with-shelter, low-food, low-health, hostile-nearby, and repeated-goal cases all pass.
+The earliest blocker is the G2 live-preparation evidence path. The next change is limited to a full M4 preflight/runtime manifest and one fresh BM-011 preparation episode that measures autonomous goals, resource and crafting progress, shelter intent, time remaining, inventory/world deltas, and repeated no-progress behavior. It does not count as an eligible first-night success unless the complete BM-011 gate independently passes.
 
 ## Evidence Discipline
 

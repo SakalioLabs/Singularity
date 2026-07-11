@@ -423,10 +423,15 @@ def test_m4_autonomous_loop_shares_deadline_and_suppresses_plan_suffix():
 
     expected_deadline = 105.0
     start_event = next(event for event in agent.session_logger.events if event["type"] == "autonomous_start")
+    goal_event = next(event for event in agent.session_logger.events if event["type"] == "auto_goal")
     deadline_event = next(event for event in agent.session_logger.events if event["type"] == "episode_deadline_exceeded")
     assert start_event["data"]["episode_deadline_monotonic"] == expected_deadline
     assert start_event["data"]["max_goals"] == PROTOCOL["limits"]["max_autonomous_goals"]
     assert start_event["data"]["max_cycles_per_goal"] == PROTOCOL["limits"]["max_cycles_per_goal"]
+    assert goal_event["data"]["selection_source"] == "goal_generator"
+    assert goal_event["data"]["selection_reason"] == "rule_generator"
+    assert goal_event["data"]["priority"] == 6
+    assert goal_event["data"]["priority_class"] == "tool_resource_progression"
     assert planner.deadline_calls[:2] == [(expected_deadline, 0.0), (expected_deadline, 0.0)]
     assert planner.deadline_calls[-1] == (None, 0.0)
     assert action_controller.deadline_calls[0] == (

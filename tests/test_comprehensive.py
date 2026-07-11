@@ -83,10 +83,10 @@ class TestGoalGenerator(unittest.TestCase):
         goal = self.gen.next_goal(obs)
         self.assertIn("shelter", goal.lower())
 
-    def test_night_smelt(self):
+    def test_night_requires_verified_shelter_before_smelt(self):
         obs = {"health": 20, "inventory": {"furnace": 1, "raw_iron": 3}, "nearby_entities": [], "time_of_day": 14000}
         goal = self.gen.next_goal(obs)
-        self.assertIn("Smelt", goal)
+        self.assertIn("emergency verified shelter", goal)
 
     def test_tool_progression_wooden(self):
         obs = {"health": 20, "inventory": {"oak_log": 5}, "nearby_entities": [], "time_of_day": 1000}

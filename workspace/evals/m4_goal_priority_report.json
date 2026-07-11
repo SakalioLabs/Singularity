@@ -1,0 +1,40 @@
+{
+  "type": "m4_goal_priority_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-11T07:57:35.4949426Z",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "a44723f6bd86110a1a5d0ead3378850cd906f9d272c27f3f7fed5fa87db7d1ce",
+  "readiness": "approved",
+  "decision": "allow_one_g2_preparation_episode",
+  "priority_order": [
+    "immediate_threat",
+    "critical_health",
+    "hunger_food",
+    "shelter_preparation",
+    "night_safety_maintenance",
+    "tool_resource_progression"
+  ],
+  "fixed_case_count": 10,
+  "fixed_cases": [
+    {"id": "day_empty_inventory", "expected_priority": 6, "status": "pass"},
+    {"id": "dusk_without_shelter", "expected_priority": 4, "status": "pass"},
+    {"id": "critical_health", "expected_priority": 2, "status": "pass"},
+    {"id": "low_hunger_with_food", "expected_priority": 3, "status": "pass"},
+    {"id": "low_hunger_without_food", "expected_priority": 3, "status": "pass"},
+    {"id": "hostile_nearby", "expected_priority": 1, "status": "pass"},
+    {"id": "night_with_verified_shelter", "expected_priority": 5, "status": "pass"},
+    {"id": "armed_hostile_at_boundary", "expected_priority": 1, "status": "pass"},
+    {"id": "unverified_shelter_claim", "expected_priority": 4, "status": "pass"},
+    {"id": "next_dawn_boundary", "expected_priority": 6, "status": "pass"}
+  ],
+  "checks": [
+    {"name": "fixed_state_priority_matrix", "status": "pass", "evidence": "tests/test_m4_goal_priority.py"},
+    {"name": "machine_state_shelter_required", "status": "pass", "evidence": "tests/test_m4_goal_priority.py"},
+    {"name": "hunger_survives_ready_task_override", "status": "pass", "evidence": "tests/test_m4_goal_priority.py"},
+    {"name": "auto_goal_source_reason_priority", "status": "pass", "evidence": "tests/test_m4_deadline.py"},
+    {"name": "curriculum_regression", "status": "pass", "evidence": "tests/test_curriculum.py"},
+    {"name": "autonomous_task_selection_regression", "status": "pass", "evidence": "tests/test_memory_task_system.py"}
+  ],
+  "live_episode_count": 0,
+  "bm011_eligible_success_count": 0
+}

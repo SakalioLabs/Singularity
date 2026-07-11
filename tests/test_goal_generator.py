@@ -24,9 +24,15 @@ def test_night_preparation():
     print(f"PASS: Dusk -> {goal}")
 
 def test_night_indoors():
-    obs = {"time_of_day": 15000, "health": 20, "inventory": {"crafting_table": 1, "furnace": 1, "raw_iron": 4}, "nearby_entities": []}
+    obs = {
+        "time_of_day": 15000,
+        "health": 20,
+        "inventory": {"crafting_table": 1, "furnace": 1, "raw_iron": 4},
+        "nearby_entities": [],
+        "shelter_verification": {"passed": True, "source": "machine_state"},
+    }
     goal = gg.next_goal(obs)
-    assert "smelt" in goal.lower() or "night" in goal.lower() or "craft" in goal.lower()
+    assert "verified shelter" in goal.lower() and "dawn" in goal.lower()
     print(f"PASS: Night -> {goal}")
 
 def test_tool_progression():
