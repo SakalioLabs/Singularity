@@ -1,7 +1,7 @@
 {
   "type": "capability_evidence_report",
   "schema_version": 2,
-  "generated_at": "2026-07-10T10:39:41.058460+00:00",
+  "generated_at": "2026-07-11T06:41:29.586871+00:00",
   "readiness": "rejected",
   "claim_readiness": "approved",
   "system_status": "incomplete",
@@ -12,6 +12,7 @@
     "unit_tests_are_live_capability_evidence": false,
     "completion_requires_repeat_verified_execution": true,
     "live_phase_acceptance": {
+      "M2": "three distinct eligible live sessions per task plus three complete skill-off/skill-on pairs for BM-006 and BM-007",
       "M3": "three distinct successful continual-learning sessions plus an approved held-out transfer gate",
       "M5": "three distinct autonomous exploration sessions covering at least 16 blocks plus an approved world-model gate",
       "M6": "three distinct screenshot-backed sessions with matching non-builtin visual-action ablations"
@@ -43,11 +44,65 @@
       "logs/benchmarks/m1_benchmark_20260710_182505.json",
       "logs/benchmarks/m1_benchmark_20260710_182625.json",
       "logs/benchmarks/m1_benchmark_20260710_182705.json",
-      "logs/benchmarks/m1_benchmark_20260710_182736.json"
+      "logs/benchmarks/m1_benchmark_20260710_182736.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_093521.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_094447.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_095802.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_100208.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_101742.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_105023.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_105707.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_110340.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_110452.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_110825.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_111339.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_111947.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_112536.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_113252.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_113904.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_114441.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_115020.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_120834.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_121209.json",
+      "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_121408.json",
+      "logs/benchmarks/m2_benchmark_BM-006_candidate_20260711_120239.json",
+      "logs/benchmarks/m2_benchmark_BM-006_candidate_20260711_120934.json",
+      "logs/benchmarks/m2_benchmark_BM-006_candidate_20260711_121309.json",
+      "logs/benchmarks/m2_benchmark_BM-006_candidate_20260711_121514.json",
+      "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_122005.json",
+      "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_122431.json",
+      "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_123322.json",
+      "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_124337.json",
+      "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_125211.json",
+      "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_125347.json",
+      "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_125757.json",
+      "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_130648.json",
+      "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_131334.json",
+      "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_132140.json",
+      "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_133236.json",
+      "logs/benchmarks/m2_benchmark_BM-007_candidate_20260711_125551.json",
+      "logs/benchmarks/m2_benchmark_BM-007_candidate_20260711_130401.json",
+      "logs/benchmarks/m2_benchmark_BM-007_candidate_20260711_130922.json",
+      "logs/benchmarks/m2_benchmark_BM-007_candidate_20260711_132345.json",
+      "logs/benchmarks/m2_benchmark_BM-007_candidate_20260711_133436.json",
+      "logs/benchmarks/m2_benchmark_BM-008_default_20260711_133902.json",
+      "logs/benchmarks/m2_benchmark_BM-008_default_20260711_134008.json",
+      "logs/benchmarks/m2_benchmark_BM-008_default_20260711_134117.json",
+      "logs/benchmarks/m2_benchmark_BM-008_default_20260711_134230.json",
+      "logs/benchmarks/m2_benchmark_BM-009_default_20260711_134401.json",
+      "logs/benchmarks/m2_benchmark_BM-009_default_20260711_134943.json",
+      "logs/benchmarks/m2_benchmark_BM-009_default_20260711_135039.json",
+      "logs/benchmarks/m2_benchmark_BM-009_default_20260711_135135.json",
+      "logs/benchmarks/m2_benchmark_BM-010_default_20260711_135234.json",
+      "logs/benchmarks/m2_benchmark_BM-010_default_20260711_135433.json",
+      "logs/benchmarks/m2_benchmark_BM-010_default_20260711_135858.json",
+      "logs/benchmarks/m2_benchmark_BM-010_default_20260711_140017.json",
+      "logs/benchmarks/m2_benchmark_BM-010_default_20260711_140140.json"
     ],
     "phase_evidence_paths": {
       "M3": [
-        "logs/benchmarks/continual_learning_current.json"
+        "workspace/evals/skill_continual_learning_report.json",
+        "workspace/evals/skill_transfer/gather_wood/transfer_gate.json"
       ],
       "M5": [
         "logs/benchmarks/exploration_trace_current.json",
@@ -59,16 +114,3504 @@
       ]
     }
   },
+  "evidence_files": [
+    {
+      "repo_relative_path": "logs/benchmarks/exploration_trace_current.json",
+      "session_id": "not_applicable",
+      "session_ids": [],
+      "content_sha256": "258357d628ade8b0ce01b59dcca27adcef8c1d8ef8d26ec166c9f084bc99f825",
+      "protocol_hash": "unversioned",
+      "protocol_hashes": [],
+      "evidence_kind": "exploration_trace_report",
+      "evidence_kinds": [
+        "exploration_trace_report"
+      ],
+      "eligibility": "eligible_input",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "m5_report_input"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_174239.json",
+      "session_id": "8ddbc702-6e0",
+      "session_ids": [
+        "8ddbc702-6e0"
+      ],
+      "content_sha256": "6e21c648873a9467181c3c8f8d40c89708cdb7e96de6f47f5b83192bd8f3da6e",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_174806.json",
+      "session_id": "f633f0c0-1de",
+      "session_ids": [
+        "f633f0c0-1de"
+      ],
+      "content_sha256": "3fc93ac335f6ec1f29e56151f1fcae84ca2353f072f949129d99165bcdcd27dd",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_175231.json",
+      "session_id": "a6441b83-31e",
+      "session_ids": [
+        "a6441b83-31e"
+      ],
+      "content_sha256": "707bb1f2adfbb2181b494ac02b96cc98d9605b4cf35e0c09c46488198ed9823c",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_175931.json",
+      "session_id": "f0d8e29a-df0",
+      "session_ids": [
+        "f0d8e29a-df0"
+      ],
+      "content_sha256": "bfc65a672dc0b6a28ec7df3ff598430a1254e53480dd06df70fd6e5361b9859b",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_180117.json",
+      "session_id": "df255fd9-1e8",
+      "session_ids": [
+        "df255fd9-1e8"
+      ],
+      "content_sha256": "76cc2173b0edd3479c234b0d52cb76f8c5dfeda8cbea847485ca6b295eedff6d",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_180210.json",
+      "session_id": "f4d54be2-914",
+      "session_ids": [
+        "f4d54be2-914"
+      ],
+      "content_sha256": "750511ccf2b32a005c4d8aa31c54aa90a2a6dd179f5f5069f6f2264dbbeeea35",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_180422.json",
+      "session_id": "1d4c1893-f9f",
+      "session_ids": [
+        "1d4c1893-f9f"
+      ],
+      "content_sha256": "033d257fe7284d61d1fc8d3c9eefd92ba39b713ed42b63de4904bc21f650f878",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_180456.json",
+      "session_id": "0fdd3cde-efa",
+      "session_ids": [
+        "0fdd3cde-efa"
+      ],
+      "content_sha256": "7daecffbb64c7d9c8aebb8057b23af5e6b2fb5cf2cfb127b575ebda2d68999cd",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_180534.json",
+      "session_id": "8679dd7e-ecb",
+      "session_ids": [
+        "8679dd7e-ecb"
+      ],
+      "content_sha256": "016c4716a1fddbd590c22450e433db4dd5cd94234fff79df5b33e9f27bb8b56e",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_180608.json",
+      "session_id": "0de69547-12e",
+      "session_ids": [
+        "0de69547-12e"
+      ],
+      "content_sha256": "8f4b24659b03d8045ab087d445a4474b551f4ee4860c1f5390fce2e27fc8d007",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_180643.json",
+      "session_id": "0b5c8694-31f",
+      "session_ids": [
+        "0b5c8694-31f"
+      ],
+      "content_sha256": "fed90e5b83f0be6516a8ac7da88c2d1fa916a20c84e38ea67b22871f1f2fb177",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_180714.json",
+      "session_id": "52468e88-215",
+      "session_ids": [
+        "52468e88-215"
+      ],
+      "content_sha256": "32c3d0eb08cc9137f9a6631369d690a10ca92c556333297a6956e0e3bb4e3e56",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_180752.json",
+      "session_id": "80471d30-a4c",
+      "session_ids": [
+        "80471d30-a4c"
+      ],
+      "content_sha256": "ed538c68caaa90f3e472fd62de87c13b8aeadb852a3091563e8d1866ea84be6b",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_181023.json",
+      "session_id": "2cd17442-323",
+      "session_ids": [
+        "2cd17442-323"
+      ],
+      "content_sha256": "4c019fd21bf273a1c6f520e012966143aa426cb74e8815498e211f9ff909b4e1",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_181400.json",
+      "session_id": "6069bf83-671",
+      "session_ids": [
+        "6069bf83-671"
+      ],
+      "content_sha256": "6593e0c6c8ae8dcf1d8a8883650ec43e54eeed4b9537cfbda78c3c8094c9f12f",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_181649.json",
+      "session_id": "879f0bf0-111",
+      "session_ids": [
+        "879f0bf0-111"
+      ],
+      "content_sha256": "1fbaf03d0675fc5efab972c36f4c0a801a1d2595a4a1388cb46c1814540be52f",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_181909.json",
+      "session_id": "0a26b8b3-d12",
+      "session_ids": [
+        "0a26b8b3-d12"
+      ],
+      "content_sha256": "8337cdc8453e8ca1d473786c9a76e9bff541ca145dedf8e36dc6573a6c6f3722",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_182225.json",
+      "session_id": "78004a77-cf0",
+      "session_ids": [
+        "78004a77-cf0"
+      ],
+      "content_sha256": "8bf8204cfc2196e8470f3440470c23446fac01e75af558a3cb73bad0e28894dc",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_182346.json",
+      "session_id": "af9c0ca8-a60",
+      "session_ids": [
+        "af9c0ca8-a60"
+      ],
+      "content_sha256": "e1674189c20161dbbf38fb8edfe721eed98b820c0ceae13087d7d897fec53f81",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_182505.json",
+      "session_id": "dc63e525-8c8",
+      "session_ids": [
+        "dc63e525-8c8"
+      ],
+      "content_sha256": "9ad8fcde80386104b613d08016382069c0192a858e76ce7c131f87ee0d0c2b5d",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_182625.json",
+      "session_id": "96ed78a1-bbd",
+      "session_ids": [
+        "96ed78a1-bbd"
+      ],
+      "content_sha256": "880883f5ee2858e08bf1459b7be4b27608d9776769250636c3d73891a9dc5e63",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_182705.json",
+      "session_id": "6f3c70d4-57b",
+      "session_ids": [
+        "6f3c70d4-57b"
+      ],
+      "content_sha256": "d83c0736725ebd54e9cf70809413c5c563681a1a9d615167e89319492c6c0e1d",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m1_benchmark_20260710_182736.json",
+      "session_id": "659a69fe-6fc",
+      "session_ids": [
+        "659a69fe-6fc"
+      ],
+      "content_sha256": "234c24f7afd58a50ee3a16778d8f651fe139b1c3d7e1651590f3017e6d322be5",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_093521.json",
+      "session_id": "b1fac299-e9f",
+      "session_ids": [
+        "b1fac299-e9f"
+      ],
+      "content_sha256": "19218ce35af20ee0f651c57af09a71d7cfe07e4c22df609b25d4723ec2a88e84",
+      "protocol_hash": "ac0bd6b751cbef807c3a669c559da67fd385a1172cf8df523b4a0fce46ac7462",
+      "protocol_hashes": [
+        "ac0bd6b751cbef807c3a669c559da67fd385a1172cf8df523b4a0fce46ac7462"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_094447.json",
+      "session_id": "e81ba024-b88",
+      "session_ids": [
+        "e81ba024-b88"
+      ],
+      "content_sha256": "af52587c813ba4b297263b271d97fdb8fac26a0248f68e0435503ef39743dd6b",
+      "protocol_hash": "d0dc5618ef13d05c77429c6ebea4821b964e2fe7dd257289da643188953c4289",
+      "protocol_hashes": [
+        "d0dc5618ef13d05c77429c6ebea4821b964e2fe7dd257289da643188953c4289"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_095802.json",
+      "session_id": "f019c985-1dc",
+      "session_ids": [
+        "f019c985-1dc"
+      ],
+      "content_sha256": "42dafd8f7a0fedecc35385609bb8c3551ea56d30c8134d24d714e421573552f0",
+      "protocol_hash": "d0dc5618ef13d05c77429c6ebea4821b964e2fe7dd257289da643188953c4289",
+      "protocol_hashes": [
+        "d0dc5618ef13d05c77429c6ebea4821b964e2fe7dd257289da643188953c4289"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_100208.json",
+      "session_id": "bdcdd9cb-a01",
+      "session_ids": [
+        "bdcdd9cb-a01"
+      ],
+      "content_sha256": "0dc604dee898a74d7209d5fe0232a8d4e7003e749ee6585a11fddbdc71a315da",
+      "protocol_hash": "d0dc5618ef13d05c77429c6ebea4821b964e2fe7dd257289da643188953c4289",
+      "protocol_hashes": [
+        "d0dc5618ef13d05c77429c6ebea4821b964e2fe7dd257289da643188953c4289"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_101742.json",
+      "session_id": "a01857d5-0b9",
+      "session_ids": [
+        "a01857d5-0b9"
+      ],
+      "content_sha256": "39b394dc87b24fb17a7b4ab2b0de4d543b024558f986845701bd9e0c737da73d",
+      "protocol_hash": "c6a2b7c50a0ca49dada405826d5f562942ae5f9e9c26e32cf158eb278c7dc199",
+      "protocol_hashes": [
+        "c6a2b7c50a0ca49dada405826d5f562942ae5f9e9c26e32cf158eb278c7dc199"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_105023.json",
+      "session_id": "a1c090e1-c82",
+      "session_ids": [
+        "a1c090e1-c82"
+      ],
+      "content_sha256": "9f62d067e735f026a276f4dec1631a7f317bd92b25af5a0be13992047d1b2a0f",
+      "protocol_hash": "91b5d269e0b49f0e374eba07438335699be002a5ddc83932d020054882b0e91c",
+      "protocol_hashes": [
+        "91b5d269e0b49f0e374eba07438335699be002a5ddc83932d020054882b0e91c"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_105707.json",
+      "session_id": "12107832-cb0",
+      "session_ids": [
+        "12107832-cb0"
+      ],
+      "content_sha256": "30ace300e8c433869c736a7d483fca1b075dc682e120c526bd5b83893869f49a",
+      "protocol_hash": "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141",
+      "protocol_hashes": [
+        "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_110340.json",
+      "session_id": "ea442abc-b7a",
+      "session_ids": [
+        "ea442abc-b7a"
+      ],
+      "content_sha256": "035c3cbe37415105e5703f654a9e38a16246df21f515c2e93d15042d130f5c5e",
+      "protocol_hash": "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141",
+      "protocol_hashes": [
+        "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_110452.json",
+      "session_id": "55ff0818-293",
+      "session_ids": [
+        "55ff0818-293"
+      ],
+      "content_sha256": "510bce047e2cd2f5fa0a6e46b2a23d27648c70351c4713d3b25434f3c0ef86cb",
+      "protocol_hash": "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141",
+      "protocol_hashes": [
+        "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_110825.json",
+      "session_id": "4feea6b8-f0e",
+      "session_ids": [
+        "4feea6b8-f0e"
+      ],
+      "content_sha256": "3db6cae05de489b0be0e0a2bf322314c374d6c228c2dea4602946e2c9cf827d3",
+      "protocol_hash": "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141",
+      "protocol_hashes": [
+        "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_111339.json",
+      "session_id": "3ce4fabb-ccb",
+      "session_ids": [
+        "3ce4fabb-ccb"
+      ],
+      "content_sha256": "b867343108c506b168564c5a3333f7bf12c8d84ea1becf31614c0bf25f87ba05",
+      "protocol_hash": "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141",
+      "protocol_hashes": [
+        "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_111947.json",
+      "session_id": "2989f872-74b",
+      "session_ids": [
+        "2989f872-74b"
+      ],
+      "content_sha256": "a0a924d61030dd593e5b4fb207585d522de86dd32e707dbd24f89138e908d59a",
+      "protocol_hash": "6bfa2b0520528bc843338f67c407a0531c871ac7b23d3bde4064fd1d49bd4d77",
+      "protocol_hashes": [
+        "6bfa2b0520528bc843338f67c407a0531c871ac7b23d3bde4064fd1d49bd4d77"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_112536.json",
+      "session_id": "5c441ac4-5be",
+      "session_ids": [
+        "5c441ac4-5be"
+      ],
+      "content_sha256": "65b8feff4b5950227d5d54fc1c6bff5722f378f0071bb8a9048fd2e1b558849c",
+      "protocol_hash": "6bfa2b0520528bc843338f67c407a0531c871ac7b23d3bde4064fd1d49bd4d77",
+      "protocol_hashes": [
+        "6bfa2b0520528bc843338f67c407a0531c871ac7b23d3bde4064fd1d49bd4d77"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_113252.json",
+      "session_id": "f8579787-b7f",
+      "session_ids": [
+        "f8579787-b7f"
+      ],
+      "content_sha256": "f1cc975f2b83902b5e72a3db9a7494ed1b005a1eb31e697f4210de361106c887",
+      "protocol_hash": "313a1028f8878915e0675bff32da4b742cd8636130f8d5c6966b295047dcb2bd",
+      "protocol_hashes": [
+        "313a1028f8878915e0675bff32da4b742cd8636130f8d5c6966b295047dcb2bd"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_113904.json",
+      "session_id": "747682dc-325",
+      "session_ids": [
+        "747682dc-325"
+      ],
+      "content_sha256": "e014e874fdd78bdd26f52ee601554a8e05bbd1bd27539ce5d44b97de568ee218",
+      "protocol_hash": "d524f0aeea6590db8795a39564364b5a2dcbdc66b95780243b1ed9015e5017a6",
+      "protocol_hashes": [
+        "d524f0aeea6590db8795a39564364b5a2dcbdc66b95780243b1ed9015e5017a6"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_114441.json",
+      "session_id": "1dc0281c-923",
+      "session_ids": [
+        "1dc0281c-923"
+      ],
+      "content_sha256": "b156c87f369afeaa6d0501fa9fafc78c7afe1120b4d6337a302b82edbdfd591d",
+      "protocol_hash": "2c5a33c13514d4ef2c89935707008f0bbd1772b8e383ae5c9b63fcbfe32a7e42",
+      "protocol_hashes": [
+        "2c5a33c13514d4ef2c89935707008f0bbd1772b8e383ae5c9b63fcbfe32a7e42"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_115020.json",
+      "session_id": "4bb9d423-4ec",
+      "session_ids": [
+        "4bb9d423-4ec"
+      ],
+      "content_sha256": "72b988cdbcf77b06b28a489ea7938e66a1cd1835c0686d43433f0d8b27ae4172",
+      "protocol_hash": "6e7ce46ed1a0473804b3c44246e9837c578d2741d65c297692d0e847df894db2",
+      "protocol_hashes": [
+        "6e7ce46ed1a0473804b3c44246e9837c578d2741d65c297692d0e847df894db2"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "ineligible",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_120834.json",
+      "session_id": "2b703fee-46c",
+      "session_ids": [
+        "2b703fee-46c"
+      ],
+      "content_sha256": "418dbc3b8ef9654abd229ed6cdf40eb5c2bb6aa77013105e243fef4d044e167b",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_121209.json",
+      "session_id": "fec72c61-448",
+      "session_ids": [
+        "fec72c61-448"
+      ],
+      "content_sha256": "1f449bae4e88c4b768b3123070b838b43639b8ff9f25a5efc97c7971a6874a1d",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_121408.json",
+      "session_id": "fa6f1e18-3c5",
+      "session_ids": [
+        "fa6f1e18-3c5"
+      ],
+      "content_sha256": "14c2c5e1ec60b588068937f1eccb9f15fbf052a93e8d69ee0776af8fc690e68d",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_candidate_20260711_120239.json",
+      "session_id": "3ecd20f1-723",
+      "session_ids": [
+        "3ecd20f1-723"
+      ],
+      "content_sha256": "392b3cc33d2155b8451fb3f48c73980a597a4143fc41c6960a322d6b1dc5ecb0",
+      "protocol_hash": "6e7ce46ed1a0473804b3c44246e9837c578d2741d65c297692d0e847df894db2",
+      "protocol_hashes": [
+        "6e7ce46ed1a0473804b3c44246e9837c578d2741d65c297692d0e847df894db2"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "ineligible",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_candidate_20260711_120934.json",
+      "session_id": "aa4911bb-328",
+      "session_ids": [
+        "aa4911bb-328"
+      ],
+      "content_sha256": "f97564463311f091af17525087573874f33c92e80f5d8bac4f907d436d96b477",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_candidate_20260711_121309.json",
+      "session_id": "714efef6-f9c",
+      "session_ids": [
+        "714efef6-f9c"
+      ],
+      "content_sha256": "8bbea615bfa39bcc1040c76cc8f41683cde9065a0d8cedabcf95520c25043b55",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-006_candidate_20260711_121514.json",
+      "session_id": "c5ad3ab5-3e1",
+      "session_ids": [
+        "c5ad3ab5-3e1"
+      ],
+      "content_sha256": "ee1b993e3a133fa643fbebb2af1361f0b23d47df2a7a04457588776058bf2820",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_122005.json",
+      "session_id": "53e6b8a3-dec",
+      "session_ids": [
+        "53e6b8a3-dec"
+      ],
+      "content_sha256": "91871c820d8d9357ee5c90abeab3a0b0c1e01f3370564a0d75ecc30c1fad944b",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_122431.json",
+      "session_id": "7633e029-fb2",
+      "session_ids": [
+        "7633e029-fb2"
+      ],
+      "content_sha256": "ff4e11120996aebfca4f2b993894da86484dcc20806288372372826a61e78f28",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_123322.json",
+      "session_id": "0c5e409b-9f4",
+      "session_ids": [
+        "0c5e409b-9f4"
+      ],
+      "content_sha256": "9548cdd8d168d4e4aeeb3f6243ff6d941da814bd48df53195e10614adffad824",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_124337.json",
+      "session_id": "46c232ed-8ec",
+      "session_ids": [
+        "46c232ed-8ec"
+      ],
+      "content_sha256": "eee60f05e8b8cce617fc69660be6c6b2d84f8e6c9fdae093dcacc01cdd484dab",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_125211.json",
+      "session_id": "6f9252dd-2bf",
+      "session_ids": [
+        "6f9252dd-2bf"
+      ],
+      "content_sha256": "d69bdf48df2de66b19ae9a8e927d0b59d66a1d8d29ee1a35d5a3c272fdf4ce0d",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_125347.json",
+      "session_id": "96723413-2ac",
+      "session_ids": [
+        "96723413-2ac"
+      ],
+      "content_sha256": "918eaef04d21a16572c00ee5ff71014c96bf65a40b050cecb0e52afc25f479ed",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_125757.json",
+      "session_id": "591bf0aa-d7e",
+      "session_ids": [
+        "591bf0aa-d7e"
+      ],
+      "content_sha256": "fc6b5d7925bdad845c2f2c1951395b563695ed4b9b644dd2c3a40ebfb103d962",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_130648.json",
+      "session_id": "42d65497-b21",
+      "session_ids": [
+        "42d65497-b21"
+      ],
+      "content_sha256": "84dd3b08355fb38522934f7a9be8b3e45d5418a8cca511015a128a41d36a3998",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_131334.json",
+      "session_id": "9afce1da-e25",
+      "session_ids": [
+        "9afce1da-e25"
+      ],
+      "content_sha256": "f32ddb1653a6203b9d357edd4f1b32bec9d64a0f35766021fbe2ff27947e4235",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_132140.json",
+      "session_id": "77bd6925-bb1",
+      "session_ids": [
+        "77bd6925-bb1"
+      ],
+      "content_sha256": "93b96a4c3be243fb4235328af8d9e8d08fe23f06b3660ee8e02fa60db9ed57c8",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_133236.json",
+      "session_id": "e03adc4c-a25",
+      "session_ids": [
+        "e03adc4c-a25"
+      ],
+      "content_sha256": "6d35d462a039045d70f2d64033b5591d29f773b789e61a0852243d90d29757a9",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_candidate_20260711_125551.json",
+      "session_id": "0c652825-415",
+      "session_ids": [
+        "0c652825-415"
+      ],
+      "content_sha256": "514f4235a3a55dcb9d0f5852917ecb0a18d0dce797572c3bde97f7c7e22e68fc",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_candidate_20260711_130401.json",
+      "session_id": "3f0f05f4-2d7",
+      "session_ids": [
+        "3f0f05f4-2d7"
+      ],
+      "content_sha256": "483cb096d58b8a939b8b6045ab4edcd446b9e30db97c5b7a696dc0739deac058",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_candidate_20260711_130922.json",
+      "session_id": "21515cb2-304",
+      "session_ids": [
+        "21515cb2-304"
+      ],
+      "content_sha256": "c3472724898d86cf9083ae04a4f93c6e892d30ecba7995d4e114c04292170026",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_candidate_20260711_132345.json",
+      "session_id": "e3c41388-cee",
+      "session_ids": [
+        "e3c41388-cee"
+      ],
+      "content_sha256": "9893cf000ca7dd7cf198fb35a5e9cb720beb93b07058d2706a9e2bdbd59b9fe3",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-007_candidate_20260711_133436.json",
+      "session_id": "d90c005a-9e6",
+      "session_ids": [
+        "d90c005a-9e6"
+      ],
+      "content_sha256": "59f3eba36a2de110c987dfb7d6f7b95de72b52b576cb527a8a35311385608680",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-008_default_20260711_133902.json",
+      "session_id": "921c08f0-191",
+      "session_ids": [
+        "921c08f0-191"
+      ],
+      "content_sha256": "bdb34c5e7a87aa49451b75dfd4a573495272a4b24a75c530cd2d9f32ecada8c0",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-008_default_20260711_134008.json",
+      "session_id": "429b858b-b2b",
+      "session_ids": [
+        "429b858b-b2b"
+      ],
+      "content_sha256": "dd941ff455c8b5df9708a43ae57203c05f280bd6872fa2d0ebedbbd8d33bf7d1",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-008_default_20260711_134117.json",
+      "session_id": "93e82e7c-b4f",
+      "session_ids": [
+        "93e82e7c-b4f"
+      ],
+      "content_sha256": "edf130c5a6d97cf7aea48151d841eb7beb780c17a0401ef1fad0e539edff0888",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-008_default_20260711_134230.json",
+      "session_id": "3b49bf83-84e",
+      "session_ids": [
+        "3b49bf83-84e"
+      ],
+      "content_sha256": "dbef3d32d2e6fa79d2ea71d1baa6676530ea4787fe1294184219b7d5e057e420",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-009_default_20260711_134401.json",
+      "session_id": "70d871b5-c73",
+      "session_ids": [
+        "70d871b5-c73"
+      ],
+      "content_sha256": "b8c1248c48c62edec120fc0ccede927fb67dd180fe419b0278c008ab5fe3f24e",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-009_default_20260711_134943.json",
+      "session_id": "4ff5be46-f3f",
+      "session_ids": [
+        "4ff5be46-f3f"
+      ],
+      "content_sha256": "b0f5f11172493fa1cbe069f4fc3f2e64694695e2f4138df9d212cefd88db3813",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-009_default_20260711_135039.json",
+      "session_id": "778fe4ca-2d7",
+      "session_ids": [
+        "778fe4ca-2d7"
+      ],
+      "content_sha256": "8cbabe08b356601e4f60dfcc138585e0c0a1e7e5517edfb27f8580bf56330ac5",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-009_default_20260711_135135.json",
+      "session_id": "176dc57c-20d",
+      "session_ids": [
+        "176dc57c-20d"
+      ],
+      "content_sha256": "5bf3f7404d261b7fa4b6267cc4e24e5e5d65a0cc0d33cf01e1a02de030826519",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-010_default_20260711_135234.json",
+      "session_id": "4fbf1bb1-b66",
+      "session_ids": [
+        "4fbf1bb1-b66"
+      ],
+      "content_sha256": "13322a8425170058f557391d45aa55a28703d438164f01a2ca72eb1136d1e1e1",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-010_default_20260711_135433.json",
+      "session_id": "f89698db-8f3",
+      "session_ids": [
+        "f89698db-8f3"
+      ],
+      "content_sha256": "c5f4b714fe4a2e7924c7c511cf4f7204008f4bd7096aa0e993872a1164db1ec3",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-010_default_20260711_135858.json",
+      "session_id": "6111448b-08a",
+      "session_ids": [
+        "6111448b-08a"
+      ],
+      "content_sha256": "49f27c122021aabd346c5d7ced7c4cca0a9aea10c52e58a3e5e87b4a843f6e7f",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-010_default_20260711_140017.json",
+      "session_id": "f4c0a393-7c5",
+      "session_ids": [
+        "f4c0a393-7c5"
+      ],
+      "content_sha256": "8a3969cc5567b96e4808c88b3abb2ac70d4ba3145f2ecc586096c0b708060828",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m2_benchmark_BM-010_default_20260711_140140.json",
+      "session_id": "d48f52e2-182",
+      "session_ids": [
+        "d48f52e2-182"
+      ],
+      "content_sha256": "eed64150b3d9637578152874b3f0dcc9dac87089ce5723a5869db35eb6ea5c79",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "mixed",
+      "evidence_kinds": [
+        "live_minecraft",
+        "unknown"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/visual_action_ablation_current.json",
+      "session_id": "not_applicable",
+      "session_ids": [],
+      "content_sha256": "b8d641aeaf1af2e31aeff73d92e1bb556c2c01339160b683cf4626b1f368d436",
+      "protocol_hash": "unversioned",
+      "protocol_hashes": [],
+      "evidence_kind": "visual_action_ablation_report",
+      "evidence_kinds": [
+        "visual_action_ablation_report"
+      ],
+      "eligibility": "eligible_input",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "m6_report_input"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/visual_trace_current.json",
+      "session_id": "not_applicable",
+      "session_ids": [],
+      "content_sha256": "7ed8c6066a3cfb4f4b8c6e12d9ab68b7ec025403993665d39c9ca95963f5b68a",
+      "protocol_hash": "unversioned",
+      "protocol_hashes": [],
+      "evidence_kind": "visual_trace_report",
+      "evidence_kinds": [
+        "visual_trace_report"
+      ],
+      "eligibility": "eligible_input",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "m6_report_input"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/world_model_gate_current.json",
+      "session_id": "not_applicable",
+      "session_ids": [],
+      "content_sha256": "cf6ee85bb6bc1ffc6685a3a6593a6b10b1ea34daafcf594967e4934daf30041c",
+      "protocol_hash": "unversioned",
+      "protocol_hashes": [],
+      "evidence_kind": "world_model_feedback_gate",
+      "evidence_kinds": [
+        "world_model_feedback_gate"
+      ],
+      "eligibility": "eligible_input",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "m5_report_input"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_0432d494-c7d.jsonl",
+      "session_id": "0432d494-c7d",
+      "session_ids": [
+        "0432d494-c7d"
+      ],
+      "content_sha256": "952ed5bc4260ee0815619920c3fd3271f562f89776514a13042b745ac15e726c",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft_skill_research",
+      "evidence_kinds": [
+        "live_minecraft_skill_research"
+      ],
+      "eligibility": "eligible_support",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "m3_support_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_0a26b8b3-d12.jsonl",
+      "session_id": "0a26b8b3-d12",
+      "session_ids": [
+        "0a26b8b3-d12"
+      ],
+      "content_sha256": "a7e59daf49469eda321080bb0c0468c5ce871c8a4a99aaba167590ad65fec46e",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_0b5c8694-31f.jsonl",
+      "session_id": "0b5c8694-31f",
+      "session_ids": [
+        "0b5c8694-31f"
+      ],
+      "content_sha256": "5d0aeaf723e11112f99ec34d55f322b624d60a0502a202abb32d096617b1b2c9",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_0c5e409b-9f4.jsonl",
+      "session_id": "0c5e409b-9f4",
+      "session_ids": [
+        "0c5e409b-9f4"
+      ],
+      "content_sha256": "e36473245f4079611011682a16a80293cdc4aa86a1aec842bed5822456b03cd7",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_0c652825-415.jsonl",
+      "session_id": "0c652825-415",
+      "session_ids": [
+        "0c652825-415"
+      ],
+      "content_sha256": "3dfe530ba983b2aa77c894236d49a10c5ca5ce36940975928a394d5bf2abce48",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_0de69547-12e.jsonl",
+      "session_id": "0de69547-12e",
+      "session_ids": [
+        "0de69547-12e"
+      ],
+      "content_sha256": "d0aa4c5c28ce86ddd252a0cdd8b03a27b32140d9d0104a3aabedb38997c7d4d1",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_0fdd3cde-efa.jsonl",
+      "session_id": "0fdd3cde-efa",
+      "session_ids": [
+        "0fdd3cde-efa"
+      ],
+      "content_sha256": "4f4391a7f2a0fac3a665f8fcf4c5ff334f57aad16e5fe49e24a663bd0f1d39f5",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_12107832-cb0.jsonl",
+      "session_id": "12107832-cb0",
+      "session_ids": [
+        "12107832-cb0"
+      ],
+      "content_sha256": "e91a67f5bb61c55af22efb34feaaf8417f4cffab99aada12f386238a1f423cd3",
+      "protocol_hash": "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141",
+      "protocol_hashes": [
+        "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_176dc57c-20d.jsonl",
+      "session_id": "176dc57c-20d",
+      "session_ids": [
+        "176dc57c-20d"
+      ],
+      "content_sha256": "d54263fd0b623472483e88261cf19415230c0df1ba7aebb75d40504470196964",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_1d4c1893-f9f.jsonl",
+      "session_id": "1d4c1893-f9f",
+      "session_ids": [
+        "1d4c1893-f9f"
+      ],
+      "content_sha256": "38faa566b6e49bd6bafa732b36b3bc53db815cd43d31c16b25ce9456cb1c7adc",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_1dc0281c-923.jsonl",
+      "session_id": "1dc0281c-923",
+      "session_ids": [
+        "1dc0281c-923"
+      ],
+      "content_sha256": "099b2a2caa32b1b0e5e34b54d6f9af8cfd4f11cbbf686f1981e28aa24979d2c2",
+      "protocol_hash": "2c5a33c13514d4ef2c89935707008f0bbd1772b8e383ae5c9b63fcbfe32a7e42",
+      "protocol_hashes": [
+        "2c5a33c13514d4ef2c89935707008f0bbd1772b8e383ae5c9b63fcbfe32a7e42"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_1ec21c1f-fd9.jsonl",
+      "session_id": "1ec21c1f-fd9",
+      "session_ids": [
+        "1ec21c1f-fd9"
+      ],
+      "content_sha256": "0e8b04b3bdfb48f7e6fc7579f2da4ca4283766108593cb1ac52a463e3d2fdb8a",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft_skill_research",
+      "evidence_kinds": [
+        "live_minecraft_skill_research"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "m3_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_21515cb2-304.jsonl",
+      "session_id": "21515cb2-304",
+      "session_ids": [
+        "21515cb2-304"
+      ],
+      "content_sha256": "832e4ac948bdfaced5b867203ecc82f4b3b3cefd27dac3dd1feb124d1223533c",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_2989f872-74b.jsonl",
+      "session_id": "2989f872-74b",
+      "session_ids": [
+        "2989f872-74b"
+      ],
+      "content_sha256": "bfde5f804e341e244d145c3cbae9f33e50d0f0a2b29adb0a5242962205edb8b4",
+      "protocol_hash": "6bfa2b0520528bc843338f67c407a0531c871ac7b23d3bde4064fd1d49bd4d77",
+      "protocol_hashes": [
+        "6bfa2b0520528bc843338f67c407a0531c871ac7b23d3bde4064fd1d49bd4d77"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_2b703fee-46c.jsonl",
+      "session_id": "2b703fee-46c",
+      "session_ids": [
+        "2b703fee-46c"
+      ],
+      "content_sha256": "f4ff44a8b612e70e8fcdafa17c05591325cb5bf67e50130f8d845d9ac4286899",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_2cd17442-323.jsonl",
+      "session_id": "2cd17442-323",
+      "session_ids": [
+        "2cd17442-323"
+      ],
+      "content_sha256": "136cc215e257e4be0c2fe3ab069185a459585e4d282dfc5e1cc73a920e17fffa",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_3b49bf83-84e.jsonl",
+      "session_id": "3b49bf83-84e",
+      "session_ids": [
+        "3b49bf83-84e"
+      ],
+      "content_sha256": "1f936d442d26f34c18805afdc0926407a322e6feda3dfd9916ec120ea73094f5",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_3ce4fabb-ccb.jsonl",
+      "session_id": "3ce4fabb-ccb",
+      "session_ids": [
+        "3ce4fabb-ccb"
+      ],
+      "content_sha256": "54beea55f8395c2afa949a7025fa4b95a1e052f0495ef9d16edbe499b52d2744",
+      "protocol_hash": "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141",
+      "protocol_hashes": [
+        "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_3ecd20f1-723.jsonl",
+      "session_id": "3ecd20f1-723",
+      "session_ids": [
+        "3ecd20f1-723"
+      ],
+      "content_sha256": "cce2060d866a3d96fb2eda3c29aa659d23061243cd16f67b97ef52717efe920a",
+      "protocol_hash": "6e7ce46ed1a0473804b3c44246e9837c578d2741d65c297692d0e847df894db2",
+      "protocol_hashes": [
+        "6e7ce46ed1a0473804b3c44246e9837c578d2741d65c297692d0e847df894db2"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "ineligible",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_3f0f05f4-2d7.jsonl",
+      "session_id": "3f0f05f4-2d7",
+      "session_ids": [
+        "3f0f05f4-2d7"
+      ],
+      "content_sha256": "411bd1cdfb1b5db2fc5ab77228419c3fa4ecb395d1f4ccd38eb0780c3c7b098d",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_429b858b-b2b.jsonl",
+      "session_id": "429b858b-b2b",
+      "session_ids": [
+        "429b858b-b2b"
+      ],
+      "content_sha256": "bc1d3eb61468f6d1a27deab739d379bb0f6ca541ca35eb44a35f53989b159f85",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_42d65497-b21.jsonl",
+      "session_id": "42d65497-b21",
+      "session_ids": [
+        "42d65497-b21"
+      ],
+      "content_sha256": "5c1c1f6f64aafd4e2ae975d8d5f64f25d09e504345692eebdf2bf3dfcec53e28",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_46c232ed-8ec.jsonl",
+      "session_id": "46c232ed-8ec",
+      "session_ids": [
+        "46c232ed-8ec"
+      ],
+      "content_sha256": "07f3b71f65268c7d404c25b76b4c0fc68cfa71a5ead736022be171b1200d272f",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_4b6f10e7-6fc.jsonl",
+      "session_id": "4b6f10e7-6fc",
+      "session_ids": [
+        "4b6f10e7-6fc"
+      ],
+      "content_sha256": "eeb55b56b4d74489a4fadfa9be4bf9d10dfd11253db624cab270742860f704ba",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft_skill_research",
+      "evidence_kinds": [
+        "live_minecraft_skill_research"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "m3_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_4bb9d423-4ec.jsonl",
+      "session_id": "4bb9d423-4ec",
+      "session_ids": [
+        "4bb9d423-4ec"
+      ],
+      "content_sha256": "e6456a6fb86add3ca2ce81a65820594680bfeac78bb83f02d034b0c33405360c",
+      "protocol_hash": "6e7ce46ed1a0473804b3c44246e9837c578d2741d65c297692d0e847df894db2",
+      "protocol_hashes": [
+        "6e7ce46ed1a0473804b3c44246e9837c578d2741d65c297692d0e847df894db2"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "ineligible",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_4fbf1bb1-b66.jsonl",
+      "session_id": "4fbf1bb1-b66",
+      "session_ids": [
+        "4fbf1bb1-b66"
+      ],
+      "content_sha256": "0202cd9c1eb30b71e9932a137b3b8ccee57e8d17d3c0aa9408f128341e4874c8",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_4feea6b8-f0e.jsonl",
+      "session_id": "4feea6b8-f0e",
+      "session_ids": [
+        "4feea6b8-f0e"
+      ],
+      "content_sha256": "7ff45a0fbde088d58de8d572feceec5bfe495c90eb3f6dc0ca556e102956993d",
+      "protocol_hash": "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141",
+      "protocol_hashes": [
+        "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_4ff5be46-f3f.jsonl",
+      "session_id": "4ff5be46-f3f",
+      "session_ids": [
+        "4ff5be46-f3f"
+      ],
+      "content_sha256": "4f2472b0cb86c9ec767519ba83a9454e3b3b51ace540dfa59ebf5da7e1540a54",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_52468e88-215.jsonl",
+      "session_id": "52468e88-215",
+      "session_ids": [
+        "52468e88-215"
+      ],
+      "content_sha256": "9a47ad95818c7b42286e4dc393a382dcf435a843c93d94168f6faa4289218156",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_53e6b8a3-dec.jsonl",
+      "session_id": "53e6b8a3-dec",
+      "session_ids": [
+        "53e6b8a3-dec"
+      ],
+      "content_sha256": "330d259ccf53eabae7aa8e9b3a52fd86497116b8c7030140be5f8f19fb4cb0d8",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_55ff0818-293.jsonl",
+      "session_id": "55ff0818-293",
+      "session_ids": [
+        "55ff0818-293"
+      ],
+      "content_sha256": "568592724469be64559c1c4504d99ad48da3667530dead9cf84044ff910af0b3",
+      "protocol_hash": "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141",
+      "protocol_hashes": [
+        "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_591bf0aa-d7e.jsonl",
+      "session_id": "591bf0aa-d7e",
+      "session_ids": [
+        "591bf0aa-d7e"
+      ],
+      "content_sha256": "fb5803eb048d8fc511611ca75b21a2c827ff5d477397fab2463f47b51a9c46b4",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_5c441ac4-5be.jsonl",
+      "session_id": "5c441ac4-5be",
+      "session_ids": [
+        "5c441ac4-5be"
+      ],
+      "content_sha256": "1002038139df8a84f843d7d66d8e3d1ed5f9b2342fdeb1aeed84bc8d5232aa1b",
+      "protocol_hash": "6bfa2b0520528bc843338f67c407a0531c871ac7b23d3bde4064fd1d49bd4d77",
+      "protocol_hashes": [
+        "6bfa2b0520528bc843338f67c407a0531c871ac7b23d3bde4064fd1d49bd4d77"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_6069bf83-671.jsonl",
+      "session_id": "6069bf83-671",
+      "session_ids": [
+        "6069bf83-671"
+      ],
+      "content_sha256": "e464a1a4cfb8a776611b5094a7239d80f74ed9b4d59150ef0b64e1eb51abfb95",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_6111448b-08a.jsonl",
+      "session_id": "6111448b-08a",
+      "session_ids": [
+        "6111448b-08a"
+      ],
+      "content_sha256": "2e0fa023f7e755a0991b0d98f933f85b127e20618734832dde72972772cbdc24",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_659a69fe-6fc.jsonl",
+      "session_id": "659a69fe-6fc",
+      "session_ids": [
+        "659a69fe-6fc"
+      ],
+      "content_sha256": "5eb907505545930578e71dbfc1598248398066f77feb4302cf4bfbee922796f7",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_6da981d0-e7c.jsonl",
+      "session_id": "6da981d0-e7c",
+      "session_ids": [
+        "6da981d0-e7c"
+      ],
+      "content_sha256": "dd1bcd791298aa2e49f7f97362e3a8fbfb6325f25e6a557d4c32873d0a45b8ae",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft_skill_research",
+      "evidence_kinds": [
+        "live_minecraft_skill_research"
+      ],
+      "eligibility": "eligible_support",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "m3_support_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_6f3c70d4-57b.jsonl",
+      "session_id": "6f3c70d4-57b",
+      "session_ids": [
+        "6f3c70d4-57b"
+      ],
+      "content_sha256": "96e609cc7589cb89eef8cb8a10b2718134d54d632b03deabb314cdc37bc6b373",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_6f9252dd-2bf.jsonl",
+      "session_id": "6f9252dd-2bf",
+      "session_ids": [
+        "6f9252dd-2bf"
+      ],
+      "content_sha256": "f80232f7534b57ca54181d92f801032245be480d1a2cfdf75ff8e2b362b314a8",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_70d871b5-c73.jsonl",
+      "session_id": "70d871b5-c73",
+      "session_ids": [
+        "70d871b5-c73"
+      ],
+      "content_sha256": "5fe457abb5f78949bb696dc7309c17bdb9c5f164c2131a9cdba0243f8d5e6dde",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_714efef6-f9c.jsonl",
+      "session_id": "714efef6-f9c",
+      "session_ids": [
+        "714efef6-f9c"
+      ],
+      "content_sha256": "f89a8dbb91af0377f68d4da32af62cf762016ef742c3b23720ba949c0d60a87c",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_747682dc-325.jsonl",
+      "session_id": "747682dc-325",
+      "session_ids": [
+        "747682dc-325"
+      ],
+      "content_sha256": "f665ce1e4a71723f4854d1e600ff9bea3d820f888db0b92b40b7a22dc0add734",
+      "protocol_hash": "d524f0aeea6590db8795a39564364b5a2dcbdc66b95780243b1ed9015e5017a6",
+      "protocol_hashes": [
+        "d524f0aeea6590db8795a39564364b5a2dcbdc66b95780243b1ed9015e5017a6"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_7633e029-fb2.jsonl",
+      "session_id": "7633e029-fb2",
+      "session_ids": [
+        "7633e029-fb2"
+      ],
+      "content_sha256": "a84e9e9453449ea06ccad29f20af686fc5628add510fcdd8307fd20d6814b9c4",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_778fe4ca-2d7.jsonl",
+      "session_id": "778fe4ca-2d7",
+      "session_ids": [
+        "778fe4ca-2d7"
+      ],
+      "content_sha256": "27c88a6ce86d1936e32eab0c984b4e0a56a4ed4ec5c51ae680d6b1f465c7a1a1",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_77bd6925-bb1.jsonl",
+      "session_id": "77bd6925-bb1",
+      "session_ids": [
+        "77bd6925-bb1"
+      ],
+      "content_sha256": "a69f604feca145959be54271a032cf874ac61c2b495cd7e3bdfb8377d44cb9ad",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_78004a77-cf0.jsonl",
+      "session_id": "78004a77-cf0",
+      "session_ids": [
+        "78004a77-cf0"
+      ],
+      "content_sha256": "abd1d366ed6389d518b088de3cec3867e99a9d11e066ae3b84240ebcfc62221a",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_80471d30-a4c.jsonl",
+      "session_id": "80471d30-a4c",
+      "session_ids": [
+        "80471d30-a4c"
+      ],
+      "content_sha256": "ee42ea9d87ca780b24edacec9aca035ef1fe0c5a75184ab851c7c546626fc043",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_8679dd7e-ecb.jsonl",
+      "session_id": "8679dd7e-ecb",
+      "session_ids": [
+        "8679dd7e-ecb"
+      ],
+      "content_sha256": "6aa293ef8fab2f69756f27d945c68085dbf706ac4f39dc215e3c2878fbaba150",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_879f0bf0-111.jsonl",
+      "session_id": "879f0bf0-111",
+      "session_ids": [
+        "879f0bf0-111"
+      ],
+      "content_sha256": "2e4557e4256aefa681c3a2df0e8c868ceadae554a646937dfb922f11afb120e8",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_8ddbc702-6e0.jsonl",
+      "session_id": "8ddbc702-6e0",
+      "session_ids": [
+        "8ddbc702-6e0"
+      ],
+      "content_sha256": "94a6a7484829abbe9898890b4db05d81e50859f7d98c3ebc6def49537b7dc7d1",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_921c08f0-191.jsonl",
+      "session_id": "921c08f0-191",
+      "session_ids": [
+        "921c08f0-191"
+      ],
+      "content_sha256": "9a3938748ca74b770cd3bd84a9f1c702528764bdd28b155a1767e3db5d3506d4",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_93e82e7c-b4f.jsonl",
+      "session_id": "93e82e7c-b4f",
+      "session_ids": [
+        "93e82e7c-b4f"
+      ],
+      "content_sha256": "7be7cad377ca1d1408a97ceb45de257c6769e3b1820e9a3b4b4888f10ac3ca5b",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_96723413-2ac.jsonl",
+      "session_id": "96723413-2ac",
+      "session_ids": [
+        "96723413-2ac"
+      ],
+      "content_sha256": "ae20dda2edc9f2ecf3509c5b863221c91ad3f8bb50850aff27aa1075f8911056",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_96ed78a1-bbd.jsonl",
+      "session_id": "96ed78a1-bbd",
+      "session_ids": [
+        "96ed78a1-bbd"
+      ],
+      "content_sha256": "6d4469228febd2e2eda1d7d8069a1d64787ae8e4cbea1a98d7569e4f9531c6ba",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_9afce1da-e25.jsonl",
+      "session_id": "9afce1da-e25",
+      "session_ids": [
+        "9afce1da-e25"
+      ],
+      "content_sha256": "4dfbf25f1e12091779905767eded73ba2029135c026ef0a21c71ee9adae8eb09",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_a01857d5-0b9.jsonl",
+      "session_id": "a01857d5-0b9",
+      "session_ids": [
+        "a01857d5-0b9"
+      ],
+      "content_sha256": "06c3ca9939e2fc568c5f40381a72e1b9695a5c56a3c310940e2df06701a0076c",
+      "protocol_hash": "c6a2b7c50a0ca49dada405826d5f562942ae5f9e9c26e32cf158eb278c7dc199",
+      "protocol_hashes": [
+        "c6a2b7c50a0ca49dada405826d5f562942ae5f9e9c26e32cf158eb278c7dc199"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_a1c090e1-c82.jsonl",
+      "session_id": "a1c090e1-c82",
+      "session_ids": [
+        "a1c090e1-c82"
+      ],
+      "content_sha256": "86638b197037eb12f0fbd78e133ba0111aedbb22433637ed4055f656f5f8c641",
+      "protocol_hash": "91b5d269e0b49f0e374eba07438335699be002a5ddc83932d020054882b0e91c",
+      "protocol_hashes": [
+        "91b5d269e0b49f0e374eba07438335699be002a5ddc83932d020054882b0e91c"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_a6441b83-31e.jsonl",
+      "session_id": "a6441b83-31e",
+      "session_ids": [
+        "a6441b83-31e"
+      ],
+      "content_sha256": "724bd89fb74c29715f90b85b0d5f8e36448a5d68becd123c6675e2d16f834248",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_aa4911bb-328.jsonl",
+      "session_id": "aa4911bb-328",
+      "session_ids": [
+        "aa4911bb-328"
+      ],
+      "content_sha256": "13da18b9b317e12adb1faef4c10b24007fa9783d8ea40a84fce3c6d2cca31522",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_af9c0ca8-a60.jsonl",
+      "session_id": "af9c0ca8-a60",
+      "session_ids": [
+        "af9c0ca8-a60"
+      ],
+      "content_sha256": "83cd80e1c9bfe8729c630d9c79e04da59a8d56caef2a8a81a106b004fea46d69",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_b1fac299-e9f.jsonl",
+      "session_id": "b1fac299-e9f",
+      "session_ids": [
+        "b1fac299-e9f"
+      ],
+      "content_sha256": "7d8f3cdd7b8c489f3f10bfb27ca29551c6aca0e143afab62ec5b4aad11e3ec06",
+      "protocol_hash": "ac0bd6b751cbef807c3a669c559da67fd385a1172cf8df523b4a0fce46ac7462",
+      "protocol_hashes": [
+        "ac0bd6b751cbef807c3a669c559da67fd385a1172cf8df523b4a0fce46ac7462"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_b9e1bb0e-88b.jsonl",
+      "session_id": "b9e1bb0e-88b",
+      "session_ids": [
+        "b9e1bb0e-88b"
+      ],
+      "content_sha256": "8feb89bf967cca5bd35c85f5ca9168fcc918986f1fe136fbea44aeb79c4bfe56",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft_skill_research",
+      "evidence_kinds": [
+        "live_minecraft_skill_research"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "m3_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_bdcdd9cb-a01.jsonl",
+      "session_id": "bdcdd9cb-a01",
+      "session_ids": [
+        "bdcdd9cb-a01"
+      ],
+      "content_sha256": "baf8f3e35dfcf3887a707822b829386cc1e078e7339b88c6366f5d02f4e73bc3",
+      "protocol_hash": "d0dc5618ef13d05c77429c6ebea4821b964e2fe7dd257289da643188953c4289",
+      "protocol_hashes": [
+        "d0dc5618ef13d05c77429c6ebea4821b964e2fe7dd257289da643188953c4289"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_c5ad3ab5-3e1.jsonl",
+      "session_id": "c5ad3ab5-3e1",
+      "session_ids": [
+        "c5ad3ab5-3e1"
+      ],
+      "content_sha256": "45bd596674e7dc5b7efb7edec2b0c8de6fba00f2f2438dfdc6fda5315e924fff",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_d48f52e2-182.jsonl",
+      "session_id": "d48f52e2-182",
+      "session_ids": [
+        "d48f52e2-182"
+      ],
+      "content_sha256": "6cee44a153246b00d5ea23e77ff7073538198a26c1d464c76382d45950dbe16f",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_d90c005a-9e6.jsonl",
+      "session_id": "d90c005a-9e6",
+      "session_ids": [
+        "d90c005a-9e6"
+      ],
+      "content_sha256": "87b465b168b14a2aba71ee8cfaf1cca2b55a844017f0081ce530bc2967fce125",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_dc63e525-8c8.jsonl",
+      "session_id": "dc63e525-8c8",
+      "session_ids": [
+        "dc63e525-8c8"
+      ],
+      "content_sha256": "0d1a17362a4195eb819ac3775e51aaec6a401c0c55a7fbaf3f46f05e2e97aecf",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_df255fd9-1e8.jsonl",
+      "session_id": "df255fd9-1e8",
+      "session_ids": [
+        "df255fd9-1e8"
+      ],
+      "content_sha256": "e0451a4f848f541d85463cd768ea3ba91a38dff7332e01ba05a95a8aec747979",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_e03adc4c-a25.jsonl",
+      "session_id": "e03adc4c-a25",
+      "session_ids": [
+        "e03adc4c-a25"
+      ],
+      "content_sha256": "906132d8d3806510ac1a8a82f0aafa08839f494795315402a77e49039d74bda9",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_e3c41388-cee.jsonl",
+      "session_id": "e3c41388-cee",
+      "session_ids": [
+        "e3c41388-cee"
+      ],
+      "content_sha256": "ec73ff2a782b9b880f72234d95bc4e117e91e5ebd6f3781bd25bc18500016d42",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_e81ba024-b88.jsonl",
+      "session_id": "e81ba024-b88",
+      "session_ids": [
+        "e81ba024-b88"
+      ],
+      "content_sha256": "077d03f5e5cfb632ea14dc026c20ff0b8f102e6e924a41695c2022a8a4bbf87c",
+      "protocol_hash": "d0dc5618ef13d05c77429c6ebea4821b964e2fe7dd257289da643188953c4289",
+      "protocol_hashes": [
+        "d0dc5618ef13d05c77429c6ebea4821b964e2fe7dd257289da643188953c4289"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_ea442abc-b7a.jsonl",
+      "session_id": "ea442abc-b7a",
+      "session_ids": [
+        "ea442abc-b7a"
+      ],
+      "content_sha256": "aab3263ed2a3cbd84669d065eb7848fcad69eae8f3d90ebd0127d21399fe1e85",
+      "protocol_hash": "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141",
+      "protocol_hashes": [
+        "805c3b9aec671e5d4c12d566f572cb68f161f522da2d4621afaa4a908078c141"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_f019c985-1dc.jsonl",
+      "session_id": "f019c985-1dc",
+      "session_ids": [
+        "f019c985-1dc"
+      ],
+      "content_sha256": "4e08b03e49ed4607a2f1056ebe3c91443025b1fbfa4bbf0353adc5571d01392e",
+      "protocol_hash": "d0dc5618ef13d05c77429c6ebea4821b964e2fe7dd257289da643188953c4289",
+      "protocol_hashes": [
+        "d0dc5618ef13d05c77429c6ebea4821b964e2fe7dd257289da643188953c4289"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_f0d8e29a-df0.jsonl",
+      "session_id": "f0d8e29a-df0",
+      "session_ids": [
+        "f0d8e29a-df0"
+      ],
+      "content_sha256": "9c1beb8d0a89e22f252a82d05c942654e612e4fc307a6c631b24a12a7db83a74",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_f4c0a393-7c5.jsonl",
+      "session_id": "f4c0a393-7c5",
+      "session_ids": [
+        "f4c0a393-7c5"
+      ],
+      "content_sha256": "f97f84fd5ffaa8173d84fb40449443ee90a739b5753656b13c7e54ddf00d0f94",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_f4d54be2-914.jsonl",
+      "session_id": "f4d54be2-914",
+      "session_ids": [
+        "f4d54be2-914"
+      ],
+      "content_sha256": "d661bfff0a03de0adc6221ec618bb724ed12e327f6ecf221de042963ee531058",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_f633f0c0-1de.jsonl",
+      "session_id": "f633f0c0-1de",
+      "session_ids": [
+        "f633f0c0-1de"
+      ],
+      "content_sha256": "d7c09b4954c3c2a5ffe8ecf53c168525b68c8966cb7a9359c5e8dd7d850f18b8",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_f8579787-b7f.jsonl",
+      "session_id": "f8579787-b7f",
+      "session_ids": [
+        "f8579787-b7f"
+      ],
+      "content_sha256": "83ef0e7e9621ad3dedf76f34ab009db607da82433566650a18efb1c04fb1e9ab",
+      "protocol_hash": "313a1028f8878915e0675bff32da4b742cd8636130f8d5c6966b295047dcb2bd",
+      "protocol_hashes": [
+        "313a1028f8878915e0675bff32da4b742cd8636130f8d5c6966b295047dcb2bd"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_f89698db-8f3.jsonl",
+      "session_id": "f89698db-8f3",
+      "session_ids": [
+        "f89698db-8f3"
+      ],
+      "content_sha256": "45e5a6bf55f66368f031d0f0f0776e6b7e7fe2b7526de43c3ec1c8719e7ea80c",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_fa6f1e18-3c5.jsonl",
+      "session_id": "fa6f1e18-3c5",
+      "session_ids": [
+        "fa6f1e18-3c5"
+      ],
+      "content_sha256": "46dfed0a85bd8f984d2fe789f91fc36a12d5209918af631d37ea99d5ef841b57",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/session_fec72c61-448.jsonl",
+      "session_id": "fec72c61-448",
+      "session_ids": [
+        "fec72c61-448"
+      ],
+      "content_sha256": "4d1dbbb22ee90eef9acfa88dfc2cd440de2a4e6e370d3e582d28b3668c792de3",
+      "protocol_hash": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "protocol_hashes": [
+        "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb"
+      ],
+      "evidence_kind": "live_minecraft",
+      "evidence_kinds": [
+        "live_minecraft"
+      ],
+      "eligibility": "eligible_success",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "workspace/evals/skill_continual_learning_report.json",
+      "session_id": "multiple",
+      "session_ids": [
+        "b9e1bb0e-88b",
+        "4b6f10e7-6fc",
+        "1ec21c1f-fd9"
+      ],
+      "content_sha256": "56abb0d1918479110eee9f5f1b943a425e924e6f254d282e6d6d48cf2bc14196",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "continual_learning_report",
+      "evidence_kinds": [
+        "continual_learning_report"
+      ],
+      "eligibility": "eligible_input",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "m3_report_input"
+      ]
+    },
+    {
+      "repo_relative_path": "workspace/evals/skill_transfer/gather_wood/transfer_gate.json",
+      "session_id": "multiple",
+      "session_ids": [
+        "0432d494-c7d",
+        "6da981d0-e7c"
+      ],
+      "content_sha256": "639617bdbbe8ca9a87f3ced202b5b47a716bbf2fa63b86089062736104e14026",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "protocol_hashes": [
+        "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967"
+      ],
+      "evidence_kind": "task_stream_transfer_gate",
+      "evidence_kinds": [
+        "task_stream_transfer_gate"
+      ],
+      "eligibility": "eligible_input",
+      "counts_toward_repeat_verified": true,
+      "roles": [
+        "m3_report_input"
+      ]
+    }
+  ],
   "runtime_evidence": {},
   "summary": {
     "phase_count": 8,
-    "declared_complete_count": 2,
-    "supported_completion_count": 2,
+    "declared_complete_count": 4,
+    "supported_completion_count": 4,
     "contradicted_completion_count": 0,
     "unsupported_completion_count": 0,
-    "repeat_verified_phase_count": 1,
+    "repeat_verified_phase_count": 3,
     "live_observed_phase_count": 0,
-    "failing_phase_count": 3,
+    "failing_phase_count": 2,
     "system_complete": false
   },
   "contradicted_phases": [],
@@ -82,7 +3625,7 @@
       "completion_claim_allowed": true,
       "declared": {
         "name": "Research Baseline",
-        "status": "Complete (source verified)",
+        "status": "Complete (sourceverified)",
         "progress": "Research deliverables present"
       },
       "declared_complete": true,
@@ -119,6 +3662,7 @@
       "repeat_verified_benchmark_count": 0,
       "benchmarks": [],
       "live_evidence": {},
+      "benchmark_gate": {},
       "required_live_execution_count": 0,
       "live_observed_execution_count": 0,
       "missing_evidence": []
@@ -131,7 +3675,7 @@
       "completion_claim_allowed": true,
       "declared": {
         "name": "Minimum Viable Bot",
-        "status": "Complete (repeat verified)",
+        "status": "Complete (repeatverified)",
         "progress": "BM-001..005 each 3/3; 15/15 distinct eligible live successes"
       },
       "declared_complete": true,
@@ -190,17 +3734,17 @@
           ],
           "repeats_required": 3,
           "evidence_refs": [
-            "8ddbc702-6e0:logs\\session_8ddbc702-6e0.jsonl",
+            "8ddbc702-6e0:logs/session_8ddbc702-6e0.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_174239.json:$[0].setup_evidence",
-            "f633f0c0-1de:logs\\session_f633f0c0-1de.jsonl",
+            "f633f0c0-1de:logs/session_f633f0c0-1de.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_174806.json:$[0].setup_evidence",
-            "a6441b83-31e:logs\\session_a6441b83-31e.jsonl",
+            "a6441b83-31e:logs/session_a6441b83-31e.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_175231.json:$[0].setup_evidence",
-            "f0d8e29a-df0:logs\\session_f0d8e29a-df0.jsonl",
+            "f0d8e29a-df0:logs/session_f0d8e29a-df0.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_175931.json:$[0].setup_evidence",
-            "df255fd9-1e8:logs\\session_df255fd9-1e8.jsonl",
+            "df255fd9-1e8:logs/session_df255fd9-1e8.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_180117.json:$[0].setup_evidence",
-            "f4d54be2-914:logs\\session_f4d54be2-914.jsonl",
+            "f4d54be2-914:logs/session_f4d54be2-914.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_180210.json:$[0].setup_evidence"
           ]
         },
@@ -235,11 +3779,11 @@
           ],
           "repeats_required": 3,
           "evidence_refs": [
-            "1d4c1893-f9f:logs\\session_1d4c1893-f9f.jsonl",
+            "1d4c1893-f9f:logs/session_1d4c1893-f9f.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_180422.json:$[0].setup_evidence",
-            "0fdd3cde-efa:logs\\session_0fdd3cde-efa.jsonl",
+            "0fdd3cde-efa:logs/session_0fdd3cde-efa.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_180456.json:$[0].setup_evidence",
-            "8679dd7e-ecb:logs\\session_8679dd7e-ecb.jsonl",
+            "8679dd7e-ecb:logs/session_8679dd7e-ecb.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_180534.json:$[0].setup_evidence"
           ]
         },
@@ -274,11 +3818,11 @@
           ],
           "repeats_required": 3,
           "evidence_refs": [
-            "0de69547-12e:logs\\session_0de69547-12e.jsonl",
+            "0de69547-12e:logs/session_0de69547-12e.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_180608.json:$[0].setup_evidence",
-            "0b5c8694-31f:logs\\session_0b5c8694-31f.jsonl",
+            "0b5c8694-31f:logs/session_0b5c8694-31f.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_180643.json:$[0].setup_evidence",
-            "52468e88-215:logs\\session_52468e88-215.jsonl",
+            "52468e88-215:logs/session_52468e88-215.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_180714.json:$[0].setup_evidence"
           ]
         },
@@ -313,21 +3857,21 @@
           ],
           "repeats_required": 3,
           "evidence_refs": [
-            "80471d30-a4c:logs\\session_80471d30-a4c.jsonl",
+            "80471d30-a4c:logs/session_80471d30-a4c.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_180752.json:$[0].setup_evidence",
-            "2cd17442-323:logs\\session_2cd17442-323.jsonl",
+            "2cd17442-323:logs/session_2cd17442-323.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_181023.json:$[0].setup_evidence",
-            "6069bf83-671:logs\\session_6069bf83-671.jsonl",
+            "6069bf83-671:logs/session_6069bf83-671.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_181400.json:$[0].setup_evidence",
-            "879f0bf0-111:logs\\session_879f0bf0-111.jsonl",
+            "879f0bf0-111:logs/session_879f0bf0-111.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_181649.json:$[0].setup_evidence",
-            "0a26b8b3-d12:logs\\session_0a26b8b3-d12.jsonl",
+            "0a26b8b3-d12:logs/session_0a26b8b3-d12.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_181909.json:$[0].setup_evidence",
-            "78004a77-cf0:logs\\session_78004a77-cf0.jsonl",
+            "78004a77-cf0:logs/session_78004a77-cf0.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_182225.json:$[0].setup_evidence",
-            "af9c0ca8-a60:logs\\session_af9c0ca8-a60.jsonl",
+            "af9c0ca8-a60:logs/session_af9c0ca8-a60.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_182346.json:$[0].setup_evidence",
-            "dc63e525-8c8:logs\\session_dc63e525-8c8.jsonl",
+            "dc63e525-8c8:logs/session_dc63e525-8c8.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_182505.json:$[0].setup_evidence"
           ]
         },
@@ -362,16 +3906,17 @@
           ],
           "repeats_required": 3,
           "evidence_refs": [
-            "96ed78a1-bbd:logs\\session_96ed78a1-bbd.jsonl",
+            "96ed78a1-bbd:logs/session_96ed78a1-bbd.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_182625.json:$[0].setup_evidence",
-            "6f3c70d4-57b:logs\\session_6f3c70d4-57b.jsonl",
+            "6f3c70d4-57b:logs/session_6f3c70d4-57b.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_182705.json:$[0].setup_evidence",
-            "659a69fe-6fc:logs\\session_659a69fe-6fc.jsonl",
+            "659a69fe-6fc:logs/session_659a69fe-6fc.jsonl",
             "logs/benchmarks/m1_benchmark_20260710_182736.json:$[0].setup_evidence"
           ]
         }
       ],
       "live_evidence": {},
+      "benchmark_gate": {},
       "required_live_execution_count": 0,
       "live_observed_execution_count": 0,
       "missing_evidence": []
@@ -380,15 +3925,15 @@
       "id": "M2",
       "name": "LLM Task Planning",
       "evidence_kind": "benchmark",
-      "status": "not_run",
-      "completion_claim_allowed": false,
+      "status": "repeat_verified",
+      "completion_claim_allowed": true,
       "declared": {
         "name": "LLM Task Planning",
-        "status": "Evidence pending",
-        "progress": "BM-006..010: no tracked execution evidence"
+        "status": "Complete (repeatverified)",
+        "progress": "BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved"
       },
-      "declared_complete": false,
-      "claim_assessment": "not_claimed_complete",
+      "declared_complete": true,
+      "claim_assessment": "supported",
       "source_ready": true,
       "source_checks": [
         {
@@ -400,94 +3945,729 @@
           "exists": true
         },
         {
-          "path": "src/singularity/core/reflector.py",
+          "path": "src/singularity/evaluation/m2_protocol.py",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/data/m2_protocol.json",
+          "exists": true
+        },
+        {
+          "path": "src/singularity/evaluation/benchmark_runner.py",
+          "exists": true
+        },
+        {
+          "path": "src/bot/bot_server.js",
           "exists": true
         }
       ],
       "required_benchmark_count": 5,
-      "live_observed_benchmark_count": 0,
-      "repeat_verified_benchmark_count": 0,
+      "live_observed_benchmark_count": 5,
+      "repeat_verified_benchmark_count": 5,
       "benchmarks": [
         {
           "task_id": "BM-006",
-          "status": "not_run",
-          "attempts": 0,
-          "successes": 0,
-          "failures": 0,
-          "ineligible_successes": 0,
-          "ineligibility_reasons": [],
+          "status": "repeat_verified",
+          "attempts": 72,
+          "successes": 6,
+          "failures": 16,
+          "ineligible_successes": 50,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "m2_reset_not_successful",
+            "m2_reset_profile_mismatch",
+            "m2_reset_seed_mismatch",
+            "m2_minecraft_version_mismatch",
+            "m2_server_brand_not_paper",
+            "m2_server_jar_hash_mismatch",
+            "m2_reset_checks_not_verified",
+            "m2_fresh_episode_level_not_proven",
+            "m2_terminal_evidence_missing",
+            "m2_terminal_profile_mismatch",
+            "m2_session_validation_not_passed",
+            "m2_single_root_call_not_proven",
+            "m2_root_subtasks_missing",
+            "m2_root_dependency_missing",
+            "m2_task_state_paths_missing",
+            "m2_machine_goal_verifier_missing"
+          ],
           "repeats_required": 3,
-          "evidence_refs": []
+          "evidence_refs": [
+            "b1fac299-e9f:logs/session_b1fac299-e9f.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_093521.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_093521.json:$[0].terminal_evidence",
+            "e81ba024-b88:logs/session_e81ba024-b88.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_094447.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_094447.json:$[0].terminal_evidence",
+            "f019c985-1dc:logs/session_f019c985-1dc.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_095802.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_095802.json:$[0].terminal_evidence",
+            "bdcdd9cb-a01:logs/session_bdcdd9cb-a01.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_100208.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_100208.json:$[0].terminal_evidence",
+            "a01857d5-0b9:logs/session_a01857d5-0b9.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_101742.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_101742.json:$[0].terminal_evidence",
+            "a1c090e1-c82:logs/session_a1c090e1-c82.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_105023.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_105023.json:$[0].terminal_evidence",
+            "12107832-cb0:logs/session_12107832-cb0.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-006_baseline_20260711_105707.json:$[0].setup_evidence"
+          ]
         },
         {
           "task_id": "BM-007",
-          "status": "not_run",
-          "attempts": 0,
-          "successes": 0,
-          "failures": 0,
-          "ineligible_successes": 0,
-          "ineligibility_reasons": [],
+          "status": "repeat_verified",
+          "attempts": 48,
+          "successes": 8,
+          "failures": 8,
+          "ineligible_successes": 32,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "m2_reset_not_successful",
+            "m2_reset_profile_mismatch",
+            "m2_reset_seed_mismatch",
+            "m2_minecraft_version_mismatch",
+            "m2_server_brand_not_paper",
+            "m2_server_jar_hash_mismatch",
+            "m2_reset_checks_not_verified",
+            "m2_reset_inventory_mismatch",
+            "m2_fresh_episode_level_not_proven",
+            "m2_terminal_evidence_missing",
+            "m2_terminal_profile_mismatch",
+            "m2_session_validation_not_passed",
+            "m2_single_root_call_not_proven",
+            "m2_root_subtasks_missing",
+            "m2_root_dependency_missing",
+            "m2_task_state_paths_missing"
+          ],
           "repeats_required": 3,
-          "evidence_refs": []
+          "evidence_refs": [
+            "53e6b8a3-dec:logs/session_53e6b8a3-dec.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_122005.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_122005.json:$[0].terminal_evidence",
+            "7633e029-fb2:logs/session_7633e029-fb2.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_122431.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_122431.json:$[0].terminal_evidence",
+            "0c5e409b-9f4:logs/session_0c5e409b-9f4.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_123322.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_123322.json:$[0].terminal_evidence",
+            "46c232ed-8ec:logs/session_46c232ed-8ec.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_124337.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_124337.json:$[0].terminal_evidence",
+            "6f9252dd-2bf:logs/session_6f9252dd-2bf.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_125211.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_125211.json:$[0].terminal_evidence",
+            "96723413-2ac:logs/session_96723413-2ac.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_125347.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_125347.json:$[0].terminal_evidence",
+            "591bf0aa-d7e:logs/session_591bf0aa-d7e.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-007_baseline_20260711_125757.json:$[0].setup_evidence"
+          ]
         },
         {
           "task_id": "BM-008",
-          "status": "not_run",
-          "attempts": 0,
-          "successes": 0,
-          "failures": 0,
-          "ineligible_successes": 0,
-          "ineligibility_reasons": [],
+          "status": "repeat_verified",
+          "attempts": 12,
+          "successes": 3,
+          "failures": 1,
+          "ineligible_successes": 8,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "m2_reset_not_successful",
+            "m2_reset_profile_mismatch",
+            "m2_reset_seed_mismatch",
+            "m2_minecraft_version_mismatch",
+            "m2_server_brand_not_paper",
+            "m2_server_jar_hash_mismatch",
+            "m2_reset_checks_not_verified",
+            "m2_reset_inventory_mismatch",
+            "m2_fresh_episode_level_not_proven",
+            "m2_terminal_evidence_missing",
+            "m2_terminal_profile_mismatch",
+            "m2_session_validation_not_passed",
+            "m2_single_root_call_not_proven",
+            "m2_root_subtasks_missing",
+            "m2_root_dependency_missing",
+            "m2_task_state_paths_missing"
+          ],
           "repeats_required": 3,
-          "evidence_refs": []
+          "evidence_refs": [
+            "921c08f0-191:logs/session_921c08f0-191.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-008_default_20260711_133902.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-008_default_20260711_133902.json:$[0].terminal_evidence",
+            "429b858b-b2b:logs/session_429b858b-b2b.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-008_default_20260711_134008.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-008_default_20260711_134008.json:$[0].terminal_evidence",
+            "93e82e7c-b4f:logs/session_93e82e7c-b4f.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-008_default_20260711_134117.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-008_default_20260711_134117.json:$[0].terminal_evidence",
+            "3b49bf83-84e:logs/session_3b49bf83-84e.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-008_default_20260711_134230.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-008_default_20260711_134230.json:$[0].terminal_evidence"
+          ]
         },
         {
           "task_id": "BM-009",
-          "status": "not_run",
-          "attempts": 0,
-          "successes": 0,
-          "failures": 0,
-          "ineligible_successes": 0,
-          "ineligibility_reasons": [],
+          "status": "repeat_verified",
+          "attempts": 12,
+          "successes": 3,
+          "failures": 1,
+          "ineligible_successes": 8,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "m2_reset_not_successful",
+            "m2_reset_profile_mismatch",
+            "m2_reset_seed_mismatch",
+            "m2_minecraft_version_mismatch",
+            "m2_server_brand_not_paper",
+            "m2_server_jar_hash_mismatch",
+            "m2_reset_checks_not_verified",
+            "m2_reset_inventory_mismatch",
+            "m2_fresh_episode_level_not_proven",
+            "m2_terminal_evidence_missing",
+            "m2_terminal_profile_mismatch",
+            "m2_session_validation_not_passed",
+            "m2_single_root_call_not_proven",
+            "m2_root_subtasks_missing",
+            "m2_root_dependency_missing",
+            "m2_task_state_paths_missing"
+          ],
           "repeats_required": 3,
-          "evidence_refs": []
+          "evidence_refs": [
+            "70d871b5-c73:logs/session_70d871b5-c73.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-009_default_20260711_134401.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-009_default_20260711_134401.json:$[0].terminal_evidence",
+            "4ff5be46-f3f:logs/session_4ff5be46-f3f.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-009_default_20260711_134943.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-009_default_20260711_134943.json:$[0].terminal_evidence",
+            "778fe4ca-2d7:logs/session_778fe4ca-2d7.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-009_default_20260711_135039.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-009_default_20260711_135039.json:$[0].terminal_evidence",
+            "176dc57c-20d:logs/session_176dc57c-20d.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-009_default_20260711_135135.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-009_default_20260711_135135.json:$[0].terminal_evidence"
+          ]
         },
         {
           "task_id": "BM-010",
-          "status": "not_run",
-          "attempts": 0,
-          "successes": 0,
-          "failures": 0,
-          "ineligible_successes": 0,
-          "ineligibility_reasons": [],
+          "status": "repeat_verified",
+          "attempts": 15,
+          "successes": 3,
+          "failures": 2,
+          "ineligible_successes": 10,
+          "ineligibility_reasons": [
+            "evidence_kind_not_live_minecraft",
+            "protocol_eligible_not_true",
+            "goal_verified_not_true",
+            "criteria_verified_not_true",
+            "m2_reset_not_successful",
+            "m2_reset_profile_mismatch",
+            "m2_reset_seed_mismatch",
+            "m2_minecraft_version_mismatch",
+            "m2_server_brand_not_paper",
+            "m2_server_jar_hash_mismatch",
+            "m2_reset_checks_not_verified",
+            "m2_reset_inventory_mismatch",
+            "m2_fresh_episode_level_not_proven",
+            "m2_terminal_evidence_missing",
+            "m2_terminal_profile_mismatch",
+            "m2_session_validation_not_passed",
+            "m2_single_root_call_not_proven",
+            "m2_root_subtasks_missing",
+            "m2_root_dependency_missing",
+            "m2_task_state_paths_missing"
+          ],
           "repeats_required": 3,
-          "evidence_refs": []
+          "evidence_refs": [
+            "4fbf1bb1-b66:logs/session_4fbf1bb1-b66.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-010_default_20260711_135234.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-010_default_20260711_135234.json:$[0].terminal_evidence",
+            "f89698db-8f3:logs/session_f89698db-8f3.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-010_default_20260711_135433.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-010_default_20260711_135433.json:$[0].terminal_evidence",
+            "6111448b-08a:logs/session_6111448b-08a.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-010_default_20260711_135858.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-010_default_20260711_135858.json:$[0].terminal_evidence",
+            "f4c0a393-7c5:logs/session_f4c0a393-7c5.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-010_default_20260711_140017.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-010_default_20260711_140017.json:$[0].terminal_evidence",
+            "d48f52e2-182:logs/session_d48f52e2-182.jsonl",
+            "logs/benchmarks/m2_benchmark_BM-010_default_20260711_140140.json:$[0].setup_evidence",
+            "logs/benchmarks/m2_benchmark_BM-010_default_20260711_140140.json:$[0].terminal_evidence"
+          ]
         }
       ],
       "live_evidence": {},
+      "benchmark_gate": {
+        "type": "m2_skill_pairing_gate",
+        "schema_version": 1,
+        "approved": true,
+        "required_tasks": [
+          "BM-006",
+          "BM-007"
+        ],
+        "pairs_required_per_task": 3,
+        "tasks": {
+          "BM-006": {
+            "required_pairs": 3,
+            "complete_pair_count": 3,
+            "eligible_pair_count": 3,
+            "pairs": [
+              {
+                "pair_id": "plank-family-v2-bm006-r1",
+                "replicate_id": "1",
+                "baseline_session_id": "2b703fee-46c",
+                "candidate_session_id": "aa4911bb-328",
+                "baseline_skill_isolated": true,
+                "candidate_skill_executed": true,
+                "comparable": true,
+                "eligible": true,
+                "target_skill_id": "learned:craft_crafting_table",
+                "metrics": {
+                  "planner_call_count": {
+                    "baseline": 3.0,
+                    "candidate": 2.0,
+                    "delta": -1.0
+                  },
+                  "replan_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "planner_token_usage": {
+                    "baseline": 10300.0,
+                    "candidate": 6892.0,
+                    "delta": -3408.0
+                  },
+                  "planner_latency_ms": {
+                    "baseline": 12933.0,
+                    "candidate": 9655.0,
+                    "delta": -3278.0
+                  },
+                  "action_event_count": {
+                    "baseline": 3.0,
+                    "candidate": 3.0,
+                    "delta": 0.0
+                  },
+                  "action_failure_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "verifier_reject_count": {
+                    "baseline": 5.0,
+                    "candidate": 5.0,
+                    "delta": 0.0
+                  },
+                  "skill_selected_count": {
+                    "baseline": 0.0,
+                    "candidate": 1.0,
+                    "delta": 1.0
+                  },
+                  "skill_action_success_count": {
+                    "baseline": 0.0,
+                    "candidate": 1.0,
+                    "delta": 1.0
+                  },
+                  "fallback_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "failure_replan_proved": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  }
+                }
+              },
+              {
+                "pair_id": "plank-family-v2-bm006-r2",
+                "replicate_id": "2",
+                "baseline_session_id": "fec72c61-448",
+                "candidate_session_id": "714efef6-f9c",
+                "baseline_skill_isolated": true,
+                "candidate_skill_executed": true,
+                "comparable": true,
+                "eligible": true,
+                "target_skill_id": "learned:craft_crafting_table",
+                "metrics": {
+                  "planner_call_count": {
+                    "baseline": 3.0,
+                    "candidate": 2.0,
+                    "delta": -1.0
+                  },
+                  "replan_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "planner_token_usage": {
+                    "baseline": 10302.0,
+                    "candidate": 6894.0,
+                    "delta": -3408.0
+                  },
+                  "planner_latency_ms": {
+                    "baseline": 12327.0,
+                    "candidate": 9811.0,
+                    "delta": -2516.0
+                  },
+                  "action_event_count": {
+                    "baseline": 3.0,
+                    "candidate": 3.0,
+                    "delta": 0.0
+                  },
+                  "action_failure_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "verifier_reject_count": {
+                    "baseline": 5.0,
+                    "candidate": 5.0,
+                    "delta": 0.0
+                  },
+                  "skill_selected_count": {
+                    "baseline": 0.0,
+                    "candidate": 1.0,
+                    "delta": 1.0
+                  },
+                  "skill_action_success_count": {
+                    "baseline": 0.0,
+                    "candidate": 1.0,
+                    "delta": 1.0
+                  },
+                  "fallback_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "failure_replan_proved": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  }
+                }
+              },
+              {
+                "pair_id": "plank-family-v2-bm006-r3",
+                "replicate_id": "3",
+                "baseline_session_id": "fa6f1e18-3c5",
+                "candidate_session_id": "c5ad3ab5-3e1",
+                "baseline_skill_isolated": true,
+                "candidate_skill_executed": true,
+                "comparable": true,
+                "eligible": true,
+                "target_skill_id": "learned:craft_crafting_table",
+                "metrics": {
+                  "planner_call_count": {
+                    "baseline": 3.0,
+                    "candidate": 2.0,
+                    "delta": -1.0
+                  },
+                  "replan_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "planner_token_usage": {
+                    "baseline": 10336.0,
+                    "candidate": 6922.0,
+                    "delta": -3414.0
+                  },
+                  "planner_latency_ms": {
+                    "baseline": 17062.0,
+                    "candidate": 12203.0,
+                    "delta": -4859.0
+                  },
+                  "action_event_count": {
+                    "baseline": 3.0,
+                    "candidate": 3.0,
+                    "delta": 0.0
+                  },
+                  "action_failure_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "verifier_reject_count": {
+                    "baseline": 5.0,
+                    "candidate": 5.0,
+                    "delta": 0.0
+                  },
+                  "skill_selected_count": {
+                    "baseline": 0.0,
+                    "candidate": 1.0,
+                    "delta": 1.0
+                  },
+                  "skill_action_success_count": {
+                    "baseline": 0.0,
+                    "candidate": 1.0,
+                    "delta": 1.0
+                  },
+                  "fallback_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "failure_replan_proved": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  }
+                }
+              }
+            ]
+          },
+          "BM-007": {
+            "required_pairs": 3,
+            "complete_pair_count": 3,
+            "eligible_pair_count": 3,
+            "pairs": [
+              {
+                "pair_id": "bm007-backoff-r3",
+                "replicate_id": "3",
+                "baseline_session_id": "e03adc4c-a25",
+                "candidate_session_id": "d90c005a-9e6",
+                "baseline_skill_isolated": true,
+                "candidate_skill_executed": true,
+                "comparable": true,
+                "eligible": true,
+                "target_skill_id": "learned:craft_wooden_pickaxe",
+                "metrics": {
+                  "planner_call_count": {
+                    "baseline": 9.0,
+                    "candidate": 8.0,
+                    "delta": -1.0
+                  },
+                  "replan_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "planner_token_usage": {
+                    "baseline": 40565.0,
+                    "candidate": 35971.0,
+                    "delta": -4594.0
+                  },
+                  "planner_latency_ms": {
+                    "baseline": 56570.0,
+                    "candidate": 56228.0,
+                    "delta": -342.0
+                  },
+                  "action_event_count": {
+                    "baseline": 9.0,
+                    "candidate": 9.0,
+                    "delta": 0.0
+                  },
+                  "action_failure_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "verifier_reject_count": {
+                    "baseline": 17.0,
+                    "candidate": 17.0,
+                    "delta": 0.0
+                  },
+                  "skill_selected_count": {
+                    "baseline": 0.0,
+                    "candidate": 1.0,
+                    "delta": 1.0
+                  },
+                  "skill_action_success_count": {
+                    "baseline": 0.0,
+                    "candidate": 1.0,
+                    "delta": 1.0
+                  },
+                  "fallback_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "failure_replan_proved": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  }
+                }
+              },
+              {
+                "pair_id": "bm007-move-once-r1",
+                "replicate_id": "1",
+                "baseline_session_id": "42d65497-b21",
+                "candidate_session_id": "21515cb2-304",
+                "baseline_skill_isolated": true,
+                "candidate_skill_executed": true,
+                "comparable": true,
+                "eligible": true,
+                "target_skill_id": "learned:craft_wooden_pickaxe",
+                "metrics": {
+                  "planner_call_count": {
+                    "baseline": 11.0,
+                    "candidate": 7.0,
+                    "delta": -4.0
+                  },
+                  "replan_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "planner_token_usage": {
+                    "baseline": 51401.0,
+                    "candidate": 32418.0,
+                    "delta": -18983.0
+                  },
+                  "planner_latency_ms": {
+                    "baseline": 79388.0,
+                    "candidate": 52715.0,
+                    "delta": -26673.0
+                  },
+                  "action_event_count": {
+                    "baseline": 11.0,
+                    "candidate": 10.0,
+                    "delta": -1.0
+                  },
+                  "action_failure_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "verifier_reject_count": {
+                    "baseline": 21.0,
+                    "candidate": 19.0,
+                    "delta": -2.0
+                  },
+                  "skill_selected_count": {
+                    "baseline": 0.0,
+                    "candidate": 1.0,
+                    "delta": 1.0
+                  },
+                  "skill_action_success_count": {
+                    "baseline": 0.0,
+                    "candidate": 3.0,
+                    "delta": 3.0
+                  },
+                  "fallback_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "failure_replan_proved": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  }
+                }
+              },
+              {
+                "pair_id": "bm007-priority-one-r1",
+                "replicate_id": "1",
+                "baseline_session_id": "96723413-2ac",
+                "candidate_session_id": "0c652825-415",
+                "baseline_skill_isolated": true,
+                "candidate_skill_executed": true,
+                "comparable": true,
+                "eligible": true,
+                "target_skill_id": "learned:craft_wooden_pickaxe",
+                "metrics": {
+                  "planner_call_count": {
+                    "baseline": 8.0,
+                    "candidate": 7.0,
+                    "delta": -1.0
+                  },
+                  "replan_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "planner_token_usage": {
+                    "baseline": 35354.0,
+                    "candidate": 31154.0,
+                    "delta": -4200.0
+                  },
+                  "planner_latency_ms": {
+                    "baseline": 47216.0,
+                    "candidate": 43496.0,
+                    "delta": -3720.0
+                  },
+                  "action_event_count": {
+                    "baseline": 8.0,
+                    "candidate": 8.0,
+                    "delta": 0.0
+                  },
+                  "action_failure_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "verifier_reject_count": {
+                    "baseline": 15.0,
+                    "candidate": 15.0,
+                    "delta": 0.0
+                  },
+                  "skill_selected_count": {
+                    "baseline": 0.0,
+                    "candidate": 1.0,
+                    "delta": 1.0
+                  },
+                  "skill_action_success_count": {
+                    "baseline": 0.0,
+                    "candidate": 1.0,
+                    "delta": 1.0
+                  },
+                  "fallback_count": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  },
+                  "failure_replan_proved": {
+                    "baseline": 0.0,
+                    "candidate": 0.0,
+                    "delta": 0.0
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "failure_replan_session_count": 2,
+        "failure_replan_session_ids": [
+          "591bf0aa-d7e",
+          "3b49bf83-84e"
+        ],
+        "missing": []
+      },
       "required_live_execution_count": 0,
       "live_observed_execution_count": 0,
-      "missing_evidence": [
-        "BM-006:needs_3_more_successes",
-        "BM-007:needs_3_more_successes",
-        "BM-008:needs_3_more_successes",
-        "BM-009:needs_3_more_successes",
-        "BM-010:needs_3_more_successes"
-      ]
+      "missing_evidence": []
     },
     {
       "id": "M3",
       "name": "Skill Library and Memory",
       "evidence_kind": "live_report",
-      "status": "failing",
-      "completion_claim_allowed": false,
+      "status": "repeat_verified",
+      "completion_claim_allowed": true,
       "declared": {
         "name": "Skill Library & Memory",
-        "status": "Live failing",
-        "progress": "0/37 sessions qualify; no memory reads/writes and 2,601 unbounded context cycles"
+        "status": "Complete (repeatverified)",
+        "progress": "3/3 raw-log-verified runtime sessions plus approved held-out transfer support"
       },
-      "declared_complete": false,
-      "claim_assessment": "not_claimed_complete",
+      "declared_complete": true,
+      "claim_assessment": "supported",
       "source_ready": true,
       "source_checks": [
         {
@@ -511,706 +4691,112 @@
         "phase_id": "M3",
         "primary_evidence_type": "continual_learning_report",
         "support_evidence_type": "task_stream_transfer_gate",
-        "status": "failing",
+        "status": "repeat_verified",
         "repeats_required": 3,
-        "loaded_report_count": 1,
+        "loaded_report_count": 2,
         "primary_report_count": 1,
-        "support_report_count": 0,
-        "attempts": 37,
-        "primary_successes": 0,
-        "verified_successes": 0,
-        "failures": 37,
-        "support_approved": false,
-        "evidence_refs": [],
+        "support_report_count": 1,
+        "attempts": 3,
+        "primary_successes": 3,
+        "verified_successes": 3,
+        "failures": 0,
+        "support_approved": true,
+        "evidence_refs": [
+          "logs/session_1ec21c1f-fd9.jsonl",
+          "logs/session_4b6f10e7-6fc.jsonl",
+          "logs/session_b9e1bb0e-88b.jsonl"
+        ],
         "primary_cases": [
           {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_135514aa-b34.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "ready_for_continual_learning_review",
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "progress_signal"
-            ],
+            "report_path": "workspace/evals/skill_continual_learning_report.json",
+            "source_ref": "logs/session_b9e1bb0e-88b.jsonl",
+            "success": true,
+            "failed_criteria": [],
             "metrics": {
-              "completed_goal_count": 0,
+              "completed_goal_count": 1,
               "memory_read_count": 0,
               "memory_write_count": 0,
-              "progress_event_count": 0,
-              "unbounded_context_cycle_count": 0
+              "skill_retrieval_count": 1,
+              "skill_outcome_write_count": 1,
+              "progress_event_count": 4,
+              "unbounded_context_cycle_count": 0,
+              "repo_relative_path": "logs/session_b9e1bb0e-88b.jsonl",
+              "session_id": "b9e1bb0e-88b",
+              "content_sha256": "8feb89bf967cca5bd35c85f5ca9168fcc918986f1fe136fbea44aeb79c4bfe56",
+              "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+              "evidence_kind": "live_minecraft_skill_research",
+              "eligibility": true
             }
           },
           {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_18afca4f-925.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
+            "report_path": "workspace/evals/skill_continual_learning_report.json",
+            "source_ref": "logs/session_4b6f10e7-6fc.jsonl",
+            "success": true,
+            "failed_criteria": [],
             "metrics": {
-              "completed_goal_count": 0,
+              "completed_goal_count": 1,
               "memory_read_count": 0,
               "memory_write_count": 0,
-              "progress_event_count": 24,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_210b278f-f2c.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 235,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_22497e5a-3d1.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 233,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_23eb9fce-5df.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 2,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_2818ff2a-612.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 207,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_340cb717-ed4.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 12,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_3466f191-696.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 203,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_363c6651-e39.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 69,
-              "unbounded_context_cycle_count": 33
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_4138b270-949.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 2,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_4907f85d-989.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 224,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_5420f1b3-f9a.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "ready_for_continual_learning_review",
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "progress_signal"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 0,
-              "unbounded_context_cycle_count": 0
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_5815bb56-2d7.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 271,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_67ba45ce-2e1.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
+              "skill_retrieval_count": 1,
+              "skill_outcome_write_count": 1,
               "progress_event_count": 1,
-              "unbounded_context_cycle_count": 100
+              "unbounded_context_cycle_count": 0,
+              "repo_relative_path": "logs/session_4b6f10e7-6fc.jsonl",
+              "session_id": "4b6f10e7-6fc",
+              "content_sha256": "eeb55b56b4d74489a4fadfa9be4bf9d10dfd11253db624cab270742860f704ba",
+              "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+              "evidence_kind": "live_minecraft_skill_research",
+              "eligibility": true
             }
           },
           {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_6fd20cb9-d9d.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "ready_for_continual_learning_review",
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "progress_signal"
-            ],
+            "report_path": "workspace/evals/skill_continual_learning_report.json",
+            "source_ref": "logs/session_1ec21c1f-fd9.jsonl",
+            "success": true,
+            "failed_criteria": [],
             "metrics": {
-              "completed_goal_count": 0,
+              "completed_goal_count": 1,
               "memory_read_count": 0,
               "memory_write_count": 0,
-              "progress_event_count": 0,
-              "unbounded_context_cycle_count": 0
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_732da4ca-ff1.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "ready_for_continual_learning_review",
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "progress_signal"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 0,
-              "unbounded_context_cycle_count": 0
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_7c91318c-3c8.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 213,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_832d447f-c65.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 235,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_90e0fccd-e62.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 272,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_9357fe3f-acb.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 117,
-              "unbounded_context_cycle_count": 50
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_99210dd0-e96.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "ready_for_continual_learning_review",
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "progress_signal"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 0,
-              "unbounded_context_cycle_count": 0
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_b41c7b4a-e6d.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 6,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_b58cacbf-817.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "ready_for_continual_learning_review",
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "progress_signal"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 0,
-              "unbounded_context_cycle_count": 0
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_bab1505b-cfd.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 139,
-              "unbounded_context_cycle_count": 65
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_bae74597-6ed.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "ready_for_continual_learning_review",
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "progress_signal"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 0,
-              "unbounded_context_cycle_count": 0
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_bcd06511-00a.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 3,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_bd269eb6-268.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 3,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_c2ce7263-285.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 76,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_d2e4d4a6-058.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "ready_for_continual_learning_review",
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "progress_signal"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 0,
-              "unbounded_context_cycle_count": 0
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_d320a4eb-afb.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 2,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_dc8fff18-00b.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 4,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_f01b520e-7df.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 4,
-              "unbounded_context_cycle_count": 53
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_f4652ae8-2b0.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 215,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_f4d6e1d7-396.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 266,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_f8b769d4-961.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "ready_for_continual_learning_review",
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "progress_signal"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 0,
-              "unbounded_context_cycle_count": 0
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_fbee086b-fe8.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 247,
-              "unbounded_context_cycle_count": 100
-            }
-          },
-          {
-            "report_path": "logs/benchmarks/continual_learning_current.json",
-            "source_ref": "logs/session_fd0b126a-d4a.jsonl",
-            "success": false,
-            "failed_criteria": [
-              "completed_goal",
-              "memory_read",
-              "memory_write",
-              "bounded_context"
-            ],
-            "metrics": {
-              "completed_goal_count": 0,
-              "memory_read_count": 0,
-              "memory_write_count": 0,
-              "progress_event_count": 96,
-              "unbounded_context_cycle_count": 100
+              "skill_retrieval_count": 1,
+              "skill_outcome_write_count": 1,
+              "progress_event_count": 1,
+              "unbounded_context_cycle_count": 0,
+              "repo_relative_path": "logs/session_1ec21c1f-fd9.jsonl",
+              "session_id": "1ec21c1f-fd9",
+              "content_sha256": "0e8b04b3bdfb48f7e6fc7579f2da4ca4283766108593cb1ac52a463e3d2fdb8a",
+              "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+              "evidence_kind": "live_minecraft_skill_research",
+              "eligibility": true
             }
           }
         ],
-        "support_evidence": [],
-        "missing": [
-          "needs_3_more_distinct_successful_sessions",
-          "approved_heldout_task_stream_transfer_gate_required"
-        ]
+        "support_evidence": [
+          {
+            "report_path": "workspace/evals/skill_transfer/gather_wood/transfer_gate.json",
+            "approved": true,
+            "failed_criteria": [],
+            "readiness": "approved",
+            "decision": "allow_candidate_promotion",
+            "ready_stream_count": 1,
+            "task_count": 1,
+            "average_generalization_gain": 1.0,
+            "heldout_source_session_ids": [
+              "0432d494-c7d",
+              "6da981d0-e7c"
+            ],
+            "source_report_fingerprint": "8b4bbba16454e8ee265ec2304677ae2aad4cd9a475629b5de55905fb7454d098",
+            "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+            "evidence_kind": "live_minecraft_skill_research",
+            "eligibility": true
+          }
+        ],
+        "missing": []
       },
+      "benchmark_gate": {},
       "required_live_execution_count": 3,
-      "live_observed_execution_count": 0,
-      "missing_evidence": [
-        "needs_3_more_distinct_successful_sessions",
-        "approved_heldout_task_stream_transfer_gate_required"
-      ]
+      "live_observed_execution_count": 3,
+      "missing_evidence": []
     },
     {
       "id": "M4",
@@ -1220,8 +4806,8 @@
       "completion_claim_allowed": false,
       "declared": {
         "name": "Autonomous Survival",
-        "status": "Evidence pending",
-        "progress": "BM-011..014: no tracked execution evidence"
+        "status": "Pending (notrun)",
+        "progress": "BM-011..014: no tracked live execution evidence"
       },
       "declared_complete": false,
       "claim_assessment": "not_claimed_complete",
@@ -1290,6 +4876,7 @@
         }
       ],
       "live_evidence": {},
+      "benchmark_gate": {},
       "required_live_execution_count": 0,
       "live_observed_execution_count": 0,
       "missing_evidence": [
@@ -1307,8 +4894,8 @@
       "completion_claim_allowed": false,
       "declared": {
         "name": "Open-World Exploration",
-        "status": "Live failing",
-        "progress": "0/37 sessions qualify; world-model gate passes, but 0/27 goals completed"
+        "status": "Failing (failing)",
+        "progress": "World-model gate passes, but 0/27 historical goals completed"
       },
       "declared_complete": false,
       "claim_assessment": "not_claimed_complete",
@@ -2054,6 +5641,7 @@
           "needs_3_more_distinct_successful_sessions"
         ]
       },
+      "benchmark_gate": {},
       "required_live_execution_count": 3,
       "live_observed_execution_count": 0,
       "missing_evidence": [
@@ -2068,8 +5656,8 @@
       "completion_claim_allowed": false,
       "declared": {
         "name": "Vision & Multimodal",
-        "status": "Live failing",
-        "progress": "0/37 sessions qualify; no verified screenshots or live-source visual-action interventions"
+        "status": "Failing (failing)",
+        "progress": "No verified screenshots or live-source visual-action interventions"
       },
       "declared_complete": false,
       "claim_assessment": "not_claimed_complete",
@@ -2782,6 +6370,7 @@
         "ignored_builtin_support_case_count": 0,
         "visual_action_success_count": 0
       },
+      "benchmark_gate": {},
       "required_live_execution_count": 3,
       "live_observed_execution_count": 0,
       "missing_evidence": [
@@ -2797,7 +6386,7 @@
       "completion_claim_allowed": false,
       "declared": {
         "name": "Multi-Agent Collaboration",
-        "status": "Evidence pending",
+        "status": "Pending (notrun)",
         "progress": "BM-701: no tracked live execution"
       },
       "declared_complete": false,
@@ -2834,6 +6423,7 @@
         }
       ],
       "live_evidence": {},
+      "benchmark_gate": {},
       "required_live_execution_count": 0,
       "live_observed_execution_count": 0,
       "missing_evidence": [
@@ -2843,11 +6433,60 @@
   ],
   "errors": [],
   "recommendations": [
-    "run_m2_benchmarks",
-    "diagnose_and_rerun_m3_live_evidence",
     "run_m4_benchmarks",
     "diagnose_and_rerun_m5_live_evidence",
     "diagnose_and_rerun_m6_live_evidence",
     "run_m7_benchmarks"
-  ]
+  ],
+  "authority": {
+    "canonical": true,
+    "repo_relative_path": "workspace/evals/capability_evidence_current.json",
+    "specialized_reports_are_non_authoritative": true
+  },
+  "document_consistency": {
+    "consistent": true,
+    "expected": {
+      "M0": "source_verified",
+      "M1": "repeat_verified",
+      "M2": "repeat_verified",
+      "M3": "repeat_verified",
+      "M4": "not_run",
+      "M5": "failing",
+      "M6": "failing",
+      "M7": "not_run"
+    },
+    "documents": {
+      "status": {
+        "M0": "source_verified",
+        "M1": "repeat_verified",
+        "M2": "repeat_verified",
+        "M3": "repeat_verified",
+        "M4": "not_run",
+        "M5": "failing",
+        "M6": "failing",
+        "M7": "not_run"
+      },
+      "progress": {
+        "M0": "source_verified",
+        "M1": "repeat_verified",
+        "M2": "repeat_verified",
+        "M3": "repeat_verified",
+        "M4": "not_run",
+        "M5": "failing",
+        "M6": "failing",
+        "M7": "not_run"
+      },
+      "readme": {
+        "M0": "source_verified",
+        "M1": "repeat_verified",
+        "M2": "repeat_verified",
+        "M3": "repeat_verified",
+        "M4": "not_run",
+        "M5": "failing",
+        "M6": "failing",
+        "M7": "not_run"
+      }
+    },
+    "errors": []
+  }
 }

@@ -1,0 +1,17 @@
+{
+    "type":  "m2_runtime_blocker",
+    "schema_version":  1,
+    "generated_at_utc":  "2026-07-11T05:38:54.2454809Z",
+    "evidence_kind":  "runtime_setup_or_live_failure",
+    "counts_toward_live_observed":  false,
+    "counts_toward_repeat_verified":  false,
+    "task_id":  "BM-006",
+    "arm":  "baseline",
+    "pair_id":  "",
+    "replicate_id":  "",
+    "blocker":  "M2 paired arms require both -PairId and -ReplicateId.",
+    "benchmark_result_path":  "logs\\benchmarks\\m2_benchmark_BM-006_baseline_20260711_133854.json",
+    "manifest_path":  "logs\\benchmarks\\m2_runtime_manifest_BM-006_baseline_20260711_133854.json",
+    "eula_accepted":  true,
+    "api_key_configured":  true
+}

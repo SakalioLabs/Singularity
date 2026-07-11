@@ -60,6 +60,8 @@ class ActionVerifier:
             return self._verify_craft(params, inventory)
         if action_type == "dig":
             return self._verify_dig(params, state, inventory)
+        if action_type == "build_shelter_5x5":
+            return self._verify_shelter_template(params, state, inventory)
         if action_type in {"place", "equip", "use_item"}:
             return self._verify_inventory_item_action(action_type, params, inventory)
         if action_type == "attack":
@@ -80,10 +82,14 @@ class ActionVerifier:
             material: self._safe_int(count, default=0) * craft_calls
             for material, count in recipe.get("ingredients", {}).items()
         }
+        available = {
+            material: self.kb.ingredient_count(material, inventory)
+            for material in required
+        }
         missing = [
-            f"{material}:{needed - inventory.get(material, 0)}"
+            f"{material}:{needed - available.get(material, 0)}"
             for material, needed in required.items()
-            if inventory.get(material, 0) < needed
+            if available.get(material, 0) < needed
         ]
         if missing:
             return self._decision(
@@ -94,7 +100,21 @@ class ActionVerifier:
                 missing=missing,
                 required=required,
             )
-        return self._decision("craft", "accept", 0.95, f"ingredients available for {item}", required=required)
+        evidence = []
+        for material in required:
+            sources = self.kb.ingredient_sources(material, inventory)
+            if sources:
+                evidence.append(
+                    f"{material}<=" + "+".join(f"{name}:{count}" for name, count in sorted(sources.items()))
+                )
+        return self._decision(
+            "craft",
+            "accept",
+            0.95,
+            f"ingredients available for {item}",
+            evidence=evidence,
+            required=required,
+        )
 
     def _verify_dig(self, params: dict, state: dict, inventory: dict) -> ActionVerificationDecision:
         block = str(params.get("block") or params.get("name") or "").strip()
@@ -139,6 +159,78 @@ class ActionVerifier:
         if hostiles:
             return self._decision("attack", "review", 0.55, "hostile entity visible but no entity_id supplied")
         return self._decision("attack", "reject", 0.1, "attack action missing target entity", missing=["entity_id"])
+
+    def _verify_shelter_template(
+        self,
+        params: dict,
+        state: dict,
+        inventory: dict,
+    ) -> ActionVerificationDecision:
+        origin = params.get("origin", {}) if isinstance(params.get("origin"), dict) else {
+            axis: params.get(axis) for axis in ("x", "y", "z")
+        }
+        try:
+            requested = {axis: math.floor(float(origin[axis])) for axis in ("x", "y", "z")}
+        except (KeyError, TypeError, ValueError):
+            return self._decision(
+                "build_shelter_5x5",
+                "reject",
+                0.0,
+                "bounded shelter action requires a finite origin",
+                missing=["origin.x", "origin.y", "origin.z"],
+            )
+        benchmark = state.get("benchmark_context", {}) if isinstance(state.get("benchmark_context"), dict) else {}
+        zone = benchmark.get("construction_zone", {}) if isinstance(benchmark.get("construction_zone"), dict) else {}
+        expected = zone.get("origin", {}) if isinstance(zone.get("origin"), dict) else {}
+        try:
+            expected = {axis: math.floor(float(expected[axis])) for axis in ("x", "y", "z")}
+        except (KeyError, TypeError, ValueError):
+            return self._decision(
+                "build_shelter_5x5",
+                "reject",
+                0.0,
+                "M2 construction zone is missing from observed benchmark context",
+                missing=["benchmark_context.construction_zone.origin"],
+            )
+        if requested != expected:
+            return self._decision(
+                "build_shelter_5x5",
+                "reject",
+                0.0,
+                "requested shelter origin is outside the fixed construction zone",
+                required={"origin": expected},
+            )
+        material = str(params.get("material") or "").strip()
+        allowed = {
+            "cobblestone", "oak_planks", "spruce_planks", "birch_planks",
+            "jungle_planks", "acacia_planks", "dark_oak_planks",
+        }
+        if material not in allowed:
+            return self._decision(
+                "build_shelter_5x5",
+                "reject",
+                0.0,
+                "shelter material is not allowlisted",
+                missing=["allowlisted material"],
+            )
+        required_count = 55
+        if inventory.get(material, 0) < required_count:
+            return self._decision(
+                "build_shelter_5x5",
+                "reject",
+                0.1,
+                "insufficient material for fixed 5x5 shelter template",
+                missing=[f"{material}:{required_count - inventory.get(material, 0)}"],
+                required={material: required_count},
+            )
+        return self._decision(
+            "build_shelter_5x5",
+            "accept",
+            0.98,
+            "origin, material budget, and bounded template are verified",
+            evidence=[material, "m2-fixed-v1:construction_zone"],
+            required={"origin": expected, material: required_count},
+        )
 
     def _visible_block_names(self, state: dict) -> set[str]:
         names = set()

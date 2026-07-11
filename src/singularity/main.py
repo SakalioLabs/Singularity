@@ -4,6 +4,7 @@ import json
 import logging
 import argparse
 import os
+import glob
 
 from singularity.core.config import Config, BotConfig, LLMConfig
 from singularity.core.runtime_profile import (
@@ -754,6 +755,13 @@ def main():
     bench_parser.add_argument("--llm-model", type=str, default="gpt-4o-mini")
     bench_parser.add_argument("--llm-base-url", type=str, default="")
     bench_parser.add_argument("--api-key", type=str, default="")
+    bench_parser.add_argument("--skill-execution-mode", choices=["off", "runtime"], default="off", help="Enable only gated learned-skill execution for paired M2 runs")
+    bench_parser.add_argument("--target-skill-id", type=str, default="", help="Optional executable learned skill allowed in the candidate arm")
+    bench_parser.add_argument("--skill-experiment-id", type=str, default="", help="Paired M2 experiment identifier recorded with skill attribution")
+    bench_parser.add_argument("--skill-storage-path", type=str, default="workspace/skills")
+    bench_parser.add_argument("--m2-arm", choices=["default", "baseline", "candidate"], default="default")
+    bench_parser.add_argument("--m2-pair-id", type=str, default="")
+    bench_parser.add_argument("--m2-replicate-id", type=str, default="")
     bench_parser.add_argument("--goal-critic", action="store_true", help="Use configured LLM as fallback critic for unknown goal verification")
     _add_goal_critic_runtime_gate_args(bench_parser)
     _add_task_continuity_args(bench_parser)
@@ -843,8 +851,25 @@ def main():
     preflight_parser.add_argument("--skip-network", action="store_true", help="Skip bot bridge and MC server TCP checks")
     preflight_parser.add_argument("--screenshot-renderer", action="store_true", help="Check optional prismarine-viewer screenshot renderer dependencies")
     preflight_parser.add_argument("--m1", action="store_true", help="Require the fixed M1 protocol and reset-capable bridge")
+    preflight_parser.add_argument("--m2", action="store_true", help="Require the fixed M2 protocol, real LLM configuration, and reset/verification bridge")
+    preflight_parser.add_argument("--m2-harness-only", action="store_true", help="Check the live M2 bridge/protocol without treating a missing LLM credential as a harness failure")
+    preflight_parser.add_argument("--llm-provider", type=str, default="openai")
+    preflight_parser.add_argument("--llm-model", type=str, default="gpt-4o-mini")
+    preflight_parser.add_argument("--llm-base-url", type=str, default="")
+    preflight_parser.add_argument("--api-key", type=str, default="")
     preflight_parser.add_argument("--output", type=str, default="", help="Write a timestamped runtime-preflight JSON report")
     preflight_parser.add_argument("--log-level", type=str, default="INFO")
+
+    m2_smoke_parser = subparsers.add_parser("m2-harness-smoke", help="Run a live M2 reset/terminal false-positive smoke without an LLM")
+    m2_smoke_parser.add_argument("--task-id", required=True, choices=["BM-006", "BM-007", "BM-008", "BM-009", "BM-010"])
+    m2_smoke_parser.add_argument("--host", type=str, default="localhost")
+    m2_smoke_parser.add_argument("--port", type=int, default=25565)
+    m2_smoke_parser.add_argument("--username", type=str, default="Singularity")
+    m2_smoke_parser.add_argument("--bridge-host", type=str, default="127.0.0.1")
+    m2_smoke_parser.add_argument("--bridge-port", type=int, default=3000)
+    m2_smoke_parser.add_argument("--output", required=True)
+    m2_smoke_parser.add_argument("--execute-template", action="store_true", help="After the empty-state probe, execute and verify the bounded BM-010 placement template")
+    m2_smoke_parser.add_argument("--log-level", type=str, default="INFO")
 
     # Screenshot bridge runtime smoke test
     screenshot_smoke_parser = subparsers.add_parser("screenshot-smoke-test", help="Capture one screenshot through the live bridge and verify the local image file")
@@ -1437,7 +1462,12 @@ def main():
     skill_run_parser.add_argument("--heldout", action="store_true")
     skill_run_parser.add_argument(
         "--research-fixture-profile",
-        choices=["protocol_default", "gather_oak_near_v1", "gather_oak_shifted_v1"],
+        choices=[
+            "protocol_default",
+            "gather_oak_near_v1",
+            "gather_oak_shifted_v1",
+            "wooden_pickaxe_table_shift_v1",
+        ],
         default="protocol_default",
     )
     skill_run_parser.add_argument("--skill-storage-path", type=str, default="workspace/skills")
@@ -6324,6 +6354,12 @@ def main():
         skill_dir=getattr(args, "skill_storage_path", getattr(args, "storage_path", "workspace/skills")),
         skill_learning_ledger_path=getattr(args, "ledger", "workspace/evals/skill_learning_ledger.json"),
         skill_regressions_path=getattr(args, "regressions", "workspace/evals/skill_regressions.json"),
+        skill_execution_mode=getattr(args, "skill_execution_mode", "off"),
+        target_skill_id=getattr(args, "target_skill_id", ""),
+        skill_experiment_id=getattr(args, "skill_experiment_id", ""),
+        m2_arm=getattr(args, "m2_arm", "default"),
+        m2_pair_id=getattr(args, "m2_pair_id", ""),
+        m2_replicate_id=getattr(args, "m2_replicate_id", ""),
         enable_goal_critic=profile_bool_arg(args, "goal_critic", runtime_profiles, "enable_goal_critic", "goal_critic"),
         goal_critic_gate_paths=merge_arg_profile_list(args, "goal_critic_gate", runtime_profiles, "goal_critic_gate_paths"),
         enforce_memory_write_gate=profile_bool_arg(args, "enforce_memory_write_gate", runtime_profiles, "enforce_memory_write_gate", "memory_write_gate"),
@@ -6560,6 +6596,7 @@ def main():
         from dataclasses import asdict
         from singularity.evaluation.benchmark_runner import BenchmarkRunner
         from singularity.evaluation.capability_evidence import (
+            audit_capability_document_consistency,
             build_capability_evidence_report,
             print_capability_evidence_report,
             write_capability_evidence_report,
@@ -6573,8 +6610,13 @@ def main():
             )
             runtime_evidence = {**asdict(preflight_report), "ok": preflight_report.ok}
         benchmark_paths = getattr(args, "benchmark_results", []) or []
-        if not benchmark_paths and os.path.isfile("logs/benchmarks/benchmark_results.json"):
-            benchmark_paths = ["logs/benchmarks/benchmark_results.json"]
+        if not benchmark_paths:
+            benchmark_paths = sorted(set(
+                glob.glob("logs/benchmarks/m1_benchmark_*.json")
+                + glob.glob("logs/benchmarks/m2_benchmark_*.json")
+            ))
+            if not benchmark_paths and os.path.isfile("logs/benchmarks/benchmark_results.json"):
+                benchmark_paths = ["logs/benchmarks/benchmark_results.json"]
         phase_evidence_paths = {
             "M3": getattr(args, "m3_evidence", []) or [],
             "M5": getattr(args, "m5_evidence", []) or [],
@@ -6582,8 +6624,8 @@ def main():
         }
         default_phase_evidence_paths = {
             "M3": [
-                "logs/benchmarks/continual_learning_current.json",
-                "logs/benchmarks/task_stream_transfer_gate_current.json",
+                "workspace/evals/skill_continual_learning_report.json",
+                "workspace/evals/skill_transfer/gather_wood/transfer_gate.json",
             ],
             "M5": [
                 "logs/benchmarks/exploration_trace_current.json",
@@ -6607,6 +6649,19 @@ def main():
             runtime_evidence=runtime_evidence,
             phase_evidence_paths=phase_evidence_paths,
         )
+        output_ref = str(getattr(args, "output", "") or "").replace("\\", "/")
+        try:
+            output_ref = os.path.relpath(output_ref, ".").replace("\\", "/") if output_ref else ""
+        except ValueError:
+            pass
+        canonical_output = output_ref == "workspace/evals/capability_evidence_current.json"
+        report["authority"] = {
+            "canonical": canonical_output,
+            "repo_relative_path": output_ref,
+            "specialized_reports_are_non_authoritative": True,
+        }
+        if canonical_output:
+            report["document_consistency"] = audit_capability_document_consistency(report)
         print_capability_evidence_report(report)
         if getattr(args, "output", ""):
             write_capability_evidence_report(report, args.output)
@@ -6616,20 +6671,39 @@ def main():
 
     elif args.command == "preflight":
         from singularity.evaluation.benchmark_runner import BenchmarkRunner
-        if getattr(args, "m1", False) and getattr(args, "skip_network", False):
-            print("preflight --m1 cannot be combined with --skip-network")
+        if getattr(args, "m2", False) and getattr(args, "m2_harness_only", False):
+            print("preflight accepts only one of --m2 or --m2-harness-only")
+            sys.exit(1)
+        if (getattr(args, "m1", False) or getattr(args, "m2", False) or getattr(args, "m2_harness_only", False)) and getattr(args, "skip_network", False):
+            print("preflight --m1/--m2 cannot be combined with --skip-network")
             sys.exit(1)
         runner = BenchmarkRunner(config)
         report = runner.preflight(
             check_network=not getattr(args, "skip_network", False),
             check_screenshot_renderer=getattr(args, "screenshot_renderer", False),
             require_m1_harness=getattr(args, "m1", False),
+            require_m2_harness=getattr(args, "m2", False) or getattr(args, "m2_harness_only", False),
+            require_m2_llm_configuration=not getattr(args, "m2_harness_only", False),
         )
         runner.print_preflight(report)
         if getattr(args, "output", ""):
             output_path = runner.save_preflight(report, args.output)
             print(f"\nReport saved to {output_path}")
         if not report.ok:
+            sys.exit(1)
+
+    elif args.command == "m2-harness-smoke":
+        from singularity.evaluation.benchmark_runner import BenchmarkRunner
+
+        runner = BenchmarkRunner(config)
+        report = runner.run_m2_harness_smoke(
+            args.task_id,
+            execute_template=getattr(args, "execute_template", False),
+        )
+        output_path = runner.save_m2_harness_smoke_report(report, args.output)
+        print(f"M2 harness smoke: {'PASS' if report.get('ok') else 'FAIL'}")
+        print(f"Report saved to {output_path}")
+        if not report.get("ok"):
             sys.exit(1)
 
     elif args.command == "screenshot-smoke-test":
@@ -6656,6 +6730,7 @@ def main():
             report = runner.preflight(
                 check_screenshot_renderer=config.enable_screenshot_capture,
                 require_m1_harness=args.suite in {"m1", "all"},
+                require_m2_harness=args.suite in {"m2", "all"},
             )
             runner.print_preflight(report)
             if not report.ok:
@@ -6777,10 +6852,10 @@ def main():
                 print(f"Unknown task id for suite {args.suite}: {', '.join(unknown)}")
                 sys.exit(1)
             tasks = [task for task in tasks if task.id in requested_task_ids]
-        if any(task.phase == "M1" for task in tasks) and len(tasks) != 1:
+        if any(task.phase in {"M1", "M2"} for task in tasks) and len(tasks) != 1:
             print(
-                "M1 acceptance runs require exactly one --task-id per fresh episode; "
-                "use scripts/m1-runtime.ps1 -RunBenchmark -TaskId BM-001"
+                "M1/M2 acceptance runs require exactly one --task-id per fresh episode; "
+                "use scripts/m1-runtime.ps1 or scripts/m2-runtime.ps1"
             )
             sys.exit(1)
         runner.run_suite(tasks)

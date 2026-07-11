@@ -182,9 +182,347 @@
       "status": "quarantined",
       "timestamp": 1783690742.7983403,
       "version": "1.0.1"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 0.75,
+        "bound_parameters": {},
+        "controlled_failure_only": false,
+        "controlled_fault_profile": "",
+        "counts_toward_skill_lifecycle": true,
+        "effective_postconditions": {},
+        "executed_action_count": 0,
+        "experiment_id": "wp102-fallback01",
+        "failed_action_count": 0,
+        "failure_type": "environment_change",
+        "fallback_reason": "preconditions_not_met",
+        "first_failed_transition": "",
+        "goal": "Craft a crafting table",
+        "goal_success": false,
+        "goal_task_family": "crafting",
+        "goal_termination_reason": "max_cycles",
+        "missing_postconditions": [
+          "inventory:wooden_pickaxe>=1"
+        ],
+        "postconditions_met": false,
+        "route_scope_valid": true
+      },
+      "failure_type": "environment_change",
+      "first_failed_transition": "",
+      "name": "learned_craft_wooden_pickaxe",
+      "outcome": "failure",
+      "previous_status": "advisory",
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "status": "advisory",
+      "timestamp": 1783700866.8976204,
+      "version": "1.0.2-candidate"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 0.75,
+        "bound_parameters": {},
+        "controlled_failure_only": false,
+        "controlled_fault_profile": "",
+        "counts_toward_skill_lifecycle": true,
+        "effective_postconditions": {},
+        "executed_action_count": 0,
+        "experiment_id": "wp102-fallback02",
+        "failed_action_count": 0,
+        "failure_type": "environment_change",
+        "fallback_reason": "preconditions_not_met",
+        "first_failed_transition": "",
+        "goal": "Craft a crafting table",
+        "goal_success": true,
+        "goal_task_family": "crafting",
+        "goal_termination_reason": "goal_verified",
+        "missing_postconditions": [
+          "inventory:wooden_pickaxe>=1"
+        ],
+        "postconditions_met": false,
+        "route_scope_valid": true
+      },
+      "failure_type": "environment_change",
+      "first_failed_transition": "",
+      "name": "learned_craft_wooden_pickaxe",
+      "outcome": "failure",
+      "previous_status": "advisory",
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "status": "advisory",
+      "timestamp": 1783701039.4361868,
+      "version": "1.0.2-candidate"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 1.0,
+        "bound_parameters": {},
+        "controlled_failure_only": true,
+        "controlled_fault_profile": "reject_skill_craft_missing_item_v1",
+        "counts_toward_skill_lifecycle": false,
+        "effective_postconditions": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "executed_action_count": 1,
+        "experiment_id": "wp102-fault01",
+        "failed_action_count": 1,
+        "failure_type": "controlled_fault",
+        "fallback_reason": "learned_skill_action_failed",
+        "first_failed_transition": "craft_target:0:craft",
+        "goal": "Craft a wooden pickaxe",
+        "goal_success": true,
+        "goal_task_family": "crafting",
+        "goal_termination_reason": "goal_verified",
+        "missing_postconditions": [],
+        "postconditions_met": true,
+        "route_scope_valid": true
+      },
+      "failure_type": "controlled_fault",
+      "first_failed_transition": "craft_target:0:craft",
+      "name": "learned_craft_wooden_pickaxe",
+      "outcome": "failure",
+      "previous_status": "advisory",
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "status": "advisory",
+      "timestamp": 1783701074.794074,
+      "version": "1.0.2-candidate"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 1.0,
+        "bound_parameters": {},
+        "controlled_failure_only": false,
+        "controlled_fault_profile": "",
+        "counts_toward_skill_lifecycle": true,
+        "effective_postconditions": {
+          "inventory": {
+            "crafting_table": 1
+          }
+        },
+        "executed_action_count": 1,
+        "experiment_id": "m2-bm006-plank-family-v2-r1-candidate",
+        "failed_action_count": 0,
+        "failure_type": "routing_error",
+        "fallback_reason": "",
+        "first_failed_transition": "",
+        "goal": "Gather wood and craft workbench",
+        "goal_success": true,
+        "goal_task_family": "gathering",
+        "goal_termination_reason": "goal_verified",
+        "missing_postconditions": [],
+        "postconditions_met": true,
+        "route_scope_valid": false
+      },
+      "failure_type": "routing_error",
+      "first_failed_transition": "",
+      "name": "learned_craft_crafting_table",
+      "outcome": "failure",
+      "previous_status": "executable",
+      "skill_id": "learned:craft_crafting_table",
+      "status": "executable",
+      "timestamp": 1783743025.6566844,
+      "version": "1.0.1"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 1.0,
+        "bound_parameters": {},
+        "controlled_failure_only": false,
+        "controlled_fault_profile": "",
+        "counts_toward_skill_lifecycle": true,
+        "effective_postconditions": {
+          "inventory": {
+            "crafting_table": 1
+          }
+        },
+        "executed_action_count": 1,
+        "experiment_id": "m2-bm006-plank-family-v2-r2-candidate",
+        "failed_action_count": 0,
+        "failure_type": "routing_error",
+        "fallback_reason": "",
+        "first_failed_transition": "",
+        "goal": "Gather wood and craft workbench",
+        "goal_success": true,
+        "goal_task_family": "gathering",
+        "goal_termination_reason": "goal_verified",
+        "missing_postconditions": [],
+        "postconditions_met": true,
+        "route_scope_valid": false
+      },
+      "failure_type": "routing_error",
+      "first_failed_transition": "",
+      "name": "learned_craft_crafting_table",
+      "outcome": "failure",
+      "previous_status": "executable",
+      "skill_id": "learned:craft_crafting_table",
+      "status": "executable",
+      "timestamp": 1783743238.8953576,
+      "version": "1.0.1"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 1.0,
+        "bound_parameters": {},
+        "controlled_failure_only": false,
+        "controlled_fault_profile": "",
+        "counts_toward_skill_lifecycle": true,
+        "effective_postconditions": {
+          "inventory": {
+            "crafting_table": 1
+          }
+        },
+        "executed_action_count": 1,
+        "experiment_id": "m2-bm006-plank-family-v2-r3-candidate",
+        "failed_action_count": 0,
+        "failure_type": "routing_error",
+        "fallback_reason": "",
+        "first_failed_transition": "",
+        "goal": "Gather wood and craft workbench",
+        "goal_success": true,
+        "goal_task_family": "gathering",
+        "goal_termination_reason": "goal_verified",
+        "missing_postconditions": [],
+        "postconditions_met": true,
+        "route_scope_valid": false
+      },
+      "failure_type": "routing_error",
+      "first_failed_transition": "",
+      "name": "learned_craft_crafting_table",
+      "outcome": "failure",
+      "previous_status": "executable",
+      "skill_id": "learned:craft_crafting_table",
+      "status": "executable",
+      "timestamp": 1783743364.1841397,
+      "version": "1.0.1"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 0.9,
+        "bound_parameters": {},
+        "controlled_failure_only": false,
+        "controlled_fault_profile": "",
+        "counts_toward_skill_lifecycle": true,
+        "effective_postconditions": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "executed_action_count": 2,
+        "experiment_id": "m2-bm007-priority-one-r2-candidate",
+        "failed_action_count": 0,
+        "failure_type": "postcondition_failure",
+        "fallback_reason": "",
+        "first_failed_transition": "",
+        "goal": "Craft wooden pickaxe and get cobblestone",
+        "goal_success": false,
+        "goal_task_family": "crafting",
+        "goal_termination_reason": "empty_plan",
+        "missing_postconditions": [],
+        "postconditions_met": true,
+        "route_scope_valid": true
+      },
+      "failure_type": "postcondition_failure",
+      "first_failed_transition": "",
+      "name": "learned_craft_wooden_pickaxe",
+      "outcome": "failure",
+      "previous_status": "executable",
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "status": "executable",
+      "timestamp": 1783746322.5413792,
+      "version": "1.0.2"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 0.95,
+        "bound_parameters": {},
+        "controlled_failure_only": false,
+        "controlled_fault_profile": "",
+        "counts_toward_skill_lifecycle": true,
+        "effective_postconditions": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "executed_action_count": 1,
+        "experiment_id": "m2-bm007-craft-settle-r3-candidate",
+        "failed_action_count": 1,
+        "failure_type": "skill_error",
+        "fallback_reason": "learned_skill_action_failed",
+        "first_failed_transition": "craft_target:0:craft",
+        "goal": "Craft wooden pickaxe and get cobblestone",
+        "goal_success": true,
+        "goal_task_family": "crafting",
+        "goal_termination_reason": "goal_verified",
+        "missing_postconditions": [],
+        "postconditions_met": true,
+        "route_scope_valid": true
+      },
+      "failure_type": "skill_error",
+      "first_failed_transition": "craft_target:0:craft",
+      "name": "learned_craft_wooden_pickaxe",
+      "outcome": "failure",
+      "previous_status": "executable",
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "status": "quarantined",
+      "timestamp": 1783747546.2951744,
+      "version": "1.0.2"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "event": "failure_attribution_reclassified",
+      "experiment_id": "m2-bm007-priority-one-r2-candidate",
+      "failure_type": "framework_contract_binding_error",
+      "previous_failure_type": "postcondition_failure",
+      "reason": "The learned craft postcondition was verified and all skill actions succeeded; an unrelated required move_to omission caused the broader M2 goal to fail.",
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "status": "quarantined",
+      "timestamp": 1783747934.3927772,
+      "version": "1.0.2"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "event": "failure_attribution_reclassified",
+      "experiment_id": "m2-bm007-craft-settle-r3-candidate",
+      "failure_type": "backend_execution_error",
+      "previous_failure_type": "skill_error",
+      "reason": "The Mineflayer crafting transaction rolled back server-side; the bounded skill action and preconditions were valid, and the bridge now waits and cools down before retrying.",
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "status": "quarantined",
+      "timestamp": 1783747934.437762,
+      "version": "1.0.2"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "correction_experiment_ids": [
+        "m2-bm007-priority-one-r2-candidate",
+        "m2-bm007-craft-settle-r3-candidate"
+      ],
+      "event": "quarantine_restored_after_attribution_correction",
+      "evidence": {
+        "framework_scope_session_id": "3f0f05f4-2d7",
+        "quarantine_session_id": "e3c41388-cee",
+        "tests": [
+          "tests/test_bot_server_m2_protocol.js",
+          "tests/test_self_learning.py"
+        ]
+      },
+      "previous_status": "quarantined",
+      "reason": "All attributable failures were corrected to framework-owned causes and the existing approved executable promotion gate still matches version 1.0.2.",
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "status": "executable",
+      "timestamp": 1783747934.4874237,
+      "version": "1.0.2"
     }
   ],
   "schema_version": 1,
   "type": "skill_regressions",
-  "updated_at": 1783690743.1560104
+  "updated_at": 1783747934.543909
 }

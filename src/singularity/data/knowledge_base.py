@@ -11,6 +11,36 @@ logger = logging.getLogger("singularity.knowledge")
 
 _DATA_DIR = os.path.dirname(__file__)
 
+PLANK_ITEMS = (
+    "oak_planks",
+    "spruce_planks",
+    "birch_planks",
+    "jungle_planks",
+    "acacia_planks",
+    "dark_oak_planks",
+    "mangrove_planks",
+    "cherry_planks",
+    "bamboo_planks",
+    "crimson_planks",
+    "warped_planks",
+)
+INGREDIENT_EQUIVALENTS = {
+    "oak_planks": PLANK_ITEMS,
+}
+
+
+def ingredient_count(material: str, inventory: dict) -> int:
+    """Count inventory items accepted for one canonical ingredient."""
+    candidates = INGREDIENT_EQUIVALENTS.get(str(material), (str(material),))
+    source = inventory if isinstance(inventory, dict) else {}
+    total = 0
+    for item in candidates:
+        try:
+            total += max(0, int(source.get(item, 0) or 0))
+        except (TypeError, ValueError):
+            continue
+    return total
+
 
 RESOURCE_DROPS = {
     "oak_log": "oak_log",
@@ -287,9 +317,27 @@ class KnowledgeBase:
         if not ingredients:
             return False
         for mat, count in ingredients.items():
-            if inventory.get(mat, 0) < count:
+            if self.ingredient_count(mat, inventory) < count:
                 return False
         return True
+
+    def ingredient_count(self, material: str, inventory: dict) -> int:
+        """Count inventory items accepted for one canonical recipe ingredient."""
+        return ingredient_count(material, inventory)
+
+    def ingredient_sources(self, material: str, inventory: dict) -> dict:
+        """Return the positive inventory contributions for a recipe ingredient."""
+        candidates = INGREDIENT_EQUIVALENTS.get(str(material), (str(material),))
+        source = inventory if isinstance(inventory, dict) else {}
+        contributions = {}
+        for item in candidates:
+            try:
+                count = max(0, int(source.get(item, 0) or 0))
+            except (TypeError, ValueError):
+                count = 0
+            if count:
+                contributions[item] = count
+        return contributions
 
     def get_craftable_items(self, inventory: dict) -> list[str]:
         """Return list of items that can be crafted from current inventory."""

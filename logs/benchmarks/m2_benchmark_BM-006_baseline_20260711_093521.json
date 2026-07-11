@@ -1,0 +1,448 @@
+[
+  {
+    "task_id": "BM-006",
+    "task_name": "Gather wood and craft workbench",
+    "status": "fail",
+    "cycles": 5,
+    "duration_s": 175.61,
+    "inventory": {},
+    "error": "",
+    "failure_reason": "inventory_success_criteria_not_observed;goal_verifier_not_achieved;m2_protocol_evidence_ineligible",
+    "intervention_metrics": {
+      "policy_hint_count": 0,
+      "policy_intervention_count": 0,
+      "policy_intervention_actions": 0,
+      "policy_intervention_successes": 0,
+      "policy_intervention_failures": 0,
+      "policy_intervention_success_rate": 0.0,
+      "policy_intervention_skills": [],
+      "visual_action_suggestion_event_count": 0,
+      "visual_action_suggestion_count": 0,
+      "visual_action_intervention_count": 0,
+      "visual_action_suggestion_kinds": {},
+      "visual_action_intervention_kinds": {},
+      "visual_action_intervention_phases": {},
+      "visual_action_action_types": {},
+      "visual_action_goals": [],
+      "skill_memory_hint_event_count": 0,
+      "skill_memory_hint_count": 0,
+      "skill_memory_task_families": {},
+      "skill_selected_count": 0,
+      "skill_executed_count": 0,
+      "skill_successful_action_count": 0,
+      "skill_failed_action_count": 0,
+      "skill_completion_count": 0,
+      "skill_outcome_count": 0,
+      "skill_fallback_count": 0,
+      "skill_shadow_plan_count": 0,
+      "skill_advisory_hint_count": 0,
+      "skill_candidate_extraction_count": 0,
+      "skill_attribution_confidence": 0.0,
+      "skill_ids": [],
+      "action_verification_event_count": 4,
+      "action_verification_status_counts": {
+        "accept": 1,
+        "reject": 3
+      },
+      "action_verification_action_types": {
+        "move_to": 1,
+        "dig": 3
+      },
+      "action_verification_blocked_count": 3,
+      "action_candidate_selection_event_count": 0,
+      "action_candidate_selection_repaired_reject_count": 0,
+      "action_candidate_selection_selected_types": {}
+    },
+    "memory_policy_metrics": {
+      "memory_write_count": 34,
+      "memory_read_count": 5,
+      "memory_manage_count": 0,
+      "memory_write_layers": {
+        "episodic": 20,
+        "context": 14
+      },
+      "memory_write_types": {
+        "goal_start": 1,
+        "context": 14,
+        "goal_verification": 6,
+        "action_verification": 4,
+        "action": 4,
+        "failure": 3,
+        "empty_plan": 1,
+        "goal_end": 1
+      },
+      "memory_read_types": {
+        "opportunity_context": 5
+      },
+      "memory_manage_operations": {},
+      "memory_policy_decisions": {
+        "write_blocked": 34,
+        "read_allowed": 5
+      },
+      "memory_read_filter_event_count": 0,
+      "memory_read_filtered_entries": 0,
+      "memory_read_filter_reasons": {},
+      "memory_retrieval_trace_event_count": 0,
+      "weighted_memory_read_count": 0,
+      "weighted_memory_match_count": 0,
+      "weighted_transfer_match_count": 0,
+      "memory_attribution_policy_counts": {}
+    },
+    "log": "logs\\session_b1fac299-e9f.jsonl",
+    "session_id": "b1fac299-e9f",
+    "session_sha256": "7d8f3cdd7b8c489f3f10bfb27ca29551c6aca0e143afab62ec5b4aad11e3ec06",
+    "goal_verified": false,
+    "criteria_verified": false,
+    "termination_reason": "empty_plan",
+    "setup_evidence": {
+      "success": true,
+      "error": "",
+      "profile": "m2-fixed-v1",
+      "protocol_sha256": "ac0bd6b751cbef807c3a669c559da67fd385a1172cf8df523b4a0fce46ac7462",
+      "reset_protocol_sha256": "19f3418e216865d7c9497d81128febcf3e169217a9639236d04512f39f3701de",
+      "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd",
+      "episode_id": "m2_episode_20260711_093521_dc849ffd",
+      "level_name": "m2_episode_20260711_093521_dc849ffd_bm_006",
+      "seed": "12345",
+      "server_brand": "Paper",
+      "observed_minecraft_version": "1.20.4",
+      "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+      "task_id": "BM-006",
+      "expected": {
+        "initial_inventory": {},
+        "initial_blocks": [
+          {
+            "name": "oak_log",
+            "relative_position": {
+              "x": 3,
+              "y": 0,
+              "z": 0
+            }
+          },
+          {
+            "name": "oak_log",
+            "relative_position": {
+              "x": 3,
+              "y": 1,
+              "z": 0
+            }
+          }
+        ],
+        "game_mode": "survival",
+        "difficulty": "peaceful",
+        "time_of_day": 1000,
+        "weather": "clear"
+      },
+      "before_state": {
+        "position": {
+          "x": 98.5,
+          "y": 145,
+          "z": -33.5
+        },
+        "spawn_position": {
+          "x": 96,
+          "y": 144,
+          "z": -32
+        },
+        "health": 20,
+        "food": 20,
+        "inventory": {},
+        "game_mode": "survival",
+        "difficulty": "peaceful",
+        "dimension": "overworld",
+        "time_of_day": 157,
+        "weather": "clear",
+        "fixture": {
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -32
+          },
+          "block": "dark_oak_leaves"
+        },
+        "fixture_blocks": [
+          {
+            "expected_name": "oak_log",
+            "name": "dark_oak_leaves",
+            "position": {
+              "x": 99,
+              "y": 144,
+              "z": -32
+            },
+            "relative_position": {
+              "x": 3,
+              "y": 0,
+              "z": 0
+            }
+          },
+          {
+            "expected_name": "oak_log",
+            "name": "air",
+            "position": {
+              "x": 99,
+              "y": 145,
+              "z": -32
+            },
+            "relative_position": {
+              "x": 3,
+              "y": 1,
+              "z": 0
+            }
+          }
+        ]
+      },
+      "after_state": {
+        "position": {
+          "x": 96.5,
+          "y": 144,
+          "z": -31.5
+        },
+        "spawn_position": {
+          "x": 96,
+          "y": 144,
+          "z": -32
+        },
+        "health": 20,
+        "food": 20,
+        "inventory": {},
+        "game_mode": "survival",
+        "difficulty": "peaceful",
+        "dimension": "overworld",
+        "time_of_day": 1038,
+        "weather": "clear",
+        "fixture": {
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -32
+          },
+          "block": "oak_log"
+        },
+        "fixture_blocks": [
+          {
+            "expected_name": "oak_log",
+            "name": "oak_log",
+            "position": {
+              "x": 99,
+              "y": 144,
+              "z": -32
+            },
+            "relative_position": {
+              "x": 3,
+              "y": 0,
+              "z": 0
+            }
+          },
+          {
+            "expected_name": "oak_log",
+            "name": "oak_log",
+            "position": {
+              "x": 99,
+              "y": 145,
+              "z": -32
+            },
+            "relative_position": {
+              "x": 3,
+              "y": 1,
+              "z": 0
+            }
+          }
+        ]
+      },
+      "structure_baseline": {},
+      "checks": {
+        "inventory_exact": true,
+        "position_at_spawn": true,
+        "position_distance": 0.707,
+        "game_mode": true,
+        "difficulty": true,
+        "dimension": true,
+        "daytime": true,
+        "time_initialized": true,
+        "weather": true,
+        "health": true,
+        "food": true,
+        "fixture": true
+      },
+      "failed_checks": [],
+      "command_count": 14
+    },
+    "evidence_validation": {
+      "profile": "m2_session_evidence_v1",
+      "protocol": "m2-fixed-v1",
+      "protocol_sha256": "ac0bd6b751cbef807c3a669c559da67fd385a1172cf8df523b4a0fce46ac7462",
+      "reset_protocol_sha256": "19f3418e216865d7c9497d81128febcf3e169217a9639236d04512f39f3701de",
+      "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd",
+      "passed": false,
+      "runtime_profile_eligible": true,
+      "reset_verified": true,
+      "terminal_evidence_verified": true,
+      "machine_outcome_verified": false,
+      "goal_verifier_event_achieved": false,
+      "root_plan_id": "root-65dba09962b64df0",
+      "valid_root_call_count": 1,
+      "planner_call_count": 5,
+      "replan_count": 2,
+      "planner_token_usage": 29141,
+      "planner_latency_ms": 165355,
+      "root_subtask_count": 3,
+      "root_dependency_edge_count": 2,
+      "task_transition_node_count": 3,
+      "complete_task_transition_node_count": 0,
+      "complete_task_transition_nodes": [],
+      "action_event_count": 4,
+      "successful_action_count": 1,
+      "action_failure_count": 3,
+      "verifier_reject_count": 6,
+      "failure_replan_proved": true,
+      "plan_cache_bypass_count": 0,
+      "skill_event_count": 0,
+      "skill_selected_count": 0,
+      "skill_action_success_count": 0,
+      "selected_skills": [],
+      "quarantined_skill_event_count": 0,
+      "fallback_count": 0,
+      "outcome_validation": {
+        "type": "m2_task_outcome_validation",
+        "task_id": "BM-006",
+        "passed": false,
+        "planner_completion_trusted": false,
+        "inventory_before": {},
+        "inventory_after": {},
+        "inventory_delta": {},
+        "action_proof": {
+          "passed": false,
+          "successful_action_count": 1,
+          "successful_action_types": [
+            "move_to"
+          ],
+          "issues": [
+            "crafting_table_action_missing",
+            "grounded_log_gather_missing",
+            "required_action_missing:craft",
+            "required_action_missing:dig"
+          ]
+        },
+        "shelter_proof": {},
+        "issues": [
+          "crafting_table_action_missing",
+          "grounded_log_gather_missing",
+          "inventory_delta_missing:crafting_table",
+          "inventory_missing:crafting_table",
+          "required_action_missing:craft",
+          "required_action_missing:dig"
+        ]
+      },
+      "protocol_integrity": {
+        "passed": true,
+        "protocol_sha256": "ac0bd6b751cbef807c3a669c559da67fd385a1172cf8df523b4a0fce46ac7462",
+        "expected_hashes": {
+          "planner_schema_sha256": "0258720fdb2f5564fbd298628bcf55bc6a3f73c984bc9d2a0bdb5c0a69eb44a9",
+          "reset_protocol_sha256": "19f3418e216865d7c9497d81128febcf3e169217a9639236d04512f39f3701de",
+          "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd"
+        },
+        "mismatches": []
+      },
+      "issues": [
+        "dependent_subtask_state_paths_missing",
+        "m2_goal_verifier_evidence_missing",
+        "m2_machine_outcome_failed"
+      ]
+    },
+    "runtime_profile": {
+      "profile": "m2_llm_root_runtime_v1",
+      "protocol": "m2-fixed-v1",
+      "protocol_sha256": "ac0bd6b751cbef807c3a669c559da67fd385a1172cf8df523b4a0fce46ac7462",
+      "reset_protocol_sha256": "19f3418e216865d7c9497d81128febcf3e169217a9639236d04512f39f3701de",
+      "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd",
+      "planner_schema_sha256": "0258720fdb2f5564fbd298628bcf55bc6a3f73c984bc9d2a0bdb5c0a69eb44a9",
+      "agent_id": "singularity-agent-v1",
+      "planner_id": "llm-root-planner-v1",
+      "action_backend_id": "mineflayer-bridge-v1",
+      "verifier_id": "m2-machine-verifier-v1",
+      "skill_runtime_profile_id": "m2-bounded-skills-v1",
+      "isolated": true,
+      "eligible_configuration": true,
+      "settings": {
+        "llm_configured": true,
+        "provider": "openai",
+        "base_url": "https://opencode.ai/zen/go/v1",
+        "model": "deepseek-v4-flash",
+        "temperature": 0.0,
+        "max_tokens": 4096,
+        "response_format": {
+          "type": "json_object"
+        },
+        "force_rule_planner": false,
+        "require_llm_root_plan": true,
+        "planner_protocol": "m2-fixed-v1",
+        "plan_cache": false,
+        "blocked_plan_rule_fallback": false,
+        "task_readiness_context": true,
+        "task_readiness_recovery": true,
+        "skill_execution_mode": "off",
+        "target_skill_id": "",
+        "m2_arm": "baseline",
+        "m2_pair_id": "bm006-pair-01",
+        "m2_replicate_id": "1",
+        "python_version": "3.12.8"
+      }
+    },
+    "evidence_kind": "live_minecraft",
+    "protocol_eligible": false,
+    "terminal_evidence": {
+      "success": true,
+      "profile": "m2-fixed-v1",
+      "protocol_sha256": "ac0bd6b751cbef807c3a669c559da67fd385a1172cf8df523b4a0fce46ac7462",
+      "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd",
+      "task_id": "BM-006",
+      "inventory": {},
+      "player_position": {
+        "x": 94.41802146372393,
+        "y": 143,
+        "z": -30.49999999999993
+      },
+      "equipment": [],
+      "fixture_blocks": [
+        {
+          "expected_name": "oak_log",
+          "name": "oak_log",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -32
+          },
+          "relative_position": {
+            "x": 3,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "expected_name": "oak_log",
+          "name": "oak_log",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -32
+          },
+          "relative_position": {
+            "x": 3,
+            "y": 1,
+            "z": 0
+          }
+        }
+      ],
+      "structure_post": {},
+      "observed_at_ms": 1783733922817
+    },
+    "experiment_metadata": {
+      "arm": "baseline",
+      "pair_id": "bm006-pair-01",
+      "replicate_id": "1",
+      "skill_execution_mode": "off",
+      "target_skill_id": "",
+      "skill_experiment_id": ""
+    }
+  }
+]

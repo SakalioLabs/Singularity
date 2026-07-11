@@ -1,6 +1,9 @@
 ﻿"""LLM provider abstraction — supports OpenAI, Anthropic, DeepSeek, and local models via Ollama."""
 import json
 import logging
+import hashlib
+import math
+import time
 from typing import Optional
 
 from singularity.core.config import LLMConfig
@@ -14,6 +17,7 @@ class LLMProvider:
     def __init__(self, config: LLMConfig):
         self.config = config
         self._client = None
+        self.last_call_metadata: dict = {}
         self._init_client()
 
     def _init_client(self):
@@ -36,10 +40,43 @@ class LLMProvider:
         else:
             raise ValueError(f"Unknown LLM provider: {provider}")
 
-    def chat(self, messages: list[dict], response_format: Optional[dict] = None) -> str:
+    def chat(
+        self,
+        messages: list[dict],
+        response_format: Optional[dict] = None,
+        timeout_s: Optional[float] = None,
+        extra_body: Optional[dict] = None,
+    ) -> str:
         """Send a chat completion request and return the response text."""
         provider = self.config.provider.lower()
         logger.debug(f"LLM call ({provider}): {len(messages)} messages")
+        started_at = time.monotonic()
+        request_payload = json.dumps(messages, sort_keys=True, ensure_ascii=True, default=str)
+        response = None
+        bounded_timeout = None
+        if timeout_s is not None:
+            try:
+                candidate_timeout = float(timeout_s)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("timeout_s must be a finite positive number") from exc
+            if not math.isfinite(candidate_timeout) or candidate_timeout <= 0:
+                raise ValueError("timeout_s must be a finite positive number")
+            bounded_timeout = candidate_timeout
+
+        request_metadata = {
+            "provider": provider,
+            "base_url": str(self.config.base_url or "").rstrip("/"),
+            "model": self.config.model,
+            "temperature": self.config.temperature,
+            "max_tokens": self.config.max_tokens,
+            "response_format": dict(response_format or {}),
+            "extra_body": dict(extra_body or {}),
+            "request_message_count": len(messages),
+            "request_sha256": hashlib.sha256(request_payload.encode("utf-8")).hexdigest(),
+            "timeout_s": round(bounded_timeout, 3) if bounded_timeout is not None else None,
+            "max_retries": 0 if bounded_timeout is not None else None,
+        }
+        self.last_call_metadata = dict(request_metadata)
 
         if provider in ("openai", "ollama"):
             kwargs = {
@@ -50,8 +87,20 @@ class LLMProvider:
             }
             if response_format and provider == "openai":
                 kwargs["response_format"] = response_format
-            response = self._client.chat.completions.create(**kwargs)
-            text = response.choices[0].message.content or ""
+            if extra_body:
+                kwargs["extra_body"] = dict(extra_body)
+            client = self._client
+            if bounded_timeout is not None:
+                if hasattr(client, "with_options"):
+                    client = client.with_options(timeout=bounded_timeout, max_retries=0)
+                else:
+                    kwargs["timeout"] = bounded_timeout
+            response = client.chat.completions.create(**kwargs)
+            choice = response.choices[0]
+            message = choice.message
+            text = message.content or ""
+            finish_reason = str(getattr(choice, "finish_reason", "") or "")
+            reasoning_content = str(getattr(message, "reasoning_content", "") or "")
         elif provider == "anthropic":
             # Anthropic uses a different message format
             system_msg = ""
@@ -61,15 +110,67 @@ class LLMProvider:
                     system_msg = msg["content"]
                 else:
                     user_messages.append(msg)
-            response = self._client.messages.create(
-                model=self.config.model,
-                max_tokens=self.config.max_tokens,
-                system=system_msg,
-                messages=user_messages,
+            client = self._client
+            kwargs = {
+                "model": self.config.model,
+                "max_tokens": self.config.max_tokens,
+                "system": system_msg,
+                "messages": user_messages,
+            }
+            if bounded_timeout is not None:
+                if hasattr(client, "with_options"):
+                    client = client.with_options(timeout=bounded_timeout, max_retries=0)
+                else:
+                    kwargs["timeout"] = bounded_timeout
+            response = client.messages.create(
+                **kwargs,
             )
             text = response.content[0].text if response.content else ""
+            finish_reason = str(getattr(response, "stop_reason", "") or "")
+            reasoning_content = ""
         else:
             raise ValueError(f"Unsupported provider: {provider}")
 
+        usage = getattr(response, "usage", None)
+        prompt_tokens = self._usage_value(usage, "prompt_tokens", "input_tokens")
+        completion_tokens = self._usage_value(usage, "completion_tokens", "output_tokens")
+        total_tokens = self._usage_value(usage, "total_tokens")
+        if total_tokens is None and prompt_tokens is not None and completion_tokens is not None:
+            total_tokens = prompt_tokens + completion_tokens
+        self.last_call_metadata = {
+            **request_metadata,
+            "response_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            "response_id": str(getattr(response, "id", "") or ""),
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens,
+            "finish_reason": finish_reason,
+            "reasoning_content_byte_count": len(reasoning_content.encode("utf-8")),
+            "duration_ms": int((time.monotonic() - started_at) * 1000),
+        }
         logger.debug(f"LLM response: {text[:200]}")
         return text
+
+    def reset_client(self):
+        """Replace the provider client after a retryable transport failure."""
+        previous = self._client
+        close = getattr(previous, "close", None)
+        if callable(close):
+            try:
+                close()
+            except Exception:
+                pass
+        self._client = None
+        self._init_client()
+
+    def _usage_value(self, usage, *names):
+        for name in names:
+            value = getattr(usage, name, None) if usage is not None else None
+            if value is None and isinstance(usage, dict):
+                value = usage.get(name)
+            if value is not None:
+                try:
+                    return int(value)
+                except (TypeError, ValueError):
+                    return None
+        return None

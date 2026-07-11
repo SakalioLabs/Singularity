@@ -1,0 +1,36 @@
+{
+  "candidate_schema_report": "workspace/evals/skill_ablation/craft_wooden_pickaxe/candidate_1.0.2.json",
+  "evaluation_only": true,
+  "executable_authority": false,
+  "next_gate": "three_independent_baseline_candidate_live_pairs",
+  "runtime_default_authority": false,
+  "schema_version": 1,
+  "single_target_skill": true,
+  "skill_id": "learned:craft_wooden_pickaxe",
+  "skill_version": "1.0.2-candidate",
+  "status": "advisory",
+  "transition": {
+    "automatic_delete_allowed": false,
+    "changed": true,
+    "evidence": {
+      "action_controller_enforced": true,
+      "action_verifier_enforced": true,
+      "candidate_schema_report": "workspace/evals/skill_ablation/craft_wooden_pickaxe/candidate_1.0.2.json",
+      "evaluation_only": true,
+      "executable_authority": false,
+      "fallback_to_agentic_planning": true,
+      "goal_verifier_enforced": true,
+      "reobserve_each_cycle": true,
+      "single_target_skill": true
+    },
+    "previous_status": "candidate",
+    "previous_version": "1.0.2-candidate",
+    "reason": "authorize explicit single-skill live evaluation after schema and dedup validation",
+    "rollback_target": "",
+    "skill_id": "learned:craft_wooden_pickaxe",
+    "status": "advisory",
+    "timestamp": 1783700422.5034275,
+    "version": "1.0.2-candidate"
+  },
+  "type": "skill_advisory_evaluation_authorization"
+}

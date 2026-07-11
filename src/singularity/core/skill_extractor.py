@@ -734,7 +734,10 @@ def _skill_edit_candidate_proposal(
         proposal = "review"
         readiness = "review"
         reasons.append(transfer_gate.get("reason") or "task_stream_probe_required")
-    elif validation.status in {"achieved", "critic_approved"} or validation.decision == "approve":
+    elif validation.status in {"achieved", "critic_approved", "advisory_ready"} or validation.decision in {
+        "approve",
+        "promote_advisory",
+    }:
         if match.get("match_type") == "exact":
             proposal = "update"
             readiness = "approved"

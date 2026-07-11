@@ -1,0 +1,3458 @@
+{
+  "type": "m2_live_harness_smoke",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-10T17:44:07Z",
+  "evidence_kind": "live_minecraft_harness_smoke",
+  "counts_toward_live_observed": false,
+  "counts_toward_repeat_verified": false,
+  "task_id": "BM-010",
+  "execute_template": true,
+  "protocol_profile": "m2-fixed-v1",
+  "protocol_sha256": "2a8903fb2ff85024276af364b58062a7609513a6aa7b985a052faa2dd85530ae",
+  "checks": {
+    "bridge_connected": true,
+    "protocol_configured": true,
+    "reset_verified": true,
+    "terminal_observed": true,
+    "empty_execution_rejected": true,
+    "construction_baseline_empty": true,
+    "empty_structure_still_rejected": true,
+    "template_action_success": true,
+    "template_outcome_verified": true
+  },
+  "protocol": {
+    "success": true,
+    "configured": true,
+    "profile": "m2-fixed-v1",
+    "protocol_sha256": "2a8903fb2ff85024276af364b58062a7609513a6aa7b985a052faa2dd85530ae",
+    "minecraft_version": "1.20.4",
+    "observed_minecraft_version": "1.20.4",
+    "server_type": "Paper",
+    "server_build": "paper-1.20.4-499",
+    "server_jar_policy": "pinned_sha256_v1",
+    "agent_id": "singularity-agent-v1",
+    "planner_id": "llm-root-planner-v1",
+    "planner_schema_id": "m2-root-plan-v1",
+    "planner_schema_sha256": "0258720fdb2f5564fbd298628bcf55bc6a3f73c984bc9d2a0bdb5c0a69eb44a9",
+    "action_backend_id": "mineflayer-bridge-v1",
+    "verifier_id": "m2-machine-verifier-v1",
+    "skill_runtime_profile_id": "m2-bounded-skills-v1",
+    "reset_protocol_sha256": "19f3418e216865d7c9497d81128febcf3e169217a9639236d04512f39f3701de",
+    "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd",
+    "llm": {
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "temperature": 0,
+      "max_tokens": 4096,
+      "response_format": {
+        "type": "json_object"
+      }
+    },
+    "server_brand": "Paper",
+    "seed": "12345",
+    "episode_id": "m2_episode_20260711_014351_b3a01bea",
+    "level_name": "m2_episode_20260711_014351_b3a01bea_bm_010",
+    "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+    "episode_strategy": "fresh_level_per_task_run_v1",
+    "dependencies": {
+      "mineflayer": "4.37.1",
+      "mineflayer-pathfinder": "2.4.5",
+      "minecraft-data": "3.111.0"
+    },
+    "runtime_versions": {
+      "node": "22.16.0",
+      "python": "3.12.8"
+    },
+    "tasks": [
+      {
+        "id": "BM-006",
+        "name": "Gather wood and craft workbench",
+        "goal": "Gather wood and craft workbench",
+        "initial_inventory": {},
+        "initial_blocks": [
+          {
+            "name": "oak_log",
+            "relative_position": {
+              "x": 3,
+              "y": 0,
+              "z": 0
+            }
+          },
+          {
+            "name": "oak_log",
+            "relative_position": {
+              "x": 3,
+              "y": 1,
+              "z": 0
+            }
+          }
+        ],
+        "fixture": {
+          "clear_regions": [
+            {
+              "min": {
+                "x": 3,
+                "y": 0,
+                "z": 0
+              },
+              "max": {
+                "x": 3,
+                "y": 1,
+                "z": 0
+              }
+            }
+          ],
+          "fill_regions": []
+        },
+        "success_criteria": {
+          "inventory": {
+            "crafting_table": 1
+          },
+          "required_inventory_delta": {
+            "crafting_table": 1
+          },
+          "required_action_types": [
+            "dig",
+            "craft"
+          ]
+        },
+        "max_cycles": 80,
+        "max_duration_s": 240
+      },
+      {
+        "id": "BM-007",
+        "name": "Craft wooden pickaxe and get cobblestone",
+        "goal": "Craft wooden pickaxe and get cobblestone",
+        "initial_inventory": {
+          "oak_log": 2
+        },
+        "initial_blocks": [
+          {
+            "name": "crafting_table",
+            "relative_position": {
+              "x": 1,
+              "y": 0,
+              "z": 0
+            }
+          },
+          {
+            "name": "stone",
+            "relative_position": {
+              "x": 4,
+              "y": 0,
+              "z": 0
+            }
+          },
+          {
+            "name": "stone",
+            "relative_position": {
+              "x": 4,
+              "y": 0,
+              "z": 1
+            }
+          },
+          {
+            "name": "stone",
+            "relative_position": {
+              "x": 4,
+              "y": 0,
+              "z": -1
+            }
+          }
+        ],
+        "fixture": {
+          "clear_regions": [
+            {
+              "min": {
+                "x": 1,
+                "y": 0,
+                "z": -1
+              },
+              "max": {
+                "x": 4,
+                "y": 0,
+                "z": 1
+              }
+            }
+          ],
+          "fill_regions": []
+        },
+        "success_criteria": {
+          "inventory": {
+            "wooden_pickaxe": 1,
+            "cobblestone": 3
+          },
+          "required_inventory_delta": {
+            "wooden_pickaxe": 1,
+            "cobblestone": 3
+          },
+          "required_action_types": [
+            "craft",
+            "equip",
+            "move_to",
+            "dig"
+          ],
+          "required_source_blocks": [
+            "stone"
+          ],
+          "replan_or_prerequisite_recovery_required": true
+        },
+        "max_cycles": 140,
+        "max_duration_s": 420
+      },
+      {
+        "id": "BM-008",
+        "name": "Find coal or make charcoal",
+        "goal": "Find coal or make charcoal",
+        "initial_inventory": {
+          "wooden_pickaxe": 1
+        },
+        "initial_blocks": [
+          {
+            "name": "coal_ore",
+            "relative_position": {
+              "x": 4,
+              "y": 0,
+              "z": 0
+            }
+          }
+        ],
+        "fixture": {
+          "clear_regions": [
+            {
+              "min": {
+                "x": 4,
+                "y": 0,
+                "z": 0
+              },
+              "max": {
+                "x": 4,
+                "y": 0,
+                "z": 0
+              }
+            }
+          ],
+          "fill_regions": []
+        },
+        "success_criteria": {
+          "inventory_any": {
+            "coal": 1,
+            "charcoal": 1
+          },
+          "required_inventory_delta_any": {
+            "coal": 1,
+            "charcoal": 1
+          },
+          "required_action_types": [
+            "equip",
+            "move_to",
+            "dig"
+          ],
+          "allowed_strategies": [
+            "mine_coal",
+            "make_charcoal"
+          ],
+          "strategy_preconditions_required": true
+        },
+        "max_cycles": 120,
+        "max_duration_s": 360
+      },
+      {
+        "id": "BM-009",
+        "name": "Craft a torch",
+        "goal": "Craft a torch",
+        "initial_inventory": {
+          "coal": 1,
+          "oak_planks": 2
+        },
+        "initial_blocks": [],
+        "fixture": {
+          "clear_regions": [],
+          "fill_regions": []
+        },
+        "success_criteria": {
+          "inventory": {
+            "torch": 1
+          },
+          "required_inventory_delta": {
+            "torch": 1
+          },
+          "required_prerequisite_items": [
+            "coal_or_charcoal",
+            "stick"
+          ],
+          "required_action_types": [
+            "craft"
+          ]
+        },
+        "max_cycles": 80,
+        "max_duration_s": 240
+      },
+      {
+        "id": "BM-010",
+        "name": "Build a simple 5x5 shelter",
+        "goal": "Build a simple 5x5 shelter",
+        "initial_inventory": {
+          "cobblestone": 64
+        },
+        "initial_blocks": [],
+        "fixture": {
+          "clear_regions": [
+            {
+              "min": {
+                "x": 3,
+                "y": 0,
+                "z": 3
+              },
+              "max": {
+                "x": 7,
+                "y": 2,
+                "z": 7
+              }
+            }
+          ],
+          "fill_regions": [
+            {
+              "min": {
+                "x": 3,
+                "y": -1,
+                "z": 3
+              },
+              "max": {
+                "x": 7,
+                "y": -1,
+                "z": 7
+              },
+              "name": "stone"
+            }
+          ],
+          "construction_zone": {
+            "origin_relative": {
+              "x": 3,
+              "y": 0,
+              "z": 3
+            },
+            "size": {
+              "x": 5,
+              "y": 3,
+              "z": 5
+            },
+            "maximum_spawn_distance": 12
+          }
+        },
+        "success_criteria": {
+          "structure": "shelter-outer-5x5-v1",
+          "required_action_types": [
+            "build_shelter_5x5"
+          ]
+        },
+        "max_cycles": 100,
+        "max_duration_s": 420
+      }
+    ],
+    "reset_supported": true,
+    "validation_supported": true,
+    "errors": []
+  },
+  "reset": {
+    "success": true,
+    "error": "",
+    "profile": "m2-fixed-v1",
+    "protocol_sha256": "2a8903fb2ff85024276af364b58062a7609513a6aa7b985a052faa2dd85530ae",
+    "reset_protocol_sha256": "19f3418e216865d7c9497d81128febcf3e169217a9639236d04512f39f3701de",
+    "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd",
+    "episode_id": "m2_episode_20260711_014351_b3a01bea",
+    "level_name": "m2_episode_20260711_014351_b3a01bea_bm_010",
+    "seed": "12345",
+    "server_brand": "Paper",
+    "observed_minecraft_version": "1.20.4",
+    "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+    "task_id": "BM-010",
+    "expected": {
+      "initial_inventory": {
+        "cobblestone": 64
+      },
+      "initial_blocks": [],
+      "game_mode": "survival",
+      "difficulty": "peaceful",
+      "time_of_day": 1000,
+      "weather": "clear"
+    },
+    "before_state": {
+      "position": {
+        "x": 102.5,
+        "y": 140,
+        "z": -27.5
+      },
+      "spawn_position": {
+        "x": 96,
+        "y": 144,
+        "z": -32
+      },
+      "health": 20,
+      "food": 20,
+      "inventory": {},
+      "game_mode": "survival",
+      "difficulty": "peaceful",
+      "dimension": "overworld",
+      "time_of_day": 77,
+      "weather": "clear",
+      "fixture": {
+        "position": {
+          "x": 97,
+          "y": 144,
+          "z": -32
+        },
+        "block": "air"
+      },
+      "fixture_blocks": []
+    },
+    "after_state": {
+      "position": {
+        "x": 96.5,
+        "y": 144,
+        "z": -31.5
+      },
+      "spawn_position": {
+        "x": 96,
+        "y": 144,
+        "z": -32
+      },
+      "health": 20,
+      "food": 20,
+      "inventory": {
+        "cobblestone": 64
+      },
+      "game_mode": "survival",
+      "difficulty": "peaceful",
+      "dimension": "overworld",
+      "time_of_day": 1060,
+      "weather": "clear",
+      "fixture": {
+        "position": {
+          "x": 97,
+          "y": 144,
+          "z": -32
+        },
+        "block": "air"
+      },
+      "fixture_blocks": []
+    },
+    "structure_baseline": {
+      "origin": {
+        "x": 99,
+        "y": 144,
+        "z": -29
+      },
+      "size": {
+        "x": 5,
+        "y": 3,
+        "z": 5
+      },
+      "blocks": [
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -25
+          }
+        }
+      ],
+      "sha256": "82761d1e5186f7f33439aba95ba05341c6ecaae413d6eda0ec3d13981c6d42bc"
+    },
+    "checks": {
+      "inventory_exact": true,
+      "position_at_spawn": true,
+      "position_distance": 0.707,
+      "game_mode": true,
+      "difficulty": true,
+      "dimension": true,
+      "daytime": true,
+      "time_initialized": true,
+      "weather": true,
+      "health": true,
+      "food": true,
+      "fixture": true
+    },
+    "failed_checks": [],
+    "command_count": 12
+  },
+  "terminal_evidence": {
+    "success": true,
+    "profile": "m2-fixed-v1",
+    "protocol_sha256": "2a8903fb2ff85024276af364b58062a7609513a6aa7b985a052faa2dd85530ae",
+    "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd",
+    "task_id": "BM-010",
+    "inventory": {
+      "cobblestone": 64
+    },
+    "player_position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "equipment": [
+      {
+        "slot": 0,
+        "name": "cobblestone",
+        "count": 64
+      }
+    ],
+    "fixture_blocks": [],
+    "structure_post": {
+      "origin": {
+        "x": 99,
+        "y": 144,
+        "z": -29
+      },
+      "size": {
+        "x": 5,
+        "y": 3,
+        "z": 5
+      },
+      "blocks": [
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -25
+          }
+        }
+      ],
+      "sha256": "82761d1e5186f7f33439aba95ba05341c6ecaae413d6eda0ec3d13981c6d42bc"
+    },
+    "observed_at_ms": 1783705453287
+  },
+  "false_positive_probe": {
+    "type": "m2_task_outcome_validation",
+    "task_id": "BM-010",
+    "passed": false,
+    "planner_completion_trusted": false,
+    "inventory_before": {
+      "cobblestone": 64
+    },
+    "inventory_after": {
+      "cobblestone": 64
+    },
+    "inventory_delta": {
+      "cobblestone": 0
+    },
+    "action_proof": {
+      "passed": false,
+      "successful_action_count": 0,
+      "successful_action_types": [],
+      "issues": [
+        "required_action_missing:build_shelter_5x5"
+      ]
+    },
+    "shelter_proof": {
+      "type": "m2_shelter_5x5_validation",
+      "structure_id": "shelter-outer-5x5-v1",
+      "passed": false,
+      "origin": {
+        "x": 99,
+        "y": 144,
+        "z": -29
+      },
+      "wall_positions": 32,
+      "wall_solid": 0,
+      "wall_coverage": 0.0,
+      "roof_positions": 25,
+      "roof_solid": 0,
+      "roof_coverage": 0.0,
+      "entrance_columns": [
+        [
+          99,
+          -29
+        ],
+        [
+          99,
+          -28
+        ],
+        [
+          99,
+          -27
+        ],
+        [
+          99,
+          -26
+        ],
+        [
+          99,
+          -25
+        ],
+        [
+          100,
+          -29
+        ],
+        [
+          100,
+          -25
+        ],
+        [
+          101,
+          -29
+        ],
+        [
+          101,
+          -25
+        ],
+        [
+          102,
+          -29
+        ],
+        [
+          102,
+          -25
+        ],
+        [
+          103,
+          -29
+        ],
+        [
+          103,
+          -28
+        ],
+        [
+          103,
+          -27
+        ],
+        [
+          103,
+          -26
+        ],
+        [
+          103,
+          -25
+        ]
+      ],
+      "interior_blocked_count": 0,
+      "episode_delta_block_count": 0,
+      "player_inside": false,
+      "issues": [
+        "entrance_invalid",
+        "player_not_inside_protected_area",
+        "roof_coverage_below_minimum",
+        "wall_coverage_below_minimum"
+      ]
+    },
+    "issues": [
+      "required_action_missing:build_shelter_5x5",
+      "shelter_structure_invalid"
+    ]
+  },
+  "template_action": {
+    "action": {
+      "type": "build_shelter_5x5",
+      "parameters": {
+        "origin": {
+          "x": 99,
+          "y": 144,
+          "z": -29
+        },
+        "material": "cobblestone",
+        "timeout_ms": 360000
+      }
+    },
+    "result": {
+      "success": true,
+      "template_id": "shelter-outer-5x5-v1",
+      "material": "cobblestone",
+      "origin": {
+        "x": 99,
+        "y": 144,
+        "z": -29
+      },
+      "required_block_count": 55,
+      "wall_block_count": 30,
+      "roof_block_count": 25,
+      "placed_count": 55,
+      "already_present_count": 0,
+      "placed_positions": [
+        {
+          "x": 99,
+          "y": 144,
+          "z": -29
+        },
+        {
+          "x": 99,
+          "y": 144,
+          "z": -28
+        },
+        {
+          "x": 99,
+          "y": 144,
+          "z": -27
+        },
+        {
+          "x": 99,
+          "y": 144,
+          "z": -26
+        },
+        {
+          "x": 99,
+          "y": 144,
+          "z": -25
+        },
+        {
+          "x": 100,
+          "y": 144,
+          "z": -29
+        },
+        {
+          "x": 100,
+          "y": 144,
+          "z": -25
+        },
+        {
+          "x": 101,
+          "y": 144,
+          "z": -25
+        },
+        {
+          "x": 102,
+          "y": 144,
+          "z": -29
+        },
+        {
+          "x": 102,
+          "y": 144,
+          "z": -25
+        },
+        {
+          "x": 103,
+          "y": 144,
+          "z": -29
+        },
+        {
+          "x": 103,
+          "y": 144,
+          "z": -28
+        },
+        {
+          "x": 103,
+          "y": 144,
+          "z": -27
+        },
+        {
+          "x": 103,
+          "y": 144,
+          "z": -26
+        },
+        {
+          "x": 103,
+          "y": 144,
+          "z": -25
+        },
+        {
+          "x": 99,
+          "y": 145,
+          "z": -29
+        },
+        {
+          "x": 99,
+          "y": 145,
+          "z": -28
+        },
+        {
+          "x": 99,
+          "y": 145,
+          "z": -27
+        },
+        {
+          "x": 99,
+          "y": 145,
+          "z": -26
+        },
+        {
+          "x": 99,
+          "y": 145,
+          "z": -25
+        },
+        {
+          "x": 100,
+          "y": 145,
+          "z": -29
+        },
+        {
+          "x": 100,
+          "y": 145,
+          "z": -25
+        },
+        {
+          "x": 101,
+          "y": 145,
+          "z": -25
+        },
+        {
+          "x": 102,
+          "y": 145,
+          "z": -29
+        },
+        {
+          "x": 102,
+          "y": 145,
+          "z": -25
+        },
+        {
+          "x": 103,
+          "y": 145,
+          "z": -29
+        },
+        {
+          "x": 103,
+          "y": 145,
+          "z": -28
+        },
+        {
+          "x": 103,
+          "y": 145,
+          "z": -27
+        },
+        {
+          "x": 103,
+          "y": 145,
+          "z": -26
+        },
+        {
+          "x": 103,
+          "y": 145,
+          "z": -25
+        },
+        {
+          "x": 99,
+          "y": 146,
+          "z": -29
+        },
+        {
+          "x": 99,
+          "y": 146,
+          "z": -28
+        },
+        {
+          "x": 99,
+          "y": 146,
+          "z": -27
+        },
+        {
+          "x": 99,
+          "y": 146,
+          "z": -26
+        },
+        {
+          "x": 99,
+          "y": 146,
+          "z": -25
+        },
+        {
+          "x": 100,
+          "y": 146,
+          "z": -29
+        },
+        {
+          "x": 100,
+          "y": 146,
+          "z": -25
+        },
+        {
+          "x": 101,
+          "y": 146,
+          "z": -29
+        },
+        {
+          "x": 101,
+          "y": 146,
+          "z": -25
+        },
+        {
+          "x": 102,
+          "y": 146,
+          "z": -29
+        },
+        {
+          "x": 102,
+          "y": 146,
+          "z": -25
+        },
+        {
+          "x": 103,
+          "y": 146,
+          "z": -29
+        },
+        {
+          "x": 103,
+          "y": 146,
+          "z": -28
+        },
+        {
+          "x": 103,
+          "y": 146,
+          "z": -27
+        },
+        {
+          "x": 103,
+          "y": 146,
+          "z": -26
+        },
+        {
+          "x": 103,
+          "y": 146,
+          "z": -25
+        },
+        {
+          "x": 100,
+          "y": 146,
+          "z": -28
+        },
+        {
+          "x": 100,
+          "y": 146,
+          "z": -27
+        },
+        {
+          "x": 100,
+          "y": 146,
+          "z": -26
+        },
+        {
+          "x": 101,
+          "y": 146,
+          "z": -28
+        },
+        {
+          "x": 101,
+          "y": 146,
+          "z": -27
+        },
+        {
+          "x": 101,
+          "y": 146,
+          "z": -26
+        },
+        {
+          "x": 102,
+          "y": 146,
+          "z": -28
+        },
+        {
+          "x": 102,
+          "y": 146,
+          "z": -27
+        },
+        {
+          "x": 102,
+          "y": 146,
+          "z": -26
+        }
+      ],
+      "entrance": {
+        "x": 101,
+        "z": -29,
+        "min_y": 144,
+        "max_y": 145
+      },
+      "inventory_before": {
+        "cobblestone": 64
+      },
+      "inventory_after": {
+        "cobblestone": 9
+      },
+      "player_position": {
+        "x": 101.53963246182813,
+        "y": 144,
+        "z": -27.5
+      },
+      "structure_post": {
+        "origin": {
+          "x": 99,
+          "y": 144,
+          "z": -29
+        },
+        "size": {
+          "x": 5,
+          "y": 3,
+          "z": 5
+        },
+        "blocks": [
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 144,
+              "z": -29
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 144,
+              "z": -28
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 144,
+              "z": -27
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 144,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 144,
+              "z": -25
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 145,
+              "z": -29
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 145,
+              "z": -28
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 145,
+              "z": -27
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 145,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 145,
+              "z": -25
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 146,
+              "z": -29
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 146,
+              "z": -28
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 146,
+              "z": -27
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 146,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 99,
+              "y": 146,
+              "z": -25
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 100,
+              "y": 144,
+              "z": -29
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 100,
+              "y": 144,
+              "z": -28
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 100,
+              "y": 144,
+              "z": -27
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 100,
+              "y": 144,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 100,
+              "y": 144,
+              "z": -25
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 100,
+              "y": 145,
+              "z": -29
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 100,
+              "y": 145,
+              "z": -28
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 100,
+              "y": 145,
+              "z": -27
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 100,
+              "y": 145,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 100,
+              "y": 145,
+              "z": -25
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 100,
+              "y": 146,
+              "z": -29
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 100,
+              "y": 146,
+              "z": -28
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 100,
+              "y": 146,
+              "z": -27
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 100,
+              "y": 146,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 100,
+              "y": 146,
+              "z": -25
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 101,
+              "y": 144,
+              "z": -29
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 101,
+              "y": 144,
+              "z": -28
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 101,
+              "y": 144,
+              "z": -27
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 101,
+              "y": 144,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 101,
+              "y": 144,
+              "z": -25
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 101,
+              "y": 145,
+              "z": -29
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 101,
+              "y": 145,
+              "z": -28
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 101,
+              "y": 145,
+              "z": -27
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 101,
+              "y": 145,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 101,
+              "y": 145,
+              "z": -25
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 101,
+              "y": 146,
+              "z": -29
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 101,
+              "y": 146,
+              "z": -28
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 101,
+              "y": 146,
+              "z": -27
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 101,
+              "y": 146,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 101,
+              "y": 146,
+              "z": -25
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 102,
+              "y": 144,
+              "z": -29
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 102,
+              "y": 144,
+              "z": -28
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 102,
+              "y": 144,
+              "z": -27
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 102,
+              "y": 144,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 102,
+              "y": 144,
+              "z": -25
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 102,
+              "y": 145,
+              "z": -29
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 102,
+              "y": 145,
+              "z": -28
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 102,
+              "y": 145,
+              "z": -27
+            }
+          },
+          {
+            "name": "air",
+            "position": {
+              "x": 102,
+              "y": 145,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 102,
+              "y": 145,
+              "z": -25
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 102,
+              "y": 146,
+              "z": -29
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 102,
+              "y": 146,
+              "z": -28
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 102,
+              "y": 146,
+              "z": -27
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 102,
+              "y": 146,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 102,
+              "y": 146,
+              "z": -25
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 144,
+              "z": -29
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 144,
+              "z": -28
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 144,
+              "z": -27
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 144,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 144,
+              "z": -25
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 145,
+              "z": -29
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 145,
+              "z": -28
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 145,
+              "z": -27
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 145,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 145,
+              "z": -25
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 146,
+              "z": -29
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 146,
+              "z": -28
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 146,
+              "z": -27
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 146,
+              "z": -26
+            }
+          },
+          {
+            "name": "cobblestone",
+            "position": {
+              "x": 103,
+              "y": 146,
+              "z": -25
+            }
+          }
+        ],
+        "sha256": "19ff2a0c8e42d45cdeb92f1203e38d8b9d72ce73cb95303874ce8f1895c7a011"
+      }
+    }
+  },
+  "template_terminal_evidence": {
+    "success": true,
+    "profile": "m2-fixed-v1",
+    "protocol_sha256": "2a8903fb2ff85024276af364b58062a7609513a6aa7b985a052faa2dd85530ae",
+    "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd",
+    "task_id": "BM-010",
+    "inventory": {
+      "cobblestone": 9
+    },
+    "player_position": {
+      "x": 101.53963246182813,
+      "y": 144,
+      "z": -27.5
+    },
+    "equipment": [
+      {
+        "slot": 0,
+        "name": "cobblestone",
+        "count": 9
+      }
+    ],
+    "fixture_blocks": [],
+    "structure_post": {
+      "origin": {
+        "x": 99,
+        "y": 144,
+        "z": -29
+      },
+      "size": {
+        "x": 5,
+        "y": 3,
+        "z": 5
+      },
+      "blocks": [
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 99,
+            "y": 146,
+            "z": -25
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 100,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 100,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 100,
+            "y": 146,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 101,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 101,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 101,
+            "y": 146,
+            "z": -25
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 102,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "air",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 102,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 102,
+            "y": 146,
+            "z": -25
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -29
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -28
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -27
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 144,
+            "z": -25
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -29
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -28
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -27
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 145,
+            "z": -25
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -29
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -28
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -27
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -26
+          }
+        },
+        {
+          "name": "cobblestone",
+          "position": {
+            "x": 103,
+            "y": 146,
+            "z": -25
+          }
+        }
+      ],
+      "sha256": "19ff2a0c8e42d45cdeb92f1203e38d8b9d72ce73cb95303874ce8f1895c7a011"
+    },
+    "observed_at_ms": 1783705482929
+  },
+  "template_outcome": {
+    "type": "m2_task_outcome_validation",
+    "task_id": "BM-010",
+    "passed": true,
+    "planner_completion_trusted": false,
+    "inventory_before": {
+      "cobblestone": 64
+    },
+    "inventory_after": {
+      "cobblestone": 9
+    },
+    "inventory_delta": {
+      "cobblestone": -55
+    },
+    "action_proof": {
+      "passed": true,
+      "successful_action_count": 1,
+      "successful_action_types": [
+        "build_shelter_5x5"
+      ],
+      "issues": []
+    },
+    "shelter_proof": {
+      "type": "m2_shelter_5x5_validation",
+      "structure_id": "shelter-outer-5x5-v1",
+      "passed": true,
+      "origin": {
+        "x": 99,
+        "y": 144,
+        "z": -29
+      },
+      "wall_positions": 32,
+      "wall_solid": 30,
+      "wall_coverage": 0.9375,
+      "roof_positions": 25,
+      "roof_solid": 25,
+      "roof_coverage": 1.0,
+      "entrance_columns": [
+        [
+          101,
+          -29
+        ]
+      ],
+      "interior_blocked_count": 0,
+      "episode_delta_block_count": 55,
+      "player_inside": true,
+      "issues": []
+    },
+    "issues": []
+  },
+  "ok": true
+}

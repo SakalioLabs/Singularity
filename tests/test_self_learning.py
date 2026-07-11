@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import tempfile
+from pathlib import Path
 
 from singularity.core.config import Config
 from singularity.core.agent import Agent
@@ -31,6 +32,8 @@ from singularity.evaluation.skill_learning_experiment import (
     build_heldout_transfer_report,
     build_paired_ablation_report,
     build_runtime_default_gate,
+    _apply_research_fixture,
+    _verify_research_fixture,
     write_json,
 )
 
@@ -265,12 +268,185 @@ def test_typed_schema_preconditions_postconditions_and_fallback():
     )
     assert heldout["bound_parameters"] == {"quantity": 2}
     assert heldout["effective_postconditions"] == {"inventory": {"oak_log": 2}}
+
+    pickaxe_template = {
+        "dsl_version": DSL_VERSION,
+        "max_actions": 1,
+        "phases": [{
+            "id": "craft_target",
+            "op": "craft_item",
+            "item": "wooden_pickaxe",
+            "count": 1,
+            "target_item": "wooden_pickaxe",
+            "target_count": 1,
+        }],
+    }
+    pickaxe = library.create_skill(
+        "learned_craft_wooden_pickaxe",
+        "Craft one wooden pickaxe at an observed crafting table",
+        json.dumps(pickaxe_template),
+        persist=False,
+        skill_id="learned:craft_wooden_pickaxe",
+        version="1.0.2-candidate",
+        status="candidate",
+        task_family="crafting",
+        preconditions={
+            "inventory": {"oak_planks": 3, "stick": 2},
+            "nearby_block_present": ["crafting_table"],
+            "nearby_block_max_distance": {"crafting_table": 4.5},
+        },
+        required_observations=["inventory", "nearby_block:crafting_table"],
+        required_inventory=[{"item": "oak_planks", "count": 3}, {"item": "stick", "count": 2}],
+        postconditions={"inventory": {"wooden_pickaxe": 1}},
+        bounded_action_template=pickaxe_template,
+        transfer_scope={"task_family": "crafting"},
+    )
+    materials = {"inventory": {"oak_planks": 3, "stick": 2}, "position": {"x": 0, "y": 64, "z": 0}}
+    missing_table = build_bounded_skill_plan(pickaxe, "Craft a wooden pickaxe", materials)
+    assert missing_table["status"] == "fallback"
+    assert missing_table["fallback_reason"] == "preconditions_not_met"
+    assert missing_table["issues"] == ["nearby_block:crafting_table<=4.5"]
+    table_too_far = {
+        **materials,
+        "nearby_blocks": [{"name": "crafting_table", "position": {"x": 5, "y": 64, "z": 0}, "distance": 5}],
+    }
+    assert build_bounded_skill_plan(pickaxe, "Craft a wooden pickaxe", table_too_far)["status"] == "fallback"
+    table_ready = {
+        **materials,
+        "nearby_blocks": [{"name": "crafting_table", "position": {"x": 1, "y": 64, "z": 0}, "distance": 1}],
+    }
+    bounded = build_bounded_skill_plan(pickaxe, "Craft a wooden pickaxe", table_ready)
+    assert bounded["status"] == "in_progress"
+    assert bounded["actions"] == [{"type": "craft", "parameters": {"item": "wooden_pickaxe", "count": 1}}]
     print("PASS: typed schema blocks executable code and enforces pre/postconditions plus safe fallback")
+
+
+def test_skill_plank_preconditions_use_pinned_ingredient_family():
+    library = SkillLibrary(tempfile.mkdtemp(), persist=False)
+    template = {
+        "dsl_version": DSL_VERSION,
+        "max_actions": 1,
+        "phases": [{
+            "id": "craft_target",
+            "op": "craft_item",
+            "item": "crafting_table",
+            "count": 1,
+            "target_item": "crafting_table",
+            "target_count": 1,
+        }],
+    }
+    skill = library.create_skill(
+        "learned_craft_crafting_table",
+        "Craft one crafting table from any accepted planks",
+        json.dumps(template),
+        persist=False,
+        skill_id="learned:craft_crafting_table",
+        status="advisory",
+        task_family="crafting",
+        preconditions={"inventory": {"oak_planks": 4}},
+        required_inventory=[{"item": "oak_planks", "count": 4}],
+        required_items=[{"item": "oak_planks", "count": 4}],
+        postconditions={"inventory": {"crafting_table": 1}},
+        bounded_action_template=template,
+        transfer_scope={"task_family": "crafting"},
+    )
+
+    for inventory in (
+        {"dark_oak_planks": 4},
+        {"spruce_planks": 2, "birch_planks": 2},
+    ):
+        world = {"inventory": inventory}
+        assert evaluate_skill_preconditions(skill, world) == []
+        assert library._missing_preconditions(skill, world) == []
+        assert library._missing_required_items(skill, inventory) == []
+        profile = library._skill_contract_profile(skill, "Craft crafting table from planks", world)
+        assert profile["missing_preconditions"] == []
+        assert profile["missing_required_items"] == []
+
+    for inventory in (
+        {"dark_oak_planks": 3},
+        {"oak_log": 4},
+    ):
+        assert evaluate_skill_preconditions(skill, {"inventory": inventory}) == [
+            "inventory:oak_planks>=4"
+        ]
+    print("PASS: skill readiness applies the pinned plank family without weakening quantity checks")
+
+
+def test_prerelease_skill_version_promotes_without_rewriting_quarantine_history():
+    library = SkillLibrary(tempfile.mkdtemp(), persist=False)
+    template = {
+        "dsl_version": DSL_VERSION,
+        "max_actions": 1,
+        "phases": [{
+            "id": "craft_target",
+            "op": "craft_item",
+            "item": "wooden_pickaxe",
+            "count": 1,
+            "target_item": "wooden_pickaxe",
+            "target_count": 1,
+        }],
+    }
+    skill_id = "learned:craft_wooden_pickaxe"
+    library.create_skill(
+        "learned_craft_wooden_pickaxe",
+        "Historical quarantined wooden pickaxe skill",
+        json.dumps(template),
+        persist=False,
+        skill_id=skill_id,
+        version="1.0.1",
+        status="quarantined",
+        bounded_action_template=template,
+    )
+    candidate = library.create_skill(
+        "learned_craft_wooden_pickaxe",
+        "Independently revalidated wooden pickaxe candidate",
+        json.dumps(template),
+        persist=False,
+        skill_id=skill_id,
+        version="1.0.2-candidate",
+        status="candidate",
+        parent_version="1.0.1",
+        rollback_target="1.0.1",
+        bounded_action_template=template,
+    )
+    assert library._version_key("1.0.1") < library._version_key(candidate.version)
+    assert library._version_key(candidate.version) < library._version_key("1.0.2")
+    assert library._next_patch_version(candidate.version) == "1.0.2"
+    assert library.get_skill_by_id(skill_id) is candidate
+    historical = {item.version: item for item in library.skill_versions(skill_id)}
+    assert historical["1.0.1"].status == "quarantined"
+    assert historical["1.0.2-candidate"].status == "candidate"
+    print("PASS: prerelease ordering supports stable 1.0.2 promotion and preserves quarantined 1.0.1")
 
 
 def _write_source_log(path: str, label: str) -> str:
     with open(path, "w", encoding="utf-8") as handle:
-        handle.write(json.dumps({"source": label}) + "\n")
+        events = [
+            {"session": label, "type": "skill_learning_runtime_profile", "data": {
+                "arm": "runtime",
+                "evidence_kind": "live_minecraft_skill_research",
+                "protocol_sha256": M1_PROTOCOL_SHA256,
+            }},
+            {"session": label, "type": "benchmark_reset", "data": {
+                "success": True,
+                "protocol_sha256": M1_PROTOCOL_SHA256,
+            }},
+            {"session": label, "type": "skill_selected", "data": {"skill_id": "learned:test"}},
+            {"session": label, "type": "goal_verification", "data": {
+                "achieved": True,
+                "status": "achieved",
+            }},
+            {"session": label, "type": "goal_end", "data": {
+                "result": {"completed": True, "termination_reason": "goal_verified"},
+            }},
+            {"session": label, "type": "skill_execution_outcome", "data": {
+                "success": True,
+                "attribution_confidence": 1.0,
+            }},
+        ]
+        for event in events:
+            handle.write(json.dumps(event) + "\n")
     with open(path, "rb") as handle:
         return hashlib.sha256(handle.read()).hexdigest()
 
@@ -419,6 +595,54 @@ def test_research_runtime_preserves_only_explicit_runtime_gate():
     print("PASS: controlled research preserves explicit runtime gates only for runtime arms")
 
 
+def test_wooden_pickaxe_heldout_fixture_is_allowlisted_and_position_verified():
+    class Bot:
+        def __init__(self):
+            self.commands = []
+
+        def chat(self, command):
+            self.commands.append(command)
+            return {"success": True}
+
+    class FixtureAgent:
+        def __init__(self):
+            self.bot = Bot()
+
+    agent = FixtureAgent()
+    setup = {
+        "after_state": {
+            "spawn_position": {"x": 10, "y": 64, "z": 20},
+            "fixture": {
+                "position": {"x": 11, "y": 64, "z": 20},
+                "block": "crafting_table",
+            },
+        },
+    }
+    research = _apply_research_fixture(agent, setup, "wooden_pickaxe_table_shift_v1")
+    assert research["success"]
+    assert agent.bot.commands == [
+        "/setblock 11 64 20 minecraft:air replace",
+        "/setblock 8 64 22 minecraft:crafting_table replace",
+    ]
+    observation = {
+        "nearby_blocks": [{
+            "name": "crafting_table",
+            "position": {"x": 8, "y": 64, "z": 22},
+        }],
+    }
+    verified = _verify_research_fixture(research, observation)
+    assert verified["verified"]
+    contaminated = _verify_research_fixture(research, {
+        "nearby_blocks": observation["nearby_blocks"] + [{
+            "name": "crafting_table",
+            "position": {"x": 11, "y": 64, "z": 20},
+        }],
+    })
+    assert not contaminated["verified"]
+    assert contaminated["forbidden_blocks_present"]
+    print("PASS: wooden-pickaxe held-out fixture uses only allowlisted commands and verifies the position shift")
+
+
 def test_controlled_fault_profiles_are_allowlisted_and_verifier_visible():
     class RecordingLogger:
         def __init__(self):
@@ -448,10 +672,26 @@ def test_controlled_fault_profiles_are_allowlisted_and_verifier_visible():
         }
         agent._apply_controlled_skill_fault(action)
         assert action["type"] == expected_type
+        assert action["skill_context"]["controlled_failure_only"] is True
+        assert action["skill_context"]["counts_toward_skill_lifecycle"] is False
         assert ActionVerifier().verify(action, {"inventory": {}}, goal="Craft a wooden pickaxe").status == "reject"
         agent._apply_controlled_skill_fault(action)
         assert len(agent.session_logger.events) == 1
         assert agent.session_logger.events[0]["data"]["counts_toward_promotion"] is False
+        agent._active_skill_execution = {"skill_id": "learned:craft_wooden_pickaxe"}
+        agent._skill_fallback_goals = set()
+        agent.skill_library = type("Library", (), {"record_use": lambda *args, **kwargs: None})()
+        agent._record_skill_usage(
+            action,
+            False,
+            {"action_verification": {"status": "reject"}, "error": "controlled rejection"},
+        )
+        assert agent._active_skill_execution["failure_type"] == "controlled_fault"
+        assert agent._active_skill_execution["counts_toward_skill_lifecycle"] is False
+        outcome_event = next(
+            event for event in agent.session_logger.events if event["type"] == "skill_action_result"
+        )
+        assert outcome_event["data"]["attributed"] is False
 
     normal_agent = object.__new__(Agent)
     normal_agent.config = Config(skill_fault_profile="reject_skill_craft_missing_item_v1")
@@ -462,6 +702,66 @@ def test_controlled_fault_profiles_are_allowlisted_and_verifier_visible():
     assert normal_action["parameters"]["item"] == "crafting_table"
     assert not normal_agent.session_logger.events
     print("PASS: controlled fault profiles are one-shot, skill-scoped, verifier-visible, and promotion-ineligible")
+
+
+def test_skill_local_success_does_not_depend_on_broader_goal_success():
+    class RecordingLogger:
+        def __init__(self):
+            self.events = []
+
+        def log(self, event_type, data, level="INFO"):
+            self.events.append({"type": event_type, "data": data, "level": level})
+
+    tmpdir = tempfile.mkdtemp()
+    library = SkillLibrary(os.path.join(tmpdir, "skills"), persist=False)
+    template = {
+        "dsl_version": "bounded_action_template_v1",
+        "max_actions": 1,
+        "phases": [{
+            "id": "craft_target",
+            "op": "craft_item",
+            "item": "wooden_pickaxe",
+            "count": 1,
+            "target_item": "wooden_pickaxe",
+            "target_count": 1,
+        }],
+    }
+    skill = library.create_skill(
+        "learned_craft_wooden_pickaxe",
+        "Craft one wooden pickaxe",
+        json.dumps(template),
+        skill_id="learned:craft_wooden_pickaxe",
+        status="advisory",
+        task_family="crafting",
+        bounded_action_template=template,
+        postconditions={"inventory": {"wooden_pickaxe": 1}},
+        transfer_scope={"task_family": "crafting"},
+    )
+    agent = object.__new__(Agent)
+    agent.config = Config(skill_experiment_id="partial-goal-candidate")
+    agent.skill_library = library
+    agent.skill_learning_ledger = None
+    agent.session_logger = RecordingLogger()
+    agent._active_skill_execution = {
+        "skill_id": skill.skill_id,
+        "mode": "runtime",
+        "executed_count": 1,
+        "failed_action_count": 0,
+        "effective_postconditions": {"inventory": {"wooden_pickaxe": 1}},
+    }
+    agent._finalize_active_skill_outcome(
+        "Craft wooden pickaxe and get cobblestone",
+        False,
+        {"inventory": {"wooden_pickaxe": 1}},
+        {"termination_reason": "empty_plan"},
+    )
+    restored = library.get_skill_by_id(skill.skill_id)
+    assert restored.success_count == 1
+    assert restored.failure_count == 0
+    outcome = next(item for item in agent.session_logger.events if item["type"] == "skill_execution_outcome")
+    assert outcome["data"]["success"] is True
+    assert outcome["data"]["goal_success"] is False
+    print("PASS: learned-skill attribution uses its local verified postconditions, not unrelated goal suffixes")
 
 
 def test_runtime_gate_paired_promotion_and_version_rollback():
@@ -609,27 +909,75 @@ def test_failure_attribution_demotes_and_quarantines_without_backend_penalty():
     assert skill.observed_failure_count == 2
     assert skill.failure_type_counts["routing_error"] == 1
 
+    controlled = library.record_learned_skill_outcome(
+        skill_id,
+        False,
+        {
+            "failure_type": "controlled_fault",
+            "first_failed_transition": "fault:0",
+            "controlled_failure_only": True,
+            "counts_toward_skill_lifecycle": False,
+        },
+    )
+    assert controlled["status"] == "executable"
+    assert skill.failure_count == 0
+    assert skill.failure_type_counts["controlled_fault"] == 1
+
     first = library.record_learned_skill_outcome(
         skill_id,
         False,
-        {"failure_type": "skill_error", "first_failed_transition": "dig:0"},
+        {
+            "failure_type": "skill_error",
+            "first_failed_transition": "dig:0",
+            "experiment_id": "skill-failure-1",
+        },
     )
     assert first["status"] == "executable"
     second = library.record_learned_skill_outcome(
         skill_id,
         False,
-        {"failure_type": "skill_error", "first_failed_transition": "dig:1"},
+        {
+            "failure_type": "skill_error",
+            "first_failed_transition": "dig:1",
+            "experiment_id": "skill-failure-2",
+        },
     )
     assert second["status"] == "advisory"
     third = library.record_learned_skill_outcome(
         skill_id,
         False,
-        {"failure_type": "postcondition_failure", "first_failed_transition": "postcondition"},
+        {
+            "failure_type": "postcondition_failure",
+            "first_failed_transition": "postcondition",
+            "experiment_id": "skill-failure-3",
+        },
     )
     assert third["status"] == "quarantined"
     assert skill.failure_type_counts["backend_execution_error"] == 1
     assert skill.failure_type_counts["skill_error"] == 2
-    print("PASS: failure attribution separates backend faults and automatically demotes then quarantines attributable failures")
+    for experiment_id, corrected_type in (
+        ("skill-failure-1", "backend_execution_error"),
+        ("skill-failure-2", "backend_execution_error"),
+        ("skill-failure-3", "framework_contract_binding_error"),
+    ):
+        corrected = library.reclassify_learned_skill_failure(
+            skill_id,
+            experiment_id,
+            corrected_type,
+            "verified framework attribution error",
+        )
+        assert corrected["changed"]
+    assert skill.failure_count == 0
+    restored = library.restore_quarantine_after_attribution_correction(
+        skill_id,
+        "all attributable failures were corrected to framework-owned causes",
+        {"tests": ["backend-retry", "local-postcondition-attribution"]},
+    )
+    assert restored["changed"]
+    assert skill.status == "executable"
+    assert skill.version == restored["version"]
+    assert skill.lifecycle_history[-1]["event"] == "quarantine_restored_after_attribution_correction"
+    print("PASS: failure attribution excludes controlled/backend faults and demotes only attributable failures")
 
 
 def test_heldout_transfer_and_m3_adapter():
@@ -686,6 +1034,8 @@ def test_heldout_transfer_and_m3_adapter():
         write_json(path, runtime)
         runtime_paths.append(path)
     continual = build_continual_learning_report(runtime_paths)
+    for case in continual["cases"]:
+        case["source_log"] = os.path.basename(case["source_log"])
     gate_path = os.path.join(tmpdir, "transfer-gate.json")
     continual_path = os.path.join(tmpdir, "continual.json")
     write_json(gate_path, transfer_gate)
@@ -693,6 +1043,7 @@ def test_heldout_transfer_and_m3_adapter():
     summary, errors = _build_m3_live_evidence(
         [(continual_path, continual), (gate_path, transfer_gate)],
         min_repeats=3,
+        source_root=Path(tmpdir),
     )
     assert not errors
     assert summary["status"] == "repeat_verified", summary
@@ -700,14 +1051,73 @@ def test_heldout_transfer_and_m3_adapter():
     print("PASS: held-out sessions do not overlap training and skill retrieval/outcome writes satisfy the M3 adapter")
 
 
+def test_heldout_fixture_validation_distinguishes_minimum_step_equivalence_from_positive_transfer():
+    tmpdir = tempfile.mkdtemp()
+    skill_id = "learned:craft_wooden_pickaxe"
+    baseline = _synthetic_live_run(
+        tmpdir,
+        skill_id,
+        "baseline",
+        "fixture-baseline",
+        steps=1,
+        heldout=True,
+    )
+    candidate = _synthetic_live_run(
+        tmpdir,
+        skill_id,
+        "candidate",
+        "fixture-candidate",
+        steps=1,
+        heldout=True,
+    )
+    for run in (baseline, candidate):
+        run["runtime_profile"]["research_fixture_profile"] = "wooden_pickaxe_table_shift_v1"
+        run["research_setup_evidence"].update({
+            "profile": "wooden_pickaxe_table_shift_v1",
+            "expected_blocks": [{
+                "name": "crafting_table",
+                "position": {"x": 8, "y": 64, "z": 22},
+            }],
+        })
+        run["control_fingerprint"] = "shifted-table-control"
+    baseline_path = os.path.join(tmpdir, "fixture-baseline.json")
+    candidate_path = os.path.join(tmpdir, "fixture-candidate.json")
+    write_json(baseline_path, baseline)
+    write_json(candidate_path, candidate)
+
+    report, gate = build_heldout_transfer_report(
+        baseline_path,
+        candidate_path,
+        skill_id,
+        training_task_set=["default table"],
+        validation_task_set=["default table pairs"],
+        heldout_task_set=["shifted placed table"],
+        unsupported_task_family=["combat"],
+        training_session_ids=["training-1", "training-2", "training-3"],
+    )
+
+    assert report["environment_step_gain"] == 0
+    assert report["positive_transfer"] is False
+    assert gate["readiness"] == "review"
+    assert report["heldout_fixture_validation"]["validated"] is True
+    assert report["heldout_fixture_validation"]["minimum_step_equivalence"] is True
+    assert gate["heldout_fixture_validation"]["readiness"] == "approved"
+    print("PASS: irreducible one-step held-out equivalence is validated without being mislabeled positive transfer")
+
+
 def main():
     test_candidate_extraction_dedup_and_provenance()
     test_typed_schema_preconditions_postconditions_and_fallback()
+    test_skill_plank_preconditions_use_pinned_ingredient_family()
+    test_prerelease_skill_version_promotes_without_rewriting_quarantine_history()
     test_research_runtime_preserves_only_explicit_runtime_gate()
+    test_wooden_pickaxe_heldout_fixture_is_allowlisted_and_position_verified()
     test_controlled_fault_profiles_are_allowlisted_and_verifier_visible()
+    test_skill_local_success_does_not_depend_on_broader_goal_success()
     test_runtime_gate_paired_promotion_and_version_rollback()
     test_failure_attribution_demotes_and_quarantines_without_backend_penalty()
     test_heldout_transfer_and_m3_adapter()
+    test_heldout_fixture_validation_distinguishes_minimum_step_equivalence_from_positive_transfer()
     print("\nSELF-LEARNING TESTS PASSED")
 
 

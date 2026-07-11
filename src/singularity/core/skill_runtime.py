@@ -13,6 +13,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from singularity.data.knowledge_base import ingredient_count
+
 
 DSL_VERSION = "bounded_action_template_v1"
 ALLOWED_OPERATIONS = {"acquire_block_drop", "craft_item"}
@@ -217,6 +219,7 @@ def build_bounded_skill_plan(skill: Any, goal: str, world_state: dict) -> dict:
 def evaluate_skill_preconditions(skill: Any, world_state: dict) -> list[str]:
     preconditions = _skill_value(skill, "preconditions", {})
     required_inventory = _skill_value(skill, "required_inventory", [])
+    required_observations = _skill_value(skill, "required_observations", [])
     if not required_inventory:
         required_inventory = _skill_value(skill, "required_items", [])
     inventory = _inventory(world_state)
@@ -225,7 +228,7 @@ def evaluate_skill_preconditions(skill: Any, world_state: dict) -> list[str]:
     if isinstance(inventory_requirements, dict):
         for item, count in inventory_requirements.items():
             needed = max(1, _safe_int(count, 1))
-            if inventory.get(str(item), 0) < needed:
+            if ingredient_count(str(item), inventory) < needed:
                 issues.append(f"inventory:{item}>={needed}")
     for requirement in required_inventory if isinstance(required_inventory, list) else []:
         if isinstance(requirement, dict):
@@ -233,9 +236,62 @@ def evaluate_skill_preconditions(skill: Any, world_state: dict) -> list[str]:
             needed = max(1, _safe_int(requirement.get("count"), 1))
         else:
             item, needed = str(requirement or "").strip(), 1
-        if item and inventory.get(item, 0) < needed:
+        if item and ingredient_count(item, inventory) < needed:
             issues.append(f"inventory:{item}>={needed}")
+    nearby_requirements = (
+        preconditions.get("nearby_block_present", [])
+        if isinstance(preconditions, dict)
+        else []
+    )
+    if isinstance(nearby_requirements, str):
+        nearby_requirements = [nearby_requirements]
+    distance_limits = (
+        preconditions.get("nearby_block_max_distance", {})
+        if isinstance(preconditions, dict)
+        else {}
+    )
+    for block in nearby_requirements if isinstance(nearby_requirements, list) else []:
+        name = _safe_name(block)
+        limit = _safe_float(distance_limits.get(name), 4.5) if isinstance(distance_limits, dict) else 4.5
+        if name and not _nearby_block_observed(world_state, name, limit):
+            issues.append(f"nearby_block:{name}<={limit:g}")
+    for requirement in required_observations if isinstance(required_observations, list) else []:
+        observation = str(requirement or "").strip().lower()
+        if observation == "inventory" and not isinstance(world_state.get("inventory"), dict):
+            issues.append("observation:inventory")
+        elif observation.startswith("nearby_block:"):
+            name = _safe_name(observation.split(":", 1)[1])
+            limit = _safe_float(distance_limits.get(name), 4.5) if isinstance(distance_limits, dict) else 4.5
+            if name and not _nearby_block_observed(world_state, name, limit):
+                issues.append(f"nearby_block:{name}<={limit:g}")
+        elif observation.startswith("observed_block:"):
+            name = _safe_name(observation.split(":", 1)[1])
+            if name and not _observed_blocks(world_state, {name}, 32.0):
+                issues.append(f"observation:observed_block:{name}")
     return sorted(set(issues))
+
+
+def _nearby_block_observed(world_state: dict, name: str, max_distance: float) -> bool:
+    position = world_state.get("position", {}) if isinstance(world_state.get("position"), dict) else {}
+    values = world_state.get("nearby_blocks", [])
+    if isinstance(values, dict):
+        values = list(values.values())
+    for item in values if isinstance(values, list) else []:
+        if isinstance(item, str):
+            if _safe_name(item) == name:
+                return True
+            continue
+        if not isinstance(item, dict):
+            continue
+        observed_name = _safe_name(item.get("name") or item.get("block") or item.get("type"))
+        if observed_name != name:
+            continue
+        distance = item.get("distance")
+        if distance is None and isinstance(item.get("position"), dict):
+            distance = _distance(position, item["position"])
+        if distance is None or _safe_float(distance, max_distance + 1.0) <= max_distance:
+            return True
+    return False
 
 
 def evaluate_skill_postconditions(skill: Any, world_state: dict) -> tuple[bool, list[str]]:
@@ -522,6 +578,13 @@ def _safe_name(value: Any) -> str:
 def _safe_int(value: Any, default: int) -> int:
     try:
         return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_float(value: Any, default: float) -> float:
+    try:
+        return float(value)
     except (TypeError, ValueError):
         return default
 

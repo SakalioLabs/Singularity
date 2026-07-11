@@ -19,7 +19,7 @@ class ActionMapper:
 
     CANONICAL_ACTIONS = {
         "walk_to", "move_to", "look_at", "dig", "place", "craft",
-        "attack", "equip", "use_item", "chat", "wait",
+        "attack", "equip", "use_item", "chat", "wait", "build_shelter_5x5",
     }
 
     def map(self, action: dict, backend: str = "mineflayer") -> BackendCommand:
@@ -49,6 +49,10 @@ class ActionMapper:
             "use_item": ("right_click_use", {"item": params.get("item"), "destination": params.get("destination", "hand")}),
             "chat": ("keyboard_chat", {"message": params.get("message", "")}),
             "wait": ("wait", {"duration_ms": params.get("ms", 1000)}),
+            "build_shelter_5x5": (
+                "build_shelter_5x5",
+                dict(params),
+            ),
         }
         command, mapped_params = mapping[action_type]
         return BackendCommand(

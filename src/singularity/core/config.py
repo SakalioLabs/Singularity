@@ -105,6 +105,12 @@ class Config:
     enable_goal_verification: bool = True
     enable_goal_critic: bool = False
     force_rule_planner: bool = False
+    planner_protocol: str = ""
+    require_llm_root_plan: bool = False
+    m2_task_id: str = ""
+    m2_arm: str = "default"
+    m2_pair_id: str = ""
+    m2_replicate_id: str = ""
     goal_critic_gate_paths: list[str] = field(default_factory=list)
     enable_world_model_curriculum_feedback: bool = True
     enable_blocked_plan_rule_fallback: bool = True

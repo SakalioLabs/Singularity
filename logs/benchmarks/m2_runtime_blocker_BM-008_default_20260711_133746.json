@@ -1,0 +1,17 @@
+{
+    "type":  "m2_runtime_blocker",
+    "schema_version":  1,
+    "generated_at_utc":  "2026-07-11T05:38:10.5356028Z",
+    "evidence_kind":  "runtime_setup_or_live_failure",
+    "counts_toward_live_observed":  false,
+    "counts_toward_repeat_verified":  false,
+    "task_id":  "BM-008",
+    "arm":  "default",
+    "pair_id":  "",
+    "replicate_id":  "",
+    "blocker":  "M2 benchmark command failed; inspect F:\\Codex-Project\\Singularity\\logs\\benchmarks\\m2_benchmark_BM-008_default_20260711_133746.json.",
+    "benchmark_result_path":  "logs\\benchmarks\\m2_benchmark_BM-008_default_20260711_133746.json",
+    "manifest_path":  "logs\\benchmarks\\m2_runtime_manifest_BM-008_default_20260711_133746.json",
+    "eula_accepted":  true,
+    "api_key_configured":  true
+}

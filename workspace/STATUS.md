@@ -1,4 +1,4 @@
-# STATUS.md | Last updated: 2026-07-10
+# STATUS.md | Last updated: 2026-07-11
 
 ## M1 Convergence Result
 
@@ -7,6 +7,43 @@
 - BM-001..005 each have three distinct verified live successes: `15/15` total.
 - The M1 convergence freeze is lifted; M2-M7 retain their own current evidence statuses.
 - Ordered gates, fixed protocol, and stop conditions are in `workspace/CONVERGENCE_PLAN.md`; failure-level evidence is in `workspace/evals/m1_failure_ledger.json`.
+
+## M3 Bounded Skill-Learning Result
+
+- M3 is `repeat_verified` under the canonical capability contract.
+- Three distinct later-session skill retrieval/outcome pairs pass raw-log hash, protocol, GoalVerifier, and attribution checks.
+- The gather-wood held-out transfer gate is approved with two disjoint live support sessions.
+- The historical 37-session failing report remains retained evidence, but it is superseded for current M3 status by the newer bounded-loop evidence.
+
+## M2 Convergence Result
+
+- `m2-fixed-v1` now pins BM-006..010 fixtures, Paper and dependency identities, the LLM request contract, planner/action/verifier/skill profiles, reset and validation hashes, limits, and machine-checkable terminal criteria.
+- A real Paper BM-010 empty-execution smoke proved that reset and terminal observations work and that planner text or an unchanged world cannot pass the shelter verifier.
+- A separate real Paper template smoke placed exactly 55 cobblestone blocks in survival, left the two-block entrance and interior clear, covered the roof, moved the player inside, and passed the independent shelter verifier.
+- Both smoke artifacts explicitly set `counts_toward_live_observed=false` and `counts_toward_repeat_verified=false`; they validate the harness, not M2 planning capability.
+- The fixed LLM contract now records the OpenAI-compatible endpoint `https://opencode.ai/zen/go/v1`, dialogue model `deepseek-v4-flash`, temperature 0, 4096 maximum tokens, and JSON-object response format. The credential is available outside the repository and is absent from all evidence artifacts.
+- The first BM-006 live baseline produced a valid three-node Root Plan but all three dig attempts used noncanonical parameter aliases. The retained failure motivated an exact typed dig contract without relaxing the ActionVerifier.
+- The next BM-006 baseline eliminated those alias rejects: two real digs succeeded, one craft produced four dark-oak planks, and two dependent task paths completed. It still failed with no crafting table; after the recovered craft, the `craft_planks` task remained `active` instead of becoming `completed`.
+- M2 action feedback now binds the pre-action task before observing consumptive post-state, and the exact one-log-to-four-planks regression passes offline. One live rerun stopped at a transient Root Plan connection error before any action, so it cannot validate that fix.
+- The following live rerun completed two grounded digs but never attempted craft: continuation planning saw the benchmark's required dig action without any successful-action history and redundantly dug a second log. This repeated behavior is now the earliest execution blocker.
+- `m2-successful-action-summary-v1` now injects at most eight typed successful actions from the current goal into continuation/replan calls and records the same bounded summary in planner-call evidence. In the next live run, the planner observed `dig:1`, advanced directly to planks, then observed `dig:1, craft:1` and selected crafting table without another dig.
+- That run completed the original `craft_planks active -> completed` transition and reached four dark-oak planks, but took 317.71 seconds under a fixed 240-second goal limit. Planner calls returned at elapsed 245.11 and 319.89 seconds and the Agent still executed their actions.
+- `m2-hard-total-deadline-v1` now binds every planner call to remaining goal time minus a fixed 30-second action window, disables provider retries, suppresses plans/actions after the deadline, and makes goal duration plus post-deadline event checks independently eligibility-critical. A boundary regression proves a late planner response executes zero actions.
+- The first post-fix live baseline recorded request budgets of 209.921, 185.750, and 164.078 seconds with zero retries, ended at goal elapsed 93.797 seconds, and recorded zero deadline events and zero post-deadline actions. Its first dig succeeded, but the next plan used `craft.parameters.recipe`; ActionVerifier correctly rejected the missing `item` parameter.
+- The strict planner schema now requires `craft.item` plus an optional positive integer `count`, rejects the `recipe` alias before execution, and persisted result artifacts now include `goal_elapsed_s` and `max_duration_s`. Four unchanged reruns then failed at the root request with provider `Connection error` before any action, while a non-counting 90-second full-prompt probe succeeded in 32.875 seconds.
+- A cooldown rerun validated the craft contract live: dig produced one dark-oak log, `craft(item=dark_oak_planks,count=4)` succeeded, `craft_planks` completed, and continuation selected `craft(item=crafting_table)`. ActionVerifier then rejected the four dark-oak planks because its recipe required exact `oak_planks:4`, before a later connection error.
+- `m2-machine-verifier-v2` now pins `minecraft-planks-tag-v1` and accepts the Minecraft 1.20.4 plank family, including mixed plank stacks, only when satisfying recipe ingredients. Terminal inventory targets remain exact.
+- A later HTTP 200 consumed all 4096 completion tokens in default thinking mode and returned no visible content. The fixed request now disables thinking, requires `finish_reason=stop` and zero reasoning bytes, and produced valid full Root Plans in 5-9 seconds with roughly 440-460 completion tokens.
+- Repeated continuation failures were typed as `APIConnectionError -> RemoteProtocolError`. The failed `Connection: close` hypothesis was removed. `m2-bounded-transport-retry-v1` instead keeps SDK retries at zero, permits one evidence-recorded transport-only retry after rebuilding the client, and recomputes the remaining deadline budget before retrying.
+- The next live run completed dig, dark-oak plank craft, and crafting-table craft in 39.328 seconds, but GoalVerifier rejected its hardcoded `oak_log` source check. BM-006 now pins the Minecraft 1.20.4 log/stem source family while retaining required block-removal and pickup proof; the prior live trace passes only as a non-counting replay.
+- The fresh controlled baseline then passed end to end in 26.23 seconds: one valid Root Plan, three successful actions, three complete task paths, exact `crafting_table:+1`, machine GoalVerifier achievement, zero deadline events, and protocol-eligible immutable session `4bb9d423-4ec` under the prior protocol revision.
+- Its matching candidate completed the task but selected no skill. Two `skill_deferred` events proved that the learned contract treated `oak_planks` as exact while the world held four `dark_oak_planks`; the pairing gate retained the comparable run but rejected it as ineligible.
+- `m2-bounded-skills-v2` now applies the pinned plank family to learned-skill preconditions and contract readiness as well as recipe verification. Quantity-short and non-plank controls remain rejected offline.
+- Three new fixed-protocol BM-006 baseline/candidate pairs passed in independent worlds. Every baseline kept skills off; every candidate selected `learned:craft_crafting_table@1.0.1` and contributed one successful verified craft action with attribution confidence 1.0. The canonical gate accepts all three pairs.
+- BM-007 converged with three eligible skill-off/skill-on pairs. The accepted pairs are `bm007-priority-one-r1`, `bm007-move-once-r1`, and `bm007-backoff-r3`; every candidate selected and successfully executed `learned:craft_wooden_pickaxe@1.0.2`.
+- Retained BM-007 failures exposed saturated nearby-block context, repeated movement, transient crafting inventory, and two framework-owned attribution errors. Nearby-block diversity, stable crafting confirmation with bounded cooldown, and local skill-postcondition attribution now have regression coverage. The original failures, the 1.0.2 quarantine event, both attribution corrections, and its approved-gate restoration remain in lifecycle history; historical 1.0.1 remains quarantined.
+- BM-008 passed three independent coal-mining runs. BM-009 passed three two-action stick-to-torch chains after the prompt stopped inventing a crafting table. BM-010 passed three independent 55-block shelter builds with exact wall, entrance, roof, episode-delta, player-inside, and dependent task-state proof.
+- M2 is `repeat_verified`: BM-006..010 all meet the three-run gate, BM-006 and BM-007 each have 3/3 eligible pairs, the pairing gate is approved, and sessions `591bf0aa-d7e` and `3b49bf83-84e` provide eligible recovery evidence.
 
 ## Evidence Policy
 
@@ -22,14 +59,14 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 
 | Phase | Name | Status | Progress |
 |-------|------|--------|----------|
-| M0 | Research Baseline | **Complete (source verified)** | Research deliverables present |
-| M1 | Minimum Viable Bot | **Complete (repeat verified)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
-| M2 | LLM Task Planning | **Evidence pending** | BM-006..010: no tracked execution evidence |
-| M3 | Skill Library & Memory | **Live failing** | 0/37 sessions qualify; no memory reads/writes and 2,601 unbounded context cycles |
-| M4 | Autonomous Survival | **Evidence pending** | BM-011..014: no tracked execution evidence |
-| M5 | Open-World Exploration | **Live failing** | 0/37 sessions qualify; world-model gate passes, but 0/27 goals completed |
-| M6 | Vision & Multimodal | **Live failing** | 0/37 sessions qualify; no verified screenshots or live-source visual-action interventions |
-| M7 | Multi-Agent Collaboration | **Evidence pending** | BM-701: no tracked live execution |
+| M0 | Research Baseline | **Complete (`source_verified`)** | Research deliverables present |
+| M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
+| M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
+| M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
+| M4 | Autonomous Survival | **Pending (`not_run`)** | BM-011..014: no tracked live execution evidence |
+| M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
+| M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
+| M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |
 
 Source is present and relevant offline suites pass for M1-M7, but those facts do not change the live statuses above.
 
@@ -38,9 +75,12 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 - Python, Java, Node.js, npm, and Mineflayer dependencies pass local preflight.
 - Pinned Paper 1.20.4 build 499 is present in the ignored runtime directory and its SHA-256 is verified.
 - Paper generated `server.properties` and `eula.txt`; the user authorized EULA acceptance, and the fixed server settings plus offline `Singularity` operator passed live preflight.
+- `mc-server/eula.txt` is currently `eula=true`; runtime scripts only verify this state and do not alter the agreement.
 - Port `3000` accepts TCP through `svchost.exe`, but fails the Singularity `health` protocol and now correctly fails the `bot_bridge` check.
-- Immutable result, preflight, manifest, and session evidence covers 23 live attempts; exactly 15 eligible successes count toward M1.
+- Immutable result, preflight, manifest, and session evidence covers 76 per-run live benchmark results; 15 eligible successes count toward M1 and 23 current-protocol successes toward M2.
 - `scripts/m1-runtime.ps1` provides a controlled one-task startup path on bridge port `30000`, creates a fresh level, records the server jar hash, restores server properties, and never accepts or edits the Minecraft EULA.
+- `scripts/m2-runtime.ps1` provides the equivalent fresh-world M2 path, enforces `m2-fixed-v1`, records immutable preflight/manifest/result artifacts, and supports non-counting harness/template smoke modes.
+- The M2 API endpoint and fixed non-thinking dialogue request pass full-prompt calls with bounded transport evidence. BM-006 and BM-007 each have three accepted skill-off/skill-on pairs under the current protocol; BM-008..010 each have three accepted default-arm runs.
 - The G1 harness is live-verified: canonical reset state, BM-004's five-cobblestone threshold, per-task limits, deterministic runtime isolation, transition evidence, and immutable sessions are enforced.
 
 ## Latest Verified Engineering Changes
@@ -59,6 +99,7 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 - Added knowledge-backed tool checks and grounded-coordinate checks to generic mining fallback.
 - Added `capability-evidence-report` to reject unsupported M0-M7 completion claims from benchmark and runtime evidence.
 - Added machine-checkable M3/M5/M6 adapters with distinct-session counting and independent mechanism gates.
+- Canonicalized M1/M3 evidence into repository-relative paths with per-file SHA-256, session, protocol, evidence-kind, and eligibility records; M3 source logs are now revalidated instead of trusted by path alone.
 - Generated tracked M3/M5/M6 evidence from all 37 existing sessions instead of treating missing reports as missing runs.
 - Added strict typed planning-memory budgets for both rule and LLM planning, including separator-aware packet accounting and explicit rejection when the runtime contract is disabled.
 - Added machine-checkable autonomous observation/plan/subgoal events and prevented queued tasks from silently retargeting an already generated plan.
@@ -75,6 +116,7 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 
 ## Next Acceptance Work
 
-1. Preserve the 15 counted M1 sessions and their immutable result/preflight/manifest files.
-2. Keep the deterministic M1 baseline unchanged unless a future regression produces new live evidence.
-3. Select the next milestone from its own earliest failing evidence gate; M1 no longer blocks that choice.
+1. Preserve the immutable M1 and M3 evidence and the quarantined wooden-pickaxe `1.0.1` history.
+2. Preserve executable wooden-pickaxe `1.0.2` as the independently gated repair; never restore executable authority to quarantined `1.0.1`.
+3. Keep the completed M2 evidence set immutable and rerun the canonical audit after any planner, bridge, verifier, or skill-lifecycle change.
+4. Treat M4 as the next unopened acceptance gate; no M4-M7 execution was started during M2 convergence.

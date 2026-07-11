@@ -1,0 +1,17 @@
+{
+    "type":  "m2_runtime_blocker",
+    "schema_version":  1,
+    "generated_at_utc":  "2026-07-11T05:25:47.6179145Z",
+    "evidence_kind":  "runtime_setup_or_live_failure",
+    "counts_toward_live_observed":  false,
+    "counts_toward_repeat_verified":  false,
+    "task_id":  "BM-007",
+    "arm":  "candidate",
+    "pair_id":  "bm007-craft-settle-r3",
+    "replicate_id":  "3",
+    "blocker":  "M2 benchmark failed eligibility: status=fail, protocol_eligible=False, reason=m2_protocol_evidence_ineligible.",
+    "benchmark_result_path":  "logs\\benchmarks\\m2_benchmark_BM-007_candidate_20260711_132345.json",
+    "manifest_path":  "logs\\benchmarks\\m2_runtime_manifest_BM-007_candidate_20260711_132345.json",
+    "eula_accepted":  true,
+    "api_key_configured":  true
+}

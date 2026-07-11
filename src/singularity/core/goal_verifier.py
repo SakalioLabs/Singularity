@@ -630,11 +630,6 @@ class GoalVerifier:
             description = getattr(skill, "description", "")
             for item, count in inventory_targets.items():
                 phrases = set(self._item_phrases(item))
-                phrases.update(self._keywords(skill_name.replace("_", " ")))
-                phrases.update(self._keywords(description))
-                phrases = {phrase for phrase in phrases if phrase and phrase not in self.DEFAULT_VERBS}
-                if not phrases:
-                    phrases = set(self._item_phrases(item))
                 verbs = self._verbs_from_skill_text(f"{skill_name} {description}")
                 anchors.append(VerifierAnchor(
                     canonical=item,

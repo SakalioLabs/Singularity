@@ -1,0 +1,23 @@
+{
+  "approved_candidate_count": 1,
+  "candidates": [
+    {
+      "candidate_readiness": "approved",
+      "decision": "allow_task_family_runtime_default",
+      "promotion_gate_fingerprint": "4738f62b79cf30a7af148d03554c55870a76e9922e4e9588d6589c34114d4c11",
+      "skill": "learned_craft_wooden_pickaxe",
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "task_family": "crafting"
+    }
+  ],
+  "decision": "allow_task_family_runtime_default",
+  "executable_promotion_gate_fingerprint": "4738f62b79cf30a7af148d03554c55870a76e9922e4e9588d6589c34114d4c11",
+  "readiness": "approved",
+  "reason": "paired live executable evidence approved",
+  "required": true,
+  "review_candidate_count": 0,
+  "schema_version": 1,
+  "source_report_id": "paired:learned:craft_wooden_pickaxe:1.0.2-candidate",
+  "target_task_family": "crafting",
+  "type": "skill_runtime_default_gate"
+}

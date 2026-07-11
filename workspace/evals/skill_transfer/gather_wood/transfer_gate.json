@@ -1,11 +1,14 @@
 {
   "average_generalization_gain": 1.0,
   "decision": "allow_candidate_promotion",
+  "eligibility": true,
   "evidence_count": 1,
+  "evidence_kind": "live_minecraft_skill_research",
   "heldout_source_session_ids": [
     "0432d494-c7d",
     "6da981d0-e7c"
   ],
+  "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
   "readiness": "approved",
   "ready_stream_count": 1,
   "regression_count": 0,

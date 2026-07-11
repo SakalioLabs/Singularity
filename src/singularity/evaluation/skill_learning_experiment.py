@@ -32,7 +32,12 @@ PAIRED_REPORT_TYPE = "skill_paired_ablation_report"
 TRANSFER_REPORT_TYPE = "skill_heldout_transfer_report"
 RUNTIME_GATE_TYPE = "skill_runtime_default_gate"
 ARMS = {"baseline", "shadow", "advisory", "candidate", "runtime", "fallback", "fault", "extraction"}
-RESEARCH_FIXTURE_PROFILES = {"protocol_default", "gather_oak_near_v1", "gather_oak_shifted_v1"}
+RESEARCH_FIXTURE_PROFILES = {
+    "protocol_default",
+    "gather_oak_near_v1",
+    "gather_oak_shifted_v1",
+    "wooden_pickaxe_table_shift_v1",
+}
 SKILL_FAULT_PROFILES = {
     "reject_skill_craft_missing_item_v1",
     "reject_skill_place_missing_item_v1",
@@ -166,8 +171,14 @@ def run_live_skill_arm(
     fixture_profile = str(research_fixture_profile or "protocol_default").strip().lower()
     if fixture_profile not in RESEARCH_FIXTURE_PROFILES:
         raise ValueError(f"unsupported research fixture profile: {fixture_profile}")
-    if fixture_profile != "protocol_default" and task.id != "BM-001":
-        raise ValueError("gather research fixtures are only valid for BM-001")
+    fixture_tasks = {
+        "gather_oak_near_v1": "BM-001",
+        "gather_oak_shifted_v1": "BM-001",
+        "wooden_pickaxe_table_shift_v1": "BM-003",
+    }
+    required_task = fixture_tasks.get(fixture_profile)
+    if required_task and task.id != required_task:
+        raise ValueError(f"{fixture_profile} is only valid for {required_task}")
     profile = skill_research_runtime_profile(research_config, arm, task.id, fixture_profile)
     goal = str(goal_override or task.goal)
     success_criteria = dict(success_criteria_override or task.success_criteria)
@@ -552,6 +563,32 @@ def build_heldout_transfer_report(
     training_ids = _unique(training_session_ids or [])
     heldout_ids = _unique([baseline.get("session_id"), candidate.get("session_id")])
     overlap_count = len(set(training_ids).intersection(heldout_ids))
+    baseline_profile = baseline.get("runtime_profile", {}) if isinstance(baseline.get("runtime_profile"), dict) else {}
+    candidate_profile = candidate.get("runtime_profile", {}) if isinstance(candidate.get("runtime_profile"), dict) else {}
+    fixture_profile = str(candidate_profile.get("research_fixture_profile") or "")
+    heldout_fixture_validated = bool(
+        controls_match
+        and distinct
+        and overlap_count == 0
+        and baseline.get("heldout") is True
+        and candidate.get("heldout") is True
+        and fixture_profile not in {"", "protocol_default"}
+        and baseline_profile.get("research_fixture_profile") == fixture_profile
+        and _run_artifact_integrity(baseline)
+        and _run_artifact_integrity(candidate)
+        and baseline.get("status") == "pass"
+        and candidate.get("status") == "pass"
+        and completion_gain >= 0
+        and efficiency_gain >= 0
+        and int(candidate_metrics.get("skill_selected_count", 0) or 0) == 1
+        and int(candidate_metrics.get("skill_executed_count", 0) or 0) >= 1
+        and int(candidate_metrics.get("skill_completion_count", 0) or 0) >= 1
+        and candidate_metrics.get("candidate_steps_verified") is True
+        and candidate_metrics.get("candidate_steps_reobserved") is True
+        and int(candidate_metrics.get("failed_actions", 0) or 0) == 0
+        and int(candidate_metrics.get("verifier_rejects", 0) or 0) == 0
+        and float(candidate_metrics.get("attribution_confidence", 0.0) or 0.0) >= 0.9
+    )
     positive_transfer = bool(
         controls_match
         and distinct
@@ -582,10 +619,36 @@ def build_heldout_transfer_report(
         "completion_gain": completion_gain,
         "environment_step_gain": efficiency_gain,
         "positive_transfer": positive_transfer,
+        "heldout_fixture_validation": {
+            "readiness": "approved" if heldout_fixture_validated else "review",
+            "decision": (
+                "allow_independent_fixture_validation"
+                if heldout_fixture_validated
+                else "keep_fixture_validation_review_only"
+            ),
+            "validated": heldout_fixture_validated,
+            "fixture_profile": fixture_profile,
+            "requires_positive_efficiency_gain": False,
+            "requires_nonnegative_efficiency_gain": True,
+            "minimum_step_equivalence": baseline_steps == candidate_steps == 1,
+            "candidate_steps_verified": candidate_metrics.get("candidate_steps_verified") is True,
+            "candidate_steps_reobserved": candidate_metrics.get("candidate_steps_reobserved") is True,
+            "candidate_attribution_confidence": float(
+                candidate_metrics.get("attribution_confidence", 0.0) or 0.0
+            ),
+        },
         "baseline": baseline,
         "candidate": candidate,
         "errors": errors,
     }
+    protocol_hashes = _unique([
+        baseline.get("protocol_sha256"),
+        candidate.get("protocol_sha256"),
+    ])
+    evidence_kinds = _unique([
+        (baseline.get("runtime_profile", {}) or {}).get("evidence_kind"),
+        (candidate.get("runtime_profile", {}) or {}).get("evidence_kind"),
+    ])
     gate = {
         "type": "task_stream_transfer_gate",
         "schema_version": 1,
@@ -601,6 +664,10 @@ def build_heldout_transfer_report(
         "heldout_source_session_ids": report["heldout_session_ids"],
         "training_heldout_overlap_count": overlap_count,
         "source_report_fingerprint": evidence_fingerprint(report),
+        "protocol_sha256": protocol_hashes[0] if len(protocol_hashes) == 1 else "",
+        "evidence_kind": evidence_kinds[0] if len(evidence_kinds) == 1 else "mixed",
+        "eligibility": positive_transfer,
+        "heldout_fixture_validation": report["heldout_fixture_validation"],
     }
     return report, gate
 
@@ -610,6 +677,8 @@ def build_continual_learning_report(runtime_paths: Iterable[str]) -> dict:
     cases = []
     for run in runs:
         metrics = run.get("metrics", {})
+        runtime_profile = run.get("runtime_profile", {}) if isinstance(run.get("runtime_profile"), dict) else {}
+        source_log = str(run.get("source_log") or "").replace("\\", "/")
         ready = bool(
             run.get("arm") == "runtime"
             and run.get("status") == "pass"
@@ -619,8 +688,16 @@ def build_continual_learning_report(runtime_paths: Iterable[str]) -> dict:
             and float(metrics.get("attribution_confidence", 0.0) or 0.0) >= 0.9
         )
         cases.append({
-            "source_log": run.get("source_log", ""),
+            "source_log": source_log,
+            "source_log_sha256": str(run.get("source_log_sha256") or "").lower(),
             "source_session_id": run.get("session_id", ""),
+            "protocol_sha256": str(
+                run.get("protocol_sha256")
+                or runtime_profile.get("protocol_sha256")
+                or ""
+            ).lower(),
+            "evidence_kind": str(runtime_profile.get("evidence_kind") or "unknown"),
+            "eligibility": ready,
             "skill_id": run.get("skill_id", ""),
             "ready_for_continual_learning_review": ready,
             "completed_goal_count": 1 if run.get("status") == "pass" else 0,
@@ -678,6 +755,47 @@ def _apply_research_fixture(agent: Agent, setup: dict, fixture_profile: str) -> 
             "error": "spawn_position_required_for_research_fixture",
             "arbitrary_commands_allowed": False,
         }
+    if fixture_profile == "wooden_pickaxe_table_shift_v1":
+        fixture = setup.get("after_state", {}).get("fixture", {})
+        source = fixture.get("position", {}) if isinstance(fixture, dict) else {}
+        try:
+            source_x = round(float(source["x"]))
+            source_y = round(float(source["y"]))
+            source_z = round(float(source["z"]))
+        except (KeyError, TypeError, ValueError):
+            return {
+                "profile": fixture_profile,
+                "success": False,
+                "verified": False,
+                "error": "default_crafting_table_position_required",
+                "arbitrary_commands_allowed": False,
+            }
+        target_x, target_y, target_z = x - 2, y, z + 2
+        commands = [
+            f"/setblock {source_x} {source_y} {source_z} minecraft:air replace",
+            f"/setblock {target_x} {target_y} {target_z} minecraft:crafting_table replace",
+        ]
+        results = [agent.bot.chat(command) for command in commands]
+        time.sleep(1.2)
+        return {
+            "profile": fixture_profile,
+            "success": all(result.get("success") is True for result in results),
+            "verified": False,
+            "expected_blocks": [{
+                "name": "crafting_table",
+                "position": {"x": target_x, "y": target_y, "z": target_z},
+            }],
+            "forbidden_blocks": [{
+                "name": "crafting_table",
+                "position": {"x": source_x, "y": source_y, "z": source_z},
+            }],
+            "command_results": [
+                {"kind": "allowlisted_remove_default_table", "success": results[0].get("success") is True},
+                {"kind": "allowlisted_place_shifted_table", "success": results[1].get("success") is True},
+            ],
+            "arbitrary_commands_allowed": False,
+            "error": next((str(result.get("error") or "") for result in results if not result.get("success")), ""),
+        }
     if fixture_profile == "gather_oak_near_v1":
         target_x, target_z = x + 3, z
     else:
@@ -702,7 +820,8 @@ def _apply_research_fixture(agent: Agent, setup: dict, fixture_profile: str) -> 
 
 def _verify_research_fixture(research_setup: dict, observation: dict) -> dict:
     expected = research_setup.get("expected_blocks", [])
-    if not expected:
+    forbidden = research_setup.get("forbidden_blocks", [])
+    if not expected and not forbidden:
         return {**research_setup, "verified": research_setup.get("success") is True}
     observed = set()
     for key in ("nearby_blocks", "trees_found", "visible_blocks", "grounded_resources"):
@@ -727,11 +846,18 @@ def _verify_research_fixture(research_setup: dict, observation: dict) -> dict:
         key = (item["name"], position["x"], position["y"], position["z"])
         if key not in observed:
             missing.append(item)
+    forbidden_present = []
+    for item in forbidden:
+        position = item["position"]
+        key = (item["name"], position["x"], position["y"], position["z"])
+        if key in observed:
+            forbidden_present.append(item)
     return {
         **research_setup,
-        "verified": research_setup.get("success") is True and not missing,
+        "verified": research_setup.get("success") is True and not missing and not forbidden_present,
         "observed_expected_block_count": len(expected) - len(missing),
         "missing_expected_blocks": missing,
+        "forbidden_blocks_present": forbidden_present,
     }
 
 
@@ -843,6 +969,11 @@ def _assess_live_run(**kwargs) -> dict:
             if skill_outcomes and isinstance(skill_outcomes[-1].get("data"), dict)
             else {}
         )
+        lifecycle_outcome = (
+            outcome_data.get("lifecycle_outcome", {})
+            if isinstance(outcome_data.get("lifecycle_outcome"), dict)
+            else {}
+        )
         checks.update({
             "controlled_fault_applied": len(fault_events) == 1,
             "single_skill_selected": int(learning.get("skill_selected_count", 0) or 0) == 1,
@@ -851,14 +982,16 @@ def _assess_live_run(**kwargs) -> dict:
             "verifier_rejection_observed": verifier_rejects >= 1,
             "ordinary_planner_recovered": goal_verified and criteria_verified,
             "fallback_observed": int(learning.get("skill_fallback_count", 0) or 0) >= 1,
-            "failure_attributed": (
+            "controlled_fault_excluded_from_lifecycle": (
                 outcome_data.get("success") is False
-                and outcome_data.get("failure_type") in {
-                    "skill_error",
-                    "precondition_misclassification",
-                    "postcondition_failure",
-                }
+                and outcome_data.get("failure_type") == "controlled_fault"
+                and outcome_data.get("controlled_failure_only") is True
+                and outcome_data.get("counts_toward_skill_lifecycle") is False
                 and float(outcome_data.get("attribution_confidence", 0.0) or 0.0) >= 0.9
+            ),
+            "skill_status_preserved": (
+                lifecycle_outcome.get("status_changed") is False
+                and lifecycle_outcome.get("previous_status") == lifecycle_outcome.get("status")
             ),
             "fault_cannot_promote": all(
                 event.get("data", {}).get("counts_toward_promotion") is False

@@ -1,0 +1,398 @@
+[
+  {
+    "task_id": "BM-009",
+    "task_name": "Craft a torch",
+    "status": "fail",
+    "cycles": 37,
+    "duration_s": 215.34,
+    "goal_elapsed_s": 210.094,
+    "max_duration_s": 240.0,
+    "inventory": {
+      "crafting_table": 1,
+      "coal": 1,
+      "stick": 4
+    },
+    "error": "",
+    "failure_reason": "inventory_success_criteria_not_observed;goal_verifier_not_achieved;m2_protocol_evidence_ineligible",
+    "intervention_metrics": {
+      "policy_hint_count": 0,
+      "policy_intervention_count": 0,
+      "policy_intervention_actions": 0,
+      "policy_intervention_successes": 0,
+      "policy_intervention_failures": 0,
+      "policy_intervention_success_rate": 0.0,
+      "policy_intervention_skills": [],
+      "visual_action_suggestion_event_count": 0,
+      "visual_action_suggestion_count": 0,
+      "visual_action_intervention_count": 0,
+      "visual_action_suggestion_kinds": {},
+      "visual_action_intervention_kinds": {},
+      "visual_action_intervention_phases": {},
+      "visual_action_action_types": {},
+      "visual_action_goals": [],
+      "skill_memory_hint_event_count": 0,
+      "skill_memory_hint_count": 0,
+      "skill_memory_task_families": {},
+      "skill_selected_count": 0,
+      "skill_executed_count": 0,
+      "skill_successful_action_count": 0,
+      "skill_failed_action_count": 0,
+      "skill_completion_count": 0,
+      "skill_outcome_count": 0,
+      "skill_fallback_count": 0,
+      "skill_shadow_plan_count": 0,
+      "skill_advisory_hint_count": 0,
+      "skill_candidate_extraction_count": 0,
+      "skill_attribution_confidence": 0.0,
+      "skill_ids": [],
+      "action_verification_event_count": 36,
+      "action_verification_status_counts": {
+        "accept": 3,
+        "reject": 32,
+        "review": 1
+      },
+      "action_verification_action_types": {
+        "craft": 12,
+        "dig": 1,
+        "place": 23
+      },
+      "action_verification_blocked_count": 32,
+      "action_candidate_selection_event_count": 0,
+      "action_candidate_selection_repaired_reject_count": 0,
+      "action_candidate_selection_selected_types": {}
+    },
+    "memory_policy_metrics": {
+      "memory_write_count": 270,
+      "memory_read_count": 37,
+      "memory_manage_count": 0,
+      "memory_write_layers": {
+        "episodic": 160,
+        "context": 110
+      },
+      "memory_write_types": {
+        "goal_start": 1,
+        "context": 110,
+        "goal_verification": 41,
+        "action_verification": 36,
+        "task_state_update": 12,
+        "action": 36,
+        "failure": 32,
+        "empty_plan": 1,
+        "goal_end": 1
+      },
+      "memory_read_types": {
+        "opportunity_context": 37
+      },
+      "memory_manage_operations": {},
+      "memory_policy_decisions": {
+        "write_blocked": 270,
+        "read_allowed": 37
+      },
+      "memory_read_filter_event_count": 0,
+      "memory_read_filtered_entries": 0,
+      "memory_read_filter_reasons": {},
+      "memory_retrieval_trace_event_count": 0,
+      "weighted_memory_read_count": 0,
+      "weighted_memory_match_count": 0,
+      "weighted_transfer_match_count": 0,
+      "memory_attribution_policy_counts": {}
+    },
+    "log": "logs\\session_70d871b5-c73.jsonl",
+    "session_id": "70d871b5-c73",
+    "session_sha256": "5fe457abb5f78949bb696dc7309c17bdb9c5f164c2131a9cdba0243f8d5e6dde",
+    "goal_verified": false,
+    "criteria_verified": false,
+    "termination_reason": "empty_plan",
+    "setup_evidence": {
+      "success": true,
+      "error": "",
+      "profile": "m2-fixed-v1",
+      "protocol_sha256": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "reset_protocol_sha256": "19f3418e216865d7c9497d81128febcf3e169217a9639236d04512f39f3701de",
+      "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd",
+      "episode_id": "m2_episode_20260711_134401_a0a29a15",
+      "level_name": "m2_episode_20260711_134401_a0a29a15_bm_009",
+      "seed": "12345",
+      "server_brand": "Paper",
+      "observed_minecraft_version": "1.20.4",
+      "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+      "task_id": "BM-009",
+      "expected": {
+        "initial_inventory": {
+          "coal": 1,
+          "oak_planks": 2
+        },
+        "initial_blocks": [],
+        "game_mode": "survival",
+        "difficulty": "peaceful",
+        "time_of_day": 1000,
+        "weather": "clear"
+      },
+      "before_state": {
+        "position": {
+          "x": 105.5,
+          "y": 145,
+          "z": -21.5
+        },
+        "spawn_position": {
+          "x": 96,
+          "y": 144,
+          "z": -32
+        },
+        "health": 20,
+        "food": 20,
+        "inventory": {},
+        "game_mode": "survival",
+        "difficulty": "peaceful",
+        "dimension": "overworld",
+        "time_of_day": 217,
+        "weather": "clear",
+        "fixture": {
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -32
+          },
+          "block": "air"
+        },
+        "fixture_blocks": []
+      },
+      "after_state": {
+        "position": {
+          "x": 96.5,
+          "y": 144,
+          "z": -31.5
+        },
+        "spawn_position": {
+          "x": 96,
+          "y": 144,
+          "z": -32
+        },
+        "health": 20,
+        "food": 20,
+        "inventory": {
+          "coal": 1,
+          "oak_planks": 2
+        },
+        "game_mode": "survival",
+        "difficulty": "peaceful",
+        "dimension": "overworld",
+        "time_of_day": 1059,
+        "weather": "clear",
+        "fixture": {
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -32
+          },
+          "block": "air"
+        },
+        "fixture_blocks": []
+      },
+      "structure_baseline": {},
+      "checks": {
+        "inventory_exact": true,
+        "position_at_spawn": true,
+        "position_distance": 0.707,
+        "game_mode": true,
+        "difficulty": true,
+        "dimension": true,
+        "daytime": true,
+        "time_initialized": true,
+        "weather": true,
+        "health": true,
+        "food": true,
+        "fixture": true
+      },
+      "failed_checks": [],
+      "command_count": 11
+    },
+    "evidence_validation": {
+      "profile": "m2_session_evidence_v1",
+      "protocol": "m2-fixed-v1",
+      "protocol_sha256": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "reset_protocol_sha256": "19f3418e216865d7c9497d81128febcf3e169217a9639236d04512f39f3701de",
+      "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd",
+      "passed": false,
+      "runtime_profile_eligible": true,
+      "deadline_policy_id": "m2-hard-total-deadline-v1",
+      "max_duration_s": 240.0,
+      "goal_elapsed_s": 210.094,
+      "duration_within_limit": true,
+      "deadline_exceeded_event_count": 0,
+      "post_deadline_action_count": 0,
+      "reset_verified": true,
+      "terminal_evidence_verified": true,
+      "machine_outcome_verified": false,
+      "goal_verifier_event_achieved": false,
+      "root_plan_id": "root-f785e0f5b72b45f7",
+      "valid_root_call_count": 1,
+      "planner_call_count": 37,
+      "replan_count": 31,
+      "planner_token_usage": 144285,
+      "planner_latency_ms": 173413,
+      "root_subtask_count": 4,
+      "root_dependency_edge_count": 3,
+      "task_transition_node_count": 9,
+      "complete_task_transition_node_count": 2,
+      "complete_task_transition_nodes": [
+        "craft_sticks",
+        "mine_log"
+      ],
+      "action_event_count": 36,
+      "successful_action_count": 4,
+      "action_failure_count": 32,
+      "verifier_reject_count": 41,
+      "failure_replan_proved": true,
+      "plan_cache_bypass_count": 0,
+      "skill_event_count": 0,
+      "skill_selected_count": 0,
+      "skill_action_success_count": 0,
+      "selected_skills": [],
+      "quarantined_skill_event_count": 0,
+      "fallback_count": 0,
+      "outcome_validation": {
+        "type": "m2_task_outcome_validation",
+        "task_id": "BM-009",
+        "passed": false,
+        "planner_completion_trusted": false,
+        "inventory_before": {
+          "coal": 1,
+          "oak_planks": 2
+        },
+        "inventory_after": {
+          "crafting_table": 1,
+          "coal": 1,
+          "stick": 4
+        },
+        "inventory_delta": {
+          "coal": 0,
+          "crafting_table": 1,
+          "oak_planks": -2,
+          "stick": 4
+        },
+        "action_proof": {
+          "passed": false,
+          "successful_action_count": 4,
+          "successful_action_types": [
+            "craft",
+            "dig",
+            "craft",
+            "craft"
+          ],
+          "issues": [
+            "torch_prerequisite_chain_unproved"
+          ]
+        },
+        "shelter_proof": {},
+        "issues": [
+          "inventory_delta_missing:torch",
+          "inventory_missing:torch",
+          "torch_prerequisite_chain_unproved"
+        ]
+      },
+      "protocol_integrity": {
+        "passed": true,
+        "protocol_sha256": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+        "expected_hashes": {
+          "planner_schema_sha256": "bc2bced8e5da87b89d8fdbfc8df02f89849fb1b87ca480e67b9fe7015e42a29f",
+          "reset_protocol_sha256": "19f3418e216865d7c9497d81128febcf3e169217a9639236d04512f39f3701de",
+          "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd"
+        },
+        "mismatches": []
+      },
+      "issues": [
+        "m2_goal_verifier_evidence_missing",
+        "m2_machine_outcome_failed"
+      ]
+    },
+    "runtime_profile": {
+      "profile": "m2_llm_root_runtime_v1",
+      "protocol": "m2-fixed-v1",
+      "protocol_sha256": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "reset_protocol_sha256": "19f3418e216865d7c9497d81128febcf3e169217a9639236d04512f39f3701de",
+      "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd",
+      "planner_schema_sha256": "bc2bced8e5da87b89d8fdbfc8df02f89849fb1b87ca480e67b9fe7015e42a29f",
+      "agent_id": "singularity-agent-v1",
+      "planner_id": "llm-root-planner-v1",
+      "action_backend_id": "mineflayer-bridge-v1",
+      "verifier_id": "m2-machine-verifier-v2",
+      "skill_runtime_profile_id": "m2-bounded-skills-v2",
+      "deadline_policy_id": "m2-hard-total-deadline-v1",
+      "llm_transport_policy_id": "m2-bounded-transport-retry-v1",
+      "isolated": true,
+      "eligible_configuration": true,
+      "settings": {
+        "llm_configured": true,
+        "provider": "openai",
+        "base_url": "https://opencode.ai/zen/go/v1",
+        "model": "deepseek-v4-flash",
+        "temperature": 0.0,
+        "max_tokens": 4096,
+        "response_format": {
+          "type": "json_object"
+        },
+        "extra_body": {
+          "thinking": {
+            "type": "disabled"
+          }
+        },
+        "force_rule_planner": false,
+        "require_llm_root_plan": true,
+        "planner_protocol": "m2-fixed-v1",
+        "plan_cache": false,
+        "blocked_plan_rule_fallback": false,
+        "task_readiness_context": true,
+        "task_readiness_recovery": true,
+        "skill_execution_mode": "off",
+        "target_skill_id": "",
+        "m2_arm": "default",
+        "m2_pair_id": "",
+        "m2_replicate_id": "",
+        "deadline_policy_id": "m2-hard-total-deadline-v1",
+        "action_guard_ms": 30000,
+        "planner_max_retries": 0,
+        "llm_transport_policy_id": "m2-bounded-transport-retry-v1",
+        "application_transport_max_retries": 1,
+        "python_version": "3.12.8"
+      }
+    },
+    "evidence_kind": "live_minecraft",
+    "protocol_eligible": false,
+    "terminal_evidence": {
+      "success": true,
+      "profile": "m2-fixed-v1",
+      "protocol_sha256": "deeff43e51b03ba435db03c7f8760b0279d8d45190dd5bca69cd0c24c75100bb",
+      "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd",
+      "task_id": "BM-009",
+      "inventory": {
+        "crafting_table": 1,
+        "coal": 1,
+        "stick": 4
+      },
+      "player_position": {
+        "x": 94.443913588,
+        "y": 142,
+        "z": -30.499999999999957
+      },
+      "equipment": [
+        {
+          "slot": 0,
+          "name": "coal",
+          "count": 1
+        }
+      ],
+      "fixture_blocks": [],
+      "structure_post": {},
+      "observed_at_ms": 1783748884329
+    },
+    "experiment_metadata": {
+      "arm": "default",
+      "pair_id": "",
+      "replicate_id": "",
+      "skill_execution_mode": "off",
+      "target_skill_id": "",
+      "skill_experiment_id": ""
+    }
+  }
+]

@@ -260,6 +260,93 @@ class FakeRuntime:
         return self.Decision()
 
 
+def _initialize_bare_agent_runtime_state(agent: Agent) -> Agent:
+    agent.config = Config()
+    agent._active_skill_execution = {}
+    agent._active_skill_advisory_hint = ""
+    agent._skill_fallback_goals = set()
+    agent._applied_skill_fault_profiles = set()
+    agent._skill_episode_start_index = 0
+    agent.skill_extractor = None
+    agent.skill_candidate_queue = None
+    agent.skill_learning_ledger = None
+    return agent
+
+
+def _approve_runtime_default_skills(skill_library: SkillLibrary, *skill_families: tuple[str, str]) -> dict:
+    candidates = [
+        {
+            "skill": skill_name,
+            "task_family": task_family,
+            "candidate_readiness": "approved",
+        }
+        for skill_name, task_family in skill_families
+    ]
+    applied = skill_library.record_skill_runtime_default_gate({
+        "readiness": "approved",
+        "decision": "allow_task_family_runtime_default_skills",
+        "candidates": candidates,
+    })
+    assert applied == len(candidates)
+    return skill_library.skill_runtime_default_profile()
+
+
+def _craft_skill_template(item: str, count: int = 1) -> dict:
+    return {
+        "dsl_version": "bounded_action_template_v1",
+        "max_actions": 1,
+        "phases": [{
+            "id": "craft_target",
+            "op": "craft_item",
+            "item": item,
+            "count": count,
+            "target_item": item,
+            "target_count": count,
+        }],
+    }
+
+
+def _gather_skill_template(block: str, item: str, count: int = 1) -> dict:
+    return {
+        "dsl_version": "bounded_action_template_v1",
+        "max_actions": count,
+        "phases": [{
+            "id": "acquire_target",
+            "op": "acquire_block_drop",
+            "source_blocks": [block],
+            "target_item": item,
+            "target_count": count,
+            "selector": "nearest_observed",
+            "search_radius": 32,
+            "interaction_range": 4.5,
+            "navigation_tolerance": 1.75,
+        }],
+    }
+
+
+def _attach_verified_live_sources(candidate: SkillCandidate, prefix: str = "fixture") -> SkillCandidate:
+    sources = []
+    for index in range(3):
+        sources.append({
+            "source_log": f"logs/{prefix}-{index}.jsonl",
+            "source_trace_sha256": f"{index + 1:064x}",
+            "session_id": f"{prefix}-session-{index}",
+            "environment_id": f"{prefix}-environment-{index}",
+            "goal_verifier_achieved": True,
+            "transition_count": 1,
+            "transition_proof_count": 1,
+            "runtime_eligible": True,
+            "evidence_kind": "live_verified",
+        })
+    candidate.provenance = {"sources": sources}
+    candidate.source_session_ids = [source["session_id"] for source in sources]
+    candidate.source_environment_ids = [source["environment_id"] for source in sources]
+    candidate.success_count = len(sources)
+    candidate.runtime_eligible = True
+    candidate.evidence_kind = "live_verified"
+    return candidate
+
+
 def test_knowledge_base_loads_recipes():
     kb = KnowledgeBase()
     assert kb.get_recipe("crafting_table")
@@ -2211,7 +2298,7 @@ def test_agent_injects_task_readiness_context_for_planner():
 
 
 def test_agent_passes_task_readiness_context_to_llm_planner():
-    agent = object.__new__(Agent)
+    agent = _initialize_bare_agent_runtime_state(object.__new__(Agent))
     agent.config = Config(enable_task_readiness_context=True)
     agent.session_logger = FakeSessionLogger()
     agent.task_system = TaskSystem()
@@ -2276,7 +2363,18 @@ def test_agent_injects_skill_memory_context_for_planner():
         "Craft torches after securing coal",
         json.dumps([{"type": "craft", "parameters": {"item": "torch"}}]),
         postconditions={"inventory": {"torch": 4}},
+        status="advisory",
     )
+    agent.skill_library.record_skill_runtime_default_gate({
+        "readiness": "approved",
+        "decision": "allow_task_family_runtime_default_skills",
+        "target_task_family": "crafting",
+        "candidates": [{
+            "skill": "craft_torch_memory_skill",
+            "task_family": "crafting",
+            "candidate_readiness": "approved",
+        }],
+    })
     agent.skill_library.record_skill_memory(
         "craft_torch_memory_skill",
         "Mine coal_ore before crafting torches when coal is missing.",
@@ -2477,7 +2575,7 @@ def test_skill_extractor_creates_experience_atom_and_skill():
 
     memory = MemorySystem(memory_dir=tmpdir)
     skills = SkillLibrary()
-    extractor = SkillExtractor(skills, memory)
+    extractor = SkillExtractor(skills, memory, auto_promote=True)
 
     score = extractor.consolidation_score(path)
     assert score["should_promote"]
@@ -2514,8 +2612,11 @@ def test_skill_extractor_review_gate():
     assert not created
     assert skills.get_skill(candidates[0].name) is None
     approved = extractor.approve_candidate(candidates[0])
-    assert approved.name == candidates[0].name
-    print("PASS: SkillExtractor review gate holds candidates until approval")
+    assert approved is None
+    assert candidates[0].review_status == "rejected"
+    assert candidates[0].signals["promotion_report"]["reason"] == "no_goal_verification_event"
+    assert skills.get_skill(candidates[0].name) is None
+    print("PASS: SkillExtractor review gate rejects unverified manual approval")
 
 
 def test_skill_candidate_queue_persists_and_approves_custom_skill():
@@ -2542,12 +2643,13 @@ def test_skill_candidate_queue_persists_and_approves_custom_skill():
     assert reloaded_queue.pending()[0].id == candidate.id
 
     durable_skills = SkillLibrary(storage_path=skill_dir, persist=True)
-    approved = reloaded_queue.approve(candidate.id, durable_skills)
-    assert approved and approved.review_status == "approved"
+    reviewed = reloaded_queue.approve(candidate.id, durable_skills)
+    assert reviewed and reviewed.review_status == "rejected"
 
     reloaded_skills = SkillLibrary(storage_path=skill_dir, persist=True)
-    assert reloaded_skills.get_skill(candidate.name)
-    print("PASS: Skill candidate queue persists and approves custom skill")
+    assert reloaded_skills.get_skill(candidate.name) is None
+    assert SkillCandidateQueue(queue_path).candidates[candidate.id].review_status == "rejected"
+    print("PASS: Skill candidate queue persists rejected unverified approval")
 
 
 def test_skill_edit_proposal_report_routes_candidates_through_transfer_probe():
@@ -2592,7 +2694,7 @@ def test_skill_edit_proposal_report_routes_candidates_through_transfer_probe():
         "inventory_delta": {"glass": 1},
         "evidence": ["glass inventory increased"],
     }
-    queue.enqueue(SkillCandidate(
+    create_candidate = SkillCandidate(
         id="create01",
         name="smelt_glass_route",
         goal="Smelt sand into glass",
@@ -2600,8 +2702,11 @@ def test_skill_edit_proposal_report_routes_candidates_through_transfer_probe():
         implementation=json.dumps([{"type": "smelt", "parameters": {"item": "glass", "count": 1}}]),
         score=0.82,
         signals={"verification_gate": glass_gate},
-    ))
-    queue.enqueue(SkillCandidate(
+        bounded_action_template=_craft_skill_template("glass"),
+        postconditions={"inventory": {"glass": 1}},
+    )
+    queue.enqueue(_attach_verified_live_sources(create_candidate, "create-glass"))
+    update_candidate = SkillCandidate(
         id="update01",
         name="torch_route_patch",
         goal="Improve torch crafting route",
@@ -2609,13 +2714,16 @@ def test_skill_edit_proposal_report_routes_candidates_through_transfer_probe():
         implementation=json.dumps([{"type": "craft", "parameters": {"item": "torch", "count": 4}}]),
         score=0.86,
         signals={"verification_gate": achieved_gate, "target_skill": "craft_torch_route"},
-    ))
-    queue.enqueue(SkillCandidate(
+        bounded_action_template=_craft_skill_template("torch", 4),
+        postconditions={"inventory": {"torch": 4}},
+    )
+    queue.enqueue(_attach_verified_live_sources(update_candidate, "update-torch"))
+    reject_candidate = SkillCandidate(
         id="reject01",
         name="unsafe_torch_route",
         goal="Craft torches without coal",
         description="Invalid route that failed verification",
-        implementation=json.dumps([{"type": "craft", "parameters": {"item": "torch", "count": 4}}]),
+        implementation=json.dumps([{"type": "craft", "parameters": {"item": "torch", "count": 2}}]),
         score=0.9,
         signals={
             "verification_gate": {
@@ -2625,7 +2733,10 @@ def test_skill_edit_proposal_report_routes_candidates_through_transfer_probe():
                 "evidence": [],
             }
         },
-    ))
+        bounded_action_template=_craft_skill_template("torch", 2),
+        postconditions={"inventory": {"torch": 2}},
+    )
+    queue.enqueue(_attach_verified_live_sources(reject_candidate, "reject-torch"))
 
     approved_report = build_skill_edit_proposal_report(
         queue_path=queue_path,
@@ -2679,6 +2790,7 @@ def test_skill_candidate_approval_writes_verified_postconditions():
     skills = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"))
     extractor = SkillExtractor(skills, auto_promote=False)
     candidate = extractor.extract_skill_candidates(session_path)[0]
+    _attach_verified_live_sources(candidate, "verified-torch")
     skill = extractor.approve_candidate(candidate)
 
     assert skill
@@ -2686,8 +2798,9 @@ def test_skill_candidate_approval_writes_verified_postconditions():
     assert candidate.review_status == "approved"
     assert candidate.signals["verification_gate"]["status"] == "achieved"
     report = candidate.signals["promotion_report"]
-    assert report["decision"] == "approve"
-    assert report["reason"] == "verified_postconditions_satisfied"
+    assert report["decision"] == "promote_advisory"
+    assert report["status"] == "advisory_ready"
+    assert report["reason"] == "three_verified_sources_support_advisory_promotion"
     assert report["postconditions"]["inventory"]["torch"] == 4
     assert skill.skill_memory
     assert skill.skill_memory[0]["type"] == "promotion"
@@ -2732,7 +2845,7 @@ def test_skill_candidate_approval_rejects_failed_verification():
     assert rejected and rejected.review_status == "rejected"
     assert "deterministic_evidence_missing" in rejected.reason
     assert rejected.signals["promotion_report"]["decision"] == "reject"
-    assert rejected.signals["promotion_report"]["missing"] == ["need 6 oak_log, have 3"]
+    assert "need 6 oak_log, have 3" in rejected.signals["promotion_report"]["missing"]
     assert durable_skills.get_skill(candidate.name) is None
     reloaded_queue = SkillCandidateQueue(queue_path)
     assert reloaded_queue.candidates[candidate.id].review_status == "rejected"
@@ -2757,9 +2870,10 @@ def test_skill_candidate_validation_report_explains_unknown_gate():
     candidate = extractor.extract_skill_candidates(session_path)[0]
     report = extractor.validate_candidate_for_promotion(candidate)
 
-    assert report.decision == "approve"
+    assert report.decision == "reject"
     assert report.status == "unknown"
     assert report.reason == "no_goal_verification_event"
+    assert "three_distinct_live_source_sessions_required" in report.missing
     assert report.warnings
     print("PASS: Skill candidate validation report explains unknown gate")
 
@@ -2810,13 +2924,13 @@ def test_skill_candidate_unknown_gate_uses_promotion_critic():
     assert "safe inventory" in visual["visual_analysis"][0]
     skill = extractor.approve_candidate(candidate)
 
-    assert skill
-    assert skill.postconditions["inventory"]["torch"] == 4
-    assert candidate.review_status == "approved"
+    assert skill is None
+    assert candidate.review_status == "retained"
     report = candidate.signals["promotion_report"]
-    assert report["decision"] == "approve"
-    assert report["status"] == "critic_approved"
-    assert report["reason"] == "critic_approved"
+    assert report["decision"] == "retain_candidate"
+    assert report["status"] == "candidate"
+    assert report["reason"] == "candidate_needs_more_independent_live_evidence"
+    assert report["postconditions"]["inventory"]["torch"] == 4
     assert report["critic"]["confidence"] == 0.82
     assert "promotion_critic" in report["matched_rules"]
     assert critic_llm.messages[0]["response_format"] == {"type": "json_object"}
@@ -2885,7 +2999,10 @@ def test_causal_evidence_gate_controls_causal_summary_promotion():
         implementation=implementation,
         score=0.91,
         signals={"source": "causal_summary", "verification_gate": verification_gate},
+        bounded_action_template=_gather_skill_template("oak_log", "oak_log", 3),
+        postconditions={"inventory": {"oak_log": 3}},
     )
+    _attach_verified_live_sources(blocked_candidate, "causal-blocked")
     blocked_extractor = SkillExtractor(SkillLibrary(storage_path=skill_dir), auto_promote=False)
     blocked_skill = blocked_extractor.approve_candidate(blocked_candidate)
 
@@ -2943,7 +3060,10 @@ def test_causal_evidence_gate_controls_causal_summary_promotion():
         implementation=implementation,
         score=0.91,
         signals={"source": "causal_summary", "verification_gate": verification_gate},
+        bounded_action_template=_gather_skill_template("oak_log", "oak_log", 3),
+        postconditions={"inventory": {"oak_log": 3}},
     )
+    _attach_verified_live_sources(ready_candidate, "causal-ready")
     ready_extractor = SkillExtractor(
         SkillLibrary(storage_path=skill_dir),
         auto_promote=False,
@@ -3020,6 +3140,11 @@ def test_skill_library_recommends_policy_skills_and_corrections():
         "correct_craft_torch_via_dig_coal_ore",
         "Correct missing coal before crafting torches",
         json.dumps(implementation),
+        status="advisory",
+    )
+    _approve_runtime_default_skills(
+        skills,
+        ("correct_craft_torch_via_dig_coal_ore", "crafting"),
     )
 
     world_state = {
@@ -3095,6 +3220,7 @@ def test_skill_library_routes_frontier_state_transitions():
         json.dumps({"type": "action_sequence", "actions": [{"type": "place", "parameters": {"item": "oak_planks"}}]}),
         postconditions={"structure": {"walls": True}},
         gate={"decision": "approve", "verification": {"status": "achieved"}},
+        status="advisory",
     )
     skills.record_skill_runtime_default_gate({
         "readiness": "approved",
@@ -3144,6 +3270,7 @@ def test_skill_library_runtime_default_gate_filters_learned_skills():
         "correct_craft_torch_via_dig_coal_ore",
         "Correct missing coal before crafting torches",
         json.dumps(implementation),
+        status="advisory",
     )
     world_state = {
         "inventory": {"stick": 1},
@@ -3168,6 +3295,7 @@ def test_skill_library_runtime_default_gate_filters_learned_skills():
         "correct_craft_torch_via_dig_coal_ore",
         "Correct missing coal before crafting torches",
         json.dumps(implementation),
+        status="advisory",
     )
     applied = approved.record_skill_runtime_default_gate({
         "readiness": "approved",
@@ -3255,6 +3383,7 @@ def test_skill_library_reports_contract_readiness_and_recommends_matches():
         postconditions={"inventory": {"torch": 4}},
         dependencies=["craft_item"],
         gate={"decision": "approve", "verification": {"status": "achieved"}},
+        status="advisory",
     )
     skills.create_skill(
         "mine_diamond_contract",
@@ -3265,6 +3394,7 @@ def test_skill_library_reports_contract_readiness_and_recommends_matches():
         dependencies=["dig_block"],
         postconditions={"inventory": {"diamond": 1}},
     )
+    _approve_runtime_default_skills(skills, ("craft_torch_contract", "crafting"))
 
     world_state = {
         "inventory": {"coal": 1, "stick": 2},
@@ -3302,6 +3432,7 @@ def test_skill_library_records_skill_level_memory_and_transfer_report():
         postconditions={"inventory": {"torch": 4}},
         dependencies=["craft_item"],
         gate={"decision": "approve", "verification": {"status": "achieved"}},
+        status="advisory",
     )
     skills.create_skill(
         "empty_custom_memory_skill",
@@ -3346,6 +3477,7 @@ def test_skill_library_records_skill_level_memory_and_transfer_report():
     assert review_only and review_only["transfer_readiness"] == "review"
 
     reloaded = SkillLibrary(storage_path=skill_dir, persist=True)
+    _approve_runtime_default_skills(reloaded, ("craft_torch_memory_skill", "crafting"))
     report = reloaded.skill_memory_report("Craft torches", task_family="crafting", limit=0)
     summaries = {summary["name"]: summary for summary in report["skills"]}
     torch = summaries["craft_torch_memory_skill"]
@@ -3403,12 +3535,19 @@ def test_skill_library_applies_quality_feedback_to_targeted_skill_only():
         "Craft torches from coal and sticks",
         json.dumps([{"type": "craft", "parameters": {"item": "torch"}}]),
         postconditions={"inventory": {"torch": 4}},
+        status="advisory",
     )
     skills.create_skill(
         "safe_torch_skill",
         "Craft torches after verifying coal and sticks",
         json.dumps([{"type": "craft", "parameters": {"item": "torch"}}]),
         postconditions={"inventory": {"torch": 4}},
+        status="advisory",
+    )
+    _approve_runtime_default_skills(
+        skills,
+        ("risky_torch_skill", "crafting"),
+        ("safe_torch_skill", "crafting"),
     )
     skills.record_skill_memory(
         "risky_torch_skill",
@@ -3508,7 +3647,7 @@ def test_skill_library_handles_legacy_dependency_string():
 
 def test_agent_runs_approved_failure_correction_sequence():
     tmpdir = tempfile.mkdtemp()
-    agent = object.__new__(Agent)
+    agent = _initialize_bare_agent_runtime_state(object.__new__(Agent))
     agent.skill_library = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"))
     implementation = {
         "type": "failure_correction_skill",
@@ -3524,6 +3663,11 @@ def test_agent_runs_approved_failure_correction_sequence():
         "correct_craft_torch_via_dig_coal_ore",
         "Correct missing coal before crafting torches",
         json.dumps(implementation),
+        status="advisory",
+    )
+    _approve_runtime_default_skills(
+        agent.skill_library,
+        ("correct_craft_torch_via_dig_coal_ore", "crafting"),
     )
     agent.memory = MemorySystem(memory_dir=os.path.join(tmpdir, "memory"))
     agent.task_system = TaskSystem()
@@ -3569,7 +3713,7 @@ def test_agent_runs_approved_failure_correction_sequence():
 
 def test_agent_records_failed_failure_correction_skill_memory():
     tmpdir = tempfile.mkdtemp()
-    agent = object.__new__(Agent)
+    agent = _initialize_bare_agent_runtime_state(object.__new__(Agent))
     agent.skill_library = SkillLibrary(storage_path=os.path.join(tmpdir, "skills"))
     implementation = {
         "type": "failure_correction_skill",
@@ -3585,6 +3729,11 @@ def test_agent_records_failed_failure_correction_skill_memory():
         "correct_craft_torch_failure_memory",
         "Correct missing coal before crafting torches",
         json.dumps(implementation),
+        status="advisory",
+    )
+    _approve_runtime_default_skills(
+        agent.skill_library,
+        ("correct_craft_torch_failure_memory", "crafting"),
     )
     agent.memory = MemorySystem(memory_dir=os.path.join(tmpdir, "memory"))
     agent.task_system = TaskSystem()
@@ -3638,6 +3787,7 @@ def test_agent_loads_reviewed_policy_skills_from_configured_storage():
         "correct_craft_torch_via_dig_coal_ore",
         "Correct missing coal before crafting torches",
         json.dumps(implementation),
+        status="advisory",
     )
 
     agent = Agent(Config(
@@ -3651,9 +3801,8 @@ def test_agent_loads_reviewed_policy_skills_from_configured_storage():
         {"nearby_blocks": [{"name": "coal_ore"}], "inventory": {"stick": 1}},
     )
 
-    assert match
-    assert match[0].name == "correct_craft_torch_via_dig_coal_ore"
-    print("PASS: Agent loads reviewed policy skills from configured storage")
+    assert match is None
+    print("PASS: Agent keeps reviewed policy skills disabled without a runtime-default gate")
 
 
 def test_agent_loads_skill_runtime_default_gate_from_configured_storage():
@@ -3671,6 +3820,7 @@ def test_agent_loads_skill_runtime_default_gate_from_configured_storage():
         "correct_craft_torch_via_dig_coal_ore",
         "Correct missing coal before crafting torches",
         json.dumps(implementation),
+        status="advisory",
     )
     gate_path = os.path.join(tmpdir, "skill_runtime_default_gate.json")
     with open(gate_path, "w", encoding="utf-8") as f:
@@ -4149,7 +4299,7 @@ def test_rule_planner_uses_bounded_typed_memory_contract():
 
 
 def test_llm_planner_uses_bounded_typed_memory_contract():
-    agent = object.__new__(Agent)
+    agent = _initialize_bare_agent_runtime_state(object.__new__(Agent))
     agent.config = Config(
         planning_memory_read_limit_chars=20,
         planning_memory_cycle_limit_chars=80,
@@ -4240,7 +4390,7 @@ def test_autonomous_loop_logs_machine_checkable_subgoal_events():
         "nearby_blocks": [{"name": "oak_log"}],
         "health": 20,
     }
-    agent = object.__new__(Agent)
+    agent = _initialize_bare_agent_runtime_state(object.__new__(Agent))
     agent.config = Config()
     agent.session_logger = FakeSessionLogger()
     agent.goal_generator = GoalGenerator()

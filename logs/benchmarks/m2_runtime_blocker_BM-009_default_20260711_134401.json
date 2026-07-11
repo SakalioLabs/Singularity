@@ -1,0 +1,17 @@
+{
+    "type":  "m2_runtime_blocker",
+    "schema_version":  1,
+    "generated_at_utc":  "2026-07-11T05:48:04.8170033Z",
+    "evidence_kind":  "runtime_setup_or_live_failure",
+    "counts_toward_live_observed":  false,
+    "counts_toward_repeat_verified":  false,
+    "task_id":  "BM-009",
+    "arm":  "default",
+    "pair_id":  "",
+    "replicate_id":  "",
+    "blocker":  "M2 benchmark failed eligibility: status=fail, protocol_eligible=False, reason=inventory_success_criteria_not_observed;goal_verifier_not_achieved;m2_protocol_evidence_ineligible.",
+    "benchmark_result_path":  "logs\\benchmarks\\m2_benchmark_BM-009_default_20260711_134401.json",
+    "manifest_path":  "logs\\benchmarks\\m2_runtime_manifest_BM-009_default_20260711_134401.json",
+    "eula_accepted":  true,
+    "api_key_configured":  true
+}

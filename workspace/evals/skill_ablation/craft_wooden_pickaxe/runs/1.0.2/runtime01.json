@@ -1,0 +1,168 @@
+{
+  "arm": "runtime",
+  "checks": {
+    "live_connection_and_reset": false
+  },
+  "duration_s": 6.029,
+  "error": "benchmark reset postconditions failed; ensure the bot is a server operator",
+  "experiment_id": "wp102-runtime01",
+  "failed_checks": [
+    "live_connection_and_reset"
+  ],
+  "goal": "Craft a wooden pickaxe",
+  "heldout": false,
+  "metrics": {},
+  "pair_id": "",
+  "replicate_id": "runtime1",
+  "run_id": "wp102-runtime01:runtime:0b2528ec-19f",
+  "runtime_profile": {
+    "action_backend_id": "mineflayer-bridge-v1",
+    "action_controller_enforced": true,
+    "action_verifier_enforced": true,
+    "agent_id": "singularity-agent-v1",
+    "arm": "runtime",
+    "candidate_extraction": false,
+    "controlled_failure_only": false,
+    "counts_toward_m1_acceptance": false,
+    "evidence_kind": "live_minecraft_skill_research",
+    "experiment_id": "wp102-runtime01",
+    "force_rule_planner": true,
+    "goal_verifier_enforced": true,
+    "memory_persistence": false,
+    "planner_id": "rule-based-v1",
+    "policy_skills": false,
+    "profile": "controlled_skill_learning_v1",
+    "protocol": "m1-fixed-v1",
+    "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+    "research_fixture_profile": "protocol_default",
+    "single_target_skill": true,
+    "skill_execution_mode": "runtime",
+    "skill_fault_profile": "",
+    "target_skill_id": "learned:craft_wooden_pickaxe",
+    "task_id": "BM-003",
+    "verifier_id": "goal-action-verifier-v1",
+    "vision": false,
+    "world_seed": "12345"
+  },
+  "schema_version": 1,
+  "session_id": "0b2528ec-19f",
+  "setup_evidence": {
+    "after_state": {
+      "difficulty": "peaceful",
+      "dimension": "overworld",
+      "fixture": {
+        "block": "air",
+        "position": {
+          "x": 97,
+          "y": 144,
+          "z": -32
+        }
+      },
+      "food": 20,
+      "game_mode": "survival",
+      "health": 20,
+      "inventory": {
+        "oak_planks": 3,
+        "stick": 2
+      },
+      "position": {
+        "x": 96.5,
+        "y": 144,
+        "z": -31.5
+      },
+      "spawn_position": {
+        "x": 96,
+        "y": 144,
+        "z": -32
+      },
+      "time_of_day": 1063,
+      "weather": "clear"
+    },
+    "before_state": {
+      "difficulty": "peaceful",
+      "dimension": "overworld",
+      "fixture": {
+        "block": "air",
+        "position": {
+          "x": 97,
+          "y": 144,
+          "z": -32
+        }
+      },
+      "food": 20,
+      "game_mode": "survival",
+      "health": 20,
+      "inventory": {},
+      "position": {
+        "x": 88.5,
+        "y": 91,
+        "z": -22.5
+      },
+      "spawn_position": {
+        "x": 96,
+        "y": 144,
+        "z": -32
+      },
+      "time_of_day": 117,
+      "weather": "clear"
+    },
+    "checks": {
+      "daytime": true,
+      "difficulty": true,
+      "dimension": true,
+      "fixture": false,
+      "food": true,
+      "game_mode": true,
+      "health": true,
+      "inventory_exact": true,
+      "position_at_spawn": true,
+      "position_distance": 0.707,
+      "time_initialized": true,
+      "weather": true
+    },
+    "command_count": 13,
+    "episode_id": "skill_episode_20260711_003919",
+    "error": "benchmark reset postconditions failed; ensure the bot is a server operator",
+    "expected": {
+      "difficulty": "peaceful",
+      "game_mode": "survival",
+      "initial_blocks": [
+        {
+          "name": "crafting_table",
+          "relative_position": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ],
+      "initial_inventory": {
+        "oak_planks": 3,
+        "stick": 2
+      },
+      "time_of_day": 1000,
+      "weather": "clear"
+    },
+    "failed_checks": [
+      "fixture"
+    ],
+    "level_name": "skill_episode_20260711_003919_bm_003",
+    "observed_minecraft_version": "1.20.4",
+    "profile": "m1-fixed-v1",
+    "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+    "seed": "12345",
+    "server_brand": "Paper",
+    "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+    "success": false,
+    "task_id": "BM-003"
+  },
+  "skill_id": "learned:craft_wooden_pickaxe",
+  "source_log": "logs\\session_0b2528ec-19f.jsonl",
+  "source_log_sha256": "9ce81a66141934be5b391473bef7c5cd4a3ecbc73b37cf3f9aa468d553205dfe",
+  "status": "error",
+  "success_criteria": {
+    "wooden_pickaxe": 1
+  },
+  "task_id": "BM-003",
+  "type": "skill_learning_live_run"
+}

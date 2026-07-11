@@ -157,6 +157,26 @@ def test_goal_verifier_mines_skill_postcondition_anchor():
     print("PASS: GoalVerifier mines skill postcondition verifier anchor")
 
 
+def test_skill_description_cannot_add_unrelated_inventory_targets():
+    skills = SkillLibrary(persist=False)
+    skills.create_skill(
+        "learned_craft_wooden_pickaxe",
+        "Craft one wooden pickaxe at an observed, placed crafting table.",
+        "{}",
+        skill_id="learned:craft_wooden_pickaxe",
+        status="advisory",
+        postconditions={"inventory": {"wooden_pickaxe": 1}},
+    )
+    verifier = GoalVerifier(skill_library=skills, use_knowledge_base=False)
+
+    result = verifier.verify("Craft a crafting table", {"inventory": {"crafting_table": 1}})
+
+    assert result.achieved
+    assert result.target_inventory == {"crafting_table": 1}
+    assert "inventory:wooden_pickaxe" not in result.matched_rules
+    print("PASS: skill descriptions cannot contaminate unrelated inventory verification targets")
+
+
 def test_goal_verifier_records_inventory_delta_evidence():
     verifier = GoalVerifier()
 
@@ -340,6 +360,7 @@ if __name__ == "__main__":
     test_goal_verifier_uses_world_safety_evidence()
     test_goal_verifier_accepts_custom_anchor()
     test_goal_verifier_mines_skill_postcondition_anchor()
+    test_skill_description_cannot_add_unrelated_inventory_targets()
     test_goal_verifier_records_inventory_delta_evidence()
     test_goal_verifier_unknown_goal_uses_critic_visual_evidence()
     test_agent_completion_gate_rejects_false_complete()

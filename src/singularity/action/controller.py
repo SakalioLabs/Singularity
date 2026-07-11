@@ -39,6 +39,7 @@ class ActionController:
             "use_item": self._use_item,
             "chat": self._chat,
             "wait": self._wait,
+            "build_shelter_5x5": self._build_shelter_5x5,
         }
 
     def execute(self, action: dict, world_state: dict) -> dict:
@@ -207,3 +208,6 @@ class ActionController:
         ms = params.get("ms", 1000)
         time.sleep(ms / 1000.0)
         return {"success": True, "waited_ms": ms}
+
+    def _build_shelter_5x5(self, params: dict) -> dict:
+        return self.bot.build_shelter_5x5(params)

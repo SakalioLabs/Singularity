@@ -1,0 +1,572 @@
+{
+  "baseline": {
+    "arm": "baseline",
+    "checks": {
+      "action_controller_enforced": true,
+      "action_verifier_enforced": true,
+      "fixed_planner": true,
+      "goal_verifier_achieved": true,
+      "goal_verifier_enforced": true,
+      "live_connection": true,
+      "no_death_or_safety_event": true,
+      "no_skill_executed": true,
+      "no_skill_selected": true,
+      "protocol_match": true,
+      "research_fixture_verified": true,
+      "reset_verified": true,
+      "success_criteria_verified": true,
+      "target_skill_disabled": true
+    },
+    "control_fingerprint": "c5f510c8b4324fa27c2d3a119cbbb98174e0f1d8d54df575c221766c844a3d45",
+    "controlled_failure_only": false,
+    "environment_id": "skill_episode_20260711_003327_bm_003",
+    "experiment_id": "wp102-heldout01-baseline",
+    "failed_checks": [],
+    "fault_profile": "",
+    "final_inventory": {
+      "stick": 2,
+      "wooden_pickaxe": 1
+    },
+    "goal": "Craft a wooden pickaxe",
+    "heldout": true,
+    "initial_observation_fingerprint": "2850dc290e0767f975e39a32b1c1cc4194b8913f6cfc9310478f945676f8d247",
+    "lifecycle_status": "",
+    "metrics": {
+      "action_verification_event_count": 1,
+      "attribution_confidence": 0.0,
+      "candidate_steps_reobserved": true,
+      "candidate_steps_verified": true,
+      "death_or_safety_events": 0,
+      "deduplicated_candidate_count": 0,
+      "environment_steps": 1,
+      "failed_actions": 0,
+      "inventory_progress": {
+        "oak_planks": -3,
+        "wooden_pickaxe": 1
+      },
+      "navigation_failures": 0,
+      "no_progress_loops": 0,
+      "planner_calls": 1,
+      "queue_candidate_count": 0,
+      "replans": 0,
+      "skill_advisory_hint_count": 0,
+      "skill_candidate_extraction_event_count": 0,
+      "skill_completion_count": 0,
+      "skill_executed_count": 0,
+      "skill_fallback_count": 0,
+      "skill_outcome_count": 0,
+      "skill_selected_count": 0,
+      "skill_shadow_plan_count": 0,
+      "successful_actions": 1,
+      "task_completion": 1,
+      "token_usage": 0,
+      "verifier_rejects": 0,
+      "wall_clock_latency_s": 7.649
+    },
+    "pair_id": "wp102-heldout01",
+    "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+    "replicate_id": "heldout1",
+    "research_setup_evidence": {
+      "arbitrary_commands_allowed": false,
+      "command_results": [
+        {
+          "kind": "allowlisted_remove_default_table",
+          "success": true
+        },
+        {
+          "kind": "allowlisted_place_shifted_table",
+          "success": true
+        }
+      ],
+      "error": "",
+      "expected_blocks": [
+        {
+          "name": "crafting_table",
+          "position": {
+            "x": 94,
+            "y": 144,
+            "z": -30
+          }
+        }
+      ],
+      "forbidden_blocks": [
+        {
+          "name": "crafting_table",
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -32
+          }
+        }
+      ],
+      "forbidden_blocks_present": [],
+      "missing_expected_blocks": [],
+      "observed_expected_block_count": 1,
+      "profile": "wooden_pickaxe_table_shift_v1",
+      "success": true,
+      "verified": true
+    },
+    "run_id": "wp102-heldout01-baseline:baseline:5c3a9522-a8c",
+    "runtime_profile": {
+      "action_backend_id": "mineflayer-bridge-v1",
+      "action_controller_enforced": true,
+      "action_verifier_enforced": true,
+      "agent_id": "singularity-agent-v1",
+      "arm": "baseline",
+      "candidate_extraction": false,
+      "controlled_failure_only": false,
+      "counts_toward_m1_acceptance": false,
+      "evidence_kind": "live_minecraft_skill_research",
+      "experiment_id": "wp102-heldout01-baseline",
+      "force_rule_planner": true,
+      "goal_verifier_enforced": true,
+      "memory_persistence": false,
+      "planner_id": "rule-based-v1",
+      "policy_skills": false,
+      "profile": "controlled_skill_learning_v1",
+      "protocol": "m1-fixed-v1",
+      "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "research_fixture_profile": "wooden_pickaxe_table_shift_v1",
+      "single_target_skill": true,
+      "skill_execution_mode": "off",
+      "skill_fault_profile": "",
+      "target_skill_id": "",
+      "task_id": "BM-003",
+      "verifier_id": "goal-action-verifier-v1",
+      "vision": false,
+      "world_seed": "12345"
+    },
+    "schema_version": 1,
+    "session_id": "5c3a9522-a8c",
+    "setup_evidence": {
+      "after_state": {
+        "difficulty": "peaceful",
+        "dimension": "overworld",
+        "fixture": {
+          "block": "crafting_table",
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -32
+          }
+        },
+        "food": 20,
+        "game_mode": "survival",
+        "health": 20,
+        "inventory": {
+          "oak_planks": 3,
+          "stick": 2
+        },
+        "position": {
+          "x": 96.5,
+          "y": 144,
+          "z": -31.5
+        },
+        "spawn_position": {
+          "x": 96,
+          "y": 144,
+          "z": -32
+        },
+        "time_of_day": 1068,
+        "weather": "clear"
+      },
+      "before_state": {
+        "difficulty": "peaceful",
+        "dimension": "overworld",
+        "fixture": {
+          "block": "air",
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -32
+          }
+        },
+        "food": 20,
+        "game_mode": "survival",
+        "health": 20,
+        "inventory": {},
+        "position": {
+          "x": 94.5,
+          "y": 143,
+          "z": -36.5
+        },
+        "spawn_position": {
+          "x": 96,
+          "y": 144,
+          "z": -32
+        },
+        "time_of_day": 77,
+        "weather": "clear"
+      },
+      "checks": {
+        "daytime": true,
+        "difficulty": true,
+        "dimension": true,
+        "fixture": true,
+        "food": true,
+        "game_mode": true,
+        "health": true,
+        "inventory_exact": true,
+        "position_at_spawn": true,
+        "position_distance": 0.707,
+        "time_initialized": true,
+        "weather": true
+      },
+      "command_count": 13,
+      "episode_id": "skill_episode_20260711_003327",
+      "error": "",
+      "expected": {
+        "difficulty": "peaceful",
+        "game_mode": "survival",
+        "initial_blocks": [
+          {
+            "name": "crafting_table",
+            "relative_position": {
+              "x": 1,
+              "y": 0,
+              "z": 0
+            }
+          }
+        ],
+        "initial_inventory": {
+          "oak_planks": 3,
+          "stick": 2
+        },
+        "time_of_day": 1000,
+        "weather": "clear"
+      },
+      "failed_checks": [],
+      "level_name": "skill_episode_20260711_003327_bm_003",
+      "observed_minecraft_version": "1.20.4",
+      "profile": "m1-fixed-v1",
+      "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "seed": "12345",
+      "server_brand": "Paper",
+      "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+      "success": true,
+      "task_id": "BM-003"
+    },
+    "skill_id": "learned:craft_wooden_pickaxe",
+    "source_log": "logs\\session_5c3a9522-a8c.jsonl",
+    "source_log_finalized_before_hash": true,
+    "source_log_sha256": "920aa6d20d7a474397f34fd8e2c46193dfd3d727887e7411e188c4ea9b866a0b",
+    "status": "pass",
+    "success_criteria": {
+      "wooden_pickaxe": 1
+    },
+    "task_id": "BM-003",
+    "termination_reason": "goal_verified",
+    "type": "skill_learning_live_run",
+    "world_seed": "12345"
+  },
+  "baseline_status": "pass",
+  "candidate": {
+    "arm": "candidate",
+    "checks": {
+      "action_controller_enforced": true,
+      "action_verifier_enforced": true,
+      "fixed_planner": true,
+      "goal_verifier_achieved": true,
+      "goal_verifier_enforced": true,
+      "high_confidence_attribution": true,
+      "live_connection": true,
+      "no_death_or_safety_event": true,
+      "protocol_match": true,
+      "research_fixture_verified": true,
+      "reset_verified": true,
+      "single_skill_selected": true,
+      "skill_completed": true,
+      "skill_executed": true,
+      "skill_steps_reobserved": true,
+      "skill_steps_verified": true,
+      "success_criteria_verified": true
+    },
+    "control_fingerprint": "c5f510c8b4324fa27c2d3a119cbbb98174e0f1d8d54df575c221766c844a3d45",
+    "controlled_failure_only": false,
+    "environment_id": "skill_episode_20260711_003404_bm_003",
+    "experiment_id": "wp102-heldout01-candidate",
+    "failed_checks": [],
+    "fault_profile": "",
+    "final_inventory": {
+      "stick": 2,
+      "wooden_pickaxe": 1
+    },
+    "goal": "Craft a wooden pickaxe",
+    "heldout": true,
+    "initial_observation_fingerprint": "2850dc290e0767f975e39a32b1c1cc4194b8913f6cfc9310478f945676f8d247",
+    "lifecycle_status": "advisory",
+    "metrics": {
+      "action_verification_event_count": 1,
+      "attribution_confidence": 1.0,
+      "candidate_steps_reobserved": true,
+      "candidate_steps_verified": true,
+      "death_or_safety_events": 0,
+      "deduplicated_candidate_count": 0,
+      "environment_steps": 1,
+      "failed_actions": 0,
+      "inventory_progress": {
+        "oak_planks": -3,
+        "wooden_pickaxe": 1
+      },
+      "navigation_failures": 0,
+      "no_progress_loops": 0,
+      "planner_calls": 1,
+      "queue_candidate_count": 0,
+      "replans": 0,
+      "skill_advisory_hint_count": 0,
+      "skill_candidate_extraction_event_count": 0,
+      "skill_completion_count": 1,
+      "skill_executed_count": 1,
+      "skill_fallback_count": 0,
+      "skill_outcome_count": 1,
+      "skill_selected_count": 1,
+      "skill_shadow_plan_count": 0,
+      "successful_actions": 1,
+      "task_completion": 1,
+      "token_usage": 0,
+      "verifier_rejects": 0,
+      "wall_clock_latency_s": 8.007
+    },
+    "pair_id": "wp102-heldout01",
+    "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+    "replicate_id": "heldout1",
+    "research_setup_evidence": {
+      "arbitrary_commands_allowed": false,
+      "command_results": [
+        {
+          "kind": "allowlisted_remove_default_table",
+          "success": true
+        },
+        {
+          "kind": "allowlisted_place_shifted_table",
+          "success": true
+        }
+      ],
+      "error": "",
+      "expected_blocks": [
+        {
+          "name": "crafting_table",
+          "position": {
+            "x": 94,
+            "y": 144,
+            "z": -30
+          }
+        }
+      ],
+      "forbidden_blocks": [
+        {
+          "name": "crafting_table",
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -32
+          }
+        }
+      ],
+      "forbidden_blocks_present": [],
+      "missing_expected_blocks": [],
+      "observed_expected_block_count": 1,
+      "profile": "wooden_pickaxe_table_shift_v1",
+      "success": true,
+      "verified": true
+    },
+    "run_id": "wp102-heldout01-candidate:candidate:d3a1be18-0e4",
+    "runtime_profile": {
+      "action_backend_id": "mineflayer-bridge-v1",
+      "action_controller_enforced": true,
+      "action_verifier_enforced": true,
+      "agent_id": "singularity-agent-v1",
+      "arm": "candidate",
+      "candidate_extraction": false,
+      "controlled_failure_only": false,
+      "counts_toward_m1_acceptance": false,
+      "evidence_kind": "live_minecraft_skill_research",
+      "experiment_id": "wp102-heldout01-candidate",
+      "force_rule_planner": true,
+      "goal_verifier_enforced": true,
+      "memory_persistence": false,
+      "planner_id": "rule-based-v1",
+      "policy_skills": false,
+      "profile": "controlled_skill_learning_v1",
+      "protocol": "m1-fixed-v1",
+      "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "research_fixture_profile": "wooden_pickaxe_table_shift_v1",
+      "single_target_skill": true,
+      "skill_execution_mode": "evaluation",
+      "skill_fault_profile": "",
+      "target_skill_id": "learned:craft_wooden_pickaxe",
+      "task_id": "BM-003",
+      "verifier_id": "goal-action-verifier-v1",
+      "vision": false,
+      "world_seed": "12345"
+    },
+    "schema_version": 1,
+    "session_id": "d3a1be18-0e4",
+    "setup_evidence": {
+      "after_state": {
+        "difficulty": "peaceful",
+        "dimension": "overworld",
+        "fixture": {
+          "block": "crafting_table",
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -32
+          }
+        },
+        "food": 20,
+        "game_mode": "survival",
+        "health": 20,
+        "inventory": {
+          "oak_planks": 3,
+          "stick": 2
+        },
+        "position": {
+          "x": 96.5,
+          "y": 144,
+          "z": -31.5
+        },
+        "spawn_position": {
+          "x": 96,
+          "y": 144,
+          "z": -32
+        },
+        "time_of_day": 1063,
+        "weather": "clear"
+      },
+      "before_state": {
+        "difficulty": "peaceful",
+        "dimension": "overworld",
+        "fixture": {
+          "block": "air",
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -32
+          }
+        },
+        "food": 20,
+        "game_mode": "survival",
+        "health": 20,
+        "inventory": {},
+        "position": {
+          "x": 97.5,
+          "y": 143,
+          "z": -40.5
+        },
+        "spawn_position": {
+          "x": 96,
+          "y": 144,
+          "z": -32
+        },
+        "time_of_day": 77,
+        "weather": "clear"
+      },
+      "checks": {
+        "daytime": true,
+        "difficulty": true,
+        "dimension": true,
+        "fixture": true,
+        "food": true,
+        "game_mode": true,
+        "health": true,
+        "inventory_exact": true,
+        "position_at_spawn": true,
+        "position_distance": 0.707,
+        "time_initialized": true,
+        "weather": true
+      },
+      "command_count": 13,
+      "episode_id": "skill_episode_20260711_003404",
+      "error": "",
+      "expected": {
+        "difficulty": "peaceful",
+        "game_mode": "survival",
+        "initial_blocks": [
+          {
+            "name": "crafting_table",
+            "relative_position": {
+              "x": 1,
+              "y": 0,
+              "z": 0
+            }
+          }
+        ],
+        "initial_inventory": {
+          "oak_planks": 3,
+          "stick": 2
+        },
+        "time_of_day": 1000,
+        "weather": "clear"
+      },
+      "failed_checks": [],
+      "level_name": "skill_episode_20260711_003404_bm_003",
+      "observed_minecraft_version": "1.20.4",
+      "profile": "m1-fixed-v1",
+      "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "seed": "12345",
+      "server_brand": "Paper",
+      "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+      "success": true,
+      "task_id": "BM-003"
+    },
+    "skill_id": "learned:craft_wooden_pickaxe",
+    "source_log": "logs\\session_d3a1be18-0e4.jsonl",
+    "source_log_finalized_before_hash": true,
+    "source_log_sha256": "955a7cb449b88739ab5a55ba54e3e30e2acbaaeee3dd82253e5f3cb84d9453cd",
+    "status": "pass",
+    "success_criteria": {
+      "wooden_pickaxe": 1
+    },
+    "task_id": "BM-003",
+    "termination_reason": "goal_verified",
+    "type": "skill_learning_live_run",
+    "world_seed": "12345"
+  },
+  "candidate_status": "pass",
+  "claim": "self-learning mechanism under evaluation",
+  "completion_gain": 0,
+  "environment_step_gain": 0,
+  "errors": [],
+  "fixed_controls_match": true,
+  "heldout": true,
+  "heldout_fixture_validation": {
+    "candidate_attribution_confidence": 1.0,
+    "candidate_steps_reobserved": true,
+    "candidate_steps_verified": true,
+    "decision": "allow_independent_fixture_validation",
+    "fixture_profile": "wooden_pickaxe_table_shift_v1",
+    "minimum_step_equivalence": true,
+    "readiness": "approved",
+    "requires_nonnegative_efficiency_gain": true,
+    "requires_positive_efficiency_gain": false,
+    "validated": true
+  },
+  "heldout_session_ids": [
+    "5c3a9522-a8c",
+    "d3a1be18-0e4"
+  ],
+  "heldout_transfer_task_set": [
+    "Craft a wooden pickaxe / shifted placed-table fixture"
+  ],
+  "positive_transfer": false,
+  "schema_version": 1,
+  "skill_id": "learned:craft_wooden_pickaxe",
+  "training_heldout_overlap_count": 0,
+  "training_session_ids": [
+    "a846d276-044",
+    "9430e4d1-498",
+    "9568d803-55e"
+  ],
+  "training_task_set": [
+    "Craft a wooden pickaxe / default table fixture"
+  ],
+  "type": "skill_heldout_transfer_report",
+  "unsupported_task_family": [
+    "gathering",
+    "combat"
+  ],
+  "validation_task_set": [
+    "Craft a wooden pickaxe / three independent default-fixture pairs"
+  ]
+}

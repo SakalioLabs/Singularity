@@ -45,6 +45,10 @@ class Task:
     opportunity_triggers: list[str] = field(default_factory=list)
     deadline: Optional[float] = None
     rationale: str = ""
+    plan_node_id: str = ""
+    root_plan_id: str = ""
+    planner_call_id: str = ""
+    status_history: list[dict] = field(default_factory=list)
 
 
 class TaskSystem:
@@ -52,6 +56,7 @@ class TaskSystem:
         self.tasks: dict[str, Task] = {}
         self.root_tasks: list[str] = []
         self.use_causal_opportunities = use_causal_opportunities
+        self._transition_events: list[dict] = []
 
     def create_task(self, title: str, task_type: str = "general", parent_id: Optional[str] = None, **kwargs) -> Task:
         task = Task(title=title, type=task_type, parent_id=parent_id, **kwargs)
@@ -60,14 +65,15 @@ class TaskSystem:
             self.tasks[parent_id].children.append(task.id)
         else:
             self.root_tasks.append(task.id)
+        self._record_transition(task, None, task.status, "task_created")
         return task
 
     def update_task(self, task_id: str, status: Optional[TaskStatus] = None, observations: Optional[list] = None, result: Optional[dict] = None):
         task = self.tasks.get(task_id)
         if not task:
             return
-        if status:
-            task.status = status
+        if status and status != task.status:
+            self._set_status(task, status, "task_updated")
         if observations:
             task.observations.extend(observations)
         if result:
@@ -162,6 +168,45 @@ class TaskSystem:
     def complete_task(self, task_id: str, result: dict = None):
         self.update_task(task_id, status=TaskStatus.COMPLETED, result=result or {})
 
+    def complete_verified_plan(self, root_plan_id: str, result: dict = None) -> list[str]:
+        """Close one machine-verified root plan in dependency order with full state paths."""
+        root_id = str(root_plan_id or "")
+        if not root_id:
+            return []
+        terminal = {TaskStatus.COMPLETED, TaskStatus.CANCELLED, TaskStatus.FAILED}
+        completed = []
+        candidates = [
+            task for task in self.tasks.values()
+            if task.root_plan_id == root_id and task.status not in terminal
+        ]
+        while candidates:
+            progressed = False
+            for task in list(candidates):
+                if not self._dependencies_satisfied(task):
+                    continue
+                if task.status == TaskStatus.PROPOSED:
+                    self._set_status(task, TaskStatus.ACCEPTED, "machine_verified_plan_acceptance")
+                if task.status == TaskStatus.ACCEPTED:
+                    self._set_status(task, TaskStatus.ACTIVE, "machine_verified_plan_activation")
+                if task.status == TaskStatus.ACTIVE:
+                    self._set_status(task, TaskStatus.COMPLETED, "machine_verified_goal")
+                    task.result = {
+                        "completed_by": "machine_goal_verifier",
+                        **(result or {}),
+                    }
+                    task.updated_at = time.time()
+                    completed.append(task.id)
+                candidates.remove(task)
+                progressed = True
+            if not progressed:
+                break
+        return completed
+
+    def drain_transition_events(self) -> list[dict]:
+        events = list(self._transition_events)
+        self._transition_events.clear()
+        return events
+
     def apply_action_result(
         self,
         action: dict,
@@ -175,7 +220,7 @@ class TaskSystem:
             return None
 
         if task.status == TaskStatus.ACCEPTED:
-            task.status = TaskStatus.ACTIVE
+            self._set_status(task, TaskStatus.ACTIVE, "action_started")
 
         action_summary = {
             "action": action,
@@ -192,13 +237,13 @@ class TaskSystem:
             reason = result.get("error", "action failed")
             task.blockers.append(reason)
             if self._failure_criteria_satisfied(task, result, world_state or {}):
-                task.status = TaskStatus.FAILED
+                self._set_status(task, TaskStatus.FAILED, "failure_criteria_satisfied")
                 task.result = {"failed_action": action, "result": result, "reason": reason}
                 task.updated_at = time.time()
             return task
 
         if self._success_criteria_satisfied(task, action, result, world_state or {}):
-            task.status = TaskStatus.COMPLETED
+            self._set_status(task, TaskStatus.COMPLETED, "success_criteria_satisfied")
             task.result = {
                 "completed_by": "action_result",
                 "action": action,
@@ -207,6 +252,34 @@ class TaskSystem:
             }
             task.updated_at = time.time()
         return task
+
+    def _set_status(self, task: Task, status: TaskStatus, reason: str):
+        previous = task.status
+        task.status = status
+        task.updated_at = time.time()
+        self._record_transition(task, previous, status, reason)
+
+    def _record_transition(
+        self,
+        task: Task,
+        previous: Optional[TaskStatus],
+        current: TaskStatus,
+        reason: str,
+    ):
+        payload = {
+            "type": "task_state_transition",
+            "task_id": task.id,
+            "task_title": task.title,
+            "plan_node_id": task.plan_node_id,
+            "root_plan_id": task.root_plan_id,
+            "planner_call_id": task.planner_call_id,
+            "from_status": previous.value if previous else "",
+            "to_status": current.value,
+            "reason": reason,
+            "timestamp": time.time(),
+        }
+        task.status_history.append(dict(payload))
+        self._transition_events.append(payload)
 
     def _dependencies_satisfied(self, task: Task) -> bool:
         return not self._missing_dependencies(task)

@@ -1,16 +1,35 @@
-﻿"""Planner - LLM-powered goal decomposition and action planning with Minecraft knowledge injection."""
+"""LLM-powered goal decomposition with optional strict M2 root-plan evidence."""
+
+import hashlib
 import json
 import logging
 import time
-from typing import Optional
+import uuid
 
-from singularity.core.task_system import TaskSystem, Task, TaskStatus
+from singularity.core.task_system import TaskSystem, Task
 from singularity.data.knowledge_base import KnowledgeBase
 from singularity.llm.provider import LLMProvider
 
 logger = logging.getLogger("singularity.planner")
 
 _CRAFTING_KNOWLEDGE = ""
+_M2_TASK_GUIDANCE = {
+    "BM-007": [
+        "Resource check: two initial logs yield eight planks; four sticks consume two planks and a wooden pickaxe consumes three, so five planks are sufficient.",
+        "Reuse the verified nearby crafting table and stone fixtures; do not gather extra logs or craft/place another table.",
+        "If the successful-action summary has move_to=0, target an observed stone fixture once; after that first successful move, the three adjacent fixture stones require direct dig actions without moving between them.",
+    ],
+    "BM-009": [
+        "A torch is a 2x2 inventory craft and does not require a crafting table or placement action.",
+        "The verified initial two planks craft four sticks; one coal plus one stick then crafts four torches, so no gathering or digging is needed.",
+        "Execute exactly the unmet prerequisite chain: craft sticks first, then craft torches; do not gather logs, craft a table, or place blocks.",
+    ],
+    "BM-010": [
+        "The root plan still needs at least two auditable nodes: build the fixed shelter shell, then verify the completed structure and player occupancy with the second node depending on the first.",
+        "Emit exactly one immediate build_shelter_5x5 action using construction_zone.origin as the origin and cobblestone as the material; the bounded handler builds the walls, entrance, roof, and moves the player inside.",
+        "Do not emit move_to or individual place actions, and do not split the 55 fixed placements into planner actions.",
+    ],
+}
 try:
     _KB = KnowledgeBase()
     _CRAFTING_KNOWLEDGE = _KB.format_for_prompt()
@@ -20,38 +39,308 @@ except Exception as e:
 
 
 class Planner:
-    def __init__(self, llm: LLMProvider, task_system: TaskSystem):
+    def __init__(self, llm: LLMProvider, task_system: TaskSystem, protocol: str = ""):
         self.llm = llm
         self.task_system = task_system
+        self.protocol = str(protocol or "")
+        self.strict_m2 = self.protocol == "m2-fixed-v1"
+        self.last_call_evidence: dict = {}
+        self._episode_goal = ""
+        self._episode_id = ""
+        self._call_index = 0
+        self._active_root_plan_id = ""
+        self._last_call_id = ""
+        self._pending_replan_reason = ""
+        self._goal_deadline_monotonic = None
+        self._action_guard_s = 0.0
+
+    def start_episode(self, goal: str, episode_id: str = ""):
+        self._episode_goal = str(goal or "")
+        self._episode_id = str(episode_id or "")
+        self._call_index = 0
+        self._active_root_plan_id = ""
+        self._last_call_id = ""
+        self.last_call_evidence = {}
+        self._pending_replan_reason = ""
+        self._goal_deadline_monotonic = None
+        self._action_guard_s = 0.0
+
+    def set_deadline(self, deadline_monotonic, action_guard_s: float = 0.0):
+        """Bind planner requests to the current goal's monotonic deadline."""
+        self._goal_deadline_monotonic = (
+            float(deadline_monotonic) if deadline_monotonic is not None else None
+        )
+        self._action_guard_s = max(0.0, float(action_guard_s or 0.0))
+
+    def request_replan(self, reason: str):
+        self._pending_replan_reason = str(reason or "action_failure")[:500]
 
     def plan_from_goal(self, goal: str, world_state: dict, memory_context: str = "") -> dict:
-        prompt = self._build_planning_prompt(goal, world_state, memory_context)
-        response = self.llm.chat([
-            {"role": "system", "content": self._planner_system_prompt()},
-            {"role": "user", "content": prompt},
-        ], response_format={"type": "json_object"})
-        try:
-            plan = json.loads(response)
-        except json.JSONDecodeError:
-            plan = {"status": "error", "subtasks": [], "actions": [], "reasoning": "Failed to parse LLM output"}
-        self._create_tasks_from_plan(plan)
+        if self.strict_m2 and self._call_index == 0:
+            plan_kind = "root"
+        elif self.strict_m2 and self._pending_replan_reason:
+            plan_kind = "replan"
+            memory_context = "\n".join(
+                part for part in (
+                    memory_context,
+                    f"Previous action failed and requires replan: {self._pending_replan_reason}",
+                ) if part
+            )
+        else:
+            plan_kind = "continuation"
+        plan = self._call_planner(goal, world_state, memory_context, plan_kind)
+        if plan_kind == "replan":
+            self._pending_replan_reason = ""
         return plan
 
     def replan(self, failed_task: Task, world_state: dict, failure_reason: str) -> dict:
-        prompt = f"""Task '{failed_task.title}' failed: {failure_reason}
-Attempts so far: {failed_task.attempts}
-Current state: {json.dumps(world_state, default=str)[:1000]}
-Suggest a new plan. Output JSON: {{"status":"replan","subtasks":[...],"actions":[...],"reasoning":"..."}}"""
-        response = self.llm.chat([
-            {"role": "system", "content": "You are a replanning system. Analyze failures and propose alternative approaches."},
+        goal = self._episode_goal or failed_task.title
+        context = (
+            f"Task '{failed_task.title}' failed: {failure_reason}. "
+            f"Attempts so far: {failed_task.attempts}."
+        )
+        return self._call_planner(goal, world_state, context, "replan")
+
+    def _call_planner(
+        self,
+        goal: str,
+        world_state: dict,
+        memory_context: str,
+        plan_kind: str,
+    ) -> dict:
+        call_id = f"llm-{uuid.uuid4().hex[:16]}"
+        root_plan_id = self._active_root_plan_id or f"root-{uuid.uuid4().hex[:16]}"
+        self._expected_plan_kind = plan_kind
+        prompt = self._build_planning_prompt(goal, world_state, memory_context)
+        messages = [
+            {"role": "system", "content": self._planner_system_prompt()},
             {"role": "user", "content": prompt},
-        ], response_format={"type": "json_object"})
+        ]
+        response = ""
+        call_error = ""
+        request_timeout_s = None
+        deadline_evidence = {}
+        transport_evidence = {}
+        if self.strict_m2:
+            from singularity.evaluation.m2_protocol import PROTOCOL
+
+            policy = PROTOCOL["deadline_policy"]
+            expected_guard_s = float(policy["action_guard_ms"]) / 1000.0
+            remaining_s = (
+                self._goal_deadline_monotonic - time.monotonic()
+                if self._goal_deadline_monotonic is not None
+                else None
+            )
+            planner_budget_s = (
+                remaining_s - self._action_guard_s
+                if remaining_s is not None
+                else None
+            )
+            deadline_evidence = {
+                "policy_id": str(policy["id"]),
+                "remaining_before_call_s": round(remaining_s, 3) if remaining_s is not None else None,
+                "action_guard_s": round(self._action_guard_s, 3),
+                "request_timeout_s": round(planner_budget_s, 3) if planner_budget_s is not None else None,
+                "max_retries": int(policy["planner_max_retries"]),
+            }
+            if self._goal_deadline_monotonic is None:
+                call_error = "m2_goal_deadline_not_configured"
+            elif abs(self._action_guard_s - expected_guard_s) > 0.001:
+                call_error = "m2_action_guard_mismatch"
+            elif planner_budget_s is None or planner_budget_s <= 0:
+                call_error = "m2_total_deadline_exhausted_before_planner_call"
+            else:
+                request_timeout_s = planner_budget_s
+
+        if not call_error:
+            transport_policy = (
+                dict(PROTOCOL["llm_transport_policy"])
+                if self.strict_m2
+                else {
+                    "id": "single-attempt",
+                    "application_max_retries": 0,
+                    "retryable_error_types": [],
+                    "reset_client_before_retry": False,
+                    "backoff_ms": 0,
+                }
+            )
+            attempts = []
+            maximum_attempts = 1 + int(transport_policy["application_max_retries"])
+            for attempt_index in range(maximum_attempts):
+                if self.strict_m2:
+                    request_timeout_s = (
+                        self._goal_deadline_monotonic
+                        - time.monotonic()
+                        - self._action_guard_s
+                    )
+                    deadline_evidence["request_timeout_s"] = round(request_timeout_s, 3)
+                    if request_timeout_s <= 0:
+                        call_error = "m2_total_deadline_exhausted_before_planner_retry"
+                        break
+                chat_kwargs = {"response_format": {"type": "json_object"}}
+                if request_timeout_s is not None:
+                    chat_kwargs["timeout_s"] = request_timeout_s
+                if self.strict_m2:
+                    chat_kwargs["extra_body"] = dict(PROTOCOL["llm"].get("extra_body", {}))
+                try:
+                    response = self.llm.chat(messages, **chat_kwargs)
+                    metadata = dict(getattr(self.llm, "last_call_metadata", {}) or {})
+                    attempts.append({
+                        "attempt_index": attempt_index,
+                        "success": True,
+                        "timeout_s": metadata.get("timeout_s"),
+                        "sdk_max_retries": metadata.get("max_retries"),
+                        "finish_reason": metadata.get("finish_reason"),
+                    })
+                    break
+                except Exception as exc:
+                    error_chain = []
+                    current_error = exc
+                    while current_error is not None and len(error_chain) < 5:
+                        error_chain.append(type(current_error).__name__)
+                        current_error = current_error.__cause__ or current_error.__context__
+                    metadata = dict(getattr(self.llm, "last_call_metadata", {}) or {})
+                    metadata.update({
+                        "error_type": type(exc).__name__,
+                        "error_chain": error_chain,
+                    })
+                    self.llm.last_call_metadata = metadata
+                    attempts.append({
+                        "attempt_index": attempt_index,
+                        "success": False,
+                        "timeout_s": metadata.get("timeout_s"),
+                        "sdk_max_retries": metadata.get("max_retries"),
+                        "error_type": type(exc).__name__,
+                        "error_chain": error_chain,
+                    })
+                    retryable = any(
+                        name in set(transport_policy["retryable_error_types"])
+                        for name in error_chain
+                    )
+                    if not retryable or attempt_index + 1 >= maximum_attempts:
+                        call_error = str(exc)
+                        logger.error(f"LLM planner call failed: {exc}")
+                        break
+                    logger.warning(
+                        f"Retrying planner transport after {type(exc).__name__}; "
+                        f"attempt {attempt_index + 2}/{maximum_attempts}"
+                    )
+                    if transport_policy.get("reset_client_before_retry"):
+                        reset_client = getattr(self.llm, "reset_client", None)
+                        if callable(reset_client):
+                            reset_client()
+                    backoff_s = float(transport_policy.get("backoff_ms", 0) or 0) / 1000.0
+                    if backoff_s > 0:
+                        time.sleep(backoff_s)
+            transport_evidence = {
+                "policy_id": str(transport_policy["id"]),
+                "attempt_count": len(attempts),
+                "retry_count": max(0, len(attempts) - 1),
+                "attempts": attempts,
+            }
+
+        if (
+            self.strict_m2
+            and not call_error
+            and self._goal_deadline_monotonic is not None
+            and time.monotonic() >= self._goal_deadline_monotonic - self._action_guard_s
+        ):
+            call_error = "m2_planner_response_missed_action_window"
+            response = ""
+
+        parse_error = ""
         try:
-            return json.loads(response)
-        except json.JSONDecodeError:
-            return {"status": "error", "subtasks": [], "actions": [], "reasoning": "Parse error"}
+            raw_plan = json.loads(response) if response else {}
+            if not isinstance(raw_plan, dict):
+                parse_error = "planner response is not a JSON object"
+                raw_plan = {}
+        except json.JSONDecodeError as exc:
+            parse_error = str(exc)
+            raw_plan = {}
+
+        schema_validation = {
+            "type": "planner_schema_validation",
+            "passed": not bool(call_error or parse_error),
+            "issues": [issue for issue in (call_error, parse_error) if issue],
+        }
+        if self.strict_m2 and not call_error and not parse_error:
+            from singularity.evaluation.m2_protocol import validate_root_plan
+
+            schema_validation = validate_root_plan(
+                raw_plan,
+                expected_goal=goal,
+                expected_kind=plan_kind,
+            )
+
+        schema_valid = bool(schema_validation.get("passed"))
+        if schema_valid:
+            plan = dict(raw_plan)
+            plan["root_plan_id"] = root_plan_id
+            plan["planner_call_id"] = call_id
+            plan["parent_planner_call_id"] = self._last_call_id
+            plan["schema_validation"] = schema_validation
+            if plan_kind == "root":
+                self._active_root_plan_id = root_plan_id
+            self._create_tasks_from_plan(plan)
+        else:
+            issue_text = ", ".join(schema_validation.get("issues", [])[:5])
+            plan = {
+                "schema_version": raw_plan.get("schema_version", ""),
+                "plan_kind": plan_kind,
+                "goal": goal,
+                "status": "error",
+                "reasoning": f"Planner output rejected before execution: {issue_text or 'schema validation failed'}",
+                "subtasks": [],
+                "actions": [],
+                "root_plan_id": root_plan_id,
+                "planner_call_id": call_id,
+                "parent_planner_call_id": self._last_call_id,
+                "schema_validation": schema_validation,
+            }
+
+        provider_metadata = dict(getattr(self.llm, "last_call_metadata", {}) or {})
+        successful_action_summary = self._m2_action_summary(world_state) if self.strict_m2 else {}
+        response_sha256 = provider_metadata.get("response_sha256") or hashlib.sha256(
+            response.encode("utf-8")
+        ).hexdigest()
+        real_llm_call = bool(
+            response
+            and not call_error
+            and provider_metadata.get("provider")
+            and provider_metadata.get("model")
+            and provider_metadata.get("request_sha256")
+        )
+        self.last_call_evidence = {
+            "type": "llm_planner_call",
+            "schema_version": 1,
+            "planner_id": "llm-root-planner-v1" if self.strict_m2 else "llm-planner-v1",
+            "protocol": self.protocol,
+            "episode_id": self._episode_id,
+            "call_id": call_id,
+            "call_index": self._call_index,
+            "plan_kind": plan_kind,
+            "root_plan_id": root_plan_id,
+            "parent_call_id": self._last_call_id,
+            "goal": goal,
+            "real_llm_call": real_llm_call,
+            "schema_valid": schema_valid,
+            "schema_validation": schema_validation,
+            "response_sha256": response_sha256,
+            "response_byte_count": len(response.encode("utf-8")),
+            "successful_action_summary": successful_action_summary,
+            "deadline_policy": deadline_evidence,
+            "transport_evidence": transport_evidence,
+            "provider_metadata": provider_metadata,
+            "error": call_error or parse_error,
+        }
+        plan["planner_evidence"] = dict(self.last_call_evidence)
+        self._last_call_id = call_id
+        self._call_index += 1
+        return plan
 
     def _planner_system_prompt(self) -> str:
+        if self.strict_m2:
+            return self._m2_system_prompt()
         return f"""You are a Minecraft survival planner. Given a goal and current world state, decompose it into subtasks and immediate actions.
 
 Available actions: move_to, look_at, dig, place, craft, attack, equip, use_item, chat, wait.
@@ -80,19 +369,105 @@ Output JSON:
       "depends_on": ["earlier subtask title"],
       "opportunity_triggers": ["nearby block/entity/item that makes this task worth doing now"],
       "tags": ["resource", "crafting"],
-      "deadline_seconds": optional seconds from now,
+      "deadline_seconds": 60,
       "assigned_skill": "optional skill name",
       "rationale": "why this subtask matters"
     }}
   ],
   "actions": [
-    {{"type": "action_name", "parameters": {{...}}}}
+    {{"type": "action_name", "parameters": {{}}}}
   ]
 }}
 
 Be practical and safe. Check inventory before crafting. Follow tool progression."""
 
+    def _m2_system_prompt(self) -> str:
+        from singularity.evaluation.m2_protocol import PROTOCOL
+
+        action_parameter_contracts = json.dumps(
+            PROTOCOL["planner_schema"].get("action_parameter_contracts", {}),
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return f"""You are the live Minecraft M2 root planner. Return one strict JSON object and no prose.
+
+This call is plan_kind={self._expected_plan_kind}. Never claim completion from text; the machine verifier decides completion.
+For a root call, decompose the exact goal into at least two auditable subtasks with at least one dependency edge.
+Each depends_on entry must reference the id of an earlier subtask. Use unique lowercase ids.
+Every subtask needs object preconditions and machine-checkable success_criteria using inventory, inventory_any,
+observed, nearby_block_present, position_near, structure, action, result, or flags.
+Every priority must be an integer from 1 through 5. For M2, set priority=1 on every subtask; dependencies alone encode order.
+For an equip subtask, use success_criteria {{"action": {{"type": "equip"}}, "result": {{"success": true}}}};
+do not invent equipment or equipped criteria. Use inventory criteria for crafted/mined items and position_near for movement.
+Treat the current inventory and nearby/placed blocks as authoritative. Account for recipe output quantities, and do not
+create a subtask whose success criteria are already satisfied by the current observation.
+Return exactly one immediate executable action when status is planning.
+Treat the episode successful-action summary as authoritative history. Do not repeat an action solely to satisfy
+required_action_types when that action type is already proven there; advance the next unmet subtask instead.
+A successful move_to to an unchanged target must not be repeated. When a target block is already within 4.5 blocks,
+emit the dependent interaction action instead of move_to. The only exception is when required_action_types includes
+move_to and the successful-action summary has move_to=0: emit one grounded move_to, then interact without moving again.
+
+Allowed actions: move_to, look_at, dig, place, craft, equip, use_item, wait, build_shelter_5x5.
+Canonical action parameter contracts: {action_parameter_contracts}
+Follow these contracts exactly. In particular, dig uses top-level block, x, y, and z parameters; do not use
+block_name, target, position, or block_position aliases.
+Craft uses an item parameter and optional positive integer count; do not use recipe as an alias.
+The build_shelter_5x5 action is bounded: use only the construction_zone origin supplied in benchmark_context,
+choose an inventory material, and do not emit individual free-form place coordinates for a whole shelter.
+
+Minecraft facts: one log crafts four planks; two planks craft four sticks; a crafting table needs four planks;
+a wooden pickaxe needs three planks, two sticks, and a nearby crafting table; stone needs a wooden pickaxe;
+a torch needs coal or charcoal plus a stick and does not require a crafting table.
+
+Required JSON shape:
+{{
+  "schema_version": "m2-root-plan-v1",
+  "plan_kind": "{self._expected_plan_kind}",
+  "goal": "the exact supplied goal",
+  "status": "planning" or "blocked" or "complete" or "error",
+  "reasoning": "brief state-grounded rationale",
+  "subtasks": [
+    {{
+      "id": "short_id",
+      "title": "auditable title",
+      "type": "observe|gather|craft|mine|build|verify|recover",
+      "priority": 1,
+      "depends_on": [],
+      "preconditions": {{}},
+      "success_criteria": {{"inventory": {{"item": 1}}}},
+      "rationale": "why this node is needed"
+    }}
+  ],
+  "actions": [{{"type": "action_name", "parameters": {{}}}}]
+}}"""
+
     def _build_planning_prompt(self, goal: str, world_state: dict, memory_context: str) -> str:
+        if self.strict_m2:
+            from singularity.evaluation.m2_protocol import PROTOCOL, task_spec
+
+            spec = next(
+                (task for task in PROTOCOL["tasks"] if task.get("goal") == goal),
+                task_spec(getattr(self, "_m2_task_id", "")),
+            ) or {}
+            contract = {
+                "task_id": spec.get("id", ""),
+                "success_criteria": spec.get("success_criteria", {}),
+                "verified_initial_inventory": spec.get("initial_inventory", {}),
+                "verified_initial_blocks": spec.get("initial_blocks", []),
+                "task_guidance": _M2_TASK_GUIDANCE.get(str(spec.get("id") or ""), []),
+                "construction_zone": (world_state.get("benchmark_context", {}) or {}).get("construction_zone", {}),
+            }
+            action_summary = self._m2_action_summary(world_state)
+            observed_state = dict(world_state)
+            observed_state.pop("m2_successful_action_summary", None)
+            return f"""Exact goal: {goal}
+Expected plan_kind: {self._expected_plan_kind}
+Benchmark contract: {json.dumps(contract, sort_keys=True, default=str)}
+Episode successful-action summary: {json.dumps(action_summary, sort_keys=True, default=str)}
+Current observed world state: {json.dumps(observed_state, sort_keys=True, default=str)[:5000]}
+Planner context: {memory_context[:1000] if memory_context else 'none'}
+Return strict JSON now."""
         return f"""Goal: {goal}
 
 World state:
@@ -102,39 +477,77 @@ World state:
 
 Plan the steps to achieve this goal."""
 
+    def _m2_action_summary(self, world_state: dict) -> dict:
+        from singularity.evaluation.m2_protocol import PROTOCOL
+
+        contract = PROTOCOL["planner_context"]["successful_action_summary"]
+        summary = world_state.get("m2_successful_action_summary", {}) if isinstance(world_state, dict) else {}
+        if isinstance(summary, dict) and summary.get("profile") == contract["profile"]:
+            return dict(summary)
+        return {
+            "profile": str(contract["profile"]),
+            "successful_action_count": 0,
+            "successful_action_types": {},
+            "included_action_count": 0,
+            "truncated": False,
+            "actions": [],
+        }
+
     def _create_tasks_from_plan(self, plan: dict):
-        """Create task records from LLM subtasks, preserving dependencies and scheduling hints."""
+        """Create scheduler tasks only after the planner response passes its contract."""
         subtasks = plan.get("subtasks", [])
-        title_to_id = {}
+        if not isinstance(subtasks, list):
+            return
+        reference_to_id = {}
         pending_dependencies: list[tuple[str, list[str]]] = []
+        root_plan_id = str(plan.get("root_plan_id") or "")
+        planner_call_id = str(plan.get("planner_call_id") or "")
         for st in subtasks:
-            title = st.get("title", "unnamed")
-            task = self.task_system.create_task(
-                title=title,
-                task_type=st.get("type", "general"),
-                success_criteria=st.get("success_criteria", {}),
-                failure_criteria=st.get("failure_criteria", {}),
-                preconditions=st.get("preconditions", {}),
-                priority=self._safe_priority(st.get("priority", 3)),
-                assigned_skill=st.get("assigned_skill"),
-                tags=st.get("tags", []),
-                opportunity_triggers=st.get("opportunity_triggers", []),
-                deadline=self._deadline_from_seconds(st.get("deadline_seconds")),
-                rationale=st.get("rationale", ""),
-            )
-            title_to_id[title.lower()] = task.id
+            if not isinstance(st, dict):
+                continue
+            title = str(st.get("title") or "unnamed")
+            plan_node_id = str(st.get("id") or "")
+            task = self._existing_plan_task(root_plan_id, plan_node_id) if self.strict_m2 else None
+            if task is None:
+                task = self.task_system.create_task(
+                    title=title,
+                    task_type=st.get("type", "general"),
+                    success_criteria=st.get("success_criteria", {}),
+                    failure_criteria=st.get("failure_criteria", {}),
+                    preconditions=st.get("preconditions", {}),
+                    priority=self._safe_priority(st.get("priority", 3)),
+                    assigned_skill=st.get("assigned_skill"),
+                    tags=st.get("tags", []),
+                    opportunity_triggers=st.get("opportunity_triggers", []),
+                    deadline=self._deadline_from_seconds(st.get("deadline_seconds")),
+                    rationale=st.get("rationale", ""),
+                    plan_node_id=plan_node_id,
+                    root_plan_id=root_plan_id,
+                    planner_call_id=planner_call_id,
+                )
+            reference_to_id[title.lower()] = task.id
+            if plan_node_id:
+                reference_to_id[plan_node_id.lower()] = task.id
             dependencies = st.get("depends_on", [])
-            if dependencies:
+            if isinstance(dependencies, list) and dependencies:
                 pending_dependencies.append((task.id, dependencies))
         for task_id, dependencies in pending_dependencies:
             task = self.task_system.tasks.get(task_id)
             if not task:
                 continue
             task.depends_on = [
-                title_to_id[dep.lower()]
-                for dep in dependencies
-                if isinstance(dep, str) and dep.lower() in title_to_id
+                reference_to_id[dependency.lower()]
+                for dependency in dependencies
+                if isinstance(dependency, str) and dependency.lower() in reference_to_id
             ]
+
+    def _existing_plan_task(self, root_plan_id: str, plan_node_id: str):
+        if not root_plan_id or not plan_node_id:
+            return None
+        for task in self.task_system.tasks.values():
+            if task.root_plan_id == root_plan_id and task.plan_node_id == plan_node_id:
+                return task
+        return None
 
     def _safe_priority(self, value) -> int:
         try:

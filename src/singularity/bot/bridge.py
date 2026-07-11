@@ -13,7 +13,7 @@ logger = logging.getLogger("singularity.bot")
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 1.0  # seconds, exponential backoff
 ACTION_RESPONSE_GRACE_SECONDS = 5.0
-MAX_ACTION_RESPONSE_TIMEOUT_SECONDS = 65.0
+MAX_ACTION_RESPONSE_TIMEOUT_SECONDS = 370.0
 
 
 class BotBridge:
@@ -119,11 +119,15 @@ class BotBridge:
     def health(self) -> dict:
         return self._send_command("health")
 
-    def benchmark_protocol(self) -> dict:
-        return self._send_command("benchmark_protocol")
+    def benchmark_protocol(self, profile: str = "") -> dict:
+        params = {"profile": profile} if profile else None
+        return self._send_command("benchmark_protocol", params)
 
     def reset_benchmark(self, task_id: str) -> dict:
         return self._send_command("benchmark_reset", {"task_id": task_id})
+
+    def verify_benchmark(self, task_id: str) -> dict:
+        return self._send_command("benchmark_verify", {"task_id": task_id})
 
     def get_inventory(self) -> list:
         result = self._send_command("get_inventory")
@@ -219,6 +223,12 @@ class BotBridge:
             action_seconds = max(0.1, min(10.0, action_seconds))
         elif command == "dig":
             action_seconds = 10.0
+        elif command == "build_shelter_5x5":
+            try:
+                action_seconds = float(params.get("timeout_ms", 360000)) / 1000.0
+            except (TypeError, ValueError):
+                action_seconds = 360.0
+            action_seconds = max(30.0, min(360.0, action_seconds))
         else:
             action_seconds = baseline
         return min(
@@ -260,6 +270,9 @@ class BotBridge:
 
     def craft(self, item_name: str, count: int = 1) -> dict:
         return self._send_command("craft", {"item": item_name, "count": count})
+
+    def build_shelter_5x5(self, params: dict) -> dict:
+        return self._send_command_single("build_shelter_5x5", dict(params or {}))
 
     def attack(self, entity_id: int = None) -> dict:
         return self._send_command("attack", {"entity_id": entity_id})

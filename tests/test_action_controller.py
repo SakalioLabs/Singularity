@@ -1027,6 +1027,32 @@ def test_action_verifier_rejects_missing_craft_materials_and_tools():
     print("PASS: ActionVerifier rejects impossible craft/mine actions before execution")
 
 
+def test_action_verifier_accepts_plank_family_recipe_ingredients():
+    verifier = ActionVerifier()
+
+    dark_oak = verifier.verify(
+        {"type": "craft", "parameters": {"item": "crafting_table"}},
+        {"inventory": {"dark_oak_planks": 4}},
+    )
+    assert dark_oak.status == "accept"
+    assert dark_oak.required == {"oak_planks": 4}
+    assert "oak_planks<=dark_oak_planks:4" in dark_oak.evidence
+
+    mixed = verifier.verify(
+        {"type": "craft", "parameters": {"item": "crafting_table"}},
+        {"inventory": {"birch_planks": 2, "dark_oak_planks": 2}},
+    )
+    assert mixed.status == "accept"
+
+    insufficient = verifier.verify(
+        {"type": "craft", "parameters": {"item": "crafting_table"}},
+        {"inventory": {"birch_planks": 1, "dark_oak_planks": 2}},
+    )
+    assert insufficient.status == "reject"
+    assert "oak_planks:1" in insufficient.missing
+    print("PASS: ActionVerifier applies the pinned Minecraft planks ingredient family")
+
+
 def test_action_candidate_selector_repairs_rejected_craft_action():
     selector = ActionCandidateSelector()
 
@@ -1197,6 +1223,7 @@ if __name__ == "__main__":
     test_agent_skips_task_precondition_feedback_without_approved_gate()
     test_agent_skips_mixed_policy_patch_when_gate_is_not_approved()
     test_action_verifier_rejects_missing_craft_materials_and_tools()
+    test_action_verifier_accepts_plank_family_recipe_ingredients()
     test_action_candidate_selector_repairs_rejected_craft_action()
     test_action_candidate_selector_surfaces_action_value_evidence()
     test_action_value_profile_gates_transition_value_feedback()

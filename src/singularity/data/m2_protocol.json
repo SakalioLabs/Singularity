@@ -1,0 +1,339 @@
+{
+  "type": "m2_fixed_protocol",
+  "schema_version": 1,
+  "profile": "m2-fixed-v1",
+  "inherits": "m1-fixed-v1",
+  "minecraft_version": "1.20.4",
+  "server_type": "Paper",
+  "server_build": "paper-1.20.4-499",
+  "server_jar_policy": "pinned_sha256_v1",
+  "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+  "world_seed": "12345",
+  "episode_strategy": "fresh_level_per_task_run_v1",
+  "spawn_strategy": "world_spawn",
+  "difficulty": "peaceful",
+  "game_mode": "survival",
+  "time_of_day": 1000,
+  "weather": "clear",
+  "agent_id": "singularity-agent-v1",
+  "planner_id": "llm-root-planner-v1",
+  "planner_schema_id": "m2-root-plan-v1",
+  "action_backend_id": "mineflayer-bridge-v1",
+  "verifier_id": "m2-machine-verifier-v2",
+  "skill_runtime_profile_id": "m2-bounded-skills-v2",
+  "max_action_timeout_ms": 30000,
+  "max_template_action_timeout_ms": 360000,
+  "deadline_policy": {
+    "id": "m2-hard-total-deadline-v1",
+    "planner_timeout": "remaining_goal_time_minus_action_guard",
+    "planner_max_retries": 0,
+    "action_guard_ms": 30000,
+    "post_planner_action_suppression": true,
+    "eligibility_duration_required": true
+  },
+  "ingredient_equivalence_policy": {
+    "id": "minecraft-planks-tag-v1",
+    "canonical_ingredient": "oak_planks",
+    "applies_to": [
+      "action_verifier",
+      "knowledge_base",
+      "learned_skill_preconditions",
+      "learned_skill_contract_readiness"
+    ],
+    "members": [
+      "oak_planks",
+      "spruce_planks",
+      "birch_planks",
+      "jungle_planks",
+      "acacia_planks",
+      "dark_oak_planks",
+      "mangrove_planks",
+      "cherry_planks",
+      "bamboo_planks",
+      "crimson_planks",
+      "warped_planks"
+    ]
+  },
+  "dependencies": {
+    "mineflayer": "4.37.1",
+    "mineflayer-pathfinder": "2.4.5",
+    "minecraft-data": "3.111.0"
+  },
+  "runtime_versions": {
+    "node": "22.16.0",
+    "python": "3.12.8"
+  },
+  "llm": {
+    "provider": "openai",
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash",
+    "temperature": 0.0,
+    "max_tokens": 4096,
+    "response_format": {
+      "type": "json_object"
+    },
+    "extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    }
+  },
+  "llm_response_contract": {
+    "id": "m2-visible-json-response-v1",
+    "finish_reason": "stop",
+    "reasoning_content_max_bytes": 0
+  },
+  "llm_transport_policy": {
+    "id": "m2-bounded-transport-retry-v1",
+    "sdk_max_retries": 0,
+    "application_max_retries": 1,
+    "retryable_error_types": ["APIConnectionError"],
+    "reset_client_before_retry": true,
+    "backoff_ms": 1000
+  },
+  "planner_context": {
+    "successful_action_summary": {
+      "profile": "m2-successful-action-summary-v1",
+      "source": "current_goal_session_action_events",
+      "max_actions": 8,
+      "max_chars": 1600,
+      "allowed_fields": ["type", "block", "item", "position", "inventory_delta"]
+    }
+  },
+  "planner_schema": {
+    "schema_version": "m2-root-plan-v1",
+    "root_status": "planning",
+    "allowed_plan_kinds": ["root", "continuation", "replan"],
+    "allowed_statuses": ["planning", "blocked", "complete", "error"],
+    "allowed_actions": [
+      "move_to",
+      "look_at",
+      "dig",
+      "place",
+      "craft",
+      "equip",
+      "use_item",
+      "wait",
+      "build_shelter_5x5"
+    ],
+    "action_parameter_contracts": {
+      "dig": {
+        "required": ["block", "x", "y", "z"],
+        "properties": {
+          "block": "nonempty_string",
+          "x": "finite_number",
+          "y": "finite_number",
+          "z": "finite_number"
+        },
+        "allow_additional": false
+      },
+      "craft": {
+        "required": ["item"],
+        "properties": {
+          "item": "nonempty_string",
+          "count": "positive_integer"
+        },
+        "allow_additional": false
+      }
+    },
+    "min_root_subtasks": 2,
+    "max_subtasks": 12,
+    "max_actions_per_call": 1,
+    "dependency_rule": "references_earlier_subtask_id",
+    "require_machine_success_criteria": true
+  },
+  "planner_schema_sha256": "bc2bced8e5da87b89d8fdbfc8df02f89849fb1b87ca480e67b9fe7015e42a29f",
+  "reset_contract": {
+    "id": "m2-reset-v1",
+    "coordinate_basis": "world_spawn_floor",
+    "clear_inventory": true,
+    "clear_nearby_drops": true,
+    "fixture_order": ["clear_regions", "fill_regions", "initial_blocks", "initial_inventory"],
+    "verify_exact_inventory": true,
+    "verify_fixture_blocks": true,
+    "verify_player_state": true,
+    "record_structure_baseline": true
+  },
+  "reset_protocol_sha256": "19f3418e216865d7c9497d81128febcf3e169217a9639236d04512f39f3701de",
+  "validation_contract": {
+    "id": "m2-validation-v1",
+    "root_plan": {
+      "real_llm_call_required": true,
+      "schema_validation_required": true,
+      "minimum_dependent_subtasks": 2,
+      "plan_cache_allowed": false,
+      "rule_only_allowed": false
+    },
+    "task_execution": {
+      "required_status_path": ["proposed", "active", "completed_or_failed"],
+      "goal_verifier_required": true,
+      "post_action_observation_required": true,
+      "planner_skill_action_attribution_separate": true
+    },
+    "live_evidence": {
+      "minecraft_required": true,
+      "mock_allowed": false,
+      "synthetic_allowed": false,
+      "replay_allowed": false,
+      "session_sha256_required": true
+    },
+    "shelter": {
+      "structure_id": "shelter-outer-5x5-v1",
+      "dimension_basis": "outer",
+      "outer_width": 5,
+      "outer_depth": 5,
+      "minimum_wall_height": 2,
+      "minimum_wall_coverage": 0.9375,
+      "minimum_roof_coverage": 1.0,
+      "entrance_width": 1,
+      "entrance_height": 2,
+      "minimum_interior_width": 3,
+      "minimum_interior_depth": 3,
+      "player_inside_required": true,
+      "episode_block_delta_required": true,
+      "allowed_structure_blocks": [
+        "cobblestone",
+        "oak_planks",
+        "spruce_planks",
+        "birch_planks",
+        "jungle_planks",
+        "acacia_planks",
+        "dark_oak_planks"
+      ]
+    }
+  },
+  "validation_protocol_sha256": "463f65f0431455273b97af833beaca59270ae4e54186b24f966167ea12c18edd",
+  "tasks": [
+    {
+      "id": "BM-006",
+      "name": "Gather wood and craft workbench",
+      "goal": "Gather wood and craft workbench",
+      "initial_inventory": {},
+      "initial_blocks": [
+        {"name": "oak_log", "relative_position": {"x": 3, "y": 0, "z": 0}},
+        {"name": "oak_log", "relative_position": {"x": 3, "y": 1, "z": 0}}
+      ],
+      "fixture": {
+        "clear_regions": [
+          {"min": {"x": 3, "y": 0, "z": 0}, "max": {"x": 3, "y": 1, "z": 0}}
+        ],
+        "fill_regions": []
+      },
+      "success_criteria": {
+        "inventory": {"crafting_table": 1},
+        "required_inventory_delta": {"crafting_table": 1},
+        "required_action_types": ["dig", "craft"],
+        "required_source_blocks": [
+          "oak_log",
+          "spruce_log",
+          "birch_log",
+          "jungle_log",
+          "acacia_log",
+          "dark_oak_log",
+          "mangrove_log",
+          "cherry_log",
+          "crimson_stem",
+          "warped_stem"
+        ]
+      },
+      "max_cycles": 80,
+      "max_duration_s": 240
+    },
+    {
+      "id": "BM-007",
+      "name": "Craft wooden pickaxe and get cobblestone",
+      "goal": "Craft wooden pickaxe and get cobblestone",
+      "initial_inventory": {"oak_log": 2},
+      "initial_blocks": [
+        {"name": "crafting_table", "relative_position": {"x": 1, "y": 0, "z": 0}},
+        {"name": "stone", "relative_position": {"x": 4, "y": 0, "z": 0}},
+        {"name": "stone", "relative_position": {"x": 4, "y": 0, "z": 1}},
+        {"name": "stone", "relative_position": {"x": 4, "y": 0, "z": -1}}
+      ],
+      "fixture": {
+        "clear_regions": [
+          {"min": {"x": 1, "y": 0, "z": -1}, "max": {"x": 4, "y": 0, "z": 1}}
+        ],
+        "fill_regions": []
+      },
+      "success_criteria": {
+        "inventory": {"wooden_pickaxe": 1, "cobblestone": 3},
+        "required_inventory_delta": {"wooden_pickaxe": 1, "cobblestone": 3},
+        "required_action_types": ["craft", "equip", "move_to", "dig"],
+        "required_source_blocks": ["stone"],
+        "replan_or_prerequisite_recovery_required": true
+      },
+      "max_cycles": 140,
+      "max_duration_s": 420
+    },
+    {
+      "id": "BM-008",
+      "name": "Find coal or make charcoal",
+      "goal": "Find coal or make charcoal",
+      "initial_inventory": {"wooden_pickaxe": 1},
+      "initial_blocks": [
+        {"name": "coal_ore", "relative_position": {"x": 4, "y": 0, "z": 0}}
+      ],
+      "fixture": {
+        "clear_regions": [
+          {"min": {"x": 4, "y": 0, "z": 0}, "max": {"x": 4, "y": 0, "z": 0}}
+        ],
+        "fill_regions": []
+      },
+      "success_criteria": {
+        "inventory_any": {"coal": 1, "charcoal": 1},
+        "required_inventory_delta_any": {"coal": 1, "charcoal": 1},
+        "required_action_types": ["equip", "move_to", "dig"],
+        "allowed_strategies": ["mine_coal", "make_charcoal"],
+        "strategy_preconditions_required": true
+      },
+      "max_cycles": 120,
+      "max_duration_s": 360
+    },
+    {
+      "id": "BM-009",
+      "name": "Craft a torch",
+      "goal": "Craft a torch",
+      "initial_inventory": {"coal": 1, "oak_planks": 2},
+      "initial_blocks": [],
+      "fixture": {
+        "clear_regions": [],
+        "fill_regions": []
+      },
+      "success_criteria": {
+        "inventory": {"torch": 1},
+        "required_inventory_delta": {"torch": 1},
+        "required_prerequisite_items": ["coal_or_charcoal", "stick"],
+        "required_action_types": ["craft"]
+      },
+      "max_cycles": 80,
+      "max_duration_s": 240
+    },
+    {
+      "id": "BM-010",
+      "name": "Build a simple 5x5 shelter",
+      "goal": "Build a simple 5x5 shelter",
+      "initial_inventory": {"cobblestone": 64},
+      "initial_blocks": [],
+      "fixture": {
+        "clear_regions": [
+          {"min": {"x": 3, "y": 0, "z": 3}, "max": {"x": 7, "y": 2, "z": 7}}
+        ],
+        "fill_regions": [
+          {"min": {"x": 3, "y": -1, "z": 3}, "max": {"x": 7, "y": -1, "z": 7}, "name": "stone"}
+        ],
+        "construction_zone": {
+          "origin_relative": {"x": 3, "y": 0, "z": 3},
+          "size": {"x": 5, "y": 3, "z": 5},
+          "maximum_spawn_distance": 12
+        }
+      },
+      "success_criteria": {
+        "structure": "shelter-outer-5x5-v1",
+        "required_action_types": ["build_shelter_5x5"]
+      },
+      "max_cycles": 100,
+      "max_duration_s": 420
+    }
+  ]
+}

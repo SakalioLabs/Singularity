@@ -1,0 +1,36 @@
+{
+  "average_generalization_gain": 0.0,
+  "decision": "keep_candidate_review_only",
+  "eligibility": false,
+  "evidence_count": 0,
+  "evidence_kind": "live_minecraft_skill_research",
+  "heldout_fixture_validation": {
+    "candidate_attribution_confidence": 1.0,
+    "candidate_steps_reobserved": true,
+    "candidate_steps_verified": true,
+    "decision": "allow_independent_fixture_validation",
+    "fixture_profile": "wooden_pickaxe_table_shift_v1",
+    "minimum_step_equivalence": true,
+    "readiness": "approved",
+    "requires_nonnegative_efficiency_gain": true,
+    "requires_positive_efficiency_gain": false,
+    "validated": true
+  },
+  "heldout_source_session_ids": [
+    "5c3a9522-a8c",
+    "d3a1be18-0e4"
+  ],
+  "protocol_sha256": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+  "readiness": "review",
+  "ready_stream_count": 0,
+  "regression_count": 0,
+  "schema_version": 1,
+  "source_report_fingerprint": "5e2fdd8bd4766897ae7aa10afe5fbc5029acc215a889302427399a835b555c6c",
+  "target": "skill:learned:craft_wooden_pickaxe",
+  "task_count": 1,
+  "thresholds": {
+    "require_heldout": true
+  },
+  "training_heldout_overlap_count": 0,
+  "type": "task_stream_transfer_gate"
+}

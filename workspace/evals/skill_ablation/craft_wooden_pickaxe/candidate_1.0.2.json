@@ -1,0 +1,298 @@
+{
+  "bounded_template_fingerprint": "d64c3db51de5a29aa27e",
+  "canonical_deduplication": {
+    "bounded_template_fingerprint": "d64c3db51de5a29aa27e",
+    "canonical_skill_id": "learned:craft_wooden_pickaxe",
+    "decision": "version_update_existing_skill_id",
+    "existing_queue_candidate_id": "612d7ab4",
+    "existing_queue_dedupe_key": "d64c3db51de5a29aa27e",
+    "synonymous_skill_created": false
+  },
+  "checks": {
+    "agentic_fallback_declared": true,
+    "canonical_skill_id_reused": true,
+    "inventory_delta_declared": true,
+    "logs_recovery_declared": true,
+    "no_arbitrary_code": true,
+    "no_inherited_runtime_authority": true,
+    "no_inherited_source_sessions": true,
+    "placed_nearby_table_required": true,
+    "planks_requirement_declared": true,
+    "post_action_reobserve_declared": true,
+    "pre_action_check_declared": true,
+    "quarantined_1_0_1_retained": true,
+    "single_queue_identity": true,
+    "sticks_requirement_declared": true,
+    "template_deduplicated_as_version_update": true,
+    "typed_bounded_dsl": true
+  },
+  "contract": {
+    "abort_conditions": [
+      "fall back before execution when materials or a nearby placed crafting table are absent",
+      "fall back after any action failure or unverifiable post-action observation"
+    ],
+    "bounded_action_template": {
+      "dsl_version": "bounded_action_template_v1",
+      "max_actions": 1,
+      "phases": [
+        {
+          "count": 1,
+          "id": "craft_target",
+          "item": "wooden_pickaxe",
+          "op": "craft_item",
+          "target_count": 1,
+          "target_item": "wooden_pickaxe"
+        }
+      ]
+    },
+    "confidence_interval": {
+      "lower": 0.0,
+      "method": "wilson_95",
+      "samples": 0,
+      "upper": 1.0
+    },
+    "dependencies": [],
+    "description": "Craft one wooden pickaxe from verified materials at an observed, placed crafting table.",
+    "examples": [],
+    "expected_intermediate_states": [
+      {
+        "phase_id": "craft_target",
+        "preconditions_verified_before_action": true,
+        "reobserve_after_each_action": true,
+        "required_inventory": {
+          "oak_planks": 3,
+          "stick": 2
+        },
+        "required_nearby_block": {
+          "max_distance": 4.5,
+          "name": "crafting_table"
+        },
+        "target_inventory_delta": {
+          "wooden_pickaxe": 1
+        }
+      }
+    ],
+    "failure_conditions": [
+      "any declared precondition is false before the action",
+      "ActionVerifier rejects the bounded craft action",
+      "post-action observation lacks a wooden_pickaxe inventory increment"
+    ],
+    "failure_count": 0,
+    "failure_evidence": [],
+    "failure_modes": [
+      "missing_materials",
+      "crafting_table_not_placed_or_out_of_range",
+      "stale_observation",
+      "action_verifier_reject",
+      "backend_execution_error",
+      "inventory_delta_missing"
+    ],
+    "failure_type_counts": {},
+    "gate": {
+      "canonical_deduplication": "version_update_existing_skill_id",
+      "decision": "retain_candidate",
+      "executable_authority": false,
+      "readiness": "review",
+      "required_next_gate": "three_independent_paired_live_sessions",
+      "runtime_default_authority": false,
+      "schema_valid": true,
+      "schema_version": 1,
+      "type": "skill_candidate_validation_gate"
+    },
+    "implementation": "{\"dsl_version\": \"bounded_action_template_v1\", \"max_actions\": 1, \"phases\": [{\"count\": 1, \"id\": \"craft_target\", \"item\": \"wooden_pickaxe\", \"op\": \"craft_item\", \"target_count\": 1, \"target_item\": \"wooden_pickaxe\"}]}",
+    "last_used": null,
+    "layer": "composite",
+    "lifecycle_history": [
+      {
+        "event": "candidate_created",
+        "inherits_executable_authority": false,
+        "parent_version": "1.0.1",
+        "reason": "root-cause-supported contract expansion for independent revalidation",
+        "skill_id": "learned:craft_wooden_pickaxe",
+        "status": "candidate",
+        "timestamp": 1783700422.2652845,
+        "version": "1.0.2-candidate"
+      }
+    ],
+    "name": "learned_craft_wooden_pickaxe",
+    "notes": "One bounded craft action only. All prerequisite recovery remains under Agentic Planning.",
+    "observed_failure_count": 0,
+    "parameters": {},
+    "parent_version": "1.0.1",
+    "postconditions": {
+      "inventory": {
+        "wooden_pickaxe": 1
+      },
+      "inventory_delta": {
+        "wooden_pickaxe": 1
+      }
+    },
+    "preconditions": {
+      "fallback_policy": "return_to_agentic_planning_on_any_unmet_condition",
+      "inventory": {
+        "oak_planks": 3,
+        "stick": 2
+      },
+      "nearby_block_max_distance": {
+        "crafting_table": 4.5
+      },
+      "nearby_block_present": [
+        "crafting_table"
+      ],
+      "prerequisite_chain": [
+        {
+          "executor": "agentic_planning_only",
+          "id": "recover_logs",
+          "requirement": {
+            "oak_log": 2
+          },
+          "when": "oak_planks<3 or stick<2"
+        },
+        {
+          "after": [
+            "recover_logs"
+          ],
+          "executor": "agentic_planning_only",
+          "id": "recover_planks",
+          "requirement": {
+            "oak_planks": 3
+          }
+        },
+        {
+          "after": [
+            "recover_planks"
+          ],
+          "executor": "agentic_planning_only",
+          "id": "recover_sticks",
+          "requirement": {
+            "stick": 2
+          }
+        },
+        {
+          "executor": "agentic_planning_only",
+          "id": "recover_crafting_table",
+          "requirement": {
+            "crafting_table": 1,
+            "state": "placed_or_approached"
+          },
+          "when": "no placed crafting_table within 4.5 blocks"
+        }
+      ]
+    },
+    "provenance": {
+      "action_template_changed": false,
+      "authority": {
+        "candidate_runtime_eligible": false,
+        "inherits_quarantined_runtime_authority": false,
+        "requires_independent_live_lifecycle": true
+      },
+      "canonical_deduplication": {
+        "bounded_template_fingerprint": "d64c3db51de5a29aa27e",
+        "canonical_skill_id": "learned:craft_wooden_pickaxe",
+        "decision": "version_update_existing_skill_id",
+        "existing_queue_candidate_id": "612d7ab4",
+        "existing_queue_dedupe_key": "d64c3db51de5a29aa27e",
+        "synonymous_skill_created": false
+      },
+      "contract_expanded": true,
+      "repair_kind": "independent_version_revalidation",
+      "root_cause": "controlled lower-layer fault was incorrectly attributed to the skill lifecycle",
+      "root_cause_report": "workspace/evals/skill_ablation/craft_wooden_pickaxe/root_cause_1.0.1.json",
+      "root_cause_report_sha256": "811e3df7a575249e652cb68af91a646f5d70010eb66a6582a827cb3294a9f455"
+    },
+    "required_inventory": [
+      {
+        "count": 3,
+        "item": "oak_planks"
+      },
+      {
+        "count": 2,
+        "item": "stick"
+      }
+    ],
+    "required_items": [
+      {
+        "count": 3,
+        "item": "oak_planks"
+      },
+      {
+        "count": 2,
+        "item": "stick"
+      }
+    ],
+    "required_observations": [
+      "inventory",
+      "nearby_block:crafting_table"
+    ],
+    "rollback_target": "",
+    "skill_id": "learned:craft_wooden_pickaxe",
+    "skill_memory": [],
+    "source_environment_ids": [],
+    "source_session_ids": [],
+    "status": "candidate",
+    "success_count": 0,
+    "success_rate": 0.0,
+    "successful_uses": 0,
+    "task_family": "crafting",
+    "total_uses": 0,
+    "transfer_scope": {
+      "heldout_validated": false,
+      "inherited": false,
+      "quantity_range": {
+        "maximum": 1,
+        "minimum": 1
+      },
+      "supported_task_families": [
+        "crafting"
+      ],
+      "task_family": "crafting",
+      "training_environment_ids": [],
+      "training_goals": [
+        "Craft a wooden pickaxe"
+      ],
+      "training_session_ids": [],
+      "unsupported_task_families": [
+        "gathering",
+        "combat"
+      ]
+    },
+    "verifier_version": "goal-action-verifier-v1",
+    "version": "1.0.2-candidate"
+  },
+  "contract_fingerprint": "c5045f34ed0d1be08b17454efe204313a6261dc2126fb9bd75298293eb0c99b7",
+  "generated_at": 1783700422.2652845,
+  "history_before": {
+    "1.0.0": "advisory",
+    "1.0.1": "quarantined"
+  },
+  "parent_version": "1.0.1",
+  "readiness": "approved",
+  "root_cause_source": {
+    "content_sha256": "811e3df7a575249e652cb68af91a646f5d70010eb66a6582a827cb3294a9f455",
+    "repo_relative_path": "workspace/evals/skill_ablation/craft_wooden_pickaxe/root_cause_1.0.1.json"
+  },
+  "schema_version": 1,
+  "skill_id": "learned:craft_wooden_pickaxe",
+  "skill_version": "1.0.2-candidate",
+  "status_at_validation": "candidate",
+  "type": "skill_candidate_schema_report",
+  "validation": {
+    "issues": [],
+    "normalized_template": {
+      "dsl_version": "bounded_action_template_v1",
+      "max_actions": 1,
+      "phases": [
+        {
+          "count": 1,
+          "id": "craft_target",
+          "item": "wooden_pickaxe",
+          "op": "craft_item",
+          "target_count": 1,
+          "target_item": "wooden_pickaxe"
+        }
+      ]
+    },
+    "valid": true,
+    "warnings": []
+  }
+}

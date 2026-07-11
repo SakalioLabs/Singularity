@@ -20,7 +20,7 @@ param(
     [string]$ResearchGoal = "",
     [string]$SuccessCriteriaJson = "",
     [string]$SuccessCriteriaFile = "",
-    [ValidateSet("protocol_default", "gather_oak_near_v1", "gather_oak_shifted_v1")]
+    [ValidateSet("protocol_default", "gather_oak_near_v1", "gather_oak_shifted_v1", "wooden_pickaxe_table_shift_v1")]
     [string]$ResearchFixtureProfile = "protocol_default",
     [string]$SkillStoragePath = "workspace/skills",
     [string]$SkillLedgerPath = "workspace/evals/skill_learning_ledger.json",

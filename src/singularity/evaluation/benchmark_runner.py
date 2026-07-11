@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import time
 import logging
+import platform
 from dataclasses import asdict, dataclass, field, replace
 from typing import Optional
 
@@ -32,10 +33,18 @@ from singularity.evaluation.m1_protocol import (
     PROTOCOL_SHA256 as M1_PROTOCOL_SHA256,
     action_transition_proof,
 )
+from singularity.evaluation.m2_protocol import (
+    PROTOCOL as M2_PROTOCOL,
+    PROTOCOL_PATH as _M2_PROTOCOL_PATH,
+    PROTOCOL_SHA256 as M2_PROTOCOL_SHA256,
+    protocol_integrity_report as m2_protocol_integrity_report,
+    verify_task_outcome as verify_m2_task_outcome,
+)
 
 logger = logging.getLogger("singularity.benchmark")
 
 M1_PROTOCOL_PATH = str(_M1_PROTOCOL_PATH)
+M2_PROTOCOL_PATH = str(_M2_PROTOCOL_PATH)
 
 
 def m1_convergence_config(config: Config) -> Config:
@@ -190,6 +199,138 @@ def m1_runtime_profile(config: Config) -> dict:
         "verifier_id": M1_PROTOCOL["verifier_id"],
         "isolated": isolated,
         "settings": fields,
+    }
+
+
+def m2_convergence_config(config: Config) -> Config:
+    """Return the fixed LLM-root-planning runtime used for eligible M2 evidence."""
+    llm_spec = M2_PROTOCOL["llm"]
+    return replace(
+        config,
+        llm=replace(
+            config.llm,
+            provider=str(llm_spec["provider"]),
+            base_url=str(llm_spec["base_url"]),
+            model=str(llm_spec["model"]),
+            max_tokens=int(llm_spec["max_tokens"]),
+            temperature=float(llm_spec["temperature"]),
+        ),
+        force_rule_planner=False,
+        planner_protocol=M2_PROTOCOL["profile"],
+        require_llm_root_plan=True,
+        enable_skill_candidate_extraction=False,
+        enable_policy_skills=False,
+        enable_skill_frontier_routing=False,
+        enable_autocurriculum=False,
+        enable_memory_policy=False,
+        enable_memory_persistence=False,
+        enable_planning_memory_context=False,
+        enable_task_memory_context=False,
+        enable_task_continuity_context=False,
+        enable_task_readiness_context=True,
+        enable_task_readiness_recovery=True,
+        enable_bounded_planning_context=False,
+        enable_skill_memory_context=False,
+        enable_curriculum_planner_context=False,
+        enable_knowledge_correction_context=False,
+        enable_task_precondition_context=False,
+        enable_plan_cache=False,
+        plan_cache_paths=[],
+        plan_cache_gate_paths=[],
+        enable_blocked_plan_rule_fallback=False,
+        episode_abort_mode="off",
+        episode_abort_gate_paths=[],
+        frontier_budget_mode="off",
+        frontier_budget_gate_paths=[],
+        enable_weighted_memory_retrieval=False,
+        memory_attribution_gate_paths=[],
+        enable_coaching_policy=False,
+        coach_style="",
+        coach_style_ablation_paths=[],
+        coach_style_gate_paths=[],
+        enable_vision_analysis=False,
+        enable_visual_action_grounding=False,
+        enable_screenshot_capture=False,
+        enable_goal_critic=False,
+        goal_critic_gate_paths=[],
+        enable_self_evolution_policy=False,
+        enable_world_model_curriculum_feedback=False,
+        enable_action_candidate_selection=False,
+        enable_goal_verification=True,
+        enable_action_verification=True,
+        enforce_action_verification=True,
+        max_action_timeout=int(M2_PROTOCOL["max_action_timeout_ms"]),
+    )
+
+
+def m2_runtime_profile(config: Config) -> dict:
+    llm_spec = M2_PROTOCOL["llm"]
+    python_version = platform.python_version()
+    llm_configured = bool(config.llm.api_key)
+    settings = {
+        "llm_configured": llm_configured,
+        "provider": str(config.llm.provider),
+        "base_url": str(config.llm.base_url or "").rstrip("/"),
+        "model": str(config.llm.model),
+        "temperature": float(config.llm.temperature),
+        "max_tokens": int(config.llm.max_tokens),
+        "response_format": dict(llm_spec["response_format"]),
+        "extra_body": dict(llm_spec.get("extra_body", {})),
+        "force_rule_planner": bool(config.force_rule_planner),
+        "require_llm_root_plan": bool(config.require_llm_root_plan),
+        "planner_protocol": str(config.planner_protocol or ""),
+        "plan_cache": bool(config.enable_plan_cache),
+        "blocked_plan_rule_fallback": bool(config.enable_blocked_plan_rule_fallback),
+        "task_readiness_context": bool(config.enable_task_readiness_context),
+        "task_readiness_recovery": bool(config.enable_task_readiness_recovery),
+        "skill_execution_mode": str(config.skill_execution_mode or "off"),
+        "target_skill_id": str(config.target_skill_id or ""),
+        "m2_arm": str(config.m2_arm or "default"),
+        "m2_pair_id": str(config.m2_pair_id or ""),
+        "m2_replicate_id": str(config.m2_replicate_id or ""),
+        "deadline_policy_id": str(M2_PROTOCOL["deadline_policy"]["id"]),
+        "action_guard_ms": int(M2_PROTOCOL["deadline_policy"]["action_guard_ms"]),
+        "planner_max_retries": int(M2_PROTOCOL["deadline_policy"]["planner_max_retries"]),
+        "llm_transport_policy_id": str(M2_PROTOCOL["llm_transport_policy"]["id"]),
+        "application_transport_max_retries": int(
+            M2_PROTOCOL["llm_transport_policy"]["application_max_retries"]
+        ),
+        "python_version": python_version,
+    }
+    eligible_configuration = bool(
+        llm_configured
+        and settings["provider"] == llm_spec["provider"]
+        and settings["base_url"] == str(llm_spec["base_url"]).rstrip("/")
+        and settings["model"] == llm_spec["model"]
+        and settings["temperature"] == float(llm_spec["temperature"])
+        and settings["max_tokens"] == int(llm_spec["max_tokens"])
+        and not settings["force_rule_planner"]
+        and settings["require_llm_root_plan"]
+        and settings["planner_protocol"] == M2_PROTOCOL["profile"]
+        and not settings["plan_cache"]
+        and not settings["blocked_plan_rule_fallback"]
+        and settings["task_readiness_context"]
+        and settings["task_readiness_recovery"]
+        and int(config.max_action_timeout) == int(M2_PROTOCOL["deadline_policy"]["action_guard_ms"])
+        and python_version == M2_PROTOCOL["runtime_versions"]["python"]
+    )
+    return {
+        "profile": "m2_llm_root_runtime_v1",
+        "protocol": M2_PROTOCOL["profile"],
+        "protocol_sha256": M2_PROTOCOL_SHA256,
+        "reset_protocol_sha256": M2_PROTOCOL["reset_protocol_sha256"],
+        "validation_protocol_sha256": M2_PROTOCOL["validation_protocol_sha256"],
+        "planner_schema_sha256": M2_PROTOCOL["planner_schema_sha256"],
+        "agent_id": M2_PROTOCOL["agent_id"],
+        "planner_id": M2_PROTOCOL["planner_id"],
+        "action_backend_id": M2_PROTOCOL["action_backend_id"],
+        "verifier_id": M2_PROTOCOL["verifier_id"],
+        "skill_runtime_profile_id": M2_PROTOCOL["skill_runtime_profile_id"],
+        "deadline_policy_id": M2_PROTOCOL["deadline_policy"]["id"],
+        "llm_transport_policy_id": M2_PROTOCOL["llm_transport_policy"]["id"],
+        "isolated": eligible_configuration,
+        "eligible_configuration": eligible_configuration,
+        "settings": settings,
     }
 
 
@@ -2785,16 +2926,19 @@ M1_BENCHMARKS = [
 ]
 
 M2_BENCHMARKS = [
-    BenchmarkTask("BM-006", "Gather wood and craft workbench", "Gather oak wood and craft a crafting table", "M2",
-                  timeout_cycles=80, success_criteria={"crafting_table": 1}),
-    BenchmarkTask("BM-007", "Wooden pickaxe + cobblestone", "Craft a wooden pickaxe and mine 3 cobblestone", "M2",
-                  timeout_cycles=120, success_criteria={"cobblestone": 3}),
-    BenchmarkTask("BM-008", "Stone tool progression", "Craft stone pickaxe and stone axe", "M2",
-                  timeout_cycles=150, success_criteria={"stone_pickaxe": 1, "stone_axe": 1}),
-    BenchmarkTask("BM-009", "Gather and store", "Gather 16 oak logs and store in a chest", "M2",
-                  timeout_cycles=200, success_criteria={"oak_log": 16}),
-    BenchmarkTask("BM-010", "Night survival prep", "Build a shelter and craft a bed before nightfall", "M2",
-                  timeout_cycles=300, success_criteria={"bed": 1}),
+    BenchmarkTask(
+        id=spec["id"],
+        name=spec["name"],
+        goal=spec["goal"],
+        phase="M2",
+        timeout_cycles=int(spec["max_cycles"]),
+        success_criteria=dict(spec["success_criteria"]),
+        initial_inventory=dict(spec["initial_inventory"]),
+        max_duration_s=int(spec["max_duration_s"]),
+        world_seed=M2_PROTOCOL["world_seed"],
+        reset_profile=M2_PROTOCOL["profile"],
+    )
+    for spec in M2_PROTOCOL["tasks"]
 ]
 
 TASK_CONTINUITY_LINEAGE_ABLATION_CASES = [
@@ -3278,6 +3422,8 @@ class BenchmarkResult:
     status: str  # pass, fail, timeout, error
     cycles_used: int = 0
     duration_s: float = 0.0
+    goal_elapsed_s: float = 0.0
+    max_duration_s: float = 0.0
     inventory_snapshot: dict = field(default_factory=dict)
     intervention_metrics: dict = field(default_factory=dict)
     memory_policy_metrics: dict = field(default_factory=dict)
@@ -3294,6 +3440,8 @@ class BenchmarkResult:
     runtime_profile: dict = field(default_factory=dict)
     evidence_kind: str = ""
     protocol_eligible: bool = False
+    terminal_evidence: dict = field(default_factory=dict)
+    experiment_metadata: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -3397,11 +3545,15 @@ class BenchmarkRunner:
         task_config = (
             m1_convergence_config(self.config)
             if self.enforce_m1_protocol and task.reset_profile == M1_PROTOCOL["profile"]
+            else m2_convergence_config(replace(self.config, m2_task_id=task.id))
+            if task.reset_profile == M2_PROTOCOL["profile"]
             else self.config
         )
         runtime_profile = (
             m1_runtime_profile(task_config)
             if task.reset_profile == M1_PROTOCOL["profile"]
+            else m2_runtime_profile(task_config)
+            if task.reset_profile == M2_PROTOCOL["profile"]
             else {"profile": "default_runtime", "isolated": False}
         )
         agent = self.agent_factory(task_config)
@@ -3423,6 +3575,7 @@ class BenchmarkRunner:
                 task.name,
                 "error",
                 duration_s=round(time.time() - start, 2),
+                max_duration_s=float(task.max_duration_s or 0.0),
                 error=connection_error or "Connection failed",
                 failure_reason="bridge_connection_failed",
                 session_log_path=session_summary.get("log_path", ""),
@@ -3458,6 +3611,17 @@ class BenchmarkRunner:
                 if hasattr(agent.session_logger, "log"):
                     agent.session_logger.log("benchmark_reset", setup_evidence)
                 if setup_evidence.get("success"):
+                    if task.reset_profile == M2_PROTOCOL["profile"]:
+                        agent._m2_setup_evidence = dict(setup_evidence)
+                        structure = setup_evidence.get("structure_baseline", {})
+                        agent._m2_benchmark_context = {
+                            "task_id": task.id,
+                            "success_criteria": dict(task.success_criteria),
+                            "construction_zone": {
+                                "origin": structure.get("origin", {}),
+                                "size": structure.get("size", {}),
+                            } if isinstance(structure, dict) and structure else {},
+                        }
                     position = setup_evidence.get("after_state", {}).get("position", {})
                     if position and hasattr(agent, "explorer") and hasattr(agent.explorer, "set_base"):
                         agent.explorer.set_base(
@@ -3473,6 +3637,7 @@ class BenchmarkRunner:
                     task_name=task.name,
                     status="error",
                     duration_s=round(time.time() - start, 2),
+                    max_duration_s=float(task.max_duration_s or 0.0),
                     error=str(setup_evidence.get("error") or "benchmark reset failed"),
                     failure_reason="benchmark_reset_failed",
                     session_log_path=session_summary.get("log_path", ""),
@@ -3494,42 +3659,92 @@ class BenchmarkRunner:
                     name = item.get("name", "unknown")
                     inv_summary[name] = inv_summary.get(name, 0) + item.get("count", 1)
 
-                criteria_verified = self._check_success(inv_summary, task.success_criteria)
+                terminal_evidence = {}
+                m2_outcome = {}
+                if task.reset_profile == M2_PROTOCOL["profile"]:
+                    verify = getattr(agent.bot, "verify_benchmark", None)
+                    terminal_evidence = verify(task.id) if callable(verify) else {
+                        "success": False,
+                        "error": "bridge does not expose benchmark_verify",
+                    }
+                    if hasattr(agent.session_logger, "log"):
+                        agent.session_logger.log("benchmark_terminal_evidence", terminal_evidence)
+                    m2_outcome = verify_m2_task_outcome(
+                        task.id,
+                        setup_evidence=setup_evidence,
+                        terminal_evidence=terminal_evidence if isinstance(terminal_evidence, dict) else {},
+                        action_events=[
+                            event
+                            for event in getattr(agent.session_logger, "events", [])
+                            if isinstance(event, dict) and event.get("type") == "action"
+                        ],
+                    )
+                    criteria_verified = bool(m2_outcome.get("passed"))
+                else:
+                    criteria_verified = self._check_success(inv_summary, task.success_criteria)
                 goal_verified = bool(
                     result.get("completed")
                     and result.get("termination_reason") == "goal_verified"
                 )
+                goal_elapsed_s = float(result.get("elapsed_s", 0.0) or 0.0)
+                max_duration_limit = float(result.get("max_duration_s", 0.0) or 0.0)
+                timed_out = bool(result.get("termination_reason") == "max_duration")
                 session_summary = result.get("summary", {})
-                evidence_validation = self._validate_m1_session_evidence(
-                    task,
-                    getattr(agent.session_logger, "events", []),
-                    setup_evidence,
-                    inv_summary,
-                    goal_verified,
-                ) if task.reset_profile == M1_PROTOCOL["profile"] else {"passed": True, "profile": "not_m1"}
+                if task.reset_profile == M1_PROTOCOL["profile"]:
+                    evidence_validation = self._validate_m1_session_evidence(
+                        task,
+                        getattr(agent.session_logger, "events", []),
+                        setup_evidence,
+                        inv_summary,
+                        goal_verified,
+                    )
+                elif task.reset_profile == M2_PROTOCOL["profile"]:
+                    evidence_validation = self._validate_m2_session_evidence(
+                        task,
+                        getattr(agent.session_logger, "events", []),
+                        setup_evidence,
+                        terminal_evidence,
+                        m2_outcome,
+                        goal_verified,
+                    )
+                else:
+                    evidence_validation = {"passed": True, "profile": "uncontrolled"}
                 if hasattr(agent.session_logger, "log"):
                     agent.session_logger.log("benchmark_evidence_validation", evidence_validation)
                 protocol_eligible = bool(
-                    task.reset_profile == M1_PROTOCOL["profile"]
+                    task.reset_profile in {M1_PROTOCOL["profile"], M2_PROTOCOL["profile"]}
                     and setup_evidence.get("success")
                     and runtime_profile.get("isolated")
                     and evidence_validation.get("passed")
                 )
-                passed = bool(criteria_verified and goal_verified and (not task.reset_profile or protocol_eligible))
+                passed = bool(
+                    criteria_verified
+                    and goal_verified
+                    and not timed_out
+                    and (not task.reset_profile or protocol_eligible)
+                )
                 failure_reasons = []
+                if timed_out:
+                    failure_reasons.append("max_duration_exceeded")
                 if not criteria_verified:
                     failure_reasons.append("inventory_success_criteria_not_observed")
                 if not goal_verified:
                     failure_reasons.append("goal_verifier_not_achieved")
                 if task.reset_profile and not protocol_eligible:
-                    failure_reasons.append("m1_protocol_evidence_ineligible")
+                    failure_reasons.append(
+                        "m2_protocol_evidence_ineligible"
+                        if task.reset_profile == M2_PROTOCOL["profile"]
+                        else "m1_protocol_evidence_ineligible"
+                    )
 
                 bench_result = BenchmarkResult(
                     task_id=task.id,
                     task_name=task.name,
-                    status="pass" if passed else "fail",
+                    status="pass" if passed else "timeout" if timed_out else "fail",
                     cycles_used=result.get("cycles", 0),
                     duration_s=round(duration, 2),
+                    goal_elapsed_s=round(goal_elapsed_s, 3),
+                    max_duration_s=max_duration_limit,
                     inventory_snapshot=inv_summary,
                     intervention_metrics=session_summary.get("intervention_metrics", {}),
                     memory_policy_metrics=session_summary.get("memory_policy_metrics", {}),
@@ -3544,6 +3759,15 @@ class BenchmarkRunner:
                     runtime_profile=runtime_profile,
                     evidence_kind="live_minecraft" if task.reset_profile else "live_uncontrolled",
                     protocol_eligible=protocol_eligible,
+                    terminal_evidence=terminal_evidence,
+                    experiment_metadata={
+                        "arm": str(getattr(task_config, "m2_arm", "default") or "default"),
+                        "pair_id": str(getattr(task_config, "m2_pair_id", "") or ""),
+                        "replicate_id": str(getattr(task_config, "m2_replicate_id", "") or ""),
+                        "skill_execution_mode": str(task_config.skill_execution_mode or "off"),
+                        "target_skill_id": str(task_config.target_skill_id or ""),
+                        "skill_experiment_id": str(task_config.skill_experiment_id or ""),
+                    },
                 )
         except Exception as e:
             session_summary = agent.session_logger.get_summary()
@@ -3552,6 +3776,7 @@ class BenchmarkRunner:
                 task.name,
                 "error",
                 duration_s=round(time.time() - start, 2),
+                max_duration_s=float(task.max_duration_s or 0.0),
                 error=str(e),
                 failure_reason="benchmark_exception",
                 session_log_path=session_summary.get("log_path", ""),
@@ -3718,6 +3943,434 @@ class BenchmarkRunner:
             "final_inventory": final_inventory,
             "inventory_delta": inventory_delta,
             "issues": issues,
+        }
+
+    def _validate_m2_session_evidence(
+        self,
+        task: BenchmarkTask,
+        events: list[dict],
+        setup_evidence: dict,
+        terminal_evidence: dict,
+        outcome_validation: dict,
+        goal_verified: bool,
+    ) -> dict:
+        """Require live LLM-root planning, task transitions, and world-state proof."""
+        issues = []
+        source_events = [event for event in events if isinstance(event, dict)]
+        runtime_profiles = [
+            event.get("data", {})
+            for event in source_events
+            if event.get("type") == "benchmark_runtime_profile"
+            and isinstance(event.get("data"), dict)
+        ]
+        planner_events = [
+            (index, event.get("data", {}))
+            for index, event in enumerate(source_events)
+            if event.get("type") == "llm_planner_call"
+            and isinstance(event.get("data"), dict)
+        ]
+        plan_events = [
+            event.get("data", {})
+            for event in source_events
+            if event.get("type") == "plan" and isinstance(event.get("data"), dict)
+        ]
+        transition_events = [
+            event.get("data", {})
+            for event in source_events
+            if event.get("type") == "task_state_transition"
+            and isinstance(event.get("data"), dict)
+        ]
+        goal_events = [
+            event.get("data", {})
+            for event in source_events
+            if event.get("type") == "goal_verification"
+            and isinstance(event.get("data"), dict)
+        ]
+        action_events = [
+            (index, event.get("data", {}))
+            for index, event in enumerate(source_events)
+            if event.get("type") == "action" and isinstance(event.get("data"), dict)
+        ]
+        goal_start_events = [
+            (index, event)
+            for index, event in enumerate(source_events)
+            if event.get("type") == "goal_start" and isinstance(event.get("data"), dict)
+        ]
+        goal_limit_events = [
+            (index, event)
+            for index, event in enumerate(source_events)
+            if event.get("type") == "goal_limits" and isinstance(event.get("data"), dict)
+        ]
+        goal_end_events = [
+            (index, event)
+            for index, event in enumerate(source_events)
+            if event.get("type") == "goal_end" and isinstance(event.get("data"), dict)
+        ]
+        deadline_events = [
+            event
+            for event in source_events
+            if event.get("type") == "goal_deadline_exceeded"
+        ]
+
+        def optional_float(value):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        def optional_int(value):
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return None
+
+        deadline_contract = M2_PROTOCOL["deadline_policy"]
+        expected_max_duration_s = float(task.max_duration_s or 0.0)
+        goal_limit = goal_limit_events[-1][1].get("data", {}) if goal_limit_events else {}
+        goal_end = goal_end_events[-1][1].get("data", {}) if goal_end_events else {}
+        goal_end_result = (
+            goal_end.get("result", {}) if isinstance(goal_end.get("result"), dict) else {}
+        )
+        goal_elapsed_s = optional_float(goal_end_result.get("elapsed_s"))
+        goal_limit_valid = bool(
+            len(goal_start_events) == 1
+            and len(goal_limit_events) == 1
+            and optional_float(goal_limit.get("max_duration_s")) == expected_max_duration_s
+            and goal_limit.get("deadline_policy_id") == deadline_contract["id"]
+            and optional_int(goal_limit.get("action_guard_ms"))
+            == int(deadline_contract["action_guard_ms"])
+        )
+        if not goal_limit_valid:
+            issues.append("m2_goal_deadline_limits_invalid")
+        goal_end_valid = bool(
+            len(goal_end_events) == 1
+            and optional_float(goal_end_result.get("max_duration_s")) == expected_max_duration_s
+            and goal_elapsed_s is not None
+        )
+        if not goal_end_valid:
+            issues.append("m2_goal_end_duration_missing")
+        duration_within_limit = bool(
+            goal_end_valid
+            and goal_elapsed_s is not None
+            and goal_elapsed_s <= expected_max_duration_s
+        )
+        if not duration_within_limit:
+            issues.append("m2_goal_duration_exceeded")
+        if deadline_events:
+            issues.append("m2_deadline_exceeded_event_present")
+
+        post_deadline_action_count = 0
+        if goal_start_events and expected_max_duration_s > 0:
+            start_event = goal_start_events[0][1]
+            start_ts = optional_float(start_event.get("ts"))
+            start_elapsed = optional_float(start_event.get("elapsed_s"))
+            for event_index, _ in action_events:
+                action_event = source_events[event_index]
+                action_ts = optional_float(action_event.get("ts"))
+                action_elapsed = optional_float(action_event.get("elapsed_s"))
+                if start_ts is not None and action_ts is not None:
+                    action_offset = action_ts - start_ts
+                elif start_elapsed is not None and action_elapsed is not None:
+                    action_offset = action_elapsed - start_elapsed
+                else:
+                    action_offset = None
+                if action_offset is not None and action_offset >= expected_max_duration_s:
+                    post_deadline_action_count += 1
+        if post_deadline_action_count:
+            issues.append("m2_post_deadline_action_present")
+
+        runtime = runtime_profiles[-1] if runtime_profiles else {}
+        runtime_eligible = bool(
+            runtime.get("eligible_configuration") is True
+            and runtime.get("protocol") == M2_PROTOCOL["profile"]
+            and runtime.get("protocol_sha256") == M2_PROTOCOL_SHA256
+            and runtime.get("planner_id") == M2_PROTOCOL["planner_id"]
+            and runtime.get("action_backend_id") == M2_PROTOCOL["action_backend_id"]
+            and runtime.get("verifier_id") == M2_PROTOCOL["verifier_id"]
+            and runtime.get("skill_runtime_profile_id") == M2_PROTOCOL["skill_runtime_profile_id"]
+            and runtime.get("deadline_policy_id") == deadline_contract["id"]
+            and runtime.get("llm_transport_policy_id") == M2_PROTOCOL["llm_transport_policy"]["id"]
+        )
+        if not runtime_eligible:
+            issues.append("m2_runtime_profile_ineligible")
+
+        reset_checks = setup_evidence.get("checks", {}) if isinstance(setup_evidence.get("checks"), dict) else {}
+        reset_verified = bool(
+            setup_evidence.get("success") is True
+            and setup_evidence.get("profile") == M2_PROTOCOL["profile"]
+            and setup_evidence.get("protocol_sha256") == M2_PROTOCOL_SHA256
+            and setup_evidence.get("reset_protocol_sha256") == M2_PROTOCOL["reset_protocol_sha256"]
+            and setup_evidence.get("validation_protocol_sha256") == M2_PROTOCOL["validation_protocol_sha256"]
+            and setup_evidence.get("task_id") == task.id
+            and str(setup_evidence.get("seed") or "") == str(M2_PROTOCOL["world_seed"])
+            and str(setup_evidence.get("server_jar_sha256") or "").lower() == M2_PROTOCOL["server_jar_sha256"]
+            and reset_checks
+            and all(value is True for key, value in reset_checks.items() if key != "position_distance")
+        )
+        if not reset_verified:
+            issues.append("m2_reset_not_verified")
+
+        terminal_verified = bool(
+            isinstance(terminal_evidence, dict)
+            and terminal_evidence.get("success") is True
+            and terminal_evidence.get("profile") == M2_PROTOCOL["profile"]
+            and terminal_evidence.get("protocol_sha256") == M2_PROTOCOL_SHA256
+            and terminal_evidence.get("validation_protocol_sha256") == M2_PROTOCOL["validation_protocol_sha256"]
+            and terminal_evidence.get("task_id") == task.id
+        )
+        if not terminal_verified:
+            issues.append("m2_terminal_evidence_unverified")
+        if outcome_validation.get("passed") is not True:
+            issues.append("m2_machine_outcome_failed")
+
+        valid_root_calls = []
+        for event_index, call in planner_events:
+            metadata = call.get("provider_metadata", {}) if isinstance(call.get("provider_metadata"), dict) else {}
+            schema = call.get("schema_validation", {}) if isinstance(call.get("schema_validation"), dict) else {}
+            call_deadline = call.get("deadline_policy", {}) if isinstance(call.get("deadline_policy"), dict) else {}
+            transport = call.get("transport_evidence", {}) if isinstance(call.get("transport_evidence"), dict) else {}
+            transport_attempts = transport.get("attempts", []) if isinstance(transport.get("attempts"), list) else []
+            request_timeout_s = optional_float(metadata.get("timeout_s"))
+            transport_exact = bool(
+                transport.get("policy_id") == M2_PROTOCOL["llm_transport_policy"]["id"]
+                and 1 <= len(transport_attempts)
+                <= 1 + int(M2_PROTOCOL["llm_transport_policy"]["application_max_retries"])
+                and optional_int(transport.get("attempt_count")) == len(transport_attempts)
+                and optional_int(transport.get("retry_count")) == len(transport_attempts) - 1
+                and transport_attempts[-1].get("success") is True
+                and all(
+                    optional_float(attempt.get("timeout_s")) is not None
+                    and optional_float(attempt.get("timeout_s")) > 0
+                    and optional_int(attempt.get("sdk_max_retries"))
+                    == int(M2_PROTOCOL["llm_transport_policy"]["sdk_max_retries"])
+                    for attempt in transport_attempts
+                    if isinstance(attempt, dict)
+                )
+                and all(
+                    attempt.get("success") is True
+                    or any(
+                        error_type in (attempt.get("error_chain") or [])
+                        for error_type in M2_PROTOCOL["llm_transport_policy"]["retryable_error_types"]
+                    )
+                    for attempt in transport_attempts
+                    if isinstance(attempt, dict)
+                )
+            )
+            exact_llm = bool(
+                metadata.get("provider") == M2_PROTOCOL["llm"]["provider"]
+                and str(metadata.get("base_url") or "").rstrip("/") == str(M2_PROTOCOL["llm"]["base_url"]).rstrip("/")
+                and metadata.get("model") == M2_PROTOCOL["llm"]["model"]
+                and float(metadata.get("temperature", -1)) == float(M2_PROTOCOL["llm"]["temperature"])
+                and int(metadata.get("max_tokens", 0) or 0) == int(M2_PROTOCOL["llm"]["max_tokens"])
+                and metadata.get("response_format") == M2_PROTOCOL["llm"]["response_format"]
+                and metadata.get("extra_body") == M2_PROTOCOL["llm"]["extra_body"]
+                and metadata.get("finish_reason") == M2_PROTOCOL["llm_response_contract"]["finish_reason"]
+                and optional_int(metadata.get("reasoning_content_byte_count"))
+                <= int(M2_PROTOCOL["llm_response_contract"]["reasoning_content_max_bytes"])
+                and request_timeout_s is not None
+                and request_timeout_s > 0
+                and request_timeout_s <= expected_max_duration_s
+                and optional_int(metadata.get("max_retries")) == int(deadline_contract["planner_max_retries"])
+                and call_deadline.get("policy_id") == deadline_contract["id"]
+                and optional_float(call_deadline.get("request_timeout_s")) == request_timeout_s
+                and optional_int(call_deadline.get("max_retries")) == int(deadline_contract["planner_max_retries"])
+                and optional_float(call_deadline.get("action_guard_s"))
+                == float(deadline_contract["action_guard_ms"]) / 1000.0
+                and transport_exact
+            )
+            if (
+                call.get("plan_kind") == "root"
+                and call.get("real_llm_call") is True
+                and call.get("schema_valid") is True
+                and schema.get("passed") is True
+                and int(schema.get("subtask_count", 0) or 0) >= 2
+                and int(schema.get("dependency_edge_count", 0) or 0) >= 1
+                and exact_llm
+                and len(str(call.get("response_sha256") or "")) == 64
+                and len(str(metadata.get("request_sha256") or "")) == 64
+                and int(metadata.get("total_tokens", 0) or 0) > 0
+            ):
+                valid_root_calls.append((event_index, call))
+        root_call = valid_root_calls[0][1] if valid_root_calls else {}
+        root_plan_id = str(root_call.get("root_plan_id") or "")
+        if len(valid_root_calls) != 1:
+            issues.append("single_valid_llm_root_call_missing")
+
+        root_plan_logged = any(
+            plan.get("root_plan_id") == root_plan_id
+            and plan.get("plan_kind") == "root"
+            and (plan.get("schema_validation") or {}).get("passed") is True
+            and len(plan.get("subtasks", []) or []) >= 2
+            for plan in plan_events
+        ) if root_plan_id else False
+        if not root_plan_logged:
+            issues.append("structured_root_plan_log_missing")
+
+        transition_paths = {}
+        for transition in transition_events:
+            if str(transition.get("root_plan_id") or "") != root_plan_id:
+                continue
+            node_id = str(transition.get("plan_node_id") or "")
+            if not node_id:
+                continue
+            transition_paths.setdefault(node_id, []).append(str(transition.get("to_status") or ""))
+        complete_transition_nodes = []
+        for node_id, statuses in transition_paths.items():
+            proposed = "proposed" in statuses
+            active = "active" in statuses
+            terminal = "completed" in statuses or "failed" in statuses
+            if proposed and active and terminal:
+                complete_transition_nodes.append(node_id)
+        if len(complete_transition_nodes) < 2:
+            issues.append("dependent_subtask_state_paths_missing")
+
+        verifier_achieved = any(
+            event.get("achieved") is True
+            and "m2:machine_verifier" in (event.get("matched_rules") or [])
+            for event in goal_events
+        )
+        if not goal_verified or not verifier_achieved:
+            issues.append("m2_goal_verifier_evidence_missing")
+
+        relevant_success = []
+        action_failure_indices = []
+        for event_index, data in action_events:
+            action = data.get("action", {}) if isinstance(data.get("action"), dict) else {}
+            result = data.get("result", {}) if isinstance(data.get("result"), dict) else {}
+            action_type = str(action.get("type") or result.get("action_type") or "")
+            if result.get("success") is True:
+                relevant_success.append((action_type, data))
+                if not isinstance(data.get("pre_observation"), dict) or not isinstance(data.get("post_observation"), dict):
+                    issues.append("successful_action_pre_post_observation_missing")
+            else:
+                action_failure_indices.append(event_index)
+        if not relevant_success:
+            issues.append("successful_action_evidence_missing")
+
+        replan_events = [
+            (index, call)
+            for index, call in planner_events
+            if call.get("plan_kind") == "replan" and call.get("schema_valid") is True
+        ]
+        recovery_events = [
+            index
+            for index, event in enumerate(source_events)
+            if event.get("type") == "task_readiness_recovery_goal"
+        ]
+        failure_replan_proved = any(
+            failure_index < replan_index
+            for failure_index in action_failure_indices
+            for replan_index, _ in replan_events
+        ) or any(
+            failure_index < recovery_index
+            for failure_index in action_failure_indices
+            for recovery_index in recovery_events
+        )
+        forbidden_event_types = {"plan_cache_hit", "plan_cache_hybrid_hint", "planner_fallback"}
+        forbidden_events = [
+            event.get("type")
+            for event in source_events
+            if event.get("type") in forbidden_event_types
+        ]
+        if forbidden_events:
+            issues.append("planner_bypass_event_present")
+
+        skill_events = [
+            event
+            for event in source_events
+            if str(event.get("type") or "").startswith("skill_")
+        ]
+        quarantined_skill_events = []
+        for event in skill_events:
+            serialized = json.dumps(event.get("data", {}), sort_keys=True, default=str).lower()
+            if "craft_wooden_pickaxe@1.0.1" in serialized or '"version": "1.0.1"' in serialized and "wooden_pickaxe" in serialized:
+                quarantined_skill_events.append(event.get("type"))
+            if '"status": "quarantined"' in serialized:
+                quarantined_skill_events.append(event.get("type"))
+        if quarantined_skill_events:
+            issues.append("quarantined_skill_used")
+        skill_selected_events = [
+            event for event in skill_events if event.get("type") == "skill_selected"
+        ]
+        skill_action_success_count = sum(
+            1
+            for event in skill_events
+            if event.get("type") == "skill_action_result"
+            and isinstance(event.get("data"), dict)
+            and event["data"].get("success") is True
+        )
+        selected_skills = []
+        for event in skill_selected_events:
+            data = event.get("data", {}) if isinstance(event.get("data"), dict) else {}
+            skill = data.get("skill", {}) if isinstance(data.get("skill"), dict) else {}
+            selected_skills.append({
+                "skill_id": str(skill.get("skill_id") or skill.get("id") or ""),
+                "version": str(skill.get("version") or ""),
+                "status": str(skill.get("status") or ""),
+            })
+
+        planner_tokens = sum(
+            int((call.get("provider_metadata") or {}).get("total_tokens", 0) or 0)
+            for _, call in planner_events
+        )
+        planner_latency_ms = sum(
+            int((call.get("provider_metadata") or {}).get("duration_ms", 0) or 0)
+            for _, call in planner_events
+        )
+        verifier_reject_count = sum(1 for event in goal_events if event.get("achieved") is not True)
+        fallback_count = sum(
+            1
+            for event in source_events
+            if event.get("type") in {"skill_fallback", "planner_fallback"}
+        )
+        integrity = m2_protocol_integrity_report()
+        if not integrity.get("passed"):
+            issues.append("m2_protocol_integrity_failed")
+
+        return {
+            "profile": "m2_session_evidence_v1",
+            "protocol": M2_PROTOCOL["profile"],
+            "protocol_sha256": M2_PROTOCOL_SHA256,
+            "reset_protocol_sha256": M2_PROTOCOL["reset_protocol_sha256"],
+            "validation_protocol_sha256": M2_PROTOCOL["validation_protocol_sha256"],
+            "passed": not issues,
+            "runtime_profile_eligible": runtime_eligible,
+            "deadline_policy_id": deadline_contract["id"],
+            "max_duration_s": expected_max_duration_s,
+            "goal_elapsed_s": goal_elapsed_s,
+            "duration_within_limit": duration_within_limit,
+            "deadline_exceeded_event_count": len(deadline_events),
+            "post_deadline_action_count": post_deadline_action_count,
+            "reset_verified": reset_verified,
+            "terminal_evidence_verified": terminal_verified,
+            "machine_outcome_verified": outcome_validation.get("passed") is True,
+            "goal_verifier_event_achieved": verifier_achieved,
+            "root_plan_id": root_plan_id,
+            "valid_root_call_count": len(valid_root_calls),
+            "planner_call_count": len(planner_events),
+            "replan_count": len(replan_events),
+            "planner_token_usage": planner_tokens,
+            "planner_latency_ms": planner_latency_ms,
+            "root_subtask_count": int((root_call.get("schema_validation") or {}).get("subtask_count", 0) or 0),
+            "root_dependency_edge_count": int((root_call.get("schema_validation") or {}).get("dependency_edge_count", 0) or 0),
+            "task_transition_node_count": len(transition_paths),
+            "complete_task_transition_node_count": len(complete_transition_nodes),
+            "complete_task_transition_nodes": sorted(complete_transition_nodes),
+            "action_event_count": len(action_events),
+            "successful_action_count": len(relevant_success),
+            "action_failure_count": len(action_failure_indices),
+            "verifier_reject_count": verifier_reject_count,
+            "failure_replan_proved": failure_replan_proved,
+            "plan_cache_bypass_count": len(forbidden_events),
+            "skill_event_count": len(skill_events),
+            "skill_selected_count": len(skill_selected_events),
+            "skill_action_success_count": skill_action_success_count,
+            "selected_skills": selected_skills,
+            "quarantined_skill_event_count": len(quarantined_skill_events),
+            "fallback_count": fallback_count,
+            "outcome_validation": outcome_validation,
+            "protocol_integrity": integrity,
+            "issues": sorted(set(issues)),
         }
 
     def run_suite(self, tasks: list[BenchmarkTask]) -> list[BenchmarkResult]:
@@ -19854,6 +20507,8 @@ class BenchmarkRunner:
         check_network: bool = True,
         check_screenshot_renderer: bool = False,
         require_m1_harness: bool = False,
+        require_m2_harness: bool = False,
+        require_m2_llm_configuration: bool = True,
     ) -> PreflightReport:
         """Check local readiness before running live M1/M2 benchmarks."""
         checks = [
@@ -19867,6 +20522,8 @@ class BenchmarkRunner:
         ]
         if check_screenshot_renderer:
             checks.append(self._check_screenshot_renderer())
+        if require_m2_harness and require_m2_llm_configuration:
+            checks.append(self._check_m2_llm_configuration())
         if check_network:
             bridge_check, session_check = self._check_bot_bridge_and_session()
             checks.extend([bridge_check, session_check])
@@ -19879,6 +20536,16 @@ class BenchmarkRunner:
                         "fail",
                         "not checked because the live bridge session is unavailable",
                         "start the controlled M1 runtime with scripts/m1-runtime.ps1",
+                    ))
+            if require_m2_harness:
+                if bridge_check.status == "pass" and session_check.status == "pass":
+                    checks.append(self._check_m2_harness())
+                else:
+                    checks.append(PreflightCheck(
+                        "m2_harness",
+                        "fail",
+                        "not checked because the live bridge session is unavailable",
+                        "start the controlled M2 runtime with scripts/m2-runtime.ps1",
                     ))
             checks.append(self._check_tcp("minecraft_server", self.config.bot.host, self.config.bot.port, required=True))
         ok = all(c.status != "fail" for c in checks)
@@ -19937,6 +20604,161 @@ class BenchmarkRunner:
                 bridge.disconnect()
             except Exception:
                 pass
+
+    def run_m2_harness_smoke(self, task_id: str, execute_template: bool = False) -> dict:
+        """Exercise reset and terminal observation on live Minecraft without an LLM."""
+        task_id = str(task_id or "").upper().strip()
+        spec = next((item for item in M2_PROTOCOL["tasks"] if item["id"] == task_id), None)
+        report = {
+            "type": "m2_live_harness_smoke",
+            "schema_version": 1,
+            "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "evidence_kind": "live_minecraft_harness_smoke",
+            "counts_toward_live_observed": False,
+            "counts_toward_repeat_verified": False,
+            "task_id": task_id,
+            "execute_template": bool(execute_template),
+            "protocol_profile": M2_PROTOCOL["profile"],
+            "protocol_sha256": M2_PROTOCOL_SHA256,
+            "checks": {},
+            "protocol": {},
+            "reset": {},
+            "terminal_evidence": {},
+            "false_positive_probe": {},
+            "template_action": {},
+            "template_terminal_evidence": {},
+            "template_outcome": {},
+            "ok": False,
+        }
+        if spec is None:
+            report["checks"] = {"known_task": False}
+            report["errors"] = [f"unknown M2 task: {task_id or '<missing>'}"]
+            return report
+        bridge = self.bridge_factory(self.config.bot)
+        try:
+            connected = bool(bridge.connect())
+            report["checks"]["bridge_connected"] = connected
+            if not connected:
+                report["errors"] = ["could not connect to the Singularity bridge"]
+                return report
+            protocol = bridge.benchmark_protocol(M2_PROTOCOL["profile"])
+            report["protocol"] = protocol if isinstance(protocol, dict) else {"raw": str(protocol)}
+            report["checks"]["protocol_configured"] = bool(
+                isinstance(protocol, dict)
+                and protocol.get("configured") is True
+                and protocol.get("profile") == M2_PROTOCOL["profile"]
+                and protocol.get("protocol_sha256") == M2_PROTOCOL_SHA256
+                and protocol.get("tasks") == M2_PROTOCOL["tasks"]
+            )
+            setup = bridge.reset_benchmark(task_id)
+            report["reset"] = setup if isinstance(setup, dict) else {"raw": str(setup)}
+            checks = setup.get("checks", {}) if isinstance(setup, dict) and isinstance(setup.get("checks"), dict) else {}
+            report["checks"]["reset_verified"] = bool(
+                isinstance(setup, dict)
+                and setup.get("success") is True
+                and setup.get("task_id") == task_id
+                and setup.get("protocol_sha256") == M2_PROTOCOL_SHA256
+                and setup.get("reset_protocol_sha256") == M2_PROTOCOL["reset_protocol_sha256"]
+                and checks
+                and all(value is True for name, value in checks.items() if name != "position_distance")
+            )
+            terminal = bridge.verify_benchmark(task_id)
+            report["terminal_evidence"] = terminal if isinstance(terminal, dict) else {"raw": str(terminal)}
+            report["checks"]["terminal_observed"] = bool(
+                isinstance(terminal, dict)
+                and terminal.get("success") is True
+                and terminal.get("task_id") == task_id
+                and terminal.get("protocol_sha256") == M2_PROTOCOL_SHA256
+                and terminal.get("validation_protocol_sha256") == M2_PROTOCOL["validation_protocol_sha256"]
+            )
+            outcome = verify_m2_task_outcome(
+                task_id,
+                setup_evidence=setup if isinstance(setup, dict) else {},
+                terminal_evidence=terminal if isinstance(terminal, dict) else {},
+                action_events=[],
+            )
+            report["false_positive_probe"] = outcome
+            report["checks"]["empty_execution_rejected"] = outcome.get("passed") is False
+            if task_id == "BM-010":
+                baseline = setup.get("structure_baseline", {}) if isinstance(setup, dict) else {}
+                post = terminal.get("structure_post", {}) if isinstance(terminal, dict) else {}
+                baseline_blocks = baseline.get("blocks", []) if isinstance(baseline, dict) else []
+                post_blocks = post.get("blocks", []) if isinstance(post, dict) else []
+                report["checks"]["construction_baseline_empty"] = bool(
+                    len(baseline_blocks) == 75
+                    and all(str(block.get("name") or "air") == "air" for block in baseline_blocks if isinstance(block, dict))
+                )
+                report["checks"]["empty_structure_still_rejected"] = bool(
+                    len(post_blocks) == 75
+                    and outcome.get("shelter_proof", {}).get("passed") is False
+                    and "shelter_structure_invalid" in outcome.get("issues", [])
+                )
+            if execute_template:
+                if task_id != "BM-010":
+                    report["checks"]["template_task_supported"] = False
+                else:
+                    structure = setup.get("structure_baseline", {}) if isinstance(setup, dict) else {}
+                    origin = structure.get("origin", {}) if isinstance(structure, dict) else {}
+                    action = {
+                        "type": "build_shelter_5x5",
+                        "parameters": {
+                            "origin": origin,
+                            "material": "cobblestone",
+                            "timeout_ms": int(M2_PROTOCOL.get("max_template_action_timeout_ms", 360000)),
+                        },
+                    }
+                    result = bridge.build_shelter_5x5(action["parameters"])
+                    report["template_action"] = {
+                        "action": action,
+                        "result": result if isinstance(result, dict) else {"raw": str(result)},
+                    }
+                    template_terminal = bridge.verify_benchmark(task_id)
+                    report["template_terminal_evidence"] = (
+                        template_terminal if isinstance(template_terminal, dict) else {"raw": str(template_terminal)}
+                    )
+                    template_event = {
+                        "type": "action",
+                        "data": {
+                            "action": action,
+                            "result": result if isinstance(result, dict) else {"success": False, "error": str(result)},
+                            "pre_observation": terminal if isinstance(terminal, dict) else {},
+                            "post_observation": template_terminal if isinstance(template_terminal, dict) else {},
+                        },
+                    }
+                    template_outcome = verify_m2_task_outcome(
+                        task_id,
+                        setup_evidence=setup if isinstance(setup, dict) else {},
+                        terminal_evidence=template_terminal if isinstance(template_terminal, dict) else {},
+                        action_events=[template_event],
+                    )
+                    report["template_outcome"] = template_outcome
+                    report["checks"]["template_action_success"] = bool(
+                        isinstance(result, dict)
+                        and result.get("success") is True
+                        and int(result.get("required_block_count", 0) or 0) == 55
+                        and int(result.get("placed_count", 0) or 0)
+                        + int(result.get("already_present_count", 0) or 0) == 55
+                    )
+                    report["checks"]["template_outcome_verified"] = template_outcome.get("passed") is True
+            report["ok"] = bool(report["checks"] and all(report["checks"].values()))
+            return report
+        except Exception as exc:
+            report["errors"] = [str(exc)]
+            return report
+        finally:
+            try:
+                bridge.disconnect()
+            except Exception:
+                pass
+
+    def save_m2_harness_smoke_report(self, report: dict, output_path: str) -> str:
+        path = os.path.abspath(output_path)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        if os.path.exists(path):
+            raise FileExistsError(f"refusing to overwrite M2 harness smoke evidence: {path}")
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(report, handle, indent=2, ensure_ascii=False)
+        return path
 
     def _default_screenshot_smoke_path(self) -> str:
         screenshot_dir = getattr(self.config, "screenshot_dir", "logs/screenshots") or "logs/screenshots"
@@ -20195,6 +21017,110 @@ class BenchmarkRunner:
     def _check_bot_session(self) -> PreflightCheck:
         return self._check_bot_bridge_and_session()[1]
 
+    def _check_m2_llm_configuration(self) -> PreflightCheck:
+        profile = m2_runtime_profile(m2_convergence_config(self.config))
+        settings = profile.get("settings", {})
+        if profile.get("eligible_configuration"):
+            return PreflightCheck(
+                "m2_llm_configuration",
+                "pass",
+                f"{settings.get('provider')}/{settings.get('model')} matches {M2_PROTOCOL['profile']}",
+            )
+        mismatches = []
+        if not settings.get("llm_configured"):
+            mismatches.append("API key missing")
+        if settings.get("python_version") != M2_PROTOCOL["runtime_versions"]["python"]:
+            mismatches.append(
+                f"python={settings.get('python_version')}, expected {M2_PROTOCOL['runtime_versions']['python']}"
+            )
+        if settings.get("provider") != M2_PROTOCOL["llm"]["provider"]:
+            mismatches.append(f"provider={settings.get('provider')}")
+        if settings.get("base_url") != str(M2_PROTOCOL["llm"]["base_url"]).rstrip("/"):
+            mismatches.append(f"base_url={settings.get('base_url')}")
+        if settings.get("model") != M2_PROTOCOL["llm"]["model"]:
+            mismatches.append(f"model={settings.get('model')}")
+        return PreflightCheck(
+            "m2_llm_configuration",
+            "fail",
+            "; ".join(mismatches) or "fixed M2 LLM configuration is not eligible",
+            "set SINGULARITY_LLM_API_KEY or pass --api-key; M2 never falls back to RuleBasedPlanner",
+        )
+
+    def _check_m2_harness(self) -> PreflightCheck:
+        bridge = self.bridge_factory(self.config.bot)
+        try:
+            if not bridge.connect():
+                return PreflightCheck(
+                    "m2_harness",
+                    "fail",
+                    "could not connect to the Singularity bridge",
+                    "start the controlled M2 runtime with scripts/m2-runtime.ps1",
+                )
+            report = bridge.benchmark_protocol(M2_PROTOCOL["profile"])
+            if not isinstance(report, dict) or not report.get("success"):
+                detail = report.get("error", "invalid M2 protocol response") if isinstance(report, dict) else "non-object M2 protocol response"
+                return PreflightCheck("m2_harness", "fail", detail, "restart the Node bridge from the current source tree")
+            expected_fields = {
+                "profile": M2_PROTOCOL["profile"],
+                "protocol_sha256": M2_PROTOCOL_SHA256,
+                "minecraft_version": M2_PROTOCOL["minecraft_version"],
+                "server_type": M2_PROTOCOL["server_type"],
+                "server_build": M2_PROTOCOL["server_build"],
+                "server_jar_policy": M2_PROTOCOL["server_jar_policy"],
+                "agent_id": M2_PROTOCOL["agent_id"],
+                "planner_id": M2_PROTOCOL["planner_id"],
+                "planner_schema_id": M2_PROTOCOL["planner_schema_id"],
+                "planner_schema_sha256": M2_PROTOCOL["planner_schema_sha256"],
+                "action_backend_id": M2_PROTOCOL["action_backend_id"],
+                "verifier_id": M2_PROTOCOL["verifier_id"],
+                "skill_runtime_profile_id": M2_PROTOCOL["skill_runtime_profile_id"],
+                "reset_protocol_sha256": M2_PROTOCOL["reset_protocol_sha256"],
+                "validation_protocol_sha256": M2_PROTOCOL["validation_protocol_sha256"],
+                "seed": M2_PROTOCOL["world_seed"],
+                "episode_strategy": M2_PROTOCOL["episode_strategy"],
+                "llm": M2_PROTOCOL["llm"],
+            }
+            mismatches = [
+                f"{name}={report.get(name)!r}, expected {expected!r}"
+                for name, expected in expected_fields.items()
+                if report.get(name) != expected
+            ]
+            if report.get("tasks") != M2_PROTOCOL["tasks"]:
+                mismatches.append("task definitions do not match tracked M2 protocol")
+            if report.get("dependencies") != M2_PROTOCOL["dependencies"]:
+                mismatches.append("Node dependency versions do not match tracked M2 protocol")
+            if (report.get("runtime_versions") or {}).get("node") != M2_PROTOCOL["runtime_versions"]["node"]:
+                mismatches.append("Node runtime version does not match tracked M2 protocol")
+            if report.get("configured") is not True:
+                mismatches.extend(str(error) for error in report.get("errors", []) or [])
+            integrity = m2_protocol_integrity_report()
+            if not integrity.get("passed"):
+                mismatches.append("tracked M2 protocol sub-contract hashes are invalid")
+            if mismatches:
+                return PreflightCheck(
+                    "m2_harness",
+                    "fail",
+                    "; ".join(mismatches),
+                    "restart scripts/m2-runtime.ps1 from the current source tree and a fresh episode world",
+                )
+            return PreflightCheck(
+                "m2_harness",
+                "pass",
+                f"{report.get('profile')} episode {report.get('episode_id')} matches tracked protocol {M2_PROTOCOL_SHA256[:12]}",
+            )
+        except Exception as exc:
+            return PreflightCheck(
+                "m2_harness",
+                "fail",
+                str(exc),
+                "restart the controlled M2 runtime and bridge",
+            )
+        finally:
+            try:
+                bridge.disconnect()
+            except Exception:
+                pass
+
     def _check_m1_harness(self) -> PreflightCheck:
         bridge = self.bridge_factory(self.config.bot)
         try:
@@ -20312,6 +21238,8 @@ class BenchmarkRunner:
             data.append({
                 "task_id": r.task_id, "task_name": r.task_name, "status": r.status,
                 "cycles": r.cycles_used, "duration_s": r.duration_s,
+                "goal_elapsed_s": r.goal_elapsed_s,
+                "max_duration_s": r.max_duration_s,
                 "inventory": r.inventory_snapshot, "error": r.error,
                 "failure_reason": r.failure_reason,
                 "intervention_metrics": r.intervention_metrics,
@@ -20327,6 +21255,8 @@ class BenchmarkRunner:
                 "runtime_profile": r.runtime_profile,
                 "evidence_kind": r.evidence_kind,
                 "protocol_eligible": r.protocol_eligible,
+                "terminal_evidence": r.terminal_evidence,
+                "experiment_metadata": r.experiment_metadata,
             })
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)

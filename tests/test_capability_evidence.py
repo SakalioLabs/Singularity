@@ -10,7 +10,11 @@ import tempfile
 
 sys.path.insert(0, "src")
 
-from singularity.evaluation.capability_evidence import M1_PROTOCOL_SHA256, build_capability_evidence_report
+from singularity.evaluation.capability_evidence import (
+    M1_PROTOCOL_SHA256,
+    audit_capability_document_consistency,
+    build_capability_evidence_report,
+)
 from singularity.evaluation.m1_protocol import PROTOCOL as M1_PROTOCOL, TASKS_BY_ID as M1_TASKS_BY_ID
 
 
@@ -190,9 +194,48 @@ def _eligible_m1_result(task_id: str, log_path: str, session_id: str) -> dict:
     }
 
 
-def _continual_case(run_number: int) -> dict:
+def _continual_case(run_number: int, source_root: str) -> dict:
+    session_id = f"memory-{run_number}"
+    relative_path = f"logs/live-memory-{run_number}.jsonl"
+    source_path = os.path.join(source_root, *relative_path.split("/"))
+    os.makedirs(os.path.dirname(source_path), exist_ok=True)
+    events = [
+        {"session": session_id, "type": "skill_learning_runtime_profile", "data": {
+            "arm": "runtime",
+            "evidence_kind": "live_minecraft_skill_research",
+            "protocol_sha256": M1_PROTOCOL_SHA256,
+        }},
+        {"session": session_id, "type": "benchmark_reset", "data": {
+            "success": True,
+            "protocol_sha256": M1_PROTOCOL_SHA256,
+        }},
+        {"session": session_id, "type": "skill_selected", "data": {
+            "skill_id": f"learned:test_{run_number}",
+        }},
+        {"session": session_id, "type": "goal_verification", "data": {
+            "achieved": True,
+            "status": "achieved",
+        }},
+        {"session": session_id, "type": "goal_end", "data": {
+            "result": {"completed": True, "termination_reason": "goal_verified"},
+        }},
+        {"session": session_id, "type": "skill_execution_outcome", "data": {
+            "success": True,
+            "attribution_confidence": 1.0,
+        }},
+    ]
+    with open(source_path, "w", encoding="utf-8") as handle:
+        for event in events:
+            handle.write(json.dumps(event) + "\n")
+    with open(source_path, "rb") as handle:
+        source_hash = hashlib.sha256(handle.read()).hexdigest()
     return {
-        "source_log": f"logs/live-memory-{run_number}.jsonl",
+        "source_log": relative_path,
+        "source_log_sha256": source_hash,
+        "source_session_id": session_id,
+        "protocol_sha256": M1_PROTOCOL_SHA256,
+        "evidence_kind": "live_minecraft_skill_research",
+        "eligibility": True,
         "completed_goal_count": 1,
         "memory_read_count": 2,
         "memory_write_count": 1,
@@ -368,20 +411,28 @@ def test_live_phase_adapters_require_repeated_grounded_evidence():
     m6_trace = os.path.join(tmpdir, "m6-trace.json")
     m6_action = os.path.join(tmpdir, "m6-action.json")
     _write_json(m3_trace, {
-        "continual_learning_feedback": {},
-        "cases": [_continual_case(index) for index in range(1, 4)] + [_continual_case(1)],
+        "type": "continual_learning_report",
+        "schema_version": 2,
+        "errors": [],
+        "cases": [_continual_case(index, tmpdir) for index in range(1, 4)] + [_continual_case(1, tmpdir)],
     })
     _write_json(m3_gate, {
-        "required": True,
+        "type": "task_stream_transfer_gate",
+        "schema_version": 1,
         "readiness": "approved",
         "decision": "allow_candidate_promotion",
-        "transfer_report_count": 1,
         "ready_stream_count": 1,
         "task_count": 4,
         "evidence_count": 1,
         "regression_count": 0,
         "average_generalization_gain": 0.1,
         "thresholds": {"require_heldout": True},
+        "heldout_source_session_ids": ["heldout-baseline", "heldout-candidate"],
+        "training_heldout_overlap_count": 0,
+        "source_report_fingerprint": "a" * 64,
+        "protocol_sha256": M1_PROTOCOL_SHA256,
+        "evidence_kind": "live_minecraft_skill_research",
+        "eligibility": True,
     })
     _write_json(m5_trace, {
         "curriculum_feedback": {},
@@ -427,6 +478,21 @@ def test_live_phase_adapters_require_repeated_grounded_evidence():
         assert phases[phase_id]["live_evidence"]["support_approved"] is True
     assert phases["M3"]["live_evidence"]["attempts"] == 3
     assert report["schema_version"] == 2
+
+    with open(m3_trace, "r", encoding="utf-8") as handle:
+        tampered_trace = json.load(handle)
+    tampered_trace["cases"][0]["source_log_sha256"] = "0" * 64
+    tampered_trace["cases"][-1]["source_log_sha256"] = "0" * 64
+    _write_json(m3_trace, tampered_trace)
+    tampered_report = build_capability_evidence_report(
+        status_path=status_path,
+        source_root=tmpdir,
+        min_repeats=3,
+        phase_evidence_paths={"M3": [m3_trace, m3_gate]},
+    )
+    tampered_m3 = next(phase for phase in tampered_report["phases"] if phase["id"] == "M3")
+    assert tampered_m3["status"] != "repeat_verified"
+    assert "source_hash_matches" in tampered_m3["live_evidence"]["primary_cases"][0]["failed_criteria"]
     print("PASS: Live phase adapters require repeated grounded evidence")
 
 
@@ -581,6 +647,37 @@ def test_capability_evidence_cli_writes_report():
     print("PASS: Capability evidence CLI writes report")
 
 
+def test_repository_capability_documents_match_canonical_report():
+    with open("workspace/evals/capability_evidence_current.json", "r", encoding="utf-8") as handle:
+        report = json.load(handle)
+    audit = audit_capability_document_consistency(report)
+    assert audit["consistent"], audit["errors"]
+    assert audit["expected"]["M1"] == "repeat_verified"
+    assert audit["expected"]["M3"] == "repeat_verified"
+    assert report["authority"] == {
+        "canonical": True,
+        "repo_relative_path": "workspace/evals/capability_evidence_current.json",
+        "specialized_reports_are_non_authoritative": True,
+    }
+    required_fields = {
+        "repo_relative_path",
+        "session_id",
+        "content_sha256",
+        "protocol_hash",
+        "evidence_kind",
+        "eligibility",
+    }
+    for item in report["evidence_files"]:
+        assert required_fields <= set(item), item
+        assert all(item[field] not in (None, "") for field in required_fields), item
+        assert not os.path.isabs(item["repo_relative_path"]), item
+        assert not (len(item["repo_relative_path"]) > 2 and item["repo_relative_path"][1:3] in {":/", ":\\"}), item
+        if item.get("counts_toward_repeat_verified"):
+            assert len(item["content_sha256"]) == 64, item
+            assert len(item["protocol_hash"]) == 64, item
+    print("PASS: STATUS, PROGRESS, README, and canonical capability state agree")
+
+
 if __name__ == "__main__":
     test_capability_evidence_rejects_unsupported_completion_claims()
     test_capability_evidence_requires_distinct_repeated_runs()
@@ -588,3 +685,4 @@ if __name__ == "__main__":
     test_live_phase_adapters_reject_weak_or_unlinked_evidence()
     test_live_report_cli_emits_typed_artifacts()
     test_capability_evidence_cli_writes_report()
+    test_repository_capability_documents_match_canonical_report()

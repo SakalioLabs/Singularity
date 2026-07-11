@@ -8,6 +8,7 @@ import json
 import time
 import logging
 import hashlib
+import math
 from dataclasses import asdict
 from typing import Callable, Optional
 
@@ -266,7 +267,11 @@ class Agent:
             from singularity.core.reflector import Reflector
             from singularity.core.goal_verifier import GoalVerificationCritic
             self.llm = LLMProvider(config.llm)
-            self.planner = Planner(self.llm, self.task_system)
+            self.planner = Planner(
+                self.llm,
+                self.task_system,
+                protocol=getattr(config, "planner_protocol", ""),
+            )
             self.reflector = Reflector(self.llm)
             if getattr(config, "enable_goal_critic", False):
                 if self.goal_critic_gate_report.get("gate_approved"):
@@ -1500,27 +1505,80 @@ class Agent:
         self._skill_episode_start_index = len(getattr(self.session_logger, "events", []))
         self._active_skill_execution = {}
         self._skill_fallback_goals.discard(self._goal_fingerprint(goal))
+        self._m2_root_plan_valid = False
+        self._m2_skill_contribution_complete = False
+        planner = getattr(self, "planner", None)
+        strict_m2 = str(getattr(self.config, "planner_protocol", "") or "") == "m2-fixed-v1"
+        deadline_policy = {}
+        action_guard_s = 0.0
+        if strict_m2:
+            from singularity.evaluation.m2_protocol import PROTOCOL as M2_PROTOCOL
+
+            deadline_policy = dict(M2_PROTOCOL["deadline_policy"])
+            action_guard_s = float(deadline_policy["action_guard_ms"]) / 1000.0
+        if hasattr(planner, "start_episode"):
+            planner.start_episode(
+                goal,
+                str(getattr(self.session_logger, "session_id", "") or ""),
+            )
         self.running = True
         logger.info(f"Starting goal: {goal}")
         self.session_logger.log_goal_start(goal)
-        self.session_logger.log("goal_limits", {
+        goal_limits = {
             "max_cycles": max_cycles,
             "max_duration_s": max_duration_s,
-        })
+        }
+        if strict_m2:
+            goal_limits.update({
+                "deadline_policy_id": str(deadline_policy["id"]),
+                "action_guard_ms": int(deadline_policy["action_guard_ms"]),
+            })
+        self.session_logger.log("goal_limits", goal_limits)
         self._write_memory_episode("goal_start", {"goal": goal}, source="run_goal")
 
         started_at = time.monotonic()
+        deadline_monotonic = (
+            started_at + max_duration_s if max_duration_s is not None else None
+        )
+        if hasattr(planner, "set_deadline"):
+            planner.set_deadline(deadline_monotonic, action_guard_s if strict_m2 else 0.0)
+        deadline_event_logged = False
+
+        def deadline_exceeded(phase: str, *, action_suppressed: bool = True) -> bool:
+            nonlocal deadline_event_logged
+            if deadline_monotonic is None:
+                return False
+            now = time.monotonic()
+            if now < deadline_monotonic:
+                return False
+            if not deadline_event_logged:
+                elapsed = now - started_at
+                payload = {
+                    "policy_id": str(deadline_policy.get("id") or "goal-max-duration-v1"),
+                    "phase": str(phase),
+                    "max_duration_s": max_duration_s,
+                    "elapsed_s": round(elapsed, 3),
+                    "overrun_s": round(max(0.0, elapsed - max_duration_s), 3),
+                    "action_suppressed": bool(action_suppressed),
+                }
+                self.session_logger.log("goal_deadline_exceeded", payload, level="ERROR")
+                logger.warning(
+                    f"Goal deadline reached during {phase}: {elapsed:.3f}s >= {max_duration_s:.3f}s"
+                )
+                deadline_event_logged = True
+            return True
+
         cycle = 0
         success = False
+        success_at = None
         last_observation = {}
         last_plan = {}
         termination_reason = ""
 
-        while (
-            self.running
-            and cycle < max_cycles
-            and (max_duration_s is None or time.monotonic() - started_at < max_duration_s)
-        ):
+        while self.running and cycle < max_cycles:
+            if deadline_exceeded("cycle_start"):
+                termination_reason = "max_duration"
+                break
             cycle += 1
             try:
                 observation = self._observe()
@@ -1531,6 +1589,9 @@ class Agent:
                     source="goal_observation",
                 )
                 self.explorer.record_position(observation.get("position", {}))
+                if deadline_exceeded("post_observation"):
+                    termination_reason = "max_duration"
+                    break
 
                 plan = self._think(observation)
                 last_plan = plan
@@ -1539,6 +1600,9 @@ class Agent:
                     {"plan_status": plan.get("status"), "reasoning": plan.get("reasoning", "")[:200]},
                     source="goal_plan",
                 )
+                if deadline_exceeded("post_planner"):
+                    termination_reason = "max_duration"
+                    break
                 self._accept_planned_tasks()
                 self._record_task_continuity(
                     goal,
@@ -1554,10 +1618,19 @@ class Agent:
                     observation,
                     {"cycle": cycle, "mode": "goal", "phase": "pre_plan"},
                 )
+                if deadline_exceeded("pre_plan_verification"):
+                    termination_reason = "max_duration"
+                    break
                 if verified:
                     logger.info("Goal verified complete before planning")
                     success = True
-                    next_task = self.task_system.get_next_task(scheduling_state)
+                    success_at = time.monotonic()
+                    completed_tasks = self._complete_verified_m2_task_paths(
+                        goal,
+                        verification,
+                        {"cycle": cycle, "mode": "goal", "phase": "pre_plan"},
+                    )
+                    next_task = self.task_system.get_next_task(scheduling_state) if not completed_tasks else None
                     if next_task:
                         self.task_system.complete_task(next_task.id, {"goal": goal, "verification": verification.to_dict()})
                     break
@@ -1569,10 +1642,19 @@ class Agent:
                         plan,
                         {"cycle": cycle, "mode": "goal", "phase": "planner_complete"},
                     )
+                    if deadline_exceeded("planner_completion_verification"):
+                        termination_reason = "max_duration"
+                        break
                     if accepted:
                         logger.info("Goal completed!")
                         success = True
-                        next_task = self.task_system.get_next_task(scheduling_state)
+                        success_at = time.monotonic()
+                        completed_tasks = self._complete_verified_m2_task_paths(
+                            goal,
+                            verification,
+                            {"cycle": cycle, "mode": "goal", "phase": "planner_complete"},
+                        )
+                        next_task = self.task_system.get_next_task(scheduling_state) if not completed_tasks else None
                         if next_task:
                             result = {"goal": goal, "reasoning": plan.get("reasoning", "")}
                             if verification:
@@ -1621,6 +1703,9 @@ class Agent:
                 for action in actions:
                     if not self.running:
                         break
+                    if deadline_exceeded("pre_action"):
+                        termination_reason = "max_duration"
+                        break
                     interrupted, observation = self._handle_runtime_interrupt(observation, goal, {"cycle": cycle, "mode": "goal"})
                     last_observation = observation
                     if interrupted:
@@ -1638,6 +1723,9 @@ class Agent:
                         goal,
                         {"cycle": cycle, "mode": "goal"},
                     )
+                    if deadline_exceeded("action_verification"):
+                        termination_reason = "max_duration"
+                        break
                     if rejected_result:
                         result = rejected_result
                     else:
@@ -1646,6 +1734,33 @@ class Agent:
                             result["action_verification"] = action_verification
                     if action_selection:
                         result["action_candidate_selection"] = action_selection
+                    if deadline_exceeded("post_action", action_suppressed=False):
+                        result = dict(result)
+                        result["accepted_within_goal_deadline"] = False
+                        result["deadline_policy_id"] = str(
+                            deadline_policy.get("id") or "goal-max-duration-v1"
+                        )
+                        try:
+                            observation = self._observe()
+                            self.session_logger.log_observation(observation)
+                        except Exception as exc:
+                            logger.warning(f"Could not observe post-deadline action state: {exc}")
+                            observation = before_action_observation
+                        last_observation = observation
+                        self._log_action_event(
+                            action,
+                            result,
+                            pre_observation=before_action_observation,
+                            post_observation=observation,
+                            context={"cycle": cycle, "goal": goal, "mode": "goal"},
+                        )
+                        self._write_memory_episode(
+                            "action",
+                            {"action": action, "result": result},
+                            source="goal_action",
+                        )
+                        termination_reason = "max_duration"
+                        break
                     self._record_action_value(action, result, goal, action_verification)
                     observation = self._apply_action_feedback(action, result, observation, {"cycle": cycle, "goal": goal})
                     last_observation = observation
@@ -1660,6 +1775,7 @@ class Agent:
 
                     if result.get("requires_replan"):
                         self._record_skill_usage(action, False, result)
+                        self._request_m2_replan(result.get("replan_reason") or result.get("error"))
                         logger.info("Navigation target not reached; deferring the remaining plan suffix")
                         break
                     if result.get("success"):
@@ -1675,8 +1791,17 @@ class Agent:
                                 "after_observation": observation,
                             }],
                         )
+                        if deadline_exceeded("post_action_verification"):
+                            termination_reason = "max_duration"
+                            break
                         if verified:
+                            self._complete_verified_m2_task_paths(
+                                goal,
+                                verification,
+                                {"cycle": cycle, "mode": "goal", "phase": "post_action"},
+                            )
                             success = True
+                            success_at = time.monotonic()
                             break
                     else:
                         self._record_skill_usage(action, False, result)
@@ -1690,6 +1815,7 @@ class Agent:
                         last_observation = observation
                         if corrected:
                             continue
+                        self._request_m2_replan(result.get("error") or "action_failed")
                         reflection = self._reflect(observation, action, result, goal)
                         self.session_logger.log_reflection(reflection)
                         self._write_memory_episode(
@@ -1699,6 +1825,8 @@ class Agent:
                         )
                         break
 
+                if termination_reason == "max_duration":
+                    break
                 if success:
                     break
 
@@ -1715,6 +1843,13 @@ class Agent:
                 logger.error(f"Error in cycle {cycle}: {e}")
                 self.session_logger.log_error(str(e), {"cycle": cycle})
 
+        elapsed_s = (success_at if success_at is not None else time.monotonic()) - started_at
+        if max_duration_s is not None and elapsed_s >= max_duration_s:
+            if success:
+                success = False
+                success_at = None
+            termination_reason = "max_duration"
+            deadline_exceeded("goal_finalize")
         self._record_task_continuity(
             goal,
             last_observation,
@@ -1731,7 +1866,6 @@ class Agent:
             },
             branch_status="completed" if success else "failed",
         )
-        elapsed_s = time.monotonic() - started_at
         if not success and not termination_reason:
             if max_duration_s is not None and elapsed_s >= max_duration_s:
                 termination_reason = "max_duration"
@@ -2148,12 +2282,53 @@ class Agent:
     def _think(self, observation: dict, override_goal: str = None) -> dict:
         goal = override_goal or self.current_goal or "explore"
         self._active_skill_advisory_hint = ""
-        learned_plan = self._learned_skill_plan(goal, observation)
+        root_required = bool(getattr(self.config, "require_llm_root_plan", False))
+        learned_plan = None
+        if not root_required or (
+            getattr(self, "_m2_root_plan_valid", False)
+            and not getattr(self, "_m2_skill_contribution_complete", False)
+        ):
+            skill_goal = goal
+            skill_ready = True
+            if root_required:
+                next_task = self.task_system.get_next_task(observation)
+                if next_task:
+                    skill_goal = next_task.title
+                target_skill_id = str(getattr(self.config, "target_skill_id", "") or "")
+                target_skill = self.skill_library.get_skill_by_id(target_skill_id) if target_skill_id else None
+                if target_skill is not None:
+                    from singularity.core.skill_runtime import evaluate_skill_preconditions
+
+                    precondition_issues = evaluate_skill_preconditions(target_skill, observation)
+                    skill_ready = not precondition_issues
+                    if precondition_issues:
+                        self.session_logger.log("skill_deferred", {
+                            "goal": skill_goal,
+                            "skill_id": target_skill_id,
+                            "reason": "preconditions_not_met",
+                            "issues": precondition_issues,
+                            "runtime_influence": False,
+                        })
+            if skill_ready:
+                learned_plan = self._learned_skill_plan(skill_goal, observation)
         if learned_plan is not None:
             return self._apply_visual_action_grounding(learned_plan, observation, goal)
         if self._use_llm:
             plan = self._think_llm(observation, goal)
             plan = self._blocked_plan_rule_fallback(plan, goal, observation)
+        elif root_required:
+            payload = {
+                "goal": goal,
+                "planner_protocol": str(getattr(self.config, "planner_protocol", "")),
+                "reason": "real_llm_not_configured",
+            }
+            self.session_logger.log("llm_root_planner_blocked", payload, level="ERROR")
+            plan = {
+                "status": "error",
+                "actions": [],
+                "subtasks": [],
+                "reasoning": "M2 requires a configured real LLM root planner",
+            }
         else:
             plan = self._think_rule(observation, goal)
         return self._apply_visual_action_grounding(plan, observation, goal)
@@ -2282,13 +2457,96 @@ class Agent:
                 skill_hint,
                 hybrid_workflow_context,
             ) if part)
-            plan = self.planner.plan_from_goal(goal, observation, combined_memory)
+            planner_observation = observation
+            if str(getattr(self.config, "planner_protocol", "") or "") == "m2-fixed-v1":
+                planner_observation = dict(observation)
+                planner_observation["m2_successful_action_summary"] = self._m2_successful_action_summary()
+            plan = self.planner.plan_from_goal(goal, planner_observation, combined_memory)
+            planner_evidence = dict(getattr(self.planner, "last_call_evidence", {}) or {})
+            if planner_evidence:
+                self.session_logger.log("llm_planner_call", planner_evidence)
+                if (
+                    planner_evidence.get("plan_kind") == "root"
+                    and planner_evidence.get("real_llm_call") is True
+                    and planner_evidence.get("schema_valid") is True
+                ):
+                    self._m2_root_plan_valid = True
+            self._flush_task_state_transitions({"source": "llm_planner"})
             self._record_plan_cache_signature(plan, goal, observation, source="llm_planner")
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
             self.session_logger.log_error(f"LLM call failed: {e}")
             plan = {"status": "error", "actions": [], "reasoning": str(e)}
         return self._attach_planning_context_contract(plan, planning_contract)
+
+    def _m2_successful_action_summary(self) -> dict:
+        """Return a bounded typed summary of successful actions in the current goal."""
+        from singularity.evaluation.m2_protocol import PROTOCOL
+
+        contract = PROTOCOL["planner_context"]["successful_action_summary"]
+        max_actions = int(contract["max_actions"])
+        max_chars = int(contract["max_chars"])
+        events = list(getattr(getattr(self, "session_logger", None), "events", []) or [])
+        start = max(0, int(getattr(self, "_skill_episode_start_index", 0) or 0))
+        rows: list[dict] = []
+        type_counts: dict[str, int] = {}
+
+        for event in events[start:]:
+            if not isinstance(event, dict) or event.get("type") != "action":
+                continue
+            data = event.get("data", {}) if isinstance(event.get("data"), dict) else {}
+            result = data.get("result", {}) if isinstance(data.get("result"), dict) else {}
+            action = data.get("action", {}) if isinstance(data.get("action"), dict) else {}
+            if result.get("success") is not True:
+                continue
+            action_type = str(action.get("type") or result.get("action_type") or "")[:32]
+            if not action_type:
+                continue
+            type_counts[action_type] = type_counts.get(action_type, 0) + 1
+            params = action.get("parameters", {}) if isinstance(action.get("parameters"), dict) else {}
+            row = {"type": action_type}
+            for name in ("block", "item"):
+                value = params.get(name) or result.get(name)
+                if value:
+                    row[name] = str(value)[:64]
+            if all(isinstance(params.get(axis), (int, float)) and not isinstance(params.get(axis), bool) for axis in ("x", "y", "z")):
+                position = {axis: float(params[axis]) for axis in ("x", "y", "z")}
+                if all(math.isfinite(value) for value in position.values()):
+                    row["position"] = position
+
+            pre = data.get("pre_observation", {}) if isinstance(data.get("pre_observation"), dict) else {}
+            post = data.get("post_observation", {}) if isinstance(data.get("post_observation"), dict) else {}
+            before = pre.get("inventory", {}) if isinstance(pre.get("inventory"), dict) else {}
+            after = post.get("inventory", {}) if isinstance(post.get("inventory"), dict) else {}
+            delta = {}
+            for item in sorted(set(before) | set(after)):
+                try:
+                    change = int(after.get(item, 0) or 0) - int(before.get(item, 0) or 0)
+                except (TypeError, ValueError):
+                    continue
+                if change:
+                    delta[str(item)[:64]] = change
+                if len(delta) >= 8:
+                    break
+            if delta:
+                row["inventory_delta"] = delta
+            rows.append(row)
+
+        included = rows[-max_actions:]
+        summary = {
+            "profile": str(contract["profile"]),
+            "successful_action_count": len(rows),
+            "successful_action_types": dict(sorted(type_counts.items())),
+            "included_action_count": len(included),
+            "truncated": len(rows) > len(included),
+            "actions": included,
+        }
+        while included and len(json.dumps(summary, sort_keys=True, separators=(",", ":"))) > max_chars:
+            included = included[1:]
+            summary["actions"] = included
+            summary["included_action_count"] = len(included)
+            summary["truncated"] = True
+        return summary
 
     def _plan_cache_lookup(self, goal: str, observation: dict, log_miss: bool = True) -> dict | None:
         """Try an approved plan-transition cache before spending an LLM call."""
@@ -2698,6 +2956,20 @@ class Agent:
 
         plan = self.skill_library.build_runtime_skill_plan(skill, goal, observation)
         identity = plan.get("skill", {}) if isinstance(plan.get("skill", {}), dict) else {}
+        if (
+            getattr(self.config, "require_llm_root_plan", False)
+            and plan.get("status") == "complete"
+            and not plan.get("actions")
+        ):
+            self._m2_skill_contribution_complete = True
+            self.session_logger.log("skill_subtask_complete", {
+                "goal": goal,
+                "skill": identity,
+                "mode": mode,
+                "root_planner_resumes": True,
+                "runtime_influence": bool(self._active_skill_execution),
+            })
+            return None
         if plan.get("status") == "fallback":
             fallback_reason = str(plan.get("fallback_reason") or "skill_plan_fallback")
             fallback_failure_type = (
@@ -2939,14 +3211,17 @@ class Agent:
         route_scope_valid = self.skill_library.skill_transfer_scope_allows(skill, goal_family)
         executed = int(active.get("executed_count", 0) or 0)
         failed_actions = int(active.get("failed_action_count", 0) or 0)
+        controlled_fault = bool(active.get("controlled_failure_only"))
         attributed_success = bool(
-            goal_success
-            and postconditions_met
+            postconditions_met
             and route_scope_valid
             and executed > 0
             and failed_actions == 0
         )
-        if attributed_success:
+        if controlled_fault and failed_actions:
+            failure_type = "controlled_fault"
+            confidence = 1.0
+        elif attributed_success:
             failure_type = ""
             confidence = 1.0
         elif executed and not route_scope_valid:
@@ -2981,6 +3256,9 @@ class Agent:
             "failure_type": failure_type,
             "attribution_confidence": confidence,
             "experiment_id": str(getattr(self.config, "skill_experiment_id", "") or ""),
+            "controlled_failure_only": controlled_fault,
+            "controlled_fault_profile": str(active.get("controlled_fault_profile") or ""),
+            "counts_toward_skill_lifecycle": not controlled_fault,
         }
         outcome = self.skill_library.record_learned_skill_outcome(
             skill.skill_id,
@@ -3007,18 +3285,24 @@ class Agent:
             "first_failed_transition": active.get("first_failed_transition", ""),
             "failure_type": failure_type,
             "attribution_confidence": confidence,
+            "controlled_failure_only": controlled_fault,
+            "counts_toward_skill_lifecycle": not controlled_fault,
             "lifecycle_outcome": outcome,
         })
         if self.skill_learning_ledger is not None:
             self.skill_learning_ledger.record_skill(skill)
             self.skill_learning_ledger.record_decision(
                 skill.skill_id,
-                "reinforce" if attributed_success else (
+                "controlled_fault_excluded" if controlled_fault else "reinforce" if attributed_success else (
                     "demote" if outcome.get("status_changed") and outcome.get("status") == "advisory"
                     else "quarantine" if outcome.get("status_changed") and outcome.get("status") == "quarantined"
                     else "retain"
                 ),
-                "runtime outcome attributed to the selected learned skill",
+                (
+                    "controlled research fault retained as non-attributable evidence"
+                    if controlled_fault
+                    else "runtime outcome attributed to the selected learned skill"
+                ),
                 evidence=context,
             )
 
@@ -3591,6 +3875,11 @@ class Agent:
             "type": str(action.get("type") or ""),
             "parameters": dict(action.get("parameters", {}) or {}),
         }
+        skill_context.update({
+            "controlled_fault_profile": profile,
+            "controlled_failure_only": True,
+            "counts_toward_skill_lifecycle": False,
+        })
         action["type"], action["parameters"] = mutation[0], dict(mutation[1])
         self._applied_skill_fault_profiles.add(key)
         self.session_logger.log("skill_learning_fault_injection", {
@@ -4631,9 +4920,27 @@ class Agent:
         self._write_memory_episode("visual_action_intervention", payload, source="visual_action")
 
     def _reflect(self, observation: dict, action: dict, result: dict, goal: str) -> dict:
+        if str(getattr(self.config, "planner_protocol", "") or "") == "m2-fixed-v1":
+            return {
+                "analysis": "M2 action failure recorded for the next schema-validated replan",
+                "suggestion": "replan",
+                "should_retry": True,
+            }
         if not self._use_llm or not self.reflector:
             return {"analysis": "Rule planner - no reflection available", "suggestion": "retry", "should_retry": True}
         return self.reflector.analyze_failure(goal, action, result, observation)
+
+    def _request_m2_replan(self, reason: str):
+        if str(getattr(self.config, "planner_protocol", "") or "") != "m2-fixed-v1":
+            return
+        planner = getattr(self, "planner", None)
+        if not hasattr(planner, "request_replan"):
+            return
+        planner.request_replan(reason)
+        self.session_logger.log("m2_replan_requested", {
+            "goal": str(self.current_goal or ""),
+            "reason": str(reason or "action_failure")[:500],
+        })
 
     # ── Helpers ────────────────────────────────────────────────────────
 
@@ -4649,10 +4956,62 @@ class Agent:
             return False, None
         if not hasattr(self, "goal_verifier"):
             return False, None
-        verification = self.goal_verifier.verify(goal, observation, recent_actions=recent_actions or [])
-        if verification.achieved:
-            self._log_goal_verification(verification, {**(context or {}), "accepted": True})
+        m2_task_id = str(getattr(self.config, "m2_task_id", "") or "")
+        if m2_task_id:
+            verification = self._m2_goal_verification(goal, m2_task_id)
+            self._log_goal_verification(
+                verification,
+                {**(context or {}), "accepted": verification.achieved},
+            )
+        else:
+            verification = self.goal_verifier.verify(goal, observation, recent_actions=recent_actions or [])
+            if verification.achieved:
+                self._log_goal_verification(verification, {**(context or {}), "accepted": True})
         return verification.achieved, verification
+
+    def _m2_goal_verification(self, goal: str, task_id: str):
+        from singularity.core.goal_verifier import GoalVerification
+        from singularity.evaluation.m2_protocol import verify_task_outcome
+
+        verify = getattr(getattr(self, "bot", None), "verify_benchmark", None)
+        terminal = verify(task_id) if callable(verify) else {
+            "success": False,
+            "error": "bridge does not expose benchmark_verify",
+        }
+        if not isinstance(terminal, dict) or terminal.get("success") is not True:
+            error = str(terminal.get("error") or "M2 terminal evidence unavailable") if isinstance(terminal, dict) else "M2 terminal evidence is not an object"
+            return GoalVerification(
+                goal=goal,
+                achieved=False,
+                status="failed",
+                confidence=1.0,
+                missing=[error],
+                matched_rules=["m2:machine_verifier"],
+                critic={"m2_machine_verification": {"passed": False, "issues": [error]}},
+            )
+        action_events = [
+            event
+            for event in (getattr(getattr(self, "session_logger", None), "events", []) or [])
+            if isinstance(event, dict) and event.get("type") == "action"
+        ]
+        report = verify_task_outcome(
+            task_id,
+            setup_evidence=dict(getattr(self, "_m2_setup_evidence", {}) or {}),
+            terminal_evidence=terminal,
+            action_events=action_events,
+        )
+        achieved = report.get("passed") is True
+        return GoalVerification(
+            goal=goal,
+            achieved=achieved,
+            status="achieved" if achieved else "failed",
+            confidence=1.0,
+            evidence=[f"{task_id} machine outcome verified"] if achieved else [],
+            missing=list(report.get("issues", [])),
+            matched_rules=["m2:machine_verifier"],
+            inventory_delta=dict(report.get("inventory_delta", {})),
+            critic={"m2_machine_verification": report},
+        )
 
     def _accept_plan_completion(
         self,
@@ -4663,6 +5022,17 @@ class Agent:
         recent_actions: list[dict] = None,
     ) -> tuple[bool, object]:
         """Gate planner-reported completion through deterministic verification."""
+        if str(getattr(self.config, "m2_task_id", "") or ""):
+            return self._goal_is_verified(
+                goal,
+                observation,
+                context={
+                    **(context or {}),
+                    "planner_status": plan.get("status"),
+                    "planner_reasoning": plan.get("reasoning", "")[:300],
+                },
+                recent_actions=recent_actions,
+            )
         if not getattr(getattr(self, "config", None), "enable_goal_verification", True):
             return True, None
         if not hasattr(self, "goal_verifier"):
@@ -4698,6 +5068,13 @@ class Agent:
         skill_context = action.get("skill_context", {}) if isinstance(action.get("skill_context", {}), dict) else {}
         if skill_context.get("skill_id"):
             active = self._active_skill_execution
+            controlled_fault = bool(skill_context.get("controlled_failure_only"))
+            if controlled_fault:
+                active["controlled_failure_only"] = True
+                active["controlled_fault_profile"] = str(
+                    skill_context.get("controlled_fault_profile") or ""
+                )
+                active["counts_toward_skill_lifecycle"] = False
             active["executed_count"] = int(active.get("executed_count", 0) or 0) + 1
             if not success:
                 active["failed_action_count"] = int(active.get("failed_action_count", 0) or 0) + 1
@@ -4709,7 +5086,11 @@ class Agent:
                 if not active.get("first_failed_transition"):
                     active["first_failed_transition"] = transition
                 active["fallback_reason"] = "learned_skill_action_failed"
-                failure_type = self._classify_skill_action_failure(action, result or {})
+                failure_type = (
+                    "controlled_fault"
+                    if controlled_fault
+                    else self._classify_skill_action_failure(action, result or {})
+                )
                 active["failure_type"] = failure_type
                 goal_key = str(skill_context.get("goal_fingerprint") or "")
                 if goal_key:
@@ -4723,6 +5104,8 @@ class Agent:
                     "failure_type": failure_type,
                     "first_failed_transition": transition,
                     "before_execution": False,
+                    "controlled_failure_only": controlled_fault,
+                    "counts_toward_skill_lifecycle": not controlled_fault,
                 })
             self.session_logger.log("skill_action_result", {
                 "goal": skill_context.get("goal", ""),
@@ -4734,8 +5117,14 @@ class Agent:
                 "template_action_index": skill_context.get("template_action_index", 0),
                 "action_type": action.get("type", ""),
                 "success": bool(success),
-                "failure_type": "" if success else self._classify_skill_action_failure(action, result or {}),
-                "attributed": True,
+                "failure_type": "" if success else (
+                    "controlled_fault"
+                    if controlled_fault
+                    else self._classify_skill_action_failure(action, result or {})
+                ),
+                "attributed": not controlled_fault,
+                "controlled_failure_only": controlled_fault,
+                "counts_toward_skill_lifecycle": not controlled_fault,
             })
         action_type = action.get("type", "")
         skill_mapping = {
@@ -5062,6 +5451,38 @@ class Agent:
         for task in self.task_system.tasks.values():
             if task.status == TaskStatus.PROPOSED:
                 self.task_system.update_task(task.id, status=TaskStatus.ACCEPTED)
+        self._flush_task_state_transitions({"source": "planner_acceptance"})
+
+    def _flush_task_state_transitions(self, context: dict = None):
+        task_system = getattr(self, "task_system", None)
+        if not task_system or not hasattr(task_system, "drain_transition_events"):
+            return
+        for transition in task_system.drain_transition_events():
+            payload = dict(transition)
+            payload["context"] = dict(context or {})
+            if hasattr(self, "session_logger") and hasattr(self.session_logger, "log"):
+                self.session_logger.log("task_state_transition", payload)
+
+    def _complete_verified_m2_task_paths(self, goal: str, verification, context: dict = None) -> list[str]:
+        """Close auditable M2 task paths only after the machine verifier accepts the goal."""
+        if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m2-fixed-v1":
+            return []
+        evidence = verification.to_dict() if hasattr(verification, "to_dict") else {}
+        if "m2:machine_verifier" not in (evidence.get("matched_rules") or []):
+            return []
+        root_plan_id = str(getattr(getattr(self, "planner", None), "_active_root_plan_id", "") or "")
+        task_system = getattr(self, "task_system", None)
+        if not root_plan_id or not task_system or not hasattr(task_system, "complete_verified_plan"):
+            return []
+        completed = task_system.complete_verified_plan(
+            root_plan_id,
+            {"goal": goal, "verification": evidence},
+        )
+        self._flush_task_state_transitions({
+            "source": "machine_goal_verifier",
+            **(context or {}),
+        })
+        return completed
 
     def _ingest_plan_subtasks(self, plan: dict, goal: str = "", source: str = "planner") -> dict:
         """Create scheduler tasks from deterministic or cached plan subtasks."""
@@ -5474,6 +5895,10 @@ class Agent:
     def _observe(self) -> dict:
         """Observe world state and attach lightweight visual grounding when enabled."""
         observation = self.observer.observe()
+        benchmark_context = getattr(self, "_m2_benchmark_context", {})
+        if isinstance(benchmark_context, dict) and benchmark_context:
+            observation = dict(observation)
+            observation["benchmark_context"] = dict(benchmark_context)
         if not getattr(getattr(self, "config", None), "enable_vision_analysis", True):
             return observation
         observation = self._maybe_capture_screenshot(observation)
@@ -5705,6 +6130,11 @@ class Agent:
 
     def _apply_action_feedback(self, action: dict, result: dict, fallback_observation: dict, context: dict = None) -> dict:
         """Observe after an action and let TaskSystem update state from evidence."""
+        pre_action_task_id = None
+        if str(getattr(self.config, "planner_protocol", "") or "") == "m2-fixed-v1":
+            pre_action_task = self.task_system.get_next_task(fallback_observation or {})
+            pre_action_task_id = pre_action_task.id if pre_action_task else None
+
         observation = fallback_observation
         try:
             observation = self._observe()
@@ -5717,7 +6147,16 @@ class Agent:
         except Exception as e:
             logger.warning(f"Post-action observation failed: {e}")
 
-        task = self.task_system.apply_action_result(action, result, observation)
+        task = self.task_system.apply_action_result(
+            action,
+            result,
+            observation,
+            task_id=pre_action_task_id,
+        )
+        self._flush_task_state_transitions({
+            "source": "action_feedback",
+            **(context or {}),
+        })
         if task:
             self._write_memory_episode("task_state_update", {
                 "task_id": task.id,

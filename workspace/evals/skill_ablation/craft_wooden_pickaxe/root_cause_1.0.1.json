@@ -1,0 +1,70 @@
+{
+  "type": "skill_root_cause_report",
+  "schema_version": 1,
+  "skill_id": "learned:craft_wooden_pickaxe",
+  "skill_version": "1.0.1",
+  "retained_status": "quarantined",
+  "first_failed_transition": "craft_target:0:craft",
+  "source": {
+    "repo_relative_path": "logs/session_d5a1d1fb-4df.jsonl",
+    "session_id": "d5a1d1fb-4df",
+    "content_sha256": "ae82ffab74a1c52d227e5f14ae630ac4274000bec357488cde2ec21c88a30f7d",
+    "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+    "evidence_kind": "live_minecraft_skill_research",
+    "eligibility": "controlled_failure_only"
+  },
+  "event_evidence": {
+    "skill_selected_event": 13,
+    "fault_injection_event": 18,
+    "action_verification_event": 19,
+    "skill_action_result_event": 26,
+    "original_action": {
+      "type": "craft",
+      "parameters": {
+        "item": "wooden_pickaxe",
+        "count": 1
+      }
+    },
+    "injected_action": {
+      "type": "craft",
+      "parameters": {
+        "item": "",
+        "count": 1
+      }
+    },
+    "verifier_result": {
+      "status": "reject",
+      "reason": "craft action missing item parameter"
+    },
+    "ordinary_planner_recovery": {
+      "action": "craft wooden_pickaxe",
+      "verifier_status": "accept",
+      "goal_verified": true
+    }
+  },
+  "classification": {
+    "primary": "skill_correct_but_controlled_lower_layer_action_failed",
+    "secondary": "runtime_fixture_and_skill_contract_mismatch",
+    "skill_action_template_defect_supported": false,
+    "attribution_boundary_defect_supported": true,
+    "reason": "The research fixture mutated a valid skill action before ActionVerifier, but the resulting rejection was recorded as an attributable skill_error."
+  },
+  "excluded_hypotheses": [
+    "material_count_error",
+    "recipe_output_error",
+    "action_order_error",
+    "craft_target_error",
+    "postcondition_error",
+    "stale_observation",
+    "verifier_rule_inconsistency"
+  ],
+  "repair_scope": {
+    "preserve_1.0.1_quarantine": true,
+    "reclassify_historical_events": false,
+    "controlled_faults_count_toward_skill_lifecycle": false,
+    "candidate_version": "1.0.2-candidate",
+    "candidate_inherits_executable_authority": false,
+    "action_template_change_required": false,
+    "contract_change": "Declare the complete log, plank, stick, crafting-table, proximity, observation, fallback, and inventory-delta requirements for independent revalidation."
+  }
+}

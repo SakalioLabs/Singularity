@@ -45,6 +45,10 @@ const M1_PROTOCOL_PATH = path.resolve(__dirname, '..', 'singularity', 'data', 'm
 const M1_PROTOCOL_BYTES = fs.readFileSync(M1_PROTOCOL_PATH);
 const M1_PROTOCOL = JSON.parse(M1_PROTOCOL_BYTES.toString('utf8'));
 const M1_PROTOCOL_SHA256 = crypto.createHash('sha256').update(M1_PROTOCOL_BYTES).digest('hex');
+const M2_PROTOCOL_PATH = path.resolve(__dirname, '..', 'singularity', 'data', 'm2_protocol.json');
+const M2_PROTOCOL_BYTES = fs.readFileSync(M2_PROTOCOL_PATH);
+const M2_PROTOCOL = JSON.parse(M2_PROTOCOL_BYTES.toString('utf8'));
+const M2_PROTOCOL_SHA256 = crypto.createHash('sha256').update(M2_PROTOCOL_BYTES).digest('hex');
 
 let bot = null;
 let botReady = false;
@@ -332,6 +336,28 @@ function prioritizeTreeResults(trees, limit = 10) {
     return selected.sort((a, b) => Number(a.distance) - Number(b.distance));
 }
 
+function prioritizeNearbyBlocks(blocks, limit = 50) {
+    const maximum = Math.max(1, Number(limit) || 50);
+    const sorted = [...(blocks || [])].sort((a, b) => Number(a.distance) - Number(b.distance));
+    const selected = [];
+    const selectedBlocks = new Set();
+    const selectedNames = new Set();
+    for (const block of sorted) {
+        const name = String(block?.name || '');
+        if (!name || selectedNames.has(name)) continue;
+        selected.push(block);
+        selectedBlocks.add(block);
+        selectedNames.add(name);
+        if (selected.length >= maximum) return selected;
+    }
+    for (const block of sorted) {
+        if (selectedBlocks.has(block)) continue;
+        selected.push(block);
+        if (selected.length >= maximum) break;
+    }
+    return selected;
+}
+
 function createMoveToHandler(
     getState = () => ({ bot, botReady }),
     options = {},
@@ -496,14 +522,31 @@ function benchmarkRuntime(overrides = {}) {
     };
 }
 
-function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}) {
+function benchmarkProtocolBundle(profile = '') {
+    const requested = String(profile || '').trim().toLowerCase();
+    if (requested === M2_PROTOCOL.profile.toLowerCase() || requested === 'm2') {
+        return { protocol: M2_PROTOCOL, protocolSha256: M2_PROTOCOL_SHA256 };
+    }
+    return { protocol: M1_PROTOCOL, protocolSha256: M1_PROTOCOL_SHA256 };
+}
+
+function benchmarkTaskBundle(taskId = '') {
+    const normalized = String(taskId || '').trim().toUpperCase();
+    if (M2_PROTOCOL.tasks.some(task => task.id === normalized)) {
+        return { protocol: M2_PROTOCOL, protocolSha256: M2_PROTOCOL_SHA256 };
+    }
+    return { protocol: M1_PROTOCOL, protocolSha256: M1_PROTOCOL_SHA256 };
+}
+
+function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}, profile = '') {
+    const { protocol, protocolSha256 } = benchmarkProtocolBundle(profile || runtimeOverrides.profile);
     const runtime = benchmarkRuntime(runtimeOverrides);
     const dependencies = installedBenchmarkDependencies();
     const serverBrand = String(activeBot?.game?.serverBrand || '');
     const observedMinecraftVersion = String(activeBot?.version || '');
     const errors = [];
-    if (runtime.seed !== M1_PROTOCOL.world_seed) {
-        errors.push(`benchmark seed ${runtime.seed || '<missing>'} does not match ${M1_PROTOCOL.world_seed}`);
+    if (runtime.seed !== protocol.world_seed) {
+        errors.push(`benchmark seed ${runtime.seed || '<missing>'} does not match ${protocol.world_seed}`);
     }
     if (!runtime.episode_id) {
         errors.push('benchmark episode id is missing');
@@ -513,43 +556,59 @@ function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}) {
     }
     if (!/^[a-f0-9]{64}$/.test(runtime.server_jar_sha256)) {
         errors.push('server jar sha256 is missing or invalid');
-    } else if (runtime.server_jar_sha256 !== M1_PROTOCOL.server_jar_sha256) {
-        errors.push(`server jar sha256 does not match pinned ${M1_PROTOCOL.server_build}`);
+    } else if (runtime.server_jar_sha256 !== protocol.server_jar_sha256) {
+        errors.push(`server jar sha256 does not match pinned ${protocol.server_build}`);
     }
-    for (const [name, expected] of Object.entries(M1_PROTOCOL.dependencies || {})) {
+    for (const [name, expected] of Object.entries(protocol.dependencies || {})) {
         if (dependencies[name] !== expected) {
             errors.push(`${name}=${dependencies[name] || '<missing>'}, expected ${expected}`);
         }
     }
+    const expectedNode = String(protocol.runtime_versions?.node || '');
+    const observedNode = String(process.version || '').replace(/^v/, '');
+    if (expectedNode && observedNode !== expectedNode) {
+        errors.push(`node=${observedNode || '<missing>'}, expected ${expectedNode}`);
+    }
     if (activeBot?.entity && !/paper/i.test(serverBrand)) {
         errors.push(`server brand ${serverBrand || '<missing>'} is not Paper`);
     }
-    if (activeBot?.entity && observedMinecraftVersion !== M1_PROTOCOL.minecraft_version) {
-        errors.push(`Minecraft version ${observedMinecraftVersion || '<missing>'} does not match ${M1_PROTOCOL.minecraft_version}`);
+    if (activeBot?.entity && observedMinecraftVersion !== protocol.minecraft_version) {
+        errors.push(`Minecraft version ${observedMinecraftVersion || '<missing>'} does not match ${protocol.minecraft_version}`);
     }
     return {
         success: true,
         configured: errors.length === 0,
-        profile: M1_PROTOCOL.profile,
-        protocol_sha256: M1_PROTOCOL_SHA256,
-        minecraft_version: M1_PROTOCOL.minecraft_version,
+        profile: protocol.profile,
+        protocol_sha256: protocolSha256,
+        minecraft_version: protocol.minecraft_version,
         observed_minecraft_version: observedMinecraftVersion,
-        server_type: M1_PROTOCOL.server_type,
-        server_build: M1_PROTOCOL.server_build,
-        server_jar_policy: M1_PROTOCOL.server_jar_policy,
-        agent_id: M1_PROTOCOL.agent_id,
-        planner_id: M1_PROTOCOL.planner_id,
-        action_backend_id: M1_PROTOCOL.action_backend_id,
-        verifier_id: M1_PROTOCOL.verifier_id,
+        server_type: protocol.server_type,
+        server_build: protocol.server_build,
+        server_jar_policy: protocol.server_jar_policy,
+        agent_id: protocol.agent_id,
+        planner_id: protocol.planner_id,
+        planner_schema_id: protocol.planner_schema_id || '',
+        planner_schema_sha256: protocol.planner_schema_sha256 || '',
+        action_backend_id: protocol.action_backend_id,
+        verifier_id: protocol.verifier_id,
+        skill_runtime_profile_id: protocol.skill_runtime_profile_id || '',
+        reset_protocol_sha256: protocol.reset_protocol_sha256 || '',
+        validation_protocol_sha256: protocol.validation_protocol_sha256 || '',
+        llm: protocol.llm || {},
         server_brand: serverBrand,
         seed: runtime.seed,
         episode_id: runtime.episode_id,
         level_name: runtime.level_name,
         server_jar_sha256: runtime.server_jar_sha256,
-        episode_strategy: M1_PROTOCOL.episode_strategy,
+        episode_strategy: protocol.episode_strategy,
         dependencies,
-        tasks: M1_PROTOCOL.tasks,
+        runtime_versions: {
+            node: observedNode,
+            python: protocol.runtime_versions?.python || '',
+        },
+        tasks: protocol.tasks,
         reset_supported: true,
+        validation_supported: protocol.profile === M2_PROTOCOL.profile,
         errors,
     };
 }
@@ -558,9 +617,9 @@ function createBenchmarkProtocolHandler(
     getState = () => ({ bot, botReady }),
     runtimeOverrides = {},
 ) {
-    return () => {
+    return (params = {}) => {
         const state = getState() || {};
-        return benchmarkProtocolStatus(state.bot, runtimeOverrides);
+        return benchmarkProtocolStatus(state.bot, runtimeOverrides, params.profile);
     };
 }
 
@@ -710,8 +769,63 @@ function fixturePosition(spawnPoint) {
     );
 }
 
-function benchmarkBotState(activeBot, spawnPoint) {
-    const fixture = spawnPoint ? fixturePosition(spawnPoint) : null;
+function relativeWorldPosition(spawnPoint, relative = {}) {
+    return new Vec3(
+        Math.floor(Number(spawnPoint.x)) + Math.floor(Number(relative.x || 0)),
+        Math.floor(Number(spawnPoint.y)) + Math.floor(Number(relative.y || 0)),
+        Math.floor(Number(spawnPoint.z)) + Math.floor(Number(relative.z || 0)),
+    );
+}
+
+function fixtureBlockStates(activeBot, spawnPoint, taskSpec) {
+    const specs = Array.isArray(taskSpec?.initial_blocks) ? taskSpec.initial_blocks : [];
+    return specs.map(spec => {
+        const position = relativeWorldPosition(spawnPoint, spec.relative_position || {});
+        const block = activeBot?.blockAt ? activeBot.blockAt(position) : null;
+        return {
+            expected_name: String(spec.name || ''),
+            name: String(block?.name || 'air'),
+            position: compactPosition(position),
+            relative_position: spec.relative_position || {},
+        };
+    });
+}
+
+function constructionSnapshot(activeBot, spawnPoint, taskSpec) {
+    const zone = taskSpec?.fixture?.construction_zone;
+    if (!zone || !spawnPoint) return {};
+    const origin = relativeWorldPosition(spawnPoint, zone.origin_relative || {});
+    const size = zone.size || {};
+    const width = Math.max(1, Math.floor(Number(size.x || 0)));
+    const height = Math.max(1, Math.floor(Number(size.y || 0)));
+    const depth = Math.max(1, Math.floor(Number(size.z || 0)));
+    const blocks = [];
+    for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+            for (let z = 0; z < depth; z++) {
+                const position = origin.offset(x, y, z);
+                const block = activeBot?.blockAt ? activeBot.blockAt(position) : null;
+                blocks.push({
+                    name: String(block?.name || 'air'),
+                    position: compactPosition(position),
+                });
+            }
+        }
+    }
+    const snapshot = {
+        origin: compactPosition(origin),
+        size: { x: width, y: height, z: depth },
+        blocks,
+    };
+    snapshot.sha256 = crypto.createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
+    return snapshot;
+}
+
+function benchmarkBotState(activeBot, spawnPoint, taskSpec = null) {
+    const firstSpec = Array.isArray(taskSpec?.initial_blocks) ? taskSpec.initial_blocks[0] : null;
+    const fixture = spawnPoint
+        ? (firstSpec ? relativeWorldPosition(spawnPoint, firstSpec.relative_position || {}) : fixturePosition(spawnPoint))
+        : null;
     const fixtureBlock = fixture && activeBot?.blockAt ? activeBot.blockAt(fixture) : null;
     return {
         position: compactPosition(activeBot?.entity?.position),
@@ -728,6 +842,7 @@ function benchmarkBotState(activeBot, spawnPoint) {
             position: compactPosition(fixture),
             block: String(fixtureBlock?.name || 'air'),
         } : null,
+        fixture_blocks: spawnPoint ? fixtureBlockStates(activeBot, spawnPoint, taskSpec) : [],
     };
 }
 
@@ -750,24 +865,34 @@ function positionDistance(a, b) {
     );
 }
 
-function benchmarkResetChecks(postState, taskSpec) {
+function benchmarkResetChecks(postState, taskSpec, protocol = M1_PROTOCOL) {
     const expectedBlocks = Array.isArray(taskSpec.initial_blocks) ? taskSpec.initial_blocks : [];
     const expectedFixture = expectedBlocks[0]?.name || 'air';
     const finalDistance = positionDistance(postState.position, postState.spawn_position);
+    const fixturesMatch = expectedBlocks.length === postState.fixture_blocks.length
+        && postState.fixture_blocks.every(item => item.name === item.expected_name);
     return {
         inventory_exact: inventoryExactlyMatches(postState.inventory, taskSpec.initial_inventory),
         position_at_spawn: finalDistance <= 1.5,
         position_distance: Number.isFinite(finalDistance) ? Number(finalDistance.toFixed(3)) : null,
-        game_mode: postState.game_mode === M1_PROTOCOL.game_mode,
-        difficulty: postState.difficulty === M1_PROTOCOL.difficulty,
+        game_mode: postState.game_mode === protocol.game_mode,
+        difficulty: postState.difficulty === protocol.difficulty,
         dimension: /overworld/i.test(postState.dimension),
         daytime: postState.time_of_day >= 0 && postState.time_of_day < 12000,
-        time_initialized: Math.abs(postState.time_of_day - Number(M1_PROTOCOL.time_of_day)) <= 600,
-        weather: postState.weather === M1_PROTOCOL.weather,
+        time_initialized: Math.abs(postState.time_of_day - Number(protocol.time_of_day)) <= 600,
+        weather: postState.weather === protocol.weather,
         health: postState.health >= 20,
         food: postState.food >= 20,
-        fixture: postState.fixture?.block === expectedFixture,
+        fixture: protocol.profile === M1_PROTOCOL.profile
+            ? postState.fixture?.block === expectedFixture
+            : fixturesMatch,
     };
+}
+
+function regionCommand(spawnPoint, region, blockName) {
+    const min = relativeWorldPosition(spawnPoint, region.min || {});
+    const max = relativeWorldPosition(spawnPoint, region.max || {});
+    return `/fill ${min.x} ${min.y} ${min.z} ${max.x} ${max.y} ${max.z} minecraft:${blockName}`;
 }
 
 function createBenchmarkResetHandler(
@@ -782,41 +907,57 @@ function createBenchmarkResetHandler(
         if (!ready) {
             return { success: false, error: 'bot is not ready for benchmark reset' };
         }
-        const protocolStatus = benchmarkProtocolStatus(activeBot, runtimeOverrides);
+        const taskId = String(params.task_id || '').toUpperCase();
+        const { protocol, protocolSha256 } = benchmarkTaskBundle(taskId);
+        const protocolStatus = benchmarkProtocolStatus(activeBot, runtimeOverrides, protocol.profile);
         if (!protocolStatus.configured) {
             return {
                 success: false,
-                error: 'M1 benchmark protocol is not configured',
+                error: `${protocol.profile} benchmark protocol is not configured`,
                 protocol_errors: protocolStatus.errors,
             };
         }
-        const taskId = String(params.task_id || '');
-        const taskSpec = M1_PROTOCOL.tasks.find((task) => task.id === taskId);
+        const taskSpec = protocol.tasks.find((task) => task.id === taskId);
         if (!taskSpec) {
-            return { success: false, error: `unsupported M1 benchmark task: ${taskId || '<missing>'}` };
+            const suite = protocol.profile === M1_PROTOCOL.profile ? 'M1' : 'M2';
+            return { success: false, error: `unsupported ${suite} benchmark task: ${taskId || '<missing>'}` };
         }
         const spawnPoint = activeBot.spawnPoint;
         if (!spawnPoint || ![spawnPoint.x, spawnPoint.y, spawnPoint.z].every(Number.isFinite)) {
             return { success: false, error: 'bot spawn point is unavailable' };
         }
 
-        const beforeState = benchmarkBotState(activeBot, spawnPoint);
-        const fixture = fixturePosition(spawnPoint);
-        const fixtureSpec = Array.isArray(taskSpec.initial_blocks) ? taskSpec.initial_blocks[0] : null;
+        const beforeState = benchmarkBotState(activeBot, spawnPoint, taskSpec);
         const commands = [
             `/execute in minecraft:overworld run tp @s ${spawnPoint.x} ${spawnPoint.y} ${spawnPoint.z}`,
-            `/gamemode ${M1_PROTOCOL.game_mode} @s`,
+            `/gamemode ${protocol.game_mode} @s`,
             '/clear @s',
             '/kill @e[type=minecraft:item,distance=..16]',
-            `/setblock ${fixture.x} ${fixture.y} ${fixture.z} minecraft:air`,
         ];
-        if (fixtureSpec) {
-            commands.push(`/setblock ${fixture.x} ${fixture.y} ${fixture.z} minecraft:${fixtureSpec.name}`);
+        const fixture = taskSpec.fixture || {};
+        if (protocol.profile === M1_PROTOCOL.profile) {
+            const position = fixturePosition(spawnPoint);
+            commands.push(`/setblock ${position.x} ${position.y} ${position.z} minecraft:air`);
+        } else {
+            for (const region of fixture.clear_regions || []) {
+                commands.push(regionCommand(spawnPoint, region, 'air'));
+            }
+            for (const spec of taskSpec.initial_blocks || []) {
+                const position = relativeWorldPosition(spawnPoint, spec.relative_position || {});
+                commands.push(`/setblock ${position.x} ${position.y} ${position.z} minecraft:air`);
+            }
+            for (const region of fixture.fill_regions || []) {
+                commands.push(regionCommand(spawnPoint, region, String(region.name || 'air')));
+            }
+        }
+        for (const spec of taskSpec.initial_blocks || []) {
+            const position = relativeWorldPosition(spawnPoint, spec.relative_position || {});
+            commands.push(`/setblock ${position.x} ${position.y} ${position.z} minecraft:${spec.name}`);
         }
         commands.push(
-            `/time set ${M1_PROTOCOL.time_of_day}`,
-            `/weather ${M1_PROTOCOL.weather}`,
-            `/difficulty ${M1_PROTOCOL.difficulty}`,
+            `/time set ${protocol.time_of_day}`,
+            `/weather ${protocol.weather}`,
+            `/difficulty ${protocol.difficulty}`,
             '/effect give @s minecraft:instant_health 1 255 true',
             '/effect give @s minecraft:saturation 1 255 true',
         );
@@ -834,8 +975,9 @@ function createBenchmarkResetHandler(
             return { success: false, error: `benchmark reset command failed: ${error.message}` };
         }
 
-        const afterState = benchmarkBotState(activeBot, spawnPoint);
-        const checks = benchmarkResetChecks(afterState, taskSpec);
+        const afterState = benchmarkBotState(activeBot, spawnPoint, taskSpec);
+        const structureBaseline = constructionSnapshot(activeBot, spawnPoint, taskSpec);
+        const checks = benchmarkResetChecks(afterState, taskSpec, protocol);
         const failedChecks = Object.entries(checks)
             .filter(([name, value]) => name !== 'position_distance' && value !== true)
             .map(([name]) => name);
@@ -843,8 +985,10 @@ function createBenchmarkResetHandler(
         return {
             success,
             error: success ? '' : 'benchmark reset postconditions failed; ensure the bot is a server operator',
-            profile: M1_PROTOCOL.profile,
-            protocol_sha256: M1_PROTOCOL_SHA256,
+            profile: protocol.profile,
+            protocol_sha256: protocolSha256,
+            reset_protocol_sha256: protocol.reset_protocol_sha256 || '',
+            validation_protocol_sha256: protocol.validation_protocol_sha256 || '',
             episode_id: protocolStatus.episode_id,
             level_name: protocolStatus.level_name,
             seed: protocolStatus.seed,
@@ -855,13 +999,14 @@ function createBenchmarkResetHandler(
             expected: {
                 initial_inventory: taskSpec.initial_inventory,
                 initial_blocks: taskSpec.initial_blocks,
-                game_mode: M1_PROTOCOL.game_mode,
-                difficulty: M1_PROTOCOL.difficulty,
-                time_of_day: M1_PROTOCOL.time_of_day,
-                weather: M1_PROTOCOL.weather,
+                game_mode: protocol.game_mode,
+                difficulty: protocol.difficulty,
+                time_of_day: protocol.time_of_day,
+                weather: protocol.weather,
             },
             before_state: beforeState,
             after_state: afterState,
+            structure_baseline: structureBaseline,
             checks,
             failed_checks: failedChecks,
             command_count: commands.length,
@@ -869,7 +1014,327 @@ function createBenchmarkResetHandler(
     };
 }
 
-function createCraftHandler(getState = () => ({ bot, botReady })) {
+function createBenchmarkVerifyHandler(
+    getState = () => ({ bot, botReady }),
+    runtimeOverrides = {},
+) {
+    return async (params = {}) => {
+        const state = getState() || {};
+        const activeBot = state.bot;
+        if (!state.botReady || !activeBot?.entity) {
+            return { success: false, error: 'bot is not ready for benchmark verification' };
+        }
+        const taskId = String(params.task_id || '').trim().toUpperCase();
+        const { protocol, protocolSha256 } = benchmarkTaskBundle(taskId);
+        const taskSpec = protocol.tasks.find(task => task.id === taskId);
+        if (!taskSpec || protocol.profile !== M2_PROTOCOL.profile) {
+            return { success: false, error: `unsupported M2 verification task: ${taskId || '<missing>'}` };
+        }
+        const protocolStatus = benchmarkProtocolStatus(activeBot, runtimeOverrides, protocol.profile);
+        if (!protocolStatus.configured) {
+            return {
+                success: false,
+                error: `${protocol.profile} benchmark protocol is not configured`,
+                protocol_errors: protocolStatus.errors,
+            };
+        }
+        const spawnPoint = activeBot.spawnPoint;
+        if (!spawnPoint || ![spawnPoint.x, spawnPoint.y, spawnPoint.z].every(Number.isFinite)) {
+            return { success: false, error: 'bot spawn point is unavailable' };
+        }
+        const equipment = Array.isArray(activeBot.entity?.equipment)
+            ? activeBot.entity.equipment
+                .map((item, slot) => item ? ({ slot, name: item.name, count: item.count }) : null)
+                .filter(Boolean)
+            : [];
+        return {
+            success: true,
+            profile: protocol.profile,
+            protocol_sha256: protocolSha256,
+            validation_protocol_sha256: protocol.validation_protocol_sha256,
+            task_id: taskId,
+            inventory: inventoryCounts(activeBot),
+            player_position: compactPosition(activeBot.entity.position),
+            equipment,
+            fixture_blocks: fixtureBlockStates(activeBot, spawnPoint, taskSpec),
+            structure_post: constructionSnapshot(activeBot, spawnPoint, taskSpec),
+            observed_at_ms: Date.now(),
+        };
+    };
+}
+
+function shelterTemplatePositions(origin) {
+    const ox = Math.floor(Number(origin.x));
+    const oy = Math.floor(Number(origin.y));
+    const oz = Math.floor(Number(origin.z));
+    const entranceX = ox + 2;
+    const entranceZ = oz;
+    const walls = [];
+    for (let level = 0; level < 2; level++) {
+        for (let x = ox; x < ox + 5; x++) {
+            for (let z = oz; z < oz + 5; z++) {
+                const perimeter = x === ox || x === ox + 4 || z === oz || z === oz + 4;
+                if (!perimeter || (x === entranceX && z === entranceZ)) continue;
+                walls.push(new Vec3(x, oy + level, z));
+            }
+        }
+    }
+    const roof = [];
+    for (let x = ox; x < ox + 5; x++) {
+        for (let z = oz; z < oz + 5; z++) {
+            const perimeter = x === ox || x === ox + 4 || z === oz || z === oz + 4;
+            if (perimeter) roof.push(new Vec3(x, oy + 2, z));
+        }
+    }
+    for (let x = ox + 1; x < ox + 4; x++) {
+        for (let z = oz + 1; z < oz + 4; z++) {
+            roof.push(new Vec3(x, oy + 2, z));
+        }
+    }
+    return {
+        positions: [...walls, ...roof],
+        wall_count: walls.length,
+        roof_count: roof.length,
+        entrance: { x: entranceX, z: entranceZ, min_y: oy, max_y: oy + 1 },
+    };
+}
+
+function placementReference(activeBot, target) {
+    const candidates = [
+        { offset: new Vec3(0, -1, 0), face: new Vec3(0, 1, 0) },
+        { offset: new Vec3(-1, 0, 0), face: new Vec3(1, 0, 0) },
+        { offset: new Vec3(1, 0, 0), face: new Vec3(-1, 0, 0) },
+        { offset: new Vec3(0, 0, -1), face: new Vec3(0, 0, 1) },
+        { offset: new Vec3(0, 0, 1), face: new Vec3(0, 0, -1) },
+    ];
+    for (const candidate of candidates) {
+        const position = target.plus(candidate.offset);
+        const block = activeBot.blockAt(position);
+        if (block && block.type !== 0 && block.name !== 'air') {
+            return { block, face: candidate.face };
+        }
+    }
+    return null;
+}
+
+async function moveWithinPlacementRange(activeBot, target, timeoutMs = 15000) {
+    const currentDistance = navigationDistance(activeBot.entity.position, target, true);
+    if (currentDistance !== null && currentDistance <= 4.25) return { moved: false, reached: true };
+    if (!activeBot.pathfinder || typeof activeBot.pathfinder.goto !== 'function') {
+        return { moved: false, reached: false, error: 'pathfinder is unavailable' };
+    }
+    let timer = null;
+    try {
+        const navigation = Promise.resolve(activeBot.pathfinder.goto(
+            new goals.GoalNearXZ(Math.floor(target.x), Math.floor(target.z), 2),
+        ));
+        const timeout = new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error(`placement navigation timed out after ${timeoutMs}ms`)), timeoutMs);
+        });
+        await Promise.race([navigation, timeout]);
+        const distance = navigationDistance(activeBot.entity.position, target, true);
+        return { moved: true, reached: distance !== null && distance <= 4.5, distance };
+    } catch (error) {
+        if (typeof activeBot.pathfinder.stop === 'function') activeBot.pathfinder.stop();
+        return { moved: true, reached: false, error: error.message };
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+}
+
+function createBuildShelterHandler(
+    getState = () => ({ bot, botReady }),
+    wait = ms => new Promise(resolve => setTimeout(resolve, ms)),
+) {
+    return async (params = {}) => {
+        const state = getState() || {};
+        const activeBot = state.bot;
+        if (!state.botReady || !activeBot?.entity?.position) {
+            return { success: false, error: 'bot is not ready to build a shelter' };
+        }
+        const taskSpec = M2_PROTOCOL.tasks.find(task => task.id === 'BM-010');
+        const expectedOrigin = relativeWorldPosition(
+            activeBot.spawnPoint,
+            taskSpec.fixture.construction_zone.origin_relative,
+        );
+        const requestedOrigin = params.origin && typeof params.origin === 'object'
+            ? params.origin
+            : { x: params.x, y: params.y, z: params.z };
+        if (![requestedOrigin.x, requestedOrigin.y, requestedOrigin.z].every(Number.isFinite)) {
+            return { success: false, error: 'build_shelter_5x5 requires a finite origin' };
+        }
+        const origin = new Vec3(
+            Math.floor(requestedOrigin.x),
+            Math.floor(requestedOrigin.y),
+            Math.floor(requestedOrigin.z),
+        );
+        if (!origin.equals(expectedOrigin)) {
+            return {
+                success: false,
+                error: 'requested shelter origin does not match the fixed M2 construction zone',
+                requested_origin: compactPosition(origin),
+                expected_origin: compactPosition(expectedOrigin),
+            };
+        }
+        const allowed = new Set(M2_PROTOCOL.validation_contract.shelter.allowed_structure_blocks || []);
+        const material = String(params.material || '');
+        if (!allowed.has(material)) {
+            return { success: false, error: `shelter material ${material || '<missing>'} is not allowlisted` };
+        }
+        const template = shelterTemplatePositions(origin);
+        const requiredCount = template.positions.length;
+        const beforeInventory = inventoryCounts(activeBot);
+        if (Number(beforeInventory[material] || 0) < requiredCount) {
+            return {
+                success: false,
+                error: `shelter template requires ${requiredCount} ${material}`,
+                required_count: requiredCount,
+                available_count: Number(beforeInventory[material] || 0),
+            };
+        }
+        const item = activeBot.inventory.items().find(entry => entry.name === material);
+        if (!item) return { success: false, error: `${material} is not available for placement` };
+        try {
+            await activeBot.equip(item, 'hand');
+        } catch (error) {
+            return { success: false, error: `could not equip ${material}: ${error.message}` };
+        }
+
+        const placedPositions = [];
+        const alreadyPresent = [];
+        for (const target of template.positions) {
+            const existing = activeBot.blockAt(target);
+            if (existing?.name === material) {
+                alreadyPresent.push(compactPosition(target));
+                continue;
+            }
+            if (existing && existing.type !== 0 && existing.name !== 'air') {
+                return {
+                    success: false,
+                    error: `construction target is occupied by ${existing.name}`,
+                    failed_position: compactPosition(target),
+                    placed_count: placedPositions.length,
+                };
+            }
+            const navigation = await moveWithinPlacementRange(activeBot, target);
+            if (!navigation.reached) {
+                return {
+                    success: false,
+                    error: navigation.error || 'could not reach shelter placement range',
+                    failed_position: compactPosition(target),
+                    placed_count: placedPositions.length,
+                };
+            }
+            const reference = placementReference(activeBot, target);
+            if (!reference) {
+                return {
+                    success: false,
+                    error: 'no grounded neighbor exists for shelter placement',
+                    failed_position: compactPosition(target),
+                    placed_count: placedPositions.length,
+                };
+            }
+            try {
+                await activeBot.placeBlock(reference.block, reference.face);
+                await wait(100);
+            } catch (error) {
+                return {
+                    success: false,
+                    error: `shelter placement failed: ${error.message}`,
+                    failed_position: compactPosition(target),
+                    placed_count: placedPositions.length,
+                };
+            }
+            const observed = activeBot.blockAt(target);
+            if (observed?.name !== material) {
+                return {
+                    success: false,
+                    error: 'placed shelter block was not observed at the target',
+                    failed_position: compactPosition(target),
+                    observed_block: String(observed?.name || 'air'),
+                    placed_count: placedPositions.length,
+                };
+            }
+            placedPositions.push(compactPosition(target));
+        }
+
+        const center = origin.offset(2, 0, 2);
+        if (activeBot.pathfinder && typeof activeBot.pathfinder.goto === 'function') {
+            try {
+                await activeBot.pathfinder.goto(new goals.GoalNear(center.x, center.y, center.z, 1));
+            } catch (error) {
+                return {
+                    success: false,
+                    error: `shelter built but player could not enter: ${error.message}`,
+                    placed_count: placedPositions.length,
+                };
+            }
+        }
+        const afterInventory = inventoryCounts(activeBot);
+        return {
+            success: true,
+            template_id: 'shelter-outer-5x5-v1',
+            material,
+            origin: compactPosition(origin),
+            required_block_count: requiredCount,
+            wall_block_count: template.wall_count,
+            roof_block_count: template.roof_count,
+            placed_count: placedPositions.length,
+            already_present_count: alreadyPresent.length,
+            placed_positions: placedPositions,
+            entrance: template.entrance,
+            inventory_before: beforeInventory,
+            inventory_after: afterInventory,
+            player_position: compactPosition(activeBot.entity.position),
+            structure_post: constructionSnapshot(activeBot, activeBot.spawnPoint, taskSpec),
+        };
+    };
+}
+
+async function waitForStableCraftOutput(
+    activeBot,
+    inventoryBefore,
+    itemName,
+    minimumIncrease,
+    wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    maxWaitMs = 2500,
+    stableWindowMs = 750,
+) {
+    const pollMs = 100;
+    let observedSince = null;
+    let latestInventory = inventoryCounts(activeBot);
+    for (let elapsed = 0; elapsed <= maxWaitMs; elapsed += pollMs) {
+        latestInventory = inventoryCounts(activeBot);
+        const increase = Number(latestInventory[itemName] || 0) - Number(inventoryBefore[itemName] || 0);
+        if (increase >= minimumIncrease) {
+            if (observedSince == null) observedSince = elapsed;
+            if (elapsed - observedSince >= stableWindowMs) {
+                return {
+                    observed: true,
+                    inventory: latestInventory,
+                    delta: positiveInventoryDelta(inventoryBefore, latestInventory),
+                    waited_ms: elapsed,
+                    stable_ms: elapsed - observedSince,
+                };
+            }
+        } else {
+            observedSince = null;
+        }
+        if (elapsed < maxWaitMs) await wait(pollMs);
+    }
+    return {
+        observed: false,
+        inventory: latestInventory,
+        delta: positiveInventoryDelta(inventoryBefore, latestInventory),
+        waited_ms: maxWaitMs,
+        stable_ms: 0,
+    };
+}
+
+function createCraftHandler(
+    getState = () => ({ bot, botReady }),
+    wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+) {
     return async (params = {}) => {
         const state = getState() || {};
         const activeBot = state.bot;
@@ -887,19 +1352,77 @@ function createCraftHandler(getState = () => ({ bot, botReady })) {
                 matching: tableType,
                 maxDistance: 5,
             });
-            const recipes = activeBot.recipesFor(item.id, null, count, craftingTable);
-            if (!recipes || recipes.length === 0) {
-                return {
-                    success: false,
-                    error: `No recipe for ${itemName}`,
-                    crafting_table_found: Boolean(craftingTable),
-                };
+            const inventoryBefore = inventoryCounts(activeBot);
+            const attempts = [];
+            const maxAttempts = 3;
+            const retryCooldownMs = 3000;
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                const recipes = activeBot.recipesFor(item.id, null, count, craftingTable);
+                if (!recipes || recipes.length === 0) {
+                    attempts.push({
+                        attempt,
+                        success: false,
+                        error: `No recipe for ${itemName}`,
+                        inventory: inventoryCounts(activeBot),
+                    });
+                    break;
+                }
+                const recipe = recipes[0];
+                const outputPerCraft = Math.max(1, Number(recipe?.result?.count || 1));
+                const craftCalls = Math.max(1, Math.ceil(count / outputPerCraft));
+                await activeBot.craft(recipe, craftCalls, craftingTable);
+                const settlement = await waitForStableCraftOutput(
+                    activeBot,
+                    inventoryBefore,
+                    itemName,
+                    count,
+                    wait,
+                );
+                attempts.push({
+                    attempt,
+                    success: settlement.observed,
+                    output_per_craft: outputPerCraft,
+                    craft_calls: craftCalls,
+                    settlement_waited_ms: settlement.waited_ms,
+                    stable_ms: settlement.stable_ms,
+                    inventory: settlement.inventory,
+                    inventory_delta: settlement.delta,
+                });
+                if (settlement.observed) {
+                    return {
+                        success: true,
+                        item: itemName,
+                        count,
+                        requested_output_count: count,
+                        output_per_craft: outputPerCraft,
+                        craft_calls: craftCalls,
+                        craft_attempts: attempt,
+                        craft_retry_count: attempt - 1,
+                        settlement_waited_ms: settlement.waited_ms,
+                        stable_ms: settlement.stable_ms,
+                        inventory_before: inventoryBefore,
+                        inventory_after: settlement.inventory,
+                        inventory_delta: settlement.delta,
+                        attempts,
+                        crafting_table_found: Boolean(craftingTable),
+                        crafting_table_position: compactPosition(craftingTable?.position),
+                    };
+                }
+                if (attempt < maxAttempts) {
+                    attempts[attempts.length - 1].retry_cooldown_ms = retryCooldownMs;
+                    await wait(retryCooldownMs);
+                }
             }
-            await activeBot.craft(recipes[0], count, craftingTable);
             return {
-                success: true,
+                success: false,
+                error: `Crafted ${itemName} output did not remain stable after ${maxAttempts} attempts`,
                 item: itemName,
-                count,
+                requested_output_count: count,
+                craft_attempts: attempts.length,
+                craft_retry_count: Math.max(0, attempts.length - 1),
+                inventory_before: inventoryBefore,
+                inventory_after: inventoryCounts(activeBot),
+                attempts,
                 crafting_table_found: Boolean(craftingTable),
                 crafting_table_position: compactPosition(craftingTable?.position),
             };
@@ -1101,8 +1624,7 @@ const handlers = {
                 }
             }
         }
-        blocks.sort((a, b) => a.distance - b.distance);
-        return { blocks: blocks.slice(0, 50) };
+        return { blocks: prioritizeNearbyBlocks(blocks, 50) };
     },
 
     get_block_below: () => {
@@ -1130,6 +1652,8 @@ const handlers = {
     capture_screenshot: createCaptureScreenshotHandler(),
     benchmark_protocol: createBenchmarkProtocolHandler(),
     benchmark_reset: createBenchmarkResetHandler(),
+    benchmark_verify: createBenchmarkVerifyHandler(),
+    build_shelter_5x5: createBuildShelterHandler(),
 
     get_nearby_trees: (params = {}) => {
         const radius = Math.max(1, Math.min(Number(params.radius) || 16, 32));
@@ -1265,13 +1789,20 @@ if (require.main === module) {
 module.exports = {
     M1_PROTOCOL,
     M1_PROTOCOL_SHA256,
+    M2_PROTOCOL,
+    M2_PROTOCOL_SHA256,
     attachScreenshotPlugin,
     benchmarkBotState,
+    benchmarkProtocolBundle,
     benchmarkProtocolStatus,
     benchmarkResetChecks,
+    benchmarkTaskBundle,
+    constructionSnapshot,
     createBridgeServer,
     createBenchmarkProtocolHandler,
     createBenchmarkResetHandler,
+    createBenchmarkVerifyHandler,
+    createBuildShelterHandler,
     createCraftHandler,
     createDigHandler,
     createCaptureScreenshotHandler,
@@ -1281,10 +1812,12 @@ module.exports = {
     imageBytesFromCaptureResult,
     navigationDistance,
     navigationTimeoutMs,
+    prioritizeNearbyBlocks,
     prioritizeTreeResults,
     positiveInventoryDelta,
     publicScreenshotPluginStatus,
     resolveScreenshotPluginSpec,
     screenshotPathFromCaptureResult,
+    shelterTemplatePositions,
     startBridge,
 };

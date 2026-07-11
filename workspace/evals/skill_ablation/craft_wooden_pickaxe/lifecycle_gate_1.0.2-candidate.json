@@ -1,0 +1,293 @@
+{
+  "authority": {
+    "candidate_executable_before_decision": false,
+    "inherits_1_0_1_authority": false,
+    "promotion_requires_paired_gate": true,
+    "runtime_default_requires_separate_gate": true
+  },
+  "candidate_counters": {
+    "failure_count": 0,
+    "failure_type_counts": {
+      "controlled_fault": 1,
+      "environment_change": 2
+    },
+    "observed_failure_count": 3,
+    "success_count": 4
+  },
+  "checks": {
+    "advisory_evaluation_only": true,
+    "advisory_verified": true,
+    "all_source_environments_distinct": true,
+    "all_source_hashes_distinct": true,
+    "all_source_logs_hash_verified": true,
+    "all_source_sessions_distinct": true,
+    "candidate_does_not_inherit_runtime_authority": true,
+    "candidate_has_zero_attributable_failures": true,
+    "candidate_not_yet_executable": true,
+    "candidate_schema_approved": true,
+    "candidate_steps_reobserved": true,
+    "candidate_steps_verified": true,
+    "canonical_dedup_is_version_update": true,
+    "controlled_fault_validation_passed": true,
+    "failed_fallback_evidence_preserved": true,
+    "fallback_recovery_passed": true,
+    "fallback_verified": true,
+    "fault_cannot_promote": true,
+    "fixed_controls_match": true,
+    "heldout_fixture_validation_approved": true,
+    "heldout_not_mislabeled_positive_transfer": true,
+    "live_minecraft_only": true,
+    "no_action_failure_regression": true,
+    "no_completion_regression": true,
+    "no_no_progress_regression": true,
+    "no_verifier_reject_regression": true,
+    "paired_gate_approved": true,
+    "quarantined_1_0_1_retained": true,
+    "root_cause_report_present": true,
+    "runtime_attribution_three_of_three": true,
+    "shadow_verified": true,
+    "synthetic_evidence_count_zero": true,
+    "three_distinct_paired_live_sessions": true
+  },
+  "decision": "eligible_for_executable_promotion",
+  "evidence_files": [
+    {
+      "content_sha256": "811e3df7a575249e652cb68af91a646f5d70010eb66a6582a827cb3294a9f455",
+      "eligibility": true,
+      "evidence_kind": "root_cause",
+      "repo_relative_path": "workspace/evals/skill_ablation/craft_wooden_pickaxe/root_cause_1.0.1.json"
+    },
+    {
+      "content_sha256": "581fe497a7edcf03095135746c7601e198313f5d240710c4c04963aceb4d7c3c",
+      "eligibility": true,
+      "evidence_kind": "candidate_schema",
+      "repo_relative_path": "workspace/evals/skill_ablation/craft_wooden_pickaxe/candidate_1.0.2.json"
+    },
+    {
+      "content_sha256": "06b6ad70014c30f065c61437f3c1e60689d0625634fdf80c542d24dd944b8585",
+      "eligibility": true,
+      "evidence_kind": "advisory_authorization",
+      "repo_relative_path": "workspace/evals/skill_ablation/craft_wooden_pickaxe/advisory_authorization_1.0.2-candidate.json"
+    },
+    {
+      "content_sha256": "373cd97b10064cd9c39f9433657e4c4f19d97443d05c33daa88e71859fa72bc4",
+      "eligibility": true,
+      "evidence_kind": "paired_report",
+      "repo_relative_path": "workspace/evals/skill_ablation/craft_wooden_pickaxe/paired_report_1.0.2-candidate.json"
+    },
+    {
+      "content_sha256": "425ed3192287205266aec5c413575791f791ad38f48021af38a450754bd5e95b",
+      "eligibility": true,
+      "evidence_kind": "fault_run",
+      "repo_relative_path": "workspace/evals/skill_ablation/craft_wooden_pickaxe/runs/1.0.2/fault01.json"
+    },
+    {
+      "content_sha256": "f38246f5ee508129e024b5680ffce273b2a4d280ee0ec33eef23ebecd3934d0f",
+      "eligibility": false,
+      "evidence_kind": "fallback_failure",
+      "repo_relative_path": "workspace/evals/skill_ablation/craft_wooden_pickaxe/runs/1.0.2/fallback01.json"
+    },
+    {
+      "content_sha256": "83d5b4448d6daab30b05256bc2b34b3e78bb405aa766bb57a9fb29b267a14539",
+      "eligibility": true,
+      "evidence_kind": "fallback_recovery",
+      "repo_relative_path": "workspace/evals/skill_ablation/craft_wooden_pickaxe/runs/1.0.2/fallback02.json"
+    },
+    {
+      "content_sha256": "b1153b8c82510fd193881d0a769e53357674b0747917ddd2300b01dde93ef4fd",
+      "eligibility": true,
+      "evidence_kind": "heldout_report",
+      "repo_relative_path": "workspace/evals/skill_ablation/craft_wooden_pickaxe/heldout_1.0.2/report.json"
+    },
+    {
+      "content_sha256": "9b302704ec1847d8be804645d6b49f0453b48e09d87ff95dfcaa2d7131c4ee63",
+      "eligibility": true,
+      "evidence_kind": "heldout_gate",
+      "repo_relative_path": "workspace/evals/skill_ablation/craft_wooden_pickaxe/heldout_1.0.2/transfer_gate.json"
+    },
+    {
+      "arm": "baseline",
+      "content_sha256": "0c7614bf9a61e7db552935322d185675310240dbbd692e6300b1fd355884c2d4",
+      "eligibility": "lifecycle_baseline",
+      "environment_id": "skill_episode_20260711_002127_bm_003",
+      "evidence_kind": "live_minecraft_skill_research",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "repo_relative_path": "logs/session_012a3cb8-e38.jsonl",
+      "session_id": "012a3cb8-e38",
+      "status": "pass"
+    },
+    {
+      "arm": "candidate",
+      "content_sha256": "318fd1a350c92c232d7dd750a034aaa3c203b5fb108b4e43fe2bf4dd634d0467",
+      "eligibility": "lifecycle_candidate",
+      "environment_id": "skill_episode_20260711_002205_bm_003",
+      "evidence_kind": "live_minecraft_skill_research",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "repo_relative_path": "logs/session_a846d276-044.jsonl",
+      "session_id": "a846d276-044",
+      "status": "pass"
+    },
+    {
+      "arm": "baseline",
+      "content_sha256": "ead7113beebb5d324e70f137b9dda10e971811079cc1f612d5ff02c9aa2c3466",
+      "eligibility": "lifecycle_baseline",
+      "environment_id": "skill_episode_20260711_002243_bm_003",
+      "evidence_kind": "live_minecraft_skill_research",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "repo_relative_path": "logs/session_d165c18e-030.jsonl",
+      "session_id": "d165c18e-030",
+      "status": "pass"
+    },
+    {
+      "arm": "candidate",
+      "content_sha256": "54443671e30be402e571c85122e646ddfd760aec5c4cad8a6c09b9dc9ed855c9",
+      "eligibility": "lifecycle_candidate",
+      "environment_id": "skill_episode_20260711_002316_bm_003",
+      "evidence_kind": "live_minecraft_skill_research",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "repo_relative_path": "logs/session_9430e4d1-498.jsonl",
+      "session_id": "9430e4d1-498",
+      "status": "pass"
+    },
+    {
+      "arm": "baseline",
+      "content_sha256": "4fe4f8fc14002888f7b9de9e04823b8c7d1ea7b0a06ee57c4712f9dc34f7b1a7",
+      "eligibility": "lifecycle_baseline",
+      "environment_id": "skill_episode_20260711_002355_bm_003",
+      "evidence_kind": "live_minecraft_skill_research",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "repo_relative_path": "logs/session_727dd15a-930.jsonl",
+      "session_id": "727dd15a-930",
+      "status": "pass"
+    },
+    {
+      "arm": "candidate",
+      "content_sha256": "1d05ccee462d17c962aa5ab04eaf7abe53fda47dccb1a9a02de0fd331e8797b6",
+      "eligibility": "lifecycle_candidate",
+      "environment_id": "skill_episode_20260711_002428_bm_003",
+      "evidence_kind": "live_minecraft_skill_research",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "repo_relative_path": "logs/session_9568d803-55e.jsonl",
+      "session_id": "9568d803-55e",
+      "status": "pass"
+    },
+    {
+      "arm": "shadow",
+      "content_sha256": "da75051aa08304c473332c31be35c9c187bc917dfac22843b40ebed518e9e106",
+      "eligibility": "lifecycle_shadow",
+      "environment_id": "skill_episode_20260711_002611_bm_003",
+      "evidence_kind": "live_minecraft_skill_research",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "repo_relative_path": "logs/session_93fa67e4-0bb.jsonl",
+      "session_id": "93fa67e4-0bb",
+      "status": "pass"
+    },
+    {
+      "arm": "advisory",
+      "content_sha256": "f71c2a7fd83be8ff67a20b33b4a435d3ff32e6087c7c32dad74651855609a132",
+      "eligibility": "lifecycle_advisory",
+      "environment_id": "skill_episode_20260711_002645_bm_003",
+      "evidence_kind": "live_minecraft_skill_research",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "repo_relative_path": "logs/session_b69246ea-d96.jsonl",
+      "session_id": "b69246ea-d96",
+      "status": "pass"
+    },
+    {
+      "arm": "fallback",
+      "content_sha256": "591bb02d152be637b1b1fba39445aa694c77ba55763d9ace86e532d57052f208",
+      "eligibility": "lifecycle_fallback",
+      "environment_id": "skill_episode_20260711_003018_bm_002",
+      "evidence_kind": "live_minecraft_skill_research",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "repo_relative_path": "logs/session_0b140415-0e7.jsonl",
+      "session_id": "0b140415-0e7",
+      "status": "pass"
+    },
+    {
+      "arm": "fault",
+      "content_sha256": "84f03716afaa1059440aadb469e374f0a39a3221ed02470a199a1a345517f841",
+      "eligibility": "controlled_failure_only",
+      "environment_id": "skill_episode_20260711_003051_bm_003",
+      "evidence_kind": "live_minecraft_skill_research",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "repo_relative_path": "logs/session_c8ae09ec-15b.jsonl",
+      "session_id": "c8ae09ec-15b",
+      "status": "pass"
+    },
+    {
+      "arm": "baseline",
+      "content_sha256": "920aa6d20d7a474397f34fd8e2c46193dfd3d727887e7411e188c4ea9b866a0b",
+      "eligibility": "heldout_fixture",
+      "environment_id": "skill_episode_20260711_003327_bm_003",
+      "evidence_kind": "live_minecraft_skill_research",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "repo_relative_path": "logs/session_5c3a9522-a8c.jsonl",
+      "session_id": "5c3a9522-a8c",
+      "status": "pass"
+    },
+    {
+      "arm": "candidate",
+      "content_sha256": "955a7cb449b88739ab5a55ba54e3e30e2acbaaeee3dd82253e5f3cb84d9453cd",
+      "eligibility": "heldout_fixture",
+      "environment_id": "skill_episode_20260711_003404_bm_003",
+      "evidence_kind": "live_minecraft_skill_research",
+      "protocol_hash": "2631cbbc0a82c8143c61828ad7f5ea3d2f49d51b32fa275de095f9aeefee5967",
+      "repo_relative_path": "logs/session_d3a1be18-0e4.jsonl",
+      "session_id": "d3a1be18-0e4",
+      "status": "pass"
+    }
+  ],
+  "excluded_from_promotion": [
+    {
+      "reason": "failed pre-fix GoalVerifier contamination episode retained for audit",
+      "repo_relative_path": "workspace/evals/skill_ablation/craft_wooden_pickaxe/runs/1.0.2/fallback01.json"
+    },
+    {
+      "reason": "controlled_failure_only",
+      "repo_relative_path": "workspace/evals/skill_ablation/craft_wooden_pickaxe/runs/1.0.2/fault01.json",
+      "session_id": "c8ae09ec-15b"
+    }
+  ],
+  "generated_at": 1783701508.409707,
+  "history_before_promotion": {
+    "1.0.0": "advisory",
+    "1.0.1": "quarantined",
+    "1.0.2-candidate": "advisory"
+  },
+  "paired_gate_fingerprint": "827e55aac34f513e265360ad2ab5c3c2b443724fb2e3454d8abf16bf1e488852",
+  "parent_version": "1.0.1",
+  "readiness": "approved",
+  "schema_version": 1,
+  "skill_id": "learned:craft_wooden_pickaxe",
+  "skill_version": "1.0.2-candidate",
+  "source_environment_ids": [
+    "skill_episode_20260711_002127_bm_003",
+    "skill_episode_20260711_002205_bm_003",
+    "skill_episode_20260711_002243_bm_003",
+    "skill_episode_20260711_002316_bm_003",
+    "skill_episode_20260711_002355_bm_003",
+    "skill_episode_20260711_002428_bm_003",
+    "skill_episode_20260711_002611_bm_003",
+    "skill_episode_20260711_002645_bm_003",
+    "skill_episode_20260711_003018_bm_002",
+    "skill_episode_20260711_003051_bm_003",
+    "skill_episode_20260711_003327_bm_003",
+    "skill_episode_20260711_003404_bm_003"
+  ],
+  "source_session_ids": [
+    "012a3cb8-e38",
+    "a846d276-044",
+    "d165c18e-030",
+    "9430e4d1-498",
+    "727dd15a-930",
+    "9568d803-55e",
+    "93fa67e4-0bb",
+    "b69246ea-d96",
+    "0b140415-0e7",
+    "c8ae09ec-15b",
+    "5c3a9522-a8c",
+    "d3a1be18-0e4"
+  ],
+  "type": "skill_independent_revalidation_gate"
+}

@@ -2,14 +2,14 @@
 
 > An evolving modular agent system that drives a Minecraft Java Edition player through natural-language goals, progressing from basic connectivity to autonomous multi-agent collaboration.
 
-[![M0: Research](https://img.shields.io/badge/M0-Complete-brightgreen)]()
-[![M1: MVB](https://img.shields.io/badge/M1-Live%20Failing-critical)]()
-[![M2: LLM](https://img.shields.io/badge/M2-Evidence%20Pending-yellow)]()
-[![M3: Memory](https://img.shields.io/badge/M3-Evidence%20Pending-yellow)]()
-[![M4: Survival](https://img.shields.io/badge/M4-Evidence%20Pending-yellow)]()
-[![M5: Explore](https://img.shields.io/badge/M5-Evidence%20Pending-yellow)]()
-[![M6: Vision](https://img.shields.io/badge/M6-Evidence%20Pending-yellow)]()
-[![M7: Multi--Agent](https://img.shields.io/badge/M7-Evidence%20Pending-yellow)]()
+[![M0: Research](https://img.shields.io/badge/M0-Source%20Verified-brightgreen)]()
+[![M1: MVB](https://img.shields.io/badge/M1-Repeat%20Verified-brightgreen)]()
+[![M2: LLM](https://img.shields.io/badge/M2-Repeat%20Verified-brightgreen)]()
+[![M3: Memory](https://img.shields.io/badge/M3-Repeat%20Verified-brightgreen)]()
+[![M4: Survival](https://img.shields.io/badge/M4-Not%20Run-yellow)]()
+[![M5: Explore](https://img.shields.io/badge/M5-Live%20Failing-critical)]()
+[![M6: Vision](https://img.shields.io/badge/M6-Live%20Failing-critical)]()
+[![M7: Multi--Agent](https://img.shields.io/badge/M7-Not%20Run-yellow)]()
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.20.4-green)]()
 [![Python](https://img.shields.io/badge/Python-3.12-blue)]()
 [![Tests](https://img.shields.io/badge/Tests-core%20passing-brightgreen)]()
@@ -88,14 +88,31 @@ powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -T
 
 The M1 protocol pins Paper 1.20.4 build 499 and its SHA-256. The script uses the deterministic RuleBasedPlanner profile, Bridge port `30000`, a fresh level, verified reset state, and timestamped evidence. BM-001..005 each require three distinct live successes; offline tests do not count.
 
-Current status: M1 is `repeat_verified` with BM-001..005 each at 3/3 (`15/15` distinct eligible live successes). The authoritative audit is `workspace/evals/capability_evidence_current.json`.
+Current status: M1, M2, and M3 are `repeat_verified`. M1 has BM-001..005 at 3/3 (`15/15` distinct eligible live successes). M2 has BM-006 and BM-007 at three eligible baseline/candidate pairs each, BM-008..010 at 3/3 independent successes each, and two eligible recovery sessions. M3 has three later-session skill retrieval/outcome cases plus approved held-out transfer evidence. The sole authoritative audit is `workspace/evals/capability_evidence_current.json`.
+
+### Running M2
+
+M2 uses `m2-fixed-v1`, the OpenAI-compatible `https://opencode.ai/zen/go/v1` endpoint, `deepseek-v4-flash`, a fresh Paper world per run, a real structured LLM Root Plan, machine-verifiable subtasks, independent terminal world evidence, and a hard total deadline with zero SDK retries plus one bounded transport-only retry. Configure either `SINGULARITY_LLM_API_KEY` or `OPENAI_API_KEY` outside the repository, then run one fixed experiment arm:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/m2-runtime.ps1 -TaskId BM-006 -Arm baseline -PairId bm006-pair-01 -ReplicateId 1
+```
+
+The BM-010 harness and deterministic construction template can be checked without an LLM call:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/m2-runtime.ps1 -TaskId BM-010 -HarnessSmoke
+powershell -ExecutionPolicy Bypass -File scripts/m2-runtime.ps1 -TaskId BM-010 -TemplateSmoke
+```
+
+Harness/template smoke artifacts never count toward `live_observed` or `repeat_verified`. M2 now satisfies that contract: BM-006..010 are all `repeat_verified`, both composite-task pairing gates are 3/3, and the failure/replan recovery gate is approved.
 
 ### Development Commands
 
 ```bash
 python -m singularity.main preflight --skip-network
-python -m singularity.main capability-evidence-report --check-runtime --output workspace/evals/capability_evidence_current.json
-python -m singularity.main capability-evidence-report --m3-evidence logs/benchmarks/continual_learning.json --m3-evidence logs/benchmarks/task_stream_transfer_gate.json --m5-evidence logs/benchmarks/exploration_trace.json --m5-evidence logs/benchmarks/world_model_gate.json --m6-evidence logs/benchmarks/visual_trace_report.json --m6-evidence logs/benchmarks/visual_action_ablation.json --output workspace/evals/capability_evidence_current.json
+python -m singularity.main capability-evidence-report --output workspace/evals/capability_evidence_current.json
+python -m singularity.main capability-evidence-report --m3-evidence workspace/evals/skill_continual_learning_report.json --m3-evidence workspace/evals/skill_transfer/gather_wood/transfer_gate.json --m5-evidence logs/benchmarks/exploration_trace_current.json --m5-evidence logs/benchmarks/world_model_gate_current.json --m6-evidence logs/benchmarks/visual_trace_current.json --m6-evidence logs/benchmarks/visual_action_ablation_current.json --output workspace/evals/capability_evidence_current.json
 python -m singularity.main task-continuity-report --goal "Build a safe shelter" --output logs/benchmarks/task_continuity.json
 python -m singularity.main task-continuity-revision --failed-checkpoint CHECKPOINT_ID --reason "Review nearest verified boundary" --output workspace/reviews/task_revision.json
 # Built-in lineage/restoration fixtures are smoke tests and cannot approve the default live-evidence gate.

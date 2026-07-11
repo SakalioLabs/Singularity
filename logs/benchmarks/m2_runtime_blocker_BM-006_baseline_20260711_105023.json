@@ -1,0 +1,17 @@
+{
+    "type":  "m2_runtime_blocker",
+    "schema_version":  1,
+    "generated_at_utc":  "2026-07-11T02:52:25.0134058Z",
+    "evidence_kind":  "runtime_setup_or_live_failure",
+    "counts_toward_live_observed":  false,
+    "counts_toward_repeat_verified":  false,
+    "task_id":  "BM-006",
+    "arm":  "baseline",
+    "pair_id":  "hard-deadline-bm006-r1",
+    "replicate_id":  "1",
+    "blocker":  "M2 benchmark failed eligibility: status=fail, protocol_eligible=False, reason=inventory_success_criteria_not_observed;goal_verifier_not_achieved;m2_protocol_evidence_ineligible.",
+    "benchmark_result_path":  "logs\\benchmarks\\m2_benchmark_BM-006_baseline_20260711_105023.json",
+    "manifest_path":  "logs\\benchmarks\\m2_runtime_manifest_BM-006_baseline_20260711_105023.json",
+    "eula_accepted":  true,
+    "api_key_configured":  true
+}

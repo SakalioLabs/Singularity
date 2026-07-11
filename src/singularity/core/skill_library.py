@@ -1,6 +1,7 @@
 ﻿"""Skill library — stores, versions, and retrieves reusable action skills."""
 import json
 import os
+import re
 import time
 import logging
 from copy import deepcopy
@@ -18,6 +19,7 @@ from singularity.core.skill_runtime import (
     validate_bounded_action_template,
     wilson_confidence_interval,
 )
+from singularity.data.knowledge_base import ingredient_count
 
 logger = logging.getLogger("singularity.skills")
 
@@ -383,6 +385,7 @@ class SkillLibrary:
         match["original_failure_type"] = previous_type
         match["failure_type"] = corrected
         match["attribution_correction_reason"] = str(reason or "")[:300]
+        skill.success_rate = skill.success_count / max(1, skill.success_count + skill.failure_count)
         skill.confidence_interval = wilson_confidence_interval(skill.success_count, skill.failure_count)
         event = {
             "timestamp": time.time(),
@@ -407,6 +410,81 @@ class SkillLibrary:
                 SkillRegressionLedger(regression_ledger_path).record(event)
             except Exception as exc:
                 logger.warning(f"Could not record attribution correction: {type(exc).__name__}")
+        return {"changed": True, **event}
+
+    def restore_quarantine_after_attribution_correction(
+        self,
+        skill_id: str,
+        reason: str,
+        evidence: Optional[dict] = None,
+        persist: Optional[bool] = None,
+        regression_ledger_path: str = "",
+    ) -> dict:
+        """Restore an approved executable version when corrected evidence clears attribution."""
+        skill = self.get_skill_by_id(skill_id)
+        if not skill or skill.status == "builtin":
+            return {"changed": False, "reason": "learned_skill_not_found"}
+        if skill.status != "quarantined":
+            return {"changed": False, "reason": "quarantined_skill_required"}
+        if skill.failure_count != 0:
+            return {
+                "changed": False,
+                "reason": "attributable_failures_remain",
+                "failure_count": skill.failure_count,
+            }
+        promotion_gate = (
+            skill.gate.get("executable_promotion", {})
+            if isinstance(skill.gate, dict)
+            else {}
+        )
+        gate_matches = bool(
+            promotion_gate.get("readiness") == "approved"
+            and promotion_gate.get("decision") == "promote_executable"
+            and str(promotion_gate.get("skill_id") or "") == skill.skill_id
+            and str(promotion_gate.get("promoted_skill_version") or "") == skill.version
+        )
+        if not gate_matches:
+            return {"changed": False, "reason": "approved_executable_gate_required"}
+        correction_events = [
+            item for item in skill.lifecycle_history
+            if item.get("event") == "failure_attribution_reclassified"
+            and str(item.get("failure_type") or "") not in {
+                "skill_error",
+                "precondition_misclassification",
+                "postcondition_failure",
+            }
+        ]
+        if not correction_events:
+            return {"changed": False, "reason": "attribution_correction_evidence_required"}
+
+        previous_status = skill.status
+        skill.status = "executable"
+        event = {
+            "timestamp": time.time(),
+            "skill_id": skill.skill_id,
+            "version": skill.version,
+            "event": "quarantine_restored_after_attribution_correction",
+            "previous_status": previous_status,
+            "status": skill.status,
+            "reason": str(reason or "")[:300],
+            "correction_experiment_ids": [
+                str(item.get("experiment_id") or "") for item in correction_events
+            ],
+            "evidence": evidence or {},
+            "automatic_delete_allowed": False,
+        }
+        skill.lifecycle_history.append(event)
+        skill.lifecycle_history = skill.lifecycle_history[-100:]
+        should_persist = self.persist if persist is None else persist
+        if should_persist:
+            self._rewrite_custom_skills()
+        if regression_ledger_path:
+            try:
+                from singularity.core.skill_learning import SkillRegressionLedger
+
+                SkillRegressionLedger(regression_ledger_path).record(event)
+            except Exception as exc:
+                logger.warning(f"Could not record quarantine restoration: {type(exc).__name__}")
         return {"changed": True, **event}
 
     def transition_skill_status(
@@ -2020,16 +2098,20 @@ class SkillLibrary:
         return sorted(versions, key=lambda skill: self._version_key(skill.version))
 
     def _version_key(self, version: str) -> tuple[int, ...]:
+        raw = str(version or "0").strip()
+        core = raw.split("-", 1)[0]
         parts = []
-        for value in str(version or "0").split("."):
-            try:
-                parts.append(int(value))
-            except ValueError:
-                parts.append(0)
-        return tuple((parts + [0, 0, 0])[:3])
+        for value in core.split("."):
+            match = re.match(r"\d+", value)
+            parts.append(int(match.group(0)) if match else 0)
+        major, minor, patch = (parts + [0, 0, 0])[:3]
+        release_rank = 0 if "-" in raw else 1
+        return major, minor, patch, release_rank
 
     def _next_patch_version(self, version: str) -> str:
-        major, minor, patch = self._version_key(version)
+        major, minor, patch = self._version_key(version)[:3]
+        if "-" in str(version or ""):
+            return f"{major}.{minor}.{patch}"
         return f"{major}.{minor}.{patch + 1}"
 
     def _filter_skill_fields(self, data: dict) -> dict:
@@ -2345,13 +2427,7 @@ class SkillLibrary:
         return missing
 
     def _inventory_quantity(self, inventory: dict, item: str) -> int:
-        if not isinstance(inventory, dict):
-            return 0
-        target = str(item or "").strip().lower()
-        for key, value in inventory.items():
-            if str(key).strip().lower() == target:
-                return self._safe_int(value, default=1 if value else 0)
-        return 0
+        return ingredient_count(str(item or "").strip().lower(), inventory)
 
     def _safe_int(self, value, default: int = 0) -> int:
         if value in (None, ""):
