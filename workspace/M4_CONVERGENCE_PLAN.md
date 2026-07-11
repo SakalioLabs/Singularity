@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | ready |
+| G5 | First eligible survival-to-dawn episode | ready_for_one_live_probe |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -41,11 +41,24 @@ G4 passed strict offline integration. RuntimeSupervisor applies the fixed hostil
 
 ## Current Hypothesis
 
-The G4 hypothesis is confirmed offline: survival interrupts can preserve autonomous continuity with a small deterministic lifecycle rather than a new scheduler. Hostile, health, hunger, dusk, and night cases each produce one trigger; repeated observations produce maintenance rather than duplicate roots; the aligned survival goal is allowed to execute; and condition clearance emits a matching recovery with the original frontier still active. Dusk-to-night changes escalate the same shelter interrupt instead of oscillating between roots.
+The Planner action-parameter-grounding hypothesis is confirmed offline. The exact Probe 6 shape, `dig` with `block_name` plus nested `position`, is converted before schema acceptance into top-level `block`, `x`, `y`, and `z`; the resulting action is accepted by ActionVerifier. Grounding evidence records the action index, recognized aliases, original parameter hash, and canonical parameters. Top-level/nested coordinate conflicts, missing coordinates, unknown parameters, non-finite values, and conflicting block names reject the entire plan before execution.
 
 The earliest unrecovered runtime transition is now session event index 138 at monotonic 256257.687. For cycle 6 of `Gather 6 oak logs for tools and shelter`, Planner call `llm-7f64b5bbb62f4bc8` returned a schema-valid planning envelope whose `dig` action used alias parameters `block_name` plus nested `position`. The canonical primitive requires top-level `x`, `y`, and `z`, with optional `block`, so ActionVerifier rejected the action without execution. Inventory remained `oak_log:1` and `dark_oak_sapling:1` while world time advanced from 9932 to 9952.
 
-Later evidence does not displace this first transition. Seventeen alias-style `dig` actions were rejected in total; the first earlier rejection recovered through a valid `move_to` and `dig`, but all 16 rejections from event 138 onward were unrecovered. Twenty failed actions were reflection-suppressed with zero legacy reflection writes, and 11 unique task-deadline interrupts received 11 matching recoveries while terminalizing 96 unique expired tasks. With G3 and G4 now passed offline, the single next runtime hypothesis is `planner_action_parameter_grounding`: canonicalizing or rejecting alias-shaped primitive parameters before execution should prevent the first unrecovered Probe 6 transition. That change must pass offline regression before exactly one fresh G5 live episode.
+Later evidence does not displace this first transition. Seventeen alias-style `dig` actions were rejected in total; the first earlier rejection recovered through a valid `move_to` and `dig`, but all 16 rejections from event 138 onward were unrecovered. Twenty failed actions were reflection-suppressed with zero legacy reflection writes, and 11 unique task-deadline interrupts received 11 matching recoveries while terminalizing 96 unique expired tasks. The fix has now passed 663 Python tests and all 30 Node tests without changing the fixed M4 protocol hash. The first unrecovered transition remains the live retest target until exactly one fresh G5 episode proves whether it is removed; no second episode is authorized in the same round.
+
+## G5 Preflight: Action Parameter Grounding
+
+- Scope: M4 Planner output only; ActionVerifier, M1/M2 contracts, protocol hash, and provider controls are unchanged
+- Canonical `dig`: finite top-level `x`, `y`, and `z`, with optional top-level `block` and positive `timeout_ms`
+- Accepted normalization: `position.{x,y,z}` to top-level coordinates and `block_name` to `block` only when values are complete and nonconflicting
+- Rejected drift: unknown keys such as `target`, incomplete/non-finite coordinates, top-level/nested coordinate conflicts, and `block`/`block_name` conflicts
+- Evidence: `m4_action_parameter_grounding` is embedded in plan schema validation and accepted plan events
+- Prompt grounding: the M4 fixed output contract now states the canonical shape and forbids aliases
+- Offline tests: `tests/test_m4_deadline.py`
+- Regression: 663 Python tests and 30 Node tests passed
+- Protocol integrity: `m4-fixed-v1` SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
+- Live authorization: one fresh G5 BM-011 episode; stop after evidence generation and diagnose its first unrecovered transition
 
 ## G4 Offline Evidence
 

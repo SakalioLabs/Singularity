@@ -10,6 +10,7 @@ from unittest.mock import patch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from singularity.action.controller import ActionController
+from singularity.action.verifier import ActionVerifier
 from singularity.bot.bridge import BotBridge
 from singularity.core.agent import Agent
 from singularity.core.config import Config
@@ -298,6 +299,149 @@ def test_m4_planner_rejects_empty_planning_response_and_marks_replan():
     assert "Do not substitute one item species" in system_prompt
     assert "prose never completes a goal" in system_prompt
     print("PASS: M4 rejects planning-status empty output and grounds the next replan")
+
+
+def test_m4_planner_canonicalizes_equivalent_dig_aliases_before_execution():
+    clock = FakeClock()
+
+    class AliasPlannerLLM(PlannerLLM):
+        def chat(self, messages, **kwargs):
+            super().chat(messages, **kwargs)
+            return json.dumps({
+                "status": "planning",
+                "reasoning": "dig the observed oak log",
+                "subtasks": [],
+                "actions": [{
+                    "type": "dig",
+                    "parameters": {
+                        "block_name": "oak_log",
+                        "position": {"x": 103, "y": 139, "z": -30},
+                    },
+                }],
+            })
+
+    llm = AliasPlannerLLM(clock)
+    planner = Planner(llm, TaskSystem(), protocol="m4-fixed-v1")
+    planner.start_episode("Gather 6 oak logs", "m4-grounding-fixture")
+    planner.set_deadline(200.0, 0.0)
+    with patch("singularity.core.planner.time.monotonic", clock.monotonic):
+        plan = planner.plan_from_goal(
+            "Gather 6 oak logs",
+            {"inventory": {"oak_log": 1}, "nearby_blocks": [{"name": "oak_log"}]},
+        )
+
+    assert plan["status"] == "planning"
+    action = plan["actions"][0]
+    assert action == {
+        "type": "dig",
+        "parameters": {"x": 103, "y": 139, "z": -30, "block": "oak_log"},
+    }
+    grounding = plan["action_parameter_grounding"]
+    assert grounding["passed"] is True
+    assert grounding["dig_action_count"] == 1
+    assert grounding["normalized_action_count"] == 1
+    assert grounding["normalizations"][0]["aliases"] == [
+        "block_name->block",
+        "position->x,y,z",
+    ]
+    assert len(grounding["normalizations"][0]["original_parameters_sha256"]) == 64
+    assert planner.last_call_evidence["schema_valid"] is True
+    decision = ActionVerifier().verify(
+        action,
+        {"inventory": {}, "nearby_blocks": [{"name": "oak_log"}]},
+        goal="Gather 6 oak logs",
+    )
+    assert decision.status == "accept"
+    system_prompt = llm.calls[0]["messages"][0]["content"]
+    assert "top-level finite x, y, and z" in system_prompt
+    assert "never use block_name, position, target, or block_position aliases" in system_prompt
+    print("PASS: M4 canonicalizes the exact Probe 6 dig alias before ActionVerifier")
+
+
+def test_m4_planner_rejects_conflicting_missing_or_unknown_dig_parameters():
+    base = {
+        "status": "planning",
+        "reasoning": "fixture",
+        "subtasks": [],
+    }
+    fixtures = [
+        (
+            {
+                **base,
+                "actions": [{
+                    "type": "dig",
+                    "parameters": {
+                        "x": 104,
+                        "y": 139,
+                        "z": -30,
+                        "position": {"x": 103, "y": 139, "z": -30},
+                    },
+                }],
+            },
+            "action[0]:dig_position_conflict:x",
+        ),
+        (
+            {
+                **base,
+                "actions": [{"type": "dig", "parameters": {"block": "oak_log", "x": 103}}],
+            },
+            "action[0]:dig_coordinates_missing:y,z",
+        ),
+        (
+            {
+                **base,
+                "actions": [{
+                    "type": "dig",
+                    "parameters": {"x": 103, "y": 139, "z": -30, "target": "oak_log"},
+                }],
+            },
+            "action[0]:dig_unknown_parameters:target",
+        ),
+        (
+            {
+                **base,
+                "actions": [{
+                    "type": "dig",
+                    "parameters": {
+                        "x": 103,
+                        "y": 139,
+                        "z": -30,
+                        "block": "oak_log",
+                        "block_name": "dark_oak_log",
+                    },
+                }],
+            },
+            "action[0]:dig_block_conflict",
+        ),
+    ]
+
+    for response, expected_issue in fixtures:
+        grounded, report = Planner._ground_m4_action_parameters(response)
+        validation = Planner._validate_m4_plan_envelope(
+            grounded,
+            expected_goal="Gather 6 oak logs",
+            expected_kind="continuation",
+        )
+        combined = sorted(set(validation["issues"] + report["issues"]))
+        assert report["passed"] is False
+        assert expected_issue in combined
+
+    canonical, canonical_report = Planner._ground_m4_action_parameters({
+        **base,
+        "actions": [{
+            "type": "dig",
+            "parameters": {"x": 103, "y": 139, "z": -30, "block": "oak_log"},
+        }],
+    })
+    assert canonical["actions"][0]["parameters"] == {
+        "x": 103,
+        "y": 139,
+        "z": -30,
+        "block": "oak_log",
+    }
+    assert canonical_report["passed"] is True
+    assert canonical_report["normalized_action_count"] == 0
+    print("PASS: M4 dig grounding fails closed on conflicts, missing coordinates, and unknown aliases")
 
 
 def test_m4_autonomous_loop_recovers_invalid_planner_envelope():

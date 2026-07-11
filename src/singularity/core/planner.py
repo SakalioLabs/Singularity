@@ -3,6 +3,7 @@
 import hashlib
 import json
 import logging
+import math
 import time
 import uuid
 
@@ -289,11 +290,18 @@ class Planner:
                 expected_kind=plan_kind,
             )
         elif self.strict_m4 and not call_error and not parse_error:
+            raw_plan, action_parameter_grounding = self._ground_m4_action_parameters(raw_plan)
             schema_validation = self._validate_m4_plan_envelope(
                 raw_plan,
                 expected_goal=goal,
                 expected_kind=plan_kind,
             )
+            grounding_issues = list(action_parameter_grounding.get("issues", []))
+            schema_validation["action_parameter_grounding"] = action_parameter_grounding
+            schema_validation["issues"] = sorted(set(
+                list(schema_validation.get("issues", [])) + grounding_issues
+            ))
+            schema_validation["passed"] = not schema_validation["issues"]
 
         schema_valid = bool(schema_validation.get("passed"))
         if schema_valid:
@@ -302,6 +310,10 @@ class Planner:
             plan["planner_call_id"] = call_id
             plan["parent_planner_call_id"] = self._last_call_id
             plan["schema_validation"] = schema_validation
+            if self.strict_m4:
+                plan["action_parameter_grounding"] = dict(
+                    schema_validation.get("action_parameter_grounding", {})
+                )
             if plan_kind == "root":
                 self._active_root_plan_id = root_plan_id
             self._create_tasks_from_plan(plan)
@@ -415,7 +427,9 @@ M4 FIXED OUTPUT CONTRACT:
 - Do not substitute one item species for another exact named target unless the goal explicitly permits alternatives.
 - If status is planning, return at least one immediate executable action; never pair planning status with completion prose and an empty actions array.
 - If the observed machine state appears to satisfy the exact goal, use status complete and let the machine GoalVerifier decide; prose never completes a goal.
-- Use status blocked only when no grounded progress action exists."""
+- Use status blocked only when no grounded progress action exists.
+- A dig action must use top-level finite x, y, and z parameters and may use top-level block; never use block_name, position, target, or block_position aliases.
+- Example: {"type":"dig","parameters":{"x":103,"y":139,"z":-30,"block":"oak_log"}}."""
         return prompt
 
     def _m2_system_prompt(self) -> str:
@@ -571,6 +585,174 @@ Plan the steps to achieve this goal."""
             "completion_requires_machine_verifier": True,
             "issues": sorted(set(issues)),
         }
+
+    @classmethod
+    def _ground_m4_action_parameters(cls, plan: dict) -> tuple[dict, dict]:
+        """Canonicalize provably equivalent M4 primitive aliases and reject drift."""
+        grounded_plan = dict(plan or {})
+        actions = grounded_plan.get("actions")
+        if not isinstance(actions, list):
+            return grounded_plan, {
+                "type": "m4_action_parameter_grounding",
+                "schema_version": 1,
+                "passed": True,
+                "action_count": 0,
+                "dig_action_count": 0,
+                "normalized_action_count": 0,
+                "normalizations": [],
+                "issues": [],
+            }
+        grounded_actions = []
+        issues: list[str] = []
+        normalizations = []
+        dig_action_count = 0
+
+        for index, action in enumerate(actions):
+            if not isinstance(action, dict):
+                grounded_actions.append(action)
+                continue
+            grounded_action = dict(action)
+            action_type = str(action.get("type") or "")
+            if action_type != "dig":
+                grounded_actions.append(grounded_action)
+                continue
+            dig_action_count += 1
+            canonical, evidence = cls._ground_m4_dig_parameters(
+                action.get("parameters"),
+                action_index=index,
+            )
+            grounded_action["parameters"] = canonical
+            grounded_actions.append(grounded_action)
+            issues.extend(evidence["issues"])
+            if evidence["normalized"]:
+                normalizations.append(evidence)
+
+        grounded_plan["actions"] = grounded_actions
+        report = {
+            "type": "m4_action_parameter_grounding",
+            "schema_version": 1,
+            "passed": not issues,
+            "action_count": len(actions),
+            "dig_action_count": dig_action_count,
+            "normalized_action_count": len(normalizations),
+            "normalizations": normalizations,
+            "issues": sorted(set(issues)),
+        }
+        return grounded_plan, report
+
+    @classmethod
+    def _ground_m4_dig_parameters(cls, value, *, action_index: int) -> tuple[dict, dict]:
+        prefix = f"action[{action_index}]:"
+        if not isinstance(value, dict):
+            return {}, {
+                "action_index": action_index,
+                "action_type": "dig",
+                "normalized": False,
+                "aliases": [],
+                "original_parameters_sha256": cls._parameter_sha256(value),
+                "canonical_parameters": {},
+                "issues": [prefix + "dig_parameters_not_object"],
+            }
+
+        params = dict(value)
+        issues: list[str] = []
+        aliases: list[str] = []
+        allowed = {"block", "x", "y", "z", "timeout_ms", "block_name", "position"}
+        unknown = sorted(str(key) for key in params if key not in allowed)
+        if unknown:
+            issues.append(prefix + "dig_unknown_parameters:" + ",".join(unknown))
+
+        nested = params.get("position")
+        if "position" in params:
+            aliases.append("position->x,y,z")
+            if not isinstance(nested, dict):
+                issues.append(prefix + "dig_position_not_object")
+                nested = {}
+            else:
+                nested_unknown = sorted(str(key) for key in nested if key not in {"x", "y", "z"})
+                if nested_unknown:
+                    issues.append(prefix + "dig_position_unknown_keys:" + ",".join(nested_unknown))
+        else:
+            nested = {}
+
+        canonical = {}
+        missing = []
+        for axis in ("x", "y", "z"):
+            top_present = axis in params
+            nested_present = axis in nested
+            top = cls._finite_parameter(params.get(axis)) if top_present else None
+            nested_value = cls._finite_parameter(nested.get(axis)) if nested_present else None
+            if top_present and top is None:
+                issues.append(prefix + f"dig_{axis}_not_finite")
+            if nested_present and nested_value is None:
+                issues.append(prefix + f"dig_position_{axis}_not_finite")
+            if top is not None and nested_value is not None and top != nested_value:
+                issues.append(prefix + f"dig_position_conflict:{axis}")
+            selected = top if top is not None else nested_value
+            if selected is None:
+                missing.append(axis)
+            else:
+                canonical[axis] = selected
+        if missing:
+            issues.append(prefix + "dig_coordinates_missing:" + ",".join(missing))
+
+        block = params.get("block")
+        block_alias = params.get("block_name")
+        if "block_name" in params:
+            aliases.append("block_name->block")
+        if block is not None and (not isinstance(block, str) or not block.strip()):
+            issues.append(prefix + "dig_block_invalid")
+            block = None
+        if block_alias is not None and (not isinstance(block_alias, str) or not block_alias.strip()):
+            issues.append(prefix + "dig_block_name_invalid")
+            block_alias = None
+        if isinstance(block, str):
+            block = block.strip()
+        if isinstance(block_alias, str):
+            block_alias = block_alias.strip()
+        if block and block_alias and block != block_alias:
+            issues.append(prefix + "dig_block_conflict")
+        selected_block = block or block_alias
+        if selected_block:
+            canonical["block"] = selected_block
+
+        if "timeout_ms" in params:
+            timeout_ms = cls._finite_parameter(params.get("timeout_ms"))
+            if timeout_ms is None or timeout_ms <= 0:
+                issues.append(prefix + "dig_timeout_ms_invalid")
+            else:
+                canonical["timeout_ms"] = timeout_ms
+
+        normalized = bool(aliases or canonical != params)
+        return canonical, {
+            "action_index": action_index,
+            "action_type": "dig",
+            "normalized": normalized,
+            "aliases": sorted(set(aliases)),
+            "original_parameters_sha256": cls._parameter_sha256(params),
+            "canonical_parameters": canonical,
+            "issues": sorted(set(issues)),
+        }
+
+    @staticmethod
+    def _finite_parameter(value):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return None
+        number = float(value)
+        if not math.isfinite(number):
+            return None
+        return int(number) if number.is_integer() else number
+
+    @staticmethod
+    def _parameter_sha256(value) -> str:
+        payload = json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            default=str,
+        )
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
     def _m2_action_summary(self, world_state: dict) -> dict:
         from singularity.evaluation.m2_protocol import PROTOCOL
