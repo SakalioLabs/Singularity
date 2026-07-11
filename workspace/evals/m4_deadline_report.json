@@ -1,7 +1,7 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-11T14:17:45.9793343Z",
+  "generated_at": "2026-07-11T15:23:18.1293914Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
@@ -60,23 +60,22 @@
     }
   ],
   "g0_passed": true,
-  "live_episode_count": 5,
+  "live_episode_count": 6,
   "latest_live_episode": {
-    "episode_id": "m4_episode_20260711_220626_c1555273",
-    "session_id": "df0ff546-6c2",
-    "episode_deadline_monotonic": 252534.234,
-    "agent_end_monotonic": 252534.234,
-    "agent_overrun_s": 0,
-    "evidence_end_monotonic": 252534.328,
-    "overrun_s": 0.094,
+    "episode_id": "m4_episode_20260711_231148_fb3a1544",
+    "session_id": "e79d7321-799",
+    "episode_deadline_monotonic": 256458.859,
+    "agent_end_monotonic": 256451.531,
+    "agent_remaining_s": 7.328,
+    "evidence_end_monotonic": 256451.578,
+    "remaining_s": 7.281,
     "post_deadline_action_count": 0,
-    "post_deadline_plan_count": 1,
-    "post_deadline_planner_call_count": 1,
-    "post_deadline_late_plan_evidence_count": 1,
-    "final_planner_remaining_before_call_s": 8.047,
-    "no_post_deadline_execution": false,
-    "deadline_eligible": false,
+    "post_deadline_plan_count": 0,
+    "post_deadline_planner_call_count": 0,
+    "post_deadline_late_plan_evidence_count": 0,
+    "no_post_deadline_execution": true,
+    "deadline_eligible": true,
     "result_duration_eligible": false,
-    "eligibility_issue": "no_post_deadline_execution"
+    "eligibility_issue": "result_duration_eligible"
   }
 }

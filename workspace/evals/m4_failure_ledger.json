@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-11T14:17:45.9793343Z",
+  "generated_at": "2026-07-11T15:23:18.1293914Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "current_task_id": "BM-011",
@@ -1108,6 +1108,289 @@
       },
       "patch_or_experiment_summary": "Retested only M4 auxiliary failure-reflection suppression in one fresh G2 episode. Learned and quarantined skills, policy skills, memory persistence, vision, visual grounding, and multi-agent execution remained off.",
       "retest_result": "The reflection hypothesis was confirmed: six failures were suppressed, no legacy reflection write appeared, and pre-dusk inventory reached dark_oak_log:3. G2 still failed at the later planning-status empty plan that asserted unsupported dark-oak substitution for an explicit oak-log goal; no second live episode was run."
+    },
+    {
+      "task_id": "BM-011",
+      "episode_id": "m4_episode_20260711_231148_fb3a1544",
+      "session_id": "e79d7321-799",
+      "level_name": "m4_episode_20260711_231148_fb3a1544_bm011",
+      "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+      "seed": "12345",
+      "start_monotonic": 256218.859,
+      "end_monotonic": 256451.578,
+      "duration_s": 232.719,
+      "agent_elapsed_s": 232.672,
+      "autonomous_goals": [
+        {
+          "goal_index": 1,
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "source": "goal_generator",
+          "reason": "wood_reserve_below_target;curriculum_retained_fallback",
+          "priority": 6,
+          "outcome": "failed",
+          "termination_reason": "max_cycles"
+        },
+        {
+          "goal_index": 2,
+          "goal": "Build verified shelter before nightfall",
+          "source": "goal_generator",
+          "reason": "dusk_without_machine_verified_shelter",
+          "priority": 4,
+          "outcome": "failed",
+          "termination_reason": "max_cycles"
+        },
+        {
+          "goal_index": 3,
+          "goal": "Build verified shelter before nightfall",
+          "source": "goal_generator",
+          "reason": "dusk_without_machine_verified_shelter",
+          "priority": 4,
+          "outcome": "failed",
+          "termination_reason": "max_cycles"
+        },
+        {
+          "goal_index": 4,
+          "goal": "Reach or build emergency verified shelter immediately",
+          "source": "goal_generator",
+          "reason": "night_without_machine_verified_shelter",
+          "priority": 4,
+          "outcome": "failed",
+          "termination_reason": "max_cycles"
+        }
+      ],
+      "goal_transitions": [
+        {
+          "event": "planner_action_parameter_grounding",
+          "monotonic_s": 256257.687,
+          "recovered": false,
+          "detail": "a schema-valid planning envelope emitted dig with block_name plus nested position; ActionVerifier rejected the noncanonical parameters and the same alias pattern recurred"
+        },
+        {
+          "event": "pre_dusk_machine_visible_progress",
+          "monotonic_s": 256258.234,
+          "recovered": true,
+          "recovery_evidence": "inventory contained oak_log:1 and dark_oak_sapling:1 at world time 9952, satisfying G2 preparation progress"
+        },
+        {
+          "event": "expired_task_lifecycle_recovered",
+          "monotonic_s": 256293.796,
+          "recovered": true,
+          "recovery_evidence": "11 unique interrupts produced 11 matching recovery events and terminalized 96 unique expired tasks without repeating a trigger ID"
+        },
+        {
+          "event": "planner_empty_plan_fix_confirmed",
+          "monotonic_s": 256451.531,
+          "recovered": true,
+          "recovery_evidence": "all 32 real Planner calls and plans were schema-valid, with zero empty_plan and zero m4_planner_output_recovery events"
+        },
+        {
+          "event": "episode_within_deadline",
+          "monotonic_s": 256451.578,
+          "recovered": true,
+          "recovery_evidence": "Agent and manifest evidence ended with 7.281 seconds remaining and no post-deadline execution"
+        }
+      ],
+      "first_unrecovered_transition": {
+        "event_type": "action",
+        "session_event_index": 138,
+        "action_verification_event_index": 133,
+        "plan_event_index": 128,
+        "planner_call_event_index": 126,
+        "planner_call_id": "llm-7f64b5bbb62f4bc8",
+        "goal": "Gather 6 oak logs for tools and shelter",
+        "cycle": 6,
+        "action": {
+          "type": "dig",
+          "parameters": {
+            "block_name": "oak_log",
+            "position": {"x": 103, "y": 139, "z": -30}
+          }
+        },
+        "canonical_contract": "dig requires top-level x, y, and z coordinates with optional block",
+        "verification_status": "reject",
+        "verification_reason": "dig action missing block or coordinates",
+        "error": "Action verification rejected: dig action missing block or coordinates",
+        "duration_ms": 0,
+        "recovered": false,
+        "monotonic_s": 256257.687
+      },
+      "failure_layer": "planner_action_parameter_grounding",
+      "before_state": {
+        "observed_monotonic_s": 256257.687,
+        "position": {"x": 103.54246499092638, "y": 140, "z": -29.307220935229008},
+        "health": 20,
+        "food": 20,
+        "inventory": {"dark_oak_sapling": 1, "oak_log": 1},
+        "time_of_day": 9932,
+        "target_block": {
+          "name": "oak_log",
+          "position": {"x": 103, "y": 139, "z": -30},
+          "distance": 1
+        }
+      },
+      "attempted_plan_action": {
+        "planner": {
+          "call_id": "llm-7f64b5bbb62f4bc8",
+          "call_index": 5,
+          "plan_kind": "continuation",
+          "real_llm_call": true,
+          "schema_valid": true,
+          "duration_ms": 3092,
+          "prompt_tokens": 2518,
+          "completion_tokens": 234,
+          "total_tokens": 2752,
+          "reasoning_content_byte_count": 0,
+          "finish_reason": "stop",
+          "remaining_before_call_s": 204.359,
+          "extra_body": {"thinking": {"type": "disabled"}}
+        },
+        "plan": {
+          "status": "planning",
+          "reasoning": "Already have 1 oak log, need 5 more. Nearby oak log at (103,139,-30) is reachable. Punch it to gather.",
+          "action_count": 1,
+          "actions": [
+            {
+              "type": "dig",
+              "parameters": {
+                "block_name": "oak_log",
+                "position": {"x": 103, "y": 139, "z": -30}
+              }
+            }
+          ],
+          "schema_validation_passed": true
+        },
+        "action": {
+          "type": "dig",
+          "parameters": {
+            "block_name": "oak_log",
+            "position": {"x": 103, "y": 139, "z": -30}
+          },
+          "verification_blocked": true,
+          "success": false
+        }
+      },
+      "after_state": {
+        "observed_monotonic_s": 256258.234,
+        "position": {"x": 103.54246499092638, "y": 140, "z": -29.307220935229008},
+        "health": 20,
+        "food": 20,
+        "inventory": {"dark_oak_sapling": 1, "oak_log": 1},
+        "time_of_day": 9952,
+        "target_block": {
+          "name": "oak_log",
+          "position": {"x": 103, "y": 139, "z": -30},
+          "distance": 1
+        }
+      },
+      "survival_state": {
+        "health": 20,
+        "food": 20,
+        "bot_connected": true,
+        "time_of_day": 13812,
+        "inventory": {"dark_oak_sapling": 1, "oak_log": 1},
+        "nearby_hostile_count": 0,
+        "night_observed": true,
+        "next_dawn_observed": false,
+        "terminal_machine_verified": false
+      },
+      "plan_envelope_recovery": {
+        "plan_count": 32,
+        "schema_valid_plan_count": 32,
+        "empty_plan_count": 0,
+        "planner_output_recovery_count": 0,
+        "prior_fix_regression_passed": true
+      },
+      "action_parameter_grounding": {
+        "alias_style_dig_rejection_count": 17,
+        "recovered_alias_rejection_count": 1,
+        "unrecovered_alias_rejection_count": 16,
+        "first_unrecovered_action_event_index": 138,
+        "post_first_unrecovered_action_count": 16,
+        "post_first_unrecovered_successful_action_count": 0
+      },
+      "failure_reflection_suppression": {
+        "suppressed_event_count": 20,
+        "legacy_failure_reflection_write_count": 0,
+        "resume_policy": "replan_next_cycle",
+        "prior_fix_regression_passed": true
+      },
+      "planner_provider_controls": {
+        "passed": true,
+        "call_count": 32,
+        "real_call_count": 32,
+        "schema_valid_real_call_count": 32,
+        "max_call_duration_ms": 10546,
+        "total_token_usage": 101220,
+        "reasoning_content_max_bytes": 0,
+        "violations": []
+      },
+      "interrupt_recovery": {
+        "task_deadline_interrupt_count": 11,
+        "runtime_interrupt_recovery_count": 11,
+        "trigger_task_ids": ["c37ca4c2", "a2f4ffc6", "2ea22bb4", "137dae84", "79784e58", "edbebbca", "cda2c6fa", "e11731e1", "d4267021", "49fa2b15", "91e3b5ba"],
+        "unique_trigger_task_count": 11,
+        "repeated_trigger_task_count": 0,
+        "expired_task_count": 96,
+        "unique_expired_task_count": 96,
+        "post_first_recovery_action_count": 11,
+        "post_first_recovery_successful_action_count": 0,
+        "first_resumed_action_monotonic": 256297.609,
+        "resume_policy": "replan_next_cycle",
+        "prior_fix_regression_passed": true
+      },
+      "skill_attribution": {
+        "skill_execution_mode": "off",
+        "selected_count": 0,
+        "executed_count": 0,
+        "quarantined_count": 0,
+        "contribution": "none"
+      },
+      "deadline_status": {
+        "episode_deadline_monotonic": 256458.859,
+        "agent_end_monotonic": 256451.531,
+        "agent_remaining_s": 7.328,
+        "evidence_end_monotonic": 256451.578,
+        "remaining_s": 7.281,
+        "deadline_eligible": true,
+        "post_deadline_action_count": 0,
+        "post_deadline_plan_count": 0,
+        "post_deadline_planner_call_count": 0,
+        "post_deadline_late_plan_evidence_count": 0,
+        "no_post_deadline_execution": true
+      },
+      "evidence_eligibility": {
+        "g2_passed": true,
+        "bm011_eligible": false,
+        "eligible_success_count": 0,
+        "issues": [
+          "event:terminal_survival_verification",
+          "next_dawn_observed",
+          "terminal_machine_verification",
+          "result_duration_eligible"
+        ]
+      },
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260711_231148_fb3a1544/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260711_231148_fb3a1544/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260711_231148_fb3a1544/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260711_231148_fb3a1544/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260711_231148_fb3a1544/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260711_231148_fb3a1544/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260711_231148_fb3a1544/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260711_231148_fb3a1544/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "d7e2e90ee8f2b4fcfae7358bcd014e5df3e758340ffa0b1298393bbe6c399078",
+        "manifest": "6b9c863aca93c2eef77aaf1e8385fbcc0de01adcf63f89d401e28c1caae408fe",
+        "session": "a54b2555fdb0687df65fbf93532a836ad0ebe2b190f117c8279f698c22e54b8c",
+        "result": "ffae327e3897d0c9698f4ee90c2bc5fa58b92265de7a77298b8941dc88aa7c11",
+        "eligibility": "f9f532fe270680e9c304fb6850635895f34bb8bc8dbcd86f24f562659d62ee34",
+        "preparation": "548cbb1c68f15e3194de5dcdb919dcbaf9e879969c8d0ccf216245577323e386",
+        "protocol_status": "07d01d308028a0cdb8f634448d27cd9d10e2fb9bc1791850d1b54d9a1f89241a",
+        "reset": "7a7b73ef5a92cd88ad05738161899e401e92b4b3492c09c9cfdd8ea10e982c4e"
+      },
+      "patch_or_experiment_summary": "Retested only M4 planning-envelope validation, exact-item prompt grounding, and next-cycle planning_actions_missing recovery in one fresh G2 episode. Learned and quarantined skills, policy skills, memory persistence, vision, visual grounding, and multi-agent execution remained off.",
+      "retest_result": "The planning-status empty-plan hypothesis was confirmed: all 32 plans passed envelope validation, no empty plan recurred, and pre-dusk inventory gained oak_log:1 plus dark_oak_sapling:1, so G2 passed. The later first unrecovered transition was noncanonical dig parameter grounding; no second live episode was run."
     }
   ]
 }

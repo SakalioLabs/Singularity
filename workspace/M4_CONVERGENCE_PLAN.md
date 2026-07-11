@@ -23,8 +23,8 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 |---|---|---|
 | G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed |
 | G1 | Deterministic survival-goal priority cases | passed |
-| G2 | One live preparation episode with machine-visible progress | failed_probe_5 |
-| G3 | Machine-checkable shelter or approved natural safe-state verification | locked |
+| G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
+| G3 | Machine-checkable shelter or approved natural safe-state verification | ready |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | locked |
 | G5 | First eligible survival-to-dawn episode | locked |
 | G6 | Three independent fresh eligible episodes | locked |
@@ -35,13 +35,31 @@ G1 passed offline validation. GoalGenerator and Curriculum preserve the fixed or
 
 ## Current Hypothesis
 
-The M4 failure-reflection hypothesis is confirmed and closed by the fifth G2 probe. Six failed actions emitted `failure_reflection_suppressed`, no legacy `failure_reflection` memory write appeared, and the Agent immediately returned to normal replanning. The episode made pre-dusk machine-visible progress for the first time beyond a single log: inventory reached `dark_oak_log:3` at world time 9994, then ended online with `dark_oak_log:10`.
+The M4 planning-status empty-plan hypothesis is confirmed and closed by the sixth G2 probe. All 32 real Planner calls were schema-valid, every plan passed the M4 plan-envelope check, no `empty_plan` occurred, and the next-cycle `planning_actions_missing` recovery path was not needed. The episode acquired `oak_log:1` and `dark_oak_sapling:1` before dusk at world time 9952, so G2 passed for the first time and G3 is unlocked.
 
-The earliest unrecovered transition is now session event index 160 at monotonic 252366.500. The preceding observation at index 150 showed world time 10514 and exactly `dark_oak_log:6`. A real schema-valid continuation returned `status=planning` with zero actions while its reasoning claimed that six dark-oak logs substituted for the explicit six-oak-log target and that the goal was complete. The runtime correctly recorded `empty_plan`, failed the resource goal, and switched to shelter preparation; the explicit oak-log goal was never resumed or machine-verified.
+The earliest unrecovered runtime transition is now session event index 138 at monotonic 256257.687. For cycle 6 of `Gather 6 oak logs for tools and shelter`, Planner call `llm-7f64b5bbb62f4bc8` returned a schema-valid planning envelope whose `dig` action used alias parameters `block_name` plus nested `position`. The canonical primitive requires top-level `x`, `y`, and `z`, with optional `block`, so ActionVerifier rejected the action without execution. Inventory remained `oak_log:1` and `dark_oak_sapling:1` while world time advanced from 9932 to 9952.
 
-Later evidence does not displace this first transition. All five craft actions omitted `item` and were verifier-rejected, seven unique task-deadline interrupts received seven matching recoveries, and the final Planner timeout emitted call/plan evidence at the absolute deadline boundary without a following action. The single current hypothesis is that Planner continuation validation permits a contradictory planning-status empty plan whose prose asserts unsupported item-species substitution. The next change is limited to Planner output validation and explicit goal-completion grounding before one fresh G2 episode. Craft parameter grounding remains a later failure and is not changed in the same round.
+Later evidence does not displace this first transition. Seventeen alias-style `dig` actions were rejected in total; the first earlier rejection recovered through a valid `move_to` and `dig`, but all 16 rejections from event 138 onward were unrecovered. Twenty failed actions were reflection-suppressed with zero legacy reflection writes, and 11 unique task-deadline interrupts received 11 matching recoveries while terminalizing 96 unique expired tasks. The retained runtime hypothesis is `planner_action_parameter_grounding`, but gate order now requires offline G3 shelter-verifier work first. No further live episode or action-grounding patch is authorized until that verifier gate is ready.
 
 ## G2 Live Evidence
+
+### Probe 6: M4 Plan Envelope Recovery and G2 Passed
+
+- Episode: `m4_episode_20260711_231148_fb3a1544`
+- Session: `e79d7321-799`
+- Preflight: passed
+- G2: passed; G3 shelter-verifier work is unlocked
+- BM-011 eligible: false; eligible successes remain 0/3
+- Planner controls: passed for 32/32 real schema-valid Planner calls, zero reasoning bytes, maximum latency 10.546 seconds
+- Plan-envelope retest: all 32 plans passed, zero `empty_plan` events, and zero `m4_planner_output_recovery` events; the prior failure did not recur
+- Autonomous goals: 4; resource progression switched to dusk and night shelter priority
+- Actions: 22 attempted and 2 successful; pre-dusk inventory gained `oak_log:1` and `dark_oak_sapling:1` by world time 9952
+- First unrecovered transition: event index 138 rejected an alias-style `dig` using `block_name` plus nested `position`; canonical `dig` requires top-level coordinates and optional `block`
+- Grounding audit: 17 alias-style `dig` rejections in total; an earlier rejection recovered, but the 16 rejections from event 138 onward did not, and no later action succeeded
+- Reflection audit: 20 `failure_reflection_suppressed` events and zero legacy `failure_reflection` writes
+- Interrupt audit: 11 unique deadline triggers, 11 matching recoveries, 96 unique expired tasks terminalized, no repeated trigger task, and 11 actions followed the first recovery
+- Deadline: eligible; Agent ended at 256451.531 and manifest evidence ended at 256451.578, leaving 7.281 seconds before the absolute deadline with no post-deadline execution
+- Evidence: `logs/benchmarks/m4/m4_episode_20260711_231148_fb3a1544/`
 
 ### Probe 5: M4 Failure Reflection Suppressed
 
