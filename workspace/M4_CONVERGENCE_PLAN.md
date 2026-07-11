@@ -23,7 +23,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 |---|---|---|
 | G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed |
 | G1 | Deterministic survival-goal priority cases | passed |
-| G2 | One live preparation episode with machine-visible progress | failed_probe_4 |
+| G2 | One live preparation episode with machine-visible progress | failed_probe_5 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | locked |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | locked |
 | G5 | First eligible survival-to-dawn episode | locked |
@@ -35,13 +35,29 @@ G1 passed offline validation. GoalGenerator and Curriculum preserve the fixed or
 
 ## Current Hypothesis
 
-The expired-task lifecycle hypothesis is confirmed and closed by the fourth G2 probe. Seven deadline interrupts had seven unique trigger task IDs and seven matching `runtime_interrupt_recovery` events. The recoveries terminalized 28 elapsed tasks, no trigger task repeated, and action execution resumed in cycle 9 after the first recovery. The permanent preemption loop from probe 3 did not recur.
+The M4 failure-reflection hypothesis is confirmed and closed by the fifth G2 probe. Six failed actions emitted `failure_reflection_suppressed`, no legacy `failure_reflection` memory write appeared, and the Agent immediately returned to normal replanning. The episode made pre-dusk machine-visible progress for the first time beyond a single log: inventory reached `dark_oak_log:3` at world time 9994, then ended online with `dark_oak_log:10`.
 
-The episode attempted 19 actions, completed 15, recorded two craft attempts, and ended online with `oak_log:4` and `dark_oak_log:4`. None of that resource progress occurred before fixed dusk. The first actionable plan reached `move_to(94,142,-31)` at monotonic 250718.140 while world time was 9494. The action missed tolerance by 0.029 blocks and requested replan. Instead of immediately continuing, the autonomous failure branch called `Reflector.analyze_failure()`. Its only session evidence is a `failure_reflection` memory write at monotonic 250748.125, 29.985 seconds later; the next observation was world time 10094.
+The earliest unrecovered transition is now session event index 160 at monotonic 252366.500. The preceding observation at index 150 showed world time 10514 and exactly `dark_oak_log:6`. A real schema-valid continuation returned `status=planning` with zero actions while its reasoning claimed that six dark-oak logs substituted for the explicit six-oak-log target and that the goal was complete. The runtime correctly recorded `empty_plan`, failed the resource goal, and switched to shelter preparation; the explicit oak-log goal was never resumed or machine-verified.
 
-The reflection call is outside Planner evidence, has no absolute-deadline timeout, and does not receive the M4 pinned provider controls. It consumed more than the 25.3 seconds that remained before dusk and is the earliest unrecovered transition, earlier than the recovered task interrupts and final episode overrun. The single current hypothesis is that autonomous failure reflection bypasses the M4 LLM deadline/provider-control contract and exhausts the preparation window. The next change is limited to binding or suppressing that reflection path under the shared M4 absolute deadline, with focused offline evidence before one fresh G2 episode in a later round. Craft parameter grounding and shelter construction remain later observations and are not changed in this round.
+Later evidence does not displace this first transition. All five craft actions omitted `item` and were verifier-rejected, seven unique task-deadline interrupts received seven matching recoveries, and the final Planner timeout emitted call/plan evidence at the absolute deadline boundary without a following action. The single current hypothesis is that Planner continuation validation permits a contradictory planning-status empty plan whose prose asserts unsupported item-species substitution. The next change is limited to Planner output validation and explicit goal-completion grounding before one fresh G2 episode. Craft parameter grounding remains a later failure and is not changed in the same round.
 
 ## G2 Live Evidence
+
+### Probe 5: M4 Failure Reflection Suppressed
+
+- Episode: `m4_episode_20260711_220626_c1555273`
+- Session: `df0ff546-6c2`
+- Preflight: passed
+- G2: failed
+- BM-011 eligible: false; eligible successes remain 0/3
+- Planner controls: passed for 22/22 real schema-valid Planner calls out of 23 total calls, zero reasoning bytes, maximum latency 24.625 seconds
+- Autonomous goals: 4; resource progression switched to dusk and night shelter priority
+- Actions: 28 attempted and 22 successful; pre-dusk inventory gained `dark_oak_log:3`, terminal inventory reached `dark_oak_log:10`, and all required G2 recording fields were present
+- Reflection retest: 6 `failure_reflection_suppressed` events and zero legacy `failure_reflection` writes; immediate replanning remained active
+- First unrecovered transition: event index 160 emitted `empty_plan` for the explicit oak-log goal while `status=planning`; Planner prose treated six dark-oak logs as completion, but no actions or machine goal verification followed and the goal was abandoned
+- Interrupt audit: 7 unique deadline triggers, 7 matching recoveries, 29 unique expired tasks terminalized, no repeated trigger task, and 5 action events followed the first recovery
+- Deadline: ineligible; Agent ended at the absolute deadline and manifest evidence ended 0.094 seconds later, with one Planner call and error plan recorded at the boundary but no subsequent action
+- Evidence: `logs/benchmarks/m4/m4_episode_20260711_220626_c1555273/`
 
 ### Probe 4: Expired Task Lifecycle Recovery
 

@@ -1,7 +1,7 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-11T13:49:55.4120597Z",
+  "generated_at": "2026-07-11T14:17:45.9793343Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "not_run",
@@ -15,11 +15,11 @@
     "coordinate_evidence"
   ],
   "verified_checks": [],
-  "live_episode_count": 4,
+  "live_episode_count": 5,
   "latest_live_observation": {
-    "episode_id": "m4_episode_20260711_213951_5e37c97d",
-    "shelter_priority_goal_count": 2,
-    "shelter_plan_count": 19,
+    "episode_id": "m4_episode_20260711_220626_c1555273",
+    "shelter_priority_goal_count": 3,
+    "shelter_plan_count": 23,
     "shelter_verification_event_count": 0,
     "machine_verified_safe_state": false
   }

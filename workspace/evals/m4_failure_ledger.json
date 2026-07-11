@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-11T13:49:55.4120597Z",
+  "generated_at": "2026-07-11T14:17:45.9793343Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "current_task_id": "BM-011",
@@ -853,6 +853,261 @@
       },
       "patch_or_experiment_summary": "Retested only deterministic expired-task lifecycle recovery in one fresh G2 episode. Learned and quarantined skills, policy skills, memory persistence, vision, visual grounding, and multi-agent execution remained off.",
       "retest_result": "The task-lifecycle hypothesis was confirmed: all seven deadline interrupts had unique triggers and matching recoveries, 28 expired tasks reached failed, and actions resumed after the first recovery. G2 still failed because an earlier unbounded failure-reflection LLM call consumed the remaining pre-dusk window; no second live episode was run."
+    },
+    {
+      "task_id": "BM-011",
+      "episode_id": "m4_episode_20260711_220626_c1555273",
+      "session_id": "df0ff546-6c2",
+      "level_name": "m4_episode_20260711_220626_c1555273_bm011",
+      "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+      "seed": "12345",
+      "start_monotonic": 252294.234,
+      "end_monotonic": 252534.328,
+      "duration_s": 240.094,
+      "agent_elapsed_s": 240,
+      "autonomous_goals": [
+        {
+          "goal_index": 1,
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "source": "goal_generator",
+          "reason": "wood_reserve_below_target;curriculum_retained_fallback",
+          "priority": 6,
+          "outcome": "failed",
+          "termination_reason": "empty_plan"
+        },
+        {
+          "goal_index": 2,
+          "goal": "Build verified shelter before nightfall",
+          "source": "goal_generator",
+          "reason": "dusk_without_machine_verified_shelter",
+          "priority": 4,
+          "outcome": "failed",
+          "termination_reason": "max_cycles"
+        },
+        {
+          "goal_index": 3,
+          "goal": "Reach or build emergency verified shelter immediately",
+          "source": "goal_generator",
+          "reason": "night_without_machine_verified_shelter",
+          "priority": 4,
+          "outcome": "failed",
+          "termination_reason": "max_cycles"
+        },
+        {
+          "goal_index": 4,
+          "goal": "Reach or build emergency verified shelter immediately",
+          "source": "goal_generator",
+          "reason": "night_without_machine_verified_shelter",
+          "priority": 4,
+          "outcome": "failed",
+          "termination_reason": "episode_deadline"
+        }
+      ],
+      "goal_transitions": [
+        {
+          "event": "failure_reflection_suppression_confirmed",
+          "monotonic_s": 252304.609,
+          "recovered": true,
+          "recovery_evidence": "six failed actions emitted failure_reflection_suppressed, zero legacy failure_reflection writes appeared, and replanning continued"
+        },
+        {
+          "event": "pre_dusk_machine_visible_progress",
+          "monotonic_s": 252337.125,
+          "recovered": true,
+          "recovery_evidence": "inventory contained dark_oak_log:3 at world time 9994"
+        },
+        {
+          "event": "planner_empty_plan_species_substitution",
+          "monotonic_s": 252366.5,
+          "recovered": false,
+          "detail": "a planning-status continuation returned zero actions and claimed six dark-oak logs completed the explicit six-oak-log goal; the goal failed with empty_plan and was not resumed"
+        },
+        {
+          "event": "expired_task_lifecycle_recovered",
+          "monotonic_s": 252452.578,
+          "recovered": true,
+          "recovery_evidence": "seven unique interrupts produced seven matching recovery events and terminalized 29 unique expired tasks without repeating a trigger ID"
+        },
+        {
+          "event": "final_planner_timeout_at_deadline",
+          "monotonic_s": 252534.234,
+          "recovered": false,
+          "detail": "the final Planner call started with 8.047 seconds remaining, timed out at the deadline boundary, and emitted call/error-plan evidence without a following action"
+        }
+      ],
+      "first_unrecovered_transition": {
+        "event_type": "empty_plan",
+        "session_event_index": 160,
+        "plan_event_index": 156,
+        "planner_call_event_index": 155,
+        "planner_call_id": "llm-71e47b602e96471d",
+        "goal": "Gather 6 oak logs for tools and shelter",
+        "cycle": 5,
+        "status": "planning",
+        "reasoning": "Already have 6 dark_oak_logs, which can substitute for oak logs. Goal is complete.",
+        "action_count": 0,
+        "observed_inventory": {"dark_oak_log": 6},
+        "explicit_oak_log_count": 0,
+        "before_observation_event_index": 150,
+        "before_observation_monotonic": 252362.812,
+        "before_time_of_day": 10514,
+        "after_observation_event_index": 168,
+        "after_observation_monotonic": 252366.546,
+        "after_time_of_day": 10594,
+        "goal_end_event_index": 163,
+        "next_goal_event_index": 165,
+        "recovered": false,
+        "monotonic_s": 252366.5
+      },
+      "failure_layer": "planner_empty_plan_goal_grounding",
+      "before_state": {
+        "observed_monotonic_s": 252362.812,
+        "position": {"x": 94.55328214783941, "y": 142, "z": -29.5},
+        "health": 20,
+        "food": 20,
+        "inventory": {"dark_oak_log": 6},
+        "time_of_day": 10514,
+        "explicit_goal_item": "oak_log",
+        "explicit_goal_item_count": 0
+      },
+      "attempted_plan_action": {
+        "planner": {
+          "call_id": "llm-71e47b602e96471d",
+          "call_index": 4,
+          "plan_kind": "continuation",
+          "real_llm_call": true,
+          "schema_valid": true,
+          "duration_ms": 3625,
+          "prompt_tokens": 1847,
+          "completion_tokens": 48,
+          "total_tokens": 1895,
+          "reasoning_content_byte_count": 0,
+          "finish_reason": "stop",
+          "remaining_before_call_s": 171.422,
+          "extra_body": {"thinking": {"type": "disabled"}}
+        },
+        "plan": {
+          "status": "planning",
+          "reasoning": "Already have 6 dark_oak_logs, which can substitute for oak logs. Goal is complete.",
+          "action_count": 0,
+          "actions": []
+        },
+        "action": null,
+        "goal_completion_verification": {
+          "event_count": 0,
+          "machine_verified": false,
+          "explicit_oak_log_count": 0
+        }
+      },
+      "after_state": {
+        "observed_monotonic_s": 252366.546,
+        "position": {"x": 94.55328214783941, "y": 142, "z": -29.5},
+        "health": 20,
+        "food": 20,
+        "inventory": {"dark_oak_log": 6},
+        "time_of_day": 10594,
+        "goal_outcome": "failed",
+        "termination_reason": "empty_plan",
+        "next_goal": "Build verified shelter before nightfall"
+      },
+      "survival_state": {
+        "health": 20,
+        "food": 20,
+        "bot_connected": true,
+        "time_of_day": 13934,
+        "inventory": {"dark_oak_log": 10},
+        "nearby_hostile_count": 1,
+        "night_observed": true,
+        "next_dawn_observed": false,
+        "terminal_machine_verified": false
+      },
+      "failure_reflection_suppression": {
+        "suppressed_event_count": 6,
+        "legacy_failure_reflection_write_count": 0,
+        "first_suppressed_monotonic": 252304.609,
+        "resume_policy": "replan_next_cycle",
+        "hypothesis_confirmed": true
+      },
+      "planner_provider_controls": {
+        "passed": true,
+        "call_count": 23,
+        "real_call_count": 22,
+        "schema_valid_real_call_count": 22,
+        "max_call_duration_ms": 24625,
+        "total_token_usage": 52490,
+        "reasoning_content_max_bytes": 0,
+        "violations": []
+      },
+      "interrupt_recovery": {
+        "task_deadline_interrupt_count": 7,
+        "runtime_interrupt_recovery_count": 7,
+        "trigger_task_ids": ["d6fb25c2", "1fdcad0a", "b6c48adc", "ffccc74b", "68381b05", "b9bc8a9e", "bc57803b"],
+        "unique_trigger_task_count": 7,
+        "repeated_trigger_task_count": 0,
+        "expired_task_count": 29,
+        "unique_expired_task_count": 29,
+        "post_first_recovery_action_count": 5,
+        "post_first_recovery_successful_action_count": 0,
+        "first_resumed_action_monotonic": 252459.796,
+        "resume_policy": "replan_next_cycle",
+        "prior_fix_regression_passed": true
+      },
+      "skill_attribution": {
+        "skill_execution_mode": "off",
+        "selected_count": 0,
+        "executed_count": 0,
+        "quarantined_count": 0,
+        "contribution": "none"
+      },
+      "deadline_status": {
+        "episode_deadline_monotonic": 252534.234,
+        "agent_end_monotonic": 252534.234,
+        "agent_overrun_s": 0,
+        "evidence_end_monotonic": 252534.328,
+        "overrun_s": 0.094,
+        "deadline_eligible": false,
+        "post_deadline_action_count": 0,
+        "post_deadline_plan_count": 1,
+        "post_deadline_planner_call_count": 1,
+        "post_deadline_late_plan_evidence_count": 1,
+        "final_planner_remaining_before_call_s": 8.047,
+        "no_post_deadline_execution": false
+      },
+      "evidence_eligibility": {
+        "g2_passed": false,
+        "bm011_eligible": false,
+        "eligible_success_count": 0,
+        "issues": [
+          "event:terminal_survival_verification",
+          "next_dawn_observed",
+          "terminal_machine_verification",
+          "episode_within_deadline",
+          "result_duration_eligible",
+          "no_post_deadline_execution"
+        ]
+      },
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260711_220626_c1555273/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260711_220626_c1555273/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260711_220626_c1555273/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260711_220626_c1555273/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260711_220626_c1555273/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260711_220626_c1555273/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260711_220626_c1555273/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260711_220626_c1555273/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "18635c4111e7d2f7a50bab522d88ff7c4ae91b1358f36fdfb8887baf3fa27d34",
+        "manifest": "a14562a634f1c84b9e4c715c3656e82ca24b473bf07725c44f523ee59eacdf67",
+        "session": "08fb7f35359653b5142e90bc69020408adc4dc7c2ba1955c14c6d4fc0b472060",
+        "result": "b9ad24aed2609c392145aee45ac606f518c03c45e0388a983e69ab0e48f8c5c1",
+        "eligibility": "d30eb42f757f2842d05eec63b313d11876ac2b1287371c6963bacd355673d7e8",
+        "preparation": "347a146d6de2170d26835a7ac450f98e5ed856ac0a7cc3c949f19f4d5ce124f6",
+        "protocol_status": "e54368c5cdc2b135f69bd275beab835d0bccbe6f446de4314cf331f9d8829f93",
+        "reset": "e3cdaf8e740c55157e7e6c1f34f2d8b33890b8326052a6bd8caf0d13acb84901"
+      },
+      "patch_or_experiment_summary": "Retested only M4 auxiliary failure-reflection suppression in one fresh G2 episode. Learned and quarantined skills, policy skills, memory persistence, vision, visual grounding, and multi-agent execution remained off.",
+      "retest_result": "The reflection hypothesis was confirmed: six failures were suppressed, no legacy reflection write appeared, and pre-dusk inventory reached dark_oak_log:3. G2 still failed at the later planning-status empty plan that asserted unsupported dark-oak substitution for an explicit oak-log goal; no second live episode was run."
     }
   ]
 }
