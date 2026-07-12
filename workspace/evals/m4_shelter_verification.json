@@ -1,11 +1,11 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T14:24:26.5614498Z",
+  "generated_at": "2026-07-12T14:29:54.8023438Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
-  "decision": "allow_one_g5_episode_after_bounded_shelter_action",
+  "decision": "bounded_shelter_passed_live_diagnose_goal_budget_lifecycle",
   "verifier_id": "m4-sealed-cell-shelter-verifier-v1",
   "contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
   "strategy": "sealed_cell_v1",
@@ -70,12 +70,16 @@
       {"id": "agent_delta_to_machine_verifier", "status": "pass"}
     ]
   },
-  "live_episode_count": 9,
+  "live_episode_count": 10,
   "latest_live_observation": {
-    "episode_id": "m4_episode_20260712_061341_1b7218cd",
+    "episode_id": "m4_episode_20260712_222631_806bb698",
     "shelter_priority_goal_count": 4,
-    "shelter_plan_count": 27,
-    "shelter_verification_event_count": 7,
-    "machine_verified_safe_state": false
+    "shelter_plan_count": 13,
+    "shelter_verification_event_count": 5,
+    "machine_verified_safe_state": true,
+    "bounded_action_count": 1,
+    "bounded_action_success_count": 1,
+    "matched_episode_placement_count": 9,
+    "temporary_scaffold_removed": true
   }
 }

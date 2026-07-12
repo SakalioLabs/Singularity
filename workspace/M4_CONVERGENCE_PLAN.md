@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | ready_for_one_live_probe_after_bounded_shelter_action |
+| G5 | First eligible survival-to-dawn episode | diagnose_probe_10_goal_budget_lifecycle |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -55,7 +55,9 @@ Craft parameter grounding passed live in Probe 9. Planner output was normalized 
 
 The new earliest unrecovered transition is shelter-phase progression. Immediately after the 16-plank observation and task reconciliation, Planner call `llm-05670ca498a34ebf` at session event index 302 expanded the shelter goal into additional logs, sticks, a crafting table, pickaxe, cobblestone, and furnace. Its first actions returned to gathering, even though the same plan declared the shelter build precondition as 16 oak planks and that machine state already held. No place action occurred, and the first shelter root exhausted eight cycles at event index 414.
 
-Shelter-phase progression is now addressed offline by `build_shelter_cell`, a bounded M4 primitive rather than a root survival skill. The autonomous shelter goal still decides when to build; Planner grounding activates only with a trusted current player-cell snapshot and at least 10 allowlisted blocks. ActionVerifier rechecks the exact origin and inventory. The Node backend clears only the nine fixed target coordinates, places eight wall blocks, uses one temporary roof scaffold, places the center roof, removes the scaffold, and returns nine final placement deltas. Agent binds those deltas to the current episode and the unchanged G3 verifier independently accepts the resulting structure. Full regression passed with 670 Python tests and all six fixed Node suites; one fresh G5 retest is authorized.
+Shelter-phase progression passed live in Probe 10. The autonomous chain gathered six oak logs, crafted 24 oak planks, activated one machine-grounded `build_shelter_cell`, placed the nine final structure blocks, removed the temporary scaffold, and obtained a 9/9 current-episode match from the unchanged G3 verifier. All 11 actions succeeded.
+
+The new earliest unrecovered transition is autonomous goal-budget lifecycle. After shelter verification, GoalGenerator correctly selected `Enter and maintain verified shelter through nightfall`, but GoalVerifier immediately completed that maintenance goal from the already-safe state. The same one-cycle goal was selected twice, consuming goal slots 3 and 4. `autonomous_end` event index 304 then terminated with `max_goals_or_stopped` at world time 11226 before night, despite 135.297 seconds remaining. The next round may change only maintenance-goal budget/lifecycle semantics and must preserve the fixed total deadline and root exclusivity.
 
 ## G5 Preflight: Bounded Shelter Action
 
@@ -140,6 +142,21 @@ Shelter-phase progression is now addressed offline by `build_shelter_cell`, a bo
 - Live evidence: none; G3 is an offline deterministic gate and does not count toward BM-011
 
 ## G2 Live Evidence
+
+### Probe 10: Bounded Shelter Passed; Goal Budget Ended Before Night
+
+- Episode: `m4_episode_20260712_222631_806bb698`
+- Session: `4e5911f8-7d3`
+- Preflight: passed
+- G2: passed; pre-dusk inventory gained `oak_log:3` by world time 9866
+- BM-011 eligible: false; eligible successes remain 0/3
+- Planner controls: 13/13 real calls schema-valid, zero reasoning bytes, maximum latency 7.281 seconds
+- Shelter retest: six oak logs gathered, 24 planks crafted, one bounded action succeeded, temporary scaffold removed, and G3 verifier passed with 9/9 episode placements
+- Actions: 11 attempted and 11 successful; one craft and one bounded shelter action
+- First unrecovered transition: two one-cycle verified-shelter maintenance goals consumed goal slots 3 and 4, then event index 304 ended the autonomous loop before night
+- Terminal state: health 20, food 20, connected, machine shelter verified, world time 11226; night and next dawn were not observed
+- Deadline: eligible; Agent ended with 135.297 seconds and manifest evidence with 135.266 seconds remaining, with no post-deadline execution
+- Evidence: `logs/benchmarks/m4/m4_episode_20260712_222631_806bb698/`
 
 ### Probe 9: Craft Grounding Passed; Shelter Phase Did Not Start
 
