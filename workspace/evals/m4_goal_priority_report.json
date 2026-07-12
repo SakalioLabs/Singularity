@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T14:46:06.3950926Z",
+  "generated_at": "2026-07-12T14:58:33.0113960Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
-  "decision": "maintenance_passed_live_diagnose_protocol_temporal_horizon",
+  "decision": "maintenance_passed_live_allow_exact_fixed_profile_g5_episode",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -44,7 +44,7 @@
     "wait_ms": 15000,
     "pending_goal_consumes_new_slot": false,
     "missing_time_fails_closed": true,
-    "full_python_regression": 672,
+    "full_python_regression": 674,
     "node_suite_count": 6
   },
   "live_episode_count": 11,

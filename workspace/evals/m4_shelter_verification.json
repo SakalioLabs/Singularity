@@ -1,11 +1,11 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T14:46:06.3950926Z",
+  "generated_at": "2026-07-12T14:58:33.0113960Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
-  "decision": "bounded_shelter_repeat_passed_diagnose_protocol_temporal_horizon",
+  "decision": "bounded_shelter_repeat_passed_allow_exact_fixed_profile_g5_episode",
   "verifier_id": "m4-sealed-cell-shelter-verifier-v1",
   "contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
   "strategy": "sealed_cell_v1",
@@ -44,7 +44,7 @@
   "offline_validation": {
     "passed": true,
     "python_test_file": "tests/test_m4_shelter.py",
-    "python_case_count": 13,
+    "python_case_count": 16,
     "node_test_file": "tests/test_bot_server_m4_protocol.js",
     "node_m4_case_count": 5,
     "cases": [
@@ -57,9 +57,10 @@
       {"id": "partial_episode_provenance", "expected": "reject", "status": "pass"},
       {"id": "spoofed_machine_claim", "expected": "reject", "status": "pass"},
       {"id": "missing_pinned_report_check", "expected": "reject", "status": "pass"},
-      {"id": "agent_delta_and_transition_wiring", "expected": "pass", "status": "pass"}
+      {"id": "agent_delta_and_transition_wiring", "expected": "pass", "status": "pass"},
+      {"id": "terminal_survival_machine_dawn_state", "expected": "pass_only_with_pinned_machine_state", "status": "pass"}
     ],
-    "full_python_regression": {"status": "pass", "test_count": 670},
+    "full_python_regression": {"status": "pass", "test_count": 674},
     "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 30},
     "live_episode_run": false,
     "bounded_action_cases": [

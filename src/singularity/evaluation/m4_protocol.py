@@ -180,9 +180,9 @@ def evaluate_bm011_episode(
     require(
         "manifest_runtime_limits",
         isinstance(runtime_limits, dict)
-        and _bounded_positive(runtime_limits.get("max_duration_s"), task_limit.get("max_duration_s"))
-        and _bounded_positive(runtime_limits.get("max_goals"), PROTOCOL["limits"]["max_autonomous_goals"])
-        and _bounded_positive(runtime_limits.get("max_cycles_per_goal"), PROTOCOL["limits"]["max_cycles_per_goal"]),
+        and _number_near(runtime_limits.get("max_duration_s"), task_limit.get("max_duration_s"), 0.0)
+        and _number_near(runtime_limits.get("max_goals"), PROTOCOL["limits"]["max_autonomous_goals"], 0.0)
+        and _number_near(runtime_limits.get("max_cycles_per_goal"), PROTOCOL["limits"]["max_cycles_per_goal"], 0.0),
         runtime_limits,
     )
 
@@ -516,12 +516,6 @@ def _player_state_matches(actual: dict) -> bool:
 
 def _number_near(value, expected, tolerance: float) -> bool:
     return _finite_number(value) and abs(float(value) - float(expected)) <= float(tolerance)
-
-
-def _bounded_positive(value, maximum) -> bool:
-    number = _finite_or_none(value)
-    limit = _finite_or_none(maximum)
-    return number is not None and limit is not None and 0 < number <= limit
 
 
 def _normalized_time(value) -> int | None:

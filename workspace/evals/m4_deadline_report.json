@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T14:46:06.3950926Z",
+  "generated_at": "2026-07-12T14:58:33.0113960Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
-  "decision": "allow_g1_offline_goal_priority_validation",
+  "decision": "allow_one_exact_fixed_profile_g5_episode",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -57,8 +57,29 @@
       "name": "missing_or_unordered_event_time_rejection",
       "status": "pass",
       "evidence": "tests/test_m4_protocol.py"
+    },
+    {
+      "name": "runtime_harness_exact_protocol_limits",
+      "status": "pass",
+      "evidence": "scripts/m4-runtime.ps1; scripts/m4_episode_runner.py; tests/test_m4_protocol.py"
+    },
+    {
+      "name": "terminal_machine_verification_emission",
+      "status": "pass",
+      "evidence": "src/singularity/core/agent.py; tests/test_m4_shelter.py"
     }
   ],
+  "fixed_runtime_profile": {
+    "task_id": "BM-011",
+    "max_duration_s": 1200,
+    "max_autonomous_goals": 24,
+    "max_cycles_per_goal": 40,
+    "max_total_cycles": 320,
+    "harness_requires_exact_match": true,
+    "terminal_result_requires_machine_event": true,
+    "full_python_regression": 674,
+    "node_suite_count": 6
+  },
   "g0_passed": true,
   "live_episode_count": 11,
   "latest_live_episode": {

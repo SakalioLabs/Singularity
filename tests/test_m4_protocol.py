@@ -214,6 +214,21 @@ def test_bm011_eligible_machine_state_evidence():
     print("PASS: BM-011 gate accepts bounded autonomous machine-state evidence")
 
 
+def test_bm011_rejects_shortened_runtime_limits():
+    manifest = _manifest()
+    manifest["runtime_limits"] = {
+        "max_duration_s": 240,
+        "max_goals": 4,
+        "max_cycles_per_goal": 8,
+    }
+
+    report = evaluate_bm011_episode(_events(), _result(), _preflight(), manifest)
+
+    assert report["eligible"] is False
+    assert "manifest_runtime_limits" in report["issues"]
+    print("PASS: BM-011 gate rejects shortened runtime harness limits")
+
+
 def test_bm011_rejects_active_reset_and_time_command():
     events = _events()
     events.insert(5, {
@@ -316,6 +331,7 @@ if __name__ == "__main__":
     test_m4_deadline_budget_uses_one_absolute_deadline()
     test_m4_preflight_requires_survival_fresh_episode()
     test_bm011_eligible_machine_state_evidence()
+    test_bm011_rejects_shortened_runtime_limits()
     test_bm011_rejects_active_reset_and_time_command()
     test_bm011_rejects_deadline_overrun_and_post_deadline_action()
     test_bm011_rejects_unpinned_planner_provider_controls()

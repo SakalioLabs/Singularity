@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | diagnose_probe_11_protocol_temporal_horizon |
+| G5 | First eligible survival-to-dawn episode | ready_exact_fixed_profile_probe_12 |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -61,7 +61,23 @@ The new earliest unrecovered transition is autonomous goal-budget lifecycle. Aft
 
 Maintenance-goal lifecycle passed live in Probe 11. `Remain in verified shelter until dawn` stayed active, emitted two bounded waits, and ended only when the absolute episode deadline fired; it did not allocate another goal or terminate on `max_goals`.
 
-The new earliest unrecovered transition is the fixed protocol temporal horizon. The episode began from the pinned natural time near 9000 and ended at world time 13943 after the full 240 seconds. BM-011 requires a night observation followed by the next dawn boundary at 23000 or natural wrap below 1000. The observed 4943-tick advance is approximately 20.6 ticks/second; reaching 23000 from 9000 requires about 680 seconds before setup margin. Therefore the current 240-second deadline cannot produce eligible natural-dawn evidence even with perfect shelter and survival. The next round must revise only the fixed M4 temporal horizon and matching bounded maintenance cadence, without time commands, tick acceleration, or eligibility relaxation.
+Probe 11 exposed runtime-harness limit drift, not a contradiction in the fixed protocol. `m4-fixed-v1` already pins BM-011 to 1200 seconds, 24 autonomous goals, 40 cycles per goal, and 320 total cycles. The PowerShell and Python harnesses still defaulted to 240 seconds, four goals, and eight cycles, and the live invocation explicitly repeated those shortened values. The 240-second episode therefore cannot establish whether the fixed protocol can reach natural dawn.
+
+The current single hypothesis is `runtime_harness_limit_drift`. Both harnesses now derive the exact `1200/24/40` profile from the pinned protocol and reject any shorter or larger override; the independent eligibility gate likewise requires exact manifest equality. A successful dawn-maintenance goal now emits `terminal_survival_verification` only from finite machine time at the dawn boundary, positive finite health, a live bridge connection, and the unchanged pinned G3 shelter report. The episode result can become complete only from that terminal event path. One fresh exact-profile Probe 12 is authorized after the offline commit is pushed.
+
+## G5 Preflight: Exact Runtime Harness and Terminalization
+
+- Scope: M4 runtime harness and terminal evidence only; the protocol, goal priority, bounded shelter action, maintenance cadence, and G3 verifier are unchanged
+- Exact BM-011 profile: 1200-second episode timeout, 24 autonomous goals, 40 cycles per goal, and 320 total cycles
+- Harness enforcement: PowerShell and Python defaults are protocol-derived; either runner rejects any runtime-limit mismatch before episode execution
+- Eligibility enforcement: `manifest_runtime_limits` requires exact protocol equality rather than accepting a shortened preparation envelope
+- Terminal event: `terminal_survival_verification` requires an `until dawn` maintenance goal, finite dawn-boundary machine time, positive finite health, an online bot bridge, and a complete pinned shelter report
+- Result binding: `completed=true` and `termination_reason=terminal_survival_verified` are produced only from the Agent terminal event path
+- Fail-closed behavior: missing/non-finite time, missing health, disconnection, or an incomplete/spoofed shelter report cannot terminalize the episode
+- Offline tests: `tests/test_m4_protocol.py` and `tests/test_m4_shelter.py`
+- Regression: 674 Python tests, all six fixed Node suites, PowerShell syntax parsing, Python compilation, and `git diff --check` passed
+- Protocol integrity: `m4-fixed-v1` SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
+- Live authorization: one fresh exact-profile G5 BM-011 episode; stop after evidence generation and diagnose its first unrecovered transition
 
 ## G5 Preflight: Maintenance Goal Lifecycle
 
@@ -74,7 +90,7 @@ The new earliest unrecovered transition is the fixed protocol temporal horizon. 
 - Evidence: `m4_maintenance_phase_grounding` records boundary, current world time, boundary state, and wait duration
 - Offline tests: `tests/test_m4_shelter.py`
 - Regression: 672 Python tests and all six fixed Node suites passed
-- Protocol integrity: max goals remains 4, max cycles per goal remains 8, and protocol SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
+- Protocol integrity: max goals remains 24, max cycles per goal remains 40, and protocol SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
 - Live authorization: one fresh G5 BM-011 episode; stop after evidence generation and diagnose its first unrecovered transition
 
 ## G5 Preflight: Bounded Shelter Action
@@ -161,7 +177,7 @@ The new earliest unrecovered transition is the fixed protocol temporal horizon. 
 
 ## G2 Live Evidence
 
-### Probe 11: Maintenance Root Persisted; 240 Seconds Cannot Reach Dawn
+### Probe 11: Maintenance Root Persisted; Shortened Harness Drift Exposed
 
 - Episode: `m4_episode_20260712_224016_31e10f7d`
 - Session: `a9cf79b4-53c`
@@ -172,7 +188,7 @@ The new earliest unrecovered transition is the fixed protocol temporal horizon. 
 - Maintenance retest: one dawn-maintenance root remained active, two `m4_maintenance_phase_grounding` waits executed, and no replacement goal slot was allocated
 - Shelter: bounded action succeeded with 9/9 placements; post-cleanup machine shelter verification remained true
 - Terminal state: health 20, food 20, connected, world time 13943, night observed, next dawn not observed
-- Temporal proof: world time advanced about 4943 ticks in 240 seconds; natural progression from pinned 9000 to dawn 23000 requires about 680 seconds before margin
+- Runtime-profile finding: world time advanced about 4943 ticks under the nonconforming `240/4/8` harness; the fixed protocol already allows `1200/24/40`, so this run does not prove a protocol temporal-horizon failure
 - Deadline: ineligible; Agent reached 9529.859 exactly and manifest evidence ended 0.062 seconds later; no new post-deadline action was started
 - Evidence: `logs/benchmarks/m4/m4_episode_20260712_224016_31e10f7d/`
 

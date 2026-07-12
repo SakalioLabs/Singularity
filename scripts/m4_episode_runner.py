@@ -36,9 +36,10 @@ def parse_args():
     parser.add_argument("--episode-id", required=True)
     parser.add_argument("--level-name", required=True)
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--max-duration", type=float, default=240.0)
-    parser.add_argument("--max-goals", type=int, default=4)
-    parser.add_argument("--max-cycles", type=int, default=8)
+    task = next(task for task in PROTOCOL["tasks"] if task["id"] == "BM-011")
+    parser.add_argument("--max-duration", type=float, default=float(task["max_duration_s"]))
+    parser.add_argument("--max-goals", type=int, default=int(PROTOCOL["limits"]["max_autonomous_goals"]))
+    parser.add_argument("--max-cycles", type=int, default=int(PROTOCOL["limits"]["max_cycles_per_goal"]))
     parser.add_argument("--fresh-level", action="store_true")
     return parser.parse_args()
 
@@ -210,7 +211,7 @@ def run_episode(args, output_dir: Path, preflight: dict):
         "schema_version": 1,
         "task_id": args.task_id,
         "profile": PROTOCOL["profile"],
-        "completed": False,
+        "completed": autonomous.get("termination_reason") == "terminal_survival_verified",
         "termination_reason": str(autonomous.get("termination_reason") or "preparation_probe_complete"),
         "elapsed_s": autonomous.get("elapsed_s"),
         "deadline_eligible": bool(autonomous.get("deadline_eligible")),
@@ -242,12 +243,18 @@ def run_episode(args, output_dir: Path, preflight: dict):
 def main():
     args = parse_args()
     task = next(task for task in PROTOCOL["tasks"] if task["id"] == args.task_id)
-    if not 0 < args.max_duration <= float(task["max_duration_s"]):
-        raise ValueError("max-duration must be positive and within the fixed BM-011 limit")
-    if not 0 < args.max_goals <= int(PROTOCOL["limits"]["max_autonomous_goals"]):
-        raise ValueError("max-goals must be positive and within the fixed M4 limit")
-    if not 0 < args.max_cycles <= int(PROTOCOL["limits"]["max_cycles_per_goal"]):
-        raise ValueError("max-cycles must be positive and within the fixed M4 limit")
+    expected = {
+        "max_duration": float(task["max_duration_s"]),
+        "max_goals": int(PROTOCOL["limits"]["max_autonomous_goals"]),
+        "max_cycles": int(PROTOCOL["limits"]["max_cycles_per_goal"]),
+    }
+    actual = {
+        "max_duration": float(args.max_duration),
+        "max_goals": int(args.max_goals),
+        "max_cycles": int(args.max_cycles),
+    }
+    if actual != expected:
+        raise ValueError(f"BM-011 requires exact fixed runtime limits: {expected}")
     output_dir = (REPO_ROOT / args.output_dir).resolve()
     repo_relative(output_dir)
     output_dir.mkdir(parents=True, exist_ok=False)

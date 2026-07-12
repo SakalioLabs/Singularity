@@ -10,9 +10,9 @@ param(
     [int]$BridgeWaitSeconds = 45,
     [ValidateSet("BM-011")]
     [string]$TaskId = "BM-011",
-    [double]$MaxDurationSeconds = 240,
-    [int]$MaxGoals = 4,
-    [int]$MaxCycles = 8
+    [double]$MaxDurationSeconds = 1200,
+    [int]$MaxGoals = 24,
+    [int]$MaxCycles = 40
 )
 
 Set-StrictMode -Version Latest
@@ -145,6 +145,14 @@ try {
         throw "M4 runtime blocked: eula=true is not present."
     }
     $protocol = Get-Content -LiteralPath $protocolPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $bm011 = @($protocol.tasks | Where-Object { $_.id -eq "BM-011" })[0]
+    if (
+        $MaxDurationSeconds -ne [double]$bm011.max_duration_s -or
+        $MaxGoals -ne [int]$protocol.limits.max_autonomous_goals -or
+        $MaxCycles -ne [int]$protocol.limits.max_cycles_per_goal
+    ) {
+        throw "M4 runtime blocked: BM-011 requires exact fixed limits duration=$($bm011.max_duration_s), goals=$($protocol.limits.max_autonomous_goals), cycles=$($protocol.limits.max_cycles_per_goal)."
+    }
     $serverJarSha256 = (Get-FileHash -LiteralPath $jarPath -Algorithm SHA256).Hash.ToLower()
     if ($serverJarSha256 -ne [string]$protocol.server_jar_sha256) {
         throw "M4 runtime blocked: server jar SHA-256 does not match $($protocol.server_build)."

@@ -59,7 +59,7 @@ from singularity.evaluation.mixed_initiative import (
     MixedInitiativeFeedbackPolicy,
     apply_mixed_initiative_policy_patch,
 )
-from singularity.evaluation.m4_shelter import M4ShelterVerifier
+from singularity.evaluation.m4_shelter import M4ShelterVerifier, is_machine_verified_shelter
 from singularity.logging.session_logger import SessionLogger
 from singularity.vision.analyzer import VisionAnalyzer
 from singularity.vision.action_advisor import VisualActionAdvisor
@@ -2404,6 +2404,10 @@ class Agent:
             if goal_success:
                 goals_completed += 1
                 logger.info(f"[Autonomous] Goal completed: {goal}")
+                terminal_verification = self._m4_terminal_survival_verification(goal, observation)
+                if terminal_verification:
+                    self.session_logger.log("terminal_survival_verification", terminal_verification)
+                    episode_termination_reason = "terminal_survival_verified"
                 outcome = {
                     "goal": goal,
                     "cycles": cycle,
@@ -2541,6 +2545,53 @@ class Agent:
             action_controller.set_episode_deadline(None, None)
         self._episode_deadline_monotonic = None
         return result
+
+    def _m4_terminal_survival_verification(self, goal: str, observation: dict) -> dict:
+        if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
+            return {}
+        if "until dawn" not in str(goal or "").lower():
+            return {}
+        state = observation if isinstance(observation, dict) else {}
+        try:
+            raw_time = float(state["time_of_day"])
+            time_valid = math.isfinite(raw_time)
+            time_of_day = int(raw_time) % 24000 if time_valid else 0
+        except (KeyError, TypeError, ValueError, OverflowError):
+            time_of_day = 0
+            time_valid = False
+        health = state.get("health", 0)
+        health_valid = bool(
+            isinstance(health, (int, float))
+            and not isinstance(health, bool)
+            and math.isfinite(float(health))
+            and health > 0
+        )
+        bot_connected = bool(getattr(getattr(self, "bot", None), "_connected", False))
+        shelter = state.get("shelter_verification", {})
+        shelter = shelter if isinstance(shelter, dict) else {}
+
+        passed = bool(
+            time_valid
+            and (time_of_day >= 23000 or time_of_day < 1000)
+            and health_valid
+            and bot_connected
+            and is_machine_verified_shelter(shelter)
+        )
+        if not passed:
+            return {}
+        return {
+            "type": "m4_terminal_survival_verification",
+            "schema_version": 1,
+            "passed": True,
+            "source": "machine_state",
+            "goal": str(goal),
+            "time_of_day": time_of_day,
+            "health": health,
+            "food": state.get("hunger"),
+            "bot_connected": True,
+            "shelter_verifier_id": shelter.get("verifier_id", ""),
+            "shelter_contract_sha256": shelter.get("contract_sha256", ""),
+        }
 
     # ── Thinking / Planning ────────────────────────────────────────────
 

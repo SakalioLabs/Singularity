@@ -436,6 +436,56 @@ def test_g5_verified_shelter_maintenance_waits_for_named_time_boundary():
     assert dawn.achieved is True
 
 
+def test_g5_terminal_survival_verification_requires_machine_dawn_state():
+    report = M4ShelterVerifier().verify(_snapshot(), _delta())
+    agent = object.__new__(Agent)
+    agent.config = SimpleNamespace(planner_protocol="m4-fixed-v1")
+    agent.bot = SimpleNamespace(_connected=True)
+    dawn_state = {
+        "time_of_day": 23000,
+        "health": 18,
+        "hunger": 17,
+        "shelter_verification": report,
+    }
+
+    verification = agent._m4_terminal_survival_verification(
+        "Remain in verified shelter until dawn",
+        dawn_state,
+    )
+
+    assert verification["passed"] is True
+    assert verification["source"] == "machine_state"
+    assert verification["time_of_day"] == 23000
+    assert verification["health"] == 18
+    assert verification["food"] == 17
+    assert verification["bot_connected"] is True
+    assert verification["shelter_verifier_id"] == M4_SHELTER_VERIFIER_ID
+    assert verification["shelter_contract_sha256"] == M4_SHELTER_CONTRACT_SHA256
+
+    assert agent._m4_terminal_survival_verification(
+        "Remain in verified shelter until dawn",
+        dict(dawn_state, time_of_day=13943),
+    ) == {}
+    assert agent._m4_terminal_survival_verification(
+        "Remain in verified shelter until dawn",
+        dict(dawn_state, time_of_day=float("inf")),
+    ) == {}
+    assert agent._m4_terminal_survival_verification(
+        "Remain in verified shelter until dawn",
+        dict(dawn_state, health=float("inf")),
+    ) == {}
+    agent.bot._connected = False
+    assert agent._m4_terminal_survival_verification(
+        "Remain in verified shelter until dawn",
+        dawn_state,
+    ) == {}
+    agent.bot._connected = True
+    assert agent._m4_terminal_survival_verification(
+        "Remain in verified shelter until dawn",
+        dict(dawn_state, shelter_verification={"passed": True, "source": "machine_state"}),
+    ) == {}
+
+
 def test_g5_maintenance_phase_grounding_keeps_one_root_active_with_bounded_waits():
     report = M4ShelterVerifier().verify(_snapshot(), _delta())
     base = {"status": "complete", "reasoning": "already safe", "subtasks": [], "actions": []}
@@ -473,4 +523,5 @@ if __name__ == "__main__":
     test_g3_agent_tracks_place_delta_and_attaches_transition_evidence()
     test_g3_report_contract_rejects_missing_required_check()
     test_g3_planner_receives_compact_machine_state_without_coordinate_bloat()
+    test_g5_terminal_survival_verification_requires_machine_dawn_state()
     print("\nM4 G3 shelter-verifier tests PASSED")
