@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T14:29:54.8023438Z",
+  "generated_at": "2026-07-12T14:46:06.3950926Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
-  "decision": "diagnose_goal_budget_lifecycle_before_next_g5_episode",
+  "decision": "maintenance_lifecycle_passed_diagnose_protocol_temporal_horizon",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -67,9 +67,9 @@
     "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 30},
     "controlled_live_episode": false
   },
-  "live_episode_count": 10,
+  "live_episode_count": 11,
   "latest_live_observation": {
-    "episode_id": "m4_episode_20260712_222631_806bb698",
+    "episode_id": "m4_episode_20260712_224016_31e10f7d",
     "required_g4_case_verified": false,
     "non_g4_interrupt": null,
     "non_g4_interrupt_count": 0,
@@ -77,12 +77,12 @@
     "unique_trigger_task_count": 1,
     "repeated_trigger_task_count": 0,
     "expired_task_count": 0,
-    "task_id": "3376ce40",
+    "task_id": "41813099",
     "task_status_at_first_interrupt": "active",
-    "first_interrupt_monotonic": 8528.843,
-    "last_interrupt_monotonic": 8528.843,
+    "first_interrupt_monotonic": 9337.843,
+    "last_interrupt_monotonic": 9492.546,
     "first_seconds_left": 192.016,
-    "last_seconds_left": 192.016,
+    "last_seconds_left": 37.313,
     "affected_goal_count": 1,
     "post_first_recovery_action_count": 0,
     "post_first_recovery_successful_action_count": 0,
@@ -90,7 +90,7 @@
     "terminal_task_transition_observed": false,
     "resume_policy": "regenerate_survival_goal_then_resume_frontier",
     "trigger_reason": "dusk_shelter_required",
-    "escalated_reason": null,
+    "escalated_reason": "night_safety_maintenance",
     "frontier_preserved": true
   }
 }

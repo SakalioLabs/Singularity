@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | ready_for_one_live_probe_after_maintenance_lifecycle |
+| G5 | First eligible survival-to-dawn episode | diagnose_probe_11_protocol_temporal_horizon |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -59,7 +59,9 @@ Shelter-phase progression passed live in Probe 10. The autonomous chain gathered
 
 The new earliest unrecovered transition is autonomous goal-budget lifecycle. After shelter verification, GoalGenerator correctly selected `Enter and maintain verified shelter through nightfall`, but GoalVerifier immediately completed that maintenance goal from the already-safe state. The same one-cycle goal was selected twice, consuming goal slots 3 and 4. `autonomous_end` event index 304 then terminated with `max_goals_or_stopped` at world time 11226 before night, despite 135.297 seconds remaining.
 
-Maintenance-goal lifecycle is now addressed offline without increasing any budget. For the strict machine-shelter path, `through nightfall` completes only after world time enters the pinned night interval, and `until dawn` completes only at the pinned dawn boundary. Before that boundary, Planner grounding emits one 15-second bounded wait so the same root remains active, followed by a fresh observation, interrupt check, and machine verification. Missing time evidence fails closed. Full regression passed with 672 Python tests and all six fixed Node suites; one fresh G5 retest is authorized.
+Maintenance-goal lifecycle passed live in Probe 11. `Remain in verified shelter until dawn` stayed active, emitted two bounded waits, and ended only when the absolute episode deadline fired; it did not allocate another goal or terminate on `max_goals`.
+
+The new earliest unrecovered transition is the fixed protocol temporal horizon. The episode began from the pinned natural time near 9000 and ended at world time 13943 after the full 240 seconds. BM-011 requires a night observation followed by the next dawn boundary at 23000 or natural wrap below 1000. The observed 4943-tick advance is approximately 20.6 ticks/second; reaching 23000 from 9000 requires about 680 seconds before setup margin. Therefore the current 240-second deadline cannot produce eligible natural-dawn evidence even with perfect shelter and survival. The next round must revise only the fixed M4 temporal horizon and matching bounded maintenance cadence, without time commands, tick acceleration, or eligibility relaxation.
 
 ## G5 Preflight: Maintenance Goal Lifecycle
 
@@ -158,6 +160,21 @@ Maintenance-goal lifecycle is now addressed offline without increasing any budge
 - Live evidence: none; G3 is an offline deterministic gate and does not count toward BM-011
 
 ## G2 Live Evidence
+
+### Probe 11: Maintenance Root Persisted; 240 Seconds Cannot Reach Dawn
+
+- Episode: `m4_episode_20260712_224016_31e10f7d`
+- Session: `a9cf79b4-53c`
+- Preflight: passed
+- G2: failed because terminal evidence crossed the deadline; pre-dusk inventory gained `oak_log:2`
+- BM-011 eligible: false; eligible successes remain 0/3
+- Planner controls: 21/21 real calls schema-valid, zero reasoning bytes, maximum latency 16.953 seconds
+- Maintenance retest: one dawn-maintenance root remained active, two `m4_maintenance_phase_grounding` waits executed, and no replacement goal slot was allocated
+- Shelter: bounded action succeeded with 9/9 placements; post-cleanup machine shelter verification remained true
+- Terminal state: health 20, food 20, connected, world time 13943, night observed, next dawn not observed
+- Temporal proof: world time advanced about 4943 ticks in 240 seconds; natural progression from pinned 9000 to dawn 23000 requires about 680 seconds before margin
+- Deadline: ineligible; Agent reached 9529.859 exactly and manifest evidence ended 0.062 seconds later; no new post-deadline action was started
+- Evidence: `logs/benchmarks/m4/m4_episode_20260712_224016_31e10f7d/`
 
 ### Probe 10: Bounded Shelter Passed; Goal Budget Ended Before Night
 
