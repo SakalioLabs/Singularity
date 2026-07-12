@@ -1,19 +1,19 @@
 {
   "type": "m4_resource_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T23:09:23.0796138Z",
+  "generated_at": "2026-07-12T23:31:37.7176561Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "task_id": "BM-012",
   "task_name": "Get 8 iron resources",
   "task_contract_id": "m4-bm012-resource-contract-v1",
   "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
-  "readiness": "probe_1_ineligible_goal_verifier_offline_fix_required",
-  "decision": "diagnose_goal_verifier_purpose_phrase_without_live_rerun",
+  "readiness": "purpose_phrase_offline_gate_passed_probe_2_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_2",
   "hypothesis": "goal_verifier_purpose_phrase_semantic_conflation",
   "eligible_success_count": 0,
   "required_success_count": 3,
-  "next_authorized_episode": "none_goal_verifier_offline_gate_pending",
+  "next_authorized_episode": "bm012_probe_2_exactly_one",
   "contract": {
     "terminal_goal": "Collect 8 iron resources",
     "initial_time_of_day": 0,
@@ -82,10 +82,10 @@
   },
   "offline_validation": {
     "passed": true,
-    "focused_python_test_count": 70,
-    "full_python_regression": 693,
+    "focused_python_test_count": 57,
+    "full_python_regression": 696,
     "node_suite_file_count": 6,
-    "node_internal_pass_count": 35,
+    "node_internal_pass_count": 36,
     "powershell_syntax": "pass",
     "python_compilation": "pass",
     "git_diff_check": "pass",
@@ -100,7 +100,11 @@
       {"id": "missing_source_actions_rejected", "status": "pass"},
       {"id": "text_only_completion_rejected", "status": "pass"},
       {"id": "contract_limit_and_deadline_drift_rejected", "status": "pass"},
-      {"id": "capability_adapter_independent_recheck", "status": "pass"}
+      {"id": "capability_adapter_independent_recheck", "status": "pass"},
+      {"id": "probe_1_exact_resource_purpose_phrase_acceptance", "status": "pass"},
+      {"id": "purpose_phrase_incomplete_inventory_rejected", "status": "pass"},
+      {"id": "explicit_shelter_compound_requirements_preserved", "status": "pass"},
+      {"id": "agent_completion_gate_exact_reproduction", "status": "pass"}
     ]
   },
   "live_episode_run": true,
@@ -189,5 +193,18 @@
       "no_post_deadline_execution": true
     }
   },
-  "round_boundary": "BM-012 Probe 1 consumed the round's only live authorization; the next hypothesis is offline GoalVerifier purpose-phrase parsing and no second episode is allowed."
+  "offline_purpose_phrase_gate": {
+    "passed": true,
+    "scope": "goal_verifier_intent_parsing_only",
+    "exact_probe_1_goal": "Gather 6 oak logs for tools and shelter",
+    "completed_inventory": {"oak_log": 6},
+    "completed_matched_rules": ["inventory:oak_log", "anchor:manual", "intent:shelter_purpose_phrase"],
+    "incomplete_inventory": {"oak_log": 5},
+    "explicit_compound_shelter_controls_preserved": true,
+    "direct_shelter_controls_preserved": true,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "next_authorized_episode": "bm012_probe_2_exactly_one"
+  },
+  "round_boundary": "The purpose-phrase offline gate authorizes exactly one fresh BM-012 Probe 2 after the gate commit; no second episode is allowed in this round."
 }

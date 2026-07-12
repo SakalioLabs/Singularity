@@ -206,6 +206,11 @@ class GoalVerifier:
 
     DEFAULT_VERBS = ["craft", "gather", "collect", "mine", "obtain", "get", "smelt"]
     INVENTORY_GOAL_VERBS = [*DEFAULT_VERBS, "find", "build", "place"]
+    PURPOSE_MARKER_PATTERN = re.compile(r"\b(?:for|to|so\s+that)\b")
+    EXPLICIT_FOLLOWUP_PATTERN = re.compile(
+        r"(?:[;,]|\bthen\b)\s*(?:and\s+)?"
+        r"(?:build|construct|create|make|reach|enter|verify|prepare|remain|stay|survive)\b"
+    )
 
     MANUAL_ANCHORS = [
         VerifierAnchor("crafting_table", ["crafting table", "workbench"], ["crafting_table"], ["craft", "obtain", "get"]),
@@ -464,6 +469,15 @@ class GoalVerifier:
         goal_lower = goal.lower()
         if "shelter" not in goal_lower and "nightfall" not in goal_lower:
             return None
+        if self._shelter_mention_is_purpose_only(goal_lower):
+            return GoalVerification(
+                goal=goal,
+                achieved=True,
+                status="achieved",
+                confidence=1.0,
+                evidence=["shelter mention is a non-binding purpose phrase"],
+                matched_rules=["intent:shelter_purpose_phrase"],
+            )
         if "shelter_verification" in observation:
             report = observation.get("shelter_verification")
             report = report if isinstance(report, dict) else {}
@@ -523,6 +537,39 @@ class GoalVerifier:
             evidence=["shelter evidence present"] if achieved else [],
             missing=[] if achieved else ["no shelter flag, structure, or sufficient placed-block evidence"],
             matched_rules=["world:shelter"],
+        )
+
+    def _shelter_mention_is_purpose_only(self, goal_lower: str) -> bool:
+        shelter_positions = [
+            position
+            for token in ("shelter", "nightfall")
+            for position in [goal_lower.find(token)]
+            if position >= 0
+        ]
+        if not shelter_positions:
+            return False
+        first_shelter = min(shelter_positions)
+        marker = next(
+            (match for match in self.PURPOSE_MARKER_PATTERN.finditer(goal_lower) if match.start() < first_shelter),
+            None,
+        )
+        if marker is None:
+            return False
+        primary_clause = goal_lower[:marker.start()].strip(" ,;:")
+        purpose_clause = goal_lower[marker.end():].strip()
+        if not self._has_grounded_inventory_intent(primary_clause):
+            return False
+        if self.EXPLICIT_FOLLOWUP_PATTERN.search(purpose_clause):
+            return False
+        return True
+
+    def _has_grounded_inventory_intent(self, goal_lower: str) -> bool:
+        if not any(self._phrase_in_goal(verb, goal_lower) for verb in self.INVENTORY_GOAL_VERBS):
+            return False
+        return any(
+            self._anchor_verb_matches(anchor, goal_lower)
+            and any(self._phrase_in_goal(alias, goal_lower) for alias in anchor.phrases)
+            for anchor in self._ranked_anchors()
         )
 
     def _exploration_check(self, goal: str, observation: dict) -> Optional[GoalVerification]:

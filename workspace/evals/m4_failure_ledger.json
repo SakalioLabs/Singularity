@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-12T23:09:23.0796138Z",
+  "generated_at": "2026-07-12T23:31:37.7176561Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "current_task_id": "BM-012",
@@ -18,13 +18,13 @@
   "live_episode_count_under_current_protocol": 5,
   "current_gate": {
     "hypothesis": "goal_verifier_purpose_phrase_semantic_conflation",
-    "status": "bm012_probe_1_ineligible_offline_goal_verifier_gate_pending",
+    "status": "bm012_purpose_phrase_offline_gate_passed_probe_2_authorized",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
-    "full_python_regression": 693,
+    "full_python_regression": 696,
     "node_suite_file_count": 6,
-    "node_internal_pass_count": 35,
+    "node_internal_pass_count": 36,
     "m4_shelter_python_case_count": 18,
     "m4_node_case_count": 8,
     "offline_atomicity_gate_passed": true,
@@ -40,7 +40,9 @@
     "bm012_eligible_success_count": 0,
     "bm012_live_episode_count": 1,
     "bm012_latest_failure_layer": "goal_verifier_purpose_phrase_semantic_conflation",
-    "next_authorized_episode": "none_goal_verifier_offline_gate_pending"
+    "bm012_purpose_phrase_offline_gate_passed": true,
+    "bm012_purpose_phrase_focused_test_count": 57,
+    "next_authorized_episode": "bm012_probe_2_exactly_one"
   },
   "entries": [
     {

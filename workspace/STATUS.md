@@ -50,7 +50,7 @@
 - M4 is `failing`; BM-011 remains repeat-verified, but BM-012 now has a failed live attempt and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3. Its offline task gate passed, but Probe 1 was ineligible: the first wood prerequisite reached six logs at session event 208, then GoalVerifier misread the purpose phrase `for tools and shelter` as a conjunctive shelter requirement. No second run is authorized until that bounded intent-parsing defect passes offline regression. BM-013 and BM-014 remain locked.
+- BM-012 is the next target at 0/3. Probe 1 was ineligible after GoalVerifier misread `for tools and shelter` as a conjunctive shelter requirement. The bounded purpose-phrase parser now passes 57 focused and 696 full Python tests while preserving explicit shelter goals; exactly one fresh Probe 2 is authorized after the gate commit. BM-013 and BM-014 remain locked.
 
 ## Evidence Policy
 

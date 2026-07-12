@@ -118,6 +118,65 @@ def test_goal_verifier_uses_world_safety_evidence():
     print("PASS: GoalVerifier uses hostile-distance evidence")
 
 
+def test_goal_verifier_treats_resource_shelter_purpose_as_nonbinding():
+    verifier = GoalVerifier()
+
+    completed = verifier.verify(
+        "Gather 6 oak logs for tools and shelter",
+        {"inventory": {"oak_log": 6}},
+    )
+    incomplete = verifier.verify(
+        "Gather 6 oak logs to prepare shelter",
+        {"inventory": {"oak_log": 5}},
+    )
+
+    assert completed.achieved
+    assert completed.matched_rules == [
+        "inventory:oak_log",
+        "anchor:manual",
+        "intent:shelter_purpose_phrase",
+    ]
+    assert "shelter mention is a non-binding purpose phrase" in completed.evidence
+    assert "world:shelter" not in completed.matched_rules
+    assert not incomplete.achieved
+    assert incomplete.missing == ["need 6 oak_log, have 5"]
+    assert "intent:shelter_purpose_phrase" in incomplete.matched_rules
+    print("PASS: GoalVerifier keeps shelter purpose phrases non-binding for resource goals")
+
+
+def test_goal_verifier_preserves_explicit_shelter_requirements():
+    verifier = GoalVerifier()
+    observation = {"inventory": {"oak_log": 6}}
+
+    conjunctive = verifier.verify("Gather 6 oak logs and build shelter", observation)
+    followup = verifier.verify("Gather 6 oak logs for tools; then build shelter", observation)
+    shelter = verifier.verify("Build verified shelter before nightfall", observation)
+
+    for result in (conjunctive, followup, shelter):
+        assert not result.achieved
+        assert "world:shelter" in result.matched_rules
+        assert "no shelter flag, structure, or sufficient placed-block evidence" in result.missing
+        assert "intent:shelter_purpose_phrase" not in result.matched_rules
+    print("PASS: GoalVerifier preserves explicit shelter and compound-goal requirements")
+
+
+def test_agent_accepts_probe_1_resource_goal_after_machine_inventory_target():
+    agent = make_agent()
+
+    accepted, verification = agent._accept_plan_completion(
+        "Gather 6 oak logs for tools and shelter",
+        {"inventory": {"oak_log": 6}},
+        {"status": "complete", "reasoning": "Machine inventory reached the requested count"},
+        {"phase": "probe_1_reproduction"},
+    )
+
+    assert accepted
+    assert verification.achieved
+    assert agent.memory.events[-1]["data"]["context"]["acceptance_reason"] == "deterministic_evidence_satisfied"
+    assert "intent:shelter_purpose_phrase" in verification.matched_rules
+    print("PASS: Agent accepts the Probe 1 resource root once machine inventory reaches six logs")
+
+
 def test_goal_verifier_accepts_custom_anchor():
     verifier = GoalVerifier(
         anchors=[
@@ -358,6 +417,9 @@ if __name__ == "__main__":
     test_goal_verifier_uses_resource_drop_generated_anchor()
     test_goal_verifier_anchor_verbs_prevent_resource_false_match()
     test_goal_verifier_uses_world_safety_evidence()
+    test_goal_verifier_treats_resource_shelter_purpose_as_nonbinding()
+    test_goal_verifier_preserves_explicit_shelter_requirements()
+    test_agent_accepts_probe_1_resource_goal_after_machine_inventory_target()
     test_goal_verifier_accepts_custom_anchor()
     test_goal_verifier_mines_skill_postcondition_anchor()
     test_skill_description_cannot_add_unrelated_inventory_targets()

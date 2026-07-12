@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. The BM-012 offline protocol and machine-evidence gate passed, and its exactly-one Probe 1 authorization has been consumed. BM-012 remains 0/3; no second live episode is authorized in this round. BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probe 1 remains ineligible at 0/3. Its bounded GoalVerifier purpose-phrase gate now passes offline and authorizes exactly one fresh Probe 2 after this gate is committed and pushed. BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_1_consumed_ineligible_offline_fix_required |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | purpose_phrase_offline_gate_passed_probe_2_authorized |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -53,6 +53,8 @@ The new earliest unrecovered transition is `goal_verifier_purpose_phrase_semanti
 
 The immediate next Planner call at event 215 treated the resource objective as satisfied and returned no executable action, which the M4 schema correctly rejected as `planning_actions_missing`. Later shelter construction, the event-711 40-cycle root failure, twenty-one repeated `Craft oak_planks from logs` roots, and `max_goals_or_stopped` are downstream cascade. The next hypothesis is limited to GoalVerifier intent parsing for resource goals whose shelter/tool text is a purpose phrase. Probe 1 consumed this round's only live authorization; no fix or rerun occurs in this round.
 
+The bounded `goal_verifier_purpose_phrase_semantic_conflation` fix passes its offline gate. GoalVerifier now treats `shelter` or `nightfall` as non-binding only when every such mention occurs inside a `for`, `to`, or `so that` purpose clause attached to a grounded inventory objective. The exact Probe 1 goal completes from `oak_log:6`; `oak_log:5` remains incomplete; explicit `and build shelter`, semicolon/`then` follow-ups, and direct shelter/nightfall goals still require world evidence. Agent completion integration records `deterministic_evidence_satisfied`. The base protocol and BM-012 task contract hashes are unchanged, and exactly one fresh Probe 2 is authorized after the gate commit.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -62,9 +64,19 @@ The immediate next Planner call at event 215 treated the resource objective as s
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 693 Python tests, 70 focused M4 tests, all six fixed Node suites with 35 internal PASS cases, PowerShell syntax, Python compilation, and `git diff --check` pass
-- Live authorization: consumed by BM-012 Probe 1; no second episode is authorized in this round
+- Regression: 696 Python tests, 57 focused GoalVerifier/M4 integration tests, all six fixed Node suites with 36 internal PASS cases, Python compilation, and `git diff --check` pass
+- Live authorization: exactly one fresh BM-012 Probe 2 after this offline gate is committed and pushed
 - Report: `workspace/evals/m4_resource_verification.json`
+
+## BM-012 GoalVerifier Purpose-Phrase Gate
+
+- Root hypothesis: `goal_verifier_purpose_phrase_semantic_conflation`
+- Exact reproduction: `Gather 6 oak logs for tools and shelter` with `oak_log:6` previously matched both `inventory:oak_log` and `world:shelter`; it now matches `inventory:oak_log` plus `intent:shelter_purpose_phrase` and completes
+- Incomplete control: the same resource intent with five logs remains failed with `need 6 oak_log, have 5`
+- Compound controls: `Gather 6 oak logs and build shelter`, `Gather 6 oak logs for tools; then build shelter`, and `Build verified shelter before nightfall` still require `world:shelter`
+- Scope: GoalVerifier intent parsing only; no protocol, task contract, Planner, ActionVerifier, GoalGenerator, runtime, success threshold, M1, or M2 behavior changed
+- Validation: 57 focused tests, 696 full Python tests, six Node suites with 36 PASS cases, and Python compilation pass
+- Authorization: exactly one fresh BM-012 Probe 2; no second episode may run in this round
 
 ## BM-012 Live Evidence
 

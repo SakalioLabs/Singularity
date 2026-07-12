@@ -10,7 +10,7 @@ Singularity has broad source coverage and a large passing offline test surface, 
 
 Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. M1 remains complete at 15/15, M2 contributes 23 eligible current-protocol successes, and M4 now contributes three independently eligible BM-011 episodes with unique session, episode, level, and session hashes. The overall system remains incomplete.
 
-BM-012 remains 0/3. Its independently hashed offline task gate passed, then the sole authorized Probe 1 ran in a fresh world and failed before iron progression. At session event 208, a canonical dig raised `oak_log` from five to six, but GoalVerifier treated the purpose phrase in `Gather 6 oak logs for tools and shelter` as a second shelter completion condition. The resulting 40-cycle root failure and repeated plank-goal cascade are downstream. No second live run is authorized until a bounded GoalVerifier intent-parsing fix passes offline regression.
+BM-012 remains 0/3. Probe 1 failed after GoalVerifier treated the purpose phrase in `Gather 6 oak logs for tools and shelter` as a second shelter condition despite machine inventory reaching six logs. The bounded parser now marks only grounded inventory-goal `for/to/so that` shelter mentions as non-binding, while explicit conjunctions and direct shelter goals still require world evidence. The exact reproduction, Agent completion integration, 57 focused tests, 696 full Python tests, and six Node suites pass; exactly one fresh Probe 2 is authorized after the gate commit.
 
 Current report outcome:
 
