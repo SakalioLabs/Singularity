@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probe 1 remains ineligible at 0/3. Its bounded GoalVerifier purpose-phrase gate now passes offline and authorizes exactly one fresh Probe 2 after this gate is committed and pushed. BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 and 2 remain ineligible at 0/3. Probe 2 live-validated the bounded GoalVerifier purpose-phrase fix, then exposed crafting-station world-readiness grounding as the new earliest blocker. This round's only live authorization is consumed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | purpose_phrase_offline_gate_passed_probe_2_authorized |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_2_consumed_ineligible_world_readiness_fix_required |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -55,6 +55,10 @@ The immediate next Planner call at event 215 treated the resource objective as s
 
 The bounded `goal_verifier_purpose_phrase_semantic_conflation` fix passes its offline gate. GoalVerifier now treats `shelter` or `nightfall` as non-binding only when every such mention occurs inside a `for`, `to`, or `so that` purpose clause attached to a grounded inventory objective. The exact Probe 1 goal completes from `oak_log:6`; `oak_log:5` remains incomplete; explicit `and build shelter`, semicolon/`then` follow-ups, and direct shelter/nightfall goals still require world evidence. Agent completion integration records `deterministic_evidence_satisfied`. The base protocol and BM-012 task contract hashes are unchanged, and exactly one fresh Probe 2 is authorized after the gate commit.
 
+Probe 2 live-validates that fix. Goal verification event 177 completed `Gather 6 oak logs for tools and shelter` in eight cycles with `inventory:oak_log`, `anchor:manual`, and `intent:shelter_purpose_phrase`; the missing shelter rule did not recur. The Agent then crafted a machine-observed crafting table, planks, and sticks.
+
+The new earliest unrecovered transition is `curriculum_crafting_station_world_readiness_grounding`. Curriculum event 308 at monotonic 41502.359 selected `Craft wooden pickaxe` with score 59 because `crafting_table:1` existed in inventory, while observation event 313 had zero nearby placed crafting tables. Planner event 321 reasoned that an inventory table was sufficient and omitted placement; event 369 repeated that assumption. Canonical craft action event 395 then failed with underlying bridge error `No recipe for wooden_pickaxe`, `crafting_table_found=false`, and unchanged inventory despite six planks and four sticks. Thirteen later `place(block=crafting_table)` alias rejections, the event-1121 max-cycle failure, dusk progression, and the 0.031-second Agent deadline overrun are downstream. Probe 2 consumed the round's only authorization; no code fix or second episode occurs in this round.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -65,7 +69,7 @@ The bounded `goal_verifier_purpose_phrase_semantic_conflation` fix passes its of
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 696 Python tests, 57 focused GoalVerifier/M4 integration tests, all six fixed Node suites with 36 internal PASS cases, Python compilation, and `git diff --check` pass
-- Live authorization: exactly one fresh BM-012 Probe 2 after this offline gate is committed and pushed
+- Live authorization: consumed by BM-012 Probe 2; no second episode is authorized in this round
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -76,9 +80,32 @@ The bounded `goal_verifier_purpose_phrase_semantic_conflation` fix passes its of
 - Compound controls: `Gather 6 oak logs and build shelter`, `Gather 6 oak logs for tools; then build shelter`, and `Build verified shelter before nightfall` still require `world:shelter`
 - Scope: GoalVerifier intent parsing only; no protocol, task contract, Planner, ActionVerifier, GoalGenerator, runtime, success threshold, M1, or M2 behavior changed
 - Validation: 57 focused tests, 696 full Python tests, six Node suites with 36 PASS cases, and Python compilation pass
-- Authorization: exactly one fresh BM-012 Probe 2; no second episode may run in this round
+- Live result: Probe 2 emitted the expected purpose-phrase matched rule and completed the original resource root in eight cycles
+- Authorization: consumed by BM-012 Probe 2; no second episode may run in this round
 
 ## BM-012 Live Evidence
+
+### Probe 2: Purpose Phrase Passed; Unplaced Crafting Table Blocked Tool Progression
+
+- Episode: `m4_episode_20260713_073547_798a7440`
+- Session: `4fc81174-b01`
+- Level: `m4_episode_20260713_073547_798a7440_bm012`
+- Preflight: passed with the unchanged base and BM-012 task-contract hashes, empty inventory, fresh time-0 level, and exact `600/24/40/320` limits
+- Result: ineligible; BM-012 remains 0/3, with no terminal resource event and zero iron-source actions
+- Prior hypothesis: passed live at goal-verification event 177; `oak_log:6` completed the exact Probe 1 root with `intent:shelter_purpose_phrase`, and auto-goal event 178 closed it after eight cycles
+- Earliest blocker: Curriculum event 308 / monotonic 41502.359 selected `Craft wooden pickaxe` while `crafting_table:1` was only in inventory and the nearby placed-table count was zero
+- Planner corroboration: event 321 said `Already have crafting_table` and omitted a place prerequisite; event 369 said an inventory table allowed immediate wooden-pickaxe craft
+- First failed action: event 395 / monotonic 41523.562 used canonical `craft(item=wooden_pickaxe,count=1)` with six planks and four sticks, but the bridge reported `No recipe for wooden_pickaxe`, `crafting_table_found=false`, and no inventory delta
+- Downstream cascade: thirteen `place(block=crafting_table)` aliases were rejected for missing canonical `item`; the wooden-pickaxe and place-table roots exhausted 40 cycles before dusk survival preempted progression
+- Goals: 11 roots; seven completed, three failed, and one interrupted
+- Planner: 120/120 real calls, 119 schema-valid, maximum latency 6.656 seconds, 385894 tokens, and zero reasoning bytes
+- Actions: 43 attempted and 29 successful; `move_to` 8/8, `dig` 6/6, `craft` 6/7, `place` 0/13, `look_at` 5/5, `build_shelter_cell` 1/1, and `wait` 3/3
+- Resource state: initial and terminal iron counts were zero; terminal inventory was `crafting_table:1`, `stick:4`, `oak_planks:9`, `wheat_seeds:1`, `oak_log:1`
+- Survival state: 164 lifecycle-bound observations, zero deaths/respawns, health/food 20, and one machine shelter pass
+- Interrupts: 84 task-deadline triggers plus one dusk trigger, all with matching recoveries
+- Deadline: Agent ended 0.031 seconds and evidence 0.156 seconds after the absolute deadline; no task success is eligible
+- Round boundary: this was the only live episode; no second BM-012 run is authorized
+- Evidence: `logs/benchmarks/m4/m4_episode_20260713_073547_798a7440/`
 
 ### Probe 1: Resource Goal Fulfilled but Purpose Phrase Blocked Completion
 

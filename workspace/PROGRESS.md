@@ -2,7 +2,7 @@
 
 ## Convergence Result
 
-M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has one failed live attempt and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
+M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has two failed live attempts and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
 
 ## Current Assessment
 
@@ -10,7 +10,7 @@ Singularity has broad source coverage and a large passing offline test surface, 
 
 Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. M1 remains complete at 15/15, M2 contributes 23 eligible current-protocol successes, and M4 now contributes three independently eligible BM-011 episodes with unique session, episode, level, and session hashes. The overall system remains incomplete.
 
-BM-012 remains 0/3. Probe 1 failed after GoalVerifier treated the purpose phrase in `Gather 6 oak logs for tools and shelter` as a second shelter condition despite machine inventory reaching six logs. The bounded parser now marks only grounded inventory-goal `for/to/so that` shelter mentions as non-binding, while explicit conjunctions and direct shelter goals still require world evidence. The exact reproduction, Agent completion integration, 57 focused tests, 696 full Python tests, and six Node suites pass; exactly one fresh Probe 2 is authorized after the gate commit.
+BM-012 remains 0/3. Probe 2 live-validated the purpose-phrase fix at goal-verification event 177, then exposed `curriculum_crafting_station_world_readiness_grounding`: event 308 selected `Craft wooden pickaxe` while `crafting_table:1` was only in inventory and no placed table was nearby. Planner events 321 and 369 treated inventory possession as an available 3x3 station; canonical craft event 395 failed with `No recipe for wooden_pickaxe`. Thirteen later place aliases, dusk handling, and the deadline overrun are downstream. No further live run is authorized until the bounded world-readiness gate passes offline.
 
 Current report outcome:
 

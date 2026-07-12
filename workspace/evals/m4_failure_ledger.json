@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-12T23:31:37.7176561Z",
+  "generated_at": "2026-07-12T23:51:02.7166522Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "current_task_id": "BM-012",
@@ -15,10 +15,10 @@
       "required_success_count": 3
     }
   ],
-  "live_episode_count_under_current_protocol": 5,
+  "live_episode_count_under_current_protocol": 6,
   "current_gate": {
-    "hypothesis": "goal_verifier_purpose_phrase_semantic_conflation",
-    "status": "bm012_purpose_phrase_offline_gate_passed_probe_2_authorized",
+    "hypothesis": "curriculum_crafting_station_world_readiness_grounding",
+    "status": "bm012_probe_2_ineligible_world_readiness_offline_gate_pending",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
@@ -28,9 +28,9 @@
     "m4_shelter_python_case_count": 18,
     "m4_node_case_count": 8,
     "offline_atomicity_gate_passed": true,
-    "live_episode_count_under_current_protocol": 5,
+    "live_episode_count_under_current_protocol": 6,
     "latest_accepted_episode": "m4_episode_20260713_055737_6d976e6d",
-    "latest_episode": "m4_episode_20260713_065904_b2b7b898",
+    "latest_episode": "m4_episode_20260713_073547_798a7440",
     "live_atomicity_recovery_passed": true,
     "bm011_eligible_success_count": 3,
     "bm011_status": "repeat_verified",
@@ -38,11 +38,12 @@
     "bm012_task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
     "bm012_offline_gate_passed": true,
     "bm012_eligible_success_count": 0,
-    "bm012_live_episode_count": 1,
-    "bm012_latest_failure_layer": "goal_verifier_purpose_phrase_semantic_conflation",
+    "bm012_live_episode_count": 2,
+    "bm012_latest_failure_layer": "curriculum_crafting_station_world_readiness_grounding",
     "bm012_purpose_phrase_offline_gate_passed": true,
     "bm012_purpose_phrase_focused_test_count": 57,
-    "next_authorized_episode": "bm012_probe_2_exactly_one"
+    "bm012_purpose_phrase_live_validated": true,
+    "next_authorized_episode": "none_world_readiness_offline_gate_pending"
   },
   "entries": [
     {
@@ -3283,6 +3284,209 @@
       },
       "patch_or_experiment_summary": "Ran exactly one fresh BM-012 Probe 1 from committed gate 61d4b1b. No code, protocol, success threshold, world intervention, or external step script changed during the live episode.",
       "retest_result": "The task-contract preflight and runtime bindings passed, but GoalVerifier conflated the resource goal's shelter purpose phrase with a shelter completion criterion after oak_log reached 6. BM-012 remains 0/3; no second live episode ran in this round."
+    },
+    {
+      "task_id": "BM-012",
+      "episode_id": "m4_episode_20260713_073547_798a7440",
+      "session_id": "4fc81174-b01",
+      "level_name": "m4_episode_20260713_073547_798a7440_bm012",
+      "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "task_contract_id": "m4-bm012-resource-contract-v1",
+      "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+      "seed": "12345",
+      "start_monotonic": 41418.64,
+      "agent_end_monotonic": 42018.671,
+      "end_monotonic": 42018.796,
+      "duration_s": 600.156,
+      "agent_elapsed_s": 600.031,
+      "autonomous_goal_summary": {
+        "attempted": 11,
+        "completed": 7,
+        "failed": 3,
+        "interrupted": 1,
+        "goals": [
+          "Gather 6 oak logs for tools and shelter",
+          "Find and gather 6 oak logs",
+          "Craft crafting table",
+          "Craft oak_planks for Craft crafting_table",
+          "Craft oak_planks for Craft crafting_table",
+          "Craft wooden pickaxe",
+          "Place crafting table",
+          "Place crafting table on grass_block",
+          "Build verified shelter before nightfall",
+          "Enter and maintain verified shelter through nightfall",
+          "Remain in verified shelter until dawn"
+        ]
+      },
+      "prior_hypothesis_live_validation": {
+        "hypothesis": "goal_verifier_purpose_phrase_semantic_conflation",
+        "passed": true,
+        "goal_verification_event_index": 177,
+        "auto_goal_complete_event_index": 178,
+        "goal": "Gather 6 oak logs for tools and shelter",
+        "cycles": 8,
+        "matched_rules": ["inventory:oak_log", "anchor:manual", "intent:shelter_purpose_phrase"],
+        "missing": []
+      },
+      "failure_layer": "curriculum_crafting_station_world_readiness_grounding",
+      "first_unrecovered_transition": {
+        "session_event_index": 308,
+        "monotonic_s": 41502.359,
+        "event_type": "curriculum_goal",
+        "selected_goal": "Craft wooden pickaxe",
+        "selection_reason": "curriculum_ranked:unlock_stone_mining",
+        "selection_score": 59.0,
+        "required_items": {"crafting_table": 1},
+        "fallback_goal": "Gather 6 oak logs for iron-tool progression",
+        "observation_event_index": 313,
+        "inventory": {"oak_log": 4, "crafting_table": 1, "oak_planks": 4},
+        "nearby_placed_crafting_table_count": 0,
+        "planner_call_event_index": 317,
+        "planner_call_id": "llm-2ad7089384cb4d8c",
+        "planner_plan_event_index": 321,
+        "planner_reasoning_error": "Already have crafting_table; inventory possession was treated as an available 3x3 crafting station and no place prerequisite was added.",
+        "failed_action_event_index": 395,
+        "failed_action_monotonic_s": 41523.562,
+        "failed_action": {"type": "craft", "parameters": {"item": "wooden_pickaxe", "count": 1}},
+        "failed_action_underlying_error": "No recipe for wooden_pickaxe",
+        "crafting_table_found": false,
+        "before_inventory": {"oak_log": 3, "crafting_table": 1, "oak_planks": 6, "stick": 4},
+        "after_inventory": {"oak_log": 3, "crafting_table": 1, "oak_planks": 6, "stick": 4}
+      },
+      "downstream_cascade": {
+        "place_alias_rejection_count": 13,
+        "place_alias_shape": {"type": "place", "parameters": {"block": "crafting_table"}},
+        "place_alias_error": "place action missing item parameter",
+        "wooden_pickaxe_root_failure_event_index": 1121,
+        "wooden_pickaxe_root_failure_reason": "max_cycles",
+        "dusk_interrupt_event_index": 2099,
+        "episode_termination_reason": "episode_deadline",
+        "not_the_earliest_blocker": true
+      },
+      "planner_controls": {
+        "call_count": 120,
+        "real_call_count": 120,
+        "schema_valid_count": 119,
+        "schema_invalid_count": 1,
+        "planner_output_recovery_count": 0,
+        "planner_transport_recovery_count": 0,
+        "maximum_duration_ms": 6656,
+        "total_tokens": 385894,
+        "reasoning_content_byte_count": 0,
+        "transport_error_count": 0,
+        "provider_control_violation_count": 0
+      },
+      "action_summary": {
+        "attempted": 43,
+        "successful": 29,
+        "by_type": {
+          "move_to": {"attempted": 8, "successful": 8},
+          "dig": {"attempted": 6, "successful": 6},
+          "craft": {"attempted": 7, "successful": 6},
+          "place": {"attempted": 13, "successful": 0},
+          "look_at": {"attempted": 5, "successful": 5},
+          "build_shelter_cell": {"attempted": 1, "successful": 1},
+          "wait": {"attempted": 3, "successful": 3}
+        }
+      },
+      "resource_acquisition": {
+        "initial_inventory": {"raw_iron": 0, "iron_ore": 0},
+        "terminal_inventory": {"raw_iron": 0, "iron_ore": 0},
+        "positive_inventory_delta": {"raw_iron": 0, "iron_ore": 0},
+        "successful_source_action_count": 0,
+        "terminal_target_passed": false
+      },
+      "shelter_verification": {
+        "machine_verification_count": 5,
+        "machine_pass_count": 1,
+        "first_pass_event_index": 2143,
+        "first_pass_monotonic": 41935.515
+      },
+      "player_lifecycle_continuity": {
+        "verifier_id": "m4-player-lifecycle-verifier-v1",
+        "source": "mineflayer_events",
+        "active_observation_count": 164,
+        "canonical_lifecycle_event_count": 1,
+        "maximum_valid_death_count": 0,
+        "maximum_valid_respawn_count": 0,
+        "uninterrupted_survival": true,
+        "terminal_health": 20,
+        "terminal_food": 20,
+        "paper_death_message_count": 0,
+        "paper_stdout_sha256": "690d1fcf513a2275f19d40090295b8246888849f4a347846f9a3d4e1024407fb"
+      },
+      "runtime_interrupts": {
+        "trigger_count": 85,
+        "recovery_count": 85,
+        "reason_counts": {"task_deadline_elapsed": 84, "dusk_shelter_required": 1},
+        "unique_runtime_trigger_id_count": 1,
+        "concurrent_root_violation_count": 0
+      },
+      "deadline_status": {
+        "episode_deadline_monotonic": 42018.64,
+        "agent_end_monotonic": 42018.671,
+        "evidence_end_monotonic": 42018.796,
+        "agent_overrun_s": 0.031,
+        "evidence_overrun_s": 0.156,
+        "post_deadline_action_count": 0,
+        "post_deadline_plan_count": 0,
+        "post_deadline_planner_call_count": 0,
+        "post_deadline_bookkeeping_event_count": 11,
+        "deadline_eligible": false
+      },
+      "terminal_state": {
+        "time_of_day": 12066,
+        "result_time_of_day": 12146,
+        "health": 20,
+        "food": 20,
+        "inventory": {"crafting_table": 1, "stick": 4, "oak_planks": 9, "wheat_seeds": 1, "oak_log": 1},
+        "position": {"x": 106.39695708172346, "y": 136, "z": -28.50000000000035}
+      },
+      "skill_attribution": {
+        "skill_execution_mode": "off",
+        "selected_count": 0,
+        "executed_count": 0,
+        "quarantined_count": 0,
+        "contribution": "none"
+      },
+      "eligibility": {
+        "preflight_passed": true,
+        "progress_gate_passed": false,
+        "runner_reported_task_eligible": false,
+        "independently_accepted_task_eligible": false,
+        "eligible_success_count": 0,
+        "issues": [
+          "event:terminal_resource_verification",
+          "resource_terminal_inventory_target",
+          "resource_successful_source_actions",
+          "resource_positive_inventory_delta",
+          "terminal_machine_verification",
+          "episode_within_deadline",
+          "result_duration_eligible"
+        ]
+      },
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260713_073547_798a7440/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260713_073547_798a7440/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260713_073547_798a7440/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260713_073547_798a7440/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260713_073547_798a7440/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260713_073547_798a7440/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260713_073547_798a7440/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260713_073547_798a7440/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "ece2f2919ab87c83eea2d72d9cb5e69094e332e684690569bc45daa03f266741",
+        "manifest": "d83911b0f7f563a2eccbaaa4ccda29d1aee3fe0dbdc73e65fcb445da01880422",
+        "session": "d13367a8ac74e9cac22874fea94af1bcfd2bd6952f1543810a6d5ab290d7bedd",
+        "result": "3da801e8eda1a9a459cace2eff4eaaf9a43e0d1db3c74315f1248c36cc67ba16",
+        "eligibility": "eda2202be2e54b0d082beb7b9b1942422a2b95d4c136435c1cb7bbf67f499cbd",
+        "preparation": "8194ab860f3f334f4aec13cf187040dd8b5bd4af3e60118bd234ca3f7f4445be",
+        "protocol_status": "f1d321699381853ee21e4d5854985d3eaed982c49ec3a090dddd54fb3f80bb81",
+        "reset": "e1f8e8b6a67d3dfcd8dbb58990f26a819102fc2814bebb80c00157cc28262a81"
+      },
+      "patch_or_experiment_summary": "Ran exactly one fresh BM-012 Probe 2 from committed gate 47149d7. No code, protocol, success threshold, world intervention, external step script, or second episode changed the live run.",
+      "retest_result": "Probe 2 live-validated the purpose-phrase fix and completed the original six-log root in eight cycles. Curriculum then treated an inventory crafting table as a usable placed station, Planner omitted placement, and the wooden-pickaxe craft failed with no recipe. BM-012 remains 0/3; no second live episode ran in this round."
     }
   ]
 }

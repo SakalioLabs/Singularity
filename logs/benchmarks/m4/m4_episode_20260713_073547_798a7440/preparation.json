@@ -1,0 +1,217 @@
+{
+  "type": "m4_resource_progress_report",
+  "schema_version": 1,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "task_contract_id": "m4-bm012-resource-contract-v1",
+  "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+  "readiness": "review",
+  "decision": "diagnose_first_unrecovered_transition",
+  "progress_gate_passed": false,
+  "counts_toward_task_success": false,
+  "episode_id": "m4_episode_20260713_073547_798a7440",
+  "session_id": "4fc81174-b01",
+  "level_name": "m4_episode_20260713_073547_798a7440_bm012",
+  "autonomous_goals": [
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 1,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 61.0
+    },
+    {
+      "goal": "Find and gather 6 oak logs",
+      "goal_index": 2,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "ready_task_selected",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting table",
+      "goal_index": 3,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:unlock_crafting_grid",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 55.0
+    },
+    {
+      "goal": "Craft oak_planks for Craft crafting_table",
+      "goal_index": 4,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "readiness_recovery_selected",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft oak_planks for Craft crafting_table",
+      "goal_index": 5,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "ready_task_selected",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft wooden pickaxe",
+      "goal_index": 6,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:unlock_stone_mining",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 59.0
+    },
+    {
+      "goal": "Place crafting table",
+      "goal_index": 7,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "ready_task_selected",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Place crafting table on grass_block",
+      "goal_index": 8,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "ready_task_selected",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Build verified shelter before nightfall",
+      "goal_index": 9,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "dusk_without_machine_verified_shelter",
+      "priority": 4,
+      "priority_class": "shelter_preparation"
+    },
+    {
+      "goal": "Enter and maintain verified shelter through nightfall",
+      "goal_index": 10,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "dusk_with_machine_verified_shelter",
+      "priority": 5,
+      "priority_class": "night_safety_maintenance"
+    },
+    {
+      "goal": "Remain in verified shelter until dawn",
+      "goal_index": 11,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "night_with_machine_verified_shelter",
+      "priority": 5,
+      "priority_class": "night_safety_maintenance"
+    }
+  ],
+  "planner_provider_controls": {
+    "passed": true,
+    "call_count": 120,
+    "real_call_count": 120,
+    "schema_valid_real_call_count": 119,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 0,
+    "max_call_duration_ms": 6656.0,
+    "total_token_usage": 385894,
+    "violations": []
+  },
+  "action_count": 43,
+  "successful_action_count": 29,
+  "resource_acquisition": {
+    "target_items": [
+      "raw_iron",
+      "iron_ore"
+    ],
+    "initial_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "initial_target_count": 0,
+    "qualifying_items": [],
+    "terminal_target_passed": false,
+    "positive_inventory_delta": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "positive_inventory_delta_passed": false,
+    "successful_source_action_count": 0,
+    "successful_source_actions": []
+  },
+  "before_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 146,
+    "nearby_hostile_count": 0
+  },
+  "after_state": {
+    "position": {
+      "x": 106.39695708172346,
+      "y": 136,
+      "z": -28.50000000000035
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {
+      "crafting_table": 1,
+      "stick": 4,
+      "oak_planks": 9,
+      "wheat_seeds": 1,
+      "oak_log": 1
+    },
+    "time_of_day": 12066,
+    "nearby_hostile_count": 0
+  },
+  "time_remaining_s": 0.0,
+  "first_unrecovered_transition": {
+    "event_type": "action",
+    "goal": "Craft wooden pickaxe",
+    "action": {
+      "type": "craft",
+      "parameters": {
+        "item": "wooden_pickaxe",
+        "count": 1
+      }
+    },
+    "error": "Crafted wooden_pickaxe output did not remain stable after 3 attempts",
+    "monotonic_s": 41523.562
+  },
+  "deadline_eligible": false,
+  "evidence_eligible": false,
+  "eligibility_issues": [
+    "event:terminal_resource_verification",
+    "resource_terminal_inventory_target",
+    "resource_successful_source_actions",
+    "resource_positive_inventory_delta",
+    "terminal_machine_verification",
+    "episode_within_deadline",
+    "result_duration_eligible"
+  ]
+}
