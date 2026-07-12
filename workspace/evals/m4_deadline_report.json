@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T16:06:42.7190008Z",
+  "generated_at": "2026-07-12T16:46:31.6855140Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
-  "readiness": "approved",
-  "decision": "probe_13_deadline_passed_diagnose_verified_shelter_hostile_flee",
+  "readiness": "blocked_by_active_episode_death_continuity",
+  "decision": "probe_14_deadline_passed_but_runner_eligibility_false_positive_after_two_deaths",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -72,6 +72,12 @@
       "name": "planner_transport_next_cycle_goal_preservation",
       "status": "pass",
       "evidence": "src/singularity/core/agent.py; tests/test_m4_deadline.py"
+    },
+    {
+      "name": "active_episode_death_continuity",
+      "status": "fail",
+      "evidence": "Probe 14 Paper runtime log and canonical observation transitions 1183->1198, 1224->1238",
+      "detail": "Two zombie deaths were not represented in canonical session evidence and did not invalidate terminal eligibility."
     }
   ],
   "planner_transport_recovery": {
@@ -92,26 +98,30 @@
     "max_total_cycles": 320,
     "harness_requires_exact_match": true,
     "terminal_result_requires_machine_event": true,
-    "full_python_regression": 675,
+    "full_python_regression": 679,
     "node_suite_count": 6
   },
-  "g0_passed": true,
-  "live_episode_count": 13,
+  "g0_passed": false,
+  "live_episode_count": 14,
   "latest_live_episode": {
-    "episode_id": "m4_episode_20260712_234515_7644ff79",
-    "session_id": "56274454-2cf",
-    "episode_deadline_monotonic": 14384.812,
-    "agent_end_monotonic": 14197.656,
-    "agent_remaining_s": 187.156,
-    "evidence_end_monotonic": 14197.703,
-    "remaining_s": 187.109,
+    "episode_id": "m4_episode_20260713_002858_94ea560e",
+    "session_id": "2f005489-d89",
+    "episode_deadline_monotonic": 17010.046,
+    "agent_end_monotonic": 16511.0,
+    "agent_remaining_s": 499.046,
+    "evidence_end_monotonic": 16511.046,
+    "remaining_s": 499.0,
     "post_deadline_action_count": 0,
     "post_deadline_plan_count": 0,
     "post_deadline_planner_call_count": 0,
     "post_deadline_late_plan_evidence_count": 0,
     "no_post_deadline_execution": true,
     "deadline_eligible": true,
-    "result_duration_eligible": false,
-    "eligibility_issue": "result_duration_eligible"
+    "result_duration_eligible": true,
+    "runner_reported_eligible": true,
+    "server_observed_death_count": 2,
+    "active_episode_survival_continuity_eligible": false,
+    "independently_accepted_eligible": false,
+    "eligibility_issue": "active_episode_player_death_not_rejected"
   }
 }

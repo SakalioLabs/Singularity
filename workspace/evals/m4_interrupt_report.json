@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T16:25:02.7300094Z",
+  "generated_at": "2026-07-12T16:46:31.6855140Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
-  "readiness": "approved",
-  "decision": "probe_14_authorized_after_verified_shelter_safe_state_offline_gate",
+  "readiness": "blocked_by_active_episode_death_continuity",
+  "decision": "probe_14_safe_state_branch_unexercised_and_hostile_flee_chain_ended_in_two_deaths",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -75,6 +75,13 @@
       "emergency_action": null,
       "outward_move_suppressed": true,
       "status": "pass"
+    },
+    "probe_14_live_result": {
+      "grounding_event_count": 0,
+      "verified_shelter_outside_hostile_observation_count": 0,
+      "prior_failure_recurred": false,
+      "branch_exercised": false,
+      "status": "not_exercised_live"
     }
   },
   "offline_validation": {
@@ -107,42 +114,42 @@
     "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 30},
     "controlled_live_episode": false
   },
-  "live_episode_count": 13,
+  "live_episode_count": 14,
   "latest_live_observation": {
-    "episode_id": "m4_episode_20260712_234515_7644ff79",
+    "episode_id": "m4_episode_20260713_002858_94ea560e",
     "required_g4_case_verified": false,
-    "non_g4_interrupt": "task_deadline_elapsed",
-    "non_g4_interrupt_count": 6,
-    "recovery_event_count": 12,
-    "unique_trigger_task_count": 6,
-    "repeated_trigger_task_count": 0,
-    "expired_task_count": 69,
-    "task_id": "3a7a6f75",
-    "task_status_at_first_interrupt": "active",
-    "first_interrupt_monotonic": 13233.5,
-    "last_interrupt_monotonic": 14141.75,
-    "first_seconds_left": 1151.312,
-    "last_seconds_left": 243.062,
-    "affected_goal_count": 4,
-    "post_first_recovery_action_count": 21,
-    "post_first_recovery_successful_action_count": 16,
-    "first_resumed_action_monotonic": 13835.421,
-    "terminal_task_transition_observed": false,
+    "runtime_interrupt_count": 2,
+    "recovery_event_count": 1,
+    "trigger_reason": "hostile_nearby",
+    "trigger_id": "interrupt-0002",
+    "interrupt_event_index": 1145,
+    "interrupt_monotonic": 16119.578,
+    "hostile_id": 1286,
+    "hostile_type": "zombie",
+    "hostile_distance": 6.3,
+    "shelter_verified_at_interrupt": false,
+    "emergency_action": {
+      "type": "move_to",
+      "parameters": {"x": 92.465, "y": 135, "z": -32.956}
+    },
+    "emergency_action_success": true,
+    "aligned_goal": "Flee from the nearest hostile mob toward safety",
+    "aligned_goal_first_plan_action": "build_shelter_cell",
+    "aligned_goal_first_action_event_index": 1179,
+    "aligned_goal_first_action_result": "stale_origin_rejected",
+    "health_before_first_death": 7.999998092651367,
+    "hostile_distance_before_first_death": 1.1,
+    "server_observed_death_count": 2,
+    "server_death_messages": [
+      "00:34:41 Singularity was slain by Zombie",
+      "00:35:04 Singularity was slain by Zombie"
+    ],
+    "verified_shelter_first_world_time": 17832,
+    "verified_shelter_preserved_through_dawn": true,
+    "safe_state_grounding_event_count": 0,
+    "runner_reported_eligible": true,
+    "independently_accepted_eligible": false,
     "resume_policy": "regenerate_survival_goal_then_resume_frontier",
-    "trigger_reason": "dusk_shelter_required",
-    "escalated_reason": "verified_shelter_hostile_nearby",
-    "frontier_preserved": true,
-    "safe_state_violation": {
-      "interrupt_event_index": 933,
-      "action_event_index": 943,
-      "hostile_type": "skeleton",
-      "hostile_distance": 5.1,
-      "hostile_inside_shelter": false,
-      "direct_reachability": "blocked",
-      "shelter_verified_before": true,
-      "emergency_action": "move_to",
-      "movement_distance": 7.894,
-      "shelter_verified_after": false
-    }
+    "frontier_preserved": true
   }
 }

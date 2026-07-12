@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-12T16:06:42.7190008Z",
+  "generated_at": "2026-07-12T16:46:31.6855140Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "current_task_id": "BM-011",
@@ -2007,6 +2007,219 @@
       },
       "patch_or_experiment_summary": "Added strict-M4 next-cycle recovery for structured single-attempt Planner connection/timeout failures without changing same-call retries or the protocol; ran exactly one fresh Probe 13.",
       "retest_result": "No Planner transport failure occurred live, zero transport recoveries were emitted, and the Probe 12 empty-plan abandonment did not recur. The new earliest blocker is a hostile interrupt that moved the Agent out of a complete machine-verified shelter shortly before natural dawn; no second live episode was run."
+    },
+    {
+      "task_id": "BM-011",
+      "episode_id": "m4_episode_20260713_002858_94ea560e",
+      "session_id": "2f005489-d89",
+      "level_name": "m4_episode_20260713_002858_94ea560e_bm011",
+      "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+      "seed": "12345",
+      "start_monotonic": 15810.046,
+      "end_monotonic": 16511.046,
+      "duration_s": 701.0,
+      "agent_elapsed_s": 700.954,
+      "autonomous_goals": [
+        {"goal_index": 1, "goal": "Gather 6 oak logs for tools and shelter", "priority": 6, "outcome": "suspended", "termination_reason": "runtime_interrupt:dusk_shelter_required"},
+        {"goal_index": 2, "goal": "Build verified shelter before nightfall", "priority": 4, "outcome": "failed", "termination_reason": "max_cycles"},
+        {"goal_index": 3, "goal": "Reach or build emergency verified shelter immediately", "priority": 4, "outcome": "suspended", "termination_reason": "runtime_interrupt:hostile_nearby"},
+        {"goal_index": 4, "goal": "Flee from the nearest hostile mob toward safety", "priority": 1, "outcome": "completed_after_two_deaths", "termination_reason": "goal_verified"},
+        {"goal_index": 5, "goal": "Reach or build emergency verified shelter immediately", "priority": 4, "outcome": "completed_after_two_deaths", "termination_reason": "goal_verified"},
+        {"goal_index": 6, "goal": "Remain in verified shelter until dawn", "priority": 5, "outcome": "completed_after_two_deaths", "termination_reason": "goal_verified"}
+      ],
+      "first_unrecovered_transition": {
+        "event_type": "plan",
+        "transition": "aligned_flee_goal_planned_shelter_build_before_first_death",
+        "runtime_interrupt_event_index": 1145,
+        "plan_event_index": 1169,
+        "action_event_index": 1179,
+        "goal": "Flee from the nearest hostile mob toward safety",
+        "monotonic_s": 16125.109,
+        "first_death_interval": {"after_observation_event_index": 1183, "before_observation_event_index": 1198},
+        "automatic_preparation_diagnostic": {
+          "event_type": "auto_goal_failed",
+          "goal": "Build verified shelter before nightfall",
+          "monotonic_s": 16077.75,
+          "termination_reason": "max_cycles",
+          "recovered_later": true
+        }
+      },
+      "failure_layer": "terminal_survival_death_continuity",
+      "causal_behavior_layer": "aligned_hostile_goal_action_grounding",
+      "before_state": {
+        "session_event_index": 1163,
+        "observed_monotonic_s": 16121.125,
+        "health": 16.66666603088379,
+        "inventory": {"oak_planks": 32, "stick": 1},
+        "position": {"x": 92.49695711438464, "y": 135, "z": -33.5},
+        "world_time": 15372,
+        "shelter_verified": false,
+        "nearby_hostile": {
+          "id": 1286,
+          "type": "zombie",
+          "distance": 5.3,
+          "position": {"x": 93.9729532407353, "y": 135, "z": -38.63115760411963}
+        }
+      },
+      "attempted_plan_action": {
+        "planner_call_id": "llm-3cb48e2e98574085",
+        "plan_event_index": 1169,
+        "planned_action": {"type": "build_shelter_cell", "parameters": {"origin": {"x": 93, "y": 134, "z": -34}, "material": "oak_planks"}},
+        "action_event_index": 1179,
+        "action_verification_status": "reject",
+        "action_result_success": false,
+        "action_result_error": "Action verification rejected: requested sealed-cell origin does not match current player cell",
+        "pre_action_health": 7.999998092651367,
+        "pre_action_hostile_distance": 1.1,
+        "safe_flee_progress": false
+      },
+      "death_continuity_evidence": {
+        "server_observed_death_count": 2,
+        "server_messages": [
+          "00:34:41 Singularity was slain by Zombie",
+          "00:35:04 Singularity was slain by Zombie"
+        ],
+        "diagnostic_server_log_sha256": "9cbe6e2533298e1c989fb8bedb713df2498bccbf7682185aec47322e26351a4d",
+        "diagnostic_server_log_committed": false,
+        "canonical_death_event_count": 0,
+        "terminal_verifier_death_check_present": false,
+        "eligibility_death_check_present": false,
+        "first_death_corroboration": {
+          "before_event_index": 1183,
+          "before_world_time": 15472,
+          "before_health": 7.999998092651367,
+          "before_inventory": {"oak_planks": 32, "stick": 1},
+          "after_event_index": 1198,
+          "after_world_time": 15692,
+          "after_health": 20,
+          "after_inventory": {"stick": 1}
+        },
+        "second_death_corroboration": {
+          "before_event_index": 1224,
+          "before_world_time": 15912,
+          "before_health": 8.000001907348633,
+          "before_inventory": {"stick": 1},
+          "after_event_index": 1238,
+          "after_world_time": 16192,
+          "after_health": 20,
+          "after_inventory": {}
+        }
+      },
+      "after_state": {
+        "session_event_index": 1198,
+        "observed_monotonic_s": 16137.015,
+        "health": 20,
+        "inventory": {"stick": 1},
+        "position": {"x": 92.5, "y": 135, "z": -24.469320266967443},
+        "world_time": 15692,
+        "shelter_verified": false,
+        "death_already_invalidated_episode": true
+      },
+      "terminal_state": {
+        "session_event_index": 1670,
+        "observed_monotonic_s": 16511.0,
+        "world_time": 23172,
+        "health": 20,
+        "food": 20,
+        "bot_connected": true,
+        "inventory": {"dark_oak_planks": 3},
+        "shelter_verified": true,
+        "terminal_survival_verification_count": 1,
+        "terminal_snapshot_passed": true,
+        "uninterrupted_survival_passed": false
+      },
+      "planner_recovery": {
+        "call_count": 80,
+        "real_call_count": 78,
+        "schema_valid_real_call_count": 78,
+        "transport_error_count": 2,
+        "planner_transport_recovery_count": 2,
+        "planner_output_recovery_count": 0,
+        "empty_plan_count": 0,
+        "transport_goal_preservation_passed": true,
+        "transport_error_chain": ["APIConnectionError", "ConnectError", "ConnectError", "SSLEOFError"]
+      },
+      "shelter_and_maintenance": {
+        "bounded_shelter_action_count": 43,
+        "bounded_shelter_success_count": 1,
+        "no_grounded_neighbor_failure_count": 41,
+        "stale_origin_rejection_count": 1,
+        "matched_episode_placement_count": 9,
+        "machine_verified_world_time": 17832,
+        "terminal_machine_verified_world_time": 23172,
+        "successful_wait_count": 12,
+        "machine_verification_lost_after_first_pass": false
+      },
+      "safe_state_grounding_retest": {
+        "m4_hostile_safe_state_grounding_event_count": 0,
+        "verified_shelter_outside_hostile_observation_count": 0,
+        "probe_13_failure_recurred": false,
+        "branch_exercised_live": false,
+        "result": "not_exercised"
+      },
+      "action_summary": {
+        "action_count": 78,
+        "successful_action_count": 32,
+        "move_to": {"total": 8, "successful": 5},
+        "dig": {"total": 10, "successful": 10},
+        "craft": {"total": 5, "successful": 4},
+        "build_shelter_cell": {"total": 43, "successful": 1},
+        "wait": {"total": 12, "successful": 12}
+      },
+      "planner_provider_controls": {
+        "passed_for_real_calls": true,
+        "call_count": 80,
+        "real_call_count": 78,
+        "schema_valid_real_call_count": 78,
+        "max_call_duration_ms": 21422,
+        "total_token_usage": 249644,
+        "reasoning_content_max_bytes": 0,
+        "finish_reason_violations": 0,
+        "violations": []
+      },
+      "skill_attribution": {"skill_execution_mode": "off", "selected_count": 0, "executed_count": 0, "quarantined_count": 0, "contribution": "none"},
+      "deadline_status": {
+        "episode_deadline_monotonic": 17010.046,
+        "agent_end_monotonic": 16511.0,
+        "agent_remaining_s": 499.046,
+        "evidence_end_monotonic": 16511.046,
+        "remaining_s": 499.0,
+        "deadline_eligible": true,
+        "post_deadline_action_count": 0,
+        "post_deadline_plan_count": 0,
+        "post_deadline_planner_call_count": 0,
+        "no_post_deadline_execution": true
+      },
+      "evidence_eligibility": {
+        "g2_passed": true,
+        "runner_reported_bm011_eligible": true,
+        "independently_accepted_bm011_eligible": false,
+        "eligible_success_count": 0,
+        "runner_issues": [],
+        "independent_issues": ["active_episode_player_death", "canonical_death_continuity_missing", "terminal_death_check_missing", "eligibility_death_check_missing"]
+      },
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260713_002858_94ea560e/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260713_002858_94ea560e/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260713_002858_94ea560e/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260713_002858_94ea560e/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260713_002858_94ea560e/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260713_002858_94ea560e/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260713_002858_94ea560e/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260713_002858_94ea560e/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "508e7ab5cb2415baa792252d5819c64601f9f9e7d41ad7cc16e2641530ccf20b",
+        "manifest": "118b8839078324a0c70fbfefe7ac74dea36e9bdd9a369365245ba2ad1c98fbc7",
+        "session": "e17ae22604b24bde3e807f5da622fe87f9fd250458b02ba25731304193d103ba",
+        "result": "2f12fad37a2367c14ae256bee545f565bc018996578fdc88783e268cc7676fac",
+        "eligibility": "84a33445179497629ca7b836bdb75a3a8d487395b2a5436931e8f1892c4b4c48",
+        "preparation": "f7eea70e6bc73d7cde60e839dc8a5c280ca79029bb507cf83ac40182dc89a43b",
+        "protocol_status": "0d7db7ceba6cb024c33a66bf9815a982cf953ff0eddb938a13094aa315cc146d",
+        "reset": "79db552367de18b284774d759fda552221c06b93dcc425a74765e34aa40cd85b"
+      },
+      "patch_or_experiment_summary": "Added strict-M4 verified-shelter hostile safe-state grounding without changing the G3 contract or M1/M2 behavior; ran exactly one fresh Probe 14.",
+      "retest_result": "The Probe 13 verified-shelter flee did not recur, but no hostile appeared while the new safe-state condition held, so that branch was not exercised live. The runner later reported an eligible terminal state after two server-observed zombie deaths; independent audit rejects the false positive, keeps BM-011 at 0/3, and reopens G0 death/respawn continuity. No second live episode was run."
     }
   ]
 }

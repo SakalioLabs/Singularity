@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T16:06:42.7190008Z",
+  "generated_at": "2026-07-12T16:46:31.6855140Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
-  "decision": "probe_13_priority_order_passed_hostile_safe_state_action_failed",
+  "decision": "probe_14_immediate_threat_selected_but_aligned_flee_planning_did_not_prevent_deaths",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -44,13 +44,13 @@
     "wait_ms": 15000,
     "pending_goal_consumes_new_slot": false,
     "missing_time_fails_closed": true,
-    "full_python_regression": 675,
+    "full_python_regression": 679,
     "node_suite_count": 6
   },
-  "live_episode_count": 13,
+  "live_episode_count": 14,
   "latest_live_episode": {
-    "episode_id": "m4_episode_20260712_234515_7644ff79",
-    "autonomous_goal_count": 24,
+    "episode_id": "m4_episode_20260713_002858_94ea560e",
+    "autonomous_goal_count": 6,
     "selection_source": "goal_generator",
     "selection_reason": "wood_reserve_below_target;curriculum_retained_fallback",
     "priority": 6,
@@ -58,16 +58,20 @@
     "priority_transitions": [
       {"goal_index": 1, "reason": "wood_reserve_below_target;curriculum_retained_fallback", "priority": 6, "priority_class": "tool_resource_progression"},
       {"goal_index": 2, "reason": "dusk_without_machine_verified_shelter", "priority": 4, "priority_class": "shelter_preparation"},
-      {"goal_index": 3, "reason": "night_with_machine_verified_shelter", "priority": 5, "priority_class": "night_safety_maintenance"},
-      {"goal_index": 4, "reason": "night_without_machine_verified_shelter", "priority": 4, "priority_class": "shelter_preparation"},
-      {"goal_index": 6, "reason": "health_below_critical_no_food", "priority": 2, "priority_class": "critical_health"},
-      {"goal_index": 7, "reason": "wood_reserve_below_target", "priority": 6, "priority_class": "tool_resource_progression"},
-      {"goal_index": 8, "reason": "ready_task_selected", "priority": 6, "priority_class": "tool_resource_progression"},
-      {"goal_index": 14, "reason": "ready_task_selected", "priority": 6, "priority_class": "tool_resource_progression"}
+      {"goal_index": 3, "reason": "night_without_machine_verified_shelter", "priority": 4, "priority_class": "shelter_preparation"},
+      {"goal_index": 4, "reason": "hostile_within_8_blocks_no_weapon", "priority": 1, "priority_class": "immediate_threat"},
+      {"goal_index": 5, "reason": "night_without_machine_verified_shelter", "priority": 4, "priority_class": "shelter_preparation"},
+      {"goal_index": 6, "reason": "night_with_machine_verified_shelter", "priority": 5, "priority_class": "night_safety_maintenance"}
     ],
-    "verified_shelter_hostile_interrupt_priority": 1,
-    "verified_shelter_hostile_emergency_action_preserved_safe_state": false,
-    "post_dawn_repeated_ready_task_goal_count": 16
+    "hostile_interrupt_priority": 120,
+    "hostile_interrupt_emergency_move_success": true,
+    "aligned_flee_first_plan_action": "build_shelter_cell",
+    "aligned_flee_first_action_result": "stale_origin_rejected",
+    "hostile_distance_before_first_death": 1.1,
+    "server_observed_death_count": 2,
+    "runner_reported_eligible": true,
+    "independently_accepted_eligible": false,
+    "verified_shelter_safe_state_grounding_event_count": 0
   },
   "bm011_eligible_success_count": 0
 }

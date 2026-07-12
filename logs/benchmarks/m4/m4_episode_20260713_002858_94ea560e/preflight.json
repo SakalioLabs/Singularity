@@ -1,0 +1,243 @@
+{
+  "type": "m4_preflight",
+  "schema_version": 1,
+  "passed": true,
+  "task_id": "BM-011",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+  "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+  "world_seed": "12345",
+  "fresh_episode": true,
+  "game_mode": "survival",
+  "difficulty": "normal",
+  "initial_inventory": {},
+  "initial_player_state": {
+    "health": 20,
+    "food": 20,
+    "saturation": 5
+  },
+  "initial_time_of_day": 9072,
+  "weather": "clear",
+  "gamerules": {
+    "doDaylightCycle": true,
+    "doMobSpawning": true,
+    "doWeatherCycle": false,
+    "keepInventory": false,
+    "naturalRegeneration": true
+  },
+  "runtime_versions": {
+    "python": "3.12.8",
+    "node": "22.16.0",
+    "mineflayer": "4.37.1",
+    "mineflayer_pathfinder": "2.4.5",
+    "minecraft_data": "3.111.0"
+  },
+  "llm": {
+    "provider": "openai",
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash",
+    "temperature": 0,
+    "max_tokens": 4096,
+    "extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    }
+  },
+  "identities": {
+    "agent": "singularity-agent-v1",
+    "goal_generator": "survival-goal-generator-v1",
+    "curriculum": "autonomous-curriculum-v1",
+    "planner": "llm-autonomous-planner-v1",
+    "action_backend": "mineflayer-bridge-v1",
+    "goal_verifier": "m4-survival-machine-verifier-v1",
+    "runtime_interrupt": "m4-survival-interrupt-v1",
+    "skill_runtime_profile": "m4-baseline-learned-skills-off-v1"
+  },
+  "runtime_controls": {
+    "skill_execution_mode": "off",
+    "learned_executable_skills_enabled": false,
+    "quarantined_skills_enabled": false,
+    "policy_skills_enabled": false,
+    "skill_memory_context_enabled": false,
+    "memory_persistence_enabled": false,
+    "vision_enabled": false,
+    "visual_action_grounding_enabled": false,
+    "screenshot_capture_enabled": false,
+    "self_evolution_policy_enabled": false,
+    "world_model_curriculum_feedback_enabled": false,
+    "multi_agent_enabled": false,
+    "autocurriculum_enabled": true,
+    "goal_verification_enabled": true,
+    "action_verification_enabled": true,
+    "action_verification_enforced": true
+  },
+  "episode_id": "m4_episode_20260713_002858_94ea560e",
+  "level_name": "m4_episode_20260713_002858_94ea560e_bm011",
+  "reset_evidence_sha256": "707c95fa421521816c375ed2fea70df1618e0276c11339441b6a704ad24b536b",
+  "protocol_status_sha256": "b8721ae2ae19f6c0b2a42ef392dcb47b4accf28a75a15866bda69d06207194dc",
+  "reset_checks": {
+    "inventory_exact": true,
+    "position_at_spawn": true,
+    "position_distance": 0.707,
+    "game_mode": true,
+    "difficulty": true,
+    "dimension": true,
+    "daytime": true,
+    "time_initialized": true,
+    "weather": true,
+    "health": true,
+    "food": true,
+    "saturation": true,
+    "fixture": true
+  },
+  "source_checks": {
+    "status_profile": true,
+    "status_protocol": true,
+    "status_episode": true,
+    "status_level": true,
+    "status_seed": true,
+    "status_server_jar": true,
+    "reset_profile": true,
+    "reset_protocol": true,
+    "reset_contract": true,
+    "reset_validation": true,
+    "reset_task": true,
+    "reset_episode": true,
+    "reset_level": true,
+    "reset_seed": true,
+    "reset_server_jar": true
+  },
+  "validation": {
+    "passed": true,
+    "issues": [],
+    "checks": [
+      {
+        "name": "preflight_type",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "preflight_passed",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "task_id",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "protocol_profile",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "protocol_sha256",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "server_jar_sha256",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "world_seed",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "fresh_episode",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "game_mode",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "difficulty",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "empty_inventory",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "initial_player_state",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "initial_time",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "weather",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "gamerules",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "runtime_versions",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "llm",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "identities",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "baseline_runtime_controls",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "runtime_source_binding",
+        "passed": true,
+        "detail": {
+          "status_profile": true,
+          "status_protocol": true,
+          "status_episode": true,
+          "status_level": true,
+          "status_seed": true,
+          "status_server_jar": true,
+          "reset_profile": true,
+          "reset_protocol": true,
+          "reset_contract": true,
+          "reset_validation": true,
+          "reset_task": true,
+          "reset_episode": true,
+          "reset_level": true,
+          "reset_seed": true,
+          "reset_server_jar": true
+        }
+      },
+      {
+        "name": "episode_id",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "level_name",
+        "passed": true,
+        "detail": ""
+      }
+    ]
+  }
+}
