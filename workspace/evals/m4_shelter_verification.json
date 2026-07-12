@@ -1,16 +1,16 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T22:17:31.4559758Z",
+  "generated_at": "2026-07-12T22:54:11.9501689Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm011_repeat_verified_bm012_offline_gate_pending",
-  "decision": "begin_bm012_resource_provenance_and_machine_evidence_preflight_offline",
+  "readiness": "bm012_offline_gate_passed_probe_1_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_1",
   "verifier_id": "m4-sealed-cell-shelter-verifier-v1",
   "contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
   "strategy": "sealed_cell_v1",
   "evidence_scope": "offline_gate_and_probe_17_live_validation",
-  "next_authorized_episode": "none_bm012_offline_gate_pending",
+  "next_authorized_episode": "bm012_probe_1_exactly_one",
   "required_checks": [
     "physical_barriers",
     "overhead_cover_or_approved_alternative",
@@ -65,7 +65,7 @@
       {"id": "failed_rollback", "expected": "fail_closed_without_relocation", "status": "pass"},
       {"id": "bounded_relocation_before_retry", "expected": "canonical_move_then_template_retry", "status": "pass"}
     ],
-    "full_python_regression": {"status": "pass", "test_count": 686},
+    "full_python_regression": {"status": "pass", "test_count": 693},
     "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 35},
     "live_episode_run": true,
     "partial_failure_atomicity": {
@@ -89,6 +89,14 @@
       {"id": "partial_failure_rollback", "status": "pass"},
       {"id": "bounded_relocation_recovery", "status": "pass"}
     ]
+  },
+  "bm012_applicability": {
+    "resource_goal_does_not_waive_survival_shelter_priority": true,
+    "initial_time_of_day": 0,
+    "dusk_shelter_interrupt_unchanged": true,
+    "night_safety_maintenance_unchanged": true,
+    "machine_resource_verifier_is_separate_from_shelter_verifier": true,
+    "next_authorized_episode": "bm012_probe_1_exactly_one"
   },
   "live_episode_count": 18,
   "live_episode_count_under_current_protocol": 4,

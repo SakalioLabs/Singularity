@@ -1,0 +1,54 @@
+{
+  "type": "m4_task_contract",
+  "schema_version": 1,
+  "id": "m4-bm012-resource-contract-v1",
+  "profile": "m4-fixed-v1",
+  "base_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "task_id": "BM-012",
+  "name": "Get 8 iron resources",
+  "terminal_goal": "Collect 8 iron resources",
+  "initial_time_of_day": 0,
+  "max_duration_s": 600,
+  "max_autonomous_goals": 24,
+  "max_cycles_per_goal": 40,
+  "max_total_cycles": 320,
+  "success_criteria": {
+    "inventory_any": {
+      "raw_iron": 8,
+      "iron_ore": 8
+    }
+  },
+  "terminal_verifier": {
+    "id": "m4-resource-inventory-verifier-v1",
+    "event_type": "terminal_resource_verification",
+    "payload_type": "m4_terminal_resource_verification",
+    "source": "machine_state",
+    "termination_reason": "terminal_task_verified",
+    "required_action_type": "dig",
+    "source_blocks": [
+      "iron_ore",
+      "deepslate_iron_ore"
+    ],
+    "preloaded_inventory_forbidden": true,
+    "positive_inventory_delta_required": true,
+    "successful_source_action_count_minimum": 8,
+    "terminal_health_min_exclusive": 0,
+    "terminal_bot_connected_required": true,
+    "active_episode_death_count": 0,
+    "active_episode_respawn_count": 0,
+    "uninterrupted_survival_required": true
+  },
+  "autonomy": {
+    "terminal_goal_external_only": true,
+    "intermediate_goal_sources": [
+      "goal_generator",
+      "curriculum"
+    ],
+    "external_step_script_allowed": false
+  },
+  "deadline": {
+    "base_policy_id": "m4-absolute-episode-deadline-v1",
+    "single_absolute_deadline_required": true,
+    "post_deadline_execution_allowed": false
+  }
+}

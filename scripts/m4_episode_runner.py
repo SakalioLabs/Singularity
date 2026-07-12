@@ -15,11 +15,11 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 from singularity.bot.bridge import BotBridge
 from singularity.core.agent import Agent
 from singularity.core.config import BotConfig, Config, LLMConfig
-from singularity.evaluation.m4_protocol import PROTOCOL, evaluate_bm011_episode
+from singularity.evaluation.m4_protocol import PROTOCOL, evaluate_m4_episode
 from singularity.evaluation.m4_runtime import (
     attach_m4_evidence_hashes,
+    build_m4_episode_progress_report,
     build_m4_preflight,
-    build_m4_preparation_report,
     build_m4_runtime_manifest,
     runtime_controls_from_config,
 )
@@ -27,7 +27,7 @@ from singularity.evaluation.m4_runtime import (
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run exactly one m4-fixed-v1 episode")
-    parser.add_argument("--task-id", default="BM-011", choices=["BM-011"])
+    parser.add_argument("--task-id", default="BM-011", choices=["BM-011", "BM-012"])
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=25565)
     parser.add_argument("--username", default="Singularity")
@@ -36,12 +36,15 @@ def parse_args():
     parser.add_argument("--episode-id", required=True)
     parser.add_argument("--level-name", required=True)
     parser.add_argument("--output-dir", required=True)
-    task = next(task for task in PROTOCOL["tasks"] if task["id"] == "BM-011")
-    parser.add_argument("--max-duration", type=float, default=float(task["max_duration_s"]))
+    parser.add_argument("--max-duration", type=float)
     parser.add_argument("--max-goals", type=int, default=int(PROTOCOL["limits"]["max_autonomous_goals"]))
     parser.add_argument("--max-cycles", type=int, default=int(PROTOCOL["limits"]["max_cycles_per_goal"]))
     parser.add_argument("--fresh-level", action="store_true")
-    return parser.parse_args()
+    args = parser.parse_args()
+    task = next(task for task in PROTOCOL["tasks"] if task["id"] == args.task_id)
+    if args.max_duration is None:
+        args.max_duration = float(task["max_duration_s"])
+    return args
 
 
 def write_json(path: Path, payload):
@@ -160,6 +163,7 @@ def run_episode(args, output_dir: Path, preflight: dict):
             max_goals=args.max_goals,
             max_cycles_per_goal=args.max_cycles,
             max_duration_s=args.max_duration,
+            task_id=args.task_id,
         )
         try:
             terminal_observation = agent._observe()
@@ -207,12 +211,15 @@ def run_episode(args, output_dir: Path, preflight: dict):
         "player_lifecycle": terminal_observation.get("player_lifecycle", {}),
         "bot_connected": bot_connected,
     }
+    expected_termination = (
+        "terminal_survival_verified" if args.task_id == "BM-011" else "terminal_task_verified"
+    )
     result = {
         "type": "m4_episode_result",
         "schema_version": 1,
         "task_id": args.task_id,
         "profile": PROTOCOL["profile"],
-        "completed": autonomous.get("termination_reason") == "terminal_survival_verified",
+        "completed": autonomous.get("termination_reason") == expected_termination,
         "termination_reason": str(autonomous.get("termination_reason") or "preparation_probe_complete"),
         "elapsed_s": autonomous.get("elapsed_s"),
         "deadline_eligible": bool(autonomous.get("deadline_eligible")),
@@ -221,8 +228,8 @@ def run_episode(args, output_dir: Path, preflight: dict):
         "autonomous_result": autonomous,
     }
     result = attach_m4_evidence_hashes(result, preflight, manifest, events)
-    eligibility = evaluate_bm011_episode(events, result, preflight, manifest)
-    preparation = build_m4_preparation_report(events, result, preflight, manifest, eligibility)
+    eligibility = evaluate_m4_episode(events, result, preflight, manifest, args.task_id)
+    preparation = build_m4_episode_progress_report(events, result, preflight, manifest, eligibility)
 
     write_json(output_dir / "manifest.json", manifest)
     write_json(output_dir / "session.json", events)
@@ -234,8 +241,12 @@ def run_episode(args, output_dir: Path, preflight: dict):
         "session_id": session_id,
         "level_name": args.level_name,
         "preflight_passed": preflight.get("passed") is True,
-        "g2_passed": preparation.get("g2_passed") is True,
-        "bm011_eligible": eligibility.get("eligible") is True,
+        "progress_gate_passed": bool(
+            preparation.get("g2_passed") is True
+            or preparation.get("progress_gate_passed") is True
+        ),
+        "task_id": args.task_id,
+        "task_eligible": eligibility.get("eligible") is True,
         "first_unrecovered_transition": preparation.get("first_unrecovered_transition", {}),
         "evidence_dir": repo_relative(output_dir),
     }
@@ -255,7 +266,7 @@ def main():
         "max_cycles": int(args.max_cycles),
     }
     if actual != expected:
-        raise ValueError(f"BM-011 requires exact fixed runtime limits: {expected}")
+        raise ValueError(f"{args.task_id} requires exact fixed runtime limits: {expected}")
     output_dir = (REPO_ROOT / args.output_dir).resolve()
     repo_relative(output_dir)
     output_dir.mkdir(parents=True, exist_ok=False)

@@ -10,6 +10,8 @@ Singularity has broad source coverage and a large passing offline test surface, 
 
 Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. M1 remains complete at 15/15, M2 contributes 23 eligible current-protocol successes, and M4 now contributes three independently eligible BM-011 episodes with unique session, episode, level, and session hashes. The overall system remains incomplete.
 
+BM-012 remains 0/3, but its offline task gate now passes under independently hashed contract `m4-bm012-resource-contract-v1`: fresh time-0 reset, empty inventory, autonomous wood-to-stone-pickaxe progression, machine terminal inventory, eight observed iron-source digs, lifecycle continuity, and absolute-deadline enforcement. Exactly one fresh Probe 1 is authorized after the gate commit; offline fixtures do not count as capability evidence.
+
 Current report outcome:
 
 - Readiness: `rejected`

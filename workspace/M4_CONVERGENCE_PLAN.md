@@ -10,13 +10,13 @@
 - M4 canonical status: `partial`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 is unlocked for offline protocol and machine-evidence preflight only; no BM-012 live episode is authorized in the Probe 18 round. BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. The BM-012 offline protocol and machine-evidence gate now passes and authorizes exactly one fresh BM-012 Probe 1 after the gate commit is pushed. BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
 The protocol is independent from M1/M2 task semantics. It reuses the pinned Paper runtime, bridge, machine evidence shape, content hashing, and anti-replay controls. It does not inherit peaceful difficulty, prepared inventory, terminal fixtures, or scripted intermediate goals.
 
-The first BM-011 baseline keeps learned executable skills off. Built-in primitive actions and the LLM planner remain available. `survive_first_night` cannot execute as the root strategy, and quarantined skills are forbidden.
+The M4 baseline keeps learned executable skills off. Built-in primitive actions and the LLM planner remain available. Strategic root skills cannot bypass GoalGenerator, Curriculum, or ActionVerifier, and quarantined skills are forbidden.
 
 ## Gate Ladder
 
@@ -29,6 +29,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | passed_offline_probe_1_authorized |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -46,7 +47,24 @@ The frozen-code replication hypothesis passed in Probe 18. The episode completed
 
 Probe 18 also closed two live-observation gaps without changing the protocol. Planner call `llm-731730e6669b4683` received one `APIConnectionError -> ConnectError -> ConnectError -> SSLEOFError`; the same dawn-maintenance goal was preserved and the next-cycle real/schema-valid call `llm-52111d9e3d3a455c` resumed successful waits. Later, a zombie 4.8 blocks outside the verified cell triggered safe-state grounding, and the outward move was suppressed while the shelter remained valid.
 
-The next hypothesis is `bm012_protocol_and_machine_evidence_preflight`. Work is limited to an offline fixed-protocol contract for acquiring eight iron resources, including machine-checkable inventory provenance, reset/deadline bindings, and independent eligibility. Probe 18 consumed this round's only live authorization; no BM-012 episode may run until that offline gate is committed and reviewed in a later round.
+The `bm012_protocol_and_machine_evidence_preflight` hypothesis passes offline. The unchanged base protocol remains `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`, preserving all three accepted BM-011 episodes. BM-012 adds the independently hashed task contract `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`, which binds reset, preflight, manifest, terminal event, exact limits, and eligibility.
+
+The earliest BM-012 blocker before this gate was structural: the runner allowed only BM-011, a shared time-9000 reset left roughly 50 seconds before survival priorities took over, and both terminalization and independent eligibility required dawn rather than eight acquired iron resources. The gate gives BM-012 a fresh time-0 reset without items or fixtures, keeps survival priorities above progression, and requires terminal inventory plus eight successful current-episode `dig` actions against `iron_ore` or `deepslate_iron_ore`.
+
+The next hypothesis is the first live BM-012 execution under this frozen gate. After this gate commit is pushed, exactly one fresh BM-012 Probe 1 is authorized; the run must report its earliest unrecovered transition, and no second live episode may run in the same round.
+
+## BM-012 Offline Preflight
+
+- Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
+- Base protocol: unchanged `m4-fixed-v1` SHA-256 `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`
+- Runtime: fresh level, empty inventory, survival/normal, natural time from 0, no item grants or fixtures, 600-second absolute deadline, 24 goals, 40 cycles per goal, 320 total cycles
+- Autonomous progression: GoalGenerator selects wood, crafting table, wooden pickaxe, cobblestone, stone pickaxe, and iron collection while hostile, health, hunger, dusk, and night priorities remain higher
+- Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
+- Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
+- Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
+- Regression: 693 Python tests, 70 focused M4 tests, all six fixed Node suites with 35 internal PASS cases, PowerShell syntax, Python compilation, and `git diff --check` pass
+- Live authorization: exactly one fresh BM-012 Probe 1 after this offline gate commit is pushed
+- Report: `workspace/evals/m4_resource_verification.json`
 
 ### Historical BM-011 Hypotheses
 

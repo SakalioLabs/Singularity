@@ -8,9 +8,9 @@ param(
     [int]$BridgePort = 30000,
     [int]$ServerWaitSeconds = 180,
     [int]$BridgeWaitSeconds = 45,
-    [ValidateSet("BM-011")]
+    [ValidateSet("BM-011", "BM-012")]
     [string]$TaskId = "BM-011",
-    [double]$MaxDurationSeconds = 1200,
+    [double]$MaxDurationSeconds = 0,
     [int]$MaxGoals = 24,
     [int]$MaxCycles = 40
 )
@@ -26,7 +26,8 @@ $propertiesPath = Join-Path $serverRoot "server.properties"
 $protocolPath = Join-Path $repoRoot "src\singularity\data\m4_protocol.json"
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $episodeId = "m4_episode_${timestamp}_$([guid]::NewGuid().ToString('N').Substring(0, 8))"
-$levelName = "${episodeId}_bm011"
+$taskSuffix = $TaskId.ToLowerInvariant().Replace("-", "")
+$levelName = "${episodeId}_${taskSuffix}"
 $relativeOutput = "logs\benchmarks\m4\$episodeId"
 $outputRoot = Join-Path $repoRoot $relativeOutput
 $runtimeLogRoot = Join-Path $repoRoot "logs\benchmarks\runtime"
@@ -145,13 +146,15 @@ try {
         throw "M4 runtime blocked: eula=true is not present."
     }
     $protocol = Get-Content -LiteralPath $protocolPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    $bm011 = @($protocol.tasks | Where-Object { $_.id -eq "BM-011" })[0]
+    $task = @($protocol.tasks | Where-Object { $_.id -eq $TaskId })[0]
+    if (-not $task) { throw "M4 runtime blocked: task $TaskId is missing from m4_protocol.json." }
+    if ($MaxDurationSeconds -eq 0) { $MaxDurationSeconds = [double]$task.max_duration_s }
     if (
-        $MaxDurationSeconds -ne [double]$bm011.max_duration_s -or
+        $MaxDurationSeconds -ne [double]$task.max_duration_s -or
         $MaxGoals -ne [int]$protocol.limits.max_autonomous_goals -or
         $MaxCycles -ne [int]$protocol.limits.max_cycles_per_goal
     ) {
-        throw "M4 runtime blocked: BM-011 requires exact fixed limits duration=$($bm011.max_duration_s), goals=$($protocol.limits.max_autonomous_goals), cycles=$($protocol.limits.max_cycles_per_goal)."
+        throw "M4 runtime blocked: $TaskId requires exact fixed limits duration=$($task.max_duration_s), goals=$($protocol.limits.max_autonomous_goals), cycles=$($protocol.limits.max_cycles_per_goal)."
     }
     $serverJarSha256 = (Get-FileHash -LiteralPath $jarPath -Algorithm SHA256).Hash.ToLower()
     if ($serverJarSha256 -ne [string]$protocol.server_jar_sha256) {
@@ -235,7 +238,8 @@ try {
     Assert-File $preparationPath "M4 runner did not write preparation evidence."
     $preparation = Get-Content -LiteralPath $preparationPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Write-Host "M4 episode complete: $episodeId"
-    Write-Host "G2 passed: $($preparation.g2_passed); BM-011 eligible: $($preparation.evidence_eligible)"
+    $progressPassed = if ($TaskId -eq "BM-011") { $preparation.g2_passed } else { $preparation.progress_gate_passed }
+    Write-Host "Progress gate passed: $progressPassed; $TaskId eligible: $($preparation.evidence_eligible)"
     Write-Host "Evidence: $relativeOutput"
 }
 catch {
@@ -248,7 +252,7 @@ catch {
         level_name = $levelName
         blocker = [string]$_.Exception.Message
         evidence_dir = $relativeOutput
-        counts_toward_bm011_success = $false
+        counts_toward_task_success = $false
     }
     if (-not (Test-Path -LiteralPath $blockerPath)) {
         [System.IO.File]::WriteAllText($blockerPath, ($blocker | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))

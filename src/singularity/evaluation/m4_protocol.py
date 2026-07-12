@@ -14,6 +14,12 @@ PROTOCOL_BYTES = PROTOCOL_PATH.read_bytes()
 PROTOCOL = json.loads(PROTOCOL_BYTES.decode("utf-8"))
 PROTOCOL_SHA256 = hashlib.sha256(PROTOCOL_BYTES).hexdigest()
 TASKS_BY_ID = {str(task["id"]): task for task in PROTOCOL["tasks"]}
+BM012_CONTRACT_PATH = Path(__file__).resolve().parent.parent / "data" / "m4_bm012_protocol.json"
+BM012_CONTRACT_BYTES = BM012_CONTRACT_PATH.read_bytes()
+BM012_CONTRACT = json.loads(BM012_CONTRACT_BYTES.decode("utf-8"))
+BM012_CONTRACT_SHA256 = hashlib.sha256(BM012_CONTRACT_BYTES).hexdigest()
+TASK_CONTRACTS_BY_ID = {"BM-012": BM012_CONTRACT}
+TASK_CONTRACT_SHA256_BY_ID = {"BM-012": BM012_CONTRACT_SHA256}
 M4_PLAYER_LIFECYCLE_VERIFIER_ID = str(
     PROTOCOL.get("identities", {}).get("player_lifecycle_verifier") or ""
 )
@@ -238,6 +244,65 @@ def task_spec(task_id: str) -> dict:
     return TASKS_BY_ID.get(str(task_id or "").upper().strip(), {})
 
 
+def task_contract(task_id: str) -> dict:
+    return TASK_CONTRACTS_BY_ID.get(str(task_id or "").upper().strip(), {})
+
+
+def task_contract_sha256(task_id: str) -> str:
+    return TASK_CONTRACT_SHA256_BY_ID.get(str(task_id or "").upper().strip(), "")
+
+
+def task_contract_integrity_report(task_id: str) -> dict:
+    normalized = str(task_id or "").upper().strip()
+    if normalized == "BM-011":
+        return {"passed": True, "issues": [], "task_id": normalized, "contract_sha256": ""}
+    contract = task_contract(normalized)
+    task = task_spec(normalized)
+    issues = []
+
+    def require(name: str, passed: bool):
+        if not passed:
+            issues.append(name)
+
+    require("contract_present", bool(contract))
+    require("contract_type", contract.get("type") == "m4_task_contract")
+    require("contract_schema", contract.get("schema_version") == 1)
+    require("contract_profile", contract.get("profile") == PROTOCOL["profile"])
+    require("contract_base_protocol", contract.get("base_protocol_sha256") == PROTOCOL_SHA256)
+    require("contract_task", contract.get("task_id") == normalized)
+    require("task_present", bool(task))
+    require("task_name", contract.get("name") == task.get("name"))
+    require("task_terminal_goal", contract.get("terminal_goal") == task.get("terminal_goal"))
+    require("task_duration", contract.get("max_duration_s") == task.get("max_duration_s"))
+    require("task_success_criteria", contract.get("success_criteria") == task.get("success_criteria"))
+    require(
+        "task_goal_limit",
+        contract.get("max_autonomous_goals") == PROTOCOL["limits"]["max_autonomous_goals"],
+    )
+    require(
+        "task_cycle_limit",
+        contract.get("max_cycles_per_goal") == PROTOCOL["limits"]["max_cycles_per_goal"],
+    )
+    require(
+        "task_total_cycle_limit",
+        contract.get("max_total_cycles") == PROTOCOL["limits"]["max_total_cycles"],
+    )
+    verifier = contract.get("terminal_verifier", {})
+    require("terminal_verifier_id", bool(str(verifier.get("id") or "")))
+    require("terminal_event_type", verifier.get("event_type") == "terminal_resource_verification")
+    require("terminal_source", verifier.get("source") == "machine_state")
+    require("terminal_reason", verifier.get("termination_reason") == "terminal_task_verified")
+    require("source_action", verifier.get("required_action_type") == "dig")
+    require("source_blocks", set(verifier.get("source_blocks", [])) == {"iron_ore", "deepslate_iron_ore"})
+    return {
+        "passed": not issues,
+        "issues": issues,
+        "task_id": normalized,
+        "contract_id": str(contract.get("id") or ""),
+        "contract_sha256": task_contract_sha256(normalized),
+    }
+
+
 def remaining_budget_s(
     episode_deadline_monotonic: float,
     maximum_s: float,
@@ -250,6 +315,9 @@ def remaining_budget_s(
 
 
 def validate_preflight(preflight: dict, task_id: str = "BM-011") -> dict:
+    task_id = str(task_id or "").upper().strip()
+    contract = task_contract(task_id)
+    expected_initial_time = contract.get("initial_time_of_day", PROTOCOL["initial_time_of_day"])
     issues = []
     checks = []
 
@@ -260,7 +328,7 @@ def validate_preflight(preflight: dict, task_id: str = "BM-011") -> dict:
 
     require("preflight_type", preflight.get("type") == "m4_preflight")
     require("preflight_passed", preflight.get("passed") is True)
-    require("task_id", str(preflight.get("task_id") or "") == task_id)
+    require("task_id", str(preflight.get("task_id") or "").upper().strip() == task_id)
     require("protocol_profile", preflight.get("profile") == PROTOCOL["profile"])
     require("protocol_sha256", preflight.get("protocol_sha256") == PROTOCOL_SHA256)
     require("server_jar_sha256", preflight.get("server_jar_sha256") == PROTOCOL["server_jar_sha256"])
@@ -272,7 +340,7 @@ def validate_preflight(preflight: dict, task_id: str = "BM-011") -> dict:
     require("initial_player_state", _player_state_matches(preflight.get("initial_player_state", {})))
     require(
         "initial_time",
-        _number_near(preflight.get("initial_time_of_day"), PROTOCOL["initial_time_of_day"], 600),
+        _number_near(preflight.get("initial_time_of_day"), expected_initial_time, 600),
     )
     require("weather", preflight.get("weather") == PROTOCOL["weather"])
     require("gamerules", _mapping_contains(preflight.get("gamerules", {}), PROTOCOL["gamerules"]))
@@ -283,6 +351,11 @@ def validate_preflight(preflight: dict, task_id: str = "BM-011") -> dict:
         "baseline_runtime_controls",
         _mapping_contains(preflight.get("runtime_controls", {}), PROTOCOL["baseline_runtime_controls"]),
     )
+    if contract:
+        integrity = task_contract_integrity_report(task_id)
+        require("task_contract_integrity", integrity["passed"], integrity["issues"])
+        require("task_contract_id", preflight.get("task_contract_id") == contract.get("id"))
+        require("task_contract_sha256", preflight.get("task_contract_sha256") == task_contract_sha256(task_id))
     source_checks = preflight.get("source_checks", {})
     require(
         "runtime_source_binding",
@@ -302,13 +375,61 @@ def validate_preflight(preflight: dict, task_id: str = "BM-011") -> dict:
     return {"passed": not issues, "issues": issues, "checks": checks}
 
 
+def evaluate_m4_episode(
+    events: list[dict],
+    result: dict,
+    preflight: dict,
+    manifest: dict,
+    task_id: str = "",
+) -> dict:
+    normalized = str(
+        task_id
+        or manifest.get("task_id")
+        or preflight.get("task_id")
+        or result.get("task_id")
+        or ""
+    ).upper().strip()
+    if normalized not in {"BM-011", "BM-012"}:
+        return {
+            "type": "m4_episode_eligibility",
+            "task_id": normalized,
+            "profile": PROTOCOL["profile"],
+            "protocol_sha256": PROTOCOL_SHA256,
+            "eligible": False,
+            "success": False,
+            "issues": ["unsupported_task"],
+            "checks": [{"name": "supported_task", "passed": False, "detail": normalized}],
+            "evidence": {},
+        }
+    return _evaluate_m4_episode(events, result, preflight, manifest, normalized)
+
+
 def evaluate_bm011_episode(
     events: list[dict],
     result: dict,
     preflight: dict,
     manifest: dict,
 ) -> dict:
-    """Independently evaluate one BM-011 session; textual completion is never sufficient."""
+    return _evaluate_m4_episode(events, result, preflight, manifest, "BM-011")
+
+
+def evaluate_bm012_episode(
+    events: list[dict],
+    result: dict,
+    preflight: dict,
+    manifest: dict,
+) -> dict:
+    return _evaluate_m4_episode(events, result, preflight, manifest, "BM-012")
+
+
+def _evaluate_m4_episode(
+    events: list[dict],
+    result: dict,
+    preflight: dict,
+    manifest: dict,
+    task_id: str,
+) -> dict:
+    """Independently evaluate one M4 session; textual completion is never sufficient."""
     issues = []
     checks = []
 
@@ -317,13 +438,13 @@ def evaluate_bm011_episode(
         if not passed:
             issues.append(name)
 
-    preflight_report = validate_preflight(preflight, "BM-011")
+    preflight_report = validate_preflight(preflight, task_id)
     require("preflight_eligible", preflight_report["passed"], preflight_report["issues"])
     integrity = protocol_integrity_report()
     require("protocol_integrity", integrity["passed"], integrity["issues"])
 
     require("manifest_type", manifest.get("type") == "m4_runtime_manifest")
-    require("manifest_task", manifest.get("task_id") == "BM-011")
+    require("manifest_task", manifest.get("task_id") == task_id)
     require("manifest_profile", manifest.get("profile") == PROTOCOL["profile"])
     require("manifest_protocol", manifest.get("protocol_sha256") == PROTOCOL_SHA256)
     require("manifest_reset_protocol", manifest.get("reset_protocol_sha256") == PROTOCOL["reset_protocol_sha256"])
@@ -343,7 +464,7 @@ def evaluate_bm011_episode(
         _mapping_contains(manifest.get("runtime_controls", {}), PROTOCOL["baseline_runtime_controls"]),
     )
     runtime_limits = manifest.get("runtime_limits", {})
-    task_limit = task_spec("BM-011")
+    task_limit = task_spec(task_id)
     require(
         "manifest_runtime_limits",
         isinstance(runtime_limits, dict)
@@ -352,6 +473,15 @@ def evaluate_bm011_episode(
         and _number_near(runtime_limits.get("max_cycles_per_goal"), PROTOCOL["limits"]["max_cycles_per_goal"], 0.0),
         runtime_limits,
     )
+    contract = task_contract(task_id)
+    if contract:
+        contract_integrity = task_contract_integrity_report(task_id)
+        require("task_contract_integrity", contract_integrity["passed"], contract_integrity["issues"])
+        require("manifest_task_contract_id", manifest.get("task_contract_id") == contract.get("id"))
+        require(
+            "manifest_task_contract_sha256",
+            manifest.get("task_contract_sha256") == task_contract_sha256(task_id),
+        )
 
     evidence_hashes = result.get("evidence_hashes", {}) if isinstance(result.get("evidence_hashes"), dict) else {}
     unhashed_result = dict(result)
@@ -360,9 +490,20 @@ def evaluate_bm011_episode(
     require("manifest_content_hash", evidence_hashes.get("manifest_sha256") == canonical_sha256(manifest))
     require("session_content_hash", evidence_hashes.get("session_sha256") == canonical_sha256(events))
     require("result_content_hash", evidence_hashes.get("result_sha256") == canonical_sha256(unhashed_result))
+    if task_id == "BM-012":
+        require("result_type", result.get("type") == "m4_episode_result")
+        require("result_task", result.get("task_id") == task_id)
+        require("result_profile", result.get("profile") == PROTOCOL["profile"])
 
     event_types = [str(event.get("type") or "") for event in events if isinstance(event, dict)]
-    required_events = PROTOCOL["validation_contract"]["autonomy"]["required_events"]
+    required_events = list(PROTOCOL["validation_contract"]["autonomy"]["required_events"])
+    if task_id == "BM-012":
+        required_events = [
+            contract["terminal_verifier"]["event_type"]
+            if event_type == "terminal_survival_verification"
+            else event_type
+            for event_type in required_events
+        ]
     for event_type in required_events:
         require(f"event:{event_type}", event_type in event_types)
 
@@ -499,13 +640,20 @@ def evaluate_bm011_episode(
     )
     times = [_normalized_time(obs.get("time_of_day")) for obs in observations]
     times = [value for value in times if value is not None]
-    night_index = next((index for index, value in enumerate(times) if 12000 <= value < 23000), None)
-    dawn_index = next(
-        (index for index, value in enumerate(times) if night_index is not None and index > night_index and (value >= 23000 or value < 1000)),
-        None,
-    )
-    require("night_observed", night_index is not None)
-    require("next_dawn_observed", dawn_index is not None)
+    night_index = None
+    dawn_index = None
+    if task_id == "BM-011":
+        night_index = next((index for index, value in enumerate(times) if 12000 <= value < 23000), None)
+        dawn_index = next(
+            (
+                index
+                for index, value in enumerate(times)
+                if night_index is not None and index > night_index and (value >= 23000 or value < 1000)
+            ),
+            None,
+        )
+        require("night_observed", night_index is not None)
+        require("next_dawn_observed", dawn_index is not None)
     require("natural_time_progression", _natural_time_progression(times))
 
     terminal_observation = observations[-1] if observations else {}
@@ -526,7 +674,48 @@ def evaluate_bm011_episode(
     health = terminal_observation.get("health", terminal_state.get("health", 0))
     require("terminal_health", _finite_number(health) and float(health) > 0)
     require("terminal_bot_connected", terminal_state.get("bot_connected") is True)
-    require("terminal_machine_verification", _terminal_verification_matches(active_events, terminal_observation, terminal_state))
+    resource_acquisition = {}
+    if task_id == "BM-011":
+        terminal_machine_verified = _terminal_verification_matches(
+            active_events,
+            terminal_observation,
+            terminal_state,
+        )
+    else:
+        resource_acquisition = _resource_acquisition_report(
+            active_events,
+            observations,
+            terminal_state,
+            contract,
+        )
+        require(
+            "resource_initial_inventory_empty",
+            resource_acquisition.get("initial_target_count") == 0,
+            resource_acquisition,
+        )
+        require(
+            "resource_terminal_inventory_target",
+            resource_acquisition.get("terminal_target_passed") is True,
+            resource_acquisition,
+        )
+        require(
+            "resource_successful_source_actions",
+            resource_acquisition.get("successful_source_action_count", 0)
+            >= int(contract["terminal_verifier"]["successful_source_action_count_minimum"]),
+            resource_acquisition,
+        )
+        require(
+            "resource_positive_inventory_delta",
+            resource_acquisition.get("positive_inventory_delta_passed") is True,
+            resource_acquisition,
+        )
+        terminal_machine_verified = _terminal_resource_verification_matches(
+            active_events,
+            terminal_observation,
+            terminal_state,
+            contract,
+        )
+    require("terminal_machine_verification", terminal_machine_verified)
 
     started = _finite_or_none(manifest.get("episode_started_monotonic"))
     ended = _finite_or_none(manifest.get("episode_ended_monotonic"))
@@ -541,7 +730,7 @@ def evaluate_bm011_episode(
         for event, value in zip(active_events, active_event_times)
         if event.get("type") != "autonomous_end"
     ]
-    task = task_spec("BM-011")
+    task = task_spec(task_id)
     require("monotonic_runtime", duration is not None and duration >= 0 and deadline is not None)
     require(
         "active_event_monotonic_complete",
@@ -570,13 +759,13 @@ def evaluate_bm011_episode(
         and duration <= float(task["max_duration_s"])
         and ended <= deadline,
     )
-    require("result_duration_eligible", _result_duration_eligible(result, task))
+    require("result_duration_eligible", _result_duration_eligible(result, task, task_id))
     require("no_post_deadline_execution", not _post_deadline_execution(active_events, deadline))
 
     success = not issues
     return {
         "type": "m4_episode_eligibility",
-        "task_id": "BM-011",
+        "task_id": task_id,
         "profile": PROTOCOL["profile"],
         "protocol_sha256": PROTOCOL_SHA256,
         "eligible": success,
@@ -591,6 +780,9 @@ def evaluate_bm011_episode(
             "night_observation_index": night_index,
             "dawn_observation_index": dawn_index,
             "terminal_health": health,
+            "task_contract_id": str(contract.get("id") or ""),
+            "task_contract_sha256": task_contract_sha256(task_id),
+            "resource_acquisition": resource_acquisition,
             "player_lifecycle_verifier_id": M4_PLAYER_LIFECYCLE_VERIFIER_ID,
             "player_lifecycle_event_count": len(lifecycle_events),
             "maximum_death_count": maximum_death_count,
@@ -794,6 +986,120 @@ def _terminal_verification_matches(events: list[dict], observation: dict, termin
     )
 
 
+def _terminal_resource_verification_matches(
+    events: list[dict],
+    observation: dict,
+    terminal_state: dict,
+    contract: dict,
+) -> bool:
+    verifier = contract.get("terminal_verifier", {}) if isinstance(contract, dict) else {}
+    event_type = str(verifier.get("event_type") or "")
+    verification = next(
+        (
+            event.get("data", {})
+            for event in reversed(events)
+            if event.get("type") == event_type and isinstance(event.get("data"), dict)
+        ),
+        {},
+    )
+    observed_inventory = _inventory_counts(observation.get("inventory"))
+    terminal_inventory = _inventory_counts(terminal_state.get("inventory"))
+    verified_inventory = _inventory_counts(verification.get("inventory"))
+    qualifying_item = str(verification.get("qualifying_item") or "")
+    criteria = contract.get("success_criteria", {}).get("inventory_any", {})
+    required_count = criteria.get(qualifying_item)
+    observed_lifecycle = observation.get("player_lifecycle")
+    terminal_lifecycle = terminal_state.get("player_lifecycle")
+    verified_lifecycle = verification.get("player_lifecycle")
+    lifecycle_report = validate_m4_player_lifecycle(
+        verified_lifecycle,
+        episode_id=str((observed_lifecycle or {}).get("episode_id") or ""),
+        require_uninterrupted=True,
+    )
+    return bool(
+        verification.get("type") == verifier.get("payload_type")
+        and verification.get("passed") is True
+        and verification.get("source") == verifier.get("source")
+        and verification.get("task_id") == contract.get("task_id")
+        and verification.get("verifier_id") == verifier.get("id")
+        and verification.get("task_contract_id") == contract.get("id")
+        and verification.get("task_contract_sha256") == task_contract_sha256(contract.get("task_id"))
+        and qualifying_item in criteria
+        and isinstance(required_count, int)
+        and not isinstance(required_count, bool)
+        and verification.get("required_count") == required_count
+        and verification.get("observed_count") == observed_inventory.get(qualifying_item)
+        and observed_inventory.get(qualifying_item, 0) >= required_count
+        and observed_inventory == terminal_inventory == verified_inventory
+        and verification.get("health") == observation.get("health", terminal_state.get("health"))
+        and verification.get("bot_connected") is True
+        and lifecycle_report["passed"]
+        and _lifecycle_terminal_signature(verified_lifecycle)
+        == _lifecycle_terminal_signature(observed_lifecycle)
+        == _lifecycle_terminal_signature(terminal_lifecycle)
+    )
+
+
+def _resource_acquisition_report(
+    events: list[dict],
+    observations: list[dict],
+    terminal_state: dict,
+    contract: dict,
+) -> dict:
+    criteria = contract.get("success_criteria", {}).get("inventory_any", {})
+    target_items = tuple(str(item) for item in criteria)
+    source_blocks = set(contract.get("terminal_verifier", {}).get("source_blocks", []))
+    initial_inventory = _inventory_counts((observations[0] if observations else {}).get("inventory"))
+    terminal_observation = observations[-1] if observations else {}
+    terminal_inventory = _inventory_counts(
+        terminal_observation.get("inventory", terminal_state.get("inventory"))
+    )
+    source_actions = []
+    for index, event in enumerate(events):
+        if event.get("type") != "action" or not isinstance(event.get("data"), dict):
+            continue
+        data = event["data"]
+        action = data.get("action", {}) if isinstance(data.get("action"), dict) else {}
+        result = data.get("result", {}) if isinstance(data.get("result"), dict) else {}
+        before_block = result.get("target_block_before", {})
+        before_block = before_block if isinstance(before_block, dict) else {}
+        if (
+            action.get("type") != contract.get("terminal_verifier", {}).get("required_action_type")
+            or result.get("success") is not True
+            or result.get("block_removed") is not True
+            or str(before_block.get("name") or "") not in source_blocks
+        ):
+            continue
+        source_actions.append({
+            "event_index": index + 1,
+            "block": str(before_block.get("name") or ""),
+            "position": before_block.get("position", {}),
+        })
+    qualifying_items = [
+        item
+        for item, required in criteria.items()
+        if terminal_inventory.get(item, 0) >= int(required)
+    ]
+    positive_delta = {
+        item: terminal_inventory.get(item, 0) - initial_inventory.get(item, 0)
+        for item in target_items
+    }
+    return {
+        "target_items": list(target_items),
+        "initial_inventory": {item: initial_inventory.get(item, 0) for item in target_items},
+        "terminal_inventory": {item: terminal_inventory.get(item, 0) for item in target_items},
+        "initial_target_count": sum(initial_inventory.get(item, 0) for item in target_items),
+        "qualifying_items": qualifying_items,
+        "terminal_target_passed": bool(qualifying_items),
+        "positive_inventory_delta": positive_delta,
+        "positive_inventory_delta_passed": any(
+            positive_delta.get(item, 0) >= int(criteria[item]) for item in qualifying_items
+        ),
+        "successful_source_action_count": len(source_actions),
+        "successful_source_actions": source_actions,
+    }
+
+
 def _natural_time_progression(times: list[int]) -> bool:
     if len(times) < 2:
         return False
@@ -820,11 +1126,17 @@ def _event_monotonic(event: dict) -> float | None:
     return _finite_or_none(event.get("monotonic_s", data.get("monotonic_s")))
 
 
-def _result_duration_eligible(result: dict, task: dict) -> bool:
+def _result_duration_eligible(result: dict, task: dict, task_id: str = "BM-011") -> bool:
     duration = _finite_or_none(result.get("elapsed_s"))
+    contract = task_contract(task_id)
+    expected_reason = (
+        contract.get("terminal_verifier", {}).get("termination_reason")
+        if contract
+        else "terminal_survival_verified"
+    )
     return bool(
         result.get("completed") is True
-        and result.get("termination_reason") == "terminal_survival_verified"
+        and result.get("termination_reason") == expected_reason
         and duration is not None
         and duration <= float(task["max_duration_s"])
     )

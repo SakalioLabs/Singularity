@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T22:17:31.4559758Z",
+  "generated_at": "2026-07-12T22:54:11.9501689Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm011_repeat_verified_bm012_offline_gate_pending",
-  "decision": "begin_bm012_protocol_and_machine_evidence_preflight_offline",
+  "readiness": "bm012_offline_gate_passed_probe_1_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_1",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -104,13 +104,13 @@
     "bounded_relocation_radius": 6,
     "agent_recovery_event": "m4_shelter_atomicity_recovery",
     "planner_relocation_before_retry": true,
-    "full_python_regression": 686,
+    "full_python_regression": 693,
     "node_suite_file_count": 6,
     "node_internal_pass_count": 35,
     "live_episode_run": true,
     "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
     "live_recovery_passed": true,
-    "next_authorized_episode": "none_bm012_offline_gate_pending"
+    "next_authorized_episode": "bm012_probe_1_exactly_one"
   },
   "fixed_runtime_profile": {
     "task_id": "BM-011",
@@ -120,9 +120,23 @@
     "max_total_cycles": 320,
     "harness_requires_exact_match": true,
     "terminal_result_requires_machine_event": true,
-    "full_python_regression": 686,
+    "full_python_regression": 693,
     "node_suite_count": 6,
     "node_internal_pass_count": 35
+  },
+  "bm012_runtime_profile": {
+    "task_id": "BM-012",
+    "task_contract_id": "m4-bm012-resource-contract-v1",
+    "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "initial_time_of_day": 0,
+    "max_duration_s": 600,
+    "max_autonomous_goals": 24,
+    "max_cycles_per_goal": 40,
+    "max_total_cycles": 320,
+    "single_absolute_deadline": true,
+    "post_deadline_execution_allowed": false,
+    "offline_gate_passed": true,
+    "next_authorized_episode": "bm012_probe_1_exactly_one"
   },
   "player_lifecycle_gate": {
     "verifier_id": "m4-player-lifecycle-verifier-v1",

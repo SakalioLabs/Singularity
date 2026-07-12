@@ -60,7 +60,12 @@ from singularity.evaluation.mixed_initiative import (
     apply_mixed_initiative_policy_patch,
 )
 from singularity.evaluation.m4_shelter import M4ShelterVerifier, is_machine_verified_shelter
-from singularity.evaluation.m4_protocol import validate_m4_player_lifecycle
+from singularity.evaluation.m4_protocol import (
+    task_contract,
+    task_contract_sha256,
+    task_spec,
+    validate_m4_player_lifecycle,
+)
 from singularity.logging.session_logger import SessionLogger
 from singularity.vision.analyzer import VisionAnalyzer
 from singularity.vision.action_advisor import VisualActionAdvisor
@@ -1909,6 +1914,7 @@ class Agent:
         max_cycles_per_goal: int = 80,
         max_duration_s: Optional[float] = None,
         episode_deadline_monotonic: Optional[float] = None,
+        task_id: str = "",
     ) -> dict:
         """Run autonomously: generate survival goals, pursue them, explore when idle.
 
@@ -1920,13 +1926,21 @@ class Agent:
         goals_interrupted = 0
         total_cycles = 0
         strict_m4 = str(getattr(self.config, "planner_protocol", "") or "") == "m4-fixed-v1"
+        m4_task_id = ""
+        m4_task_contract = {}
         deadline_policy = {}
         max_total_cycles = None
         if strict_m4:
             from singularity.evaluation.m4_protocol import PROTOCOL as M4_PROTOCOL
 
+            m4_task_id = str(task_id or "BM-011").upper().strip()
+            if m4_task_id not in {"BM-011", "BM-012"} or not task_spec(m4_task_id):
+                raise ValueError(f"unsupported strict-M4 task: {m4_task_id or '<missing>'}")
+            m4_task_contract = task_contract(m4_task_id)
             deadline_policy = dict(M4_PROTOCOL["deadline_policy"])
-            protocol_timeout_s = float(deadline_policy["episode_timeout_s"])
+            protocol_timeout_s = float(
+                m4_task_contract.get("max_duration_s", task_spec(m4_task_id)["max_duration_s"])
+            )
             requested_duration_s = (
                 float(max_duration_s)
                 if max_duration_s is not None
@@ -1948,6 +1962,7 @@ class Agent:
             self._active_runtime_interrupt = {}
             self._runtime_interrupt_sequence = 0
             self._last_runtime_interrupt_yield = ""
+            self._m4_task_id = m4_task_id
         elif max_duration_s is not None:
             max_duration_s = max(0.0, float(max_duration_s))
 
@@ -2008,6 +2023,12 @@ class Agent:
             "episode_deadline_monotonic": self._episode_deadline_monotonic,
             "deadline_policy_id": str(deadline_policy.get("id") or ""),
         }
+        if strict_m4:
+            autonomous_start.update({
+                "task_id": m4_task_id,
+                "task_contract_id": str(m4_task_contract.get("id") or ""),
+                "task_contract_sha256": task_contract_sha256(m4_task_id),
+            })
         self.session_logger.log("autonomous_start", autonomous_start)
         self._write_memory_episode("autonomous_start", autonomous_start, source="autonomous")
 
@@ -2026,7 +2047,10 @@ class Agent:
                 episode_termination_reason = "max_total_cycles"
                 break
             # Generate next goal from world state
-            generated_goal = self.goal_generator.next_goal(observation)
+            if strict_m4 and m4_task_id == "BM-012":
+                generated_goal = self.goal_generator.next_goal(observation, task_id=m4_task_id)
+            else:
+                generated_goal = self.goal_generator.next_goal(observation)
             self._set_autonomous_goal_decision(
                 generated_goal,
                 getattr(self.goal_generator, "last_decision", {}),
@@ -2413,10 +2437,23 @@ class Agent:
             if goal_success:
                 goals_completed += 1
                 logger.info(f"[Autonomous] Goal completed: {goal}")
-                terminal_verification = self._m4_terminal_survival_verification(goal, observation)
+                terminal_verification = self._m4_terminal_task_verification(
+                    m4_task_id,
+                    goal,
+                    observation,
+                )
                 if terminal_verification:
-                    self.session_logger.log("terminal_survival_verification", terminal_verification)
-                    episode_termination_reason = "terminal_survival_verified"
+                    terminal_event = (
+                        "terminal_resource_verification"
+                        if m4_task_id == "BM-012"
+                        else "terminal_survival_verification"
+                    )
+                    self.session_logger.log(terminal_event, terminal_verification)
+                    episode_termination_reason = (
+                        "terminal_task_verified"
+                        if m4_task_id == "BM-012"
+                        else "terminal_survival_verified"
+                    )
                 outcome = {
                     "goal": goal,
                     "cycles": cycle,
@@ -2554,6 +2591,97 @@ class Agent:
             action_controller.set_episode_deadline(None, None)
         self._episode_deadline_monotonic = None
         return result
+
+    def _m4_terminal_task_verification(self, task_id: str, goal: str, observation: dict) -> dict:
+        if task_id == "BM-011":
+            return self._m4_terminal_survival_verification(goal, observation)
+        if task_id == "BM-012":
+            return self._m4_terminal_resource_verification(goal, observation)
+        return {}
+
+    def _m4_terminal_resource_verification(self, goal: str, observation: dict) -> dict:
+        if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
+            return {}
+        if str(getattr(self, "_m4_task_id", "") or "") != "BM-012":
+            return {}
+        if "iron" not in str(goal or "").lower():
+            return {}
+        contract = task_contract("BM-012")
+        verifier = contract.get("terminal_verifier", {}) if isinstance(contract, dict) else {}
+        state = observation if isinstance(observation, dict) else {}
+        inventory = state.get("inventory", {}) if isinstance(state.get("inventory"), dict) else {}
+        criteria = contract.get("success_criteria", {}).get("inventory_any", {})
+        qualifying_item = ""
+        observed_count = 0
+        required_count = 0
+        for item, required in criteria.items():
+            try:
+                count = int(inventory.get(item, 0) or 0)
+            except (TypeError, ValueError):
+                count = 0
+            if count >= int(required):
+                qualifying_item = str(item)
+                observed_count = count
+                required_count = int(required)
+                break
+        if not qualifying_item:
+            return {}
+        health = state.get("health", 0)
+        health_valid = bool(
+            isinstance(health, (int, float))
+            and not isinstance(health, bool)
+            and math.isfinite(float(health))
+            and float(health) > float(verifier.get("terminal_health_min_exclusive", 0))
+        )
+        bot_connected = bool(getattr(getattr(self, "bot", None), "_connected", False))
+        lifecycle = state.get("player_lifecycle", {})
+        get_lifecycle = getattr(getattr(self, "bot", None), "get_player_lifecycle", None)
+        if callable(get_lifecycle):
+            try:
+                current_lifecycle = get_lifecycle()
+                if isinstance(current_lifecycle, dict):
+                    lifecycle = current_lifecycle
+            except Exception:
+                lifecycle = {}
+        lifecycle = lifecycle if isinstance(lifecycle, dict) else {}
+        lifecycle_report = validate_m4_player_lifecycle(
+            lifecycle,
+            episode_id=str(lifecycle.get("episode_id") or ""),
+            require_uninterrupted=True,
+        )
+        expected_lifecycle_identity = tuple(
+            getattr(self, "_m4_player_lifecycle_identity", ()) or ()
+        )
+        lifecycle_identity = self._m4_lifecycle_identity(lifecycle)
+        if not (
+            health_valid
+            and bot_connected
+            and lifecycle_report["passed"]
+            and expected_lifecycle_identity
+            and lifecycle_identity == expected_lifecycle_identity
+        ):
+            return {}
+        return {
+            "type": str(verifier.get("payload_type") or ""),
+            "schema_version": 1,
+            "passed": True,
+            "source": str(verifier.get("source") or ""),
+            "task_id": "BM-012",
+            "goal": str(goal),
+            "verifier_id": str(verifier.get("id") or ""),
+            "task_contract_id": str(contract.get("id") or ""),
+            "task_contract_sha256": task_contract_sha256("BM-012"),
+            "qualifying_item": qualifying_item,
+            "required_count": required_count,
+            "observed_count": observed_count,
+            "inventory": dict(inventory),
+            "health": health,
+            "food": state.get("hunger"),
+            "bot_connected": True,
+            "uninterrupted_survival": True,
+            "player_lifecycle_verifier_id": lifecycle.get("verifier_id", ""),
+            "player_lifecycle": dict(lifecycle),
+        }
 
     def _m4_terminal_survival_verification(self, goal: str, observation: dict) -> dict:
         if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":

@@ -26,7 +26,7 @@ class GoalGenerator:
     def __init__(self):
         self.last_decision: dict = {}
 
-    def next_goal(self, observation: dict) -> str:
+    def next_goal(self, observation: dict, task_id: str = "") -> str:
         observation = observation if isinstance(observation, dict) else {}
         time_of_day = self._normalized_time(observation.get("time_of_day", 0))
         health = self._number(observation.get("health", 20), 20.0)
@@ -163,6 +163,15 @@ class GoalGenerator:
             )
 
         # Priority 6: tool and resource progression.
+        if str(task_id or "").upper().strip() == "BM-012":
+            return self._bm012_progression(
+                observation,
+                inv,
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
         if not inv.get("wooden_pickaxe") and inv.get("oak_log", 0) >= 3:
             return self._progression("Craft wooden pickaxe", "wood_ready_for_first_pickaxe", time_of_day, health, hunger, shelter_verified)
         if inv.get("wooden_pickaxe") and not inv.get("stone_pickaxe") and inv.get("cobblestone", 0) >= 3:
@@ -180,6 +189,84 @@ class GoalGenerator:
         return self._progression(
             "Explore surroundings and gather resources",
             "basic_progression_ready",
+            time_of_day,
+            health,
+            hunger,
+            shelter_verified,
+        )
+
+    def _bm012_progression(
+        self,
+        observation: dict,
+        inventory: dict,
+        time_of_day: int,
+        health: float,
+        hunger: float,
+        shelter_verified: bool,
+    ) -> str:
+        if self._count(inventory.get("raw_iron")) >= 8 or self._count(inventory.get("iron_ore")) >= 8:
+            return self._progression(
+                "Confirm collection of 8 iron resources",
+                "bm012_inventory_target_reached",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if self._count(inventory.get("oak_log")) < 6:
+            return self._progression(
+                "Gather 6 oak logs for iron-tool progression",
+                "bm012_wood_reserve_below_target",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        nearby_blocks = observation.get("nearby_blocks", [])
+        nearby_blocks = nearby_blocks if isinstance(nearby_blocks, list) else []
+        table_available = self._count(inventory.get("crafting_table")) > 0 or any(
+            isinstance(block, dict) and block.get("name") == "crafting_table"
+            for block in nearby_blocks
+        )
+        if not table_available:
+            return self._progression(
+                "Craft and place a crafting table for iron-tool progression",
+                "bm012_crafting_table_missing",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if self._count(inventory.get("wooden_pickaxe")) < 1:
+            return self._progression(
+                "Craft a wooden pickaxe for stone acquisition",
+                "bm012_wooden_pickaxe_missing",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        if self._count(inventory.get("stone_pickaxe")) < 1:
+            if self._count(inventory.get("cobblestone")) < 3:
+                return self._progression(
+                    "Gather 3 cobblestone with the wooden pickaxe",
+                    "bm012_cobblestone_below_stone_pickaxe_requirement",
+                    time_of_day,
+                    health,
+                    hunger,
+                    shelter_verified,
+                )
+            return self._progression(
+                "Craft a stone pickaxe for mining iron ore",
+                "bm012_stone_pickaxe_ready_to_craft",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
+        return self._progression(
+            "Collect 8 raw iron from iron ore with the stone pickaxe",
+            "bm012_stone_pickaxe_ready_for_iron",
             time_of_day,
             health,
             hunger,

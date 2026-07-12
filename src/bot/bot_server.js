@@ -53,6 +53,10 @@ const M4_PROTOCOL_PATH = path.resolve(__dirname, '..', 'singularity', 'data', 'm
 const M4_PROTOCOL_BYTES = fs.readFileSync(M4_PROTOCOL_PATH);
 const M4_PROTOCOL = JSON.parse(M4_PROTOCOL_BYTES.toString('utf8'));
 const M4_PROTOCOL_SHA256 = crypto.createHash('sha256').update(M4_PROTOCOL_BYTES).digest('hex');
+const M4_BM012_PROTOCOL_PATH = path.resolve(__dirname, '..', 'singularity', 'data', 'm4_bm012_protocol.json');
+const M4_BM012_PROTOCOL_BYTES = fs.readFileSync(M4_BM012_PROTOCOL_PATH);
+const M4_BM012_PROTOCOL = JSON.parse(M4_BM012_PROTOCOL_BYTES.toString('utf8'));
+const M4_BM012_PROTOCOL_SHA256 = crypto.createHash('sha256').update(M4_BM012_PROTOCOL_BYTES).digest('hex');
 const HOSTILE_ENTITY_NAMES = new Set([
     'blaze', 'bogged', 'breeze', 'cave_spider', 'creeper', 'drowned', 'elder_guardian',
     'endermite', 'evoker', 'ghast', 'guardian', 'hoglin', 'husk', 'magma_cube',
@@ -687,6 +691,14 @@ function benchmarkTaskBundle(taskId = '') {
     return { protocol: M1_PROTOCOL, protocolSha256: M1_PROTOCOL_SHA256 };
 }
 
+function m4TaskContract(taskId = '') {
+    const normalized = String(taskId || '').trim().toUpperCase();
+    if (normalized === M4_BM012_PROTOCOL.task_id) {
+        return { contract: M4_BM012_PROTOCOL, contractSha256: M4_BM012_PROTOCOL_SHA256 };
+    }
+    return { contract: null, contractSha256: '' };
+}
+
 function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}, profile = '') {
     const { protocol, protocolSha256 } = benchmarkProtocolBundle(profile || runtimeOverrides.profile);
     const runtime = benchmarkRuntime(runtimeOverrides);
@@ -694,6 +706,12 @@ function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}, profile = '')
     const serverBrand = String(activeBot?.game?.serverBrand || '');
     const observedMinecraftVersion = String(activeBot?.version || '');
     const errors = [];
+    if (
+        protocol.profile === M4_PROTOCOL.profile
+        && M4_BM012_PROTOCOL.base_protocol_sha256 !== M4_PROTOCOL_SHA256
+    ) {
+        errors.push('BM-012 task contract is not bound to the active M4 base protocol');
+    }
     if (runtime.seed !== protocol.world_seed) {
         errors.push(`benchmark seed ${runtime.seed || '<missing>'} does not match ${protocol.world_seed}`);
     }
@@ -771,6 +789,12 @@ function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}, profile = '')
             python: protocol.runtime_versions?.python || '',
         },
         tasks: protocol.tasks,
+        task_contracts: protocol.profile === M4_PROTOCOL.profile ? {
+            [M4_BM012_PROTOCOL.task_id]: {
+                id: M4_BM012_PROTOCOL.id,
+                sha256: M4_BM012_PROTOCOL_SHA256,
+            },
+        } : {},
         reset_supported: true,
         validation_supported: protocol.profile !== M1_PROTOCOL.profile,
         errors,
@@ -1171,10 +1195,12 @@ function positionDistance(a, b) {
     );
 }
 
-function benchmarkResetChecks(postState, taskSpec, protocol = M1_PROTOCOL) {
+function benchmarkResetChecks(postState, taskSpec, protocol = M1_PROTOCOL, taskContract = null) {
     const expectedBlocks = Array.isArray(taskSpec.initial_blocks) ? taskSpec.initial_blocks : [];
     const expectedInventory = taskSpec.initial_inventory || protocol.initial_inventory || {};
-    const expectedTime = Number(protocol.time_of_day ?? protocol.initial_time_of_day);
+    const expectedTime = Number(
+        taskContract?.initial_time_of_day ?? protocol.time_of_day ?? protocol.initial_time_of_day
+    );
     const expectedPlayer = protocol.initial_player_state || {};
     const isM4 = protocol.profile === M4_PROTOCOL.profile;
     const expectedFixture = expectedBlocks[0]?.name || 'air';
@@ -1244,8 +1270,13 @@ function createBenchmarkResetHandler(
 
         const beforeState = benchmarkBotState(activeBot, spawnPoint, taskSpec);
         const isM4 = protocol.profile === M4_PROTOCOL.profile;
+        const { contract: taskContract, contractSha256 } = isM4
+            ? m4TaskContract(taskId)
+            : { contract: null, contractSha256: '' };
         const initialInventory = taskSpec.initial_inventory || protocol.initial_inventory || {};
-        const initialTime = Number(protocol.time_of_day ?? protocol.initial_time_of_day);
+        const initialTime = Number(
+            taskContract?.initial_time_of_day ?? protocol.time_of_day ?? protocol.initial_time_of_day
+        );
         const commands = [
             `/execute in minecraft:overworld run tp @s ${spawnPoint.x} ${spawnPoint.y} ${spawnPoint.z}`,
             `/gamemode ${protocol.game_mode} @s`,
@@ -1304,7 +1335,7 @@ function createBenchmarkResetHandler(
 
         const afterState = benchmarkBotState(activeBot, spawnPoint, taskSpec);
         const structureBaseline = constructionSnapshot(activeBot, spawnPoint, taskSpec);
-        const checks = benchmarkResetChecks(afterState, taskSpec, protocol);
+        const checks = benchmarkResetChecks(afterState, taskSpec, protocol, taskContract);
         const lifecycleTracker = state.playerLifecycleTracker || m4PlayerLifecycleTracker;
         const playerLifecycle = isM4 && lifecycleTracker && typeof lifecycleTracker.startEpisode === 'function'
             ? lifecycleTracker.startEpisode({
@@ -1344,6 +1375,8 @@ function createBenchmarkResetHandler(
             observed_minecraft_version: protocolStatus.observed_minecraft_version,
             server_jar_sha256: protocolStatus.server_jar_sha256,
             task_id: taskId,
+            task_contract_id: String(taskContract?.id || ''),
+            task_contract_sha256: contractSha256,
             expected: {
                 initial_inventory: initialInventory,
                 initial_blocks: taskSpec.initial_blocks,
@@ -2632,12 +2665,15 @@ module.exports = {
     M2_PROTOCOL_SHA256,
     M4_PROTOCOL,
     M4_PROTOCOL_SHA256,
+    M4_BM012_PROTOCOL,
+    M4_BM012_PROTOCOL_SHA256,
     attachScreenshotPlugin,
     benchmarkBotState,
     benchmarkProtocolBundle,
     benchmarkProtocolStatus,
     benchmarkResetChecks,
     benchmarkTaskBundle,
+    m4TaskContract,
     constructionSnapshot,
     createBridgeServer,
     createM4PlayerLifecycleTracker,

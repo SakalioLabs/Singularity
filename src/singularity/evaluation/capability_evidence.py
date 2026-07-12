@@ -24,7 +24,7 @@ from singularity.evaluation.m2_protocol import (
 )
 from singularity.evaluation.m4_protocol import (
     PROTOCOL_SHA256 as M4_PROTOCOL_SHA256,
-    evaluate_bm011_episode,
+    evaluate_m4_episode,
 )
 
 
@@ -1567,7 +1567,7 @@ def _normalize_m4_episode_bundle(
     source_root: Path,
 ) -> dict:
     task_id = str(eligibility.get("task_id") or "").upper().strip()
-    if task_id != "BM-011":
+    if task_id not in {"BM-011", "BM-012"}:
         return {}
     episode_dir = eligibility_path.parent
     payloads = {}
@@ -1583,7 +1583,7 @@ def _normalize_m4_episode_bundle(
     events = payloads["session"] if isinstance(payloads["session"], list) else []
     result = payloads["result"] if isinstance(payloads["result"], dict) else {}
     preflight = payloads["preflight"] if isinstance(payloads["preflight"], dict) else {}
-    independent = evaluate_bm011_episode(events, result, preflight, manifest)
+    independent = evaluate_m4_episode(events, result, preflight, manifest, task_id)
     issues.extend(str(item) for item in independent.get("issues", []))
     if eligibility.get("profile") != "m4-fixed-v1":
         issues.append("m4_eligibility_profile_mismatch")

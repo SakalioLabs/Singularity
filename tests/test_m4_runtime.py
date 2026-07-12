@@ -6,7 +6,12 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from singularity.evaluation.m4_protocol import PROTOCOL, PROTOCOL_SHA256
+from singularity.evaluation.m4_protocol import (
+    BM012_CONTRACT,
+    BM012_CONTRACT_SHA256,
+    PROTOCOL,
+    PROTOCOL_SHA256,
+)
 from singularity.evaluation.m4_runtime import (
     _first_unrecovered_transition,
     attach_m4_evidence_hashes,
@@ -236,6 +241,61 @@ def test_m4_runtime_builds_valid_preflight_and_manifest():
     print("PASS: M4 runtime builds a valid fresh preflight and fixed manifest")
 
 
+def test_bm012_runtime_binds_task_contract_and_daylight_reset():
+    episode_id = "m4-fixture-bm012"
+    level_name = f"{episode_id}_bm012"
+    status = _status()
+    status.update({
+        "episode_id": episode_id,
+        "level_name": level_name,
+        "task_contracts": {
+            "BM-012": {
+                "id": BM012_CONTRACT["id"],
+                "sha256": BM012_CONTRACT_SHA256,
+            }
+        },
+    })
+    reset = _reset()
+    lifecycle = _lifecycle()
+    lifecycle.update({"episode_id": episode_id, "level_name": level_name})
+    reset.update({
+        "task_id": "BM-012",
+        "episode_id": episode_id,
+        "level_name": level_name,
+        "task_contract_id": BM012_CONTRACT["id"],
+        "task_contract_sha256": BM012_CONTRACT_SHA256,
+        "player_lifecycle": lifecycle,
+    })
+    reset["after_state"] = dict(reset["after_state"], time_of_day=0)
+
+    preflight = build_m4_preflight(
+        status,
+        reset,
+        episode_id,
+        level_name,
+        fresh_episode=True,
+        task_id="BM-012",
+    )
+    assert preflight["passed"], preflight
+    assert preflight["task_contract_id"] == BM012_CONTRACT["id"]
+    assert preflight["task_contract_sha256"] == BM012_CONTRACT_SHA256
+    assert preflight["initial_time_of_day"] == 0
+
+    manifest = build_m4_runtime_manifest(
+        preflight,
+        "bm012-runtime-session",
+        100.0,
+        700.0,
+        200.0,
+        runtime_controls=PROTOCOL["baseline_runtime_controls"],
+        runtime_limits={"max_duration_s": 600, "max_goals": 24, "max_cycles_per_goal": 40},
+    )
+    assert manifest["task_id"] == "BM-012"
+    assert manifest["task_contract_id"] == BM012_CONTRACT["id"]
+    assert manifest["task_contract_sha256"] == BM012_CONTRACT_SHA256
+    print("PASS: BM-012 preflight and manifest bind the task contract and daylight reset")
+
+
 def test_m4_preflight_rejects_missing_or_nonzero_player_lifecycle_baseline():
     missing = _reset()
     missing.pop("player_lifecycle")
@@ -453,6 +513,7 @@ def test_m4_preparation_reports_planner_that_consumes_dusk_budget():
 
 if __name__ == "__main__":
     test_m4_runtime_builds_valid_preflight_and_manifest()
+    test_bm012_runtime_binds_task_contract_and_daylight_reset()
     test_m4_preparation_report_requires_machine_visible_progress()
     test_m4_preparation_requires_progress_before_fixed_dusk_boundary()
     test_m4_preparation_skips_recovered_action_failure()

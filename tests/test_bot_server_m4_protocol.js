@@ -6,6 +6,8 @@ const { Vec3 } = require('vec3');
 const {
     M4_PROTOCOL,
     M4_PROTOCOL_SHA256,
+    M4_BM012_PROTOCOL,
+    M4_BM012_PROTOCOL_SHA256,
     benchmarkProtocolStatus,
     createBenchmarkResetHandler,
     createBuildShelterCellHandler,
@@ -54,7 +56,7 @@ function createM4Bot() {
             } else if (command === '/clear @s') {
                 items = [];
             } else if (command.startsWith('/time set ')) {
-                bot.time.timeOfDay = 9000;
+                bot.time.timeOfDay = Number(command.split(' ').pop());
             } else if (command.startsWith('/weather ')) {
                 bot.rainState = 0;
                 bot.thunderState = 0;
@@ -87,7 +89,41 @@ async function testM4ProtocolStatusPinsAutonomousRuntime() {
     assert.deepStrictEqual(status.runtime_controls, M4_PROTOCOL.baseline_runtime_controls);
     assert.strictEqual(status.validation_supported, true);
     assert.strictEqual(status.tasks[0].id, 'BM-011');
+    assert.deepStrictEqual(status.task_contracts['BM-012'], {
+        id: M4_BM012_PROTOCOL.id,
+        sha256: M4_BM012_PROTOCOL_SHA256,
+    });
     console.log('PASS: M4 bridge pins autonomous identities, runtime, and task scope');
+}
+
+async function testBM012ResetUsesTaskBoundDaylightWithoutItemsOrFixtures() {
+    const { bot, commands } = createM4Bot();
+    const bm012Runtime = {
+        ...runtime,
+        episode_id: 'offline-m4-bm012-contract-test',
+        level_name: 'offline-m4-bm012-contract-test_bm012',
+    };
+    const lifecycle = createM4PlayerLifecycleTracker({ trackerId: 'offline-bm012-lifecycle' });
+    lifecycle.attach(bot);
+    bot.emit('spawn');
+    const reset = createBenchmarkResetHandler(
+        () => ({ bot, botReady: true, playerLifecycleTracker: lifecycle }),
+        async () => {},
+        bm012Runtime,
+    );
+
+    const result = await reset({ task_id: 'BM-012' });
+
+    assert.strictEqual(result.success, true, JSON.stringify(result));
+    assert.strictEqual(result.task_contract_id, M4_BM012_PROTOCOL.id);
+    assert.strictEqual(result.task_contract_sha256, M4_BM012_PROTOCOL_SHA256);
+    assert.strictEqual(result.after_state.time_of_day, 0);
+    assert.strictEqual(result.expected.time_of_day, 0);
+    assert.deepStrictEqual(result.after_state.inventory, {});
+    assert(commands.includes('/time set 0'));
+    assert(!commands.some(command => command.startsWith('/give ')));
+    assert.strictEqual(result.checks.player_lifecycle_baseline, true);
+    console.log('PASS: BM-012 reset is task-bound daylight with no granted resources or fixtures');
 }
 
 async function testM4ResetUsesNaturalSurvivalStateWithoutFixtures() {
@@ -450,6 +486,7 @@ async function testM4BoundedSealedCellRollsBackUnexpectedPartialPlacement() {
 async function main() {
     await testM4ProtocolStatusPinsAutonomousRuntime();
     await testM4ResetUsesNaturalSurvivalStateWithoutFixtures();
+    await testBM012ResetUsesTaskBoundDaylightWithoutItemsOrFixtures();
     await testM4ResetRejectsLifecycleWithoutInitialMineflayerSpawn();
     await testM4ShelterSnapshotReturnsCompleteBoundedMachineState();
     await testM4PlaceHandlerReturnsObservedCoordinateDelta();

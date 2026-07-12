@@ -12,6 +12,8 @@ from singularity.evaluation.m4_protocol import (
     PROTOCOL_SHA256,
     canonical_sha256,
     planner_provider_controls_report,
+    task_contract,
+    task_contract_sha256,
     validate_preflight,
 )
 
@@ -52,6 +54,11 @@ def build_m4_preflight(
     """Build the canonical preflight only from runtime and observed reset evidence."""
     status = protocol_status if isinstance(protocol_status, dict) else {}
     reset = reset_evidence if isinstance(reset_evidence, dict) else {}
+    normalized_task_id = str(task_id or "").upper().strip()
+    contract = task_contract(normalized_task_id)
+    status_contracts = status.get("task_contracts", {}) if isinstance(status.get("task_contracts"), dict) else {}
+    status_contract = status_contracts.get(normalized_task_id, {})
+    status_contract = status_contract if isinstance(status_contract, dict) else {}
     state = reset.get("after_state", {}) if isinstance(reset.get("after_state"), dict) else {}
     dependencies = status.get("dependencies", {}) if isinstance(status.get("dependencies"), dict) else {}
     runtime_versions = {
@@ -99,6 +106,15 @@ def build_m4_preflight(
         and reset["player_lifecycle"].get("respawn_count") == 0
         and reset["player_lifecycle"].get("uninterrupted") is True,
     }
+    if contract:
+        source_checks.update({
+            "status_task_contract_id": status_contract.get("id") == contract.get("id"),
+            "status_task_contract_sha256": status_contract.get("sha256")
+            == task_contract_sha256(normalized_task_id),
+            "reset_task_contract_id": reset.get("task_contract_id") == contract.get("id"),
+            "reset_task_contract_sha256": reset.get("task_contract_sha256")
+            == task_contract_sha256(normalized_task_id),
+        })
     preliminary_pass = bool(
         status.get("success") is True
         and status.get("configured") is True
@@ -110,7 +126,7 @@ def build_m4_preflight(
         "type": "m4_preflight",
         "schema_version": 1,
         "passed": preliminary_pass,
-        "task_id": str(task_id or "").upper(),
+        "task_id": normalized_task_id,
         "profile": str(status.get("profile") or ""),
         "protocol_sha256": str(status.get("protocol_sha256") or ""),
         "server_jar_sha256": str(status.get("server_jar_sha256") or ""),
@@ -131,6 +147,8 @@ def build_m4_preflight(
         "llm": dict(status.get("llm", {}) or {}),
         "identities": identities,
         "runtime_controls": dict(status.get("runtime_controls", {}) or {}),
+        "task_contract_id": str(contract.get("id") or ""),
+        "task_contract_sha256": task_contract_sha256(normalized_task_id),
         "player_lifecycle_baseline": dict(reset.get("player_lifecycle", {}) or {}),
         "episode_id": str(episode_id or ""),
         "level_name": str(level_name or ""),
@@ -156,10 +174,12 @@ def build_m4_runtime_manifest(
     runtime_limits: dict | None = None,
 ) -> dict:
     controls = dict(runtime_controls or {})
+    task_id = str(preflight.get("task_id") or "BM-011").upper().strip()
+    contract = task_contract(task_id)
     return {
         "type": "m4_runtime_manifest",
         "schema_version": 1,
-        "task_id": str(preflight.get("task_id") or "BM-011"),
+        "task_id": task_id,
         "profile": PROTOCOL["profile"],
         "protocol_sha256": PROTOCOL_SHA256,
         "reset_protocol_sha256": PROTOCOL["reset_protocol_sha256"],
@@ -176,6 +196,8 @@ def build_m4_runtime_manifest(
         "llm": dict(PROTOCOL["llm"]),
         "identities": dict(PROTOCOL["identities"]),
         "runtime_controls": controls,
+        "task_contract_id": str(contract.get("id") or ""),
+        "task_contract_sha256": task_contract_sha256(task_id),
         "skill_execution_mode": controls.get("skill_execution_mode"),
         "learned_executable_skills_enabled": controls.get("learned_executable_skills_enabled"),
         "quarantined_skills_enabled": controls.get("quarantined_skills_enabled"),
@@ -330,6 +352,90 @@ def build_m4_preparation_report(
         "first_unrecovered_transition": first_unrecovered,
         "before_state": _compact_state(before),
         "after_state": _compact_state(after),
+        "deadline_eligible": bool(result.get("deadline_eligible")),
+        "evidence_eligible": bool(eligibility.get("eligible")),
+        "eligibility_issues": list(eligibility.get("issues", [])),
+    }
+
+
+def build_m4_episode_progress_report(
+    events: list[dict],
+    result: dict,
+    preflight: dict,
+    manifest: dict,
+    eligibility: dict,
+) -> dict:
+    task_id = str(manifest.get("task_id") or preflight.get("task_id") or "").upper().strip()
+    if task_id == "BM-011":
+        return build_m4_preparation_report(events, result, preflight, manifest, eligibility)
+    if task_id != "BM-012":
+        raise ValueError(f"unsupported M4 progress report task: {task_id or '<missing>'}")
+
+    active = _active_events(events)
+    observations = [
+        event.get("data", {})
+        for event in active
+        if event.get("type") == "observation" and isinstance(event.get("data"), dict)
+    ]
+    goals = [
+        event.get("data", {})
+        for event in active
+        if event.get("type") == "auto_goal" and isinstance(event.get("data"), dict)
+    ]
+    actions = [
+        event.get("data", {})
+        for event in active
+        if event.get("type") == "action" and isinstance(event.get("data"), dict)
+    ]
+    successful_actions = [
+        action for action in actions if (action.get("result") or {}).get("success") is True
+    ]
+    before = observations[0] if observations else {}
+    terminal = result.get("terminal_state", {}) if isinstance(result.get("terminal_state"), dict) else {}
+    after = observations[-1] if observations else terminal
+    planner_controls = planner_provider_controls_report(active)
+    resource_evidence = eligibility.get("evidence", {}).get("resource_acquisition", {})
+    resource_evidence = resource_evidence if isinstance(resource_evidence, dict) else {}
+    first_unrecovered = _first_unrecovered_transition(active)
+    progress_gate_passed = bool(
+        preflight.get("passed") is True
+        and goals
+        and actions
+        and planner_controls["passed"]
+        and result.get("deadline_eligible") is True
+        and (
+            resource_evidence.get("successful_source_action_count", 0) > 0
+            or any(
+                token in str(goal.get("goal") or "").lower()
+                for goal in goals
+                for token in ("iron", "stone pickaxe", "cobblestone")
+            )
+        )
+    )
+    return {
+        "type": "m4_resource_progress_report",
+        "schema_version": 1,
+        "task_id": task_id,
+        "profile": PROTOCOL["profile"],
+        "protocol_sha256": PROTOCOL_SHA256,
+        "task_contract_id": str(task_contract(task_id).get("id") or ""),
+        "task_contract_sha256": task_contract_sha256(task_id),
+        "readiness": "eligible" if eligibility.get("eligible") is True else "review",
+        "decision": "count_bm012_success" if eligibility.get("eligible") is True else "diagnose_first_unrecovered_transition",
+        "progress_gate_passed": progress_gate_passed,
+        "counts_toward_task_success": bool(eligibility.get("eligible")),
+        "episode_id": manifest.get("episode_id"),
+        "session_id": manifest.get("session_id"),
+        "level_name": manifest.get("level_name"),
+        "autonomous_goals": goals,
+        "planner_provider_controls": planner_controls,
+        "action_count": len(actions),
+        "successful_action_count": len(successful_actions),
+        "resource_acquisition": resource_evidence,
+        "before_state": _compact_state(before),
+        "after_state": _compact_state(after),
+        "time_remaining_s": _remaining_time(manifest),
+        "first_unrecovered_transition": first_unrecovered,
         "deadline_eligible": bool(result.get("deadline_eligible")),
         "evidence_eligible": bool(eligibility.get("eligible")),
         "eligibility_issues": list(eligibility.get("issues", [])),

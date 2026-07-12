@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-12T22:17:31.4559758Z",
+  "generated_at": "2026-07-12T22:54:11.9501689Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "current_task_id": "BM-012",
@@ -18,11 +18,11 @@
   "live_episode_count_under_current_protocol": 4,
   "current_gate": {
     "hypothesis": "bm012_protocol_and_machine_evidence_preflight",
-    "status": "bm011_repeat_verified_probe18_accepted_bm012_offline_gate_pending",
+    "status": "bm012_offline_gate_passed_probe_1_exactly_one_authorized",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
-    "full_python_regression": 686,
+    "full_python_regression": 693,
     "node_suite_file_count": 6,
     "node_internal_pass_count": 35,
     "m4_shelter_python_case_count": 18,
@@ -34,7 +34,11 @@
     "live_atomicity_recovery_passed": true,
     "bm011_eligible_success_count": 3,
     "bm011_status": "repeat_verified",
-    "next_authorized_episode": "none_bm012_offline_gate_pending"
+    "bm012_task_contract_id": "m4-bm012-resource-contract-v1",
+    "bm012_task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "bm012_offline_gate_passed": true,
+    "bm012_eligible_success_count": 0,
+    "next_authorized_episode": "bm012_probe_1_exactly_one"
   },
   "entries": [
     {

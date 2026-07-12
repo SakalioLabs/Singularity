@@ -51,8 +51,8 @@ def _verified_shelter():
     }
 
 
-def _decision(generator: GoalGenerator, observation: dict):
-    goal = generator.next_goal(observation)
+def _decision(generator: GoalGenerator, observation: dict, task_id: str = ""):
+    goal = generator.next_goal(observation, task_id=task_id)
     decision = dict(generator.last_decision)
     assert decision["goal"] == goal
     assert decision["selection_source"] == "goal_generator"
@@ -184,8 +184,74 @@ def test_m4_hunger_priority_survives_ready_task_selection():
     print("PASS: ready curriculum tasks cannot override a low-hunger survival goal")
 
 
+def test_bm012_goal_progression_is_autonomous_and_survival_preemptible():
+    generator = GoalGenerator()
+    table = [{"name": "crafting_table", "position": {"x": 1, "y": 64, "z": 1}}]
+    cases = [
+        (_observation(time_of_day=1000), "Gather 6 oak logs", "bm012_wood_reserve_below_target"),
+        (
+            _observation(time_of_day=1000, inventory={"oak_log": 6}),
+            "crafting table",
+            "bm012_crafting_table_missing",
+        ),
+        (
+            _observation(time_of_day=1000, inventory={"oak_log": 6}, nearby_blocks=table),
+            "wooden pickaxe",
+            "bm012_wooden_pickaxe_missing",
+        ),
+        (
+            _observation(
+                time_of_day=1000,
+                inventory={"oak_log": 6, "wooden_pickaxe": 1},
+                nearby_blocks=table,
+            ),
+            "3 cobblestone",
+            "bm012_cobblestone_below_stone_pickaxe_requirement",
+        ),
+        (
+            _observation(
+                time_of_day=1000,
+                inventory={"oak_log": 6, "wooden_pickaxe": 1, "cobblestone": 3},
+                nearby_blocks=table,
+            ),
+            "stone pickaxe",
+            "bm012_stone_pickaxe_ready_to_craft",
+        ),
+        (
+            _observation(
+                time_of_day=1000,
+                inventory={"oak_log": 6, "wooden_pickaxe": 1, "stone_pickaxe": 1},
+                nearby_blocks=table,
+            ),
+            "Collect 8 raw iron",
+            "bm012_stone_pickaxe_ready_for_iron",
+        ),
+        (
+            _observation(time_of_day=1000, inventory={"raw_iron": 8}),
+            "Confirm collection",
+            "bm012_inventory_target_reached",
+        ),
+    ]
+    for observation, expected_goal, expected_reason in cases:
+        goal, decision = _decision(generator, observation, task_id="BM-012")
+        assert expected_goal.lower() in goal.lower(), (goal, observation)
+        assert decision["selection_reason"] == expected_reason
+        assert decision["selection_source"] == "goal_generator"
+        assert decision["priority_class"] == "tool_resource_progression"
+
+    survival_goal, survival = _decision(
+        generator,
+        _observation(time_of_day=11000, inventory={"stone_pickaxe": 1}),
+        task_id="BM-012",
+    )
+    assert "shelter" in survival_goal.lower()
+    assert survival["priority_class"] == "shelter_preparation"
+    print("PASS: BM-012 intermediate goals are autonomous while survival priorities still preempt")
+
+
 if __name__ == "__main__":
     test_m4_goal_priority_fixed_state_matrix()
     test_m4_goal_priority_precedence_and_machine_shelter_requirement()
     test_m4_hunger_priority_survives_ready_task_selection()
+    test_bm012_goal_progression_is_autonomous_and_survival_preemptible()
     print("\nM4 G1 goal-priority tests PASSED")

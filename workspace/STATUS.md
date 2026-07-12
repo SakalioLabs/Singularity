@@ -50,7 +50,7 @@
 - M4 is `partial`; the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 and requires an offline fixed-protocol and machine-evidence gate before any live run. BM-013 and BM-014 remain locked.
+- BM-012 is the next target at 0/3. Its task-bound daylight reset, autonomous progression, machine inventory verifier, eight-source-action provenance, deadline, and independent eligibility gate pass offline; exactly one fresh Probe 1 is authorized after the gate commit. BM-013 and BM-014 remain locked.
 
 ## Evidence Policy
 
