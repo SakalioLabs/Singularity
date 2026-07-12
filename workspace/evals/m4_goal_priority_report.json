@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T21:46:46.4828647Z",
+  "generated_at": "2026-07-12T21:55:33.9177784Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "approved_contract_probe_17_eligible",
-  "decision": "probe_17_priority_and_atomic_recovery_pass_bm011_2_of_3",
+  "readiness": "approved_contract_probe_18_exactly_one_authorized",
+  "decision": "freeze_goal_priority_and_run_third_fresh_bm011_replication",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -58,7 +58,7 @@
     "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
     "scheduled_recovery_count": 1,
     "completed_recovery_count": 1,
-    "next_authorized_episode": "locked_probe_17_consumed_current_round"
+    "next_authorized_episode": "probe_18_exactly_one"
   },
   "live_episode_count": 17,
   "live_episode_count_under_current_protocol": 3,

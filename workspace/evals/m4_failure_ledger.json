@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-12T21:46:46.4828647Z",
+  "generated_at": "2026-07-12T21:55:33.9177784Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "current_task_id": "BM-011",
@@ -10,7 +10,7 @@
   "live_episode_count_under_current_protocol": 3,
   "current_gate": {
     "hypothesis": "bounded_shelter_partial_failure_atomicity",
-    "status": "probe_17_live_atomicity_recovery_passed_eligible_count_2_of_3",
+    "status": "probe_18_exactly_one_authorized_eligible_count_2_of_3",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
@@ -24,7 +24,7 @@
     "latest_accepted_episode": "m4_episode_20260713_053155_0f5a150e",
     "latest_episode": "m4_episode_20260713_053155_0f5a150e",
     "live_atomicity_recovery_passed": true,
-    "next_authorized_episode": "locked_probe_17_consumed_current_round"
+    "next_authorized_episode": "probe_18_exactly_one"
   },
   "entries": [
     {

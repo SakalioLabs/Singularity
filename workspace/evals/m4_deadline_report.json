@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T21:46:46.4828647Z",
+  "generated_at": "2026-07-12T21:55:33.9177784Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "probe_17_independently_eligible",
-  "decision": "probe_17_accepted_bm011_advances_to_2_of_3",
+  "readiness": "probe_18_exactly_one_authorized",
+  "decision": "freeze_code_and_run_third_fresh_bm011_replication",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -110,7 +110,7 @@
     "live_episode_run": true,
     "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
     "live_recovery_passed": true,
-    "next_authorized_episode": "locked_probe_17_consumed_current_round"
+    "next_authorized_episode": "probe_18_exactly_one"
   },
   "fixed_runtime_profile": {
     "task_id": "BM-011",
