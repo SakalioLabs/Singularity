@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T17:20:02.9923794Z",
+  "generated_at": "2026-07-12T17:46:25.1939113Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "ready_for_probe_15",
-  "decision": "active_episode_death_continuity_passed_offline_probe_15_authorized",
+  "readiness": "replication_required_1_of_3",
+  "decision": "probe_15_first_independently_eligible_success_with_live_death_continuity",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -115,20 +115,20 @@
     "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
     "reset_protocol_sha256": "0df412101c5c01bf89b32e26d2d9beead7f9b64d10ba5de714caab51b1b63e52",
     "validation_protocol_sha256": "bd2e7466d18d72927c7ca84a11736597a05eab5adf4b788627fe9377542d1e02",
-    "live_episode_count_under_current_protocol": 0
+    "live_episode_count_under_current_protocol": 1
   },
   "g0_passed": true,
-  "live_episode_count": 14,
-  "live_episode_count_under_current_protocol": 0,
+  "live_episode_count": 15,
+  "live_episode_count_under_current_protocol": 1,
   "latest_live_episode": {
-    "episode_id": "m4_episode_20260713_002858_94ea560e",
-    "session_id": "2f005489-d89",
-    "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
-    "episode_deadline_monotonic": 17010.046,
-    "agent_end_monotonic": 16511.0,
-    "agent_remaining_s": 499.046,
-    "evidence_end_monotonic": 16511.046,
-    "remaining_s": 499.0,
+    "episode_id": "m4_episode_20260713_012907_b900a160",
+    "session_id": "bdf58b2b-51a",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "episode_deadline_monotonic": 20618.453,
+    "agent_end_monotonic": 20125.703,
+    "agent_remaining_s": 492.75,
+    "evidence_end_monotonic": 20125.75,
+    "remaining_s": 492.703,
     "post_deadline_action_count": 0,
     "post_deadline_plan_count": 0,
     "post_deadline_planner_call_count": 0,
@@ -137,9 +137,12 @@
     "deadline_eligible": true,
     "result_duration_eligible": true,
     "runner_reported_eligible": true,
-    "server_observed_death_count": 2,
-    "active_episode_survival_continuity_eligible": false,
-    "independently_accepted_eligible": false,
-    "eligibility_issue": "active_episode_player_death_not_rejected"
+    "server_observed_death_count": 0,
+    "player_lifecycle_maximum_death_count": 0,
+    "player_lifecycle_maximum_respawn_count": 0,
+    "player_lifecycle_observation_count": 84,
+    "active_episode_survival_continuity_eligible": true,
+    "independently_accepted_eligible": true,
+    "eligibility_issues": []
   }
 }

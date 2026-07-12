@@ -5,7 +5,7 @@
 - Protocol: `m4-fixed-v1`
 - Protocol SHA-256: `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`
 - Current target: BM-011 Survive the first night
-- Eligible successes: 0/3
+- Eligible successes: 1/3
 - M4 canonical status: `not_run`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
@@ -21,15 +21,15 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 
 | Gate | Requirement | State |
 |---|---|---|
-| G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed_offline_player_lifecycle_v1 |
+| G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed_probe_15_live |
 | G1 | Deterministic survival-goal priority cases | passed |
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | ready_probe_15 |
-| G6 | Three independent fresh eligible episodes | locked |
+| G5 | First eligible survival-to-dawn episode | passed_probe_15 |
+| G6 | Three independent fresh eligible episodes | in_progress_1_of_3 |
 
-G0 passes its reopened offline gate. In addition to the shared `episode_deadline_monotonic`, strict M4 now establishes a bridge-owned Mineflayer lifecycle baseline during reset, carries monotonic death/respawn evidence through every observation and canonical lifecycle transition event, requires uninterrupted zero-death state for terminalization, and independently rejects missing, malformed, rolled-back, or nonzero lifecycle evidence. The new protocol has no live episode yet; exactly one Probe 15 is authorized.
+G0 passes both offline and live validation. In addition to the shared `episode_deadline_monotonic`, strict M4 establishes a bridge-owned Mineflayer lifecycle baseline during reset, carries monotonic death/respawn evidence through every observation and canonical lifecycle transition event, requires uninterrupted zero-death state for terminalization, and independently rejects missing, malformed, rolled-back, or nonzero lifecycle evidence. Probe 15 exercised the zero-transition path across 84 active observations and reached an independently eligible terminal state 492.703 seconds before the deadline.
 
 G1 passed offline validation. GoalGenerator and Curriculum preserve the fixed order of immediate threat, critical health, hunger/food, shelter preparation, night safety maintenance, and tool/resource progression. Shelter safety requires machine-state verification, and every `auto_goal` event carries source, reason, priority, and priority class.
 
@@ -77,7 +77,9 @@ The offline safe-state gate passes. Replaying Probe 13 observation event 920 thr
 
 Probe 14 produced a runner-reported eligible terminal state, but independent audit rejects it. Paper recorded `Singularity was slain by Zombie` at 00:34:41 and again at 00:35:04. The first death is corroborated by canonical observation event 1183 (`health=7.999998`, `oak_planks:32`, world time 15472) followed by event 1198 (`health=20`, planks gone, world time 15692); the second is corroborated by event 1224 (`health=8.000002`, `stick:1`) followed by event 1238 (`health=20`, empty inventory). The later 9/9 shelter, natural dawn, terminal event, and deadline pass cannot repair a death inside the active survival interval.
 
-The Probe 14-derived single hypothesis is `terminal_survival_death_continuity`: strict M4 must record player death/respawn continuity in canonical machine evidence, terminal verification must fail after any active-episode death, and the independent eligibility gate must reject a result even when the Agent later reports `terminal_survival_verified`. The offline implementation now passes. Probe 15 is limited to testing this evidence chain in one fresh exact-profile episode; the earlier behavioral finding that an aligned flee root planned a stale shelter build before the first death remains recorded but is not authorized for a patch in this round.
+The Probe 14-derived single hypothesis `terminal_survival_death_continuity` passed its one authorized live test. Probe 15 retained one baseline lifecycle event, zero death/respawn transitions, zero baseline drift, matching observation/terminal/result signatures, and no Paper death message. The episode independently passed BM-011. The earlier behavioral finding that an aligned flee root planned a stale shelter build before Probe 14's first death remains historical and is not authorized for a patch without a fresh recurrence.
+
+The next step is independent replication under the unchanged protocol. Probe 15 consumed this round's only live authorization; Probe 16 must be a fresh episode in a later round, with no code change unless its earliest unrecovered transition justifies one.
 
 ## G0 Offline Evidence: Active-Episode Death Continuity
 
@@ -94,7 +96,8 @@ The Probe 14-derived single hypothesis is `terminal_survival_death_continuity`: 
 - Protocol boundary: strict M4 only; M1/M2 fixed task semantics and evidence remain unchanged
 - Offline regression: 684 Python tests and all six fixed Node suites pass; M4 bridge reset also rejects a missing initial-spawn baseline
 - Protocol integrity: current SHA-256 `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`, reset contract `0df412101c5c01bf89b32e26d2d9beead7f9b64d10ba5de714caab51b1b63e52`, validation contract `bd2e7466d18d72927c7ca84a11736597a05eab5adf4b788627fe9377542d1e02`
-- Live authorization: exactly one fresh exact-profile Probe 15; no second episode in this round
+- Live validation: Probe 15 passed with 84 lifecycle-bearing observations, one valid baseline event, maximum death/respawn counts of 0/0, uninterrupted terminal state, and zero Paper death messages
+- Live authorization: Probe 15 consumed this round's single episode; no second episode in this round
 
 ## G5 Preflight: Verified Shelter Hostile Safe-State Grounding
 
@@ -109,7 +112,7 @@ The Probe 14-derived single hypothesis is `terminal_survival_death_continuity`: 
 - Regression: 679 Python tests and all six fixed Node suites pass; Python compilation and repository checks remain required before commit
 - Protocol integrity: `m4-fixed-v1` SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
 - Live result: Probe 14 reached and preserved a verified shelter through dawn, but no hostile was within the verified safe state; `m4_hostile_safe_state_grounding` count was zero, so the prior failure did not recur and the new branch was not exercised live
-- Next live authorization: G0 now passes offline; exactly one Probe 15 is authorized under the new lifecycle protocol
+- Next live authorization: Probe 15 consumed the G0 live authorization; further episodes are governed by G6 replication discipline
 
 ## G5 Preflight: Planner Transport Next-Cycle Recovery
 
@@ -221,7 +224,7 @@ The Probe 14-derived single hypothesis is `terminal_survival_death_continuity`: 
 - Hysteresis: repeated same-state checks emit maintenance under one trigger; dusk-to-night emits escalation under that trigger rather than another root transition
 - Root exclusivity: strict integration observed only zero or one open root between every `goal_start` and `goal_end`
 - Offline tests: `tests/test_runtime_supervisor.py`
-- Live evidence: Probe 14 exercised the unverified-shelter hostile path, but two subsequent deaths make it a failed observation rather than a verified G4 case; the verified-shelter safe-state branch was not exercised live
+- Live evidence: Probe 15 exercised one `dusk_shelter_required` trigger at world time 10001, suspended the resource root, preserved its frontier, built a verified shelter, and emitted the matching recovery at world time 11801. No hostile, critical-health, or hunger condition occurred, and the verified-shelter hostile safe-state branch remains unexercised live.
 
 ## G3 Offline Evidence
 
@@ -236,9 +239,28 @@ The Probe 14-derived single hypothesis is `terminal_survival_death_continuity`: 
 - Runtime wiring: Agent records observed `place`, `dig`, and bounded-template deltas, attaches the report to every strict-M4 observation, logs only state changes, and sends a compact decision to Planner
 - Acceptance wiring: GoalGenerator and GoalVerifier require the pinned verifier ID, contract hash, all checks, empty issues, 9/9 placement attribution, and sealed coordinate evidence
 - Offline tests: `tests/test_m4_shelter.py` and `tests/test_bot_server_m4_protocol.js`
-- Live evidence: none; G3 is an offline deterministic gate and does not count toward BM-011
+- Live evidence: Probe 15 built the complete dark-oak sealed cell by world time 11801; the pinned verifier matched all 9/9 current-episode placements, retained blocked direct reachability and a fully sealed entrance, and remained valid through terminal world time 23281
 
 ## G2 Live Evidence
+
+### Probe 15: First Independently Eligible BM-011 Success
+
+- Episode: `m4_episode_20260713_012907_b900a160`
+- Session: `bdf58b2b-51a`
+- Preflight: passed under protocol `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`; lifecycle baseline established after the initial Mineflayer spawn with 0/0 episode death/respawn counts
+- G2: passed; pre-dusk inventory gained `oak_log:2` and `dark_oak_sapling:1` by world time 9821
+- BM-011 eligible: true; accepted eligible successes are now 1/3
+- Lifecycle continuity: 84 active observations, one canonical baseline event, maximum death/respawn counts 0/0, no baseline drift, uninterrupted terminal state, and zero Paper death messages
+- Planner controls: 42/42 real calls were schema-valid, zero reasoning bytes, maximum latency 10.750 seconds, and zero output or transport recoveries
+- Goals: four roots; resource gathering was suspended by dusk, then shelter build, nightfall maintenance, and dawn maintenance completed with no failed root
+- Interrupt: one `dusk_shelter_required` trigger at session index 137 and matching recovery at index 342; the paused frontier remained active and no concurrent root appeared
+- Actions: 41 attempted and 40 successful; `move_to` 6/7, `dig` 4/4, `craft` 1/1, `build_shelter_cell` 1/1, and `wait` 28/28
+- Shelter: pinned G3 verification passed at session index 317 / world time 11801 with all 9/9 placements and remained valid through terminal world time 23281
+- Terminal: event index 849 passed with health/food 20, bot online, verified shelter, matching lifecycle signatures, and natural dawn
+- Deadline: Agent ended at 20125.703 and canonical evidence ended at 20125.750 against deadline 20618.453, leaving 492.703 seconds; no post-deadline execution
+- Skill attribution: skills remained off; selected/executed/quarantined counts were all zero
+- First unrecovered transition: none
+- Evidence: `logs/benchmarks/m4/m4_episode_20260713_012907_b900a160/`
 
 ### Probe 14: Runner Eligible False Positive; Two Zombie Deaths Reopen G0
 
