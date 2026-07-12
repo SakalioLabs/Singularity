@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-12T22:54:11.9501689Z",
+  "generated_at": "2026-07-12T23:09:23.0796138Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "current_task_id": "BM-012",
@@ -15,10 +15,10 @@
       "required_success_count": 3
     }
   ],
-  "live_episode_count_under_current_protocol": 4,
+  "live_episode_count_under_current_protocol": 5,
   "current_gate": {
-    "hypothesis": "bm012_protocol_and_machine_evidence_preflight",
-    "status": "bm012_offline_gate_passed_probe_1_exactly_one_authorized",
+    "hypothesis": "goal_verifier_purpose_phrase_semantic_conflation",
+    "status": "bm012_probe_1_ineligible_offline_goal_verifier_gate_pending",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
@@ -28,9 +28,9 @@
     "m4_shelter_python_case_count": 18,
     "m4_node_case_count": 8,
     "offline_atomicity_gate_passed": true,
-    "live_episode_count_under_current_protocol": 4,
+    "live_episode_count_under_current_protocol": 5,
     "latest_accepted_episode": "m4_episode_20260713_055737_6d976e6d",
-    "latest_episode": "m4_episode_20260713_055737_6d976e6d",
+    "latest_episode": "m4_episode_20260713_065904_b2b7b898",
     "live_atomicity_recovery_passed": true,
     "bm011_eligible_success_count": 3,
     "bm011_status": "repeat_verified",
@@ -38,7 +38,9 @@
     "bm012_task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
     "bm012_offline_gate_passed": true,
     "bm012_eligible_success_count": 0,
-    "next_authorized_episode": "bm012_probe_1_exactly_one"
+    "bm012_live_episode_count": 1,
+    "bm012_latest_failure_layer": "goal_verifier_purpose_phrase_semantic_conflation",
+    "next_authorized_episode": "none_goal_verifier_offline_gate_pending"
   },
   "entries": [
     {
@@ -3078,6 +3080,207 @@
       },
       "patch_or_experiment_summary": "Ran exactly one fresh Probe 18 from committed frozen code b54ed244 after its authorization gate; no subsystem, protocol, or success threshold changed. Capability-evidence adapter and reporting updates were added only after the live episode and could not affect it.",
       "retest_result": "Probe 18 passed direct shelter construction, next-cycle Planner transport recovery, verified-shelter hostile safe-state grounding, uninterrupted zero-death survival, natural dawn, deadline compliance, and all 66 eligibility checks. BM-011 reaches 3/3 and is repeat_verified; no BM-012 live episode ran in this round."
+    },
+    {
+      "task_id": "BM-012",
+      "episode_id": "m4_episode_20260713_065904_b2b7b898",
+      "session_id": "6dbc69ab-4d7",
+      "level_name": "m4_episode_20260713_065904_b2b7b898_bm012",
+      "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "task_contract_id": "m4-bm012-resource-contract-v1",
+      "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+      "seed": "12345",
+      "start_monotonic": 39223.39,
+      "agent_end_monotonic": 39583.046,
+      "end_monotonic": 39583.109,
+      "duration_s": 359.719,
+      "agent_elapsed_s": 359.656,
+      "autonomous_goals": [
+        {
+          "goal_index": 1,
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "selection_source": "curriculum",
+          "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+          "outcome": "failed",
+          "cycles": 40,
+          "termination_reason": "max_cycles"
+        },
+        {
+          "goal_index": 2,
+          "goal": "Build shelter cell",
+          "selection_source": "curriculum",
+          "outcome": "completed",
+          "cycles": 8,
+          "termination_reason": "goal_verified"
+        },
+        {
+          "goal_index": 3,
+          "goal": "Craft oak_planks for Build shelter cell",
+          "selection_source": "curriculum",
+          "outcome": "completed",
+          "cycles": 1,
+          "termination_reason": "goal_verified"
+        },
+        {
+          "goal_index_start": 4,
+          "goal_index_end": 24,
+          "goal": "Craft oak_planks from logs",
+          "selection_source": "curriculum",
+          "repeated_count": 21,
+          "outcome": "completed",
+          "cycles_each": 1,
+          "termination_reason": "goal_verified"
+        }
+      ],
+      "failure_layer": "goal_verifier_purpose_phrase_semantic_conflation",
+      "first_unrecovered_transition": {
+        "session_event_index": 208,
+        "monotonic_s": 39289.093,
+        "cycle": 9,
+        "goal": "Gather 6 oak logs for tools and shelter",
+        "action": {
+          "type": "dig",
+          "parameters": {"x": 107, "y": 136, "z": -29, "block": "oak_log"}
+        },
+        "action_success": true,
+        "block_removed": true,
+        "pickup_inventory_delta": {"oak_log": 1},
+        "before_inventory": {"oak_log": 5},
+        "after_inventory": {"oak_log": 6},
+        "goal_verifier_evidence": ["inventory has 6/6 oak_log"],
+        "goal_verifier_missing": ["no shelter flag, structure, or sufficient placed-block evidence"],
+        "semantic_error": "The purpose phrase 'for tools and shelter' was treated as a conjunctive shelter completion criterion.",
+        "task_reconciliation_event_index": 212,
+        "task_reconciliation_completed_count": 13,
+        "next_planner_call_event_index": 215,
+        "next_planner_call_id": "llm-d2906b520da8455b",
+        "next_planner_schema_issue": "planning_actions_missing"
+      },
+      "downstream_cascade": {
+        "first_root_failure_event_index": 711,
+        "first_root_failure_reason": "max_cycles",
+        "repeated_plank_goal_count": 21,
+        "episode_termination_reason": "max_goals_or_stopped",
+        "not_the_earliest_blocker": true
+      },
+      "planner_controls": {
+        "call_count": 70,
+        "real_call_count": 70,
+        "schema_valid_count": 54,
+        "schema_invalid_count": 16,
+        "planner_output_recovery_count": 16,
+        "maximum_duration_ms": 7171,
+        "total_tokens": 220858,
+        "reasoning_content_byte_count": 0,
+        "transport_error_count": 0,
+        "provider_control_violation_count": 0
+      },
+      "action_summary": {
+        "attempted": 32,
+        "successful": 25,
+        "by_type": {
+          "move_to": {"attempted": 7, "successful": 5},
+          "dig": {"attempted": 11, "successful": 11},
+          "wait": {"attempted": 1, "successful": 1},
+          "craft": {"attempted": 4, "successful": 4},
+          "build_shelter_cell": {"attempted": 9, "successful": 4}
+        }
+      },
+      "resource_acquisition": {
+        "initial_inventory": {"raw_iron": 0, "iron_ore": 0},
+        "terminal_inventory": {"raw_iron": 0, "iron_ore": 0},
+        "positive_inventory_delta": {"raw_iron": 0, "iron_ore": 0},
+        "successful_source_action_count": 0,
+        "terminal_target_passed": false
+      },
+      "shelter_verification": {
+        "machine_pass_count": 4,
+        "first_pass_event_index": 375,
+        "first_pass_monotonic": 39341.328,
+        "last_pass_event_index": 844,
+        "last_pass_monotonic": 39509.078
+      },
+      "player_lifecycle_continuity": {
+        "verifier_id": "m4-player-lifecycle-verifier-v1",
+        "source": "mineflayer_events",
+        "active_observation_count": 103,
+        "canonical_lifecycle_event_count": 1,
+        "maximum_valid_death_count": 0,
+        "maximum_valid_respawn_count": 0,
+        "uninterrupted_survival": true,
+        "terminal_health": 20,
+        "terminal_food": 20,
+        "paper_death_message_count": 0,
+        "paper_stdout_sha256": "9ae35c753c80c319d090396243077d58646f39f445b00613a20c67101ecfac92"
+      },
+      "runtime_interrupts": {
+        "trigger_count": 4,
+        "recovery_count": 4,
+        "reason_counts": {"task_deadline_elapsed": 4},
+        "concurrent_root_violation_count": 0
+      },
+      "deadline_status": {
+        "episode_deadline_monotonic": 39823.39,
+        "agent_end_monotonic": 39583.046,
+        "evidence_end_monotonic": 39583.109,
+        "time_remaining_s": 240.281,
+        "post_deadline_action_count": 0,
+        "post_deadline_plan_count": 0,
+        "post_deadline_planner_call_count": 0,
+        "deadline_eligible": true,
+        "no_post_deadline_execution": true
+      },
+      "terminal_state": {
+        "time_of_day": 7282,
+        "health": 20,
+        "food": 20,
+        "inventory": {"oak_log": 6, "oak_planks": 3, "oak_sapling": 1},
+        "position": {"x": 110.5, "y": 136, "z": -27.478135935185602}
+      },
+      "skill_attribution": {
+        "skill_execution_mode": "off",
+        "selected_count": 0,
+        "executed_count": 0,
+        "quarantined_count": 0,
+        "contribution": "none"
+      },
+      "eligibility": {
+        "preflight_passed": true,
+        "progress_gate_passed": false,
+        "runner_reported_task_eligible": false,
+        "independently_accepted_task_eligible": false,
+        "eligible_success_count": 0,
+        "issues": [
+          "event:terminal_resource_verification",
+          "resource_terminal_inventory_target",
+          "resource_successful_source_actions",
+          "resource_positive_inventory_delta",
+          "terminal_machine_verification",
+          "result_duration_eligible"
+        ]
+      },
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260713_065904_b2b7b898/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260713_065904_b2b7b898/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260713_065904_b2b7b898/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260713_065904_b2b7b898/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260713_065904_b2b7b898/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260713_065904_b2b7b898/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260713_065904_b2b7b898/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260713_065904_b2b7b898/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "304f4198791e4dc13cd981396fa1a1373f647bb34f33898eb49a35d9ed982e76",
+        "manifest": "cc034d5c8468e3b03a8b8aea33e8e2d1278b88890d15fc3695c2795f70d0cd86",
+        "session": "95b6ebdefffe0439df093f70947341540d001e6f75e89fe90515ddb84f053185",
+        "result": "5d8842e23723f03165a051f497881f5e4ea500271089248fbe74c7bf1d9314e7",
+        "eligibility": "2dfe96149a0372ec0624b4bede076c31b292d5f96f4f7c0185a4f1221df3cdcf",
+        "preparation": "1c866c6666fedffec58233f4898788c2fb183dbd91fff6e9eb9fdf40a0de5934",
+        "protocol_status": "8a2d492ba3039e2175b58fb828ee1daed35d7cacf64a4b7bd092451168c56ba1",
+        "reset": "8a7004df3d520f6cfd8bbf302ffbc85868114eec41fbd9466179e29d37f813c5"
+      },
+      "patch_or_experiment_summary": "Ran exactly one fresh BM-012 Probe 1 from committed gate 61d4b1b. No code, protocol, success threshold, world intervention, or external step script changed during the live episode.",
+      "retest_result": "The task-contract preflight and runtime bindings passed, but GoalVerifier conflated the resource goal's shelter purpose phrase with a shelter completion criterion after oak_log reached 6. BM-012 remains 0/3; no second live episode ran in this round."
     }
   ]
 }

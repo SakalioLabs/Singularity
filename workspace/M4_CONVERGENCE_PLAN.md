@@ -7,10 +7,10 @@
 - Current target: BM-012 Get 8 iron resources
 - Current-target eligible successes: 0/3
 - Completed target: BM-011 Survive the first night, `repeat_verified` at 3/3
-- M4 canonical status: `partial`
+- M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. The BM-012 offline protocol and machine-evidence gate now passes and authorizes exactly one fresh BM-012 Probe 1 after the gate commit is pushed. BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. The BM-012 offline protocol and machine-evidence gate passed, and its exactly-one Probe 1 authorization has been consumed. BM-012 remains 0/3; no second live episode is authorized in this round. BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | passed_offline_probe_1_authorized |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_1_consumed_ineligible_offline_fix_required |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -47,11 +47,11 @@ The frozen-code replication hypothesis passed in Probe 18. The episode completed
 
 Probe 18 also closed two live-observation gaps without changing the protocol. Planner call `llm-731730e6669b4683` received one `APIConnectionError -> ConnectError -> ConnectError -> SSLEOFError`; the same dawn-maintenance goal was preserved and the next-cycle real/schema-valid call `llm-52111d9e3d3a455c` resumed successful waits. Later, a zombie 4.8 blocks outside the verified cell triggered safe-state grounding, and the outward move was suppressed while the shelter remained valid.
 
-The `bm012_protocol_and_machine_evidence_preflight` hypothesis passes offline. The unchanged base protocol remains `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`, preserving all three accepted BM-011 episodes. BM-012 adds the independently hashed task contract `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`, which binds reset, preflight, manifest, terminal event, exact limits, and eligibility.
+The `bm012_protocol_and_machine_evidence_preflight` hypothesis passed offline and the frozen gate ran exactly once in Probe 1. The base protocol remained `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`; the BM-012 task contract remained `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`. Preflight, fresh time-0 reset, exact 600-second deadline, task binding, zero-death lifecycle, and content hashes all passed.
 
-The earliest BM-012 blocker before this gate was structural: the runner allowed only BM-011, a shared time-9000 reset left roughly 50 seconds before survival priorities took over, and both terminalization and independent eligibility required dawn rather than eight acquired iron resources. The gate gives BM-012 a fresh time-0 reset without items or fixtures, keeps survival priorities above progression, and requires terminal inventory plus eight successful current-episode `dig` actions against `iron_ore` or `deepslate_iron_ore`.
+The new earliest unrecovered transition is `goal_verifier_purpose_phrase_semantic_conflation`. Curriculum selected `Gather 6 oak logs for tools and shelter`, a valid prerequisite goal. Action event 208 at monotonic 39289.093 / cycle 9 successfully raised machine inventory from `oak_log:5` to `oak_log:6`; event 212 then completed thirteen inventory-grounded gather tasks. GoalVerifier nevertheless interpreted the purpose phrase `for tools and shelter` as a conjunctive shelter requirement, returning machine evidence `inventory has 6/6 oak_log` but missing `no shelter flag, structure, or sufficient placed-block evidence`, so the fulfilled root remained active.
 
-The next hypothesis is the first live BM-012 execution under this frozen gate. After this gate commit is pushed, exactly one fresh BM-012 Probe 1 is authorized; the run must report its earliest unrecovered transition, and no second live episode may run in the same round.
+The immediate next Planner call at event 215 treated the resource objective as satisfied and returned no executable action, which the M4 schema correctly rejected as `planning_actions_missing`. Later shelter construction, the event-711 40-cycle root failure, twenty-one repeated `Craft oak_planks from logs` roots, and `max_goals_or_stopped` are downstream cascade. The next hypothesis is limited to GoalVerifier intent parsing for resource goals whose shelter/tool text is a purpose phrase. Probe 1 consumed this round's only live authorization; no fix or rerun occurs in this round.
 
 ## BM-012 Offline Preflight
 
@@ -63,8 +63,29 @@ The next hypothesis is the first live BM-012 execution under this frozen gate. A
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 693 Python tests, 70 focused M4 tests, all six fixed Node suites with 35 internal PASS cases, PowerShell syntax, Python compilation, and `git diff --check` pass
-- Live authorization: exactly one fresh BM-012 Probe 1 after this offline gate commit is pushed
+- Live authorization: consumed by BM-012 Probe 1; no second episode is authorized in this round
 - Report: `workspace/evals/m4_resource_verification.json`
+
+## BM-012 Live Evidence
+
+### Probe 1: Resource Goal Fulfilled but Purpose Phrase Blocked Completion
+
+- Episode: `m4_episode_20260713_065904_b2b7b898`
+- Session: `6dbc69ab-4d7`
+- Level: `m4_episode_20260713_065904_b2b7b898_bm012`
+- Preflight: passed with the pinned base and BM-012 task-contract hashes, empty inventory, fresh time-0 level, and exact `600/24/40/320` limits
+- Result: ineligible; BM-012 remains 0/3, with no terminal resource event and zero iron-source actions
+- Earliest blocker: action event 208 / monotonic 39289.093 / cycle 9 raised oak logs from 5 to 6, but GoalVerifier required shelter because it treated `for tools and shelter` as another completion clause
+- Corroboration: event 212 completed thirteen gather tasks from the same machine inventory; Planner event 215 then emitted a no-action fulfilled response and was correctly rejected as `planning_actions_missing`
+- Goals: 24 roots; 23 completed and one failed. The first root exhausted 40 cycles; twenty-one later roots repeated `Craft oak_planks from logs`
+- Planner: 70/70 real calls, 54 schema-valid, 16 schema-invalid `planning_actions_missing` recoveries, maximum latency 7.171 seconds, 220858 tokens, and zero reasoning bytes
+- Actions: 32 attempted and 25 successful; `move_to` 5/7, `dig` 11/11, `wait` 1/1, `craft` 4/4, and `build_shelter_cell` 4/9
+- Resource state: initial and terminal iron counts were zero; terminal inventory was `oak_log:6`, `oak_planks:3`, `oak_sapling:1`
+- Survival state: 103 lifecycle-bound observations, zero deaths/respawns, health/food 20, and four machine shelter passes
+- Interrupts: four `task_deadline_elapsed` triggers and four recoveries; no conflicting root remained open
+- Deadline: Agent ended at 39583.046 and evidence at 39583.109 against deadline 39823.390, leaving 240.281 seconds with no post-deadline execution
+- Round boundary: this was the only live episode; no second BM-012 run is authorized
+- Evidence: `logs/benchmarks/m4/m4_episode_20260713_065904_b2b7b898/`
 
 ### Historical BM-011 Hypotheses
 

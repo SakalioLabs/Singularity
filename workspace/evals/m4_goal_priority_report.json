@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T22:54:11.9501689Z",
+  "generated_at": "2026-07-12T23:09:23.0796138Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_offline_gate_passed_probe_1_exactly_one_authorized",
-  "decision": "authorize_exactly_one_bm012_probe_1",
+  "readiness": "bm012_probe_1_ineligible_goal_verifier_offline_fix_required",
+  "decision": "do_not_rerun_fix_goal_verifier_purpose_phrase_offline",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -58,7 +58,7 @@
     "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
     "scheduled_recovery_count": 1,
     "completed_recovery_count": 1,
-    "next_authorized_episode": "bm012_probe_1_exactly_one"
+    "next_authorized_episode": "none_goal_verifier_offline_gate_pending"
   },
   "bm012_autonomous_progression": {
     "task_contract_id": "m4-bm012-resource-contract-v1",
@@ -76,11 +76,43 @@
     "survival_priorities_preserved": true,
     "goal_selection_source": "goal_generator",
     "offline_gate_passed": true,
-    "next_authorized_episode": "bm012_probe_1_exactly_one"
+    "live_episode_run": true,
+    "live_episode_id": "m4_episode_20260713_065904_b2b7b898",
+    "live_episode_eligible": false,
+    "next_authorized_episode": "none_goal_verifier_offline_gate_pending"
   },
-  "live_episode_count": 18,
-  "live_episode_count_under_current_protocol": 4,
+  "live_episode_count": 19,
+  "live_episode_count_under_current_protocol": 5,
   "latest_live_episode": {
+    "task_id": "BM-012",
+    "episode_id": "m4_episode_20260713_065904_b2b7b898",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "autonomous_goal_count": 24,
+    "completed_goal_count": 23,
+    "failed_goal_count": 1,
+    "interrupted_goal_count": 0,
+    "selection_source": "curriculum_then_goal_generator",
+    "first_goal": "Gather 6 oak logs for tools and shelter",
+    "first_goal_selection_reason": "curriculum_ranked:early_wood_bootstrap",
+    "first_goal_cycles": 40,
+    "first_goal_outcome": "failed_max_cycles",
+    "first_goal_inventory_target_reached": true,
+    "first_goal_machine_verifier_achieved": false,
+    "first_goal_verifier_missing": "no shelter flag, structure, or sufficient placed-block evidence",
+    "first_unrecovered_session_event_index": 208,
+    "task_reconciliation_completed_gather_count": 13,
+    "repeated_plank_goal_count": 21,
+    "runtime_interrupt_count": 4,
+    "runtime_interrupt_recovery_count": 4,
+    "resource_goal_outcome": "failed",
+    "resource_terminal_inventory_target": false,
+    "server_observed_death_count": 0,
+    "runner_reported_eligible": false,
+    "independently_accepted_eligible": false,
+    "terminal_world_time": 7282
+  },
+  "probe_18_live_episode": {
     "episode_id": "m4_episode_20260713_055737_6d976e6d",
     "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
     "autonomous_goal_count": 4,
@@ -165,5 +197,6 @@
     "independently_accepted_eligible": false,
     "verified_shelter_safe_state_grounding_event_count": 0
   },
-  "bm011_eligible_success_count": 3
+  "bm011_eligible_success_count": 3,
+  "bm012_eligible_success_count": 0
 }

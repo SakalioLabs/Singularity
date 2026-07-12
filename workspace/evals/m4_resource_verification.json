@@ -1,19 +1,19 @@
 {
   "type": "m4_resource_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T22:54:11.9501689Z",
+  "generated_at": "2026-07-12T23:09:23.0796138Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "task_id": "BM-012",
   "task_name": "Get 8 iron resources",
   "task_contract_id": "m4-bm012-resource-contract-v1",
   "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
-  "readiness": "offline_gate_passed_probe_1_exactly_one_authorized",
-  "decision": "authorize_exactly_one_bm012_probe_1",
-  "hypothesis": "bm012_protocol_and_machine_evidence_preflight",
+  "readiness": "probe_1_ineligible_goal_verifier_offline_fix_required",
+  "decision": "diagnose_goal_verifier_purpose_phrase_without_live_rerun",
+  "hypothesis": "goal_verifier_purpose_phrase_semantic_conflation",
   "eligible_success_count": 0,
   "required_success_count": 3,
-  "next_authorized_episode": "bm012_probe_1_exactly_one",
+  "next_authorized_episode": "none_goal_verifier_offline_gate_pending",
   "contract": {
     "terminal_goal": "Collect 8 iron resources",
     "initial_time_of_day": 0,
@@ -103,7 +103,91 @@
       {"id": "capability_adapter_independent_recheck", "status": "pass"}
     ]
   },
-  "live_episode_run": false,
-  "live_episode_count": 0,
-  "round_boundary": "The committed offline gate authorizes exactly one fresh BM-012 Probe 1; no second live episode is allowed in the same round."
+  "live_episode_run": true,
+  "live_episode_count": 1,
+  "latest_live_episode": {
+    "episode_id": "m4_episode_20260713_065904_b2b7b898",
+    "session_id": "6dbc69ab-4d7",
+    "level_name": "m4_episode_20260713_065904_b2b7b898_bm012",
+    "preflight_passed": true,
+    "progress_gate_passed": false,
+    "independently_eligible": false,
+    "eligibility_issues": [
+      "event:terminal_resource_verification",
+      "resource_terminal_inventory_target",
+      "resource_successful_source_actions",
+      "resource_positive_inventory_delta",
+      "terminal_machine_verification",
+      "result_duration_eligible"
+    ],
+    "first_unrecovered_transition": {
+      "failure_layer": "goal_verifier_purpose_phrase_semantic_conflation",
+      "session_event_index": 208,
+      "monotonic_s": 39289.093,
+      "cycle": 9,
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "action_type": "dig",
+      "action_success": true,
+      "inventory_before": {"oak_log": 5},
+      "inventory_after": {"oak_log": 6},
+      "goal_verifier_evidence": "inventory has 6/6 oak_log",
+      "goal_verifier_missing": "no shelter flag, structure, or sufficient placed-block evidence",
+      "task_reconciliation_event_index": 212,
+      "completed_gather_task_count": 13,
+      "next_planner_call_event_index": 215,
+      "next_planner_schema_issue": "planning_actions_missing"
+    },
+    "planner": {
+      "call_count": 70,
+      "real_call_count": 70,
+      "schema_valid_count": 54,
+      "schema_invalid_count": 16,
+      "maximum_duration_ms": 7171,
+      "total_tokens": 220858,
+      "reasoning_content_byte_count": 0
+    },
+    "actions": {
+      "attempted": 32,
+      "successful": 25,
+      "by_type": {
+        "move_to": {"attempted": 7, "successful": 5},
+        "dig": {"attempted": 11, "successful": 11},
+        "wait": {"attempted": 1, "successful": 1},
+        "craft": {"attempted": 4, "successful": 4},
+        "build_shelter_cell": {"attempted": 9, "successful": 4}
+      }
+    },
+    "autonomous_goals": {
+      "attempted": 24,
+      "completed": 23,
+      "failed": 1,
+      "interrupted": 0,
+      "first_goal_cycles": 40,
+      "repeated_plank_goal_count": 21
+    },
+    "resource_acquisition": {
+      "initial_target_count": 0,
+      "terminal_target_count": 0,
+      "successful_source_action_count": 0,
+      "terminal_target_passed": false
+    },
+    "terminal_state": {
+      "time_of_day": 7282,
+      "health": 20,
+      "food": 20,
+      "inventory": {"oak_log": 6, "oak_planks": 3, "oak_sapling": 1},
+      "maximum_death_count": 0,
+      "maximum_respawn_count": 0
+    },
+    "deadline": {
+      "episode_started_monotonic": 39223.39,
+      "episode_deadline_monotonic": 39823.39,
+      "agent_end_monotonic": 39583.046,
+      "evidence_end_monotonic": 39583.109,
+      "time_remaining_s": 240.281,
+      "deadline_eligible": true,
+      "no_post_deadline_execution": true
+    }
+  },
+  "round_boundary": "BM-012 Probe 1 consumed the round's only live authorization; the next hypothesis is offline GoalVerifier purpose-phrase parsing and no second episode is allowed."
 }

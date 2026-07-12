@@ -2,7 +2,7 @@
 
 ## Convergence Result
 
-M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `partial`: BM-011 is repeat_verified at 3/3, while BM-012..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
+M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has one failed live attempt and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
 
 ## Current Assessment
 
@@ -10,7 +10,7 @@ Singularity has broad source coverage and a large passing offline test surface, 
 
 Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. M1 remains complete at 15/15, M2 contributes 23 eligible current-protocol successes, and M4 now contributes three independently eligible BM-011 episodes with unique session, episode, level, and session hashes. The overall system remains incomplete.
 
-BM-012 remains 0/3, but its offline task gate now passes under independently hashed contract `m4-bm012-resource-contract-v1`: fresh time-0 reset, empty inventory, autonomous wood-to-stone-pickaxe progression, machine terminal inventory, eight observed iron-source digs, lifecycle continuity, and absolute-deadline enforcement. Exactly one fresh Probe 1 is authorized after the gate commit; offline fixtures do not count as capability evidence.
+BM-012 remains 0/3. Its independently hashed offline task gate passed, then the sole authorized Probe 1 ran in a fresh world and failed before iron progression. At session event 208, a canonical dig raised `oak_log` from five to six, but GoalVerifier treated the purpose phrase in `Gather 6 oak logs for tools and shelter` as a second shelter completion condition. The resulting 40-cycle root failure and repeated plank-goal cascade are downstream. No second live run is authorized until a bounded GoalVerifier intent-parsing fix passes offline regression.
 
 Current report outcome:
 
@@ -21,8 +21,8 @@ Current report outcome:
 - Supported completion claims: 4 (M0, M1, M2, M3)
 - Contradicted completion claims: 0 after status correction
 - Unsupported completion claims: 0 after status correction
-- Partial live phases: 1 (M4)
-- Failing live phases: 2 (M5, M6)
+- Partial live phases: 0
+- Failing live phases: 3 (M4, M5, M6)
 - Repeat-verified runtime phases: 3 (M1, M2, M3)
 
 ## Canonical Capability State
@@ -33,7 +33,7 @@ Current report outcome:
 | M1 | `repeat_verified` |
 | M2 | `repeat_verified` |
 | M3 | `repeat_verified` |
-| M4 | `partial` |
+| M4 | `failing` |
 | M5 | `failing` |
 | M6 | `failing` |
 | M7 | `not_run` |

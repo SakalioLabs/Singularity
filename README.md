@@ -6,7 +6,7 @@
 [![M1: MVB](https://img.shields.io/badge/M1-Repeat%20Verified-brightgreen)]()
 [![M2: LLM](https://img.shields.io/badge/M2-Repeat%20Verified-brightgreen)]()
 [![M3: Memory](https://img.shields.io/badge/M3-Repeat%20Verified-brightgreen)]()
-[![M4: Survival](https://img.shields.io/badge/M4-Partial-yellow)]()
+[![M4: Survival](https://img.shields.io/badge/M4-Live%20Failing-critical)]()
 [![M5: Explore](https://img.shields.io/badge/M5-Live%20Failing-critical)]()
 [![M6: Vision](https://img.shields.io/badge/M6-Live%20Failing-critical)]()
 [![M7: Multi--Agent](https://img.shields.io/badge/M7-Not%20Run-yellow)]()
@@ -88,7 +88,7 @@ powershell -ExecutionPolicy Bypass -File scripts/m1-runtime.ps1 -RunBenchmark -T
 
 The M1 protocol pins Paper 1.20.4 build 499 and its SHA-256. The script uses the deterministic RuleBasedPlanner profile, Bridge port `30000`, a fresh level, verified reset state, and timestamped evidence. BM-001..005 each require three distinct live successes; offline tests do not count.
 
-Current status: M1, M2, and M3 are `repeat_verified`. M1 has BM-001..005 at 3/3 (`15/15` distinct eligible live successes). M2 has BM-006 and BM-007 at three eligible baseline/candidate pairs each, BM-008..010 at 3/3 independent successes each, and two eligible recovery sessions. M3 has three later-session skill retrieval/outcome cases plus approved held-out transfer evidence. M4 is `partial`: BM-011 has three independently eligible fresh survival-to-dawn episodes, while BM-012..014 remain unverified. BM-012's offline task contract and machine-evidence gate pass, but no BM-012 live success is counted yet. The sole authoritative audit is `workspace/evals/capability_evidence_current.json`.
+Current status: M1, M2, and M3 are `repeat_verified`. M1 has BM-001..005 at 3/3 (`15/15` distinct eligible live successes). M2 has BM-006 and BM-007 at three eligible baseline/candidate pairs each, BM-008..010 at 3/3 independent successes each, and two eligible recovery sessions. M3 has three later-session skill retrieval/outcome cases plus approved held-out transfer evidence. M4 is `failing`: BM-011 has three independently eligible fresh survival-to-dawn episodes, BM-012 has one failed attempt and remains 0/3, and BM-013..014 remain unverified. BM-012 Probe 1 exposed a GoalVerifier purpose-phrase parsing defect; no second run is authorized before its offline gate passes. The sole authoritative audit is `workspace/evals/capability_evidence_current.json`.
 
 ### Running M2
 
