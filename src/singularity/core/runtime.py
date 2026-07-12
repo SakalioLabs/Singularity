@@ -39,9 +39,10 @@ class RuntimeSupervisor:
 
     def evaluate_interrupt(self, observation: dict, goal: str = "", active_task=None) -> InterruptDecision:
         """Return the highest-priority interrupt that applies to the current state."""
+        hostile_decision = self._hostile_interrupt(observation)
         checks = [
             self._health_interrupt(observation),
-            self._hostile_interrupt(observation),
+            hostile_decision,
             self._hunger_interrupt(observation),
             self._night_interrupt(observation),
             self._deadline_interrupt(active_task),
@@ -49,9 +50,18 @@ class RuntimeSupervisor:
         ]
         applicable = [decision for decision in checks if decision.should_interrupt]
         if not applicable:
+            if hostile_decision.reason == "m4_hostile_safe_state_grounding":
+                return hostile_decision
             return InterruptDecision(False)
         applicable.sort(key=lambda decision: decision.priority, reverse=True)
-        return applicable[0]
+        decision = applicable[0]
+        grounding = hostile_decision.evidence.get("m4_hostile_safe_state_grounding")
+        if isinstance(grounding, dict) and grounding:
+            decision.evidence = {
+                **dict(decision.evidence or {}),
+                "m4_hostile_safe_state_grounding": grounding,
+            }
+        return decision
 
     def _health_interrupt(self, observation: dict) -> InterruptDecision:
         health = self._number(observation.get("health", 20), 20.0)
@@ -83,6 +93,18 @@ class RuntimeSupervisor:
             key=lambda entity: self._number(entity.get("distance", 999), 999.0),
         )[0]
         action = self._hostile_action(observation, nearest)
+        safe_state_grounding = self._m4_verified_shelter_hostile_grounding(
+            observation,
+            hostiles,
+            nearest,
+            action,
+        )
+        if safe_state_grounding:
+            return InterruptDecision(
+                False,
+                reason="m4_hostile_safe_state_grounding",
+                evidence={"m4_hostile_safe_state_grounding": safe_state_grounding},
+            )
         return InterruptDecision(
             True,
             reason="hostile_nearby",
@@ -91,6 +113,92 @@ class RuntimeSupervisor:
             emergency_action=action,
             evidence={"entity": nearest},
         )
+
+    def _m4_verified_shelter_hostile_grounding(
+        self,
+        observation: dict,
+        hostiles: list[dict],
+        nearest: dict,
+        suppressed_action: Optional[dict],
+    ) -> dict:
+        """Prove that staying put is safer than reacting to an outside hostile."""
+        if str(getattr(self.config, "planner_protocol", "") or "") != "m4-fixed-v1":
+            return {}
+
+        report = observation.get("shelter_verification")
+        if not is_machine_verified_shelter(report):
+            return {}
+        risk = report.get("hostile_path_risk", {})
+        coordinates = report.get("coordinate_evidence", {})
+        if not isinstance(risk, dict) or not isinstance(coordinates, dict):
+            return {}
+        nearby_count = self._number(risk.get("nearby_hostile_count", -1), -1.0)
+        if not (
+            risk.get("method") == "complete_local_collision_enclosure"
+            and risk.get("direct_reachability") == "blocked"
+            and risk.get("hostiles_inside") == []
+            and nearby_count.is_integer()
+            and nearby_count >= len(hostiles)
+        ):
+            return {}
+
+        observed_player_cell = self._floor_cell(observation.get("position"))
+        verified_player_cell = self._integral_cell(coordinates.get("player_cell"))
+        hostile_cell = self._integral_cell(nearest.get("cell")) or self._floor_cell(
+            nearest.get("position")
+        )
+        if not (
+            observed_player_cell
+            and verified_player_cell == observed_player_cell
+            and hostile_cell
+            and hostile_cell != observed_player_cell
+        ):
+            return {}
+
+        return {
+            "policy_scope": "strict_m4_verified_shelter",
+            "suppressed_interrupt_reason": "hostile_nearby",
+            "suppressed_emergency_action": suppressed_action,
+            "outward_move_suppressed": bool(
+                isinstance(suppressed_action, dict)
+                and suppressed_action.get("type") == "move_to"
+            ),
+            "safe_state_policy": "maintain_verified_shelter",
+            "hostile_entity": nearest,
+            "hostile_cell": hostile_cell,
+            "observed_player_cell": observed_player_cell,
+            "verified_player_cell": verified_player_cell,
+            "nearby_hostile_count": int(nearby_count),
+            "direct_reachability": risk.get("direct_reachability"),
+            "hostiles_inside": [],
+            "entrance_state": coordinates.get("entrance", {}).get("state"),
+            "shelter_verifier_id": report.get("verifier_id"),
+            "shelter_contract_sha256": report.get("contract_sha256"),
+        }
+
+    @classmethod
+    def _floor_cell(cls, value) -> dict:
+        if not isinstance(value, dict):
+            return {}
+        try:
+            numbers = {axis: cls._number(value[axis], float("nan")) for axis in ("x", "y", "z")}
+        except KeyError:
+            return {}
+        if not all(math.isfinite(number) for number in numbers.values()):
+            return {}
+        return {axis: math.floor(number) for axis, number in numbers.items()}
+
+    @classmethod
+    def _integral_cell(cls, value) -> dict:
+        if not isinstance(value, dict):
+            return {}
+        try:
+            numbers = {axis: cls._number(value[axis], float("nan")) for axis in ("x", "y", "z")}
+        except KeyError:
+            return {}
+        if not all(math.isfinite(number) and number.is_integer() for number in numbers.values()):
+            return {}
+        return {axis: int(number) for axis, number in numbers.items()}
 
     def _hunger_interrupt(self, observation: dict) -> InterruptDecision:
         hunger = self._number(observation.get("hunger", observation.get("food", 20)), 20.0)

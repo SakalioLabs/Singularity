@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T16:06:42.7190008Z",
+  "generated_at": "2026-07-12T16:25:02.7300094Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
-  "decision": "probe_13_verified_shelter_hostile_flee_requires_safe_state_grounding",
+  "decision": "probe_14_authorized_after_verified_shelter_safe_state_offline_gate",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -39,12 +39,48 @@
     "matching_recovery_required": true,
     "recovery_policy": "resume_preserved_frontier",
     "concurrent_root_limit": 1,
-    "dusk_to_night_policy": "escalate_same_shelter_interrupt"
+    "dusk_to_night_policy": "escalate_same_shelter_interrupt",
+    "verified_shelter_outside_hostile_policy": "maintain_machine_verified_safe_state"
+  },
+  "safe_state_grounding": {
+    "scope": "strict_m4_runtime_hostile_evaluation",
+    "required_verifier_id": "m4-sealed-cell-shelter-verifier-v1",
+    "required_contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
+    "same_observation_player_cell_required": true,
+    "direct_reachability_required": "blocked",
+    "hostiles_inside_required": [],
+    "hostile_count_coverage_required": true,
+    "suppressed_reason": "hostile_nearby",
+    "surviving_night_reason": "night_safety_maintenance",
+    "outward_emergency_action_allowed": false,
+    "health_and_hunger_priorities_preserved": true,
+    "audit_event": "m4_hostile_safe_state_grounding",
+    "fail_closed_cases": [
+      "spoofed_or_incomplete_report",
+      "stale_player_cell",
+      "missing_hostile_coordinates",
+      "hostile_count_mismatch",
+      "direct_reachability_not_blocked",
+      "hostile_inside_player_cell",
+      "non_m4_profile"
+    ],
+    "probe_13_replay": {
+      "session_event_index": 920,
+      "world_time": 21672,
+      "hostile_id": 1789,
+      "hostile_type": "skeleton",
+      "hostile_distance": 5.1,
+      "verified_player_cell": {"x": 107, "y": 140, "z": -29},
+      "selected_reason": "night_safety_maintenance",
+      "emergency_action": null,
+      "outward_move_suppressed": true,
+      "status": "pass"
+    }
   },
   "offline_validation": {
     "passed": true,
     "test_file": "tests/test_runtime_supervisor.py",
-    "test_file_case_count": 11,
+    "test_file_case_count": 15,
     "g4_integration_case_count": 5,
     "required_case_count": 5,
     "required_case_status": {
@@ -61,9 +97,13 @@
       {"name": "task_frontier_preserved", "status": "pass"},
       {"name": "dusk_night_escalation_without_oscillation", "status": "pass"},
       {"name": "autonomous_root_exclusivity", "status": "pass"},
-      {"name": "suspended_root_resumption", "status": "pass"}
+      {"name": "suspended_root_resumption", "status": "pass"},
+      {"name": "verified_shelter_outside_hostile_no_action", "status": "pass"},
+      {"name": "safe_state_grounding_fail_closed", "status": "pass"},
+      {"name": "safe_state_health_priority_preserved", "status": "pass"},
+      {"name": "safe_state_grounding_audit_deduplicated", "status": "pass"}
     ],
-    "full_python_regression": {"status": "pass", "test_count": 675},
+    "full_python_regression": {"status": "pass", "test_count": 679},
     "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 30},
     "controlled_live_episode": false
   },

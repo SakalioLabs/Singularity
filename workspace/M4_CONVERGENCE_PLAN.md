@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | diagnose_probe_13_verified_shelter_hostile_flee |
+| G5 | First eligible survival-to-dawn episode | ready_probe_14_runtime_interrupt_safe_state_grounding |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -37,7 +37,7 @@ G2 passed in Probe 6. The Agent gained `oak_log:1` and `dark_oak_sapling:1` befo
 
 G3 passed offline validation. `m4-sealed-cell-shelter-verifier-v1` consumes a complete 36-coordinate Mineflayer snapshot and accepts only a solid floor, two passable interior cells, four two-block-high full-block wall columns, a full-block roof, no hostile inside, complete coordinate evidence, and all nine structural positions attributed to successful placements in the current episode. No natural safe-point strategy is approved in this baseline.
 
-G4 passed strict offline integration. RuntimeSupervisor applies the fixed hostile, critical-health, hunger, dusk-shelter, and night-safety order; Observer preserves hostile IDs and positions for grounded attack or flee actions. Agent records one trigger per condition, suspends rather than fails a non-emergency root, keeps its task frontier active, allows the aligned survival goal to act, emits a matching recovery when the condition clears, and never holds two root goals concurrently.
+G4 passed strict offline integration. RuntimeSupervisor applies the fixed hostile, critical-health, hunger, dusk-shelter, and night-safety order; Observer preserves hostile IDs and positions for grounded attack or flee actions. A strict-M4 hostile is no longer treated as an immediate reachable threat when the current observation also contains a complete pinned shelter report proving the same player cell, a fully sealed entrance, blocked direct reachability, and no hostile inside. Agent records one trigger per actionable condition, suspends rather than fails a non-emergency root, keeps its task frontier active, allows the aligned survival goal to act, emits a matching recovery when the condition clears, and never holds two root goals concurrently.
 
 ## Current Hypothesis
 
@@ -71,7 +71,23 @@ The `planner_transport_failure_goal_lifecycle` patch remained bounded in Probe 1
 
 The new earliest unrecovered transition is `verified_shelter_hostile_flee`. At session observation index 920, world time 21672, the Agent had health/food 20, was inside the pinned 9/9 sealed-cell shelter, and observed one skeleton 5.1 blocks away. The G3 report proved `direct_reachability=blocked`, a fully sealed entrance, and no hostile inside. Runtime interrupt event 933 nevertheless generated an outward `move_to` target, and action event 943 moved the Agent 7.894 blocks before reporting a tolerance miss. Observation 940 then showed shelter verification false at world time 22152. The dawn observation at event 1057 had health 19 and natural time 23092 but no verified shelter, so no terminal machine event could be emitted.
 
-The current single hypothesis is `runtime_interrupt_safe_state_grounding`: a hostile outside a complete machine-verified sealed shelter must not trigger an emergency action that exits that safe state. The next round must alter only strict-M4 hostile interrupt grounding for this proven-safe condition; hostile handling without a verified shelter, hostiles inside the cell, health/hunger interrupts, priority order, and the G3 contract remain unchanged.
+The current single hypothesis is `runtime_interrupt_safe_state_grounding`: a hostile outside a complete machine-verified sealed shelter must not trigger an emergency action that exits that safe state. The patch alters only strict-M4 hostile interrupt grounding for this proven-safe condition; hostile handling without a verified shelter, hostiles inside the cell, health/hunger interrupts, priority order, and the G3 contract remain unchanged.
+
+The offline gate now passes. Replaying Probe 13 observation event 920 through the patched RuntimeSupervisor selects `night_safety_maintenance`, emits no emergency action, and records that the previously generated outward `move_to` was suppressed. The full report is accepted only when the pinned verifier and contract pass, the report and observation floor to the same player cell, the report saw every actionable hostile, `direct_reachability=blocked`, and `hostiles_inside=[]`. Spoofed reports, stale player positions, reachable threats, hostiles in the player cell, and non-M4 profiles retain the original `hostile_nearby` behavior. Critical health still wins when the outside hostile is proven blocked. One fresh Probe 14 is authorized; no second live episode may start in this round.
+
+## G5 Preflight: Verified Shelter Hostile Safe-State Grounding
+
+- Scope: strict-M4 RuntimeSupervisor hostile evaluation and Agent audit logging only; GoalGenerator, G3 verifier contract, Planner, ActionVerifier, M1/M2 behavior, and protocol data are unchanged
+- Trigger: complete pinned G3 shelter report, report and current observation in the same integral player cell, fully sealed entrance, `complete_local_collision_enclosure`, `direct_reachability=blocked`, empty `hostiles_inside`, and a report hostile count covering every actionable nearby hostile
+- Grounding: suppress only the `hostile_nearby` decision for the proven blocked outside threat and continue evaluating health, hunger, night maintenance, deadlines, and return-to-base under their existing priorities
+- Night behavior: an aligned `Remain in verified shelter until dawn` root stays active with `night_safety_maintenance`; no outward runtime emergency action executes and no competing hostile root is opened
+- Audit: `m4_hostile_safe_state_grounding` records the hostile identity/cell, observed and verified player cells, verifier ID, contract hash, blocked reachability, suppressed action, selected surviving interrupt, and a deduplicated fingerprint
+- Fail-closed exclusions: spoofed or incomplete reports, stale player cells, missing hostile coordinates, report count mismatch, reachable threats, hostiles inside the player cell, and non-M4 profiles
+- Probe 13 replay: archived observation event 920 now returns `night_safety_maintenance`, `emergency_action=null`, hostile ID 1789, player cell `(107,140,-29)`, and `outward_move_suppressed=true`
+- Offline tests: `tests/test_runtime_supervisor.py`; 15/15 cases pass, including exact Probe 13 reproduction and Agent no-action integration
+- Regression: 679 Python tests and all six fixed Node suites pass; Python compilation and repository checks remain required before commit
+- Protocol integrity: `m4-fixed-v1` SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
+- Next live authorization: exactly one fresh exact-profile Probe 14; stop after evidence generation and diagnose the first unrecovered transition
 
 ## G5 Preflight: Planner Transport Next-Cycle Recovery
 
@@ -87,7 +103,7 @@ The current single hypothesis is `runtime_interrupt_safe_state_grounding`: a hos
 - Regression: 675 Python tests, all six fixed Node suites, Python compilation, and `git diff --check` passed
 - Protocol integrity: `m4-fixed-v1` SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
 - Live result: Probe 13 had zero transport errors, zero transport recoveries, and zero empty plans; the prior failure did not recur, while a later verified-shelter hostile flee became the new earliest blocker
-- Next live authorization: locked until strict-M4 hostile interrupt safe-state grounding passes offline integration
+- Next live authorization: satisfied by the strict-M4 hostile safe-state preflight above; exactly one Probe 14 is unlocked
 
 ## G5 Preflight: Exact Runtime Harness and Terminalization
 

@@ -134,7 +134,8 @@ def runtime_agent(config=None):
     return agent
 
 
-def verified_shelter_report():
+def verified_shelter_report(player_cell=None, nearby_hostile_count=0):
+    player_cell = dict(player_cell or {"x": 0, "y": 64, "z": 0})
     return {
         "type": "m4_shelter_state_verification",
         "schema_version": 1,
@@ -154,11 +155,40 @@ def verified_shelter_report():
             "matched_position_count": 9,
         },
         "coordinate_evidence": {
+            "player_position": dict(player_cell),
+            "player_cell": player_cell,
             "entrance": {
                 "state": "fully_sealed",
                 "sealed_boundary_columns": [{}, {}, {}, {}],
             },
         },
+        "hostile_path_risk": {
+            "method": "complete_local_collision_enclosure",
+            "direct_reachability": "blocked",
+            "nearby_hostile_count": nearby_hostile_count,
+            "hostiles_inside": [],
+        },
+    }
+
+
+def probe_13_verified_shelter_hostile_state():
+    player_cell = {"x": 107, "y": 140, "z": -29}
+    return {
+        "health": 20,
+        "hunger": 20,
+        "inventory": {"oak_planks": 3, "oak_log": 5},
+        "inventory_count": 8,
+        "equipment": [],
+        "position": {"x": 107.50014079218245, "y": 140, "z": -28.400022268365202},
+        "time_of_day": 21672,
+        "nearby_entities": [{
+            "id": 1789,
+            "type": "skeleton",
+            "distance": 5.1,
+            "hostile": True,
+            "position": {"x": 110.52123561046339, "y": 136, "z": -27.273706617652422},
+        }],
+        "shelter_verification": verified_shelter_report(player_cell, nearby_hostile_count=1),
     }
 
 
@@ -271,6 +301,122 @@ def test_m4_runtime_interrupt_priority_matrix_and_grounded_actions():
         "Build verified shelter before nightfall",
     )
     print("PASS: G4 priority matrix covers hostile, health, hunger, dusk, and night")
+
+
+def test_m4_probe_13_verified_shelter_suppresses_outward_hostile_flee():
+    supervisor = RuntimeSupervisor(Config(planner_protocol="m4-fixed-v1"))
+    observation = probe_13_verified_shelter_hostile_state()
+
+    decision = supervisor.evaluate_interrupt(
+        observation,
+        goal="Remain in verified shelter until dawn",
+    )
+
+    assert decision.should_interrupt is True
+    assert decision.reason == "night_safety_maintenance"
+    assert decision.emergency_action is None
+    grounding = decision.evidence["m4_hostile_safe_state_grounding"]
+    assert grounding["policy_scope"] == "strict_m4_verified_shelter"
+    assert grounding["direct_reachability"] == "blocked"
+    assert grounding["hostiles_inside"] == []
+    assert grounding["hostile_entity"]["id"] == 1789
+    assert grounding["observed_player_cell"] == {"x": 107, "y": 140, "z": -29}
+    assert grounding["verified_player_cell"] == grounding["observed_player_cell"]
+    assert grounding["hostile_cell"] != grounding["observed_player_cell"]
+    assert grounding["suppressed_emergency_action"]["type"] == "move_to"
+    assert grounding["outward_move_suppressed"] is True
+    print("PASS: Probe 13 outside-hostile flee is suppressed inside the verified M4 shelter")
+
+
+def test_m4_verified_shelter_hostile_grounding_fails_closed():
+    supervisor = RuntimeSupervisor(Config(planner_protocol="m4-fixed-v1"))
+    observation = probe_13_verified_shelter_hostile_state()
+
+    spoofed = dict(observation, shelter_verification={
+        "passed": True,
+        "safe_state": True,
+        "source": "machine_state",
+    })
+    stale = dict(observation, position={"x": 108.1, "y": 140, "z": -28.4})
+    reachable_report = verified_shelter_report(
+        {"x": 107, "y": 140, "z": -29},
+        nearby_hostile_count=1,
+    )
+    reachable_report["hostile_path_risk"]["direct_reachability"] = "not_proven_blocked"
+    reachable = dict(observation, shelter_verification=reachable_report)
+    inside = dict(observation, nearby_entities=[{
+        "id": 1789,
+        "type": "skeleton",
+        "distance": 0.3,
+        "hostile": True,
+        "position": {"x": 107.7, "y": 140, "z": -28.3},
+    }])
+
+    for state in (spoofed, stale, reachable, inside):
+        decision = supervisor.evaluate_interrupt(state)
+        assert decision.should_interrupt is True
+        assert decision.reason == "hostile_nearby"
+        assert decision.emergency_action["type"] == "move_to"
+
+    legacy = RuntimeSupervisor(Config()).evaluate_interrupt(observation)
+    assert legacy.reason == "hostile_nearby"
+    assert legacy.emergency_action["type"] == "move_to"
+    print("PASS: unproven, stale, inside-hostile, and non-M4 states retain hostile handling")
+
+
+def test_m4_verified_shelter_hostile_grounding_preserves_health_priority():
+    supervisor = RuntimeSupervisor(Config(planner_protocol="m4-fixed-v1"))
+    observation = dict(
+        probe_13_verified_shelter_hostile_state(),
+        health=2,
+        inventory={"bread": 1},
+    )
+
+    decision = supervisor.evaluate_interrupt(observation)
+
+    assert decision.reason == "health_critical"
+    assert decision.emergency_action == {
+        "type": "use_item",
+        "parameters": {"item": "bread", "destination": "hand"},
+    }
+    assert decision.evidence["m4_hostile_safe_state_grounding"]["outward_move_suppressed"] is True
+    print("PASS: safe-state grounding suppresses only hostile reaction and preserves health priority")
+
+
+def test_agent_records_probe_13_safe_state_grounding_without_leaving_shelter():
+    agent = runtime_agent(Config(planner_protocol="m4-fixed-v1"))
+    goal = "Remain in verified shelter until dawn"
+    task = agent.task_system.create_task(goal, status=TaskStatus.ACTIVE, priority=3)
+    agent.task_system.drain_transition_events()
+    observation = probe_13_verified_shelter_hostile_state()
+
+    first, first_observation = agent._handle_runtime_interrupt(
+        observation,
+        goal,
+        {"cycle": 6, "mode": "autonomous"},
+    )
+    repeated, repeated_observation = agent._handle_runtime_interrupt(
+        observation,
+        goal,
+        {"cycle": 7, "mode": "autonomous"},
+    )
+
+    assert first is False and repeated is False
+    assert first_observation is observation and repeated_observation is observation
+    assert task.status == TaskStatus.ACTIVE
+    assert agent.action_controller.actions == []
+    assert getattr(agent, "_active_runtime_interrupt", {}) == {}
+    grounding_events = [
+        event for event in agent.session_logger.events
+        if event["type"] == "m4_hostile_safe_state_grounding"
+    ]
+    assert len(grounding_events) == 1
+    payload = grounding_events[0]["data"]
+    assert payload["selected_interrupt_reason"] == "night_safety_maintenance"
+    assert payload["outward_move_suppressed"] is True
+    assert len(payload["hostile_safe_state_fingerprint"]) == 64
+    assert not any(event["type"] == "runtime_emergency_action" for event in agent.memory.episodes)
+    print("PASS: Agent audits one suppression event and executes no outward emergency action")
 
 
 def test_m4_survival_interrupt_lifecycle_preserves_frontier():

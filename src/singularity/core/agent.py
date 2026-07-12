@@ -241,6 +241,7 @@ class Agent:
         self.m4_shelter_verifier = M4ShelterVerifier()
         self._m4_episode_block_delta = {"placed": {}, "removed": {}}
         self._m4_shelter_verification_fingerprint = ""
+        self._m4_hostile_safe_state_fingerprint = ""
         self._active_runtime_interrupt: dict = {}
         self._runtime_interrupt_sequence = 0
         self._last_runtime_interrupt_yield = ""
@@ -1936,6 +1937,7 @@ class Agent:
             max_total_cycles = int(M4_PROTOCOL["limits"]["max_total_cycles"])
             self._m4_episode_block_delta = {"placed": {}, "removed": {}}
             self._m4_shelter_verification_fingerprint = ""
+            self._m4_hostile_safe_state_fingerprint = ""
             self._active_runtime_interrupt = {}
             self._runtime_interrupt_sequence = 0
             self._last_runtime_interrupt_yield = ""
@@ -6958,6 +6960,7 @@ class Agent:
         """Let the actor loop yield when fast runtime safety checks fire."""
         task = self.task_system.get_next_task(observation)
         decision = self.runtime.evaluate_interrupt(observation, goal=goal, active_task=task)
+        self._record_m4_hostile_safe_state_grounding(decision, goal, context or {})
         self._last_runtime_interrupt_yield = ""
         active = dict(getattr(self, "_active_runtime_interrupt", {}) or {})
         if not decision.should_interrupt:
@@ -7112,6 +7115,51 @@ class Agent:
                 trigger_id="",
             )
         return True, observation
+
+    def _record_m4_hostile_safe_state_grounding(
+        self,
+        decision,
+        goal: str,
+        context: dict,
+    ):
+        decision_evidence = getattr(decision, "evidence", {}) or {}
+        grounding = decision_evidence.get("m4_hostile_safe_state_grounding")
+        if not isinstance(grounding, dict) or not grounding:
+            self._m4_hostile_safe_state_fingerprint = ""
+            return
+
+        hostile = grounding.get("hostile_entity", {})
+        fingerprint_payload = {
+            "contract_sha256": grounding.get("shelter_contract_sha256"),
+            "player_cell": grounding.get("verified_player_cell"),
+            "hostile_id": hostile.get("id") if isinstance(hostile, dict) else None,
+            "hostile_type": hostile.get("type") if isinstance(hostile, dict) else None,
+        }
+        fingerprint = hashlib.sha256(
+            json.dumps(
+                fingerprint_payload,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=True,
+            ).encode("utf-8")
+        ).hexdigest()
+        if fingerprint == str(getattr(self, "_m4_hostile_safe_state_fingerprint", "") or ""):
+            return
+
+        self._m4_hostile_safe_state_fingerprint = fingerprint
+        payload = {
+            **grounding,
+            "goal": goal,
+            "context": context,
+            "selected_interrupt_reason": str(getattr(decision, "reason", "") or ""),
+            "hostile_safe_state_fingerprint": fingerprint,
+        }
+        self.session_logger.log("m4_hostile_safe_state_grounding", payload)
+        self._write_memory_episode(
+            "m4_hostile_safe_state_grounding",
+            payload,
+            source="runtime",
+        )
 
     def _execute_runtime_emergency_action(
         self,
