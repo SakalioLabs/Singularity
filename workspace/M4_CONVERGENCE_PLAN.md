@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | diagnose_probe_10_goal_budget_lifecycle |
+| G5 | First eligible survival-to-dawn episode | ready_for_one_live_probe_after_maintenance_lifecycle |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -57,7 +57,23 @@ The new earliest unrecovered transition is shelter-phase progression. Immediatel
 
 Shelter-phase progression passed live in Probe 10. The autonomous chain gathered six oak logs, crafted 24 oak planks, activated one machine-grounded `build_shelter_cell`, placed the nine final structure blocks, removed the temporary scaffold, and obtained a 9/9 current-episode match from the unchanged G3 verifier. All 11 actions succeeded.
 
-The new earliest unrecovered transition is autonomous goal-budget lifecycle. After shelter verification, GoalGenerator correctly selected `Enter and maintain verified shelter through nightfall`, but GoalVerifier immediately completed that maintenance goal from the already-safe state. The same one-cycle goal was selected twice, consuming goal slots 3 and 4. `autonomous_end` event index 304 then terminated with `max_goals_or_stopped` at world time 11226 before night, despite 135.297 seconds remaining. The next round may change only maintenance-goal budget/lifecycle semantics and must preserve the fixed total deadline and root exclusivity.
+The new earliest unrecovered transition is autonomous goal-budget lifecycle. After shelter verification, GoalGenerator correctly selected `Enter and maintain verified shelter through nightfall`, but GoalVerifier immediately completed that maintenance goal from the already-safe state. The same one-cycle goal was selected twice, consuming goal slots 3 and 4. `autonomous_end` event index 304 then terminated with `max_goals_or_stopped` at world time 11226 before night, despite 135.297 seconds remaining.
+
+Maintenance-goal lifecycle is now addressed offline without increasing any budget. For the strict machine-shelter path, `through nightfall` completes only after world time enters the pinned night interval, and `until dawn` completes only at the pinned dawn boundary. Before that boundary, Planner grounding emits one 15-second bounded wait so the same root remains active, followed by a fresh observation, interrupt check, and machine verification. Missing time evidence fails closed. Full regression passed with 672 Python tests and all six fixed Node suites; one fresh G5 retest is authorized.
+
+## G5 Preflight: Maintenance Goal Lifecycle
+
+- Scope: M4 verified-shelter maintenance only; max goals, max cycles, total cycles, deadline, priority order, and G3 verifier are unchanged
+- Dusk boundary: `Enter and maintain verified shelter through nightfall` requires verified shelter and world time in `[12000, 23000)`
+- Dawn boundary: `Remain in verified shelter until dawn` requires verified shelter and world time at or after 23000, or after natural wrap below 1000
+- Pending behavior: one `wait` action capped at 15000 ms, then a fresh machine observation and runtime interrupt evaluation
+- Root semantics: the current maintenance root remains active; pending safety is not logged as goal completion and does not allocate another goal slot
+- Fail-closed behavior: missing/non-finite time or lost shelter verification cannot satisfy a boundary
+- Evidence: `m4_maintenance_phase_grounding` records boundary, current world time, boundary state, and wait duration
+- Offline tests: `tests/test_m4_shelter.py`
+- Regression: 672 Python tests and all six fixed Node suites passed
+- Protocol integrity: max goals remains 4, max cycles per goal remains 8, and protocol SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
+- Live authorization: one fresh G5 BM-011 episode; stop after evidence generation and diagnose its first unrecovered transition
 
 ## G5 Preflight: Bounded Shelter Action
 

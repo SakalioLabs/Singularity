@@ -407,6 +407,61 @@ def test_g5_agent_records_bounded_shelter_action_as_nine_placement_deltas():
     assert observation["shelter_verification"]["episode_block_delta"]["matched_position_count"] == 9
 
 
+def test_g5_verified_shelter_maintenance_waits_for_named_time_boundary():
+    report = M4ShelterVerifier().verify(_snapshot(), _delta())
+    verifier = GoalVerifier()
+
+    dusk = verifier.verify(
+        "Enter and maintain verified shelter through nightfall",
+        {"time_of_day": 11226, "shelter_verification": report},
+    )
+    night = verifier.verify(
+        "Enter and maintain verified shelter through nightfall",
+        {"time_of_day": 12000, "shelter_verification": report},
+    )
+    before_dawn = verifier.verify(
+        "Remain in verified shelter until dawn",
+        {"time_of_day": 13800, "shelter_verification": report},
+    )
+    dawn = verifier.verify(
+        "Remain in verified shelter until dawn",
+        {"time_of_day": 23000, "shelter_verification": report},
+    )
+
+    assert dusk.achieved is False
+    assert dusk.missing == ["nightfall boundary not yet observed"]
+    assert night.achieved is True
+    assert before_dawn.achieved is False
+    assert before_dawn.missing == ["dawn boundary not yet observed"]
+    assert dawn.achieved is True
+
+
+def test_g5_maintenance_phase_grounding_keeps_one_root_active_with_bounded_waits():
+    report = M4ShelterVerifier().verify(_snapshot(), _delta())
+    base = {"status": "complete", "reasoning": "already safe", "subtasks": [], "actions": []}
+
+    waiting, waiting_report = Planner._ground_m4_maintenance_phase(
+        base,
+        goal="Enter and maintain verified shelter through nightfall",
+        world_state={"time_of_day": 11226, "shelter_verification": report},
+    )
+    reached, reached_report = Planner._ground_m4_maintenance_phase(
+        base,
+        goal="Enter and maintain verified shelter through nightfall",
+        world_state={"time_of_day": 12000, "shelter_verification": report},
+    )
+
+    assert waiting["status"] == "planning"
+    assert waiting["actions"] == [{"type": "wait", "parameters": {"ms": 15000}}]
+    assert waiting_report["activated"] is True
+    assert waiting_report["boundary"] == "nightfall"
+    assert waiting_report["boundary_reached"] is False
+    assert ActionVerifier().verify(waiting["actions"][0], {}, goal="maintain shelter").status == "accept"
+    assert reached == base
+    assert reached_report["activated"] is False
+    assert reached_report["boundary_reached"] is True
+
+
 if __name__ == "__main__":
     test_g3_sealed_cell_requires_complete_machine_geometry_and_delta()
     test_g3_rejects_missing_wall_or_overhead_cover()

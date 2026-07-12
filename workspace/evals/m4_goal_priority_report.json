@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T14:29:54.8023438Z",
+  "generated_at": "2026-07-12T14:37:54.7421478Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
-  "decision": "allow_one_g2_preparation_episode",
+  "decision": "allow_one_g5_episode_after_maintenance_lifecycle",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -33,8 +33,20 @@
     {"name": "hunger_survives_ready_task_override", "status": "pass", "evidence": "tests/test_m4_goal_priority.py"},
     {"name": "auto_goal_source_reason_priority", "status": "pass", "evidence": "tests/test_m4_deadline.py"},
     {"name": "curriculum_regression", "status": "pass", "evidence": "tests/test_curriculum.py"},
-    {"name": "autonomous_task_selection_regression", "status": "pass", "evidence": "tests/test_memory_task_system.py"}
+    {"name": "autonomous_task_selection_regression", "status": "pass", "evidence": "tests/test_memory_task_system.py"},
+    {"name": "maintenance_nightfall_boundary", "status": "pass", "evidence": "tests/test_m4_shelter.py"},
+    {"name": "maintenance_dawn_boundary", "status": "pass", "evidence": "tests/test_m4_shelter.py"},
+    {"name": "maintenance_bounded_wait_grounding", "status": "pass", "evidence": "tests/test_m4_shelter.py"}
   ],
+  "maintenance_lifecycle": {
+    "nightfall_boundary_start": 12000,
+    "dawn_boundary_start": 23000,
+    "wait_ms": 15000,
+    "pending_goal_consumes_new_slot": false,
+    "missing_time_fails_closed": true,
+    "full_python_regression": 672,
+    "node_suite_count": 6
+  },
   "live_episode_count": 10,
   "latest_live_episode": {
     "episode_id": "m4_episode_20260712_222631_806bb698",

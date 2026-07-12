@@ -296,6 +296,11 @@ class Planner:
                 goal=goal,
                 world_state=world_state,
             )
+            raw_plan, maintenance_phase_grounding = self._ground_m4_maintenance_phase(
+                raw_plan,
+                goal=goal,
+                world_state=world_state,
+            )
             schema_validation = self._validate_m4_plan_envelope(
                 raw_plan,
                 expected_goal=goal,
@@ -304,6 +309,7 @@ class Planner:
             grounding_issues = list(action_parameter_grounding.get("issues", []))
             schema_validation["action_parameter_grounding"] = action_parameter_grounding
             schema_validation["shelter_phase_grounding"] = shelter_phase_grounding
+            schema_validation["maintenance_phase_grounding"] = maintenance_phase_grounding
             schema_validation["issues"] = sorted(set(
                 list(schema_validation.get("issues", [])) + grounding_issues
             ))
@@ -322,6 +328,9 @@ class Planner:
                 )
                 plan["shelter_phase_grounding"] = dict(
                     schema_validation.get("shelter_phase_grounding", {})
+                )
+                plan["maintenance_phase_grounding"] = dict(
+                    schema_validation.get("maintenance_phase_grounding", {})
                 )
             if plan_kind == "root":
                 self._active_root_plan_id = root_plan_id
@@ -442,7 +451,8 @@ M4 FIXED OUTPUT CONTRACT:
 - A craft action must use item and may use a positive integer count; never use recipe as an alias.
 - Example: {"type":"craft","parameters":{"item":"oak_planks","count":4}}.
 - For an active shelter goal, when the current machine state has at least 10 allowlisted building blocks, immediately use build_shelter_cell with the current shelter player_cell as origin and that inventory material. Nine blocks remain in the structure and one is a temporary roof scaffold. Do not add tools, a crafting table, a furnace, mining, or other unrelated prerequisites.
-- Example: {"type":"build_shelter_cell","parameters":{"origin":{"x":93,"y":136,"z":-36},"material":"oak_planks"}}."""
+- Example: {"type":"build_shelter_cell","parameters":{"origin":{"x":93,"y":136,"z":-36},"material":"oak_planks"}}.
+- A verified-shelter maintenance goal is continuous: before its named nightfall or dawn boundary, return a wait action and preserve the same root instead of reporting complete or expanding another goal."""
         return prompt
 
     def _m2_system_prompt(self) -> str:
@@ -912,6 +922,75 @@ Plan the steps to achieve this goal."""
             "origin": origin,
             "material": material,
             "canonical_action": action,
+        })
+        return grounded, report
+
+    @classmethod
+    def _ground_m4_maintenance_phase(
+        cls,
+        plan: dict,
+        *,
+        goal: str,
+        world_state: dict,
+    ) -> tuple[dict, dict]:
+        grounded = dict(plan or {})
+        goal_lower = str(goal or "").lower()
+        report = {
+            "type": "m4_maintenance_phase_grounding",
+            "schema_version": 1,
+            "activated": False,
+            "boundary": "",
+            "boundary_reached": False,
+            "time_of_day": 0,
+            "wait_ms": 0,
+            "reason": "not_applicable",
+        }
+        if "through nightfall" in goal_lower:
+            boundary = "nightfall"
+        elif "until dawn" in goal_lower:
+            boundary = "dawn"
+        else:
+            return grounded, report
+        state = world_state if isinstance(world_state, dict) else {}
+        shelter = state.get("shelter_verification", {})
+        shelter = shelter if isinstance(shelter, dict) else {}
+        try:
+            raw_time = state["time_of_day"]
+            time_of_day = int(float(raw_time)) % 24000
+            time_valid = math.isfinite(float(raw_time))
+        except (TypeError, ValueError):
+            time_of_day = 0
+            time_valid = False
+        except KeyError:
+            time_of_day = 0
+            time_valid = False
+        boundary_reached = (
+            time_valid and 12000 <= time_of_day < 23000
+            if boundary == "nightfall"
+            else time_valid and (time_of_day >= 23000 or time_of_day < 1000)
+        )
+        report.update({
+            "boundary": boundary,
+            "boundary_reached": boundary_reached,
+            "time_of_day": time_of_day,
+        })
+        if shelter.get("passed") is not True:
+            report["reason"] = "machine_shelter_not_verified"
+            return grounded, report
+        if boundary_reached:
+            report["reason"] = "maintenance_boundary_reached"
+            return grounded, report
+
+        wait_ms = 15000
+        grounded["status"] = "planning"
+        grounded["actions"] = [{"type": "wait", "parameters": {"ms": wait_ms}}]
+        grounded["reasoning"] = (
+            f"Maintain the verified shelter and observe again after a bounded wait for {boundary}."
+        )
+        report.update({
+            "activated": True,
+            "wait_ms": wait_ms,
+            "reason": "verified_shelter_boundary_pending",
         })
         return grounded, report
 

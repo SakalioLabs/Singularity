@@ -7,6 +7,7 @@ an LLM critic can be added later without changing the call site.
 """
 import json
 import logging
+import math
 import re
 from dataclasses import dataclass, field
 from typing import Optional
@@ -466,8 +467,30 @@ class GoalVerifier:
         if "shelter_verification" in observation:
             report = observation.get("shelter_verification")
             report = report if isinstance(report, dict) else {}
-            achieved = is_machine_verified_shelter(report)
+            shelter_verified = is_machine_verified_shelter(report)
+            try:
+                raw_time = observation["time_of_day"]
+                time_of_day = int(float(raw_time)) % 24000
+                time_valid = math.isfinite(float(raw_time))
+            except (TypeError, ValueError):
+                time_of_day = 0
+                time_valid = False
+            except KeyError:
+                time_of_day = 0
+                time_valid = False
+            boundary = ""
+            boundary_reached = True
+            if "through nightfall" in goal_lower:
+                boundary = "nightfall"
+                boundary_reached = time_valid and 12000 <= time_of_day < 23000
+            elif "until dawn" in goal_lower:
+                boundary = "dawn"
+                boundary_reached = time_valid and (time_of_day >= 23000 or time_of_day < 1000)
+            achieved = shelter_verified and boundary_reached
             issues = [str(issue) for issue in report.get("issues", []) if str(issue)]
+            missing = list(issues)
+            if shelter_verified and not boundary_reached:
+                missing.append(f"{boundary} boundary not yet observed")
             return GoalVerification(
                 goal=goal,
                 achieved=achieved,
@@ -480,7 +503,7 @@ class GoalVerifier:
                     ]
                     if achieved else []
                 ),
-                missing=[] if achieved else (issues or ["machine shelter verification did not pass"]),
+                missing=[] if achieved else (missing or ["machine shelter verification did not pass"]),
                 matched_rules=["world:m4_machine_shelter"],
             )
         flags = set(str(flag).lower() for flag in observation.get("flags", []))
