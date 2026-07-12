@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T18:25:02.5214251Z",
+  "generated_at": "2026-07-12T21:24:35.0394138Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "blocked_by_probe_16_shelter_atomicity",
-  "decision": "probe_16_deaths_and_deadline_overrun_rejected_replication_remains_1_of_3",
+  "readiness": "offline_shelter_atomicity_gate_passed",
+  "decision": "probe_17_exactly_one_authorized_replication_remains_1_of_3",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -78,6 +78,11 @@
       "status": "pass",
       "evidence": "src/bot/bot_server.js; src/singularity/core/agent.py; src/singularity/evaluation/m4_protocol.py; tests/test_m4_protocol.py; tests/test_m4_runtime.py; tests/test_m4_shelter.py",
       "detail": "Bridge-owned Mineflayer death/respawn counters are reset-bound, propagated through observations and canonical events, required by terminal verification, and independently enforced over the active interval."
+    },
+    {
+      "name": "bounded_shelter_partial_failure_atomicity",
+      "status": "pass",
+      "evidence": "src/bot/bot_server.js; src/singularity/core/agent.py; src/singularity/core/planner.py; tests/test_bot_server_m4_protocol.js; tests/test_m4_shelter.py"
     }
   ],
   "planner_transport_recovery": {
@@ -90,6 +95,21 @@
     "schema_error_recovery": false,
     "deadline_error_recovery": false
   },
+  "shelter_atomicity_gate": {
+    "scope": "strict_m4_build_shelter_cell_partial_failure",
+    "passed": true,
+    "mutation_free_preflight": true,
+    "unexpected_partial_placement_rollback": true,
+    "inventory_recovery_required": true,
+    "bounded_relocation_radius": 6,
+    "agent_recovery_event": "m4_shelter_atomicity_recovery",
+    "planner_relocation_before_retry": true,
+    "full_python_regression": 685,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 35,
+    "live_episode_run": false,
+    "next_authorized_episode": "probe_17_exactly_one"
+  },
   "fixed_runtime_profile": {
     "task_id": "BM-011",
     "max_duration_s": 1200,
@@ -98,8 +118,9 @@
     "max_total_cycles": 320,
     "harness_requires_exact_match": true,
     "terminal_result_requires_machine_event": true,
-    "full_python_regression": 684,
-    "node_suite_count": 6
+    "full_python_regression": 685,
+    "node_suite_count": 6,
+    "node_internal_pass_count": 35
   },
   "player_lifecycle_gate": {
     "verifier_id": "m4-player-lifecycle-verifier-v1",

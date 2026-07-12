@@ -370,6 +370,87 @@ def test_g0_agent_logs_lifecycle_baseline_and_death_transition_once():
     print("PASS: Agent emits one canonical lifecycle event per baseline or death-count transition")
 
 
+def test_g5_partial_shelter_failure_relocates_before_template_retry():
+    agent = object.__new__(Agent)
+    agent.config = SimpleNamespace(planner_protocol="m4-fixed-v1")
+    agent.session_logger = _SessionLogger()
+    agent._m4_shelter_relocation = {}
+    build_action = {
+        "type": "build_shelter_cell",
+        "parameters": {"origin": dict(CELL), "material": "oak_planks"},
+    }
+    failed_result = {
+        "success": False,
+        "template_id": "m4-sealed-cell-v1",
+        "material": "oak_planks",
+        "origin": dict(CELL),
+        "error": "no grounded neighbor exists for sealed-cell placement",
+        "atomicity": {
+            "passed": True,
+            "mode": "mutation_free_preflight_rejection",
+            "mutation_count": 0,
+            "inventory_preserved": True,
+        },
+        "relocation_required": True,
+        "relocation_origin": {"x": 3, "y": 64, "z": 0},
+        "relocation_target": {"x": 3.5, "y": 64.0, "z": 0.5},
+        "relocation_search_radius": 6,
+    }
+
+    invalid_result = dict(failed_result)
+    invalid_result["relocation_target"] = {"x": 30.5, "y": 64.0, "z": 0.5}
+    agent._update_m4_shelter_relocation(build_action, invalid_result)
+    assert agent._m4_shelter_relocation == {}
+    invalid_result = dict(failed_result)
+    invalid_result["relocation_search_radius"] = 6.5
+    agent._update_m4_shelter_relocation(build_action, invalid_result)
+    assert agent._m4_shelter_relocation == {}
+
+    agent._update_m4_shelter_relocation(build_action, failed_result)
+    relocation = dict(agent._m4_shelter_relocation)
+    assert relocation["status"] == "scheduled"
+    assert relocation["source_origin"] == CELL
+    assert relocation["target_origin"] == {"x": 3, "y": 64, "z": 0}
+    assert relocation["target_position"] == {"x": 3.5, "y": 64.0, "z": 0.5}
+    assert relocation["search_radius"] == 6
+
+    snapshot = _snapshot()
+    _replace_block(snapshot, {"x": 0, "y": 66, "z": 0}, "air")
+    shelter = M4ShelterVerifier().verify(snapshot, {"placed": {}})
+    plan, grounding = Planner._ground_m4_shelter_phase(
+        {"status": "planning", "subtasks": [], "actions": []},
+        goal="Build verified shelter before nightfall",
+        world_state={
+            "inventory": {"oak_planks": 16},
+            "shelter_verification": shelter,
+            "m4_shelter_relocation": relocation,
+        },
+    )
+    move = {
+        "type": "move_to",
+        "parameters": {"x": 3.5, "y": 64.0, "z": 0.5},
+    }
+    assert plan["actions"] == [move]
+    assert grounding["activated"] is True
+    assert grounding["reason"] == "partial_failure_relocation_required"
+    assert grounding["recovery_id"] == relocation["recovery_id"]
+
+    agent._update_m4_shelter_relocation(move, {"success": False, "error": "blocked"})
+    assert agent._m4_shelter_relocation == relocation
+    agent._update_m4_shelter_relocation(move, {"success": True})
+    assert agent._m4_shelter_relocation == {}
+    recovery_events = [
+        event["data"] for event in agent.session_logger.events
+        if event["type"] == "m4_shelter_atomicity_recovery"
+    ]
+    assert [event["status"] for event in recovery_events] == [
+        "scheduled",
+        "retry_required",
+        "completed",
+    ]
+    print("PASS: Probe 16 partial shelter failure relocates before a bounded template retry")
+
+
 def test_g3_report_contract_rejects_missing_required_check():
     report = M4ShelterVerifier().verify(_snapshot(), _delta())
     report["checks"] = [

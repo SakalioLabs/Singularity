@@ -1461,7 +1461,7 @@ function placementReference(activeBot, target) {
     for (const candidate of candidates) {
         const position = target.plus(candidate.offset);
         const block = activeBot.blockAt(position);
-        if (block && block.type !== 0 && block.name !== 'air') {
+        if (isSolidBlock(block)) {
             return { block, face: candidate.face };
         }
     }
@@ -1477,6 +1477,135 @@ function sealedCellTemplatePositions(origin) {
         walls.push(origin.offset(dx, 1, dz));
     }
     return [...walls, origin.offset(0, 2, 0)];
+}
+
+function blockPositionKey(position) {
+    return `${Number(position.x)},${Number(position.y)},${Number(position.z)}`;
+}
+
+function isSolidBlock(block) {
+    return Boolean(
+        block
+        && block.type !== 0
+        && block.name !== 'air'
+        && block.boundingBox !== 'empty'
+    );
+}
+
+function simulatedPlacementReference(solidAt, target) {
+    const candidates = [
+        { offset: new Vec3(0, -1, 0), face: new Vec3(0, 1, 0) },
+        { offset: new Vec3(-1, 0, 0), face: new Vec3(1, 0, 0) },
+        { offset: new Vec3(1, 0, 0), face: new Vec3(-1, 0, 0) },
+        { offset: new Vec3(0, 0, -1), face: new Vec3(0, 0, 1) },
+        { offset: new Vec3(0, 0, 1), face: new Vec3(0, 0, -1) },
+    ];
+    for (const candidate of candidates) {
+        const position = target.plus(candidate.offset);
+        if (solidAt(position)) {
+            return {
+                position: compactPosition(position),
+                face: compactPosition(candidate.face),
+            };
+        }
+    }
+    return null;
+}
+
+function sealedCellPlacementPreflight(activeBot, origin) {
+    const targets = sealedCellTemplatePositions(origin);
+    const virtualSolidity = new Map();
+    const solidAt = position => {
+        const key = blockPositionKey(position);
+        if (virtualSolidity.has(key)) return virtualSolidity.get(key);
+        return isSolidBlock(activeBot.blockAt(position));
+    };
+    const setSolid = (position, solid) => virtualSolidity.set(blockPositionKey(position), Boolean(solid));
+    const placementOrder = [];
+    let temporaryScaffold = null;
+
+    for (const target of targets) {
+        setSolid(target, false);
+        let reference = simulatedPlacementReference(solidAt, target);
+        if (!reference && target.equals(origin.offset(0, 2, 0))) {
+            const scaffoldTarget = origin.offset(1, 2, 0);
+            if (solidAt(scaffoldTarget)) {
+                return {
+                    passed: false,
+                    error: 'temporary scaffold target is occupied',
+                    failed_position: compactPosition(scaffoldTarget),
+                    placement_order: placementOrder,
+                };
+            }
+            const scaffoldReference = simulatedPlacementReference(solidAt, scaffoldTarget);
+            if (!scaffoldReference) {
+                return {
+                    passed: false,
+                    error: 'no grounded neighbor exists for temporary roof scaffold',
+                    failed_position: compactPosition(scaffoldTarget),
+                    placement_order: placementOrder,
+                };
+            }
+            setSolid(scaffoldTarget, true);
+            temporaryScaffold = compactPosition(scaffoldTarget);
+            reference = simulatedPlacementReference(solidAt, target);
+        }
+        if (!reference) {
+            return {
+                passed: false,
+                error: 'no grounded neighbor exists for sealed-cell placement',
+                failed_position: compactPosition(target),
+                placement_order: placementOrder,
+            };
+        }
+        placementOrder.push({
+            position: compactPosition(target),
+            reference,
+        });
+        setSolid(target, true);
+    }
+    return {
+        passed: true,
+        target_count: targets.length,
+        placement_order: placementOrder,
+        temporary_scaffold: temporaryScaffold,
+    };
+}
+
+function findSealedCellRelocation(activeBot, origin, maxRadius = 6) {
+    const yOffsets = [0, 1, -1, 2, -2];
+    for (let radius = 1; radius <= maxRadius; radius++) {
+        const offsets = [];
+        for (let dx = -radius; dx <= radius; dx++) {
+            for (let dz = -radius; dz <= radius; dz++) {
+                if (Math.max(Math.abs(dx), Math.abs(dz)) !== radius) continue;
+                offsets.push({ dx, dz, distance: (dx * dx) + (dz * dz) });
+            }
+        }
+        offsets.sort((left, right) => (
+            left.distance - right.distance || left.dx - right.dx || left.dz - right.dz
+        ));
+        for (const { dx, dz } of offsets) {
+            for (const dy of yOffsets) {
+                const candidate = origin.offset(dx, dy, dz);
+                if (isSolidBlock(activeBot.blockAt(candidate))) continue;
+                if (isSolidBlock(activeBot.blockAt(candidate.offset(0, 1, 0)))) continue;
+                if (!isSolidBlock(activeBot.blockAt(candidate.offset(0, -1, 0)))) continue;
+                const preflight = sealedCellPlacementPreflight(activeBot, candidate);
+                if (!preflight.passed) continue;
+                return {
+                    origin: compactPosition(candidate),
+                    target: {
+                        x: Number(candidate.x) + 0.5,
+                        y: Number(candidate.y),
+                        z: Number(candidate.z) + 0.5,
+                    },
+                    search_radius: maxRadius,
+                };
+            }
+        }
+    }
+    return null;
 }
 
 function createBuildShelterCellHandler(
@@ -1532,6 +1661,38 @@ function createBuildShelterCellHandler(
                 available_count: Number(beforeInventory[material] || 0),
             };
         }
+        const preflight = sealedCellPlacementPreflight(activeBot, origin);
+        if (!preflight.passed) {
+            const relocation = findSealedCellRelocation(activeBot, origin);
+            const afterInventory = inventoryCounts(activeBot);
+            const inventoryPreserved = Number(afterInventory[material] || 0)
+                === Number(beforeInventory[material] || 0);
+            return {
+                success: false,
+                template_id: 'm4-sealed-cell-v1',
+                material,
+                origin: compactPosition(origin),
+                error: preflight.error,
+                failed_position: preflight.failed_position,
+                placed_count: 0,
+                placed_positions: [],
+                placement_deltas: [],
+                inventory_before: beforeInventory,
+                inventory_after: afterInventory,
+                preflight,
+                atomicity: {
+                    passed: inventoryPreserved,
+                    mode: 'mutation_free_preflight_rejection',
+                    scope: 'final_placements_and_material_inventory',
+                    mutation_count: 0,
+                    inventory_preserved: inventoryPreserved,
+                },
+                relocation_required: Boolean(relocation),
+                relocation_origin: relocation?.origin || null,
+                relocation_target: relocation?.target || null,
+                relocation_search_radius: relocation?.search_radius || 6,
+            };
+        }
         const item = activeBot.inventory.items().find(entry => entry.name === material);
         if (!item) return { success: false, error: `${material} is not available for placement` };
         try {
@@ -1544,36 +1705,130 @@ function createBuildShelterCellHandler(
         const removedPositions = [];
         const placementDeltas = [];
         let temporaryScaffold = null;
+        const rollbackPlacements = async () => {
+            const candidates = [...placedPositions];
+            if (temporaryScaffold) candidates.push(temporaryScaffold);
+            const unique = [];
+            const seen = new Set();
+            for (const position of candidates.reverse()) {
+                const key = blockPositionKey(position);
+                if (seen.has(key)) continue;
+                seen.add(key);
+                unique.push(position);
+            }
+            const removed = [];
+            const issues = [];
+            for (const position of unique) {
+                const target = new Vec3(position.x, position.y, position.z);
+                const block = activeBot.blockAt(target);
+                if (!isSolidBlock(block)) continue;
+                if (block.name !== material) {
+                    issues.push(`rollback target changed to ${block.name} at ${blockPositionKey(position)}`);
+                    continue;
+                }
+                if (typeof activeBot.dig !== 'function') {
+                    issues.push(`dig unavailable for rollback at ${blockPositionKey(position)}`);
+                    continue;
+                }
+                try {
+                    await activeBot.dig(block, true);
+                    await wait(50);
+                    if (isSolidBlock(activeBot.blockAt(target))) {
+                        issues.push(`rollback block remained at ${blockPositionKey(position)}`);
+                    } else {
+                        removed.push(compactPosition(position));
+                    }
+                } catch (error) {
+                    issues.push(`rollback failed at ${blockPositionKey(position)}: ${error.message}`);
+                }
+            }
+            let inventoryAfter = inventoryCounts(activeBot);
+            const expectedCount = Number(beforeInventory[material] || 0);
+            let waitedMs = 0;
+            while (Number(inventoryAfter[material] || 0) < expectedCount && waitedMs < 2000) {
+                await wait(100);
+                waitedMs += 100;
+                inventoryAfter = inventoryCounts(activeBot);
+            }
+            const inventoryRecovered = Number(inventoryAfter[material] || 0) >= expectedCount;
+            if (!inventoryRecovered) {
+                issues.push(
+                    `rollback inventory recovered ${Number(inventoryAfter[material] || 0)}/${expectedCount} ${material}`,
+                );
+            }
+            const residualPositions = unique.filter(position => {
+                const block = activeBot.blockAt(new Vec3(position.x, position.y, position.z));
+                return isSolidBlock(block) && block.name === material;
+            });
+            return {
+                passed: issues.length === 0 && residualPositions.length === 0,
+                attempted_positions: unique,
+                removed_positions: removed,
+                residual_positions: residualPositions,
+                inventory_recovered: inventoryRecovered,
+                inventory_before: beforeInventory,
+                inventory_after: inventoryAfter,
+                waited_ms: waitedMs,
+                issues,
+            };
+        };
+        const failWithRollback = async failure => {
+            const originalPlacedCount = placedPositions.length + (temporaryScaffold ? 1 : 0);
+            const rollback = await rollbackPlacements();
+            const relocation = rollback.passed ? findSealedCellRelocation(activeBot, origin) : null;
+            return {
+                success: false,
+                template_id: 'm4-sealed-cell-v1',
+                material,
+                origin: compactPosition(origin),
+                ...failure,
+                placed_count: 0,
+                placed_positions: [],
+                placement_deltas: [],
+                cleared_original_positions: removedPositions,
+                temporary_scaffold: null,
+                inventory_before: beforeInventory,
+                inventory_after: rollback.inventory_after,
+                preflight,
+                atomicity: {
+                    passed: rollback.passed,
+                    mode: 'rollback_after_partial_mutation',
+                    scope: 'final_placements_and_material_inventory',
+                    original_placed_count: originalPlacedCount,
+                    residual_placed_count: rollback.residual_positions.length,
+                    inventory_preserved: rollback.inventory_recovered,
+                },
+                rollback,
+                relocation_required: Boolean(relocation),
+                relocation_origin: relocation?.origin || null,
+                relocation_target: relocation?.target || null,
+                relocation_search_radius: relocation?.search_radius || 6,
+            };
+        };
         for (const target of targets) {
             let existing = activeBot.blockAt(target);
             if (existing && existing.type !== 0 && existing.name !== 'air') {
                 if (typeof activeBot.dig !== 'function') {
-                    return {
-                        success: false,
+                    return failWithRollback({
                         error: `sealed-cell target is occupied by ${existing.name}`,
                         failed_position: compactPosition(target),
-                        placed_count: placedPositions.length,
-                    };
+                    });
                 }
                 try {
                     await activeBot.dig(existing, true);
                     await wait(50);
                 } catch (error) {
-                    return {
-                        success: false,
+                    return failWithRollback({
                         error: `could not clear sealed-cell target: ${error.message}`,
                         failed_position: compactPosition(target),
-                        placed_count: placedPositions.length,
-                    };
+                    });
                 }
                 const cleared = activeBot.blockAt(target);
                 if (cleared && cleared.type !== 0 && cleared.name !== 'air') {
-                    return {
-                        success: false,
+                    return failWithRollback({
                         error: `sealed-cell target remained occupied by ${cleared.name}`,
                         failed_position: compactPosition(target),
-                        placed_count: placedPositions.length,
-                    };
+                    });
                 }
                 removedPositions.push(compactPosition(target));
                 existing = cleared;
@@ -1584,64 +1839,65 @@ function createBuildShelterCellHandler(
                 const scaffoldTarget = origin.offset(1, 2, 0);
                 const scaffoldBefore = activeBot.blockAt(scaffoldTarget);
                 if (scaffoldBefore && scaffoldBefore.type !== 0 && scaffoldBefore.name !== 'air') {
-                    return {
-                        success: false,
+                    return failWithRollback({
                         error: `temporary scaffold target is occupied by ${scaffoldBefore.name}`,
                         failed_position: compactPosition(scaffoldTarget),
-                        placed_count: placedPositions.length,
-                    };
+                    });
                 }
                 const scaffoldReference = placementReference(activeBot, scaffoldTarget);
                 if (!scaffoldReference) {
-                    return {
-                        success: false,
+                    return failWithRollback({
                         error: 'no grounded neighbor exists for temporary roof scaffold',
                         failed_position: compactPosition(scaffoldTarget),
-                        placed_count: placedPositions.length,
-                    };
+                    });
                 }
-                await activeBot.placeBlock(scaffoldReference.block, scaffoldReference.face);
+                try {
+                    await activeBot.placeBlock(scaffoldReference.block, scaffoldReference.face);
+                } catch (error) {
+                    if (activeBot.blockAt(scaffoldTarget)?.name === material) {
+                        temporaryScaffold = compactPosition(scaffoldTarget);
+                    }
+                    return failWithRollback({
+                        error: `temporary roof scaffold placement failed: ${error.message}`,
+                        failed_position: compactPosition(scaffoldTarget),
+                    });
+                }
+                temporaryScaffold = compactPosition(scaffoldTarget);
                 await wait(50);
                 const scaffoldAfter = activeBot.blockAt(scaffoldTarget);
                 if (scaffoldAfter?.name !== material) {
-                    return {
-                        success: false,
+                    return failWithRollback({
                         error: 'temporary roof scaffold was not observed',
                         failed_position: compactPosition(scaffoldTarget),
-                        placed_count: placedPositions.length,
-                    };
+                    });
                 }
-                temporaryScaffold = compactPosition(scaffoldTarget);
                 reference = placementReference(activeBot, target);
             }
             if (!reference) {
-                return {
-                    success: false,
+                return failWithRollback({
                     error: 'no grounded neighbor exists for sealed-cell placement',
                     failed_position: compactPosition(target),
-                    placed_count: placedPositions.length,
-                };
+                });
             }
             try {
                 await activeBot.placeBlock(reference.block, reference.face);
                 await wait(50);
             } catch (error) {
-                return {
-                    success: false,
+                if (activeBot.blockAt(target)?.name === material) {
+                    placedPositions.push(compactPosition(target));
+                }
+                return failWithRollback({
                     error: `sealed-cell placement failed: ${error.message}`,
                     failed_position: compactPosition(target),
-                    placed_count: placedPositions.length,
-                };
+                });
             }
             const after = shelterBlockState(activeBot, target);
             if (after.name !== material) {
-                return {
-                    success: false,
+                return failWithRollback({
                     error: 'placed sealed-cell block was not observed at the target',
                     failed_position: compactPosition(target),
                     observed_block: after.name,
-                    placed_count: placedPositions.length,
-                };
+                });
             }
             placedPositions.push(compactPosition(target));
             placementDeltas.push({
@@ -1660,12 +1916,10 @@ function createBuildShelterCellHandler(
                 await activeBot.dig(scaffoldBlock, true);
                 await wait(50);
             } catch (error) {
-                return {
-                    success: false,
+                return failWithRollback({
                     error: `could not remove temporary roof scaffold: ${error.message}`,
                     failed_position: temporaryScaffold,
-                    placed_count: placedPositions.length,
-                };
+                });
             }
             removedPositions.push(temporaryScaffold);
         }
@@ -1684,6 +1938,16 @@ function createBuildShelterCellHandler(
             inventory_before: beforeInventory,
             inventory_after: inventoryCounts(activeBot),
             player_position: compactPosition(activeBot.entity.position),
+            preflight,
+            atomicity: {
+                passed: true,
+                mode: 'committed_complete_template',
+                scope: 'final_placements_and_material_inventory',
+                committed: true,
+                original_placed_count: placedPositions.length + (temporaryScaffold ? 1 : 0),
+                residual_placed_count: placedPositions.length,
+                inventory_preserved: null,
+            },
         };
     };
 }

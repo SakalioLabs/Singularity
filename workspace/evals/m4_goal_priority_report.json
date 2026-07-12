@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T18:25:02.5214251Z",
+  "generated_at": "2026-07-12T21:24:35.0394138Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "approved_contract_live_replication_failed",
-  "decision": "probe_16_priority_order_held_but_partial_shelter_failures_prevented_safe_execution",
+  "readiness": "approved_contract_offline_atomicity_gate_passed",
+  "decision": "probe_16_priority_order_held_and_probe_17_atomic_recovery_gate_passed",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -36,7 +36,8 @@
     {"name": "autonomous_task_selection_regression", "status": "pass", "evidence": "tests/test_memory_task_system.py"},
     {"name": "maintenance_nightfall_boundary", "status": "pass", "evidence": "tests/test_m4_shelter.py"},
     {"name": "maintenance_dawn_boundary", "status": "pass", "evidence": "tests/test_m4_shelter.py"},
-    {"name": "maintenance_bounded_wait_grounding", "status": "pass", "evidence": "tests/test_m4_shelter.py"}
+    {"name": "maintenance_bounded_wait_grounding", "status": "pass", "evidence": "tests/test_m4_shelter.py"},
+    {"name": "bounded_shelter_relocation_before_retry", "status": "pass", "evidence": "src/singularity/core/agent.py; src/singularity/core/planner.py; tests/test_m4_shelter.py"}
   ],
   "maintenance_lifecycle": {
     "nightfall_boundary_start": 12000,
@@ -44,8 +45,17 @@
     "wait_ms": 15000,
     "pending_goal_consumes_new_slot": false,
     "missing_time_fails_closed": true,
-    "full_python_regression": 684,
-    "node_suite_count": 6
+    "full_python_regression": 685,
+    "node_suite_count": 6,
+    "node_internal_pass_count": 35
+  },
+  "shelter_atomicity_recovery": {
+    "offline_gate_passed": true,
+    "pending_relocation_preempts_template_retry": true,
+    "bounded_relocation_radius": 6,
+    "invalid_relocation_fails_closed": true,
+    "live_episode_run": false,
+    "next_authorized_episode": "probe_17_exactly_one"
   },
   "live_episode_count": 16,
   "live_episode_count_under_current_protocol": 2,

@@ -289,9 +289,162 @@ async function testM4BoundedSealedCellBuildReturnsNineObservedDeltas() {
         { x: 1, y: 66, z: 0 },
     ]);
     assert.deepStrictEqual(result.temporary_scaffold, { x: 1, y: 66, z: 0 });
+    assert.strictEqual(result.preflight.passed, true);
+    assert.strictEqual(result.atomicity.passed, true);
+    assert.strictEqual(result.atomicity.mode, 'committed_complete_template');
     assert.strictEqual(plankCount, 0);
     assert.strictEqual(blocks.get('0,66,0'), 'oak_planks');
     console.log('PASS: M4 bounded sealed-cell action places nine machine-observed blocks');
+}
+
+async function testM4BoundedSealedCellPreflightRejectsProbe16GeometryWithoutMutation() {
+    const blocks = new Map();
+    let plankCount = 16;
+    let placeCalls = 0;
+    let digCalls = 0;
+    const player = { position: new Vec3(0.5, 64, 0.5) };
+    const bot = {
+        entity: player,
+        inventory: { items: () => [{ name: 'oak_planks', count: plankCount }] },
+        blockAt(position) {
+            const name = blocks.get(positionKey(position)) || 'air';
+            return {
+                name,
+                type: name === 'air' ? 0 : 1,
+                boundingBox: name === 'air' ? 'empty' : 'block',
+                position: position.clone ? position.clone() : new Vec3(position.x, position.y, position.z),
+            };
+        },
+        async equip() {},
+        async dig(block) {
+            digCalls += 1;
+            blocks.delete(positionKey(block.position));
+        },
+        async placeBlock(reference, face) {
+            placeCalls += 1;
+            blocks.set(positionKey(reference.position.plus(face)), 'oak_planks');
+            plankCount -= 1;
+        },
+    };
+    blocks.set('0,64,-2', 'dark_oak_log');
+    blocks.set('1,63,0', 'grass_block');
+    for (const position of ['3,63,0', '3,63,-1', '4,63,0', '3,63,1', '2,63,0']) {
+        blocks.set(position, 'grass_block');
+    }
+    const beforeBlocks = [...blocks.entries()].sort();
+    const handler = createBuildShelterCellHandler(
+        () => ({ bot, botReady: true }),
+        async () => {},
+    );
+
+    const result = await handler({
+        origin: { x: 0, y: 64, z: 0 },
+        material: 'oak_planks',
+    });
+
+    assert.strictEqual(result.success, false, JSON.stringify(result));
+    assert.strictEqual(result.error, 'no grounded neighbor exists for sealed-cell placement');
+    assert.deepStrictEqual(result.failed_position, { x: 0, y: 64, z: 1 });
+    assert.strictEqual(result.placed_count, 0);
+    assert.strictEqual(result.preflight.passed, false);
+    assert.strictEqual(result.atomicity.passed, true);
+    assert.strictEqual(result.atomicity.mode, 'mutation_free_preflight_rejection');
+    assert.strictEqual(result.atomicity.mutation_count, 0);
+    assert.strictEqual(result.atomicity.inventory_preserved, true);
+    assert.strictEqual(result.relocation_required, true);
+    assert.deepStrictEqual(result.relocation_origin, { x: 3, y: 64, z: 0 });
+    assert.deepStrictEqual(result.relocation_target, { x: 3.5, y: 64, z: 0.5 });
+    assert.strictEqual(plankCount, 16);
+    assert.strictEqual(placeCalls, 0);
+    assert.strictEqual(digCalls, 0);
+    assert.deepStrictEqual([...blocks.entries()].sort(), beforeBlocks);
+    console.log('PASS: M4 shelter preflight rejects Probe 16 geometry without mutation or material loss');
+}
+
+async function testM4BoundedSealedCellRollsBackUnexpectedPartialPlacement() {
+    const blocks = new Map();
+    let plankCount = 10;
+    let placeCalls = 0;
+    let digCalls = 0;
+    const player = { position: new Vec3(0.5, 64, 0.5) };
+    const bot = {
+        entity: player,
+        inventory: {
+            items: () => plankCount > 0 ? [{ name: 'oak_planks', count: plankCount }] : [],
+        },
+        blockAt(position) {
+            const name = blocks.get(positionKey(position)) || 'air';
+            return {
+                name,
+                type: name === 'air' ? 0 : 1,
+                boundingBox: name === 'air' ? 'empty' : 'block',
+                position: position.clone ? position.clone() : new Vec3(position.x, position.y, position.z),
+            };
+        },
+        async equip() {},
+        async dig(block) {
+            digCalls += 1;
+            if (block.name === 'oak_planks') plankCount += 1;
+            blocks.delete(positionKey(block.position));
+        },
+        async placeBlock(reference, face) {
+            placeCalls += 1;
+            blocks.set(positionKey(reference.position.plus(face)), 'oak_planks');
+            plankCount -= 1;
+            if (placeCalls === 4) throw new Error('injected placement fault after server placement');
+        },
+    };
+    blocks.set('0,63,0', 'stone');
+    for (const [dx, dz] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+        blocks.set(`${dx},63,${dz}`, 'dirt');
+    }
+    const originalBlocks = [...blocks.entries()].sort();
+    const handler = createBuildShelterCellHandler(
+        () => ({ bot, botReady: true }),
+        async () => {},
+    );
+
+    const result = await handler({
+        origin: { x: 0, y: 64, z: 0 },
+        material: 'oak_planks',
+    });
+
+    assert.strictEqual(result.success, false, JSON.stringify(result));
+    assert.strictEqual(result.error, 'sealed-cell placement failed: injected placement fault after server placement');
+    assert.strictEqual(result.placed_count, 0);
+    assert.deepStrictEqual(result.placed_positions, []);
+    assert.strictEqual(result.atomicity.passed, true);
+    assert.strictEqual(result.atomicity.mode, 'rollback_after_partial_mutation');
+    assert.strictEqual(result.atomicity.original_placed_count, 4);
+    assert.strictEqual(result.atomicity.inventory_preserved, true);
+    assert.strictEqual(result.rollback.removed_positions.length, 4);
+    assert.deepStrictEqual(result.rollback.residual_positions, []);
+    assert.strictEqual(result.rollback.inventory_recovered, true);
+    assert.deepStrictEqual(result.rollback.issues, []);
+    assert.strictEqual(plankCount, 10);
+    assert.strictEqual(placeCalls, 4);
+    assert.strictEqual(digCalls, 4);
+    assert.deepStrictEqual([...blocks.entries()].sort(), originalBlocks);
+
+    plankCount = 10;
+    placeCalls = 0;
+    digCalls = 0;
+    bot.dig = async () => {
+        digCalls += 1;
+        throw new Error('injected rollback fault');
+    };
+    const failedRollback = await handler({
+        origin: { x: 0, y: 64, z: 0 },
+        material: 'oak_planks',
+    });
+    assert.strictEqual(failedRollback.success, false);
+    assert.strictEqual(failedRollback.atomicity.passed, false);
+    assert.strictEqual(failedRollback.atomicity.residual_placed_count, 4);
+    assert.strictEqual(failedRollback.atomicity.inventory_preserved, false);
+    assert.strictEqual(failedRollback.rollback.residual_positions.length, 4);
+    assert.strictEqual(failedRollback.rollback.issues.length, 5);
+    assert.strictEqual(failedRollback.relocation_required, false);
+    console.log('PASS: M4 shelter action rolls back unexpected partial placement and restores material');
 }
 
 async function main() {
@@ -301,6 +454,8 @@ async function main() {
     await testM4ShelterSnapshotReturnsCompleteBoundedMachineState();
     await testM4PlaceHandlerReturnsObservedCoordinateDelta();
     await testM4BoundedSealedCellBuildReturnsNineObservedDeltas();
+    await testM4BoundedSealedCellPreflightRejectsProbe16GeometryWithoutMutation();
+    await testM4BoundedSealedCellRollsBackUnexpectedPartialPlacement();
     console.log('\nBot server M4 protocol tests PASSED');
 }
 

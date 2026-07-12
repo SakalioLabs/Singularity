@@ -1,11 +1,11 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T18:25:02.5214251Z",
+  "generated_at": "2026-07-12T21:24:35.0394138Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "blocked_by_partial_failure_atomicity",
-  "decision": "probe_16_partial_shelter_failures_consumed_material_before_late_post_death_verification",
+  "readiness": "approved_offline_atomicity_gate_passed",
+  "decision": "probe_17_exactly_one_authorized_for_live_atomicity_retest",
   "verifier_id": "m4-sealed-cell-shelter-verifier-v1",
   "contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
   "strategy": "sealed_cell_v1",
@@ -44,9 +44,9 @@
   "offline_validation": {
     "passed": true,
     "python_test_file": "tests/test_m4_shelter.py",
-    "python_case_count": 17,
+    "python_case_count": 18,
     "node_test_file": "tests/test_bot_server_m4_protocol.js",
-    "node_m4_case_count": 6,
+    "node_m4_case_count": 8,
     "cases": [
       {"id": "complete_sealed_cell", "expected": "pass", "status": "pass"},
       {"id": "wall_aperture", "expected": "reject", "status": "pass"},
@@ -58,17 +58,35 @@
       {"id": "spoofed_machine_claim", "expected": "reject", "status": "pass"},
       {"id": "missing_pinned_report_check", "expected": "reject", "status": "pass"},
       {"id": "agent_delta_and_transition_wiring", "expected": "pass", "status": "pass"},
-      {"id": "terminal_survival_machine_dawn_state", "expected": "pass_only_with_pinned_machine_state", "status": "pass"}
+      {"id": "terminal_survival_machine_dawn_state", "expected": "pass_only_with_pinned_machine_state", "status": "pass"},
+      {"id": "probe_16_geometry_preflight", "expected": "reject_without_mutation_or_material_loss", "status": "pass"},
+      {"id": "unexpected_partial_placement_rollback", "expected": "remove_all_action_blocks_and_restore_material", "status": "pass"},
+      {"id": "failed_rollback", "expected": "fail_closed_without_relocation", "status": "pass"},
+      {"id": "bounded_relocation_before_retry", "expected": "canonical_move_then_template_retry", "status": "pass"}
     ],
-    "full_python_regression": {"status": "pass", "test_count": 684},
-    "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 33},
+    "full_python_regression": {"status": "pass", "test_count": 685},
+    "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 35},
     "live_episode_run": false,
+    "partial_failure_atomicity": {
+      "scope": "final_placements_and_material_inventory",
+      "mutation_free_preflight": true,
+      "unexpected_partial_placement_rollback": true,
+      "inventory_recovery_required": true,
+      "rollback_failure_blocks_relocation": true,
+      "bounded_relocation_radius": 6,
+      "vertical_relocation_offset": 2,
+      "agent_machine_output_validation": true,
+      "planner_relocation_before_retry": true
+    },
     "bounded_action_cases": [
       {"id": "planner_material_ready_grounding", "status": "pass"},
       {"id": "action_verifier_origin_and_inventory", "status": "pass"},
       {"id": "nine_final_node_placements", "status": "pass"},
       {"id": "temporary_roof_scaffold_removed", "status": "pass"},
-      {"id": "agent_delta_to_machine_verifier", "status": "pass"}
+      {"id": "agent_delta_to_machine_verifier", "status": "pass"},
+      {"id": "probe_16_mutation_free_preflight", "status": "pass"},
+      {"id": "partial_failure_rollback", "status": "pass"},
+      {"id": "bounded_relocation_recovery", "status": "pass"}
     ]
   },
   "live_episode_count": 16,

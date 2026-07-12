@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T18:25:02.5214251Z",
+  "generated_at": "2026-07-12T21:24:35.0394138Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "blocked_by_probe_16_shelter_atomicity",
-  "decision": "probe_16_hostile_interrupts_executed_but_six_deaths_prevented_live_g4_acceptance",
+  "readiness": "offline_shelter_atomicity_gate_passed",
+  "decision": "probe_16_interrupt_evidence_remains_rejected_and_probe_17_atomic_recovery_is_authorized",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -110,9 +110,18 @@
       {"name": "safe_state_health_priority_preserved", "status": "pass"},
       {"name": "safe_state_grounding_audit_deduplicated", "status": "pass"}
     ],
-    "full_python_regression": {"status": "pass", "test_count": 684},
-    "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 33},
+    "full_python_regression": {"status": "pass", "test_count": 685},
+    "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 35},
     "controlled_live_episode": false
+  },
+  "shelter_relocation_recovery": {
+    "offline_gate_passed": true,
+    "runtime_interrupt_priority_unchanged": true,
+    "recovery_state_source": "atomic_build_failure",
+    "planner_action": "move_to",
+    "bounded_relocation_radius": 6,
+    "live_episode_run": false,
+    "next_authorized_episode": "probe_17_exactly_one"
   },
   "live_episode_count": 16,
   "live_episode_count_under_current_protocol": 2,

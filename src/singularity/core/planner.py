@@ -883,6 +883,37 @@ Plan the steps to achieve this goal."""
             report["reason"] = "machine_snapshot_not_verified"
             return grounded, report
 
+        relocation = state.get("m4_shelter_relocation", {})
+        relocation = relocation if isinstance(relocation, dict) else {}
+        target = relocation.get("target_position", {})
+        target = target if isinstance(target, dict) else {}
+        try:
+            target = {axis: float(target[axis]) for axis in ("x", "y", "z")}
+            relocation_valid = all(math.isfinite(value) for value in target.values())
+        except (KeyError, TypeError, ValueError):
+            relocation_valid = False
+        if relocation.get("status") == "scheduled" and relocation_valid:
+            action = {
+                "type": "move_to",
+                "parameters": target,
+            }
+            grounded["status"] = "planning"
+            grounded["actions"] = [action]
+            grounded["reasoning"] = (
+                "The previous bounded shelter origin failed atomically; "
+                "move to the machine-grounded relocation before retrying the template."
+            )
+            report.update({
+                "activated": True,
+                "reason": "partial_failure_relocation_required",
+                "origin": origin,
+                "recovery_id": str(relocation.get("recovery_id") or ""),
+                "relocation_origin": dict(relocation.get("target_origin", {}) or {}),
+                "relocation_target": target,
+                "canonical_action": action,
+            })
+            return grounded, report
+
         inventory = state.get("inventory", {})
         inventory = inventory if isinstance(inventory, dict) else {}
         materials = (

@@ -245,6 +245,7 @@ class Agent:
         self._m4_hostile_safe_state_fingerprint = ""
         self._m4_player_lifecycle_fingerprint = ""
         self._m4_player_lifecycle_identity = ()
+        self._m4_shelter_relocation = {}
         self._active_runtime_interrupt: dict = {}
         self._runtime_interrupt_sequence = 0
         self._last_runtime_interrupt_yield = ""
@@ -1943,6 +1944,7 @@ class Agent:
             self._m4_hostile_safe_state_fingerprint = ""
             self._m4_player_lifecycle_fingerprint = ""
             self._m4_player_lifecycle_identity = ()
+            self._m4_shelter_relocation = {}
             self._active_runtime_interrupt = {}
             self._runtime_interrupt_sequence = 0
             self._last_runtime_interrupt_yield = ""
@@ -6636,6 +6638,10 @@ class Agent:
         observation = self.observer.observe()
         self._record_m4_player_lifecycle(observation)
         observation = self._attach_m4_shelter_verification(observation)
+        relocation = getattr(self, "_m4_shelter_relocation", {})
+        if isinstance(relocation, dict) and relocation:
+            observation = dict(observation)
+            observation["m4_shelter_relocation"] = dict(relocation)
         benchmark_context = getattr(self, "_m2_benchmark_context", {})
         if isinstance(benchmark_context, dict) and benchmark_context:
             observation = dict(observation)
@@ -6732,6 +6738,134 @@ class Agent:
                 action_type,
                 "remove",
             )
+
+    @staticmethod
+    def _m4_relocation_action_matches(action: dict, relocation: dict) -> bool:
+        if not isinstance(action, dict) or action.get("type") != "move_to":
+            return False
+        params = action.get("parameters", {}) if isinstance(action.get("parameters"), dict) else {}
+        target = relocation.get("target_position", {}) if isinstance(relocation, dict) else {}
+        try:
+            return all(
+                abs(float(params[axis]) - float(target[axis])) <= 1e-6
+                for axis in ("x", "y", "z")
+            )
+        except (KeyError, TypeError, ValueError):
+            return False
+
+    def _update_m4_shelter_relocation(self, action: dict, result: dict):
+        if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
+            return
+        if not isinstance(action, dict) or not isinstance(result, dict):
+            return
+        action_type = str(action.get("type") or "")
+        current = getattr(self, "_m4_shelter_relocation", {})
+        current = current if isinstance(current, dict) else {}
+        log = getattr(getattr(self, "session_logger", None), "log", None)
+
+        if action_type == "build_shelter_cell":
+            self._m4_shelter_relocation = {}
+            if result.get("success") is True:
+                return
+            atomicity = result.get("atomicity", {}) if isinstance(result.get("atomicity"), dict) else {}
+            target_origin = result.get("relocation_origin")
+            target_position = result.get("relocation_target")
+            if (
+                result.get("relocation_required") is not True
+                or atomicity.get("passed") is not True
+                or not isinstance(target_origin, dict)
+                or not isinstance(target_position, dict)
+            ):
+                return
+            try:
+                source_origin = result.get("origin", {}) if isinstance(result.get("origin"), dict) else {}
+                source_values = {axis: source_origin[axis] for axis in ("x", "y", "z")}
+                target_values = {axis: target_origin[axis] for axis in ("x", "y", "z")}
+                radius_value = result.get("relocation_search_radius")
+                if any(
+                    isinstance(value, bool)
+                    for value in (*source_values.values(), *target_values.values(), radius_value)
+                ):
+                    return
+                source_values = {axis: float(value) for axis, value in source_values.items()}
+                target_values = {axis: float(value) for axis, value in target_values.items()}
+                radius_value = float(radius_value)
+                if (
+                    not all(math.isfinite(value) and value.is_integer() for value in source_values.values())
+                    or not all(math.isfinite(value) and value.is_integer() for value in target_values.values())
+                    or not math.isfinite(radius_value)
+                    or not radius_value.is_integer()
+                ):
+                    return
+                source_origin = {axis: int(value) for axis, value in source_values.items()}
+                target_origin = {axis: int(value) for axis, value in target_values.items()}
+                target_position = {axis: float(target_position[axis]) for axis in ("x", "y", "z")}
+                search_radius = int(radius_value)
+                target_matches_origin = (
+                    abs(target_position["x"] - (target_origin["x"] + 0.5)) <= 1e-6
+                    and abs(target_position["y"] - target_origin["y"]) <= 1e-6
+                    and abs(target_position["z"] - (target_origin["z"] + 0.5)) <= 1e-6
+                )
+                horizontal_offset = max(
+                    abs(target_origin["x"] - source_origin["x"]),
+                    abs(target_origin["z"] - source_origin["z"]),
+                )
+                vertical_offset = abs(target_origin["y"] - source_origin["y"])
+                if (
+                    not all(math.isfinite(value) for value in target_position.values())
+                    or not 1 <= search_radius <= 6
+                    or not 1 <= horizontal_offset <= search_radius
+                    or vertical_offset > 2
+                    or not target_matches_origin
+                ):
+                    return
+            except (KeyError, TypeError, ValueError):
+                return
+            action_params = action.get("parameters", {}) if isinstance(action.get("parameters"), dict) else {}
+            material = str(result.get("material") or action_params.get("material") or "")
+            recovery_id = hashlib.sha256(
+                json.dumps(
+                    {
+                        "source_origin": source_origin,
+                        "target_origin": target_origin,
+                        "target_position": target_position,
+                        "material": material,
+                        "error": str(result.get("error") or ""),
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    ensure_ascii=True,
+                ).encode("utf-8")
+            ).hexdigest()[:16]
+            payload = {
+                "type": "m4_shelter_relocation",
+                "schema_version": 1,
+                "status": "scheduled",
+                "recovery_id": recovery_id,
+                "source_origin": dict(source_origin),
+                "target_origin": target_origin,
+                "target_position": target_position,
+                "search_radius": search_radius,
+                "material": material,
+                "source_error": str(result.get("error") or ""),
+                "atomicity": dict(atomicity),
+            }
+            self._m4_shelter_relocation = payload
+            if callable(log):
+                log("m4_shelter_atomicity_recovery", dict(payload))
+            return
+
+        if current and self._m4_relocation_action_matches(action, current):
+            payload = dict(current)
+            payload.update({
+                "status": "completed" if result.get("success") is True else "retry_required",
+                "move_success": result.get("success") is True,
+                "move_error": str(result.get("error") or ""),
+            })
+            if callable(log):
+                log("m4_shelter_atomicity_recovery", payload)
+            if result.get("success") is True:
+                self._m4_shelter_relocation = {}
 
     @staticmethod
     def _store_m4_block_change(bucket: dict, before, after, action_type: str, operation: str):
@@ -6979,6 +7113,7 @@ class Agent:
             pre_action_task = self.task_system.get_next_task(fallback_observation or {})
             pre_action_task_id = pre_action_task.id if pre_action_task else None
 
+        self._update_m4_shelter_relocation(action, result)
         self._record_m4_episode_block_delta(action, result)
         observation = fallback_observation
         try:
