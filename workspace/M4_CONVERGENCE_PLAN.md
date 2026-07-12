@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | ready_probe_13_planner_transport_next_cycle_recovery |
+| G5 | First eligible survival-to-dawn episode | diagnose_probe_13_verified_shelter_hostile_flee |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -67,7 +67,11 @@ The new earliest unrecovered transition is `planner_transport_failure_goal_aband
 
 Later events are a secondary cascade, not the earliest blocker. GoalGenerator selected an immediate-threat flee goal, the Agent left its verified shelter, and shelter verification became false at world time 15362. Eleven rebuild attempts lacked a grounded neighbor, one later rebuild timed out and disconnected the Agent-side bridge, and all subsequent observations fell back to empty position/inventory and time zero. The exact-profile run then ended at the absolute deadline without a terminal machine verification.
 
-The current single hypothesis is `planner_transport_failure_goal_lifecycle`. Strict M4 now recognizes only structured single-attempt connection/timeout evidence with no real model response, logs `m4_planner_transport_recovery`, and preserves the current root for the next autonomous cycle. It does not retry inside the same Planner call, does not alter the protocol transport policy, and does not recover authentication, schema, parse, or deadline errors. Offline integration proves a Probe 12-shaped `APIConnectionError -> ConnectError -> SSLEOFError` can be followed by a valid same-goal plan without `empty_plan` or goal failure.
+The `planner_transport_failure_goal_lifecycle` patch remained bounded in Probe 13. There were no live transport exceptions and therefore zero `m4_planner_transport_recovery` events; the Probe 12 failure did not recur. Sixteen real model responses with `planning_actions_missing` were correctly handled by the pre-existing `m4_planner_output_recovery` branch, producing zero `empty_plan` events and demonstrating that transport and schema recovery remain separate.
+
+The new earliest unrecovered transition is `verified_shelter_hostile_flee`. At session observation index 920, world time 21672, the Agent had health/food 20, was inside the pinned 9/9 sealed-cell shelter, and observed one skeleton 5.1 blocks away. The G3 report proved `direct_reachability=blocked`, a fully sealed entrance, and no hostile inside. Runtime interrupt event 933 nevertheless generated an outward `move_to` target, and action event 943 moved the Agent 7.894 blocks before reporting a tolerance miss. Observation 940 then showed shelter verification false at world time 22152. The dawn observation at event 1057 had health 19 and natural time 23092 but no verified shelter, so no terminal machine event could be emitted.
+
+The current single hypothesis is `runtime_interrupt_safe_state_grounding`: a hostile outside a complete machine-verified sealed shelter must not trigger an emergency action that exits that safe state. The next round must alter only strict-M4 hostile interrupt grounding for this proven-safe condition; hostile handling without a verified shelter, hostiles inside the cell, health/hunger interrupts, priority order, and the G3 contract remain unchanged.
 
 ## G5 Preflight: Planner Transport Next-Cycle Recovery
 
@@ -82,7 +86,8 @@ The current single hypothesis is `planner_transport_failure_goal_lifecycle`. Str
 - Offline tests: `tests/test_m4_deadline.py`
 - Regression: 675 Python tests, all six fixed Node suites, Python compilation, and `git diff --check` passed
 - Protocol integrity: `m4-fixed-v1` SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
-- Live authorization: one fresh exact-profile Probe 13; stop after canonical evidence generation and diagnose its first unrecovered transition
+- Live result: Probe 13 had zero transport errors, zero transport recoveries, and zero empty plans; the prior failure did not recur, while a later verified-shelter hostile flee became the new earliest blocker
+- Next live authorization: locked until strict-M4 hostile interrupt safe-state grounding passes offline integration
 
 ## G5 Preflight: Exact Runtime Harness and Terminalization
 
@@ -196,6 +201,26 @@ The current single hypothesis is `planner_transport_failure_goal_lifecycle`. Str
 - Live evidence: none; G3 is an offline deterministic gate and does not count toward BM-011
 
 ## G2 Live Evidence
+
+### Probe 13: Natural Dawn Observed; Hostile Interrupt Exited Verified Shelter
+
+- Episode: `m4_episode_20260712_234515_7644ff79`
+- Session: `56274454-2cf`
+- Preflight: passed; manifest limits were exactly `1200/24/40`
+- G2: passed; pre-dusk machine progress gained `oak_log:2`
+- BM-011 eligible: false; eligible successes remain 0/3
+- Eligibility narrowed to three issues: missing `terminal_survival_verification`, missing matching terminal machine verification, and `completed=false`
+- Planner controls: 98/98 real calls, 82 schema-valid plans, 16 `planning_actions_missing` recoveries, zero transport errors, zero `m4_planner_transport_recovery`, zero empty plans, and no provider-control violations
+- Shelter: one bounded action eventually succeeded after eight recovered terrain/origin failures; G3 passed with 9/9 episode placements at world time 12592
+- Maintenance: the same `Remain in verified shelter until dawn` root stayed active for 22 cycles and 21 successful waits before the hostile interrupt
+- Earliest blocker: observation event 920 / interrupt event 933 / action event 943; a skeleton 5.1 blocks outside a fully sealed, direct-reachability-blocked shelter caused an outward `move_to`
+- Safety delta: the emergency action moved 7.894 blocks, changed shelter verification from true to false, and suspended the dawn root at world time 22152
+- Dawn: natural dawn was observed at event 1057, world time 23092, health 19, bot online, but shelter verification remained false and no terminal event was emitted
+- Episode end: 24 goals consumed the exact goal budget at world time 5392 with 187.156 seconds of Agent budget remaining; 18 goals completed, 6 were interrupted, and none were reported failed
+- Actions: 65 attempted, 49 successful; all 21 waits, 14 digs, and two crafts succeeded
+- Deadline: eligible; no post-deadline action, plan, or Planner call
+- Skill attribution: skills remained off; selected/executed/quarantined counts were all zero
+- Evidence: `logs/benchmarks/m4/m4_episode_20260712_234515_7644ff79/`
 
 ### Probe 12: Exact Runtime Profile Passed; Planner Transport Error Abandoned Dawn Root
 
