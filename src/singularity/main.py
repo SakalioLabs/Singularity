@@ -6626,6 +6626,7 @@ def main():
             benchmark_paths = sorted(set(
                 glob.glob("logs/benchmarks/m1_benchmark_*.json")
                 + glob.glob("logs/benchmarks/m2_benchmark_*.json")
+                + glob.glob("logs/benchmarks/m4/*/eligibility.json")
             ))
             if not benchmark_paths and os.path.isfile("logs/benchmarks/benchmark_results.json"):
                 benchmark_paths = ["logs/benchmarks/benchmark_results.json"]

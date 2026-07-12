@@ -647,6 +647,50 @@ def test_capability_evidence_cli_writes_report():
     print("PASS: Capability evidence CLI writes report")
 
 
+def test_m4_capability_evidence_rechecks_episode_bundles():
+    accepted = [
+        "logs/benchmarks/m4/m4_episode_20260713_012907_b900a160/eligibility.json",
+        "logs/benchmarks/m4/m4_episode_20260713_053155_0f5a150e/eligibility.json",
+        "logs/benchmarks/m4/m4_episode_20260713_055737_6d976e6d/eligibility.json",
+    ]
+    report = build_capability_evidence_report(
+        benchmark_result_paths=accepted,
+        status_path="workspace/STATUS.md",
+    )
+    m4 = next(phase for phase in report["phases"] if phase["id"] == "M4")
+    bm011 = next(task for task in m4["benchmarks"] if task["task_id"] == "BM-011")
+    assert bm011["status"] == "repeat_verified", bm011
+    assert bm011["successes"] == 3
+    assert len(bm011["evidence_refs"]) == 3
+    assert m4["status"] == "partial"
+
+    tmpdir = tempfile.mkdtemp(prefix="m4-capability-", dir=".")
+    try:
+        source_dir = os.path.dirname(accepted[-1])
+        episode_dir = os.path.join(tmpdir, "episode")
+        os.makedirs(episode_dir)
+        for name in ("preflight.json", "manifest.json", "session.json", "result.json", "eligibility.json"):
+            shutil.copy2(os.path.join(source_dir, name), os.path.join(episode_dir, name))
+        result_path = os.path.join(episode_dir, "result.json")
+        with open(result_path, "r", encoding="utf-8") as handle:
+            result = json.load(handle)
+        result["terminal_state"]["health"] = 0
+        with open(result_path, "w", encoding="utf-8") as handle:
+            json.dump(result, handle)
+        tampered = build_capability_evidence_report(
+            benchmark_result_paths=[os.path.relpath(os.path.join(episode_dir, "eligibility.json"), ".")],
+            status_path="workspace/STATUS.md",
+        )
+        tampered_m4 = next(phase for phase in tampered["phases"] if phase["id"] == "M4")
+        tampered_bm011 = next(task for task in tampered_m4["benchmarks"] if task["task_id"] == "BM-011")
+        assert tampered_bm011["successes"] == 0
+        assert tampered_bm011["ineligible_successes"] == 1
+        assert "result_content_hash" in tampered_bm011["ineligibility_reasons"]
+    finally:
+        shutil.rmtree(tmpdir)
+    print("PASS: M4 capability evidence independently rechecks complete episode bundles")
+
+
 def test_repository_capability_documents_match_canonical_report():
     with open("workspace/evals/capability_evidence_current.json", "r", encoding="utf-8") as handle:
         report = json.load(handle)
@@ -685,4 +729,5 @@ if __name__ == "__main__":
     test_live_phase_adapters_reject_weak_or_unlinked_evidence()
     test_live_report_cli_emits_typed_artifacts()
     test_capability_evidence_cli_writes_report()
+    test_m4_capability_evidence_rechecks_episode_bundles()
     test_repository_capability_documents_match_canonical_report()

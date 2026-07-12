@@ -1,30 +1,40 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-12T21:55:33.9177784Z",
+  "generated_at": "2026-07-12T22:17:31.4559758Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "current_task_id": "BM-011",
-  "eligible_success_count": 2,
+  "current_task_id": "BM-012",
+  "eligible_success_count": 0,
   "required_success_count": 3,
-  "live_episode_count_under_current_protocol": 3,
+  "completed_tasks": [
+    {
+      "task_id": "BM-011",
+      "status": "repeat_verified",
+      "eligible_success_count": 3,
+      "required_success_count": 3
+    }
+  ],
+  "live_episode_count_under_current_protocol": 4,
   "current_gate": {
-    "hypothesis": "bounded_shelter_partial_failure_atomicity",
-    "status": "probe_18_exactly_one_authorized_eligible_count_2_of_3",
+    "hypothesis": "bm012_protocol_and_machine_evidence_preflight",
+    "status": "bm011_repeat_verified_probe18_accepted_bm012_offline_gate_pending",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
-    "full_python_regression": 685,
+    "full_python_regression": 686,
     "node_suite_file_count": 6,
     "node_internal_pass_count": 35,
     "m4_shelter_python_case_count": 18,
     "m4_node_case_count": 8,
     "offline_atomicity_gate_passed": true,
-    "live_episode_count_under_current_protocol": 3,
-    "latest_accepted_episode": "m4_episode_20260713_053155_0f5a150e",
-    "latest_episode": "m4_episode_20260713_053155_0f5a150e",
+    "live_episode_count_under_current_protocol": 4,
+    "latest_accepted_episode": "m4_episode_20260713_055737_6d976e6d",
+    "latest_episode": "m4_episode_20260713_055737_6d976e6d",
     "live_atomicity_recovery_passed": true,
-    "next_authorized_episode": "probe_18_exactly_one"
+    "bm011_eligible_success_count": 3,
+    "bm011_status": "repeat_verified",
+    "next_authorized_episode": "none_bm012_offline_gate_pending"
   },
   "entries": [
     {
@@ -2833,6 +2843,237 @@
       },
       "patch_or_experiment_summary": "Ran exactly one fresh Probe 17 from committed code 5072ddf after the strict-M4 bounded shelter atomicity gate passed offline; no protocol or success threshold changed.",
       "retest_result": "Probe 17 exercised mutation-free shelter rejection, deterministic relocation, canonical move grounding, complete 9/9 retry, uninterrupted zero-death survival, natural dawn, deadline compliance, and all 66 eligibility checks. BM-011 advances to 2/3; no Probe 18 was run in this round."
+    },
+    {
+      "task_id": "BM-011",
+      "episode_id": "m4_episode_20260713_055737_6d976e6d",
+      "session_id": "c2594597-28b",
+      "level_name": "m4_episode_20260713_055737_6d976e6d_bm011",
+      "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "seed": "12345",
+      "start_monotonic": 35538.562,
+      "agent_end_monotonic": 36233.5,
+      "end_monotonic": 36233.562,
+      "duration_s": 695.0,
+      "agent_elapsed_s": 694.938,
+      "autonomous_goals": [
+        {
+          "goal_index": 1,
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "priority": 6,
+          "outcome": "suspended",
+          "cycles": 6,
+          "termination_reason": "runtime_interrupt:dusk_shelter_required"
+        },
+        {
+          "goal_index": 2,
+          "goal": "Build verified shelter before nightfall",
+          "priority": 4,
+          "outcome": "completed",
+          "cycles": 8,
+          "termination_reason": "goal_verified"
+        },
+        {
+          "goal_index": 3,
+          "goal": "Enter and maintain verified shelter through nightfall",
+          "priority": 5,
+          "outcome": "completed",
+          "cycles": 3,
+          "termination_reason": "goal_verified"
+        },
+        {
+          "goal_index": 4,
+          "goal": "Remain in verified shelter until dawn",
+          "priority": 5,
+          "outcome": "completed",
+          "cycles": 28,
+          "termination_reason": "goal_verified"
+        }
+      ],
+      "failure_layer": null,
+      "first_unrecovered_transition": {},
+      "atomicity_recovery": {
+        "required": false,
+        "bounded_build_action_event_index": 315,
+        "bounded_build_monotonic": 35650.656,
+        "bounded_build_world_time": 11438,
+        "origin": {
+          "x": 107,
+          "y": 136,
+          "z": -29
+        },
+        "starting_oak_planks": 12,
+        "ending_oak_planks": 3,
+        "placed_count": 9,
+        "preflight_passed": true,
+        "atomicity_passed": true,
+        "atomicity_outcome": "committed_complete_template",
+        "temporary_scaffold_removed": true
+      },
+      "planner_controls": {
+        "call_count": 45,
+        "real_call_count": 44,
+        "schema_valid_count": 44,
+        "maximum_duration_ms": 6391,
+        "total_tokens": 139004,
+        "reasoning_content_byte_count": 0,
+        "error_count": 1,
+        "provider_control_violation_count": 0,
+        "transport_recovery": {
+          "event_index": 675,
+          "monotonic": 36000.5,
+          "cycle": 33,
+          "goal": "Remain in verified shelter until dawn",
+          "planner_call_id": "llm-731730e6669b4683",
+          "error_chain": [
+            "APIConnectionError",
+            "ConnectError",
+            "ConnectError",
+            "SSLEOFError"
+          ],
+          "attempt_count": 1,
+          "same_call_retry_count": 0,
+          "goal_preserved": true,
+          "next_cycle_call_event_index": 681,
+          "next_cycle_planner_call_id": "llm-52111d9e3d3a455c",
+          "next_cycle_real_schema_valid": true,
+          "next_action_successful": true,
+          "remaining_s": 738.062
+        }
+      },
+      "action_summary": {
+        "attempted": 43,
+        "successful": 42,
+        "by_type": {
+          "wait": {
+            "attempted": 29,
+            "successful": 29
+          },
+          "dig": {
+            "attempted": 7,
+            "successful": 6
+          },
+          "move_to": {
+            "attempted": 4,
+            "successful": 4
+          },
+          "craft": {
+            "attempted": 2,
+            "successful": 2
+          },
+          "build_shelter_cell": {
+            "attempted": 1,
+            "successful": 1
+          }
+        }
+      },
+      "shelter_verification": {
+        "verifier_id": "m4-sealed-cell-shelter-verifier-v1",
+        "contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
+        "first_pass_event_index": 311,
+        "first_pass_world_time": 11438,
+        "origin": {
+          "x": 107,
+          "y": 136,
+          "z": -29
+        },
+        "matched_episode_placement_count": 9,
+        "preserved_through_terminal": true,
+        "terminal_world_time": 23098
+      },
+      "player_lifecycle_continuity": {
+        "verifier_id": "m4-player-lifecycle-verifier-v1",
+        "source": "mineflayer_events",
+        "active_observation_count": 89,
+        "canonical_lifecycle_event_count": 1,
+        "maximum_valid_death_count": 0,
+        "maximum_valid_respawn_count": 0,
+        "uninterrupted_survival": true,
+        "terminal_event_index": 897,
+        "terminal_health": 20,
+        "terminal_food": 20,
+        "paper_death_message_count": 0,
+        "paper_stdout_sha256": "9c0718d9db7143745f08454d2f5d128f580b34fabef9a271b50155c4996b0029"
+      },
+      "runtime_interrupts": {
+        "trigger_count": 2,
+        "recovery_count": 2,
+        "reason_counts": {
+          "dusk_shelter_required": 1,
+          "task_deadline_elapsed": 1
+        },
+        "concurrent_root_violation_count": 0,
+        "hostile_safe_state_grounding": {
+          "event_index": 832,
+          "monotonic": 36159.187,
+          "hostile_type": "zombie",
+          "hostile_distance": 4.8,
+          "direct_reachability": "blocked",
+          "hostiles_inside": [],
+          "outward_move_suppressed": true,
+          "selected_interrupt_reason": "night_safety_maintenance"
+        }
+      },
+      "deadline_status": {
+        "episode_deadline_monotonic": 36738.562,
+        "agent_end_monotonic": 36233.5,
+        "evidence_end_monotonic": 36233.562,
+        "time_remaining_s": 505.0,
+        "post_deadline_action_count": 0,
+        "post_deadline_plan_count": 0,
+        "post_deadline_planner_call_count": 0,
+        "deadline_eligible": true,
+        "result_duration_eligible": true,
+        "no_post_deadline_execution": true
+      },
+      "preparation_progress": {
+        "g2_passed": true,
+        "pre_dusk_inventory_delta": {
+          "oak_log": 2
+        },
+        "initial_world_time": 9198,
+        "pre_dusk_world_time": 9898,
+        "terminal_world_time": 23098
+      },
+      "skill_attribution": {
+        "skill_execution_mode": "off",
+        "selected_count": 0,
+        "executed_count": 0,
+        "quarantined_count": 0,
+        "contribution": "none"
+      },
+      "eligibility": {
+        "preflight_passed": true,
+        "g2_passed": true,
+        "runner_reported_bm011_eligible": true,
+        "independently_accepted_bm011_eligible": true,
+        "eligibility_check_count": 66,
+        "eligible_success_count": 3,
+        "runner_issues": [],
+        "independent_issues": []
+      },
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260713_055737_6d976e6d/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260713_055737_6d976e6d/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260713_055737_6d976e6d/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260713_055737_6d976e6d/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260713_055737_6d976e6d/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260713_055737_6d976e6d/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260713_055737_6d976e6d/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260713_055737_6d976e6d/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "6d16c93655a8935bbc402b95ac2791bb46db32f67dd723f0dd218d7cb9dfc523",
+        "manifest": "8f437f9a6324dab89fa319243fb05c6141158139f346c8757ad40a2f2d2b2547",
+        "session": "2aec956d1e537ccf76c3f48e4093c9be9c9020e49469c054565b1a9c2361e7ea",
+        "result": "116d6fe4da00977539f5be56f575ee6e21ac76ad54c36c1a2df6a33ee013a0e6",
+        "eligibility": "073d61f307defd4be80af02f0c751b46c7f201d2257c230b8a3aabafdc7ebc70",
+        "preparation": "cc2fdb7bc80f2e01a194036a3cef54fba0d17ba31f5b934663a0c718fb89dd16",
+        "protocol_status": "7a26379124a323549a408c38530664017049efc1b1399255b831b94eb0cae6fa",
+        "reset": "349a860c08976b93c55b36ab749ed7b254513f1b31a0f0e122c5aa2ae01e69bf"
+      },
+      "patch_or_experiment_summary": "Ran exactly one fresh Probe 18 from committed frozen code b54ed244 after its authorization gate; no subsystem, protocol, or success threshold changed. Capability-evidence adapter and reporting updates were added only after the live episode and could not affect it.",
+      "retest_result": "Probe 18 passed direct shelter construction, next-cycle Planner transport recovery, verified-shelter hostile safe-state grounding, uninterrupted zero-death survival, natural dawn, deadline compliance, and all 66 eligibility checks. BM-011 reaches 3/3 and is repeat_verified; no BM-012 live episode ran in this round."
     }
   ]
 }

@@ -22,6 +22,10 @@ from singularity.evaluation.m2_protocol import (
     PROTOCOL_SHA256 as M2_PROTOCOL_SHA256,
     TASKS_BY_ID as M2_TASKS_BY_ID,
 )
+from singularity.evaluation.m4_protocol import (
+    PROTOCOL_SHA256 as M4_PROTOCOL_SHA256,
+    evaluate_bm011_episode,
+)
 
 
 SUCCESS_STATUSES = {"success", "succeeded", "pass", "passed", "complete", "completed"}
@@ -63,6 +67,7 @@ EXECUTION_FIELDS = {
 EXECUTION_BOUNDARY_FIELDS = EXECUTION_FIELDS - {"success", "completed"}
 M1_TASK_IDS = set(M1_TASKS_BY_ID)
 M2_TASK_IDS = set(M2_TASKS_BY_ID)
+M4_TASK_IDS = {"BM-011", "BM-012", "BM-013", "BM-014"}
 
 PHASE_SPECS = [
     {
@@ -295,6 +300,7 @@ def build_capability_evidence_report(
             "live_phase_acceptance": {
                 "M2": "three distinct eligible live sessions per task plus three complete skill-off/skill-on pairs for BM-006 and BM-007",
                 "M3": "three distinct successful continual-learning sessions plus an approved held-out transfer gate",
+                "M4": "three distinct independently eligible fresh m4-fixed-v1 episode bundles per BM-011 through BM-014",
                 "M5": f"three distinct autonomous exploration sessions covering at least {EXPLORATION_MIN_DISTANCE:g} blocks plus an approved world-model gate",
                 "M6": "three distinct screenshot-backed sessions with matching non-builtin visual-action ablations",
             },
@@ -1460,6 +1466,10 @@ def _load_benchmark_records(
     seen_m2_sessions = set()
     seen_m2_hashes = set()
     seen_m2_episodes = set()
+    seen_m4_sessions = set()
+    seen_m4_hashes = set()
+    seen_m4_episodes = set()
+    seen_m4_levels = set()
     for raw_path in paths:
         raw_text = str(raw_path or "").strip()
         if not raw_text:
@@ -1477,6 +1487,29 @@ def _load_benchmark_records(
             errors.append(f"benchmark_results_unreadable:{path_text}:{exc}")
             continue
         loaded_paths.append(path_text)
+        if isinstance(payload, dict) and payload.get("type") == "m4_episode_eligibility":
+            normalized = _normalize_m4_episode_bundle(payload, path, path_text, source_root)
+            if normalized:
+                if normalized["outcome"] == "success":
+                    duplicate_reasons = []
+                    for value, seen_values, reason in (
+                        (normalized.get("session_id", ""), seen_m4_sessions, "duplicate_m4_session"),
+                        (normalized.get("session_sha256", ""), seen_m4_hashes, "duplicate_m4_session_log"),
+                        (normalized.get("episode_id", ""), seen_m4_episodes, "duplicate_m4_episode"),
+                        (normalized.get("level_name", ""), seen_m4_levels, "duplicate_m4_level"),
+                    ):
+                        if not value or value in seen_values:
+                            duplicate_reasons.append(reason)
+                    if duplicate_reasons:
+                        normalized["outcome"] = "ineligible"
+                        normalized["eligibility_reasons"].extend(duplicate_reasons)
+                    else:
+                        seen_m4_sessions.add(normalized["session_id"])
+                        seen_m4_hashes.add(normalized["session_sha256"])
+                        seen_m4_episodes.add(normalized["episode_id"])
+                        seen_m4_levels.add(normalized["level_name"])
+                records.append(normalized)
+            continue
         for record_path, record in _walk_records(payload):
             normalized = _normalize_execution_record(record, str(path), record_path)
             if not normalized:
@@ -1527,6 +1560,92 @@ def _load_benchmark_records(
     return records, errors, loaded_paths
 
 
+def _normalize_m4_episode_bundle(
+    eligibility: dict,
+    eligibility_path: Path,
+    source_path: str,
+    source_root: Path,
+) -> dict:
+    task_id = str(eligibility.get("task_id") or "").upper().strip()
+    if task_id != "BM-011":
+        return {}
+    episode_dir = eligibility_path.parent
+    payloads = {}
+    issues = []
+    for name in ("preflight", "manifest", "session", "result"):
+        path = episode_dir / f"{name}.json"
+        try:
+            payloads[name] = json.loads(path.read_text(encoding="utf-8-sig"))
+        except Exception:
+            payloads[name] = [] if name == "session" else {}
+            issues.append(f"m4_{name}_unavailable")
+    manifest = payloads["manifest"] if isinstance(payloads["manifest"], dict) else {}
+    events = payloads["session"] if isinstance(payloads["session"], list) else []
+    result = payloads["result"] if isinstance(payloads["result"], dict) else {}
+    preflight = payloads["preflight"] if isinstance(payloads["preflight"], dict) else {}
+    independent = evaluate_bm011_episode(events, result, preflight, manifest)
+    issues.extend(str(item) for item in independent.get("issues", []))
+    if eligibility.get("profile") != "m4-fixed-v1":
+        issues.append("m4_eligibility_profile_mismatch")
+    if eligibility.get("protocol_sha256") != M4_PROTOCOL_SHA256:
+        issues.append("m4_eligibility_protocol_mismatch")
+    if manifest.get("protocol_sha256") != M4_PROTOCOL_SHA256:
+        issues.append("m4_manifest_protocol_mismatch")
+    stored_eligible = eligibility.get("eligible") is True and eligibility.get("success") is True
+    independently_eligible = independent.get("eligible") is True and independent.get("success") is True
+    if stored_eligible != independently_eligible:
+        issues.append("m4_stored_independent_eligibility_mismatch")
+    candidate_success = stored_eligible or result.get("completed") is True
+    if stored_eligible and independently_eligible and not issues:
+        outcome = "success"
+    elif candidate_success:
+        outcome = "ineligible"
+    else:
+        outcome = "failure"
+    session_id = str(manifest.get("session_id") or "").strip()
+    episode_id = str(manifest.get("episode_id") or "").strip()
+    level_name = str(manifest.get("level_name") or "").strip()
+    session_path = episode_dir / "session.json"
+    try:
+        session_display = session_path.resolve().relative_to(source_root.resolve()).as_posix()
+    except ValueError:
+        session_display = ""
+        issues.append("m4_session_path_outside_repository")
+        if outcome == "success":
+            outcome = "ineligible"
+    session_sha256 = hashlib.sha256(session_path.read_bytes()).hexdigest() if session_path.is_file() else ""
+    if not session_id:
+        issues.append("m4_session_id_missing")
+    if not episode_id:
+        issues.append("m4_episode_id_missing")
+    if not level_name.startswith(f"{episode_id}_"):
+        issues.append("m4_fresh_level_identity_missing")
+    if not session_sha256:
+        issues.append("m4_session_hash_missing")
+    if issues and outcome == "success":
+        outcome = "ineligible"
+    return {
+        "task_id": task_id,
+        "outcome": outcome,
+        "status": "pass" if candidate_success else "fail",
+        "run_ref": f"{session_id}:{session_display}",
+        "source_path": source_path,
+        "record_path": "$",
+        "eligibility_reasons": list(dict.fromkeys(issues)),
+        "session_id": session_id,
+        "session_sha256": session_sha256,
+        "session_log": session_display,
+        "protocol_hash": str(manifest.get("protocol_sha256") or "").lower().strip(),
+        "evidence_kind": "live_minecraft_m4",
+        "episode_id": episode_id,
+        "level_name": level_name,
+        "server_jar_sha256": str(manifest.get("runtime_versions", {}).get("server_jar_sha256") or "").lower(),
+        "resolved_session_log": str(session_path.resolve()) if session_path.is_file() else "",
+        "experiment_metadata": {},
+        "m2_metrics": {},
+    }
+
+
 def _walk_records(value, path: str = "$"):
     if isinstance(value, dict):
         yield path, value
@@ -1552,6 +1671,8 @@ def _normalize_execution_record(record: dict, source_path: str, record_path: str
         eligibility_reasons = _m1_live_eligibility_issues(record, source_path)
     if candidate_success and task_id in M2_TASK_IDS:
         eligibility_reasons = _m2_live_eligibility_issues(record, source_path)
+    if candidate_success and task_id in M4_TASK_IDS:
+        eligibility_reasons = ["m4_episode_bundle_required"]
     if candidate_success and not eligibility_reasons:
         outcome = "success"
     elif candidate_success:

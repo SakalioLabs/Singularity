@@ -1,4 +1,4 @@
-# STATUS.md | Last updated: 2026-07-11
+# STATUS.md | Last updated: 2026-07-13
 
 ## M1 Convergence Result
 
@@ -45,6 +45,13 @@
 - BM-008 passed three independent coal-mining runs. BM-009 passed three two-action stick-to-torch chains after the prompt stopped inventing a crafting table. BM-010 passed three independent 55-block shelter builds with exact wall, entrance, roof, episode-delta, player-inside, and dependent task-state proof.
 - M2 is `repeat_verified`: BM-006..010 all meet the three-run gate, BM-006 and BM-007 each have 3/3 eligible pairs, the pairing gate is approved, and sessions `591bf0aa-d7e` and `3b49bf83-84e` provide eligible recovery evidence.
 
+## M4 Convergence Result
+
+- M4 is `partial`; the phase is not complete until BM-011 through BM-014 each reach 3/3.
+- BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
+- Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
+- BM-012 is the next target at 0/3 and requires an offline fixed-protocol and machine-evidence gate before any live run. BM-013 and BM-014 remain locked.
+
 ## Evidence Policy
 
 Capability status is derived from `workspace/evals/capability_evidence_current.json`.
@@ -63,7 +70,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Pending (`not_run`)** | BM-011..014: no tracked live execution evidence |
+| M4 | Autonomous Survival | **In Progress (`partial`)** | BM-011 repeat_verified 3/3; BM-012..014 not_run |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |

@@ -2,13 +2,13 @@
 
 ## Convergence Result
 
-M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. See `workspace/evals/capability_evidence_current.json` for the canonical state.
+M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `partial`: BM-011 is repeat_verified at 3/3, while BM-012..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
 
 ## Current Assessment
 
 Singularity has broad source coverage and a large passing offline test surface, but the full Minecraft Agent system is not complete. The authoritative capability report is `workspace/evals/capability_evidence_current.json`.
 
-Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. Across 76 per-run live benchmark results, 38 successes are currently eligible and globally distinct by session, episode, level, session hash, and result hash. M1 remains complete at 15/15; M2 contributes 23 eligible current-protocol successes while the overall system remains incomplete.
+Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. M1 remains complete at 15/15, M2 contributes 23 eligible current-protocol successes, and M4 now contributes three independently eligible BM-011 episodes with unique session, episode, level, and session hashes. The overall system remains incomplete.
 
 Current report outcome:
 
@@ -19,7 +19,7 @@ Current report outcome:
 - Supported completion claims: 4 (M0, M1, M2, M3)
 - Contradicted completion claims: 0 after status correction
 - Unsupported completion claims: 0 after status correction
-- Partial live phases: 0
+- Partial live phases: 1 (M4)
 - Failing live phases: 2 (M5, M6)
 - Repeat-verified runtime phases: 3 (M1, M2, M3)
 
@@ -31,7 +31,7 @@ Current report outcome:
 | M1 | `repeat_verified` |
 | M2 | `repeat_verified` |
 | M3 | `repeat_verified` |
-| M4 | `not_run` |
+| M4 | `partial` |
 | M5 | `failing` |
 | M6 | `failing` |
 | M7 | `not_run` |

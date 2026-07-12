@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T21:55:33.9177784Z",
+  "generated_at": "2026-07-12T22:17:31.4559758Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "probe_18_exactly_one_authorized",
-  "decision": "freeze_interrupt_contract_and_run_third_fresh_bm011_replication",
+  "readiness": "bm011_repeat_verified_bm012_offline_gate_pending",
+  "decision": "begin_bm012_interrupt_and_machine_evidence_preflight_offline",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -82,6 +82,19 @@
       "prior_failure_recurred": false,
       "branch_exercised": false,
       "status": "not_exercised_live"
+    },
+    "probe_18_live_result": {
+      "session_event_index": 832,
+      "world_time": 21558,
+      "hostile_id": 1412,
+      "hostile_type": "zombie",
+      "hostile_distance": 4.8,
+      "verified_player_cell": {"x": 107, "y": 136, "z": -29},
+      "selected_reason": "night_safety_maintenance",
+      "emergency_action": null,
+      "outward_move_suppressed": true,
+      "shelter_preserved_through_dawn": true,
+      "status": "pass"
     }
   },
   "offline_validation": {
@@ -110,9 +123,9 @@
       {"name": "safe_state_health_priority_preserved", "status": "pass"},
       {"name": "safe_state_grounding_audit_deduplicated", "status": "pass"}
     ],
-    "full_python_regression": {"status": "pass", "test_count": 685},
+    "full_python_regression": {"status": "pass", "test_count": 686},
     "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 35},
-    "controlled_live_episode": false
+    "controlled_live_episode": true
   },
   "shelter_relocation_recovery": {
     "offline_gate_passed": true,
@@ -124,11 +137,35 @@
     "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
     "scheduled_recovery_count": 1,
     "completed_recovery_count": 1,
-    "next_authorized_episode": "probe_18_exactly_one"
+    "next_authorized_episode": "none_bm012_offline_gate_pending"
   },
-  "live_episode_count": 17,
-  "live_episode_count_under_current_protocol": 3,
+  "live_episode_count": 18,
+  "live_episode_count_under_current_protocol": 4,
   "latest_live_observation": {
+    "episode_id": "m4_episode_20260713_055737_6d976e6d",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "verified_g4_case": "dusk_recovery_and_verified_shelter_hostile_safe_state",
+    "runtime_interrupt_count": 2,
+    "runtime_interrupt_unique_trigger_count": 2,
+    "recovery_event_count": 2,
+    "interrupt_reason_counts": {
+      "dusk_shelter_required": 1,
+      "task_deadline_elapsed": 1
+    },
+    "hostile_emergency_action_count": 0,
+    "server_observed_death_count": 0,
+    "verified_shelter_first_world_time": 11438,
+    "verified_shelter_preserved_through_dawn": true,
+    "verified_shelter_lost_after_dawn": false,
+    "safe_state_grounding_event_count": 1,
+    "safe_state_hostile_type": "zombie",
+    "safe_state_hostile_distance": 4.8,
+    "safe_state_outward_move_suppressed": true,
+    "runner_reported_eligible": true,
+    "independently_accepted_eligible": true,
+    "live_g4_accepted": true
+  },
+  "probe_17_live_observation": {
     "episode_id": "m4_episode_20260713_053155_0f5a150e",
     "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
     "verified_g4_case": "dusk_shelter_interrupt_and_recovery",
