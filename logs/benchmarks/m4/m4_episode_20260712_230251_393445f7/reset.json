@@ -1,0 +1,114 @@
+{
+  "success": true,
+  "error": "",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+  "reset_protocol_sha256": "f2fdc39510e86de9e81f79711cf1fae7f2d3f4c95a4a097b5c33da5f41dd74e3",
+  "validation_protocol_sha256": "e4a2eb388625ef74ff10dbf199502c6a986d844c4fee783326721c982a8f7500",
+  "episode_id": "m4_episode_20260712_230251_393445f7",
+  "level_name": "m4_episode_20260712_230251_393445f7_bm011",
+  "seed": "12345",
+  "server_brand": "Paper",
+  "observed_minecraft_version": "1.20.4",
+  "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+  "task_id": "BM-011",
+  "expected": {
+    "initial_inventory": {},
+    "game_mode": "survival",
+    "difficulty": "normal",
+    "time_of_day": 9000,
+    "weather": "clear",
+    "gamerules": {
+      "doDaylightCycle": true,
+      "doMobSpawning": true,
+      "doWeatherCycle": false,
+      "keepInventory": false,
+      "naturalRegeneration": true
+    }
+  },
+  "before_state": {
+    "position": {
+      "x": 102.5,
+      "y": 136,
+      "z": -38.5
+    },
+    "spawn_position": {
+      "x": 96,
+      "y": 144,
+      "z": -32
+    },
+    "health": 20,
+    "food": 20,
+    "food_saturation": 5,
+    "inventory": {},
+    "game_mode": "survival",
+    "difficulty": "normal",
+    "dimension": "overworld",
+    "time_of_day": 37,
+    "weather": "clear",
+    "fixture": {
+      "position": {
+        "x": 97,
+        "y": 144,
+        "z": -32
+      },
+      "block": "air"
+    },
+    "fixture_blocks": []
+  },
+  "after_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "spawn_position": {
+      "x": 96,
+      "y": 144,
+      "z": -32
+    },
+    "health": 20,
+    "food": 20,
+    "food_saturation": 5,
+    "inventory": {},
+    "game_mode": "survival",
+    "difficulty": "normal",
+    "dimension": "overworld",
+    "time_of_day": 9062,
+    "weather": "clear",
+    "fixture": {
+      "position": {
+        "x": 97,
+        "y": 144,
+        "z": -32
+      },
+      "block": "air"
+    },
+    "fixture_blocks": []
+  },
+  "structure_baseline": {},
+  "checks": {
+    "inventory_exact": true,
+    "position_at_spawn": true,
+    "position_distance": 0.707,
+    "game_mode": true,
+    "difficulty": true,
+    "dimension": true,
+    "daytime": true,
+    "time_initialized": true,
+    "weather": true,
+    "health": true,
+    "food": true,
+    "saturation": true,
+    "fixture": true
+  },
+  "failed_checks": [],
+  "command_count": 13,
+  "gamerules": {
+    "doDaylightCycle": true,
+    "doMobSpawning": true,
+    "doWeatherCycle": false,
+    "keepInventory": false,
+    "naturalRegeneration": true
+  }
+}

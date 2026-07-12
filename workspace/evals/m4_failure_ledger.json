@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-12T14:46:06.3950926Z",
+  "generated_at": "2026-07-12T15:27:30.1105662Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "current_task_id": "BM-011",
@@ -1681,6 +1681,159 @@
       },
       "patch_or_experiment_summary": "Retested only verified-shelter maintenance goal lifecycle in one fresh G5 episode; all budgets and the 240-second protocol horizon remained fixed.",
       "retest_result": "Maintenance lifecycle passed live and preserved one dawn root until the absolute deadline. The next earliest blocker is a protocol contradiction: natural time from pinned 9000 cannot reach dawn 23000 inside 240 seconds; no second live episode was run."
+    },
+    {
+      "task_id": "BM-011",
+      "episode_id": "m4_episode_20260712_230251_393445f7",
+      "session_id": "90c6c4f5-6bb",
+      "level_name": "m4_episode_20260712_230251_393445f7_bm011",
+      "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+      "seed": "12345",
+      "start_monotonic": 10642.515,
+      "end_monotonic": 11842.546,
+      "duration_s": 1200.031,
+      "agent_elapsed_s": 1200.016,
+      "autonomous_goals": [
+        {"goal_index": 1, "goal": "Gather 6 oak logs for tools and shelter", "priority": 6, "outcome": "suspended", "termination_reason": "runtime_interrupt:dusk_shelter_required"},
+        {"goal_index": 2, "goal": "Build verified shelter before nightfall", "priority": 4, "outcome": "completed", "termination_reason": "goal_verified"},
+        {"goal_index": 3, "goal": "Enter and maintain verified shelter through nightfall", "priority": 5, "outcome": "completed", "termination_reason": "goal_verified"},
+        {"goal_index": 4, "goal": "Remain in verified shelter until dawn", "priority": 5, "outcome": "failed", "termination_reason": "empty_plan"},
+        {"goal_index": 5, "goal": "Flee from the nearest hostile mob toward safety", "priority": 1, "outcome": "completed", "termination_reason": "goal_verified"},
+        {"goal_index": 6, "goal": "Reach or build emergency verified shelter immediately", "priority": 4, "outcome": "suspended", "termination_reason": "runtime_interrupt:hostile_nearby"},
+        {"goal_index": 7, "goal": "Reach or build emergency verified shelter immediately", "priority": 4, "outcome": "suspended", "termination_reason": "runtime_interrupt:hostile_nearby"},
+        {"goal_index": 8, "goal": "Reach or build emergency verified shelter immediately", "priority": 4, "outcome": "failed", "termination_reason": "max_cycles"},
+        {"goal_index": 9, "goal": "Gather 6 oak logs for tools and shelter", "priority": 6, "outcome": "failed", "termination_reason": "max_cycles"},
+        {"goal_index": 10, "goal": "Gather 6 oak logs for tools and shelter", "priority": 6, "outcome": "failed", "termination_reason": "max_cycles"},
+        {"goal_index": 11, "goal": "Gather 6 oak logs for tools and shelter", "priority": 6, "outcome": "failed", "termination_reason": "max_cycles"},
+        {"goal_index": 12, "goal": "Gather 6 oak logs for tools and shelter", "priority": 6, "outcome": "failed", "termination_reason": "episode_deadline"}
+      ],
+      "first_unrecovered_transition": {
+        "event_type": "empty_plan",
+        "transition": "planner_transport_failure_abandoned_active_maintenance_goal",
+        "session_event_index": 511,
+        "planner_call_event_index": 506,
+        "planner_call_id": "llm-24dd4cd454db4e1e",
+        "goal": "Remain in verified shelter until dawn",
+        "cycle": 23,
+        "error": "Connection error.",
+        "error_type": "APIConnectionError",
+        "error_chain": ["APIConnectionError", "ConnectError", "ConnectError", "SSLEOFError"],
+        "monotonic_s": 10935.953
+      },
+      "failure_layer": "planner_transport_failure_goal_lifecycle",
+      "before_state": {
+        "session_event_index": 502,
+        "observed_monotonic_s": 10930.828,
+        "health": 20,
+        "food": 20,
+        "inventory": {"oak_planks": 19, "oak_log": 1},
+        "shelter_verified": true,
+        "world_time": 14902,
+        "nearby_hostile_count": 1,
+        "episode_seconds_remaining": 911.687
+      },
+      "attempted_plan_action": {
+        "plan_kind": "continuation",
+        "transport_policy": "single-attempt",
+        "attempt_count": 1,
+        "retry_count": 0,
+        "request_timeout_s": 90.0,
+        "response_byte_count": 0,
+        "plan_status": "error",
+        "action_count": 0,
+        "empty_plan_termination": "goal_failed"
+      },
+      "after_state": {
+        "session_event_index": 519,
+        "observed_monotonic_s": 10936.0,
+        "health": 20,
+        "food": 20,
+        "inventory": {"oak_planks": 19, "oak_log": 1},
+        "shelter_verified": true,
+        "world_time": 15022,
+        "nearby_hostile_count": 1,
+        "next_goal": "Flee from the nearest hostile mob toward safety"
+      },
+      "exact_runtime_profile": {
+        "max_duration_s": 1200.0,
+        "max_goals": 24,
+        "max_cycles_per_goal": 40,
+        "max_total_cycles": 320,
+        "manifest_exact": true,
+        "prior_fix_regression_passed": true
+      },
+      "secondary_cascade": {
+        "flee_goal_completed": true,
+        "shelter_lost_event_index": 553,
+        "shelter_lost_world_time": 15362,
+        "bounded_build_action_count": 13,
+        "bounded_build_success_count": 1,
+        "ungrounded_neighbor_failure_count": 11,
+        "bridge_timeout_count": 1,
+        "first_empty_machine_state_event_index": 867,
+        "last_valid_machine_state": {"session_event_index": 851, "world_time": 17942, "health": 14.833333969116211, "food": 17, "shelter_verified": false},
+        "terminal_bot_connected": false
+      },
+      "shelter_and_maintenance": {
+        "bounded_shelter_success_count": 1,
+        "matched_episode_placement_count": 9,
+        "machine_verified_world_time": 11282,
+        "last_verified_world_time": 14902,
+        "successful_wait_count": 8,
+        "terminal_machine_verification_count": 0
+      },
+      "planner_provider_controls": {
+        "passed": true,
+        "call_count": 231,
+        "real_call_count": 229,
+        "schema_valid_real_call_count": 229,
+        "transport_error_count": 2,
+        "max_call_duration_ms": 13093,
+        "total_token_usage": 559709,
+        "reasoning_content_max_bytes": 0,
+        "violations": []
+      },
+      "skill_attribution": {"skill_execution_mode": "off", "selected_count": 0, "executed_count": 0, "quarantined_count": 0, "contribution": "none"},
+      "deadline_status": {
+        "episode_deadline_monotonic": 11842.515,
+        "agent_end_monotonic": 11842.531,
+        "agent_remaining_s": -0.016,
+        "evidence_end_monotonic": 11842.546,
+        "remaining_s": -0.031,
+        "deadline_eligible": false,
+        "post_deadline_action_count": 0,
+        "post_deadline_plan_count": 1,
+        "post_deadline_planner_call_count": 1,
+        "no_post_deadline_execution": false
+      },
+      "evidence_eligibility": {
+        "g2_passed": false,
+        "bm011_eligible": false,
+        "eligible_success_count": 0,
+        "issues": ["event:terminal_survival_verification", "natural_time_progression", "terminal_bot_connected", "terminal_machine_verification", "episode_within_deadline", "result_duration_eligible", "no_post_deadline_execution"]
+      },
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260712_230251_393445f7/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260712_230251_393445f7/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260712_230251_393445f7/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260712_230251_393445f7/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260712_230251_393445f7/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260712_230251_393445f7/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260712_230251_393445f7/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260712_230251_393445f7/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "a9a3f5106fcc14dd82ae1f5f67bc4a7afff8b622e581d01ac09a3911f3b17263",
+        "manifest": "df395dd01b908ea8974a749eb1192c1ca3959b62957b91ab6b396bc77feb1737",
+        "session": "7a0634e385100f62a6cd453fb940d91ba4d3513c8cde4d6d284a959973fba49a",
+        "result": "a5efb1075a49f8f9a032d7c221ebb2142de2ff0cb90014d04af6a0dcd84977cc",
+        "eligibility": "458e7cc78d2a535f7725419f5c74e84f47c3721619e21ca4d004bb4f920a8b48",
+        "preparation": "e5abf23a82301bb28cb93aec9fa08065035a56cf8688a3844504c52973766621",
+        "protocol_status": "79cd53515eee1c845737d0cca9f7b8385bb2947f65415cfd29b350a178503f46",
+        "reset": "1c15c99467d458ebfc8ecf453e00780184daec41af47ae77370e4497cc7e50a4"
+      },
+      "patch_or_experiment_summary": "Enforced the exact protocol-derived 1200/24/40 runtime profile and bound completed results to a machine-generated terminal survival event; ran exactly one fresh G5 episode.",
+      "retest_result": "The exact runtime-profile hypothesis passed live, and the bounded shelter plus maintenance chain reached verified night safety. A single Planner APIConnectionError then became an empty plan and failed the active dawn root instead of preserving it for next-cycle recovery; later hostile flee, rebuild, bridge, and deadline failures are secondary. No second live episode was run."
     }
   ]
 }

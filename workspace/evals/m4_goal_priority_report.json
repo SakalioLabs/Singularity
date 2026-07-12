@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T14:58:33.0113960Z",
+  "generated_at": "2026-07-12T15:27:30.1105662Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
-  "decision": "maintenance_passed_live_allow_exact_fixed_profile_g5_episode",
+  "decision": "probe_12_planner_transport_failure_preceded_hostile_priority_cascade",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -47,10 +47,10 @@
     "full_python_regression": 674,
     "node_suite_count": 6
   },
-  "live_episode_count": 11,
+  "live_episode_count": 12,
   "latest_live_episode": {
-    "episode_id": "m4_episode_20260712_224016_31e10f7d",
-    "autonomous_goal_count": 4,
+    "episode_id": "m4_episode_20260712_230251_393445f7",
+    "autonomous_goal_count": 12,
     "selection_source": "goal_generator",
     "selection_reason": "wood_reserve_below_target;curriculum_retained_fallback",
     "priority": 6,
@@ -58,8 +58,16 @@
     "priority_transitions": [
       {"goal_index": 1, "reason": "wood_reserve_below_target;curriculum_retained_fallback", "priority": 6, "priority_class": "tool_resource_progression"},
       {"goal_index": 2, "reason": "dusk_without_machine_verified_shelter", "priority": 4, "priority_class": "shelter_preparation"},
-      {"goal_index": 3, "reason": "dusk_without_machine_verified_shelter", "priority": 4, "priority_class": "shelter_preparation"},
-      {"goal_index": 4, "reason": "night_with_machine_verified_shelter", "priority": 5, "priority_class": "night_safety_maintenance"}
+      {"goal_index": 3, "reason": "dusk_with_machine_verified_shelter", "priority": 5, "priority_class": "night_safety_maintenance"},
+      {"goal_index": 4, "reason": "night_with_machine_verified_shelter", "priority": 5, "priority_class": "night_safety_maintenance"},
+      {"goal_index": 5, "reason": "hostile_within_8_blocks_no_weapon", "priority": 1, "priority_class": "immediate_threat"},
+      {"goal_index": 6, "reason": "night_without_machine_verified_shelter", "priority": 4, "priority_class": "shelter_preparation"},
+      {"goal_index": 7, "reason": "night_without_machine_verified_shelter", "priority": 4, "priority_class": "shelter_preparation"},
+      {"goal_index": 8, "reason": "night_without_machine_verified_shelter", "priority": 4, "priority_class": "shelter_preparation"},
+      {"goal_index": 9, "reason": "wood_reserve_below_target", "priority": 6, "priority_class": "tool_resource_progression"},
+      {"goal_index": 10, "reason": "wood_reserve_below_target", "priority": 6, "priority_class": "tool_resource_progression"},
+      {"goal_index": 11, "reason": "wood_reserve_below_target", "priority": 6, "priority_class": "tool_resource_progression"},
+      {"goal_index": 12, "reason": "wood_reserve_below_target", "priority": 6, "priority_class": "tool_resource_progression"}
     ]
   },
   "bm011_eligible_success_count": 0

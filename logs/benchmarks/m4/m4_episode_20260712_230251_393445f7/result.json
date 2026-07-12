@@ -1,0 +1,389 @@
+{
+  "type": "m4_episode_result",
+  "schema_version": 1,
+  "task_id": "BM-011",
+  "profile": "m4-fixed-v1",
+  "completed": false,
+  "termination_reason": "episode_deadline",
+  "elapsed_s": 1200.016,
+  "deadline_eligible": false,
+  "external_step_script": false,
+  "terminal_state": {
+    "health": 20,
+    "food": 20,
+    "time_of_day": 0,
+    "position": {},
+    "inventory": {},
+    "nearby_blocks": [],
+    "nearby_entities": [],
+    "bot_connected": false
+  },
+  "autonomous_result": {
+    "mode": "autonomous",
+    "goals_completed": 3,
+    "goals_failed": 6,
+    "goals_interrupted": 3,
+    "total_cycles": 231,
+    "termination_reason": "episode_deadline",
+    "elapsed_s": 1200.016,
+    "max_duration_s": 1200.0,
+    "episode_started_monotonic": 10642.515,
+    "episode_ended_monotonic": 11842.531,
+    "episode_deadline_monotonic": 11842.515,
+    "deadline_eligible": false,
+    "active_runtime_interrupt": {},
+    "landmarks_discovered": 0,
+    "curriculum": {
+      "recent_goals": [
+        {
+          "goal": "Build verified shelter before nightfall",
+          "success": true,
+          "cycles": 7
+        },
+        {
+          "goal": "Enter and maintain verified shelter through nightfall",
+          "success": true,
+          "cycles": 3
+        },
+        {
+          "goal": "Remain in verified shelter until dawn",
+          "success": false,
+          "cycles": 7
+        },
+        {
+          "goal": "Flee from the nearest hostile mob toward safety",
+          "success": true,
+          "cycles": 2
+        },
+        {
+          "goal": "Reach or build emergency verified shelter immediately",
+          "success": false,
+          "cycles": 40
+        },
+        {
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "success": false,
+          "cycles": 40
+        },
+        {
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "success": false,
+          "cycles": 40
+        },
+        {
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "success": false,
+          "cycles": 40
+        },
+        {
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "success": false,
+          "cycles": 33
+        }
+      ],
+      "goal_stats": {
+        "Build verified shelter before nightfall": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 7
+        },
+        "Enter and maintain verified shelter through nightfall": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 3
+        },
+        "Remain in verified shelter until dawn": {
+          "attempts": 1,
+          "successes": 0,
+          "failures": 1,
+          "last_cycles": 7
+        },
+        "Flee from the nearest hostile mob toward safety": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 2
+        },
+        "Reach or build emergency verified shelter immediately": {
+          "attempts": 1,
+          "successes": 0,
+          "failures": 1,
+          "last_cycles": 40
+        },
+        "Gather 6 oak logs for tools and shelter": {
+          "attempts": 4,
+          "successes": 0,
+          "failures": 4,
+          "last_cycles": 33
+        }
+      },
+      "last_decision": {
+        "selected": "Gather 6 oak logs for tools and shelter",
+        "fallback": "Gather 6 oak logs for tools and shelter",
+        "candidates": [
+          {
+            "title": "Gather 6 oak logs for tools and shelter",
+            "category": "fallback",
+            "score": 80.0,
+            "reasons": [
+              "rule_generator"
+            ],
+            "tags": [],
+            "target_items": [],
+            "required_items": {},
+            "skill_targets": []
+          },
+          {
+            "title": "Inspect nearby birch_log and learn a safe collection route",
+            "category": "exploration",
+            "score": 57.0,
+            "reasons": [
+              "visible_novel_resource",
+              "novelty",
+              "skill_gap"
+            ],
+            "tags": [
+              "birch_log",
+              "exploration",
+              "move_to",
+              "navigate_to_target"
+            ],
+            "target_items": [
+              "birch_log"
+            ],
+            "required_items": {},
+            "skill_targets": [
+              "navigate_to_target",
+              "move_to"
+            ]
+          }
+        ]
+      },
+      "exploration_feedback": {
+        "discovered_blocks": [],
+        "discovered_resources": [],
+        "discovered_entities": [],
+        "action_failure_categories": {},
+        "low_movement_log_count": 0,
+        "hostile_encounter_count": 0,
+        "path_distance": 0.0
+      },
+      "world_model_feedback": {
+        "suggested_goals": [],
+        "frontiers": [],
+        "resource_hotspots": [],
+        "danger_cells": [],
+        "frontier_count": 0,
+        "resource_hotspot_count": 0,
+        "danger_cell_count": 0
+      }
+    },
+    "summary": {
+      "session_id": "90c6c4f5-6bb",
+      "duration_s": 1203.56,
+      "total_events": 4392,
+      "action_count": 76,
+      "error_count": 0,
+      "intervention_metrics": {
+        "policy_hint_count": 0,
+        "policy_intervention_count": 0,
+        "policy_intervention_actions": 0,
+        "policy_intervention_successes": 0,
+        "policy_intervention_failures": 0,
+        "policy_intervention_success_rate": 0.0,
+        "policy_intervention_skills": [],
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": [],
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {},
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": [],
+        "action_verification_event_count": 76,
+        "action_verification_status_counts": {
+          "accept": 76
+        },
+        "action_verification_action_types": {
+          "move_to": 47,
+          "dig": 7,
+          "craft": 1,
+          "build_shelter_cell": 13,
+          "wait": 8
+        },
+        "action_verification_blocked_count": 0,
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "visual_action_metrics": {
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": []
+      },
+      "skill_memory_metrics": {
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {}
+      },
+      "skill_learning_metrics": {
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": []
+      },
+      "action_verification_metrics": {
+        "action_verification_event_count": 76,
+        "action_verification_status_counts": {
+          "accept": 76
+        },
+        "action_verification_action_types": {
+          "move_to": 47,
+          "dig": 7,
+          "craft": 1,
+          "build_shelter_cell": 13,
+          "wait": 8
+        },
+        "action_verification_blocked_count": 0
+      },
+      "action_candidate_selection_metrics": {
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "goal_verification_metrics": {
+        "count": 3,
+        "achieved": 3,
+        "failed": 0,
+        "unknown": 0,
+        "accepted": 3,
+        "rejected": 0,
+        "acceptance_reasons": {}
+      },
+      "plan_cache_metrics": {
+        "plan_cache_hit_count": 0,
+        "plan_cache_hybrid_hint_count": 0,
+        "plan_cache_workflow_intervention_count": 0,
+        "plan_cache_miss_count": 0,
+        "plan_cache_signature_count": 0,
+        "plan_cache_hit_rate": 0.0,
+        "plan_cache_hit_entries": {},
+        "plan_cache_hit_goals": [],
+        "plan_cache_execution_stage_counts": {
+          "hybrid": 0,
+          "deterministic": 0
+        }
+      },
+      "episode_abort_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "gate_readiness": "not_configured",
+        "viability_probe_count": 0,
+        "early_abort_trigger_count": 0,
+        "active_early_abort_count": 0,
+        "shadow_would_abort_count": 0,
+        "probe_round_counts": {},
+        "average_viability_risk_score": 0.0
+      },
+      "frontier_budget_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "policy": "information",
+        "allocation_event_count": 0,
+        "planner_context_event_count": 0,
+        "outcome_event_count": 0,
+        "completed_outcome_count": 0,
+        "recovery_credit_event_count": 0,
+        "recovered_rounds": 0,
+        "reallocated_rounds_consumed": 0,
+        "allocation_pool_rounds": 0,
+        "allocated_rounds": 0,
+        "budget_conservation_failure_count": 0,
+        "policy_counts": {}
+      },
+      "memory_policy_metrics": {
+        "memory_write_count": 1162,
+        "memory_read_count": 231,
+        "memory_manage_count": 0,
+        "memory_write_layers": {
+          "episodic": 855,
+          "context": 307
+        },
+        "memory_write_types": {
+          "autonomous_start": 1,
+          "auto_goal": 12,
+          "context": 307,
+          "opportunity_task": 230,
+          "action_verification": 76,
+          "task_state_update": 76,
+          "action": 74,
+          "runtime_interrupt": 158,
+          "auto_goal_interrupted": 3,
+          "failure_reflection_suppressed": 50,
+          "goal_verification": 3,
+          "auto_goal_complete": 3,
+          "runtime_interrupt_recovery": 158,
+          "empty_plan": 1,
+          "auto_goal_failed": 6,
+          "runtime_emergency_action": 2,
+          "runtime_interrupt_escalation": 2
+        },
+        "memory_read_types": {
+          "opportunity_context": 231
+        },
+        "memory_manage_operations": {},
+        "memory_policy_decisions": {
+          "write_blocked": 1162,
+          "read_allowed": 231
+        },
+        "memory_read_filter_event_count": 0,
+        "memory_read_filtered_entries": 0,
+        "memory_read_filter_reasons": {},
+        "memory_retrieval_trace_event_count": 0,
+        "weighted_memory_read_count": 0,
+        "weighted_memory_match_count": 0,
+        "weighted_transfer_match_count": 0,
+        "memory_attribution_policy_counts": {}
+      },
+      "log_path": "logs/benchmarks/m4/m4_episode_20260712_230251_393445f7\\session_90c6c4f5-6bb.jsonl"
+    }
+  },
+  "evidence_hashes": {
+    "preflight_sha256": "04a1f3d076b2acba879f06347cdb9ae151e132957a1f89e5f8505dd8ff84dd0f",
+    "manifest_sha256": "3d899ef0627248d48a9b6639fea04f699cf05ad4c9419cb7f1dd1666342f1573",
+    "session_sha256": "cef77f9641425d1a97e3dece741338f69223d6d7c42aa44abe4389ce5c07e381",
+    "result_sha256": "fc8dd85e586f7810212f61d4eabf864be790e5b6d923c8cf32e6adf6a782f99c"
+  }
+}

@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | ready_exact_fixed_profile_probe_12 |
+| G5 | First eligible survival-to-dawn episode | diagnose_probe_12_planner_transport_goal_abandonment |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -61,9 +61,11 @@ The new earliest unrecovered transition is autonomous goal-budget lifecycle. Aft
 
 Maintenance-goal lifecycle passed live in Probe 11. `Remain in verified shelter until dawn` stayed active, emitted two bounded waits, and ended only when the absolute episode deadline fired; it did not allocate another goal or terminate on `max_goals`.
 
-Probe 11 exposed runtime-harness limit drift, not a contradiction in the fixed protocol. `m4-fixed-v1` already pins BM-011 to 1200 seconds, 24 autonomous goals, 40 cycles per goal, and 320 total cycles. The PowerShell and Python harnesses still defaulted to 240 seconds, four goals, and eight cycles, and the live invocation explicitly repeated those shortened values. The 240-second episode therefore cannot establish whether the fixed protocol can reach natural dawn.
+Probe 11 exposed runtime-harness limit drift, not a contradiction in the fixed protocol. Probe 12 confirms that fix live: the manifest used exactly 1200 seconds, 24 autonomous goals, and 40 cycles per goal, while the protocol retained its 320-cycle total cap and unchanged hash. The Agent gathered resources, crafted planks, built a 9/9 machine-verified shelter by world time 11282, and maintained it into night.
 
-The current single hypothesis is `runtime_harness_limit_drift`. Both harnesses now derive the exact `1200/24/40` profile from the pinned protocol and reject any shorter or larger override; the independent eligibility gate likewise requires exact manifest equality. A successful dawn-maintenance goal now emits `terminal_survival_verification` only from finite machine time at the dawn boundary, positive finite health, a live bridge connection, and the unchanged pinned G3 shelter report. The episode result can become complete only from that terminal event path. One fresh exact-profile Probe 12 is authorized after the offline commit is pushed.
+The new earliest unrecovered transition is `planner_transport_failure_goal_abandonment`. At session event index 506, Planner call `llm-24dd4cd454db4e1e` made its one allowed transport attempt for `Remain in verified shelter until dawn` and received `APIConnectionError -> ConnectError -> SSLEOFError`. The immediately preceding machine observation at index 502 still showed health 20, food 20, world time 14902, an online verified shelter, and one nearby hostile, with more than 900 seconds of episode budget remaining. The error plan became `empty_plan` at index 511, and the autonomous loop failed and discarded the active maintenance root instead of preserving it for a next-cycle transport recovery.
+
+Later events are a secondary cascade, not the earliest blocker. GoalGenerator selected an immediate-threat flee goal, the Agent left its verified shelter, and shelter verification became false at world time 15362. Eleven rebuild attempts lacked a grounded neighbor, one later rebuild timed out and disconnected the Agent-side bridge, and all subsequent observations fell back to empty position/inventory and time zero. The exact-profile run then ended at the absolute deadline without a terminal machine verification. The next round must address only next-cycle handling of a strict-M4 Planner transport error; another live episode remains locked until that offline gate is ready.
 
 ## G5 Preflight: Exact Runtime Harness and Terminalization
 
@@ -77,7 +79,8 @@ The current single hypothesis is `runtime_harness_limit_drift`. Both harnesses n
 - Offline tests: `tests/test_m4_protocol.py` and `tests/test_m4_shelter.py`
 - Regression: 674 Python tests, all six fixed Node suites, PowerShell syntax parsing, Python compilation, and `git diff --check` passed
 - Protocol integrity: `m4-fixed-v1` SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
-- Live authorization: one fresh exact-profile G5 BM-011 episode; stop after evidence generation and diagnose its first unrecovered transition
+- Live result: Probe 12 used the exact profile; the harness fix passed, but BM-011 remained ineligible because an earlier Planner transport error abandoned the active dawn-maintenance goal
+- Next live authorization: locked until strict-M4 next-cycle Planner transport recovery is implemented and passes offline regression
 
 ## G5 Preflight: Maintenance Goal Lifecycle
 
@@ -176,6 +179,23 @@ The current single hypothesis is `runtime_harness_limit_drift`. Both harnesses n
 - Live evidence: none; G3 is an offline deterministic gate and does not count toward BM-011
 
 ## G2 Live Evidence
+
+### Probe 12: Exact Runtime Profile Passed; Planner Transport Error Abandoned Dawn Root
+
+- Episode: `m4_episode_20260712_230251_393445f7`
+- Session: `90c6c4f5-6bb`
+- Preflight: passed; manifest limits were exactly `1200/24/40`
+- G2: failed only because the completed evidence crossed the absolute deadline; pre-dusk machine progress gained `oak_log:2` by world time 9862
+- BM-011 eligible: false; eligible successes remain 0/3
+- Planner controls: 231 calls, 229 real schema-valid calls, zero provider-control violations, and two transport failures; maximum successful-call latency was 13.093 seconds
+- Shelter and maintenance: one bounded shelter action passed with 9/9 current-episode placements at world time 11282; the same verified shelter remained valid through world time 14902
+- First unrecovered transition: Planner call event 506 / empty-plan event 511, call ID `llm-24dd4cd454db4e1e`, cycle 23 of `Remain in verified shelter until dawn`; one `APIConnectionError` caused `termination_reason=empty_plan` with more than 900 seconds remaining
+- State at failure: health 20, food 20, `oak_planks:19`, `oak_log:1`, world time 14902, machine shelter verified, and one nearby hostile
+- Secondary cascade: the next immediate-threat goal fled the verified cell; shelter verification was lost at time 15362, 11 rebuilds lacked grounded support, one rebuild timed out, and the Agent-side bridge disconnected
+- Actions: 76 attempted, 25 successful; one craft, one successful bounded shelter build, eight successful waits, and 51 later failures
+- Deadline: Agent ended 0.016 seconds late and manifest evidence 0.031 seconds late; one returned Planner error plan was recorded after the deadline, with no post-deadline action
+- Terminal evidence: no `terminal_survival_verification`; terminal bot connection false, and zero-valued fallback observations failed natural-time progression and machine-terminal checks
+- Evidence: `logs/benchmarks/m4/m4_episode_20260712_230251_393445f7/`
 
 ### Probe 11: Maintenance Root Persisted; Shortened Harness Drift Exposed
 
