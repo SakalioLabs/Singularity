@@ -74,6 +74,138 @@ let screenshotPluginStatus = {
     error: '',
 };
 
+function createM4PlayerLifecycleTracker(options = {}) {
+    const nowMs = options.nowMs || (() => Date.now());
+    const monotonicMs = options.monotonicMs || (() => Number(process.hrtime.bigint() / 1000000n));
+    const trackerId = String(options.trackerId || crypto.randomUUID());
+    const attachedBots = new WeakSet();
+    let eventSequence = 0;
+    let spawnCountTotal = 0;
+    let deathCountTotal = 0;
+    let respawnCountTotal = 0;
+    let pendingRespawns = 0;
+    let lastDeath = null;
+    let lastRespawn = null;
+    let baseline = null;
+
+    function evidence(kind, activeBot) {
+        eventSequence += 1;
+        return {
+            kind,
+            event_sequence: eventSequence,
+            observed_at_ms: Number(nowMs()),
+            bridge_monotonic_ms: Number(monotonicMs()),
+            position: compactPosition(activeBot?.entity?.position),
+            health: Number(activeBot?.health ?? 0),
+        };
+    }
+
+    function attach(activeBot) {
+        if (!activeBot || typeof activeBot.on !== 'function' || attachedBots.has(activeBot)) {
+            return false;
+        }
+        attachedBots.add(activeBot);
+        activeBot.on('death', () => {
+            deathCountTotal += 1;
+            pendingRespawns += 1;
+            lastDeath = {
+                ...evidence('death', activeBot),
+                death_count_total: deathCountTotal,
+            };
+        });
+        activeBot.on('spawn', () => {
+            spawnCountTotal += 1;
+            if (pendingRespawns > 0) {
+                pendingRespawns -= 1;
+                respawnCountTotal += 1;
+                lastRespawn = {
+                    ...evidence('respawn', activeBot),
+                    respawn_count_total: respawnCountTotal,
+                    spawn_count_total: spawnCountTotal,
+                };
+            }
+        });
+        return true;
+    }
+
+    function startEpisode(runtime = {}) {
+        pendingRespawns = 0;
+        const identity = {
+            tracker_id: trackerId,
+            episode_id: String(runtime.episode_id || ''),
+            level_name: String(runtime.level_name || ''),
+            profile: String(runtime.profile || ''),
+            protocol_sha256: String(runtime.protocol_sha256 || ''),
+            baseline_death_count_total: deathCountTotal,
+            baseline_respawn_count_total: respawnCountTotal,
+            baseline_spawn_count_total: spawnCountTotal,
+            baseline_observed_at_ms: Number(nowMs()),
+            baseline_bridge_monotonic_ms: Number(monotonicMs()),
+            initial_spawn_observed: spawnCountTotal > 0,
+        };
+        baseline = {
+            ...identity,
+            baseline_id: crypto.createHash('sha256')
+                .update(JSON.stringify(identity))
+                .digest('hex'),
+        };
+        return snapshot();
+    }
+
+    function snapshot() {
+        if (!baseline) {
+            return {
+                type: 'm4_player_lifecycle',
+                schema_version: 1,
+                verifier_id: 'm4-player-lifecycle-verifier-v1',
+                source: 'mineflayer_events',
+                tracker_id: trackerId,
+                baseline_established: false,
+            };
+        }
+        const deathCount = deathCountTotal - baseline.baseline_death_count_total;
+        const respawnCount = respawnCountTotal - baseline.baseline_respawn_count_total;
+        const spawnCount = spawnCountTotal - baseline.baseline_spawn_count_total;
+        return {
+            type: 'm4_player_lifecycle',
+            schema_version: 1,
+            verifier_id: 'm4-player-lifecycle-verifier-v1',
+            source: 'mineflayer_events',
+            profile: baseline.profile,
+            protocol_sha256: baseline.protocol_sha256,
+            tracker_id: baseline.tracker_id,
+            episode_id: baseline.episode_id,
+            level_name: baseline.level_name,
+            baseline_id: baseline.baseline_id,
+            baseline_established: true,
+            initial_spawn_observed: baseline.initial_spawn_observed,
+            baseline_death_count_total: baseline.baseline_death_count_total,
+            baseline_respawn_count_total: baseline.baseline_respawn_count_total,
+            baseline_spawn_count_total: baseline.baseline_spawn_count_total,
+            baseline_observed_at_ms: baseline.baseline_observed_at_ms,
+            baseline_bridge_monotonic_ms: baseline.baseline_bridge_monotonic_ms,
+            death_count_total: deathCountTotal,
+            respawn_count_total: respawnCountTotal,
+            spawn_count_total: spawnCountTotal,
+            death_count: deathCount,
+            respawn_count: respawnCount,
+            spawn_count: spawnCount,
+            pending_respawn_count: Math.max(0, deathCount - respawnCount),
+            uninterrupted: deathCount === 0 && respawnCount === 0,
+            last_death: lastDeath && lastDeath.death_count_total > baseline.baseline_death_count_total
+                ? { ...lastDeath }
+                : null,
+            last_respawn: lastRespawn && lastRespawn.respawn_count_total > baseline.baseline_respawn_count_total
+                ? { ...lastRespawn }
+                : null,
+        };
+    }
+
+    return { attach, snapshot, startEpisode };
+}
+
+const m4PlayerLifecycleTracker = createM4PlayerLifecycleTracker();
+
 function resolveScreenshotPluginSpec(pluginSpec) {
     const spec = String(pluginSpec || '').trim();
     if (!spec) return '';
@@ -620,6 +752,9 @@ function benchmarkProtocolStatus(activeBot, runtimeOverrides = {}, profile = '')
         verifier_id: protocol.verifier_id || protocol.identities?.goal_verifier || '',
         runtime_interrupt_id: protocol.identities?.runtime_interrupt || '',
         skill_runtime_profile_id: protocol.skill_runtime_profile_id || protocol.identities?.skill_runtime_profile || '',
+        player_lifecycle_verifier_id: protocol.identities?.player_lifecycle_verifier || '',
+        player_lifecycle_supported: protocol.profile === M4_PROTOCOL.profile,
+        player_lifecycle_source: protocol.validation_contract?.survival?.player_lifecycle_source || '',
         reset_protocol_sha256: protocol.reset_protocol_sha256 || '',
         validation_protocol_sha256: protocol.validation_protocol_sha256 || '',
         llm: protocol.llm || {},
@@ -1170,6 +1305,27 @@ function createBenchmarkResetHandler(
         const afterState = benchmarkBotState(activeBot, spawnPoint, taskSpec);
         const structureBaseline = constructionSnapshot(activeBot, spawnPoint, taskSpec);
         const checks = benchmarkResetChecks(afterState, taskSpec, protocol);
+        const lifecycleTracker = state.playerLifecycleTracker || m4PlayerLifecycleTracker;
+        const playerLifecycle = isM4 && lifecycleTracker && typeof lifecycleTracker.startEpisode === 'function'
+            ? lifecycleTracker.startEpisode({
+                episode_id: protocolStatus.episode_id,
+                level_name: protocolStatus.level_name,
+                profile: protocol.profile,
+                protocol_sha256: protocolSha256,
+            })
+            : null;
+        if (isM4) {
+            checks.player_lifecycle_baseline = Boolean(
+                playerLifecycle
+                && playerLifecycle.baseline_established === true
+                && playerLifecycle.initial_spawn_observed === true
+                && playerLifecycle.episode_id === protocolStatus.episode_id
+                && playerLifecycle.protocol_sha256 === protocolSha256
+                && playerLifecycle.death_count === 0
+                && playerLifecycle.respawn_count === 0
+                && playerLifecycle.uninterrupted === true
+            );
+        }
         const failedChecks = Object.entries(checks)
             .filter(([name, value]) => name !== 'position_distance' && value !== true)
             .map(([name]) => name);
@@ -1200,6 +1356,7 @@ function createBenchmarkResetHandler(
             before_state: beforeState,
             after_state: afterState,
             structure_baseline: structureBaseline,
+            ...(isM4 ? { player_lifecycle: playerLifecycle } : {}),
             checks,
             failed_checks: failedChecks,
             command_count: commands.length,
@@ -1919,6 +2076,7 @@ function connectBot() {
         version: MC_VERSION,
     });
 
+    m4PlayerLifecycleTracker.attach(bot);
     bot.loadPlugin(pathfinder);
     installConfiguredScreenshotPlugin(bot);
 
@@ -1972,22 +2130,29 @@ const handlers = {
         screenshot_plugin: publicScreenshotPluginStatus(screenshotPluginStatus),
     }),
 
-    get_player_state: () => ({
-        position: bot.entity.position,
-        health: bot.health,
-        food: bot.food,
-        foodSaturation: bot.foodSaturation,
-        oxygenLevel: bot.oxygenLevel,
-        experience: bot.experience,
-        dimension: bot.game?.dimension || null,
-        gameMode: bot.game?.gameMode || null,
-        selectedSlot: bot.quickBarSlot,
-        equipment: Array.isArray(bot.entity?.equipment)
-            ? bot.entity.equipment.map((item, slot) => item ? ({ slot, name: item.name, count: item.count }) : null)
-            : [],
-        yaw: bot.entity.yaw,
-        pitch: bot.entity.pitch,
-    }),
+    get_player_state: () => {
+        const state = {
+            position: bot.entity.position,
+            health: bot.health,
+            food: bot.food,
+            foodSaturation: bot.foodSaturation,
+            oxygenLevel: bot.oxygenLevel,
+            experience: bot.experience,
+            dimension: bot.game?.dimension || null,
+            gameMode: bot.game?.gameMode || null,
+            selectedSlot: bot.quickBarSlot,
+            equipment: Array.isArray(bot.entity?.equipment)
+                ? bot.entity.equipment.map((item, slot) => item ? ({ slot, name: item.name, count: item.count }) : null)
+                : [],
+            yaw: bot.entity.yaw,
+            pitch: bot.entity.pitch,
+        };
+        const lifecycle = m4PlayerLifecycleTracker.snapshot();
+        if (lifecycle.baseline_established === true) {
+            state.playerLifecycle = lifecycle;
+        }
+        return state;
+    },
 
     get_inventory: () => ({
         items: bot.inventory.items().map(i => ({
@@ -1998,6 +2163,8 @@ const handlers = {
             metadata: i.metadata,
         })),
     }),
+
+    get_player_lifecycle: () => m4PlayerLifecycleTracker.snapshot(),
 
     get_nearby_entities: (params) => {
         const radius = Math.min(params.radius || 16, 16);
@@ -2209,6 +2376,7 @@ module.exports = {
     benchmarkTaskBundle,
     constructionSnapshot,
     createBridgeServer,
+    createM4PlayerLifecycleTracker,
     createBenchmarkProtocolHandler,
     createBenchmarkResetHandler,
     createBenchmarkVerifyHandler,

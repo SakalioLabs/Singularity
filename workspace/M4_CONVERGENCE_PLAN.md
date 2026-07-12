@@ -3,7 +3,7 @@
 ## Current Gate
 
 - Protocol: `m4-fixed-v1`
-- Protocol SHA-256: `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
+- Protocol SHA-256: `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`
 - Current target: BM-011 Survive the first night
 - Eligible successes: 0/3
 - M4 canonical status: `not_run`
@@ -21,15 +21,15 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 
 | Gate | Requirement | State |
 |---|---|---|
-| G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | reopened_probe_14_death_continuity |
+| G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed_offline_player_lifecycle_v1 |
 | G1 | Deterministic survival-goal priority cases | passed |
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | blocked_by_g0_probe_14_false_positive |
+| G5 | First eligible survival-to-dawn episode | ready_probe_15 |
 | G6 | Three independent fresh eligible episodes | locked |
 
-G0 passed its prior offline deadline and anti-replay validation, but Probe 14 reopens it. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`; however, two server-observed player deaths were absent from the canonical session and were not rejected by terminal verification or eligibility. No later live episode is authorized until active-episode death/respawn continuity is machine-recorded and independently enforced.
+G0 passes its reopened offline gate. In addition to the shared `episode_deadline_monotonic`, strict M4 now establishes a bridge-owned Mineflayer lifecycle baseline during reset, carries monotonic death/respawn evidence through every observation and canonical lifecycle transition event, requires uninterrupted zero-death state for terminalization, and independently rejects missing, malformed, rolled-back, or nonzero lifecycle evidence. The new protocol has no live episode yet; exactly one Probe 15 is authorized.
 
 G1 passed offline validation. GoalGenerator and Curriculum preserve the fixed order of immediate threat, critical health, hunger/food, shelter preparation, night safety maintenance, and tool/resource progression. Shelter safety requires machine-state verification, and every `auto_goal` event carries source, reason, priority, and priority class.
 
@@ -77,18 +77,24 @@ The offline safe-state gate passes. Replaying Probe 13 observation event 920 thr
 
 Probe 14 produced a runner-reported eligible terminal state, but independent audit rejects it. Paper recorded `Singularity was slain by Zombie` at 00:34:41 and again at 00:35:04. The first death is corroborated by canonical observation event 1183 (`health=7.999998`, `oak_planks:32`, world time 15472) followed by event 1198 (`health=20`, planks gone, world time 15692); the second is corroborated by event 1224 (`health=8.000002`, `stick:1`) followed by event 1238 (`health=20`, empty inventory). The later 9/9 shelter, natural dawn, terminal event, and deadline pass cannot repair a death inside the active survival interval.
 
-The current single hypothesis is `terminal_survival_death_continuity`: strict M4 must record player death/respawn continuity in canonical machine evidence, terminal verification must fail after any active-episode death, and the independent eligibility gate must reject a result even when the Agent later reports `terminal_survival_verified`. This G0 evidence fix is the only next subsystem; the earlier behavioral finding that an aligned flee root planned a stale shelter build before the first death remains recorded but is not yet authorized for a patch.
+The Probe 14-derived single hypothesis is `terminal_survival_death_continuity`: strict M4 must record player death/respawn continuity in canonical machine evidence, terminal verification must fail after any active-episode death, and the independent eligibility gate must reject a result even when the Agent later reports `terminal_survival_verified`. The offline implementation now passes. Probe 15 is limited to testing this evidence chain in one fresh exact-profile episode; the earlier behavioral finding that an aligned flee root planned a stale shelter build before the first death remains recorded but is not authorized for a patch in this round.
 
-## G0 Reopened: Active-Episode Death Continuity
+## G0 Offline Evidence: Active-Episode Death Continuity
 
 - Probe 14 runner claim: `completed=true`, `terminal_survival_verified`, and `eligible=true`
 - Independent rejection: Paper server stdout contains two `Singularity was slain by Zombie` messages at 00:34:41 and 00:35:04; diagnostic log SHA-256 is `9cbe6e2533298e1c989fb8bedb713df2498bccbf7682185aec47322e26351a4d`
 - Canonical corroboration: observation transitions 1183 to 1198 and 1224 to 1238 reset health to 20 while dropping held inventory during active night
-- Eligibility defect: neither the session nor terminal verification carries a death/respawn counter, and `m4_protocol.py` checks the terminal snapshot without proving uninterrupted survival
-- Required offline fix: bridge-owned monotonic death/respawn evidence bound to episode identity, reset baseline, canonical observation/session propagation, terminal fail-closed behavior, and an independent eligibility check over the active interval
-- Anti-spoof requirement: a final positive health value, online bot, verified shelter, or later respawn must never erase an earlier active-episode death
+- Bridge source: `m4-player-lifecycle-verifier-v1` consumes Mineflayer `death` and `spawn` events and exposes cumulative totals plus episode-relative death, respawn, spawn, pending-respawn, and uninterrupted fields
+- Reset binding: the M4 reset establishes one episode/level/protocol-bound baseline only after an initial Mineflayer spawn and rejects nonzero episode deltas; historical pre-reset deaths do not contaminate the fresh interval
+- Canonical propagation: every strict-M4 observation carries a fresh lifecycle snapshot, while `m4_player_lifecycle` records the baseline and each deduplicated transition with validation status
+- Terminal fail-closed behavior: Agent obtains a fresh lifecycle snapshot and emits `terminal_survival_verification` only for a valid zero-death, zero-respawn, uninterrupted interval
+- Independent eligibility: all observation and lifecycle-event counters must be valid, baseline-consistent, monotonic, and zero; terminal observation, terminal event, and result lifecycle signatures must match
+- Probe 14 fixture: a death followed by respawn, restored health 20, online bot, verified shelter, and dawn terminal claim is independently rejected; missing, rolled-back, event-only, and malformed evidence also fail closed
+- Anti-spoof result: a final positive health value, online bot, verified shelter, or later respawn cannot erase an earlier active-episode death
 - Protocol boundary: strict M4 only; M1/M2 fixed task semantics and evidence remain unchanged
-- Live authorization: locked; no Probe 15 until death continuity passes bridge, Agent, terminal, eligibility, compilation, credential, and fixed Node/Python regressions
+- Offline regression: 684 Python tests and all six fixed Node suites pass; M4 bridge reset also rejects a missing initial-spawn baseline
+- Protocol integrity: current SHA-256 `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`, reset contract `0df412101c5c01bf89b32e26d2d9beead7f9b64d10ba5de714caab51b1b63e52`, validation contract `bd2e7466d18d72927c7ca84a11736597a05eab5adf4b788627fe9377542d1e02`
+- Live authorization: exactly one fresh exact-profile Probe 15; no second episode in this round
 
 ## G5 Preflight: Verified Shelter Hostile Safe-State Grounding
 
@@ -103,7 +109,7 @@ The current single hypothesis is `terminal_survival_death_continuity`: strict M4
 - Regression: 679 Python tests and all six fixed Node suites pass; Python compilation and repository checks remain required before commit
 - Protocol integrity: `m4-fixed-v1` SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
 - Live result: Probe 14 reached and preserved a verified shelter through dawn, but no hostile was within the verified safe state; `m4_hostile_safe_state_grounding` count was zero, so the prior failure did not recur and the new branch was not exercised live
-- Next live authorization: locked by the reopened G0 death-continuity gate
+- Next live authorization: G0 now passes offline; exactly one Probe 15 is authorized under the new lifecycle protocol
 
 ## G5 Preflight: Planner Transport Next-Cycle Recovery
 

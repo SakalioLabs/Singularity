@@ -1,11 +1,11 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T16:46:31.6855140Z",
+  "generated_at": "2026-07-12T17:20:02.9923794Z",
   "profile": "m4-fixed-v1",
-  "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "readiness": "approved",
-  "decision": "probe_14_shelter_recovered_after_two_deaths_and_terminal_state_is_not_eligible",
+  "decision": "g3_contract_unchanged_player_lifecycle_gate_ready_for_probe_15",
   "verifier_id": "m4-sealed-cell-shelter-verifier-v1",
   "contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
   "strategy": "sealed_cell_v1",
@@ -44,9 +44,9 @@
   "offline_validation": {
     "passed": true,
     "python_test_file": "tests/test_m4_shelter.py",
-    "python_case_count": 16,
+    "python_case_count": 17,
     "node_test_file": "tests/test_bot_server_m4_protocol.js",
-    "node_m4_case_count": 5,
+    "node_m4_case_count": 6,
     "cases": [
       {"id": "complete_sealed_cell", "expected": "pass", "status": "pass"},
       {"id": "wall_aperture", "expected": "reject", "status": "pass"},
@@ -60,8 +60,8 @@
       {"id": "agent_delta_and_transition_wiring", "expected": "pass", "status": "pass"},
       {"id": "terminal_survival_machine_dawn_state", "expected": "pass_only_with_pinned_machine_state", "status": "pass"}
     ],
-    "full_python_regression": {"status": "pass", "test_count": 679},
-    "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 30},
+    "full_python_regression": {"status": "pass", "test_count": 684},
+    "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 33},
     "live_episode_run": false,
     "bounded_action_cases": [
       {"id": "planner_material_ready_grounding", "status": "pass"},
@@ -72,8 +72,10 @@
     ]
   },
   "live_episode_count": 14,
+  "live_episode_count_under_current_protocol": 0,
   "latest_live_observation": {
     "episode_id": "m4_episode_20260713_002858_94ea560e",
+    "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
     "shelter_priority_goal_count": 3,
     "shelter_plan_count": 43,
     "shelter_verification_event_count": 8,

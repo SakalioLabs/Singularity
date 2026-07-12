@@ -14,11 +14,152 @@ PROTOCOL_BYTES = PROTOCOL_PATH.read_bytes()
 PROTOCOL = json.loads(PROTOCOL_BYTES.decode("utf-8"))
 PROTOCOL_SHA256 = hashlib.sha256(PROTOCOL_BYTES).hexdigest()
 TASKS_BY_ID = {str(task["id"]): task for task in PROTOCOL["tasks"]}
+M4_PLAYER_LIFECYCLE_VERIFIER_ID = str(
+    PROTOCOL.get("identities", {}).get("player_lifecycle_verifier") or ""
+)
 
 
 def canonical_sha256(value) -> str:
     payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def validate_m4_player_lifecycle(
+    value,
+    episode_id: str = "",
+    require_uninterrupted: bool = True,
+) -> dict:
+    """Validate one bridge-owned M4 death/respawn continuity snapshot."""
+    lifecycle = value if isinstance(value, dict) else {}
+    issues = []
+
+    def require(name: str, passed: bool):
+        if not passed:
+            issues.append(name)
+
+    expected_source = str(PROTOCOL["validation_contract"]["survival"]["player_lifecycle_source"])
+    require("type", lifecycle.get("type") == "m4_player_lifecycle")
+    require("schema_version", lifecycle.get("schema_version") == 1)
+    require("verifier_id", lifecycle.get("verifier_id") == M4_PLAYER_LIFECYCLE_VERIFIER_ID)
+    require("source", lifecycle.get("source") == expected_source)
+    require("profile", lifecycle.get("profile") == PROTOCOL["profile"])
+    require("protocol_sha256", lifecycle.get("protocol_sha256") == PROTOCOL_SHA256)
+    require("tracker_id", bool(str(lifecycle.get("tracker_id") or "").strip()))
+    require("episode_id", bool(str(lifecycle.get("episode_id") or "").strip()))
+    if episode_id:
+        require("episode_id_match", str(lifecycle.get("episode_id") or "") == str(episode_id))
+    require("level_name", bool(str(lifecycle.get("level_name") or "").strip()))
+    baseline_id = str(lifecycle.get("baseline_id") or "")
+    require(
+        "baseline_id",
+        len(baseline_id) == 64 and all(character in "0123456789abcdef" for character in baseline_id),
+    )
+    require("baseline_established", lifecycle.get("baseline_established") is True)
+    require("initial_spawn_observed", lifecycle.get("initial_spawn_observed") is True)
+
+    integer_fields = (
+        "baseline_death_count_total",
+        "baseline_respawn_count_total",
+        "baseline_spawn_count_total",
+        "death_count_total",
+        "respawn_count_total",
+        "spawn_count_total",
+        "death_count",
+        "respawn_count",
+        "spawn_count",
+        "pending_respawn_count",
+    )
+    integers = {}
+    for name in integer_fields:
+        raw = lifecycle.get(name)
+        passed = isinstance(raw, int) and not isinstance(raw, bool) and raw >= 0
+        require(name, passed)
+        if passed:
+            integers[name] = raw
+    for name in ("baseline_observed_at_ms", "baseline_bridge_monotonic_ms"):
+        raw = lifecycle.get(name)
+        require(
+            name,
+            isinstance(raw, (int, float))
+            and not isinstance(raw, bool)
+            and math.isfinite(float(raw))
+            and float(raw) >= 0,
+        )
+
+    if len(integers) == len(integer_fields):
+        death_delta = integers["death_count_total"] - integers["baseline_death_count_total"]
+        respawn_delta = integers["respawn_count_total"] - integers["baseline_respawn_count_total"]
+        spawn_delta = integers["spawn_count_total"] - integers["baseline_spawn_count_total"]
+        require("death_count_delta", death_delta == integers["death_count"] and death_delta >= 0)
+        require("respawn_count_delta", respawn_delta == integers["respawn_count"] and respawn_delta >= 0)
+        require("spawn_count_delta", spawn_delta == integers["spawn_count"] and spawn_delta >= 0)
+        require("baseline_spawn_observed", integers["baseline_spawn_count_total"] >= 1)
+        require(
+            "baseline_respawn_not_ahead_of_death",
+            integers["baseline_respawn_count_total"] <= integers["baseline_death_count_total"],
+        )
+        require("respawn_not_ahead_of_death", integers["respawn_count"] <= integers["death_count"])
+        require("respawn_has_spawn", integers["spawn_count"] >= integers["respawn_count"])
+        require(
+            "pending_respawn_count_match",
+            integers["pending_respawn_count"] == integers["death_count"] - integers["respawn_count"],
+        )
+        require(
+            "uninterrupted_consistency",
+            lifecycle.get("uninterrupted") is (
+                integers["death_count"] == 0 and integers["respawn_count"] == 0
+            ),
+        )
+        require(
+            "last_death_consistency",
+            (integers["death_count"] == 0 and lifecycle.get("last_death") is None)
+            or (
+                integers["death_count"] > 0
+                and _valid_lifecycle_event(lifecycle.get("last_death"), "death")
+                and lifecycle["last_death"].get("death_count_total") == integers["death_count_total"]
+            ),
+        )
+        require(
+            "last_respawn_consistency",
+            (integers["respawn_count"] == 0 and lifecycle.get("last_respawn") is None)
+            or (
+                integers["respawn_count"] > 0
+                and _valid_lifecycle_event(lifecycle.get("last_respawn"), "respawn")
+                and lifecycle["last_respawn"].get("respawn_count_total") == integers["respawn_count_total"]
+                and lifecycle["last_respawn"].get("spawn_count_total") == integers["spawn_count_total"]
+            ),
+        )
+        if require_uninterrupted:
+            expected_deaths = int(PROTOCOL["validation_contract"]["survival"]["active_episode_death_count"])
+            expected_respawns = int(PROTOCOL["validation_contract"]["survival"]["active_episode_respawn_count"])
+            require("active_episode_death_count", integers["death_count"] == expected_deaths)
+            require("active_episode_respawn_count", integers["respawn_count"] == expected_respawns)
+            require("uninterrupted_survival", lifecycle.get("uninterrupted") is True)
+
+    return {
+        "passed": not issues,
+        "issues": issues,
+        "death_count": lifecycle.get("death_count"),
+        "respawn_count": lifecycle.get("respawn_count"),
+        "baseline_id": baseline_id,
+        "episode_id": str(lifecycle.get("episode_id") or ""),
+    }
+
+
+def _valid_lifecycle_event(value, kind: str) -> bool:
+    if not isinstance(value, dict) or value.get("kind") != kind:
+        return False
+    return bool(
+        isinstance(value.get("event_sequence"), int)
+        and not isinstance(value.get("event_sequence"), bool)
+        and value["event_sequence"] > 0
+        and isinstance(value.get("observed_at_ms"), (int, float))
+        and not isinstance(value.get("observed_at_ms"), bool)
+        and math.isfinite(float(value["observed_at_ms"]))
+        and isinstance(value.get("bridge_monotonic_ms"), (int, float))
+        and not isinstance(value.get("bridge_monotonic_ms"), bool)
+        and math.isfinite(float(value["bridge_monotonic_ms"]))
+    )
 
 
 def protocol_integrity_report() -> dict:
@@ -65,6 +206,26 @@ def protocol_integrity_report() -> dict:
         issues.append("planner_finish_reason_must_be_stop")
     if planner_contract.get("reasoning_content_max_bytes") != 0:
         issues.append("planner_reasoning_content_must_be_disabled")
+    survival_contract = PROTOCOL.get("validation_contract", {}).get("survival", {})
+    reset_contract = PROTOCOL.get("reset_contract", {})
+    if not M4_PLAYER_LIFECYCLE_VERIFIER_ID:
+        issues.append("player_lifecycle_verifier_id_missing")
+    if survival_contract.get("player_lifecycle_source") != "mineflayer_events":
+        issues.append("player_lifecycle_source_mismatch")
+    if survival_contract.get("player_lifecycle_observation_required") is not True:
+        issues.append("player_lifecycle_observation_must_be_required")
+    if survival_contract.get("player_lifecycle_event_required") is not True:
+        issues.append("player_lifecycle_event_must_be_required")
+    if survival_contract.get("active_episode_death_count") != 0:
+        issues.append("active_episode_deaths_must_be_zero")
+    if survival_contract.get("active_episode_respawn_count") != 0:
+        issues.append("active_episode_respawns_must_be_zero")
+    if survival_contract.get("uninterrupted_survival_required") is not True:
+        issues.append("uninterrupted_survival_must_be_required")
+    if reset_contract.get("establish_player_lifecycle_baseline") is not True:
+        issues.append("player_lifecycle_baseline_must_be_reset")
+    if reset_contract.get("player_lifecycle_source") != "mineflayer_events":
+        issues.append("reset_player_lifecycle_source_mismatch")
     return {
         "passed": not issues,
         "issues": issues,
@@ -132,6 +293,12 @@ def validate_preflight(preflight: dict, task_id: str = "BM-011") -> dict:
     )
     require("episode_id", bool(str(preflight.get("episode_id") or "").strip()))
     require("level_name", bool(str(preflight.get("level_name") or "").strip()))
+    lifecycle_report = validate_m4_player_lifecycle(
+        preflight.get("player_lifecycle_baseline"),
+        episode_id=str(preflight.get("episode_id") or ""),
+        require_uninterrupted=True,
+    )
+    require("player_lifecycle_baseline", lifecycle_report["passed"], lifecycle_report["issues"])
     return {"passed": not issues, "issues": issues, "checks": checks}
 
 
@@ -233,6 +400,103 @@ def evaluate_bm011_episode(
         event.get("data", {}) for event in active_events
         if event.get("type") == "observation" and isinstance(event.get("data"), dict)
     ]
+    lifecycle_values = [observation.get("player_lifecycle") for observation in observations]
+    lifecycle_reports = [
+        validate_m4_player_lifecycle(
+            value,
+            episode_id=str(manifest.get("episode_id") or ""),
+            require_uninterrupted=False,
+        )
+        for value in lifecycle_values
+    ]
+    lifecycle_events = [
+        event.get("data", {}) for event in active_events
+        if event.get("type") == "m4_player_lifecycle" and isinstance(event.get("data"), dict)
+    ]
+    lifecycle_event_reports = [
+        validate_m4_player_lifecycle(
+            value,
+            episode_id=str(manifest.get("episode_id") or ""),
+            require_uninterrupted=False,
+        )
+        for value in lifecycle_events
+    ]
+    lifecycle_event_death_counts = [value.get("death_count") for value in lifecycle_events]
+    lifecycle_event_respawn_counts = [value.get("respawn_count") for value in lifecycle_events]
+    lifecycle_complete = bool(observations) and all(isinstance(value, dict) for value in lifecycle_values)
+    lifecycle_valid = lifecycle_complete and all(report["passed"] for report in lifecycle_reports)
+    lifecycle_baseline = preflight.get("player_lifecycle_baseline", {})
+    expected_lifecycle_baseline = _lifecycle_baseline_signature(lifecycle_baseline)
+    lifecycle_baselines_match = bool(expected_lifecycle_baseline) and all(
+        _lifecycle_baseline_signature(value) == expected_lifecycle_baseline
+        for value in lifecycle_values
+        if isinstance(value, dict)
+    ) and sum(isinstance(value, dict) for value in lifecycle_values) == len(lifecycle_values)
+    death_counts = [value.get("death_count") for value in lifecycle_values if isinstance(value, dict)]
+    respawn_counts = [value.get("respawn_count") for value in lifecycle_values if isinstance(value, dict)]
+    lifecycle_counts_monotonic = bool(death_counts) and bool(respawn_counts) and all(
+        isinstance(value, int) and not isinstance(value, bool) for value in death_counts + respawn_counts
+    ) and all(current >= previous for previous, current in zip(death_counts, death_counts[1:])) and all(
+        current >= previous for previous, current in zip(respawn_counts, respawn_counts[1:])
+    )
+    lifecycle_event_baselines_match = bool(lifecycle_events) and all(
+        _lifecycle_baseline_signature(value) == expected_lifecycle_baseline
+        for value in lifecycle_events
+    )
+    lifecycle_event_counts_monotonic = bool(lifecycle_event_death_counts) and bool(
+        lifecycle_event_respawn_counts
+    ) and all(
+        isinstance(value, int) and not isinstance(value, bool)
+        for value in lifecycle_event_death_counts + lifecycle_event_respawn_counts
+    ) and all(
+        current >= previous
+        for previous, current in zip(lifecycle_event_death_counts, lifecycle_event_death_counts[1:])
+    ) and all(
+        current >= previous
+        for previous, current in zip(lifecycle_event_respawn_counts, lifecycle_event_respawn_counts[1:])
+    )
+    require("player_lifecycle_observation_complete", lifecycle_complete)
+    require(
+        "player_lifecycle_observation_valid",
+        lifecycle_valid,
+        [report["issues"] for report in lifecycle_reports if not report["passed"]],
+    )
+    require("player_lifecycle_baseline_consistent", lifecycle_baselines_match)
+    require("player_lifecycle_counts_monotonic", lifecycle_counts_monotonic)
+    require("player_lifecycle_event_present", bool(lifecycle_events))
+    require(
+        "player_lifecycle_event_valid",
+        bool(lifecycle_event_reports) and all(report["passed"] for report in lifecycle_event_reports),
+        [report["issues"] for report in lifecycle_event_reports if not report["passed"]],
+    )
+    require("player_lifecycle_event_baseline_consistent", lifecycle_event_baselines_match)
+    require("player_lifecycle_event_counts_monotonic", lifecycle_event_counts_monotonic)
+    all_death_counts = death_counts + lifecycle_event_death_counts
+    all_respawn_counts = respawn_counts + lifecycle_event_respawn_counts
+    death_counts_valid = bool(all_death_counts) and all(
+        isinstance(value, int) and not isinstance(value, bool)
+        for value in all_death_counts
+    )
+    respawn_counts_valid = bool(all_respawn_counts) and all(
+        isinstance(value, int) and not isinstance(value, bool)
+        for value in all_respawn_counts
+    )
+    maximum_death_count = max(all_death_counts) if death_counts_valid else None
+    maximum_respawn_count = max(all_respawn_counts) if respawn_counts_valid else None
+    require(
+        "active_episode_death_absent",
+        death_counts_valid and maximum_death_count == 0,
+        all_death_counts,
+    )
+    require(
+        "active_episode_respawn_absent",
+        respawn_counts_valid and maximum_respawn_count == 0,
+        all_respawn_counts,
+    )
+    require(
+        "uninterrupted_survival",
+        lifecycle_valid and all(value.get("uninterrupted") is True for value in lifecycle_values),
+    )
     times = [_normalized_time(obs.get("time_of_day")) for obs in observations]
     times = [value for value in times if value is not None]
     night_index = next((index for index, value in enumerate(times) if 12000 <= value < 23000), None)
@@ -246,6 +510,19 @@ def evaluate_bm011_episode(
 
     terminal_observation = observations[-1] if observations else {}
     terminal_state = result.get("terminal_state", {}) if isinstance(result.get("terminal_state"), dict) else {}
+    terminal_lifecycle = terminal_state.get("player_lifecycle")
+    terminal_lifecycle_report = validate_m4_player_lifecycle(
+        terminal_lifecycle,
+        episode_id=str(manifest.get("episode_id") or ""),
+        require_uninterrupted=True,
+    )
+    require(
+        "terminal_player_lifecycle",
+        terminal_lifecycle_report["passed"]
+        and _lifecycle_terminal_signature(terminal_lifecycle)
+        == _lifecycle_terminal_signature(terminal_observation.get("player_lifecycle")),
+        terminal_lifecycle_report["issues"],
+    )
     health = terminal_observation.get("health", terminal_state.get("health", 0))
     require("terminal_health", _finite_number(health) and float(health) > 0)
     require("terminal_bot_connected", terminal_state.get("bot_connected") is True)
@@ -314,6 +591,15 @@ def evaluate_bm011_episode(
             "night_observation_index": night_index,
             "dawn_observation_index": dawn_index,
             "terminal_health": health,
+            "player_lifecycle_verifier_id": M4_PLAYER_LIFECYCLE_VERIFIER_ID,
+            "player_lifecycle_event_count": len(lifecycle_events),
+            "maximum_death_count": maximum_death_count,
+            "maximum_respawn_count": maximum_respawn_count,
+            "uninterrupted_survival": bool(
+                lifecycle_valid
+                and maximum_death_count == 0
+                and maximum_respawn_count == 0
+            ),
             "episode_duration_s": round(duration, 3) if duration is not None else None,
             "forbidden_events": forbidden,
         },
@@ -435,6 +721,47 @@ def _action_verifier_present(event: dict) -> bool:
     return isinstance(result.get("action_verification"), dict) and bool(result.get("action_verification"))
 
 
+def _lifecycle_baseline_signature(value) -> tuple:
+    lifecycle = value if isinstance(value, dict) else {}
+    fields = (
+        "verifier_id",
+        "source",
+        "profile",
+        "protocol_sha256",
+        "tracker_id",
+        "episode_id",
+        "level_name",
+        "baseline_id",
+        "baseline_death_count_total",
+        "baseline_respawn_count_total",
+        "baseline_spawn_count_total",
+        "baseline_observed_at_ms",
+        "baseline_bridge_monotonic_ms",
+    )
+    signature = tuple(lifecycle.get(name) for name in fields)
+    return signature if all(value is not None and value != "" for value in signature) else ()
+
+
+def _lifecycle_terminal_signature(value) -> tuple:
+    lifecycle = value if isinstance(value, dict) else {}
+    baseline = _lifecycle_baseline_signature(lifecycle)
+    if not baseline:
+        return ()
+    return baseline + tuple(
+        lifecycle.get(name)
+        for name in (
+            "death_count_total",
+            "respawn_count_total",
+            "spawn_count_total",
+            "death_count",
+            "respawn_count",
+            "spawn_count",
+            "pending_respawn_count",
+            "uninterrupted",
+        )
+    )
+
+
 def _terminal_verification_matches(events: list[dict], observation: dict, terminal_state: dict) -> bool:
     verification = next(
         (
@@ -447,11 +774,23 @@ def _terminal_verification_matches(events: list[dict], observation: dict, termin
         return False
     observed_time = _normalized_time(observation.get("time_of_day"))
     verified_time = _normalized_time(verification.get("time_of_day"))
+    observed_lifecycle = observation.get("player_lifecycle")
+    terminal_lifecycle = terminal_state.get("player_lifecycle")
+    verified_lifecycle = verification.get("player_lifecycle")
+    lifecycle_report = validate_m4_player_lifecycle(
+        verified_lifecycle,
+        episode_id=str((observed_lifecycle or {}).get("episode_id") or ""),
+        require_uninterrupted=True,
+    )
     return bool(
         observed_time is not None
         and verified_time == observed_time
         and verification.get("health") == observation.get("health", terminal_state.get("health"))
         and verification.get("bot_connected") is True
+        and lifecycle_report["passed"]
+        and _lifecycle_terminal_signature(verified_lifecycle)
+        == _lifecycle_terminal_signature(observed_lifecycle)
+        == _lifecycle_terminal_signature(terminal_lifecycle)
     )
 
 

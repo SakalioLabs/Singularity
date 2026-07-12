@@ -14,8 +14,67 @@ from singularity.evaluation.m4_protocol import (
     protocol_integrity_report,
     remaining_budget_s,
     task_spec,
+    validate_m4_player_lifecycle,
     validate_preflight,
 )
+
+
+def _lifecycle(death_count=0, respawn_count=0, spawn_count=0):
+    baseline_deaths = 2
+    baseline_respawns = 2
+    baseline_spawns = 3
+    last_death = None
+    last_respawn = None
+    if death_count:
+        last_death = {
+            "kind": "death",
+            "event_sequence": 7,
+            "observed_at_ms": 1700000001000,
+            "bridge_monotonic_ms": 1100,
+            "position": {"x": 1, "y": 64, "z": 1},
+            "health": 0,
+            "death_count_total": baseline_deaths + death_count,
+        }
+    if respawn_count:
+        last_respawn = {
+            "kind": "respawn",
+            "event_sequence": 8,
+            "observed_at_ms": 1700000002000,
+            "bridge_monotonic_ms": 1200,
+            "position": {"x": 1, "y": 64, "z": 1},
+            "health": 20,
+            "respawn_count_total": baseline_respawns + respawn_count,
+            "spawn_count_total": baseline_spawns + spawn_count,
+        }
+    return {
+        "type": "m4_player_lifecycle",
+        "schema_version": 1,
+        "verifier_id": PROTOCOL["identities"]["player_lifecycle_verifier"],
+        "source": "mineflayer_events",
+        "profile": PROTOCOL["profile"],
+        "protocol_sha256": PROTOCOL_SHA256,
+        "tracker_id": "m4-fixture-tracker-01",
+        "episode_id": "m4-fixture-episode-01",
+        "level_name": "m4_fixture_level_01",
+        "baseline_id": "a" * 64,
+        "baseline_established": True,
+        "initial_spawn_observed": True,
+        "baseline_death_count_total": baseline_deaths,
+        "baseline_respawn_count_total": baseline_respawns,
+        "baseline_spawn_count_total": baseline_spawns,
+        "baseline_observed_at_ms": 1700000000000,
+        "baseline_bridge_monotonic_ms": 1000,
+        "death_count_total": baseline_deaths + death_count,
+        "respawn_count_total": baseline_respawns + respawn_count,
+        "spawn_count_total": baseline_spawns + spawn_count,
+        "death_count": death_count,
+        "respawn_count": respawn_count,
+        "spawn_count": spawn_count,
+        "pending_respawn_count": death_count - respawn_count,
+        "uninterrupted": death_count == 0 and respawn_count == 0,
+        "last_death": last_death,
+        "last_respawn": last_respawn,
+    }
 
 
 def _preflight():
@@ -39,6 +98,7 @@ def _preflight():
         "llm": dict(PROTOCOL["llm"]),
         "identities": dict(PROTOCOL["identities"]),
         "runtime_controls": dict(PROTOCOL["baseline_runtime_controls"]),
+        "player_lifecycle_baseline": _lifecycle(),
         "source_checks": {"protocol_status_bound": True, "reset_bound": True},
         "episode_id": "m4-fixture-episode-01",
         "level_name": "m4_fixture_level_01",
@@ -69,7 +129,7 @@ def _manifest():
     }
 
 
-def _observation(time_of_day: int, monotonic_s: float, health: float = 20):
+def _observation(time_of_day: int, monotonic_s: float, health: float = 20, lifecycle=None):
     return {
         "type": "observation",
         "monotonic_s": monotonic_s,
@@ -79,6 +139,7 @@ def _observation(time_of_day: int, monotonic_s: float, health: float = 20):
             "food": 18,
             "inventory": {"oak_planks": 2},
             "position": {"x": 1, "y": 64, "z": 1},
+            "player_lifecycle": copy.deepcopy(lifecycle or _lifecycle()),
         },
     }
 
@@ -89,6 +150,7 @@ def _events():
     return [
         {"type": "benchmark_reset", "monotonic_s": 90.0, "data": {"success": True}},
         {"type": "autonomous_start", "monotonic_s": 100.0, "data": {"mode": "autonomous"}},
+        {"type": "m4_player_lifecycle", "monotonic_s": 100.5, "data": _lifecycle()},
         _observation(9000, 101.0),
         {
             "type": "auto_goal",
@@ -144,6 +206,9 @@ def _events():
                 "time_of_day": 23010,
                 "health": 18,
                 "bot_connected": True,
+                "uninterrupted_survival": True,
+                "player_lifecycle_verifier_id": PROTOCOL["identities"]["player_lifecycle_verifier"],
+                "player_lifecycle": _lifecycle(),
             },
         },
         {"type": "goal_end", "monotonic_s": 803.0, "data": {"completed": True}},
@@ -153,6 +218,10 @@ def _events():
 
 def _result(events=None):
     session_events = _events() if events is None else events
+    terminal_observation = next(
+        event["data"] for event in reversed(session_events)
+        if event.get("type") == "observation"
+    )
     result = {
         "completed": True,
         "termination_reason": "terminal_survival_verified",
@@ -162,6 +231,7 @@ def _result(events=None):
             "health": 18,
             "bot_connected": True,
             "time_of_day": 23010,
+            "player_lifecycle": copy.deepcopy(terminal_observation["player_lifecycle"]),
         },
     }
     result["evidence_hashes"] = {
@@ -180,6 +250,8 @@ def test_m4_protocol_integrity_and_scope():
     assert PROTOCOL["difficulty"] == "normal"
     assert PROTOCOL["gamerules"]["doDaylightCycle"] is True
     assert PROTOCOL["gamerules"]["doMobSpawning"] is True
+    assert PROTOCOL["validation_contract"]["survival"]["active_episode_death_count"] == 0
+    assert PROTOCOL["validation_contract"]["survival"]["uninterrupted_survival_required"] is True
     assert task_spec("BM-011")["terminal_goal"] == "Survive until the next dawn"
     assert task_spec("BM-012")["id"] == "BM-012"
     print("PASS: M4 protocol integrity and independent task scope")
@@ -204,6 +276,38 @@ def test_m4_preflight_requires_survival_fresh_episode():
     print("PASS: M4 preflight rejects peaceful, reused, or preloaded episodes")
 
 
+def test_m4_player_lifecycle_contract_requires_bridge_owned_zero_delta():
+    baseline = validate_m4_player_lifecycle(
+        _lifecycle(),
+        episode_id="m4-fixture-episode-01",
+        require_uninterrupted=True,
+    )
+    death = validate_m4_player_lifecycle(
+        _lifecycle(death_count=1, respawn_count=1, spawn_count=1),
+        episode_id="m4-fixture-episode-01",
+        require_uninterrupted=True,
+    )
+    malformed = _lifecycle()
+    malformed["source"] = "terminal_health_inference"
+    malformed["death_count"] = False
+
+    assert baseline["passed"] is True
+    assert death["passed"] is False
+    assert {"active_episode_death_count", "active_episode_respawn_count", "uninterrupted_survival"}.issubset(
+        death["issues"]
+    )
+    assert validate_m4_player_lifecycle(malformed)["passed"] is False
+
+    invalid_preflight = _preflight()
+    invalid_preflight["player_lifecycle_baseline"] = _lifecycle(
+        death_count=1,
+        respawn_count=1,
+        spawn_count=1,
+    )
+    assert "player_lifecycle_baseline" in validate_preflight(invalid_preflight)["issues"]
+    print("PASS: M4 lifecycle accepts only bridge-owned zero-death episode baselines")
+
+
 def test_bm011_eligible_machine_state_evidence():
     report = evaluate_bm011_episode(_events(), _result(), _preflight(), _manifest())
     assert report["eligible"], report
@@ -211,7 +315,93 @@ def test_bm011_eligible_machine_state_evidence():
     assert report["evidence"]["planner_provider_controls"]["schema_valid_real_call_count"] == 1
     assert report["evidence"]["night_observation_index"] is not None
     assert report["evidence"]["dawn_observation_index"] is not None
+    assert report["evidence"]["maximum_death_count"] == 0
+    assert report["evidence"]["maximum_respawn_count"] == 0
+    assert report["evidence"]["uninterrupted_survival"] is True
     print("PASS: BM-011 gate accepts bounded autonomous machine-state evidence")
+
+
+def test_bm011_rejects_probe14_death_respawn_false_positive():
+    events = _events()
+    death_lifecycle = _lifecycle(death_count=1, respawn_count=1, spawn_count=1)
+    insert_at = next(
+        index for index, event in enumerate(events)
+        if event.get("type") == "observation" and event.get("monotonic_s") == 500.0
+    )
+    events.insert(insert_at, {
+        "type": "m4_player_lifecycle",
+        "monotonic_s": 499.0,
+        "data": copy.deepcopy(death_lifecycle),
+    })
+    for event in events:
+        if event.get("type") == "observation" and event.get("monotonic_s", 0) >= 500.0:
+            event["data"]["health"] = 20
+            event["data"]["inventory"] = {}
+            event["data"]["player_lifecycle"] = copy.deepcopy(death_lifecycle)
+        if event.get("type") == "terminal_survival_verification":
+            event["data"]["health"] = 20
+            event["data"]["uninterrupted_survival"] = False
+            event["data"]["player_lifecycle"] = copy.deepcopy(death_lifecycle)
+
+    result = _result(events)
+    result["terminal_state"]["health"] = 20
+    report = evaluate_bm011_episode(events, result, _preflight(), _manifest())
+
+    assert report["eligible"] is False
+    assert {
+        "active_episode_death_absent",
+        "active_episode_respawn_absent",
+        "uninterrupted_survival",
+        "terminal_player_lifecycle",
+        "terminal_machine_verification",
+    }.issubset(report["issues"])
+    assert report["evidence"]["maximum_death_count"] == 1
+    assert report["evidence"]["maximum_respawn_count"] == 1
+    print("PASS: BM-011 independently rejects Probe 14-style death, respawn, health-20 terminal false positives")
+
+
+def test_bm011_rejects_missing_or_rolled_back_lifecycle_evidence():
+    missing = _events()
+    next(event for event in missing if event.get("type") == "observation")["data"].pop("player_lifecycle")
+    missing_report = evaluate_bm011_episode(missing, _result(missing), _preflight(), _manifest())
+    assert "player_lifecycle_observation_complete" in missing_report["issues"]
+
+    rollback = _events()
+    death_lifecycle = _lifecycle(death_count=1, respawn_count=1, spawn_count=1)
+    observations = [event for event in rollback if event.get("type") == "observation"]
+    observations[2]["data"]["player_lifecycle"] = death_lifecycle
+    rollback_report = evaluate_bm011_episode(rollback, _result(rollback), _preflight(), _manifest())
+    assert "player_lifecycle_counts_monotonic" in rollback_report["issues"]
+    assert "active_episode_death_absent" in rollback_report["issues"]
+
+    event_only = _events()
+    event_only.insert(-3, {
+        "type": "m4_player_lifecycle",
+        "monotonic_s": 800.5,
+        "data": _lifecycle(death_count=1, respawn_count=1, spawn_count=1),
+    })
+    event_only_report = evaluate_bm011_episode(
+        event_only,
+        _result(event_only),
+        _preflight(),
+        _manifest(),
+    )
+    assert "active_episode_death_absent" in event_only_report["issues"]
+    assert "active_episode_respawn_absent" in event_only_report["issues"]
+
+    malformed = _events()
+    malformed_observation = next(event for event in malformed if event.get("type") == "observation")
+    malformed_observation["data"]["player_lifecycle"]["death_count"] = "unknown"
+    malformed_report = evaluate_bm011_episode(
+        malformed,
+        _result(malformed),
+        _preflight(),
+        _manifest(),
+    )
+    assert "player_lifecycle_observation_valid" in malformed_report["issues"]
+    assert "active_episode_death_absent" in malformed_report["issues"]
+    assert malformed_report["evidence"]["maximum_death_count"] is None
+    print("PASS: BM-011 fails closed on missing or rolled-back lifecycle evidence")
 
 
 def test_bm011_rejects_shortened_runtime_limits():

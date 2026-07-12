@@ -16,6 +16,51 @@ from singularity.evaluation.m4_runtime import (
 )
 
 
+def _lifecycle(death_count=0, respawn_count=0):
+    return {
+        "type": "m4_player_lifecycle",
+        "schema_version": 1,
+        "verifier_id": PROTOCOL["identities"]["player_lifecycle_verifier"],
+        "source": "mineflayer_events",
+        "profile": PROTOCOL["profile"],
+        "protocol_sha256": PROTOCOL_SHA256,
+        "tracker_id": "m4-runtime-fixture-tracker",
+        "episode_id": "m4-fixture-episode",
+        "level_name": "m4-fixture-episode_bm011",
+        "baseline_id": "b" * 64,
+        "baseline_established": True,
+        "initial_spawn_observed": True,
+        "baseline_death_count_total": 0,
+        "baseline_respawn_count_total": 0,
+        "baseline_spawn_count_total": 1,
+        "baseline_observed_at_ms": 1700000000000,
+        "baseline_bridge_monotonic_ms": 1000,
+        "death_count_total": death_count,
+        "respawn_count_total": respawn_count,
+        "spawn_count_total": 1 + respawn_count,
+        "death_count": death_count,
+        "respawn_count": respawn_count,
+        "spawn_count": respawn_count,
+        "pending_respawn_count": death_count - respawn_count,
+        "uninterrupted": death_count == 0 and respawn_count == 0,
+        "last_death": None if not death_count else {
+            "kind": "death",
+            "event_sequence": 2,
+            "observed_at_ms": 1700000001000,
+            "bridge_monotonic_ms": 1100,
+            "death_count_total": death_count,
+        },
+        "last_respawn": None if not respawn_count else {
+            "kind": "respawn",
+            "event_sequence": 3,
+            "observed_at_ms": 1700000002000,
+            "bridge_monotonic_ms": 1200,
+            "respawn_count_total": respawn_count,
+            "spawn_count_total": 1 + respawn_count,
+        },
+    }
+
+
 def _status():
     return {
         "success": True,
@@ -37,6 +82,9 @@ def _status():
         "verifier_id": PROTOCOL["identities"]["goal_verifier"],
         "runtime_interrupt_id": PROTOCOL["identities"]["runtime_interrupt"],
         "skill_runtime_profile_id": PROTOCOL["identities"]["skill_runtime_profile"],
+        "player_lifecycle_verifier_id": PROTOCOL["identities"]["player_lifecycle_verifier"],
+        "player_lifecycle_supported": True,
+        "player_lifecycle_source": "mineflayer_events",
         "dependencies": {
             "mineflayer": PROTOCOL["runtime_versions"]["mineflayer"],
             "mineflayer-pathfinder": PROTOCOL["runtime_versions"]["mineflayer_pathfinder"],
@@ -59,6 +107,7 @@ def _reset():
         "server_jar_sha256": PROTOCOL["server_jar_sha256"],
         "gamerules": dict(PROTOCOL["gamerules"]),
         "checks": {"inventory_exact": True, "position_at_spawn": True},
+        "player_lifecycle": _lifecycle(),
         "after_state": {
             "game_mode": PROTOCOL["game_mode"],
             "difficulty": PROTOCOL["difficulty"],
@@ -148,6 +197,7 @@ def test_m4_runtime_builds_valid_preflight_and_manifest():
     assert preflight["passed"], preflight
     assert preflight["llm"] == PROTOCOL["llm"]
     assert preflight["initial_player_state"]["saturation"] == 5
+    assert preflight["player_lifecycle_baseline"]["death_count"] == 0
 
     manifest = build_m4_runtime_manifest(
         preflight,
@@ -184,6 +234,33 @@ def test_m4_runtime_builds_valid_preflight_and_manifest():
     assert drifted["passed"] is False
     assert drifted["source_checks"]["status_episode"] is False
     print("PASS: M4 runtime builds a valid fresh preflight and fixed manifest")
+
+
+def test_m4_preflight_rejects_missing_or_nonzero_player_lifecycle_baseline():
+    missing = _reset()
+    missing.pop("player_lifecycle")
+    missing_report = build_m4_preflight(
+        _status(),
+        missing,
+        "m4-fixture-episode",
+        "m4-fixture-episode_bm011",
+        fresh_episode=True,
+    )
+    assert missing_report["passed"] is False
+    assert missing_report["source_checks"]["reset_player_lifecycle"] is False
+
+    died = _reset()
+    died["player_lifecycle"] = _lifecycle(death_count=1, respawn_count=1)
+    died_report = build_m4_preflight(
+        _status(),
+        died,
+        "m4-fixture-episode",
+        "m4-fixture-episode_bm011",
+        fresh_episode=True,
+    )
+    assert died_report["passed"] is False
+    assert died_report["source_checks"]["reset_player_lifecycle"] is False
+    print("PASS: M4 preflight requires a zero-death bridge lifecycle baseline")
 
 
 def test_m4_preparation_report_requires_machine_visible_progress():

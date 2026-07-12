@@ -134,6 +134,9 @@ class BotBridge:
     def get_player_state(self) -> dict:
         return self._send_command("get_player_state")
 
+    def get_player_lifecycle(self) -> dict:
+        return self._send_command("get_player_lifecycle")
+
     def health(self) -> dict:
         return self._send_command("health")
 

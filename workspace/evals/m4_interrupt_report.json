@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T16:46:31.6855140Z",
+  "generated_at": "2026-07-12T17:20:02.9923794Z",
   "profile": "m4-fixed-v1",
-  "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
-  "readiness": "blocked_by_active_episode_death_continuity",
-  "decision": "probe_14_safe_state_branch_unexercised_and_hostile_flee_chain_ended_in_two_deaths",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "readiness": "approved_for_probe_15",
+  "decision": "g4_contract_unchanged_and_probe_14_deaths_now_fail_closed_by_player_lifecycle_gate",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -110,13 +110,15 @@
       {"name": "safe_state_health_priority_preserved", "status": "pass"},
       {"name": "safe_state_grounding_audit_deduplicated", "status": "pass"}
     ],
-    "full_python_regression": {"status": "pass", "test_count": 679},
-    "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 30},
+    "full_python_regression": {"status": "pass", "test_count": 684},
+    "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 33},
     "controlled_live_episode": false
   },
   "live_episode_count": 14,
+  "live_episode_count_under_current_protocol": 0,
   "latest_live_observation": {
     "episode_id": "m4_episode_20260713_002858_94ea560e",
+    "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
     "required_g4_case_verified": false,
     "runtime_interrupt_count": 2,
     "recovery_event_count": 1,

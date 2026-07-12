@@ -72,7 +72,8 @@
     "action_backend": "mineflayer-bridge-v1",
     "goal_verifier": "m4-survival-machine-verifier-v1",
     "runtime_interrupt": "m4-survival-interrupt-v1",
-    "skill_runtime_profile": "m4-baseline-learned-skills-off-v1"
+    "skill_runtime_profile": "m4-baseline-learned-skills-off-v1",
+    "player_lifecycle_verifier": "m4-player-lifecycle-verifier-v1"
   },
   "deadline_policy": {
     "id": "m4-absolute-episode-deadline-v1",
@@ -103,6 +104,10 @@
     "clear_nearby_drops": true,
     "verify_empty_inventory": true,
     "verify_player_state": true,
+    "establish_player_lifecycle_baseline": true,
+    "player_lifecycle_source": "mineflayer_events",
+    "verify_zero_episode_deaths": true,
+    "verify_zero_episode_respawns": true,
     "verify_time_initialized": true,
     "verify_gamerules": true,
     "active_episode_forbidden_commands": [
@@ -114,7 +119,7 @@
       "gamemode"
     ]
   },
-  "reset_protocol_sha256": "f2fdc39510e86de9e81f79711cf1fae7f2d3f4c95a4a097b5c33da5f41dd74e3",
+  "reset_protocol_sha256": "0df412101c5c01bf89b32e26d2d9beead7f9b64d10ba5de714caab51b1b63e52",
   "validation_contract": {
     "id": "m4-validation-v1",
     "autonomy": {
@@ -126,6 +131,7 @@
         "plan",
         "action",
         "goal_end",
+        "m4_player_lifecycle",
         "terminal_survival_verification",
         "autonomous_end"
       ],
@@ -155,6 +161,13 @@
       "dawn_observation_required": true,
       "terminal_health_min_exclusive": 0,
       "terminal_bot_connected_required": true,
+      "player_lifecycle_verifier_id": "m4-player-lifecycle-verifier-v1",
+      "player_lifecycle_source": "mineflayer_events",
+      "player_lifecycle_observation_required": true,
+      "player_lifecycle_event_required": true,
+      "active_episode_death_count": 0,
+      "active_episode_respawn_count": 0,
+      "uninterrupted_survival_required": true,
       "natural_time_progression_required": true,
       "maximum_observation_tick_gap": 6000
     },
@@ -189,7 +202,7 @@
       "runtime_manifest_required": true
     }
   },
-  "validation_protocol_sha256": "e4a2eb388625ef74ff10dbf199502c6a986d844c4fee783326721c982a8f7500",
+  "validation_protocol_sha256": "bd2e7466d18d72927c7ca84a11736597a05eab5adf4b788627fe9377542d1e02",
   "tasks": [
     {
       "id": "BM-011",
@@ -201,6 +214,9 @@
       "success_criteria": {
         "health_above": 0,
         "bot_connected": true,
+        "active_episode_deaths_equal": 0,
+        "active_episode_respawns_equal": 0,
+        "uninterrupted_survival": true,
         "night_crossed": true,
         "dawn_reached": true,
         "natural_time_progression": true

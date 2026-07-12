@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('assert');
+const { EventEmitter } = require('events');
 const { Vec3 } = require('vec3');
 const {
     M4_PROTOCOL,
@@ -8,6 +9,7 @@ const {
     benchmarkProtocolStatus,
     createBenchmarkResetHandler,
     createBuildShelterCellHandler,
+    createM4PlayerLifecycleTracker,
     createPlaceHandler,
     createShelterStateHandler,
 } = require('../src/bot/bot_server');
@@ -61,6 +63,9 @@ function createM4Bot() {
             }
         },
     };
+    const emitter = new EventEmitter();
+    bot.on = emitter.on.bind(emitter);
+    bot.emit = emitter.emit.bind(emitter);
     return { bot, commands };
 }
 
@@ -75,6 +80,9 @@ async function testM4ProtocolStatusPinsAutonomousRuntime() {
     assert.strictEqual(status.curriculum_id, M4_PROTOCOL.identities.curriculum);
     assert.strictEqual(status.planner_id, M4_PROTOCOL.identities.planner);
     assert.strictEqual(status.runtime_interrupt_id, M4_PROTOCOL.identities.runtime_interrupt);
+    assert.strictEqual(status.player_lifecycle_verifier_id, M4_PROTOCOL.identities.player_lifecycle_verifier);
+    assert.strictEqual(status.player_lifecycle_supported, true);
+    assert.strictEqual(status.player_lifecycle_source, 'mineflayer_events');
     assert.deepStrictEqual(status.llm, M4_PROTOCOL.llm);
     assert.deepStrictEqual(status.runtime_controls, M4_PROTOCOL.baseline_runtime_controls);
     assert.strictEqual(status.validation_supported, true);
@@ -84,8 +92,20 @@ async function testM4ProtocolStatusPinsAutonomousRuntime() {
 
 async function testM4ResetUsesNaturalSurvivalStateWithoutFixtures() {
     const { bot, commands } = createM4Bot();
+    let clock = 1000;
+    const lifecycle = createM4PlayerLifecycleTracker({
+        trackerId: 'offline-m4-lifecycle-tracker',
+        nowMs: () => ++clock,
+        monotonicMs: () => ++clock,
+    });
+    lifecycle.attach(bot);
+    bot.emit('spawn');
+    bot.health = 0;
+    bot.emit('death');
+    bot.health = 20;
+    bot.emit('spawn');
     const reset = createBenchmarkResetHandler(
-        () => ({ bot, botReady: true }),
+        () => ({ bot, botReady: true, playerLifecycleTracker: lifecycle }),
         async () => {},
         runtime,
     );
@@ -101,6 +121,12 @@ async function testM4ResetUsesNaturalSurvivalStateWithoutFixtures() {
     assert.strictEqual(result.after_state.food_saturation, 5);
     assert.strictEqual(result.checks.saturation, true);
     assert.strictEqual(result.checks.fixture, true);
+    assert.strictEqual(result.checks.player_lifecycle_baseline, true);
+    assert.strictEqual(result.player_lifecycle.baseline_death_count_total, 1);
+    assert.strictEqual(result.player_lifecycle.baseline_respawn_count_total, 1);
+    assert.strictEqual(result.player_lifecycle.death_count, 0);
+    assert.strictEqual(result.player_lifecycle.respawn_count, 0);
+    assert.strictEqual(result.player_lifecycle.uninterrupted, true);
     assert.deepStrictEqual(result.gamerules, M4_PROTOCOL.gamerules);
     assert(commands.includes('/effect clear @s'));
     assert(commands.includes('/gamerule doDaylightCycle true'));
@@ -108,7 +134,40 @@ async function testM4ResetUsesNaturalSurvivalStateWithoutFixtures() {
     assert(!commands.some(command => command.startsWith('/give ')));
     assert(!commands.some(command => command.includes('minecraft:saturation')));
     assert.strictEqual(result.structure_baseline.blocks, undefined);
+    bot.health = 0;
+    bot.emit('death');
+    let active = lifecycle.snapshot();
+    assert.strictEqual(active.death_count, 1);
+    assert.strictEqual(active.respawn_count, 0);
+    assert.strictEqual(active.pending_respawn_count, 1);
+    assert.strictEqual(active.uninterrupted, false);
+    bot.health = 20;
+    bot.emit('spawn');
+    active = lifecycle.snapshot();
+    assert.strictEqual(active.death_count, 1);
+    assert.strictEqual(active.respawn_count, 1);
+    assert.strictEqual(active.pending_respawn_count, 0);
+    assert.strictEqual(active.last_death.kind, 'death');
+    assert.strictEqual(active.last_respawn.kind, 'respawn');
     console.log('PASS: M4 reset proves empty natural survival state without fixtures or granted items');
+}
+
+async function testM4ResetRejectsLifecycleWithoutInitialMineflayerSpawn() {
+    const { bot } = createM4Bot();
+    const lifecycle = createM4PlayerLifecycleTracker({ trackerId: 'missing-spawn-tracker' });
+    lifecycle.attach(bot);
+    const reset = createBenchmarkResetHandler(
+        () => ({ bot, botReady: true, playerLifecycleTracker: lifecycle }),
+        async () => {},
+        runtime,
+    );
+
+    const result = await reset({ task_id: 'BM-011' });
+
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.checks.player_lifecycle_baseline, false);
+    assert(result.failed_checks.includes('player_lifecycle_baseline'));
+    console.log('PASS: M4 reset fails closed without an observed Mineflayer spawn baseline');
 }
 
 function positionKey(position) {
@@ -238,6 +297,7 @@ async function testM4BoundedSealedCellBuildReturnsNineObservedDeltas() {
 async function main() {
     await testM4ProtocolStatusPinsAutonomousRuntime();
     await testM4ResetUsesNaturalSurvivalStateWithoutFixtures();
+    await testM4ResetRejectsLifecycleWithoutInitialMineflayerSpawn();
     await testM4ShelterSnapshotReturnsCompleteBoundedMachineState();
     await testM4PlaceHandlerReturnsObservedCoordinateDelta();
     await testM4BoundedSealedCellBuildReturnsNineObservedDeltas();

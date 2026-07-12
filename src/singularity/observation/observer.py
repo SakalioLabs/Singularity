@@ -29,6 +29,9 @@ class Observer:
             "yaw": player.get("yaw", 0),
             "pitch": player.get("pitch", 0),
         })
+        lifecycle = player.get("playerLifecycle")
+        if isinstance(lifecycle, dict):
+            obs["player_lifecycle"] = dict(lifecycle)
         inventory = self.bot.get_inventory()
         obs["inventory"] = self._summarize_inventory(inventory)
         obs["inventory_count"] = len(inventory)
@@ -48,6 +51,11 @@ class Observer:
             obs["biome"] = self.bot.get_biome()
             obs["light_level"] = self.bot.get_light_level()
             obs["visible_dangers"] = self._identify_dangers(obs.get("nearby_entities", []))
+        get_lifecycle = getattr(self.bot, "get_player_lifecycle", None)
+        if callable(get_lifecycle):
+            lifecycle = get_lifecycle()
+            if isinstance(lifecycle, dict) and lifecycle.get("baseline_established") is True:
+                obs["player_lifecycle"] = dict(lifecycle)
         return obs
 
     def _summarize_inventory(self, inventory: list) -> dict:

@@ -70,6 +70,7 @@ def build_m4_preflight(
         "goal_verifier": str(status.get("verifier_id") or ""),
         "runtime_interrupt": str(status.get("runtime_interrupt_id") or ""),
         "skill_runtime_profile": str(status.get("skill_runtime_profile_id") or ""),
+        "player_lifecycle_verifier": str(status.get("player_lifecycle_verifier_id") or ""),
     }
     source_checks = {
         "status_profile": status.get("profile") == PROTOCOL["profile"],
@@ -78,6 +79,9 @@ def build_m4_preflight(
         "status_level": str(status.get("level_name") or "") == str(level_name or ""),
         "status_seed": str(status.get("seed") or "") == PROTOCOL["world_seed"],
         "status_server_jar": status.get("server_jar_sha256") == PROTOCOL["server_jar_sha256"],
+        "status_player_lifecycle_supported": status.get("player_lifecycle_supported") is True,
+        "status_player_lifecycle_source": status.get("player_lifecycle_source")
+        == PROTOCOL["validation_contract"]["survival"]["player_lifecycle_source"],
         "reset_profile": reset.get("profile") == PROTOCOL["profile"],
         "reset_protocol": reset.get("protocol_sha256") == PROTOCOL_SHA256,
         "reset_contract": reset.get("reset_protocol_sha256") == PROTOCOL["reset_protocol_sha256"],
@@ -87,6 +91,13 @@ def build_m4_preflight(
         "reset_level": str(reset.get("level_name") or "") == str(level_name or ""),
         "reset_seed": str(reset.get("seed") or "") == PROTOCOL["world_seed"],
         "reset_server_jar": reset.get("server_jar_sha256") == PROTOCOL["server_jar_sha256"],
+        "reset_player_lifecycle": isinstance(reset.get("player_lifecycle"), dict)
+        and reset["player_lifecycle"].get("baseline_established") is True
+        and reset["player_lifecycle"].get("episode_id") == str(episode_id or "")
+        and reset["player_lifecycle"].get("protocol_sha256") == PROTOCOL_SHA256
+        and reset["player_lifecycle"].get("death_count") == 0
+        and reset["player_lifecycle"].get("respawn_count") == 0
+        and reset["player_lifecycle"].get("uninterrupted") is True,
     }
     preliminary_pass = bool(
         status.get("success") is True
@@ -120,6 +131,7 @@ def build_m4_preflight(
         "llm": dict(status.get("llm", {}) or {}),
         "identities": identities,
         "runtime_controls": dict(status.get("runtime_controls", {}) or {}),
+        "player_lifecycle_baseline": dict(reset.get("player_lifecycle", {}) or {}),
         "episode_id": str(episode_id or ""),
         "level_name": str(level_name or ""),
         "reset_evidence_sha256": canonical_sha256(reset),

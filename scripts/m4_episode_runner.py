@@ -204,6 +204,7 @@ def run_episode(args, output_dir: Path, preflight: dict):
         "inventory": terminal_observation.get("inventory", {}),
         "nearby_blocks": terminal_observation.get("nearby_blocks", []),
         "nearby_entities": terminal_observation.get("nearby_entities", []),
+        "player_lifecycle": terminal_observation.get("player_lifecycle", {}),
         "bot_connected": bot_connected,
     }
     result = {

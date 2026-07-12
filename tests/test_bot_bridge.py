@@ -103,10 +103,12 @@ def test_benchmark_protocol_commands_are_fixed_and_typed():
     bridge = RecordingBridge()
     bridge.benchmark_protocol()
     bridge.reset_benchmark("BM-001")
+    bridge.get_player_lifecycle()
 
     assert bridge.calls == [
         ("benchmark_protocol", {}),
         ("benchmark_reset", {"task_id": "BM-001"}),
+        ("get_player_lifecycle", {}),
     ]
     print("PASS: BotBridge exposes fixed M1 protocol and allowlisted task reset commands")
 

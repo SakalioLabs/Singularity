@@ -27,6 +27,15 @@ class FakeBot:
     def get_inventory(self):
         return [{"name": "oak_log", "count": 3}]
 
+    def get_player_lifecycle(self):
+        return {
+            "baseline_established": True,
+            "source": "mineflayer_events",
+            "death_count": 0,
+            "respawn_count": 0,
+            "uninterrupted": True,
+        }
+
 
 def test_observer_preserves_restoration_critical_player_state():
     observation = Observer(FakeBot()).observe(mode="minimal")
@@ -40,6 +49,8 @@ def test_observer_preserves_restoration_critical_player_state():
     assert observation["selected_slot"] == 2
     assert observation["equipment"][0]["name"] == "wooden_pickaxe"
     assert observation["inventory"] == {"oak_log": 3}
+    assert observation["player_lifecycle"]["source"] == "mineflayer_events"
+    assert observation["player_lifecycle"]["death_count"] == 0
     print("PASS: Observer preserves restoration-critical player state")
 
 

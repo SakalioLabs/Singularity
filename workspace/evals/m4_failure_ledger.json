@@ -1,12 +1,24 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-12T16:46:31.6855140Z",
+  "generated_at": "2026-07-12T17:20:02.9923794Z",
   "profile": "m4-fixed-v1",
-  "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "current_task_id": "BM-011",
   "eligible_success_count": 0,
   "required_success_count": 3,
+  "live_episode_count_under_current_protocol": 0,
+  "current_gate": {
+    "hypothesis": "terminal_survival_death_continuity",
+    "status": "passed_offline_player_lifecycle_v1",
+    "verifier_id": "m4-player-lifecycle-verifier-v1",
+    "source": "mineflayer_events",
+    "probe_14_false_positive_fixture_rejected": true,
+    "full_python_regression": 684,
+    "node_suite_file_count": 6,
+    "live_episode_count_under_current_protocol": 0,
+    "next_authorized_episode": "Probe 15"
+  },
   "entries": [
     {
       "task_id": "BM-011",

@@ -20,9 +20,55 @@ from singularity.evaluation.m4_shelter import (
     M4ShelterVerifier,
     is_machine_verified_shelter,
 )
+from singularity.evaluation.m4_protocol import PROTOCOL, PROTOCOL_SHA256
 
 
 CELL = {"x": 0, "y": 64, "z": 0}
+
+
+def _lifecycle(death_count=0, respawn_count=0):
+    return {
+        "type": "m4_player_lifecycle",
+        "schema_version": 1,
+        "verifier_id": PROTOCOL["identities"]["player_lifecycle_verifier"],
+        "source": "mineflayer_events",
+        "profile": PROTOCOL["profile"],
+        "protocol_sha256": PROTOCOL_SHA256,
+        "tracker_id": "m4-shelter-fixture-tracker",
+        "episode_id": "m4-shelter-fixture-episode",
+        "level_name": "m4-shelter-fixture-episode_bm011",
+        "baseline_id": "c" * 64,
+        "baseline_established": True,
+        "initial_spawn_observed": True,
+        "baseline_death_count_total": 0,
+        "baseline_respawn_count_total": 0,
+        "baseline_spawn_count_total": 1,
+        "baseline_observed_at_ms": 1700000000000,
+        "baseline_bridge_monotonic_ms": 1000,
+        "death_count_total": death_count,
+        "respawn_count_total": respawn_count,
+        "spawn_count_total": 1 + respawn_count,
+        "death_count": death_count,
+        "respawn_count": respawn_count,
+        "spawn_count": respawn_count,
+        "pending_respawn_count": death_count - respawn_count,
+        "uninterrupted": death_count == 0 and respawn_count == 0,
+        "last_death": None if not death_count else {
+            "kind": "death",
+            "event_sequence": 2,
+            "observed_at_ms": 1700000001000,
+            "bridge_monotonic_ms": 1100,
+            "death_count_total": death_count,
+        },
+        "last_respawn": None if not respawn_count else {
+            "kind": "respawn",
+            "event_sequence": 3,
+            "observed_at_ms": 1700000002000,
+            "bridge_monotonic_ms": 1200,
+            "respawn_count_total": respawn_count,
+            "spawn_count_total": 1 + respawn_count,
+        },
+    }
 
 
 def _key(position):
@@ -237,6 +283,7 @@ class _Observer:
             "position": {"x": 0.5, "y": 64.0, "z": 0.5},
             "time_of_day": 15000,
             "inventory": {},
+            "player_lifecycle": _lifecycle(),
         }
 
 
@@ -248,6 +295,9 @@ class _Bot:
     def get_shelter_state(self):
         self.calls += 1
         return copy.deepcopy(self.snapshot)
+
+    def get_player_lifecycle(self):
+        return _lifecycle()
 
 
 class _SessionLogger:
@@ -285,8 +335,39 @@ def test_g3_agent_tracks_place_delta_and_attaches_transition_evidence():
     assert second["shelter_verification"]["passed"] is True
     assert len(agent._m4_episode_block_delta["placed"]) == 9
     assert agent.bot.calls == 2
-    assert [event["type"] for event in agent.session_logger.events] == ["shelter_state_verification"]
+    assert [event["type"] for event in agent.session_logger.events] == [
+        "m4_player_lifecycle",
+        "shelter_state_verification",
+    ]
     print("PASS: Agent binds verified place results to bounded machine-state transition evidence")
+
+
+def test_g0_agent_logs_lifecycle_baseline_and_death_transition_once():
+    agent = object.__new__(Agent)
+    agent.config = SimpleNamespace(planner_protocol="m4-fixed-v1")
+    agent.session_logger = _SessionLogger()
+
+    baseline = {"player_lifecycle": _lifecycle()}
+    died = {"player_lifecycle": _lifecycle(death_count=1, respawn_count=1)}
+    agent._record_m4_player_lifecycle(baseline)
+    agent._record_m4_player_lifecycle(baseline)
+    agent._record_m4_player_lifecycle(died)
+    agent._record_m4_player_lifecycle(died)
+    replaced = copy.deepcopy(baseline)
+    replaced["player_lifecycle"]["baseline_id"] = "d" * 64
+    agent._record_m4_player_lifecycle(replaced)
+
+    events = [event for event in agent.session_logger.events if event["type"] == "m4_player_lifecycle"]
+    assert len(events) == 3
+    assert events[0]["data"]["death_count"] == 0
+    assert events[0]["data"]["validation_passed"] is True
+    assert events[1]["data"]["death_count"] == 1
+    assert events[1]["data"]["respawn_count"] == 1
+    assert events[1]["data"]["uninterrupted"] is False
+    assert events[1]["data"]["validation_passed"] is True
+    assert events[2]["data"]["validation_passed"] is False
+    assert "baseline_identity_changed" in events[2]["data"]["validation_issues"]
+    print("PASS: Agent emits one canonical lifecycle event per baseline or death-count transition")
 
 
 def test_g3_report_contract_rejects_missing_required_check():
@@ -441,11 +522,13 @@ def test_g5_terminal_survival_verification_requires_machine_dawn_state():
     agent = object.__new__(Agent)
     agent.config = SimpleNamespace(planner_protocol="m4-fixed-v1")
     agent.bot = SimpleNamespace(_connected=True)
+    agent._m4_player_lifecycle_identity = agent._m4_lifecycle_identity(_lifecycle())
     dawn_state = {
         "time_of_day": 23000,
         "health": 18,
         "hunger": 17,
         "shelter_verification": report,
+        "player_lifecycle": _lifecycle(),
     }
 
     verification = agent._m4_terminal_survival_verification(
@@ -459,6 +542,8 @@ def test_g5_terminal_survival_verification_requires_machine_dawn_state():
     assert verification["health"] == 18
     assert verification["food"] == 17
     assert verification["bot_connected"] is True
+    assert verification["uninterrupted_survival"] is True
+    assert verification["player_lifecycle"]["death_count"] == 0
     assert verification["shelter_verifier_id"] == M4_SHELTER_VERIFIER_ID
     assert verification["shelter_contract_sha256"] == M4_SHELTER_CONTRACT_SHA256
 
@@ -466,6 +551,23 @@ def test_g5_terminal_survival_verification_requires_machine_dawn_state():
         "Remain in verified shelter until dawn",
         dict(dawn_state, time_of_day=13943),
     ) == {}
+    agent.bot._connected = True
+    dead_state = dict(
+        dawn_state,
+        health=20,
+        player_lifecycle=_lifecycle(death_count=1, respawn_count=1),
+    )
+    assert agent._m4_terminal_survival_verification(
+        "Remain in verified shelter until dawn",
+        dead_state,
+    ) == {}
+    replaced_baseline = copy.deepcopy(dawn_state)
+    replaced_baseline["player_lifecycle"]["baseline_id"] = "d" * 64
+    assert agent._m4_terminal_survival_verification(
+        "Remain in verified shelter until dawn",
+        replaced_baseline,
+    ) == {}
+    print("PASS: terminal survival cannot be restored by health 20 after death and respawn")
     assert agent._m4_terminal_survival_verification(
         "Remain in verified shelter until dawn",
         dict(dawn_state, time_of_day=float("inf")),

@@ -60,6 +60,7 @@ from singularity.evaluation.mixed_initiative import (
     apply_mixed_initiative_policy_patch,
 )
 from singularity.evaluation.m4_shelter import M4ShelterVerifier, is_machine_verified_shelter
+from singularity.evaluation.m4_protocol import validate_m4_player_lifecycle
 from singularity.logging.session_logger import SessionLogger
 from singularity.vision.analyzer import VisionAnalyzer
 from singularity.vision.action_advisor import VisualActionAdvisor
@@ -242,6 +243,8 @@ class Agent:
         self._m4_episode_block_delta = {"placed": {}, "removed": {}}
         self._m4_shelter_verification_fingerprint = ""
         self._m4_hostile_safe_state_fingerprint = ""
+        self._m4_player_lifecycle_fingerprint = ""
+        self._m4_player_lifecycle_identity = ()
         self._active_runtime_interrupt: dict = {}
         self._runtime_interrupt_sequence = 0
         self._last_runtime_interrupt_yield = ""
@@ -1938,6 +1941,8 @@ class Agent:
             self._m4_episode_block_delta = {"placed": {}, "removed": {}}
             self._m4_shelter_verification_fingerprint = ""
             self._m4_hostile_safe_state_fingerprint = ""
+            self._m4_player_lifecycle_fingerprint = ""
+            self._m4_player_lifecycle_identity = ()
             self._active_runtime_interrupt = {}
             self._runtime_interrupt_sequence = 0
             self._last_runtime_interrupt_yield = ""
@@ -2571,6 +2576,25 @@ class Agent:
         bot_connected = bool(getattr(getattr(self, "bot", None), "_connected", False))
         shelter = state.get("shelter_verification", {})
         shelter = shelter if isinstance(shelter, dict) else {}
+        lifecycle = state.get("player_lifecycle", {})
+        get_lifecycle = getattr(getattr(self, "bot", None), "get_player_lifecycle", None)
+        if callable(get_lifecycle):
+            try:
+                current_lifecycle = get_lifecycle()
+                if isinstance(current_lifecycle, dict):
+                    lifecycle = current_lifecycle
+            except Exception:
+                lifecycle = {}
+        lifecycle = lifecycle if isinstance(lifecycle, dict) else {}
+        lifecycle_report = validate_m4_player_lifecycle(
+            lifecycle,
+            episode_id=str(lifecycle.get("episode_id") or ""),
+            require_uninterrupted=True,
+        )
+        lifecycle_identity = self._m4_lifecycle_identity(lifecycle)
+        expected_lifecycle_identity = tuple(
+            getattr(self, "_m4_player_lifecycle_identity", ()) or ()
+        )
 
         passed = bool(
             time_valid
@@ -2578,6 +2602,9 @@ class Agent:
             and health_valid
             and bot_connected
             and is_machine_verified_shelter(shelter)
+            and lifecycle_report["passed"]
+            and expected_lifecycle_identity
+            and lifecycle_identity == expected_lifecycle_identity
         )
         if not passed:
             return {}
@@ -2591,6 +2618,9 @@ class Agent:
             "health": health,
             "food": state.get("hunger"),
             "bot_connected": True,
+            "uninterrupted_survival": True,
+            "player_lifecycle_verifier_id": lifecycle.get("verifier_id", ""),
+            "player_lifecycle": dict(lifecycle),
             "shelter_verifier_id": shelter.get("verifier_id", ""),
             "shelter_contract_sha256": shelter.get("contract_sha256", ""),
         }
@@ -6542,9 +6572,69 @@ class Agent:
                 parts.extend(task.opportunity_triggers)
         return " ".join(str(part) for part in parts if part)
 
+    @staticmethod
+    def _m4_lifecycle_identity(lifecycle: dict) -> tuple:
+        value = lifecycle if isinstance(lifecycle, dict) else {}
+        fields = (
+            "tracker_id",
+            "episode_id",
+            "level_name",
+            "protocol_sha256",
+            "baseline_id",
+        )
+        identity = tuple(value.get(name) for name in fields)
+        return identity if all(item is not None and item != "" for item in identity) else ()
+
+    def _record_m4_player_lifecycle(self, observation: dict):
+        if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
+            return
+        lifecycle = observation.get("player_lifecycle") if isinstance(observation, dict) else None
+        lifecycle = lifecycle if isinstance(lifecycle, dict) else {}
+        report = validate_m4_player_lifecycle(
+            lifecycle,
+            episode_id=str(lifecycle.get("episode_id") or ""),
+            require_uninterrupted=False,
+        )
+        identity = self._m4_lifecycle_identity(lifecycle)
+        expected_identity = tuple(getattr(self, "_m4_player_lifecycle_identity", ()) or ())
+        if report["passed"] and identity and not expected_identity:
+            self._m4_player_lifecycle_identity = identity
+        elif report["passed"] and identity != expected_identity:
+            report = dict(report)
+            report["passed"] = False
+            report["issues"] = list(report["issues"]) + ["baseline_identity_changed"]
+        fingerprint_payload = {
+            "lifecycle": lifecycle,
+            "validation_passed": report["passed"],
+            "validation_issues": report["issues"],
+        }
+        fingerprint = hashlib.sha256(
+            json.dumps(
+                fingerprint_payload,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=True,
+                default=str,
+            ).encode("utf-8")
+        ).hexdigest()
+        if fingerprint == str(getattr(self, "_m4_player_lifecycle_fingerprint", "") or ""):
+            return
+        self._m4_player_lifecycle_fingerprint = fingerprint
+        payload = dict(lifecycle) if lifecycle else {
+            "type": "m4_player_lifecycle",
+            "schema_version": 1,
+        }
+        payload.update({
+            "validation_passed": report["passed"],
+            "validation_issues": list(report["issues"]),
+            "lifecycle_state_fingerprint": fingerprint,
+        })
+        self.session_logger.log("m4_player_lifecycle", payload)
+
     def _observe(self) -> dict:
         """Observe world state and attach lightweight visual grounding when enabled."""
         observation = self.observer.observe()
+        self._record_m4_player_lifecycle(observation)
         observation = self._attach_m4_shelter_verification(observation)
         benchmark_context = getattr(self, "_m2_benchmark_context", {})
         if isinstance(benchmark_context, dict) and benchmark_context:

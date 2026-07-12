@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T16:46:31.6855140Z",
+  "generated_at": "2026-07-12T17:20:02.9923794Z",
   "profile": "m4-fixed-v1",
-  "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "readiness": "approved",
-  "decision": "probe_14_immediate_threat_selected_but_aligned_flee_planning_did_not_prevent_deaths",
+  "decision": "priority_contract_unchanged_player_lifecycle_gate_ready_for_probe_15",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -44,12 +44,14 @@
     "wait_ms": 15000,
     "pending_goal_consumes_new_slot": false,
     "missing_time_fails_closed": true,
-    "full_python_regression": 679,
+    "full_python_regression": 684,
     "node_suite_count": 6
   },
   "live_episode_count": 14,
+  "live_episode_count_under_current_protocol": 0,
   "latest_live_episode": {
     "episode_id": "m4_episode_20260713_002858_94ea560e",
+    "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
     "autonomous_goal_count": 6,
     "selection_source": "goal_generator",
     "selection_reason": "wood_reserve_below_target;curriculum_retained_fallback",
