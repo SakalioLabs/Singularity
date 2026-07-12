@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T21:24:35.0394138Z",
+  "generated_at": "2026-07-12T21:46:46.4828647Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "offline_shelter_atomicity_gate_passed",
-  "decision": "probe_16_interrupt_evidence_remains_rejected_and_probe_17_atomic_recovery_is_authorized",
+  "readiness": "probe_17_eligible_interrupt_continuity_passed",
+  "decision": "probe_17_dusk_and_deadline_interrupts_recovered_bm011_2_of_3",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -120,12 +120,36 @@
     "recovery_state_source": "atomic_build_failure",
     "planner_action": "move_to",
     "bounded_relocation_radius": 6,
-    "live_episode_run": false,
-    "next_authorized_episode": "probe_17_exactly_one"
+    "live_episode_run": true,
+    "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
+    "scheduled_recovery_count": 1,
+    "completed_recovery_count": 1,
+    "next_authorized_episode": "locked_probe_17_consumed_current_round"
   },
-  "live_episode_count": 16,
-  "live_episode_count_under_current_protocol": 2,
+  "live_episode_count": 17,
+  "live_episode_count_under_current_protocol": 3,
   "latest_live_observation": {
+    "episode_id": "m4_episode_20260713_053155_0f5a150e",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "verified_g4_case": "dusk_shelter_interrupt_and_recovery",
+    "runtime_interrupt_count": 4,
+    "runtime_interrupt_unique_trigger_count": 4,
+    "recovery_event_count": 4,
+    "interrupt_reason_counts": {
+      "dusk_shelter_required": 1,
+      "task_deadline_elapsed": 3
+    },
+    "hostile_emergency_action_count": 0,
+    "server_observed_death_count": 0,
+    "verified_shelter_first_world_time": 11345,
+    "verified_shelter_preserved_through_dawn": true,
+    "verified_shelter_lost_after_dawn": false,
+    "safe_state_grounding_event_count": 0,
+    "runner_reported_eligible": true,
+    "independently_accepted_eligible": true,
+    "live_g4_accepted": true
+  },
+  "probe_16_live_observation": {
     "episode_id": "m4_episode_20260713_015708_c2d96dd3",
     "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
     "verified_g4_case": null,

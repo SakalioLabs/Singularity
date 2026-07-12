@@ -1,0 +1,144 @@
+{
+  "success": true,
+  "error": "",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "reset_protocol_sha256": "0df412101c5c01bf89b32e26d2d9beead7f9b64d10ba5de714caab51b1b63e52",
+  "validation_protocol_sha256": "bd2e7466d18d72927c7ca84a11736597a05eab5adf4b788627fe9377542d1e02",
+  "episode_id": "m4_episode_20260713_053155_0f5a150e",
+  "level_name": "m4_episode_20260713_053155_0f5a150e_bm011",
+  "seed": "12345",
+  "server_brand": "Paper",
+  "observed_minecraft_version": "1.20.4",
+  "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+  "task_id": "BM-011",
+  "expected": {
+    "initial_inventory": {},
+    "game_mode": "survival",
+    "difficulty": "normal",
+    "time_of_day": 9000,
+    "weather": "clear",
+    "gamerules": {
+      "doDaylightCycle": true,
+      "doMobSpawning": true,
+      "doWeatherCycle": false,
+      "keepInventory": false,
+      "naturalRegeneration": true
+    }
+  },
+  "before_state": {
+    "position": {
+      "x": 87.5,
+      "y": 136,
+      "z": -24.5
+    },
+    "spawn_position": {
+      "x": 96,
+      "y": 144,
+      "z": -32
+    },
+    "health": 20,
+    "food": 20,
+    "food_saturation": 5,
+    "inventory": {},
+    "game_mode": "survival",
+    "difficulty": "normal",
+    "dimension": "overworld",
+    "time_of_day": 37,
+    "weather": "clear",
+    "fixture": {
+      "position": {
+        "x": 97,
+        "y": 144,
+        "z": -32
+      },
+      "block": "air"
+    },
+    "fixture_blocks": []
+  },
+  "after_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "spawn_position": {
+      "x": 96,
+      "y": 144,
+      "z": -32
+    },
+    "health": 20,
+    "food": 20,
+    "food_saturation": 5,
+    "inventory": {},
+    "game_mode": "survival",
+    "difficulty": "normal",
+    "dimension": "overworld",
+    "time_of_day": 9065,
+    "weather": "clear",
+    "fixture": {
+      "position": {
+        "x": 97,
+        "y": 144,
+        "z": -32
+      },
+      "block": "air"
+    },
+    "fixture_blocks": []
+  },
+  "structure_baseline": {},
+  "player_lifecycle": {
+    "type": "m4_player_lifecycle",
+    "schema_version": 1,
+    "verifier_id": "m4-player-lifecycle-verifier-v1",
+    "source": "mineflayer_events",
+    "profile": "m4-fixed-v1",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "tracker_id": "c1271e5a-e9b3-4ac0-b3ae-da3f73be8a29",
+    "episode_id": "m4_episode_20260713_053155_0f5a150e",
+    "level_name": "m4_episode_20260713_053155_0f5a150e_bm011",
+    "baseline_id": "bba555f7bde48f706b808b6c3206b3855b197245c0e9458636cf7deebe6cb7b2",
+    "baseline_established": true,
+    "initial_spawn_observed": true,
+    "baseline_death_count_total": 0,
+    "baseline_respawn_count_total": 0,
+    "baseline_spawn_count_total": 1,
+    "baseline_observed_at_ms": 1783891943441,
+    "baseline_bridge_monotonic_ms": 33990095,
+    "death_count_total": 0,
+    "respawn_count_total": 0,
+    "spawn_count_total": 1,
+    "death_count": 0,
+    "respawn_count": 0,
+    "spawn_count": 0,
+    "pending_respawn_count": 0,
+    "uninterrupted": true,
+    "last_death": null,
+    "last_respawn": null
+  },
+  "checks": {
+    "inventory_exact": true,
+    "position_at_spawn": true,
+    "position_distance": 0.707,
+    "game_mode": true,
+    "difficulty": true,
+    "dimension": true,
+    "daytime": true,
+    "time_initialized": true,
+    "weather": true,
+    "health": true,
+    "food": true,
+    "saturation": true,
+    "fixture": true,
+    "player_lifecycle_baseline": true
+  },
+  "failed_checks": [],
+  "command_count": 13,
+  "gamerules": {
+    "doDaylightCycle": true,
+    "doMobSpawning": true,
+    "doWeatherCycle": false,
+    "keepInventory": false,
+    "naturalRegeneration": true
+  }
+}

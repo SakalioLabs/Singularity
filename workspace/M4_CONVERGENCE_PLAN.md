@@ -5,7 +5,7 @@
 - Protocol: `m4-fixed-v1`
 - Protocol SHA-256: `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`
 - Current target: BM-011 Survive the first night
-- Eligible successes: 1/3
+- Eligible successes: 2/3
 - M4 canonical status: `not_run`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
@@ -21,13 +21,13 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 
 | Gate | Requirement | State |
 |---|---|---|
-| G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed_probe_16_death_rejection |
+| G0 | Fixed protocol, fresh episode, natural time, one absolute deadline, independent eligibility | passed_probe_17_zero_death_acceptance |
 | G1 | Deterministic survival-goal priority cases | passed |
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
-| G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline_atomicity_recovery |
+| G3 | Machine-checkable shelter or approved natural safe-state verification | passed_live_probe_17_atomicity_recovery |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | passed_probe_15 |
-| G6 | Three independent fresh eligible episodes | probe_17_authorized_1_of_3 |
+| G5 | First eligible survival-to-dawn episode | passed_probes_15_and_17 |
+| G6 | Three independent fresh eligible episodes | probe_17_passed_2_of_3 |
 
 G0 passes both sides of live validation. Probe 15 exercised the zero-transition path across 84 active observations and reached an independently eligible terminal state 492.703 seconds before the deadline. Probe 16 exercised the rejection path: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -79,7 +79,7 @@ Probe 14 produced a runner-reported eligible terminal state, but independent aud
 
 The fixed-code Probe 16 replication failed, leaving BM-011 at 1/3. Runner reported a later `empty_plan` at event 682 after one real Planner response contained an invalid control character, but independent causal ordering finds an earlier irreversible transition at action event 217 / monotonic 21178.031 / world time 10701. `build_shelter_cell` started with 16 oak planks at origin `(93,136,-36)`, placed two blocks, then returned `no grounded neighbor exists` while leaving those placements and reducing inventory to 14. Nine same-origin partial failures consumed or stranded enough material to reach nine planks, followed by fourteen same-goal material-threshold rejections before the malformed Planner output. No movement or alternate origin occurred inside that shelter root.
 
-The current single hypothesis remains `bounded_shelter_partial_failure_atomicity`: a failed bounded shelter attempt must not leave partial final placements or consume the reserve needed for the next complete attempt, and the strict-M4 recovery path must select a grounded relocation before repeating the template. The offline backend/Agent gate now passes without changing the protocol, success threshold, or M1/M2 behavior. Exactly one fresh Probe 17 is authorized; BM-011 remains 1/3 until independent live evidence passes.
+The `bounded_shelter_partial_failure_atomicity` hypothesis passed live in Probe 17. At action event 301 the original shelter origin failed mutation-free preflight with `placed_count=0` and oak planks unchanged at 16. Recovery event 297 scheduled the bounded relocation from `(90,133,-38)` to `(88,131,-38)`; the next grounded plan contained exactly one canonical `move_to`, event 318 completed the move, and the second bounded build placed all 9/9 final blocks. The machine verifier passed at world time 11345 and remained valid through terminal world time 23125. BM-011 advances to 2/3. Probe 17 consumed this round's only live episode, so no Probe 18 is authorized in this round.
 
 ## G5 Preflight: Bounded Shelter Partial-Failure Atomicity
 
@@ -93,7 +93,8 @@ The current single hypothesis remains `bounded_shelter_partial_failure_atomicity
 - Offline tests: `tests/test_bot_server_m4_protocol.js` has 8/8 M4 cases and `tests/test_m4_shelter.py` has 18/18 cases, including exact Probe 16 geometry, rollback success/failure, bounded-output rejection, and relocation-before-retry
 - Regression: 685 Python tests and 35 internal PASS cases across all six fixed Node suites pass; syntax compilation and `git diff --check` also pass
 - Protocol integrity: `m4-fixed-v1` SHA-256 remains `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`; reset and validation contract hashes remain unchanged
-- Live authorization: exactly one fresh Probe 17 under the exact fixed profile is unlocked; no other live episode is authorized in this round
+- Live result: Probe 17 exercised the mutation-free rejection, bounded relocation, canonical move, complete retry, 9/9 verification, and eligible dawn terminal path
+- Live authorization: Probe 17 consumed this round's single episode; no Probe 18 is authorized in this round
 
 ## G0 Offline Evidence: Active-Episode Death Continuity
 
@@ -110,8 +111,8 @@ The current single hypothesis remains `bounded_shelter_partial_failure_atomicity
 - Protocol boundary: strict M4 only; M1/M2 fixed task semantics and evidence remain unchanged
 - Offline regression: 685 Python tests and all six fixed Node suites pass; M4 bridge reset also rejects a missing initial-spawn baseline
 - Protocol integrity: current SHA-256 `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`, reset contract `0df412101c5c01bf89b32e26d2d9beead7f9b64d10ba5de714caab51b1b63e52`, validation contract `bd2e7466d18d72927c7ca84a11736597a05eab5adf4b788627fe9377542d1e02`
-- Live validation: Probe 15 passed the uninterrupted path; Probe 16 recorded six valid death/respawn transitions matching Paper, blocked terminalization after later respawns and shelter verification, and rejected the subsequent missing lifecycle snapshot
-- Live authorization: the shelter atomicity gate now passes offline; exactly one fresh Probe 17 is authorized
+- Live validation: Probes 15 and 17 passed the uninterrupted zero-death path; Probe 16 recorded six valid death/respawn transitions matching Paper, blocked terminalization after later respawns and shelter verification, and rejected the subsequent missing lifecycle snapshot
+- Live authorization: Probe 17 consumed this round's single episode; no Probe 18 is authorized in this round
 
 ## G5 Preflight: Verified Shelter Hostile Safe-State Grounding
 
@@ -126,7 +127,7 @@ The current single hypothesis remains `bounded_shelter_partial_failure_atomicity
 - Regression: 679 Python tests and all six fixed Node suites pass; Python compilation and repository checks remain required before commit
 - Protocol integrity: `m4-fixed-v1` SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
 - Live result: Probe 14 reached and preserved a verified shelter through dawn, but no hostile was within the verified safe state; `m4_hostile_safe_state_grounding` count was zero, so the prior failure did not recur and the new branch was not exercised live
-- Next live authorization: superseded by the passing bounded-shelter atomicity gate above; exactly one Probe 17 is authorized
+- Next live authorization: Probe 17 consumed this round's single episode; no Probe 18 is authorized in this round
 
 ## G5 Preflight: Planner Transport Next-Cycle Recovery
 
@@ -253,9 +254,30 @@ The current single hypothesis remains `bounded_shelter_partial_failure_atomicity
 - Runtime wiring: Agent records observed `place`, `dig`, and bounded-template deltas, attaches the report to every strict-M4 observation, logs only state changes, and sends a compact decision to Planner
 - Acceptance wiring: GoalGenerator and GoalVerifier require the pinned verifier ID, contract hash, all checks, empty issues, 9/9 placement attribution, and sealed coordinate evidence
 - Offline tests: `tests/test_m4_shelter.py` and `tests/test_bot_server_m4_protocol.js`
-- Live evidence: Probe 15 built and preserved the complete sealed cell through eligible dawn. Probe 16's first shelter root produced nine partial `no grounded neighbor` failures and exhausted its complete-build reserve; a later emergency root eventually passed 9/9 at world time 20301, but only after six deaths, and the shelter was lost after dawn before a bridge timeout.
+- Live evidence: Probes 15 and 17 built and preserved complete sealed cells through eligible dawn. Probe 17 additionally exercised mutation-free rejection and deterministic relocation before its successful 9/9 retry. Probe 16 remains the rejected counterexample whose first shelter root produced nine partial failures and exhausted its complete-build reserve.
 
 ## G2 Live Evidence
+
+### Probe 17: Atomic Relocation Passed Live; Second Eligible BM-011 Success
+
+- Episode: `m4_episode_20260713_053155_0f5a150e`
+- Session: `0040d0d4-ecf`
+- Preflight: passed on a fresh level under unchanged protocol `378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d`
+- G2: passed; pre-dusk inventory gained `oak_log:3` and `dark_oak_sapling:1` from world time 9165
+- BM-011 eligible: true; all 66 independent checks passed and accepted eligible successes advance to 2/3
+- Atomic failure: action event 301 / monotonic 34085.812 / world time 10985 rejected origin `(90,133,-38)` before mutation, with zero placements and oak planks preserved at 16
+- Relocation: event 297 scheduled `(88,131,-38)` within radius six, the next shelter grounding emitted only `move_to(88.5,131,-37.5)`, and event 318 completed it successfully
+- Shelter retry: action event 341 committed the full template with 9 final blocks and one removed scaffold; machine verification passed at event 337 / world time 11345 and stayed valid through terminal world time 23125
+- Planner controls: 48/48 calls were real and schema-valid, maximum latency 5.390 seconds, zero reasoning bytes, zero errors, and zero provider-control violations
+- Goals: four roots; resource gathering was suspended by dusk, then shelter build, dusk maintenance, and dawn maintenance all completed
+- Interrupts: four triggers and four matching recoveries; one `dusk_shelter_required` and three bounded `task_deadline_elapsed`, with no concurrent root
+- Actions: 48 attempted and 43 successful; `build_shelter_cell` 1/2, `move_to` 6/7, `dig` 5/8, `craft` 1/1, and `wait` 30/30
+- Lifecycle: 97 active observations, one valid baseline event, zero deaths/respawns, uninterrupted terminal state, and zero Paper death messages
+- Terminal: event 956 passed with health/food 20, bot online, verified shelter, and natural dawn at world time 23125
+- Deadline: Agent ended at 34692.625 and canonical evidence at 34692.687 against deadline 35194.515, leaving 501.828 seconds with no post-deadline execution
+- First unrecovered transition: none
+- Live authorization: this round's only episode is consumed; no Probe 18 is authorized in this round
+- Evidence: `logs/benchmarks/m4/m4_episode_20260713_053155_0f5a150e/`
 
 ### Probe 16: Replication Failed; Partial Shelter Failures Consumed the Build Reserve
 

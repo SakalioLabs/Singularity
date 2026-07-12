@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T21:24:35.0394138Z",
+  "generated_at": "2026-07-12T21:46:46.4828647Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "approved_contract_offline_atomicity_gate_passed",
-  "decision": "probe_16_priority_order_held_and_probe_17_atomic_recovery_gate_passed",
+  "readiness": "approved_contract_probe_17_eligible",
+  "decision": "probe_17_priority_and_atomic_recovery_pass_bm011_2_of_3",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -54,12 +54,38 @@
     "pending_relocation_preempts_template_retry": true,
     "bounded_relocation_radius": 6,
     "invalid_relocation_fails_closed": true,
-    "live_episode_run": false,
-    "next_authorized_episode": "probe_17_exactly_one"
+    "live_episode_run": true,
+    "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
+    "scheduled_recovery_count": 1,
+    "completed_recovery_count": 1,
+    "next_authorized_episode": "locked_probe_17_consumed_current_round"
   },
-  "live_episode_count": 16,
-  "live_episode_count_under_current_protocol": 2,
+  "live_episode_count": 17,
+  "live_episode_count_under_current_protocol": 3,
   "latest_live_episode": {
+    "episode_id": "m4_episode_20260713_053155_0f5a150e",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "autonomous_goal_count": 4,
+    "selection_source": "goal_generator",
+    "priority_transitions": [
+      {"goal_index": 1, "reason": "wood_reserve_below_target;curriculum_retained_fallback", "priority": 6, "priority_class": "tool_resource_progression"},
+      {"goal_index": 2, "reason": "dusk_without_machine_verified_shelter", "priority": 4, "priority_class": "shelter_preparation"},
+      {"goal_index": 3, "reason": "dusk_with_machine_verified_shelter", "priority": 5, "priority_class": "night_safety_maintenance"},
+      {"goal_index": 4, "reason": "night_with_machine_verified_shelter", "priority": 5, "priority_class": "night_safety_maintenance"}
+    ],
+    "dusk_interrupt_priority": 80,
+    "dusk_interrupt_trigger_count": 1,
+    "runtime_interrupt_count": 4,
+    "runtime_interrupt_recovery_count": 4,
+    "resource_goal_outcome": "suspended",
+    "shelter_goal_outcomes": {"completed": 3, "failed": 0, "interrupted": 0},
+    "bounded_shelter_partial_failure_atomicity_passed": true,
+    "server_observed_death_count": 0,
+    "runner_reported_eligible": true,
+    "independently_accepted_eligible": true,
+    "terminal_world_time": 23125
+  },
+  "probe_16_live_episode": {
     "episode_id": "m4_episode_20260713_015708_c2d96dd3",
     "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
     "autonomous_goal_count": 15,
@@ -96,5 +122,5 @@
     "independently_accepted_eligible": false,
     "verified_shelter_safe_state_grounding_event_count": 0
   },
-  "bm011_eligible_success_count": 1
+  "bm011_eligible_success_count": 2
 }
