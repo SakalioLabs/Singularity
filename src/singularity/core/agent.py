@@ -5338,11 +5338,39 @@ class Agent:
         })
 
     def _recover_m4_invalid_plan(self, goal: str, plan: dict, cycle: int) -> bool:
-        """Keep an M4 goal active when a planning response omits all actions."""
+        """Keep an M4 goal active after a recoverable planning failure."""
         if str(getattr(self.config, "planner_protocol", "") or "") != "m4-fixed-v1":
             return False
         if self._episode_deadline_reached():
             return False
+
+        transport_failure = self._m4_planner_transport_failure(plan)
+        if transport_failure:
+            deadline = getattr(self, "_episode_deadline_monotonic", None)
+            remaining_s = (
+                max(0.0, float(deadline) - time.monotonic())
+                if deadline is not None
+                else None
+            )
+            payload = {
+                "goal": str(goal or ""),
+                "cycle": int(cycle),
+                "planner_call_id": str(plan.get("planner_call_id") or ""),
+                **transport_failure,
+                "recovered": True,
+                "goal_preserved": True,
+                "resume_policy": "retry_planner_next_cycle_same_goal",
+                "same_call_retry_count": 0,
+                "episode_deadline_monotonic": deadline,
+                "remaining_s": round(remaining_s, 3) if remaining_s is not None else None,
+            }
+            self.session_logger.log("m4_planner_transport_recovery", payload)
+            self._write_memory_episode(
+                "m4_planner_transport_recovery",
+                payload,
+                source="autonomous_planner",
+            )
+            return True
 
         validation = plan.get("schema_validation", {}) if isinstance(plan, dict) else {}
         issues = validation.get("issues", []) if isinstance(validation, dict) else []
@@ -5374,6 +5402,75 @@ class Agent:
             source="autonomous_planner",
         )
         return True
+
+    @staticmethod
+    def _m4_planner_transport_failure(plan: dict) -> dict:
+        if not isinstance(plan, dict) or str(plan.get("status") or "").lower() != "error":
+            return {}
+        actions = plan.get("actions", [])
+        if not isinstance(actions, list) or actions:
+            return {}
+        evidence = plan.get("planner_evidence", {})
+        if not isinstance(evidence, dict):
+            return {}
+        if not (
+            evidence.get("protocol") == "m4-fixed-v1"
+            and evidence.get("real_llm_call") is False
+            and evidence.get("schema_valid") is False
+        ):
+            return {}
+        planner_call_id = str(plan.get("planner_call_id") or "")
+        if not planner_call_id or str(evidence.get("call_id") or "") != planner_call_id:
+            return {}
+        transport = evidence.get("transport_evidence", {})
+        if not isinstance(transport, dict):
+            return {}
+        attempts = transport.get("attempts", [])
+        if not (
+            transport.get("policy_id") == "single-attempt"
+            and transport.get("attempt_count") == 1
+            and transport.get("retry_count") == 0
+            and isinstance(attempts, list)
+            and len(attempts) == 1
+            and isinstance(attempts[0], dict)
+            and attempts[0].get("success") is False
+        ):
+            return {}
+        attempt = attempts[0]
+        error_type = str(attempt.get("error_type") or "")
+        error_chain = attempt.get("error_chain", [])
+        error_chain = (
+            [str(name) for name in error_chain if str(name)]
+            if isinstance(error_chain, list)
+            else []
+        )
+        retryable_types = {
+            "APIConnectionError",
+            "APITimeoutError",
+            "ConnectError",
+            "ConnectionError",
+            "ConnectionResetError",
+            "ReadError",
+            "ReadTimeout",
+            "RemoteProtocolError",
+            "SSLError",
+            "SSLEOFError",
+            "TimeoutError",
+            "WriteError",
+            "WriteTimeout",
+        }
+        if not ({error_type, *error_chain} & retryable_types):
+            return {}
+        error = str(evidence.get("error") or "")
+        if not error or error.startswith("m4_"):
+            return {}
+        return {
+            "error": error,
+            "error_type": error_type,
+            "error_chain": error_chain,
+            "transport_policy_id": "single-attempt",
+            "attempt_count": 1,
+        }
 
     # ── Helpers ────────────────────────────────────────────────────────
 

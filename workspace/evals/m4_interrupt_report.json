@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T15:27:30.1105662Z",
+  "generated_at": "2026-07-12T15:41:01.3814919Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
-  "decision": "probe_12_transport_failure_preceded_hostile_and_deadline_interrupt_cascade",
+  "decision": "allow_probe_13_transport_recovery_before_interrupt_cascade_retest",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -63,7 +63,7 @@
       {"name": "autonomous_root_exclusivity", "status": "pass"},
       {"name": "suspended_root_resumption", "status": "pass"}
     ],
-    "full_python_regression": {"status": "pass", "test_count": 674},
+    "full_python_regression": {"status": "pass", "test_count": 675},
     "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 30},
     "controlled_live_episode": false
   },

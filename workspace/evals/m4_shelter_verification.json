@@ -1,11 +1,11 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T15:27:30.1105662Z",
+  "generated_at": "2026-07-12T15:41:01.3814919Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
-  "decision": "probe_12_bounded_shelter_passed_then_lost_after_transport_failure_cascade",
+  "decision": "shelter_contract_unchanged_allow_probe_13_transport_recovery",
   "verifier_id": "m4-sealed-cell-shelter-verifier-v1",
   "contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
   "strategy": "sealed_cell_v1",
@@ -60,7 +60,7 @@
       {"id": "agent_delta_and_transition_wiring", "expected": "pass", "status": "pass"},
       {"id": "terminal_survival_machine_dawn_state", "expected": "pass_only_with_pinned_machine_state", "status": "pass"}
     ],
-    "full_python_regression": {"status": "pass", "test_count": 674},
+    "full_python_regression": {"status": "pass", "test_count": 675},
     "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 30},
     "live_episode_run": false,
     "bounded_action_cases": [

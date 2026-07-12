@@ -490,7 +490,7 @@ def test_m4_craft_grounding_fails_closed_on_drift():
         assert grounded["actions"][0]["type"] == "craft"
 
 
-def test_m4_autonomous_loop_recovers_invalid_planner_envelope():
+def test_m4_autonomous_loop_recovers_invalid_planner_envelope_and_transport_failure():
     clock = FakeClock()
     planner = RuntimePlanner()
     action_controller = RuntimeActionController()
@@ -528,6 +528,31 @@ def test_m4_autonomous_loop_recovers_invalid_planner_envelope():
             },
         },
         {
+            "status": "error",
+            "reasoning": "Planner output rejected before execution: Connection error.",
+            "actions": [],
+            "planner_call_id": "m4-transport-fixture",
+            "schema_validation": {"passed": False, "issues": ["Connection error."]},
+            "planner_evidence": {
+                "call_id": "m4-transport-fixture",
+                "protocol": "m4-fixed-v1",
+                "real_llm_call": False,
+                "schema_valid": False,
+                "error": "Connection error.",
+                "transport_evidence": {
+                    "policy_id": "single-attempt",
+                    "attempt_count": 1,
+                    "retry_count": 0,
+                    "attempts": [{
+                        "attempt_index": 0,
+                        "success": False,
+                        "error_type": "APIConnectionError",
+                        "error_chain": ["APIConnectionError", "ConnectError", "SSLEOFError"],
+                    }],
+                },
+            },
+        },
+        {
             "status": "complete",
             "reasoning": "machine verifier must decide",
             "actions": [],
@@ -555,17 +580,18 @@ def test_m4_autonomous_loop_recovers_invalid_planner_envelope():
     with patch("singularity.core.agent.time.monotonic", clock.monotonic):
         result = agent.run_autonomous(
             max_goals=1,
-            max_cycles_per_goal=2,
+            max_cycles_per_goal=3,
             max_duration_s=5.0,
         )
 
     event_types = [event["type"] for event in agent.session_logger.events]
     assert result["goals_completed"] == 1
     assert result["goals_failed"] == 0
-    assert result["total_cycles"] == 2
+    assert result["total_cycles"] == 3
     assert len(planner.replan_reasons) == 1
     assert "planning status requires an executable action" in planner.replan_reasons[0]
     assert "m4_planner_output_recovery" in event_types
+    assert "m4_planner_transport_recovery" in event_types
     assert "empty_plan" not in event_types
     recovery = next(
         event for event in agent.session_logger.events
@@ -573,7 +599,66 @@ def test_m4_autonomous_loop_recovers_invalid_planner_envelope():
     )
     assert recovery["data"]["rejected_status"] == "planning"
     assert recovery["data"]["action_count"] == 0
-    print("PASS: M4 keeps the same autonomous goal active after an invalid empty plan")
+    transport_recovery = next(
+        event for event in agent.session_logger.events
+        if event["type"] == "m4_planner_transport_recovery"
+    )
+    assert transport_recovery["data"]["planner_call_id"] == "m4-transport-fixture"
+    assert transport_recovery["data"]["error_type"] == "APIConnectionError"
+    assert transport_recovery["data"]["same_call_retry_count"] == 0
+    assert transport_recovery["data"]["goal_preserved"] is True
+    assert transport_recovery["data"]["resume_policy"] == "retry_planner_next_cycle_same_goal"
+    print("PASS: M4 keeps the same autonomous goal active after recoverable planner failures")
+
+
+def test_m4_planner_transport_recovery_fails_closed_for_non_transport_errors():
+    base = {
+        "status": "error",
+        "actions": [],
+        "planner_call_id": "m4-nontransport-fixture",
+        "planner_evidence": {
+            "call_id": "m4-nontransport-fixture",
+            "protocol": "m4-fixed-v1",
+            "real_llm_call": False,
+            "schema_valid": False,
+            "error": "fixture failure",
+            "transport_evidence": {
+                "policy_id": "single-attempt",
+                "attempt_count": 1,
+                "retry_count": 0,
+                "attempts": [{
+                    "success": False,
+                    "error_type": "AuthenticationError",
+                    "error_chain": ["AuthenticationError"],
+                }],
+            },
+        },
+    }
+    assert Agent._m4_planner_transport_failure(base) == {}
+
+    schema_error = dict(base)
+    schema_error["planner_evidence"] = {
+        **base["planner_evidence"],
+        "real_llm_call": True,
+        "error": "planner response is not valid JSON",
+    }
+    assert Agent._m4_planner_transport_failure(schema_error) == {}
+
+    deadline_error = dict(base)
+    deadline_error["planner_evidence"] = {
+        **base["planner_evidence"],
+        "error": "m4_total_deadline_exhausted_before_planner_call",
+        "transport_evidence": {},
+    }
+    assert Agent._m4_planner_transport_failure(deadline_error) == {}
+
+    malformed_transport = dict(base)
+    malformed_transport["planner_call_id"] = "m4-nontransport-fixture"
+    malformed_transport["planner_evidence"] = {
+        **base["planner_evidence"],
+        "transport_evidence": [],
+    }
+    assert Agent._m4_planner_transport_failure(malformed_transport) == {}
 
 
 def test_m4_action_controller_enforces_episode_and_action_deadlines():
@@ -813,7 +898,8 @@ if __name__ == "__main__":
     test_m4_planner_bounds_call_and_rejects_inflight_return()
     test_m4_planner_suppresses_call_after_deadline()
     test_m4_planner_rejects_empty_planning_response_and_marks_replan()
-    test_m4_autonomous_loop_recovers_invalid_planner_envelope()
+    test_m4_autonomous_loop_recovers_invalid_planner_envelope_and_transport_failure()
+    test_m4_planner_transport_recovery_fails_closed_for_non_transport_errors()
     test_m4_action_controller_enforces_episode_and_action_deadlines()
     test_m4_bridge_uses_remaining_budget_without_replay()
     test_m4_verifier_return_after_deadline_is_rejected()

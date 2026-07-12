@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | diagnose_probe_12_planner_transport_goal_abandonment |
+| G5 | First eligible survival-to-dawn episode | ready_probe_13_planner_transport_next_cycle_recovery |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -65,7 +65,24 @@ Probe 11 exposed runtime-harness limit drift, not a contradiction in the fixed p
 
 The new earliest unrecovered transition is `planner_transport_failure_goal_abandonment`. At session event index 506, Planner call `llm-24dd4cd454db4e1e` made its one allowed transport attempt for `Remain in verified shelter until dawn` and received `APIConnectionError -> ConnectError -> SSLEOFError`. The immediately preceding machine observation at index 502 still showed health 20, food 20, world time 14902, an online verified shelter, and one nearby hostile, with more than 900 seconds of episode budget remaining. The error plan became `empty_plan` at index 511, and the autonomous loop failed and discarded the active maintenance root instead of preserving it for a next-cycle transport recovery.
 
-Later events are a secondary cascade, not the earliest blocker. GoalGenerator selected an immediate-threat flee goal, the Agent left its verified shelter, and shelter verification became false at world time 15362. Eleven rebuild attempts lacked a grounded neighbor, one later rebuild timed out and disconnected the Agent-side bridge, and all subsequent observations fell back to empty position/inventory and time zero. The exact-profile run then ended at the absolute deadline without a terminal machine verification. The next round must address only next-cycle handling of a strict-M4 Planner transport error; another live episode remains locked until that offline gate is ready.
+Later events are a secondary cascade, not the earliest blocker. GoalGenerator selected an immediate-threat flee goal, the Agent left its verified shelter, and shelter verification became false at world time 15362. Eleven rebuild attempts lacked a grounded neighbor, one later rebuild timed out and disconnected the Agent-side bridge, and all subsequent observations fell back to empty position/inventory and time zero. The exact-profile run then ended at the absolute deadline without a terminal machine verification.
+
+The current single hypothesis is `planner_transport_failure_goal_lifecycle`. Strict M4 now recognizes only structured single-attempt connection/timeout evidence with no real model response, logs `m4_planner_transport_recovery`, and preserves the current root for the next autonomous cycle. It does not retry inside the same Planner call, does not alter the protocol transport policy, and does not recover authentication, schema, parse, or deadline errors. Offline integration proves a Probe 12-shaped `APIConnectionError -> ConnectError -> SSLEOFError` can be followed by a valid same-goal plan without `empty_plan` or goal failure.
+
+## G5 Preflight: Planner Transport Next-Cycle Recovery
+
+- Scope: strict-M4 autonomous goal lifecycle only; Planner transport policy, protocol hash, goal priority, shelter verifier, and action execution are unchanged
+- Trigger: `status=error`, no actions, `real_llm_call=false`, `schema_valid=false`, exact `single-attempt` evidence, one failed attempt, and an allowlisted connection/timeout exception chain
+- Probe 12 coverage: `APIConnectionError -> ConnectError -> SSLEOFError`
+- Recovery: emit `m4_planner_transport_recovery`, preserve the current goal, and retry planning from a fresh observation in the next autonomous cycle
+- Retry boundary: same-call retry count remains zero; each failed call consumes one normal cycle and remains bounded by 40 per goal, 320 total, and the absolute episode deadline
+- Fail-closed exclusions: authentication failures, real-response schema/JSON errors, non-transport exceptions, missing evidence, and all deadline errors
+- Existing recovery: `planning_actions_missing` continues to use `m4_planner_output_recovery` and is unchanged
+- Evidence fields: goal, cycle, Planner call ID, error type/chain, transport policy, goal-preserved flag, resume policy, deadline, and remaining budget
+- Offline tests: `tests/test_m4_deadline.py`
+- Regression: 675 Python tests, all six fixed Node suites, Python compilation, and `git diff --check` passed
+- Protocol integrity: `m4-fixed-v1` SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
+- Live authorization: one fresh exact-profile Probe 13; stop after canonical evidence generation and diagnose its first unrecovered transition
 
 ## G5 Preflight: Exact Runtime Harness and Terminalization
 
@@ -80,7 +97,7 @@ Later events are a secondary cascade, not the earliest blocker. GoalGenerator se
 - Regression: 674 Python tests, all six fixed Node suites, PowerShell syntax parsing, Python compilation, and `git diff --check` passed
 - Protocol integrity: `m4-fixed-v1` SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
 - Live result: Probe 12 used the exact profile; the harness fix passed, but BM-011 remained ineligible because an earlier Planner transport error abandoned the active dawn-maintenance goal
-- Next live authorization: locked until strict-M4 next-cycle Planner transport recovery is implemented and passes offline regression
+- Next live authorization: unlocked by the strict-M4 next-cycle Planner transport preflight above
 
 ## G5 Preflight: Maintenance Goal Lifecycle
 

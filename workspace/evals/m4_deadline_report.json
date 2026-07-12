@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T15:27:30.1105662Z",
+  "generated_at": "2026-07-12T15:41:01.3814919Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
-  "decision": "probe_12_failed_diagnose_planner_transport_goal_abandonment",
+  "decision": "allow_one_probe_13_planner_transport_next_cycle_recovery",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -67,8 +67,23 @@
       "name": "terminal_machine_verification_emission",
       "status": "pass",
       "evidence": "src/singularity/core/agent.py; tests/test_m4_shelter.py"
+    },
+    {
+      "name": "planner_transport_next_cycle_goal_preservation",
+      "status": "pass",
+      "evidence": "src/singularity/core/agent.py; tests/test_m4_deadline.py"
     }
   ],
+  "planner_transport_recovery": {
+    "scope": "strict_m4_autonomous_next_cycle",
+    "same_call_retry_count": 0,
+    "goal_preserved": true,
+    "fresh_observation_before_next_call": true,
+    "deadline_bounded": true,
+    "authentication_error_recovery": false,
+    "schema_error_recovery": false,
+    "deadline_error_recovery": false
+  },
   "fixed_runtime_profile": {
     "task_id": "BM-011",
     "max_duration_s": 1200,
@@ -77,7 +92,7 @@
     "max_total_cycles": 320,
     "harness_requires_exact_match": true,
     "terminal_result_requires_machine_event": true,
-    "full_python_regression": 674,
+    "full_python_regression": 675,
     "node_suite_count": 6
   },
   "g0_passed": true,
