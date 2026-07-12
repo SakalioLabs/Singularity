@@ -62,6 +62,8 @@ class ActionVerifier:
             return self._verify_dig(params, state, inventory)
         if action_type == "build_shelter_5x5":
             return self._verify_shelter_template(params, state, inventory)
+        if action_type == "build_shelter_cell":
+            return self._verify_m4_shelter_cell(params, state, inventory)
         if action_type in {"place", "equip", "use_item"}:
             return self._verify_inventory_item_action(action_type, params, inventory)
         if action_type == "attack":
@@ -230,6 +232,74 @@ class ActionVerifier:
             "origin, material budget, and bounded template are verified",
             evidence=[material, "m2-fixed-v1:construction_zone"],
             required={"origin": expected, material: required_count},
+        )
+
+    def _verify_m4_shelter_cell(
+        self,
+        params: dict,
+        state: dict,
+        inventory: dict,
+    ) -> ActionVerificationDecision:
+        shelter = state.get("shelter_verification", {})
+        shelter = shelter if isinstance(shelter, dict) else {}
+        evidence = shelter.get("coordinate_evidence", {})
+        evidence = evidence if isinstance(evidence, dict) else {}
+        expected_origin = evidence.get("player_cell", {})
+        expected_origin = expected_origin if isinstance(expected_origin, dict) else {}
+        requested_origin = params.get("origin", {})
+        requested_origin = requested_origin if isinstance(requested_origin, dict) else {}
+        try:
+            expected = {axis: math.floor(float(expected_origin[axis])) for axis in ("x", "y", "z")}
+            requested = {axis: math.floor(float(requested_origin[axis])) for axis in ("x", "y", "z")}
+        except (KeyError, TypeError, ValueError):
+            return self._decision(
+                "build_shelter_cell",
+                "reject",
+                0.0,
+                "M4 sealed-cell action requires the current machine player_cell origin",
+                missing=["origin.x", "origin.y", "origin.z"],
+            )
+        if shelter.get("verifier_id") != "m4-sealed-cell-shelter-verifier-v1":
+            return self._decision(
+                "build_shelter_cell", "reject", 0.0,
+                "M4 sealed-cell verifier evidence is missing",
+            )
+        if shelter.get("passed") is True:
+            return self._decision(
+                "build_shelter_cell", "reject", 0.0,
+                "machine shelter is already verified",
+            )
+        if requested != expected:
+            return self._decision(
+                "build_shelter_cell", "reject", 0.0,
+                "requested sealed-cell origin does not match current player cell",
+                required={"origin": expected},
+            )
+        material = str(params.get("material") or "").strip()
+        allowed = {
+            "cobblestone", "dirt", "oak_planks", "spruce_planks", "birch_planks",
+            "jungle_planks", "acacia_planks", "dark_oak_planks", "mangrove_planks",
+            "cherry_planks", "bamboo_planks", "crimson_planks", "warped_planks",
+        }
+        if material not in allowed:
+            return self._decision(
+                "build_shelter_cell", "reject", 0.0,
+                "sealed-cell material is not allowlisted",
+                missing=["allowlisted material"],
+            )
+        required_count = 10
+        if inventory.get(material, 0) < required_count:
+            return self._decision(
+                "build_shelter_cell", "reject", 0.1,
+                f"sealed-cell template requires {required_count} {material} including one temporary scaffold",
+                missing=[f"{material}:{required_count - inventory.get(material, 0)}"],
+                required={material: required_count},
+            )
+        return self._decision(
+            "build_shelter_cell", "accept", 0.98,
+            "bounded M4 sealed-cell origin and material are machine-grounded",
+            evidence=[f"origin:{expected['x']},{expected['y']},{expected['z']}", material],
+            required={material: required_count},
         )
 
     def _visible_block_names(self, state: dict) -> set[str]:

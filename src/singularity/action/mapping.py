@@ -20,6 +20,7 @@ class ActionMapper:
     CANONICAL_ACTIONS = {
         "walk_to", "move_to", "look_at", "dig", "place", "craft",
         "attack", "equip", "use_item", "chat", "wait", "build_shelter_5x5",
+        "build_shelter_cell",
     }
 
     def map(self, action: dict, backend: str = "mineflayer") -> BackendCommand:
@@ -51,6 +52,10 @@ class ActionMapper:
             "wait": ("wait", {"duration_ms": params.get("ms", 1000)}),
             "build_shelter_5x5": (
                 "build_shelter_5x5",
+                dict(params),
+            ),
+            "build_shelter_cell": (
+                "build_shelter_cell",
                 dict(params),
             ),
         }

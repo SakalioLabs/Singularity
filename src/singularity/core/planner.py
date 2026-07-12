@@ -291,6 +291,11 @@ class Planner:
             )
         elif self.strict_m4 and not call_error and not parse_error:
             raw_plan, action_parameter_grounding = self._ground_m4_action_parameters(raw_plan)
+            raw_plan, shelter_phase_grounding = self._ground_m4_shelter_phase(
+                raw_plan,
+                goal=goal,
+                world_state=world_state,
+            )
             schema_validation = self._validate_m4_plan_envelope(
                 raw_plan,
                 expected_goal=goal,
@@ -298,6 +303,7 @@ class Planner:
             )
             grounding_issues = list(action_parameter_grounding.get("issues", []))
             schema_validation["action_parameter_grounding"] = action_parameter_grounding
+            schema_validation["shelter_phase_grounding"] = shelter_phase_grounding
             schema_validation["issues"] = sorted(set(
                 list(schema_validation.get("issues", [])) + grounding_issues
             ))
@@ -313,6 +319,9 @@ class Planner:
             if self.strict_m4:
                 plan["action_parameter_grounding"] = dict(
                     schema_validation.get("action_parameter_grounding", {})
+                )
+                plan["shelter_phase_grounding"] = dict(
+                    schema_validation.get("shelter_phase_grounding", {})
                 )
             if plan_kind == "root":
                 self._active_root_plan_id = root_plan_id
@@ -382,7 +391,7 @@ class Planner:
             return self._m2_system_prompt()
         prompt = f"""You are a Minecraft survival planner. Given a goal and current world state, decompose it into subtasks and immediate actions.
 
-Available actions: move_to, look_at, dig, place, craft, attack, equip, use_item, chat, wait.
+Available actions: move_to, look_at, dig, place, craft, build_shelter_cell, attack, equip, use_item, chat, wait.
 
 MINECRAFT KNOWLEDGE SUMMARY:
 {_CRAFTING_KNOWLEDGE}
@@ -431,7 +440,9 @@ M4 FIXED OUTPUT CONTRACT:
 - A dig action must use top-level finite x, y, and z parameters and may use top-level block; never use block_name, position, target, or block_position aliases.
 - Example: {"type":"dig","parameters":{"x":103,"y":139,"z":-30,"block":"oak_log"}}.
 - A craft action must use item and may use a positive integer count; never use recipe as an alias.
-- Example: {"type":"craft","parameters":{"item":"oak_planks","count":4}}."""
+- Example: {"type":"craft","parameters":{"item":"oak_planks","count":4}}.
+- For an active shelter goal, when the current machine state has at least 10 allowlisted building blocks, immediately use build_shelter_cell with the current shelter player_cell as origin and that inventory material. Nine blocks remain in the structure and one is a temporary roof scaffold. Do not add tools, a crafting table, a furnace, mining, or other unrelated prerequisites.
+- Example: {"type":"build_shelter_cell","parameters":{"origin":{"x":93,"y":136,"z":-36},"material":"oak_planks"}}."""
         return prompt
 
     def _m2_system_prompt(self) -> str:
@@ -807,6 +818,102 @@ Plan the steps to achieve this goal."""
             "canonical_parameters": canonical,
             "issues": sorted(set(issues)),
         }
+
+    @classmethod
+    def _ground_m4_shelter_phase(
+        cls,
+        plan: dict,
+        *,
+        goal: str,
+        world_state: dict,
+    ) -> tuple[dict, dict]:
+        grounded = dict(plan or {})
+        report = {
+            "type": "m4_shelter_phase_grounding",
+            "schema_version": 1,
+            "activated": False,
+            "reason": "not_applicable",
+            "original_actions_sha256": cls._parameter_sha256(grounded.get("actions", [])),
+            "origin": {},
+            "material": "",
+            "required_block_count": 9,
+            "required_inventory_count": 10,
+        }
+        if "shelter" not in str(goal or "").lower():
+            report["reason"] = "goal_is_not_shelter"
+            return grounded, report
+        state = world_state if isinstance(world_state, dict) else {}
+        shelter = state.get("shelter_verification", {})
+        shelter = shelter if isinstance(shelter, dict) else {}
+        if shelter.get("passed") is True:
+            report["reason"] = "shelter_already_verified"
+            return grounded, report
+        checks = {
+            str(check.get("name") or ""): check.get("passed") is True
+            for check in shelter.get("checks", [])
+            if isinstance(check, dict)
+        }
+        evidence = shelter.get("coordinate_evidence", {})
+        evidence = evidence if isinstance(evidence, dict) else {}
+        origin = evidence.get("player_cell", {})
+        origin = origin if isinstance(origin, dict) else {}
+        try:
+            origin = {
+                axis: int(math.floor(float(origin[axis])))
+                for axis in ("x", "y", "z")
+            }
+        except (KeyError, TypeError, ValueError):
+            report["reason"] = "machine_player_cell_missing"
+            return grounded, report
+        if (
+            shelter.get("verifier_id") != "m4-sealed-cell-shelter-verifier-v1"
+            or shelter.get("source") != "machine_state"
+            or checks.get("machine_snapshot") is not True
+        ):
+            report["reason"] = "machine_snapshot_not_verified"
+            return grounded, report
+
+        inventory = state.get("inventory", {})
+        inventory = inventory if isinstance(inventory, dict) else {}
+        materials = (
+            "oak_planks", "spruce_planks", "birch_planks", "jungle_planks",
+            "acacia_planks", "dark_oak_planks", "mangrove_planks", "cherry_planks",
+            "bamboo_planks", "crimson_planks", "warped_planks", "cobblestone", "dirt",
+        )
+        material = next(
+            (
+                name for name in materials
+                if isinstance(inventory.get(name), (int, float))
+                and not isinstance(inventory.get(name), bool)
+                and inventory.get(name, 0) >= 10
+            ),
+            "",
+        )
+        if not material:
+            report["reason"] = "building_material_below_10"
+            report["origin"] = origin
+            return grounded, report
+
+        action = {
+            "type": "build_shelter_cell",
+            "parameters": {
+                "origin": origin,
+                "material": material,
+            },
+        }
+        grounded["status"] = "planning"
+        grounded["actions"] = [action]
+        grounded["reasoning"] = (
+            "Machine-grounded shelter material is ready; execute the bounded sealed-cell template now."
+        )
+        report.update({
+            "activated": True,
+            "reason": "shelter_goal_and_material_ready",
+            "origin": origin,
+            "material": material,
+            "canonical_action": action,
+        })
+        return grounded, report
 
     @staticmethod
     def _finite_parameter(value):

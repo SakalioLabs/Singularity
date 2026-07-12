@@ -8,6 +8,7 @@ from types import SimpleNamespace
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from singularity.core.agent import Agent
+from singularity.action.verifier import ActionVerifier
 from singularity.core.goal_generator import GoalGenerator
 from singularity.core.goal_verifier import GoalVerifier
 from singularity.core.planner import Planner
@@ -316,6 +317,94 @@ def test_g3_planner_receives_compact_machine_state_without_coordinate_bloat():
     assert '"matched_position_count": 9' in prompt
     assert "sealed_boundary_columns" not in prompt
     print("PASS: Planner receives the verifier decision without duplicating coordinate evidence")
+
+
+def test_g5_shelter_phase_grounding_executes_bounded_template_when_material_ready():
+    snapshot = _snapshot()
+    _replace_block(snapshot, {"x": 0, "y": 66, "z": 0}, "air")
+    report = M4ShelterVerifier().verify(snapshot, {"placed": {}})
+    plan, grounding = Planner._ground_m4_shelter_phase(
+        {
+            "status": "planning",
+            "reasoning": "gather unrelated resources",
+            "subtasks": [],
+            "actions": [{"type": "dig", "parameters": {"x": 4, "y": 64, "z": 4}}],
+        },
+        goal="Build verified shelter before nightfall",
+        world_state={
+            "inventory": {"oak_planks": 16},
+            "shelter_verification": report,
+        },
+    )
+
+    expected = {
+        "type": "build_shelter_cell",
+        "parameters": {
+            "origin": {"x": 0, "y": 64, "z": 0},
+            "material": "oak_planks",
+        },
+    }
+    assert grounding["activated"] is True
+    assert grounding["reason"] == "shelter_goal_and_material_ready"
+    assert plan["actions"] == [expected]
+    decision = ActionVerifier().verify(
+        expected,
+        {"inventory": {"oak_planks": 16}, "shelter_verification": report},
+        goal="Build verified shelter before nightfall",
+    )
+    assert decision.status == "accept"
+
+
+def test_g5_shelter_phase_grounding_requires_goal_snapshot_and_ten_inventory_blocks():
+    snapshot = _snapshot()
+    _replace_block(snapshot, {"x": 0, "y": 66, "z": 0}, "air")
+    report = M4ShelterVerifier().verify(snapshot, {"placed": {}})
+    base = {"status": "planning", "subtasks": [], "actions": [{"type": "wait", "parameters": {"ms": 1}}]}
+
+    unrelated, unrelated_report = Planner._ground_m4_shelter_phase(
+        base,
+        goal="Gather oak logs",
+        world_state={"inventory": {"oak_planks": 16}, "shelter_verification": report},
+    )
+    insufficient, insufficient_report = Planner._ground_m4_shelter_phase(
+        base,
+        goal="Build verified shelter before nightfall",
+        world_state={"inventory": {"oak_planks": 8}, "shelter_verification": report},
+    )
+
+    assert unrelated["actions"] == base["actions"]
+    assert unrelated_report["reason"] == "goal_is_not_shelter"
+    assert insufficient["actions"] == base["actions"]
+    assert insufficient_report["reason"] == "building_material_below_10"
+
+
+def test_g5_agent_records_bounded_shelter_action_as_nine_placement_deltas():
+    agent = object.__new__(Agent)
+    agent.config = SimpleNamespace(planner_protocol="m4-fixed-v1", enable_vision_analysis=False)
+    agent.observer = _Observer()
+    agent.bot = _Bot(_snapshot())
+    agent.session_logger = _SessionLogger()
+    agent.m4_shelter_verifier = M4ShelterVerifier()
+    agent._m4_episode_block_delta = {"placed": {}, "removed": {}}
+    agent._m4_shelter_verification_fingerprint = ""
+
+    positions = _structural_positions()
+    agent._record_m4_episode_block_delta(
+        {
+            "type": "build_shelter_cell",
+            "parameters": {"origin": CELL, "material": "oak_planks"},
+        },
+        {
+            "success": True,
+            "material": "oak_planks",
+            "placed_positions": positions,
+        },
+    )
+
+    observation = agent._observe()
+    assert len(agent._m4_episode_block_delta["placed"]) == 9
+    assert observation["shelter_verification"]["passed"] is True
+    assert observation["shelter_verification"]["episode_block_delta"]["matched_position_count"] == 9
 
 
 if __name__ == "__main__":

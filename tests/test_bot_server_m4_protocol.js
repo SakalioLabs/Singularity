@@ -7,6 +7,7 @@ const {
     M4_PROTOCOL_SHA256,
     benchmarkProtocolStatus,
     createBenchmarkResetHandler,
+    createBuildShelterCellHandler,
     createPlaceHandler,
     createShelterStateHandler,
 } = require('../src/bot/bot_server');
@@ -90,7 +91,7 @@ async function testM4ResetUsesNaturalSurvivalStateWithoutFixtures() {
     );
     const result = await reset({ task_id: 'BM-011' });
 
-    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.success, true, JSON.stringify(result));
     assert.strictEqual(result.profile, 'm4-fixed-v1');
     assert.deepStrictEqual(result.after_state.inventory, {});
     assert.strictEqual(result.after_state.game_mode, 'survival');
@@ -178,11 +179,68 @@ async function testM4PlaceHandlerReturnsObservedCoordinateDelta() {
     console.log('PASS: M4 place evidence binds the requested action to an observed block delta');
 }
 
+async function testM4BoundedSealedCellBuildReturnsNineObservedDeltas() {
+    const blocks = new Map();
+    let plankCount = 10;
+    const player = { position: new Vec3(0.5, 64, 0.5) };
+    const bot = {
+        entity: player,
+        inventory: {
+            items: () => plankCount > 0 ? [{ name: 'oak_planks', count: plankCount }] : [],
+        },
+        blockAt(position) {
+            const name = blocks.get(positionKey(position)) || 'air';
+            return {
+                name,
+                type: name === 'air' ? 0 : 1,
+                boundingBox: name === 'air' ? 'empty' : 'block',
+                position: position.clone ? position.clone() : new Vec3(position.x, position.y, position.z),
+            };
+        },
+        async equip() {},
+        async dig(block) {
+            blocks.delete(positionKey(block.position));
+        },
+        async placeBlock(reference, face) {
+            blocks.set(positionKey(reference.position.plus(face)), 'oak_planks');
+            plankCount -= 1;
+        },
+    };
+    blocks.set('0,63,0', 'stone');
+    for (const [dx, dz] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+        blocks.set(`${dx},63,${dz}`, 'dirt');
+    }
+    blocks.set('0,64,-1', 'oak_leaves');
+    const handler = createBuildShelterCellHandler(
+        () => ({ bot, botReady: true }),
+        async () => {},
+    );
+    const result = await handler({
+        origin: { x: 0, y: 64, z: 0 },
+        material: 'oak_planks',
+    });
+
+    assert.strictEqual(result.success, true, JSON.stringify(result));
+    assert.strictEqual(result.template_id, 'm4-sealed-cell-v1');
+    assert.strictEqual(result.required_block_count, 9);
+    assert.strictEqual(result.placed_count, 9);
+    assert.strictEqual(result.placement_deltas.length, 9);
+    assert.deepStrictEqual(result.removed_positions, [
+        { x: 0, y: 64, z: -1 },
+        { x: 1, y: 66, z: 0 },
+    ]);
+    assert.deepStrictEqual(result.temporary_scaffold, { x: 1, y: 66, z: 0 });
+    assert.strictEqual(plankCount, 0);
+    assert.strictEqual(blocks.get('0,66,0'), 'oak_planks');
+    console.log('PASS: M4 bounded sealed-cell action places nine machine-observed blocks');
+}
+
 async function main() {
     await testM4ProtocolStatusPinsAutonomousRuntime();
     await testM4ResetUsesNaturalSurvivalStateWithoutFixtures();
     await testM4ShelterSnapshotReturnsCompleteBoundedMachineState();
     await testM4PlaceHandlerReturnsObservedCoordinateDelta();
+    await testM4BoundedSealedCellBuildReturnsNineObservedDeltas();
     console.log('\nBot server M4 protocol tests PASSED');
 }
 

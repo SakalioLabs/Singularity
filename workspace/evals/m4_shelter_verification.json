@@ -1,11 +1,11 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-11T22:19:14.6951014Z",
+  "generated_at": "2026-07-12T14:24:26.5614498Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202",
   "readiness": "approved",
-  "decision": "allow_g4_interrupt_continuity_validation",
+  "decision": "allow_one_g5_episode_after_bounded_shelter_action",
   "verifier_id": "m4-sealed-cell-shelter-verifier-v1",
   "contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
   "strategy": "sealed_cell_v1",
@@ -35,15 +35,18 @@
     "wall_height": 2,
     "roof_block_count": 1,
     "required_episode_placement_count": 9,
+    "bounded_action": "build_shelter_cell",
+    "bounded_action_starting_inventory_count": 10,
+    "temporary_roof_scaffold_count": 1,
     "full_block_collision_required": true,
     "approved_natural_safe_points": []
   },
   "offline_validation": {
     "passed": true,
     "python_test_file": "tests/test_m4_shelter.py",
-    "python_case_count": 10,
+    "python_case_count": 13,
     "node_test_file": "tests/test_bot_server_m4_protocol.js",
-    "node_m4_case_count": 4,
+    "node_m4_case_count": 5,
     "cases": [
       {"id": "complete_sealed_cell", "expected": "pass", "status": "pass"},
       {"id": "wall_aperture", "expected": "reject", "status": "pass"},
@@ -56,9 +59,16 @@
       {"id": "missing_pinned_report_check", "expected": "reject", "status": "pass"},
       {"id": "agent_delta_and_transition_wiring", "expected": "pass", "status": "pass"}
     ],
-    "full_python_regression": {"status": "pass", "test_count": 656},
+    "full_python_regression": {"status": "pass", "test_count": 670},
     "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 30},
-    "live_episode_run": false
+    "live_episode_run": false,
+    "bounded_action_cases": [
+      {"id": "planner_material_ready_grounding", "status": "pass"},
+      {"id": "action_verifier_origin_and_inventory", "status": "pass"},
+      {"id": "nine_final_node_placements", "status": "pass"},
+      {"id": "temporary_roof_scaffold_removed", "status": "pass"},
+      {"id": "agent_delta_to_machine_verifier", "status": "pass"}
+    ]
   },
   "live_episode_count": 9,
   "latest_live_observation": {

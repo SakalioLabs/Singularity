@@ -26,7 +26,7 @@ The first BM-011 baseline keeps learned executable skills off. Built-in primitiv
 | G2 | One live preparation episode with machine-visible progress | passed_probe_6 |
 | G3 | Machine-checkable shelter or approved natural safe-state verification | passed_offline |
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_offline |
-| G5 | First eligible survival-to-dawn episode | diagnose_probe_9_shelter_phase_progression |
+| G5 | First eligible survival-to-dawn episode | ready_for_one_live_probe_after_bounded_shelter_action |
 | G6 | Three independent fresh eligible episodes | locked |
 
 G0 passed offline validation. The autonomous loop, planner, verifier, skill/action suppression paths, bridge transport, session evidence, and independent eligibility gate share `episode_deadline_monotonic`. In-flight planner and verifier returns cannot resume execution, deadline-bound bridge actions are single-shot, and missing or unordered monotonic event evidence is ineligible.
@@ -53,7 +53,24 @@ The new earliest unrecovered transition is craft action-parameter grounding. Ses
 
 Craft parameter grounding passed live in Probe 9. Planner output was normalized to canonical `item`, ActionVerifier accepted it, and one craft action converted four oak logs into 16 observed oak planks.
 
-The new earliest unrecovered transition is shelter-phase progression. Immediately after the 16-plank observation and task reconciliation, Planner call `llm-05670ca498a34ebf` at session event index 302 expanded the shelter goal into additional logs, sticks, a crafting table, pickaxe, cobblestone, and furnace. Its first actions returned to gathering, even though the same plan declared the shelter build precondition as 16 oak planks and that machine state already held. No place action occurred, and the first shelter root exhausted eight cycles at event index 414. The next round may change only Planner shelter-phase progression and must pass offline tests before another live episode.
+The new earliest unrecovered transition is shelter-phase progression. Immediately after the 16-plank observation and task reconciliation, Planner call `llm-05670ca498a34ebf` at session event index 302 expanded the shelter goal into additional logs, sticks, a crafting table, pickaxe, cobblestone, and furnace. Its first actions returned to gathering, even though the same plan declared the shelter build precondition as 16 oak planks and that machine state already held. No place action occurred, and the first shelter root exhausted eight cycles at event index 414.
+
+Shelter-phase progression is now addressed offline by `build_shelter_cell`, a bounded M4 primitive rather than a root survival skill. The autonomous shelter goal still decides when to build; Planner grounding activates only with a trusted current player-cell snapshot and at least 10 allowlisted blocks. ActionVerifier rechecks the exact origin and inventory. The Node backend clears only the nine fixed target coordinates, places eight wall blocks, uses one temporary roof scaffold, places the center roof, removes the scaffold, and returns nine final placement deltas. Agent binds those deltas to the current episode and the unchanged G3 verifier independently accepts the resulting structure. Full regression passed with 670 Python tests and all six fixed Node suites; one fresh G5 retest is authorized.
+
+## G5 Preflight: Bounded Shelter Action
+
+- Scope: M4 shelter construction only; autonomous goal priority, task reconciliation, M1/M2 contracts, and the fixed G3 verifier are unchanged
+- Action: `build_shelter_cell` with current machine `player_cell` origin and an allowlisted inventory material
+- Final structure: four two-block-high wall columns plus one center roof, exactly nine current-episode structural placements
+- Temporary support: one bounded roof scaffold is placed and removed inside the same action; minimum starting inventory is 10 blocks
+- Grounding: Planner replaces unrelated shelter-plan expansion only after a trusted machine snapshot and material threshold; evidence is `m4_shelter_phase_grounding`
+- Verification: ActionVerifier rejects stale origins, untrusted verifier reports, already-verified shelters, unsupported materials, and insufficient inventory
+- Backend evidence: every final target has before/after state; cleared and temporary positions are reported separately
+- Agent evidence: nine final positions enter `_m4_episode_block_delta` and must still pass `m4-sealed-cell-shelter-verifier-v1`
+- Offline tests: `tests/test_m4_shelter.py` and `tests/test_bot_server_m4_protocol.js`
+- Regression: 670 Python tests and all six fixed Node suites passed
+- Protocol integrity: `m4-fixed-v1` SHA-256 remains `a3ff6b9d39fa4955b4c52739f9059ae5969b82c74c4d33d751c79aa7f3b7f202`
+- Live authorization: one fresh G5 BM-011 episode; stop after evidence generation and diagnose its first unrecovered transition
 
 ## G5 Preflight: Craft Parameter Grounding
 

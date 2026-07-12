@@ -16,7 +16,7 @@ ACTION_RESPONSE_GRACE_SECONDS = 5.0
 MAX_ACTION_RESPONSE_TIMEOUT_SECONDS = 370.0
 ACTION_COMMANDS = frozenset({
     "walk_to", "move_to", "look_at", "dig", "place", "craft", "attack",
-    "equip", "use_item", "chat", "build_shelter_5x5",
+    "equip", "use_item", "chat", "build_shelter_5x5", "build_shelter_cell",
 })
 
 
@@ -349,6 +349,9 @@ class BotBridge:
 
     def build_shelter_5x5(self, params: dict) -> dict:
         return self._send_command_single("build_shelter_5x5", dict(params or {}))
+
+    def build_shelter_cell(self, params: dict) -> dict:
+        return self._send_command_single("build_shelter_cell", dict(params or {}))
 
     def attack(self, entity_id: int = None) -> dict:
         return self._send_command("attack", {"entity_id": entity_id})

@@ -42,6 +42,7 @@ class ActionController:
             "chat": self._chat,
             "wait": self._wait,
             "build_shelter_5x5": self._build_shelter_5x5,
+            "build_shelter_cell": self._build_shelter_cell,
         }
 
     def set_episode_deadline(self, deadline_monotonic, action_timeout_limit_s: float = None):
@@ -296,3 +297,6 @@ class ActionController:
 
     def _build_shelter_5x5(self, params: dict) -> dict:
         return self.bot.build_shelter_5x5(params)
+
+    def _build_shelter_cell(self, params: dict) -> dict:
+        return self.bot.build_shelter_cell(params)

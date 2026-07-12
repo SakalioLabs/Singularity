@@ -6474,7 +6474,7 @@ class Agent:
                 action_type,
                 "place",
             )
-        elif action_type == "build_shelter_5x5":
+        elif action_type in {"build_shelter_5x5", "build_shelter_cell"}:
             material = str(result.get("material") or "")
             for position in result.get("placed_positions", []) if isinstance(result.get("placed_positions"), list) else []:
                 self._store_m4_block_change(
