@@ -2,7 +2,7 @@
 
 ## Convergence Result
 
-M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has five failed live attempts and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
+M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has six failed live attempts and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
 
 ## Current Assessment
 
@@ -10,7 +10,7 @@ Singularity has broad source coverage and a large passing offline test surface, 
 
 Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. M1 remains complete at 15/15, M2 contributes 23 eligible current-protocol successes, and M4 now contributes three independently eligible BM-011 episodes with unique session, episode, level, and session hashes. The overall system remains incomplete.
 
-BM-012 remains 0/3. Probe 5 ran exactly once from committed gate `d1769b7` and live-validated task reconciliation: event 192 completed seven stale gather tasks before selection, event 535 projected `oak_log:5 + birch_log:1` to canonical six, and no repeated fulfilled wood root recurred. Progression reached `Craft crafting table`, then two canonical place plans were rejected because `success_criteria.inventory.crafting_table` failed the positive-integer schema. The bounded `m4-place-success-criteria-grounding-v1` gate now requires exact root/subtask/action item alignment and rewrites only the placed item's success criterion to TaskSystem's machine `nearby_block_present` form before numeric validation. It records source and before/after hashes; mismatch, conflict, unrelated invalid counts, and invalid preconditions fail closed. The post-action machine replay completes only with a nearby crafting table. Exactly one fresh Probe 6 is authorized after this gate commit is pushed.
+BM-012 remains 0/3. Probe 6 ran exactly once from committed gate `3aa4cc3` and live-validated its prompt path: Planner call event 277 emitted `success_criteria.nearby_block_present=crafting_table`, all 129 real responses were schema-valid, and the prior placement-criterion rejection did not recur. Action event 298 then requested `crafting_table` while the bot still held `dark_oak_sapling`; the generic bridge handler placed that sapling and failed the requested-item postcondition. Thirty later place attempts reported `must be holding an item to place` while observations continued to show the crafting table in inventory. The new earliest failure layer is `place_backend_requested_item_equip_grounding`; no second live episode is authorized before its bounded offline gate passes.
 
 Current report outcome:
 

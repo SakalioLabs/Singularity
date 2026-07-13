@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T03:07:13.6890240Z",
+  "generated_at": "2026-07-13T03:40:03.0304917Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_place_success_criteria_offline_gate_passed_probe_6_exactly_one_authorized",
-  "decision": "authorize_exactly_one_bm012_probe_6_after_gate_push",
+  "readiness": "bm012_probe_6_recorded_place_backend_offline_gate_required",
+  "decision": "diagnose_place_backend_requested_item_equip_grounding",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -98,7 +98,7 @@
     "place_success_criteria_offline_gate_passed": true,
     "place_success_criteria_policy_id": "m4-place-success-criteria-grounding-v1",
     "place_success_criteria_machine_field": "nearby_block_present",
-    "next_authorized_episode": "bm012_probe_6_exactly_one_after_gate_push"
+    "next_authorized_episode": "consumed_by_bm012_probe_6"
   },
   "offline_subtask_numeric_criteria_gate": {
     "passed": true,
@@ -145,7 +145,9 @@
     "root_goal": "Place crafting table for tool progression",
     "root_subtask_action_item_alignment_required": true,
     "placed_item": "crafting_table",
-    "canonical_success_criteria": {"nearby_block_present": "crafting_table"},
+    "canonical_success_criteria": {
+      "nearby_block_present": "crafting_table"
+    },
     "source_value_and_subtask_hashes_recorded": true,
     "post_action_machine_task_completion": true,
     "goal_mismatch_rejected": true,
@@ -160,11 +162,56 @@
     "node_internal_pass_count": 36,
     "protocol_changed": false,
     "task_contract_changed": false,
-    "next_authorized_episode": "bm012_probe_6_exactly_one_after_gate_push"
+    "next_authorized_episode": "consumed_by_bm012_probe_6",
+    "live_probe_6_executed": true,
+    "prompt_path_live_validated": true,
+    "normalization_branch_exercised_live": false,
+    "prior_failure_recurred": false,
+    "live_place_action_count": 31,
+    "live_place_success_count": 0
   },
-  "live_episode_count": 23,
-  "live_episode_count_under_current_protocol": 9,
+  "live_episode_count": 24,
+  "live_episode_count_under_current_protocol": 10,
   "latest_live_episode": {
+    "task_id": "BM-012",
+    "episode_id": "m4_episode_20260713_112039_496a9152",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "autonomous_goal_count": 6,
+    "completed_goal_count": 2,
+    "failed_goal_count": 3,
+    "interrupted_goal_count": 1,
+    "selection_source": "curriculum_and_survival_goal_generator",
+    "initial_selection_reason": "curriculum_ranked:early_wood_bootstrap",
+    "goal_sequence": [
+      "Gather 6 oak logs for tools and shelter",
+      "Craft crafting table",
+      "Place crafting table for tool progression",
+      "Place crafting table on ground",
+      "Place crafting table on ground",
+      "Build verified shelter before nightfall"
+    ],
+    "prior_place_criterion_failure_recurred": false,
+    "first_place_plan_event_index": 279,
+    "first_place_action_event_index": 298,
+    "first_unrecovered_transition": "place_backend_requested_item_equip_grounding",
+    "place_action_attempt_count": 31,
+    "place_action_success_count": 0,
+    "repeated_place_backend_error_count": 30,
+    "final_task_status_counts": {
+      "completed": 15,
+      "failed": 105,
+      "accepted": 17,
+      "active": 5
+    },
+    "resource_terminal_inventory_target": false,
+    "server_observed_death_count": 0,
+    "runner_reported_eligible": false,
+    "independently_accepted_eligible": false,
+    "terminal_world_time": 0,
+    "last_connected_world_time": 10653
+  },
+  "bm012_probe_5_live_episode": {
     "task_id": "BM-012",
     "episode_id": "m4_episode_20260713_092629_6eeeab70",
     "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",

@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 5 remain ineligible at 0/3. Probe 5 live-validated task reconciliation and advanced through crafting-table creation, then rejected two otherwise grounded placement plans because `success_criteria.inventory.crafting_table` was not a canonical positive integer. The bounded placement success-criteria gate now passes offline and authorizes exactly one fresh Probe 6 after this commit is pushed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 6 remain ineligible at 0/3. Probe 6 live-validated the placement success-criteria prompt path and executed 31 canonical place actions, then exposed that the generic place backend does not select or equip the requested item before `placeBlock`. The next bounded offline gate is `place_backend_requested_item_equip_grounding`; no second live episode is authorized, and BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | place_success_criteria_offline_gate_passed_probe_6_authorized |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_6_failed_place_backend_requested_item_equip_offline_gate_required |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -73,7 +73,11 @@ Probe 5 live-validates both reconciliation boundaries. Event 192 completed seven
 
 The new earliest failure layer is `planner_place_success_criteria_grounding`. Planner calls `llm-747a78336a3e4e79` and `llm-4efc1e7d2e9b4aef` each contained one canonical place action with passing action-parameter grounding, but strict-M4 rejected the envelope as `subtask[0]:success_criteria_inventory_count_invalid:crafting_table`. The canonical trace retains response hashes and byte counts rather than raw response bodies, so it proves a noncanonical inventory count but does not support a stronger claim about its exact raw value. Both rejected plans produced `empty_plan`, no place action executed, the crafting table remained in inventory, and the iron progression chain never started. Later pathfinding, task-deadline interrupts, dusk shelter work, and the final deadline-bound timeout are downstream. Probe 5 consumed this round's sole live authorization; no fix or second episode occurs in this round.
 
-The bounded `planner_place_success_criteria_grounding` fix now passes offline. Strict-M4 Planner runs `m4-place-success-criteria-grounding-v1` after action-parameter grounding and before numeric-criteria validation. It rewrites only a placement subtask's inventory criterion for the exact item that the immediate canonical place action and explicit root goal both request, replacing that non-proof with `nearby_block_present` machine state. The report records source-value, original-subtasks, and grounded-subtasks hashes without retaining raw count text. Goal mismatch, missing placement intent, conflicting nearby-block criteria, a different action item, and malformed preconditions remain rejected; unrelated inventory criteria and non-M4 protocols are unchanged. The Probe 5 failure class creates one executable place action, TaskSystem completes from a post-action nearby `crafting_table`, and the GoalVerifier's existing `world:nearby_crafting_table` rule remains the root authority. Exactly one fresh Probe 6 is authorized after the gate commit is pushed.
+The bounded `planner_place_success_criteria_grounding` fix now passes offline. Strict-M4 Planner runs `m4-place-success-criteria-grounding-v1` after action-parameter grounding and before numeric-criteria validation. It rewrites only a placement subtask's inventory criterion for the exact item that the immediate canonical place action and explicit root goal both request, replacing that non-proof with `nearby_block_present` machine state. The report records source-value, original-subtasks, and grounded-subtasks hashes without retaining raw count text. Goal mismatch, missing placement intent, conflicting nearby-block criteria, a different action item, and malformed preconditions remain rejected; unrelated inventory criteria and non-M4 protocols are unchanged. The Probe 5 failure class creates one executable place action, TaskSystem completes from a post-action nearby `crafting_table`, and the GoalVerifier's existing `world:nearby_crafting_table` rule remains the root authority. Probe 6 consumed this gate's one live authorization.
+
+Probe 6 live-validates the prompt path without exercising the normalization branch. Planner call event 277 / call `llm-28be82216c5b42ed` emitted `success_criteria.nearby_block_present=crafting_table` directly; all 129 real responses were schema-valid, all 129 placement-grounding reports passed, and zero subtasks required rewriting. The prior numeric placement-criterion rejection did not recur.
+
+The new earliest failure layer is `place_backend_requested_item_equip_grounding`. Observation event 273 showed `crafting_table:1` in inventory while selected slot 0 held `dark_oak_sapling:1`. The canonical action was accepted at event 292, but action event 298 called generic `createPlaceHandler` without selecting or equipping the requested item; Mineflayer placed the held sapling at `(104,136,-31)`, the requested-item postcondition failed, and event 302 showed the sapling consumed while the crafting table remained in inventory. Thirty later place actions failed `must be holding an item to place`. Task-deadline interrupts, the later shelter timeout and bridge disconnect, missing terminal lifecycle evidence, and the deadline rejection are downstream. Probe 6 was this round's only live episode; no code fix or second run occurs in the round.
 
 ## BM-012 Offline Preflight
 
@@ -85,7 +89,7 @@ The bounded `planner_place_success_criteria_grounding` fix now passes offline. S
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 707 Python tests, 138 related Planner/TaskSystem/M4 tests, all six fixed Node suites with 36 internal cases, Python compilation, and `git diff --check` pass
-- Live authorization: exactly one fresh BM-012 Probe 6 after the placement success-criteria gate is committed and pushed
+- Live authorization: consumed by BM-012 Probe 6; none pending until the requested-item equip gate passes offline
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -150,9 +154,30 @@ The bounded `planner_place_success_criteria_grounding` fix now passes offline. S
 - Machine completion: the grounded task stays incomplete without a nearby block and completes only after a successful action is followed by a machine observation containing `crafting_table`
 - Scope: strict-M4 Planner prompt and plan grounding only; TaskSystem generic semantics, GoalVerifier, ActionVerifier, action execution, protocol/task-contract hashes, M1/M2 fixed protocols, deadlines, and success thresholds are unchanged
 - Validation: 2 exact new tests, 138 related tests, 707 full Python tests, six Node suites with 36 cases, Python compilation, and `git diff --check` pass
-- Authorization: exactly one fresh BM-012 Probe 6 after this gate commit is pushed; no second episode may run in that live round
+- Live result: Probe 6 emitted canonical `nearby_block_present=crafting_table` directly on the first placement plan; 129/129 real Planner responses were schema-valid, the prior rejection did not recur, and the normalization branch remained unexercised
+- Authorization: consumed by BM-012 Probe 6; no second episode may run in that live round
 
 ## BM-012 Live Evidence
+
+### Probe 6: Placement Criterion Passed; Requested Item Was Not Equipped
+
+- Episode: `m4_episode_20260713_112039_496a9152`
+- Session: `19e3c9df-8e3`
+- Level: `m4_episode_20260713_112039_496a9152_bm012`
+- Preflight: passed with unchanged protocol/task-contract hashes, empty inventory, fresh daylight level, zero-death lifecycle baseline, and exact `600/24/40/320` controls
+- Result: ineligible; BM-012 remains 0/3, 54/74 independent checks passed, no terminal resource event was emitted, and no iron-source action occurred
+- Prior gate live evidence: Planner event 277 / call `llm-28be82216c5b42ed` was real and schema-valid; event 279 emitted one canonical `place(item=crafting_table,x=104,y=135,z=-31)` and `success_criteria.nearby_block_present=crafting_table`; all 129 real calls and placement-grounding reports passed, with zero rewrites
+- Earliest invalid transition: observation event 273 showed the requested crafting table in inventory but `dark_oak_sapling` equipped; action event 298 at monotonic 55017.875 placed that sapling at the target, failed `placed block was not observed at the target`, and left the crafting table unplaced
+- Confirmation: event 302 showed the sapling consumed and no held item; the next 30 place attempts all failed `must be holding an item to place` while connected observations continued to report `crafting_table:1`
+- Source attribution: generic `createPlaceHandler` reads `params.item` only for post-placement comparison and calls `placeBlock` without inventory lookup or `equip`; the bounded shelter handlers independently perform requested-material lookup and equip
+- Goals: six roots; two completed, three failed, one interrupted; the successful roots gathered six logs and crafted the table before three placement roots stalled
+- Planner: 130 calls; 129 real and schema-valid responses, one deadline-bound timeout, 418842 tokens, maximum successful latency 6.281 seconds, zero retries, and zero reasoning bytes
+- Actions: 19/63 succeeded; `move_to` 9/20, `dig` 6/7, `craft` 3/3, `place` 0/31, and `build_shelter_cell` 1/2
+- Interrupts and shelter: 73 triggers had 73 recoveries; 72 were task deadlines and one was dusk. One bounded shelter action placed 9/9 blocks, but the misplaced sapling occupied the interior so all nine machine shelter checks failed; a second build timed out and disconnected the bridge
+- Deadline: Agent stopped at 55526.765, exactly the absolute deadline; canonical evidence ended at 55526.781, 0.016 seconds late. No Planner call, plan, verification, or action began after the boundary, but the independent duration/no-post-deadline checks rejected the run
+- Skills: baseline remained off; selected/executed/quarantined contribution was zero
+- Round boundary: this was the only live episode; no code fix or second BM-012 run is authorized
+- Evidence: `logs/benchmarks/m4/m4_episode_20260713_112039_496a9152/`
 
 ### Probe 5: Family Reconciliation Passed; Placement Success Criterion Rejected
 

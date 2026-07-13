@@ -50,7 +50,7 @@
 - M4 is `failing`; BM-011 remains repeat-verified, but BM-012 now has a failed live attempt and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after five failed live attempts. Probe 5 live-validated strict-M4 task reconciliation, including family activation for `oak_log:5 + birch_log:1`, and no fulfilled wood root repeated. It advanced through crafting-table creation, then exposed inventory-as-placement-proof in two otherwise grounded plans. The bounded `m4-place-success-criteria-grounding-v1` gate now converts only exact goal/subtask/action-aligned placement criteria to machine `nearby_block_present` evidence before numeric validation; all mismatch and malformed-precondition controls remain fail closed. The offline gate passes and authorizes exactly one fresh Probe 6 after this commit is pushed. BM-013 and BM-014 remain locked.
+- BM-012 is the next target at 0/3 after six failed live attempts. Probe 6 live-validated the placement-criterion prompt path: its first place plan used machine `nearby_block_present=crafting_table`, and all 129 real Planner responses were schema-valid. The generic `createPlaceHandler` then placed the already held `dark_oak_sapling` because it did not select or equip the requested `crafting_table` before `placeBlock`; thirty later place attempts found no held item. The earliest failure layer is now `place_backend_requested_item_equip_grounding`, and no second live episode is authorized before that bounded offline gate passes. BM-013 and BM-014 remain locked.
 
 ## Evidence Policy
 
@@ -70,7 +70,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 five failed attempts, 0/3; BM-013..014 not_run |
+| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 six failed attempts, 0/3; BM-013..014 not_run |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |
