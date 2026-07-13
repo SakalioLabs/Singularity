@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 10 remain ineligible at 0/3. Probe 10 produced 50 real schema-valid calls, so Probe 9's typed inventory-count rejection did not recur and `m4-typed-schema-recovery-v1` was not exercised live. The new earliest blocker is `planner_subtask_opportunity_trigger_type_grounding`: event 262 returned an object-valued trigger, event 265 accepted its task, and event 266 exposed the malformed value. Nine malformed-trigger plans accumulated before readiness scoring raised `AttributeError` after event 1185 and aborted the runner. Additional live work is blocked until a bounded offline type gate passes and is pushed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 10 remain ineligible at 0/3. Probe 10's `planner_subtask_opportunity_trigger_type_grounding` blocker now passes offline under `m4-subtask-opportunity-trigger-type-grounding-v1`: strict M4 rejects malformed trigger metadata before TaskSystem creation, valid string hints remain intact, and the consumer safely ignores legacy malformed containers and non-string values. No live episode ran in this gate round. Exactly one fresh BM-012 Probe 11 is authorized only after this commit is pushed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_10_ineligible_opportunity_trigger_type_offline_gate_required |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_opportunity_trigger_type_gate_passed_probe_11_authorized_after_push |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -105,6 +105,8 @@ Probe 10 did not reproduce that rejection. All 50 real Planner calls passed sche
 
 The new earliest failure layer is `planner_subtask_opportunity_trigger_type_grounding`. Real call event 262 / `llm-0cd847107eb747db` returned a three-subtask plan whose `Mine coal ore` task used an object-valued `opportunity_triggers` item. The envelope reported no issue, task event 265 accepted the malformed task, and plan event 266 exposed the object. The same class appeared in nine plans. Bounded planning-context readiness calls warned and returned empty context, but the direct readiness call in `_select_autonomous_goal` after event 1185 reached `TaskSystem._opportunity_bonus`, called `.lower()` on the object, and aborted the runner. Repeated wooden-pickaxe craft failures, 21 task-deadline recoveries, and the missing terminal resource event are downstream. Probe 10 was the only live episode in this round; no code fix or second run occurs here.
 
+The bounded offline fix now passes under `m4-subtask-opportunity-trigger-type-grounding-v1`. Strict M4 validates every explicit `subtasks[*].opportunity_triggers` field before task creation, accepts only arrays of non-empty strings, and emits deterministic element-indexed issues for the Probe 10 object, non-array containers, nulls, numbers, dictionaries, and empty strings. A rejected response exposes zero subtasks and actions and creates zero tasks. Valid string lists remain byte-for-byte unchanged, and TaskSystem defensively skips legacy malformed containers and non-string hints while preserving valid causal scoring. The prompt now forbids object, coordinate, numeric, and null trigger values. Full regression passes 716 Python tests and six Node suites with 38 internal assertions; no protocol, task contract, deadline, verifier, recovery whitelist, or success threshold changed. No live episode ran in this offline round; exactly one fresh BM-012 Probe 11 is authorized after this commit is pushed.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -114,8 +116,8 @@ The new earliest failure layer is `planner_subtask_opportunity_trigger_type_grou
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 714 Python tests, including 25 M4 deadline cases and 51 combined M4 deadline/resource/protocol/runtime cases, all six fixed Node suites with 38 internal assertions, and Python compilation pass
-- Live authorization: Probe 10 consumed the typed schema-rejection gate authorization; no further live run is allowed until the opportunity-trigger type gate passes offline and is pushed
+- Regression: 716 Python tests, including 27 M4 deadline cases and 76 fixed M4 cases, all six fixed Node suites with 38 internal assertions, and Python compilation pass
+- Live authorization: the opportunity-trigger type gate passes offline; exactly one fresh BM-012 Probe 11 is authorized only after this gate commit is pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -239,6 +241,19 @@ The new earliest failure layer is `planner_subtask_opportunity_trigger_type_grou
 - Validation: 3 exact gate tests, 25 M4 deadline tests, 51 combined M4 tests, 714 full Python tests, six Node suites with 38 internal assertions, and Python compilation pass
 - Status: passed offline; Probe 10 did not reproduce the typed rejection, so the recovery branch remains live-unexercised
 - Authorization: consumed by BM-012 Probe 10; the next live run is blocked on a new offline opportunity-trigger type gate
+
+## BM-012 Opportunity-Trigger Type Gate
+
+- Root hypothesis: `planner_subtask_opportunity_trigger_type_grounding`
+- Policy: `m4-subtask-opportunity-trigger-type-grounding-v1` validates explicit strict-M4 subtask trigger metadata before TaskSystem creation
+- Exact replay: Probe 10's `Mine coal ore` object trigger at call event 262 produces `subtask[2]:opportunity_triggers[0]_not_string`, zero accepted subtasks/actions, and zero created tasks
+- Fail-closed controls: non-array containers, nulls, numbers, dictionaries, empty strings, and whitespace-only strings reject; no malformed value is coerced into a valid trigger
+- Valid control: string trigger lists remain unchanged and still contribute direct or causal opportunity scoring
+- Consumer defense: TaskSystem ignores legacy non-list containers and non-string elements instead of iterating or calling `.lower()` on them; valid string hints in a valid list remain active
+- Scope: strict-M4 Planner metadata validation and the TaskSystem trigger consumer guard only; typed schema recovery, Agent root selection, GoalVerifier, ActionVerifier, bridge execution, deadlines, success thresholds, protocol hash, task contract, and fixed M1/M2 behavior are unchanged
+- Validation: 2 focused gate tests, 27 M4 deadline tests, 95 TaskSystem tests, 76 fixed M4 Python tests, 716 full Python tests, six Node suites with 38 internal assertions, and Python compilation pass
+- Status: passed offline; no live episode ran in this gate round
+- Authorization: exactly one fresh BM-012 Probe 11 after this gate commit is pushed
 
 ## BM-012 Live Evidence
 

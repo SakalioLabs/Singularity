@@ -418,13 +418,18 @@ class TaskSystem:
         return score
 
     def _opportunity_bonus(self, task: Task, world_state: dict) -> int:
-        if not task.opportunity_triggers:
+        if (
+            not isinstance(task.opportunity_triggers, list)
+            or not task.opportunity_triggers
+        ):
             return 0
         context_words = self._context_words(world_state)
         causal_words = self._causal_words(world_state) if self.use_causal_opportunities else set()
         direct_matches = 0
         causal_matches = 0
         for trigger in task.opportunity_triggers:
+            if not isinstance(trigger, str) or not trigger:
+                continue
             trigger = trigger.lower()
             if trigger in context_words:
                 direct_matches += 1

@@ -296,6 +296,9 @@ class Planner:
                 self._ground_m4_place_success_criteria(raw_plan, goal=goal)
             )
             raw_plan, subtask_numeric_grounding = self._ground_m4_subtask_numeric_criteria(raw_plan)
+            raw_plan, opportunity_trigger_grounding = (
+                self._ground_m4_subtask_opportunity_triggers(raw_plan)
+            )
             raw_plan, shelter_phase_grounding = self._ground_m4_shelter_phase(
                 raw_plan,
                 goal=goal,
@@ -314,11 +317,15 @@ class Planner:
             grounding_issues = list(action_parameter_grounding.get("issues", []))
             grounding_issues.extend(place_success_criteria_grounding.get("issues", []))
             grounding_issues.extend(subtask_numeric_grounding.get("issues", []))
+            grounding_issues.extend(opportunity_trigger_grounding.get("issues", []))
             schema_validation["action_parameter_grounding"] = action_parameter_grounding
             schema_validation["place_success_criteria_grounding"] = (
                 place_success_criteria_grounding
             )
             schema_validation["subtask_numeric_criteria_grounding"] = subtask_numeric_grounding
+            schema_validation["subtask_opportunity_trigger_grounding"] = (
+                opportunity_trigger_grounding
+            )
             schema_validation["shelter_phase_grounding"] = shelter_phase_grounding
             schema_validation["maintenance_phase_grounding"] = maintenance_phase_grounding
             schema_validation["issues"] = sorted(set(
@@ -342,6 +349,9 @@ class Planner:
                 )
                 plan["subtask_numeric_criteria_grounding"] = dict(
                     schema_validation.get("subtask_numeric_criteria_grounding", {})
+                )
+                plan["subtask_opportunity_trigger_grounding"] = dict(
+                    schema_validation.get("subtask_opportunity_trigger_grounding", {})
                 )
                 plan["shelter_phase_grounding"] = dict(
                     schema_validation.get("shelter_phase_grounding", {})
@@ -464,6 +474,7 @@ M4 FIXED OUTPUT CONTRACT:
 - If the observed machine state appears to satisfy the exact goal, use status complete and let the machine GoalVerifier decide; prose never completes a goal.
 - Use status blocked only when no grounded progress action exists.
 - In subtask preconditions.inventory and success_criteria.inventory, every count must be a positive integer. Inventory criteria already mean at least N; never emit comparator strings such as ">=8".
+- Every subtask opportunity_triggers value must be a JSON array of non-empty strings. Use only block, entity, item, or causal-tag names; never emit objects, coordinates, numbers, or null values as triggers.
 - For a place subtask, prove the placed item from machine world state with success_criteria {"nearby_block_present":"exact_item_name"}; never use inventory of the placed item as placement proof.
 - Example placement success_criteria: {"nearby_block_present":"crafting_table"}.
 - A dig action must use top-level finite x, y, and z parameters and may use top-level block; never use block_name, position, target, or block_position aliases.
@@ -977,6 +988,64 @@ Plan the steps to achieve this goal."""
             "inventory_requirement_count": requirement_count,
             "normalized_requirement_count": len(normalizations),
             "normalizations": normalizations,
+            "issues": sorted(set(issues)),
+        }
+        return grounded_plan, report
+
+    @staticmethod
+    def _ground_m4_subtask_opportunity_triggers(plan: dict) -> tuple[dict, dict]:
+        """Reject malformed M4 scheduler hints before they enter TaskSystem."""
+        grounded_plan = dict(plan or {})
+        subtasks = grounded_plan.get("subtasks")
+        if not isinstance(subtasks, list):
+            return grounded_plan, {
+                "type": "m4_subtask_opportunity_trigger_grounding",
+                "schema_version": 1,
+                "policy_id": "m4-subtask-opportunity-trigger-type-grounding-v1",
+                "passed": True,
+                "subtask_count": 0,
+                "trigger_list_count": 0,
+                "trigger_count": 0,
+                "valid_trigger_count": 0,
+                "issues": [],
+            }
+
+        issues: list[str] = []
+        trigger_list_count = 0
+        trigger_count = 0
+        valid_trigger_count = 0
+        for subtask_index, subtask in enumerate(subtasks):
+            if not isinstance(subtask, dict) or "opportunity_triggers" not in subtask:
+                continue
+            triggers = subtask.get("opportunity_triggers")
+            if not isinstance(triggers, list):
+                issues.append(
+                    f"subtask[{subtask_index}]:opportunity_triggers_not_array"
+                )
+                continue
+            trigger_list_count += 1
+            trigger_count += len(triggers)
+            for trigger_index, trigger in enumerate(triggers):
+                prefix = (
+                    f"subtask[{subtask_index}]:"
+                    f"opportunity_triggers[{trigger_index}]"
+                )
+                if not isinstance(trigger, str):
+                    issues.append(prefix + "_not_string")
+                elif not trigger.strip():
+                    issues.append(prefix + "_empty")
+                else:
+                    valid_trigger_count += 1
+
+        report = {
+            "type": "m4_subtask_opportunity_trigger_grounding",
+            "schema_version": 1,
+            "policy_id": "m4-subtask-opportunity-trigger-type-grounding-v1",
+            "passed": not issues,
+            "subtask_count": len(subtasks),
+            "trigger_list_count": trigger_list_count,
+            "trigger_count": trigger_count,
+            "valid_trigger_count": valid_trigger_count,
             "issues": sorted(set(issues)),
         }
         return grounded_plan, report

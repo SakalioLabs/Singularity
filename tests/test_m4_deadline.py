@@ -809,6 +809,152 @@ def test_m4_subtask_numeric_grounding_rejects_non_equivalent_counts():
     print("PASS: M4 subtask numeric grounding fails closed on non-equivalent counts")
 
 
+def test_m4_probe_10_opportunity_trigger_object_is_rejected_before_task_creation():
+    clock = FakeClock()
+
+    class Probe10PlannerLLM(PlannerLLM):
+        def chat(self, messages, **kwargs):
+            super().chat(messages, **kwargs)
+            return json.dumps({
+                "status": "planning",
+                "reasoning": "mine the observed coal while preparing for iron",
+                "subtasks": [
+                    {
+                        "title": "Craft sticks",
+                        "type": "craft",
+                        "priority": 1,
+                        "success_criteria": {"inventory": {"stick": 2}},
+                        "preconditions": {"inventory": {"oak_planks": 2}, "flags": []},
+                        "depends_on": [],
+                        "opportunity_triggers": [],
+                        "tags": ["crafting"],
+                        "deadline_seconds": 30,
+                    },
+                    {
+                        "title": "Craft wooden pickaxe",
+                        "type": "craft",
+                        "priority": 2,
+                        "success_criteria": {"inventory": {"wooden_pickaxe": 1}},
+                        "preconditions": {
+                            "inventory": {"oak_planks": 3, "stick": 2},
+                            "flags": [],
+                        },
+                        "depends_on": ["Craft sticks"],
+                        "opportunity_triggers": [],
+                        "tags": ["crafting", "tool"],
+                        "deadline_seconds": 30,
+                    },
+                    {
+                        "title": "Mine coal ore",
+                        "type": "mine",
+                        "priority": 3,
+                        "success_criteria": {"inventory": {"coal": 1}},
+                        "preconditions": {
+                            "inventory": {"wooden_pickaxe": 1},
+                            "flags": [],
+                        },
+                        "depends_on": ["Craft wooden pickaxe"],
+                        "opportunity_triggers": [{
+                            "nearby_block": "coal_ore",
+                            "position": {"x": 115, "y": 134, "z": -29},
+                        }],
+                        "tags": ["resource", "mining"],
+                        "deadline_seconds": 120,
+                    },
+                ],
+                "actions": [{"type": "craft", "parameters": {"item": "stick", "count": 4}}],
+            })
+
+    tasks = TaskSystem()
+    llm = Probe10PlannerLLM(clock)
+    planner = Planner(llm, tasks, protocol="m4-fixed-v1")
+    planner.start_episode("Collect coal or charcoal for torches", "m4-probe-10-trigger-fixture")
+    planner.set_deadline(200.0, 0.0)
+    with patch("singularity.core.planner.time.monotonic", clock.monotonic):
+        rejected = planner.plan_from_goal(
+            "Collect coal or charcoal for torches",
+            {
+                "inventory": {"oak_log": 5, "oak_planks": 4},
+                "nearby_blocks": [{"name": "coal_ore", "x": 115, "y": 134, "z": -29}],
+            },
+        )
+
+    expected_issue = "subtask[2]:opportunity_triggers[0]_not_string"
+    report = rejected["schema_validation"]["subtask_opportunity_trigger_grounding"]
+    assert rejected["status"] == "error"
+    assert rejected["subtasks"] == []
+    assert rejected["actions"] == []
+    assert rejected["schema_validation"]["issues"] == [expected_issue]
+    assert report["policy_id"] == "m4-subtask-opportunity-trigger-type-grounding-v1"
+    assert report["passed"] is False
+    assert report["subtask_count"] == 3
+    assert report["trigger_list_count"] == 3
+    assert report["trigger_count"] == 1
+    assert report["valid_trigger_count"] == 0
+    assert report["issues"] == [expected_issue]
+    assert tasks.tasks == {}
+    system_prompt = llm.calls[0]["messages"][0]["content"]
+    assert "opportunity_triggers value must be a JSON array of non-empty strings" in system_prompt
+    assert "never emit objects, coordinates, numbers, or null values" in system_prompt
+    print("PASS: M4 rejects the exact Probe 10 object trigger before TaskSystem")
+
+
+def test_m4_opportunity_trigger_type_gate_preserves_strings_and_fails_closed():
+    valid_plan = {
+        "subtasks": [{
+            "title": "Mine nearby resources",
+            "opportunity_triggers": ["coal_ore", "iron_ore"],
+        }],
+    }
+    grounded, report = Planner._ground_m4_subtask_opportunity_triggers(valid_plan)
+    assert report["passed"] is True
+    assert report["trigger_count"] == 2
+    assert report["valid_trigger_count"] == 2
+    assert grounded["subtasks"][0]["opportunity_triggers"] == ["coal_ore", "iron_ore"]
+
+    invalid_values = [
+        ({"nearby_block": "coal_ore"}, "opportunity_triggers_not_array"),
+        ([None], "opportunity_triggers[0]_not_string"),
+        ([7], "opportunity_triggers[0]_not_string"),
+        ([{"nearby_block": "coal_ore"}], "opportunity_triggers[0]_not_string"),
+        ([""], "opportunity_triggers[0]_empty"),
+        (["   "], "opportunity_triggers[0]_empty"),
+    ]
+    for triggers, issue_suffix in invalid_values:
+        _, invalid_report = Planner._ground_m4_subtask_opportunity_triggers({
+            "subtasks": [{"opportunity_triggers": triggers}],
+        })
+        assert invalid_report["passed"] is False
+        assert invalid_report["issues"] == [f"subtask[0]:{issue_suffix}"]
+
+    tasks = TaskSystem()
+    valid_task = tasks.create_task(
+        "Use a valid coal opportunity",
+        status=TaskStatus.ACCEPTED,
+        priority=3,
+        opportunity_triggers=[{"nearby_block": "coal_ore"}, "coal"],
+    )
+    fallback_task = tasks.create_task(
+        "Fallback task",
+        status=TaskStatus.ACCEPTED,
+        priority=3,
+    )
+    next_task = tasks.get_next_task({"causal_tags": ["coal"]})
+    assert next_task.id == valid_task.id
+    assert next_task.id != fallback_task.id
+    malformed_container = tasks.create_task(
+        "Ignore a legacy malformed trigger container",
+        status=TaskStatus.ACCEPTED,
+        priority=3,
+        opportunity_triggers={"nearby_block": "coal_ore"},
+    )
+    assert tasks._opportunity_bonus(
+        malformed_container,
+        {"causal_tags": ["nearby_block"]},
+    ) == 0
+    print("PASS: M4 trigger type gate is strict while TaskSystem ignores legacy non-strings")
+
+
 def test_m4_planner_grounds_probe_5_place_success_criterion_to_machine_state():
     clock = FakeClock()
 
@@ -1728,6 +1874,8 @@ if __name__ == "__main__":
     test_m4_planner_rejects_empty_planning_response_and_marks_replan()
     test_m4_planner_normalizes_exact_probe_3_subtask_inventory_aliases()
     test_m4_subtask_numeric_grounding_rejects_non_equivalent_counts()
+    test_m4_probe_10_opportunity_trigger_object_is_rejected_before_task_creation()
+    test_m4_opportunity_trigger_type_gate_preserves_strings_and_fails_closed()
     test_m4_planner_grounds_probe_5_place_success_criterion_to_machine_state()
     test_m4_place_success_criteria_grounding_is_narrow_and_fails_closed()
     test_m4_typed_schema_rejection_recovers_once_with_same_goal_and_frontier()

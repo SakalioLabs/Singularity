@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T07:46:25.3764601Z",
+  "generated_at": "2026-07-13T08:22:24.4007823Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_10_ineligible_opportunity_trigger_type_offline_gate_required",
-  "decision": "block_live_until_opportunity_trigger_type_gate_passes_and_is_pushed",
+  "readiness": "offline_opportunity_trigger_type_gate_passed_probe_11_authorized_after_push",
+  "decision": "allow_one_fresh_bm012_probe_11_after_gate_commit_push",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -887,6 +887,68 @@
     "live_schema_invalid_real_call_count": 0,
     "live_typed_inventory_count_issue_count": 0,
     "live_output_recovery_count": 0
+  },
+  "offline_opportunity_trigger_type_gate": {
+    "root_hypothesis": "planner_subtask_opportunity_trigger_type_grounding",
+    "status": "passed",
+    "policy_id": "m4-subtask-opportunity-trigger-type-grounding-v1",
+    "scope": "strict-M4 subtask opportunity-trigger metadata validation plus defensive TaskSystem consumption",
+    "source_episode_id": "m4_episode_20260713_154035_5459816d",
+    "source_session_id": "d6831d21-e78",
+    "source_planner_call_event_index": 262,
+    "source_task_event_index": 265,
+    "source_plan_event_index": 266,
+    "source_planner_call_id": "llm-0cd847107eb747db",
+    "exact_probe_10_shape_replay": {
+      "goal": "Collect coal or charcoal for torches",
+      "subtask_count": 3,
+      "trigger_list_count": 3,
+      "trigger_count": 1,
+      "valid_trigger_count": 0,
+      "schema_issue": "subtask[2]:opportunity_triggers[0]_not_string",
+      "rejected_plan_subtask_count": 0,
+      "rejected_plan_action_count": 0,
+      "created_task_count": 0
+    },
+    "fail_closed_controls": [
+      "opportunity_triggers_not_array",
+      "null_trigger",
+      "numeric_trigger",
+      "object_trigger",
+      "empty_string_trigger",
+      "whitespace_only_trigger"
+    ],
+    "valid_control": {
+      "string_list_preserved": true,
+      "valid_causal_scoring_preserved": true,
+      "malformed_value_coerced_to_string": false
+    },
+    "consumer_defense": {
+      "legacy_non_list_container_ignored": true,
+      "legacy_non_string_trigger_ignored": true,
+      "valid_string_in_same_list_preserved": true,
+      "attribute_error_count": 0
+    },
+    "focused_python_test_file": "tests/test_m4_deadline.py",
+    "focused_python_test_count": 2,
+    "deadline_python_test_count": 27,
+    "task_system_python_test_count": 95,
+    "m4_python_test_count": 76,
+    "full_python_regression": 716,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 38,
+    "python_compileall_passed": true,
+    "planner_prompt_changed": true,
+    "planner_validation_changed": true,
+    "task_system_consumer_guard_changed": true,
+    "typed_schema_recovery_changed": false,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "source_live_episode_run": true,
+    "offline_gate_live_episode_run": false,
+    "current_round_live_episode_run": false,
+    "bm012_live_episode_count": 10,
+    "next_authorized_episode": "bm012_probe_11_once_after_gate_commit_push"
   },
   "bm012_probe_9_live_episode": {
     "task_id": "BM-012",
