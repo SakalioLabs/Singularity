@@ -47,10 +47,10 @@
 
 ## M4 Convergence Result
 
-- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 now has a failed live attempt and the phase is not complete until BM-011 through BM-014 each reach 3/3.
+- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after ten failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after nine failed live attempts. Probe 9 exercised `m4-task-world-state-reconciliation-v1` on five nearby-block shelter tasks without reselecting an already satisfied world-state root, though it did not reach the exact crafting-table boundary. The resulting `m4_planner_schema_rejection_recovery_scope` gate now passes offline under `m4-typed-schema-recovery-v1`: one real strict-M4 subtask inventory-count rejection can trigger one same-goal, hash-verified-frontier replan on the next cycle, while repeated rejection, frontier drift, unrelated schema issues, deadlines, and non-M4 use fail closed. Exactly one fresh Probe 10 is authorized after the gate commit is pushed; BM-013 and BM-014 remain locked.
+- BM-012 is the next target at 0/3 after ten failed live attempts. Probe 10 produced 50 real schema-valid Planner calls, so Probe 9's typed inventory-count rejection did not recur and `m4-typed-schema-recovery-v1` was not live-exercised. Planner call event 262 nevertheless passed an object-valued `opportunity_triggers` entry into task event 265 and plan event 266; nine malformed-trigger plans accumulated, and the unguarded readiness call after event 1185 raised `AttributeError`, aborting the runner with 275.766 seconds remaining. No iron-source action occurred. Additional live work is blocked until an offline opportunity-trigger type gate passes and is pushed; BM-013 and BM-014 remain locked.
 
 ## Evidence Policy
 
@@ -70,7 +70,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 nine failed attempts, 0/3; BM-013..014 not_run |
+| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 ten failed attempts, 0/3; BM-013..014 not_run |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |

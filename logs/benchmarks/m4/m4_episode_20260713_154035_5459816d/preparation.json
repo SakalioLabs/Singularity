@@ -1,0 +1,176 @@
+{
+  "type": "m4_resource_progress_report",
+  "schema_version": 1,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "task_contract_id": "m4-bm012-resource-contract-v1",
+  "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+  "readiness": "review",
+  "decision": "diagnose_first_unrecovered_transition",
+  "progress_gate_passed": false,
+  "counts_toward_task_success": false,
+  "episode_id": "m4_episode_20260713_154035_5459816d",
+  "session_id": "d6831d21-e78",
+  "level_name": "m4_episode_20260713_154035_5459816d_bm012",
+  "autonomous_goals": [
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 1,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 61.0
+    },
+    {
+      "goal": "Collect coal or charcoal for torches",
+      "goal_index": 2,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:night_and_cave_safety",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 70.0
+    }
+  ],
+  "planner_provider_controls": {
+    "passed": true,
+    "call_count": 50,
+    "real_call_count": 50,
+    "schema_valid_real_call_count": 50,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 0,
+    "max_call_duration_ms": 9406.0,
+    "total_token_usage": 180694,
+    "violations": []
+  },
+  "action_count": 30,
+  "successful_action_count": 14,
+  "resource_acquisition": {
+    "target_items": [
+      "raw_iron",
+      "iron_ore"
+    ],
+    "initial_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "initial_target_count": 0,
+    "qualifying_items": [],
+    "terminal_target_passed": false,
+    "positive_inventory_delta": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "positive_inventory_delta_passed": false,
+    "successful_source_action_count": 0,
+    "successful_source_actions": []
+  },
+  "before_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 143,
+    "nearby_hostile_count": 0
+  },
+  "after_state": {
+    "position": {
+      "x": 108.31456283937854,
+      "y": 136,
+      "z": -27.48716373588683
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {
+      "oak_log": 3,
+      "oak_planks": 6,
+      "stick": 4,
+      "oak_sapling": 1,
+      "crafting_table": 1
+    },
+    "time_of_day": 6483,
+    "nearby_hostile_count": 0
+  },
+  "time_remaining_s": 275.766,
+  "first_unrecovered_transition": {
+    "event_type": "action",
+    "goal": "Collect coal or charcoal for torches",
+    "action": {
+      "type": "craft",
+      "parameters": {
+        "item": "wooden_pickaxe",
+        "count": 1
+      }
+    },
+    "error": "Action verification rejected: missing ingredients for wooden_pickaxe",
+    "monotonic_s": 70616.64
+  },
+  "deadline_eligible": false,
+  "evidence_eligible": false,
+  "eligibility_issues": [
+    "event:terminal_resource_verification",
+    "event:autonomous_end",
+    "resource_terminal_inventory_target",
+    "resource_successful_source_actions",
+    "resource_positive_inventory_delta",
+    "terminal_machine_verification",
+    "result_duration_eligible"
+  ],
+  "runner_completed": false,
+  "runtime_exception": {
+    "type": "AttributeError",
+    "message": "'dict' object has no attribute 'lower'",
+    "location": "src/singularity/core/task_system.py:428",
+    "operation": "TaskSystem._opportunity_bonus",
+    "caller": "Agent._select_autonomous_goal"
+  },
+  "independent_first_unrecovered_transition": {
+    "failure_layer": "planner_subtask_opportunity_trigger_type_grounding",
+    "planner_call_event_index": 262,
+    "task_creation_event_index": 265,
+    "plan_event_index": 266,
+    "first_unrecovered_event_index": 265,
+    "crash_after_event_index": 1185,
+    "monotonic_s": 70596.703,
+    "goal": "Collect coal or charcoal for torches",
+    "planner_call_id": "llm-0cd847107eb747db",
+    "root_plan_id": "root-d6c9e2091a0d4e32",
+    "subtask_index": 2,
+    "subtask_title": "Mine coal ore",
+    "opportunity_triggers": [
+      {
+        "nearby_block": "coal_ore",
+        "position": {
+          "x": 115,
+          "y": 134,
+          "z": -29
+        }
+      }
+    ],
+    "planner_schema_valid": true,
+    "malformed_trigger_plan_count": 9,
+    "runtime_exception": {
+      "type": "AttributeError",
+      "message": "'dict' object has no attribute 'lower'",
+      "location": "src/singularity/core/task_system.py:428",
+      "operation": "TaskSystem._opportunity_bonus",
+      "caller": "Agent._select_autonomous_goal"
+    }
+  }
+}

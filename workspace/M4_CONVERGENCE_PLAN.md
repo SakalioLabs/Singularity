@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 9 remain ineligible at 0/3. Probe 9 exercised `m4-task-world-state-reconciliation-v1` on five machine-observed nearby-block shelter tasks and did not reselect an already satisfied world-state root, although progression did not reach the exact crafting-table boundary. Its `m4_planner_schema_rejection_recovery_scope` blocker now passes offline under `m4-typed-schema-recovery-v1`: one real strict-M4 subtask inventory-count rejection can trigger one same-goal, hash-verified-frontier replan on the next cycle, while repeated output and every out-of-scope control fail closed. Exactly one fresh Probe 10 is authorized after this gate commit is pushed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 10 remain ineligible at 0/3. Probe 10 produced 50 real schema-valid calls, so Probe 9's typed inventory-count rejection did not recur and `m4-typed-schema-recovery-v1` was not exercised live. The new earliest blocker is `planner_subtask_opportunity_trigger_type_grounding`: event 262 returned an object-valued trigger, event 265 accepted its task, and event 266 exposed the malformed value. Nine malformed-trigger plans accumulated before readiness scoring raised `AttributeError` after event 1185 and aborted the runner. Additional live work is blocked until a bounded offline type gate passes and is pushed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_typed_schema_rejection_recovery_gate_passed_probe_10_authorized_after_push |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_10_ineligible_opportunity_trigger_type_offline_gate_required |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -101,6 +101,10 @@ The new earliest failure layer is `m4_planner_schema_rejection_recovery_scope`. 
 
 The bounded offline fix now passes under `m4-typed-schema-recovery-v1`. Recovery is restricted to a real `m4-fixed-v1` Planner call whose rejected plan has empty task/action output and whose complete issue set comes from typed subtask inventory-count grounding. Each autonomous goal gets at most one next-cycle replan; the Agent hashes its nonterminal task frontier at rejection and verifies the same goal and frontier before reconciliation or the next Planner call. The exact Probe 9 shape replays three subtasks, six requirements, the one oak-log issue, zero normalization, zero invalid task acceptance, and zero action execution into a `replan` on the same root. A second typed rejection emits one exhausted event and reaches the existing `empty_plan`; frontier drift, malformed metrics, untrusted calls, leaked actions, mixed schema issues, deadline exhaustion, and M2 use reject recovery. Full regression passes 714 Python tests and six Node suites with 38 internal assertions. No live episode ran in this offline round; exactly one fresh Probe 10 is authorized after this commit is pushed.
 
+Probe 10 did not reproduce that rejection. All 50 real Planner calls passed schema validation, no typed inventory-count issue appeared, and zero `m4_planner_output_recovery` events were emitted. The offline gate remains valid but its runtime branch was not exercised.
+
+The new earliest failure layer is `planner_subtask_opportunity_trigger_type_grounding`. Real call event 262 / `llm-0cd847107eb747db` returned a three-subtask plan whose `Mine coal ore` task used an object-valued `opportunity_triggers` item. The envelope reported no issue, task event 265 accepted the malformed task, and plan event 266 exposed the object. The same class appeared in nine plans. Bounded planning-context readiness calls warned and returned empty context, but the direct readiness call in `_select_autonomous_goal` after event 1185 reached `TaskSystem._opportunity_bonus`, called `.lower()` on the object, and aborted the runner. Repeated wooden-pickaxe craft failures, 21 task-deadline recoveries, and the missing terminal resource event are downstream. Probe 10 was the only live episode in this round; no code fix or second run occurs here.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -111,7 +115,7 @@ The bounded offline fix now passes under `m4-typed-schema-recovery-v1`. Recovery
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 714 Python tests, including 25 M4 deadline cases and 51 combined M4 deadline/resource/protocol/runtime cases, all six fixed Node suites with 38 internal assertions, and Python compilation pass
-- Live authorization: the typed schema-rejection recovery gate passes offline; exactly one fresh Probe 10 is authorized after the gate commit is pushed
+- Live authorization: Probe 10 consumed the typed schema-rejection gate authorization; no further live run is allowed until the opportunity-trigger type gate passes offline and is pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -233,10 +237,28 @@ The bounded offline fix now passes under `m4-typed-schema-recovery-v1`. Recovery
 - Fail-closed controls: a second typed rejection emits one exhausted event and reaches `empty_plan`; frontier drift, mixed issues, untrusted evidence, leaked actions, malformed metrics, non-M4 behavior, and deadline exhaustion reject recovery
 - Scope: Agent M4 planner-output recovery only; Planner validation, TaskSystem criteria, GoalVerifier, ActionVerifier, bridge execution, protocol/task-contract hashes, deadlines, and fixed M1/M2 protocols remain unchanged
 - Validation: 3 exact gate tests, 25 M4 deadline tests, 51 combined M4 tests, 714 full Python tests, six Node suites with 38 internal assertions, and Python compilation pass
-- Status: passed offline; no live episode ran in this gate round
-- Authorization: exactly one fresh BM-012 Probe 10 after this gate commit is pushed
+- Status: passed offline; Probe 10 did not reproduce the typed rejection, so the recovery branch remains live-unexercised
+- Authorization: consumed by BM-012 Probe 10; the next live run is blocked on a new offline opportunity-trigger type gate
 
 ## BM-012 Live Evidence
+
+### Probe 10: Typed Rejection Absent; Object Trigger Crashed Readiness
+
+- Episode: `m4_episode_20260713_154035_5459816d`
+- Session: `d6831d21-e78`
+- Level: `m4_episode_20260713_154035_5459816d_bm012`
+- Frozen gate: committed and pushed `d11c633`; preflight passed under unchanged protocol and task-contract hashes
+- Prior hypothesis: 50/50 real calls were schema-valid, zero typed inventory-count issues and zero output-recovery events occurred; the Probe 9 failure did not recur and the recovery branch was not live-exercised
+- First unrecovered transition: call event 262 / `llm-0cd847107eb747db`, task event 265, and plan event 266 at monotonic 70596.703 / cycle 12 accepted an object-valued `opportunity_triggers` item for `Mine coal ore`
+- Confirmation: nine malformed-trigger plans entered the task frontier; the unguarded goal-selection readiness call after event 1185 raised `'dict' object has no attribute 'lower'` in `TaskSystem._opportunity_bonus` and the runner did not emit `autonomous_end`
+- Before state: health/food 20, world time 1783, inventory `oak_log:5`, `oak_planks:4`, `oak_sapling:1`, and machine-observed `coal_ore` at `(115,134,-29)`
+- Autonomy: two curriculum goals; the six-oak-log bootstrap completed in 10 cycles, while `Collect coal or charcoal for torches` failed at 40 cycles before the next goal selection crashed
+- Actions: 30 attempted, 14 successful; six successful oak-log digs, five successful crafts, zero iron-source actions, and no executable learned skill
+- Interrupts: 21 unique task-deadline triggers and 21 recoveries covering 88 unique expired tasks; the interrupt cascade is downstream
+- Last machine observation: event 1151, health/food 20, world time 6483, inventory `oak_log:3`, `oak_planks:6`, `stick:4`, `oak_sapling:1`, `crafting_table:1`, and uninterrupted zero-death lifecycle
+- Deadline: start 70508.437, absolute boundary 71108.437, last canonical event 70832.671, and 275.766 seconds remained; no Planner call, plan, or action occurred after the boundary, but the aborted result is duration-ineligible
+- Eligibility: 67/74 checks passed with seven issues, including missing `autonomous_end`, terminal resource verification, iron delta/source actions, terminal machine verification, and result duration eligibility; BM-012 remains 0/3
+- Round boundary: this was the only live episode; no code fix, second run, or new live authorization occurs in this round
 
 ### Probe 9: World-State Policy Exercised; Typed Schema Rejection Failed Root
 
