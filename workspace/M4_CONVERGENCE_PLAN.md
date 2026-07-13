@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 7 remain ineligible at 0/3. Probe 7 live-validated the requested-item equip gate across all 17 place attempts, then exposed `planner_place_target_occupancy_grounding`: every selected target cell was already occupied. The bounded target-occupancy gate now passes offline and authorizes exactly one fresh Probe 8 after this gate commit is pushed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 8 remain ineligible at 0/3. Probe 8 live-validated `m4-place-target-occupancy-v1`: the occupied target was rejected before execution, a target-aware replan selected air, and the crafting table was placed successfully. It then exposed `m4_task_world_state_reconciliation_grounding`: strict-M4 reselected an accepted `nearby_block_present` task after machine state had already satisfied it because pre-goal reconciliation allowed only inventory criteria. No further live episode is authorized until that bounded offline gate passes; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_place_target_occupancy_gate_passed_probe_8_authorized_after_push |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_8_ineligible_task_world_state_reconciliation_grounding_diagnosed |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -87,6 +87,12 @@ The new earliest failure layer is `planner_place_target_occupancy_grounding`. Pl
 
 The bounded `planner_place_target_occupancy_grounding` fix now passes offline under `m4-place-target-occupancy-v1`. The strict-M4 prompt defines the actual placement target as `floor(x),floor(y)+1,floor(z)`. ActionVerifier checks exact-position machine observations, rejects observed solid targets at zero execution duration, and requests a next-cycle replan naming the occupied block and required air-or-replaceable state. The generic Mineflayer place bridge independently reads the exact target and rejects a solid occupant before equip, `placeBlock`, or mutation. The exact Probe 7 `dark_oak_log` and `grass_block` states fail closed; replaceable, target-absent, non-M4 ActionVerifier, and successful air-target controls pass. The protocol and BM-012 task-contract hashes, deadlines, and success thresholds are unchanged. Full regression passes 709 Python tests and six Node suites with 38 internal cases. No live episode ran in this offline round; exactly one fresh Probe 8 is authorized after this gate commit is pushed.
 
+Probe 8 live-validates that gate. ActionVerifier event 243 rejected target `(93,135,-38)` because exact machine state showed `dark_oak_log`, action event 248 recorded zero execution duration, and the verifier requested a target-aware replan. Plan event 259 selected reference `(92,134,-37)`; event 271 accepted its air target and action event 278 placed `crafting_table` at `(92,135,-37)` in 516 ms. The Probe 7 occupied-target timeout did not recur.
+
+The new earliest failure layer is `m4_task_world_state_reconciliation_grounding`. Replan call `llm-f8f98d5795a541e6` created task `2f1081b4` at event 258 and accepted it at event 260 with `success_criteria.nearby_block_present=crafting_table`. The successful placement completed sibling task `e0d4ebe1` at event 276 and parent goal `Place crafting table for tool progression` at event 282, while post-action machine state proved the same criterion for `2f1081b4`. Strict-M4 pre-goal reconciliation allowed only `inventory`, left `2f1081b4` accepted, and event 286 reselected the already-satisfied task as a root at monotonic 62264.359.
+
+That stale root was verified complete at event 307 before executing its plan, but the plan had already accepted four descendants. `Dig dirt to clear space` was selected at event 384; two such roots consumed 80 cycles, including 27 successful dirt digs, without one root GoalVerifier event. The first failed at event 1037 and the second was interrupted by dusk at event 1698. Forty-nine task-deadline interrupts, shelter work, the terminal observation fallback, and the deadline-bound wait are downstream. Probe 8 was this round's only live episode; no code fix or second run occurs in the round.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -97,7 +103,7 @@ The bounded `planner_place_target_occupancy_grounding` fix now passes offline un
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 707 Python tests, 138 related Planner/TaskSystem/M4 tests, all six fixed Node suites with 36 internal cases, Python compilation, and `git diff --check` pass
-- Live authorization: Probe 7 consumed the requested-item equip gate's sole authorization; no further episode is authorized pending an offline target-occupancy gate
+- Live authorization: Probe 8 consumed the target-occupancy gate's sole authorization; no further episode is authorized pending an offline task-world-state reconciliation gate
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -190,10 +196,44 @@ The bounded `planner_place_target_occupancy_grounding` fix now passes offline un
 - Controls: `short_grass`, a target absent from the observed non-air set, non-M4 ActionVerifier behavior, and the existing air-target success path remain accepted
 - Scope: M4 placement grounding plus the generic impossible-target bridge preflight; GoalVerifier, task semantics, fixed protocol/task-contract hashes, deadlines, and success thresholds are unchanged
 - Validation: 22 focused M4 Python tests, 149 cross-module Python tests, 709 full Python tests, and six Node suites with 38 internal cases pass
-- Live count: unchanged at seven BM-012 attempts and 0/3 eligible successes; this gate is offline evidence only
-- Authorization: exactly one fresh Probe 8 after this gate commit is pushed; no live episode ran in the offline gate round
+- Live result: Probe 8 rejected one exact occupied target at zero duration, requested a target-aware replan, and successfully placed on the next air target; the Probe 7 timeout did not recur
+- Live count: eight BM-012 attempts and 0/3 eligible successes
+- Authorization: consumed by BM-012 Probe 8; no second episode ran in the live round
+
+## BM-012 Task World-State Reconciliation Gate
+
+- Root hypothesis: `m4_task_world_state_reconciliation_grounding`
+- Exact reproduction: task `2f1081b4` remained accepted after event 278 placed the required nearby `crafting_table`, then event 286 selected that already-satisfied task as the next autonomous root
+- Current boundary: `_reconcile_m4_satisfied_tasks` calls `complete_state_satisfied_tasks` with `allowed_criteria={inventory}`, excluding the TaskSystem's existing machine-grounded `nearby_block_present` criterion
+- Required proof: an accepted exact-world-state task satisfied by current machine observation completes before ready-task selection, while an unsatisfied task remains runnable
+- Fail-closed controls: text-only evidence, absent or ambiguous nearby-block state, unrelated criterion families, and non-M4 profiles must not retire tasks
+- Priority control: hostile, health, hunger, dusk, and night fallback precedence remains unchanged
+- Scope: strict-M4 Agent task lifecycle only; Planner, GoalVerifier, ActionVerifier, bridge execution, protocol/task-contract hashes, deadlines, success thresholds, and M1/M2 behavior remain unchanged
+- Status: diagnosed; offline implementation and regression gate pending
+- Authorization: none until the offline gate is committed and pushed
 
 ## BM-012 Live Evidence
+
+### Probe 8: Occupancy Gate Passed; Satisfied World-State Task Reentered
+
+- Episode: `m4_episode_20260713_132135_a98f59e5`
+- Session: `e1c11192-bd9`
+- Level: `m4_episode_20260713_132135_a98f59e5_bm012`
+- Preflight: passed with unchanged protocol/task-contract hashes, empty inventory, fresh time-0 survival/normal level, zero-death lifecycle baseline, and exact `600/24/40/320` controls
+- Result: ineligible; BM-012 remains 0/3, 55/74 independent checks passed, no terminal resource event was emitted, and no iron-source action occurred
+- Prior gate live evidence: event 243 rejected occupied target `(93,135,-38)` under `m4-place-target-occupancy-v1`, event 248 recorded zero execution duration and a target-aware replan request, and event 278 successfully placed on air at `(92,135,-37)`; the Probe 7 timeout did not recur
+- Earliest invalid transition: replan task `2f1081b4`, accepted at event 260 with `nearby_block_present=crafting_table`, remained accepted after event 278 supplied exact machine proof and parent goal event 282 completed; inventory-only pre-goal reconciliation did not close it, so event 286 selected it as `ready_task_selected` at monotonic 62264.359
+- Confirmation: stale-root plan event 298 accepted four descendants before GoalVerifier event 307 immediately completed the already-satisfied root. The resulting two `Dig dirt to clear space` roots consumed 80 cycles; 27 dirt digs succeeded, but no root GoalVerifier event completed either root
+- Goals: ten roots; seven completed, two failed, and one was interrupted. Wood, crafting-table creation and placement, and a verified shelter completed; one dirt root hit 40 cycles, a second spent 40 cycles before dusk preemption, and night maintenance ended at the episode deadline
+- Planner: 103 calls; 102 real and schema-valid responses, one next-cycle transport recovery, 345446 tokens, maximum latency 12.093 seconds, zero retries, zero reasoning bytes, and zero provider-control violations
+- Actions: 47/55 succeeded; `move_to` 8/8, `dig` 31/36, `craft` 3/4, `place` 1/2, `build_shelter_cell` 3/3, and `wait` 1/2. ActionVerifier accepted 54 and rejected the one occupied placement
+- Tasks and interrupts: 108 tasks produced 340 transitions; final states were 30 completed, 71 failed, and seven accepted. All 50 interrupt events had matching recoveries; 49 were unique task deadlines and one was dusk
+- Shelter and lifecycle: two of 16 shelter verifications passed with 9/9 attributed positions; all three bounded shelter actions succeeded. Of 159 observations, 158 carried lifecycle state with zero valid deaths or respawns; the deadline-time fallback observation omitted lifecycle state, so the independent lifecycle and terminal checks failed closed
+- Terminal state: the canonical result retained health/food 20, time 12232, online bot, and inventory `oak_planks:8`, `dark_oak_log:2`, `dirt:27`, `crafting_table:1`, `oak_sapling:1`; target iron remained zero
+- Deadline: start 62176.359, absolute boundary and Agent end 62776.359, manifest end 62776.406. The final bounded wait returned at the boundary as failed and not accepted within deadline; one boundary action event made `no_post_deadline_execution` false, while no Planner call or plan occurred after the boundary
+- Skills: baseline remained off; selected, executed, successful, failed, quarantined, vision, and multi-agent contributions were zero
+- Round boundary: this was the only live episode; no code fix, second BM-012 run, or new live authorization occurs in this round
+- Evidence: `logs/benchmarks/m4/m4_episode_20260713_132135_a98f59e5/`
 
 ### Probe 7: Requested Item Equipped; Placement Target Was Occupied
 

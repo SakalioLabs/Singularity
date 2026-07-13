@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T05:06:12.9242150Z",
+  "generated_at": "2026-07-13T05:44:33.5885887Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "offline_place_target_occupancy_gate_passed_probe_8_authorized_after_push",
-  "decision": "allow_one_fresh_bm012_probe_8_after_gate_commit_push",
+  "readiness": "bm012_probe_8_ineligible_task_world_state_reconciliation_grounding_diagnosed",
+  "decision": "hold_bm012_live_pending_task_world_state_reconciliation_gate",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -265,12 +265,15 @@
   },
   "offline_place_target_occupancy_gate": {
     "root_hypothesis": "planner_place_target_occupancy_grounding",
-    "status": "passed",
+    "status": "passed_live_validated_probe_8",
     "policy_id": "m4-place-target-occupancy-v1",
     "scope": "strict-M4 planner contract, pre-execution ActionVerifier, and generic Mineflayer place target preflight",
     "actual_target_rule": "floor(x),floor(y)+1,floor(z)",
     "exact_probe_7_replay": {
-      "occupied_blocks": ["dark_oak_log", "grass_block"],
+      "occupied_blocks": [
+        "dark_oak_log",
+        "grass_block"
+      ],
       "occupied_fixture_count": 2,
       "action_verifier_rejected_before_execution": true,
       "action_duration_ms": 0,
@@ -291,13 +294,65 @@
     "m4_node_case_count": 11,
     "protocol_changed": false,
     "task_contract_changed": false,
-    "live_episode_run": false,
-    "bm012_live_episode_count": 7,
-    "next_authorized_episode": "bm012_probe_8_once_after_gate_commit_push"
+    "live_episode_run": true,
+    "bm012_live_episode_count": 8,
+    "next_authorized_episode": "consumed_by_bm012_probe_8",
+    "live_probe_8_executed": true,
+    "probe_8_live_validation": {
+      "episode_id": "m4_episode_20260713_132135_a98f59e5",
+      "action_verification_reject_event_index": 243,
+      "rejected_action_event_index": 248,
+      "rejected_target_position": {
+        "x": 93,
+        "y": 135,
+        "z": -38
+      },
+      "rejected_target_block": "dark_oak_log",
+      "rejected_action_duration_ms": 0,
+      "target_aware_replan_requested": true,
+      "replacement_plan_event_index": 259,
+      "replacement_action_verification_event_index": 271,
+      "replacement_action_event_index": 278,
+      "replacement_target_position": {
+        "x": 92,
+        "y": 135,
+        "z": -37
+      },
+      "replacement_target_block_before": "air",
+      "replacement_target_block_after": "crafting_table",
+      "replacement_place_success": true,
+      "prior_failure_recurred": false
+    }
   },
-  "live_episode_count": 25,
-  "live_episode_count_under_current_protocol": 11,
+  "live_episode_count": 26,
+  "live_episode_count_under_current_protocol": 12,
   "latest_live_observation": {
+    "task_id": "BM-012",
+    "episode_id": "m4_episode_20260713_132135_a98f59e5",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "verified_g4_case": "task_deadlines_and_dusk_shelter_interrupt_recovery",
+    "runtime_interrupt_count": 50,
+    "runtime_interrupt_unique_trigger_count": 50,
+    "recovery_event_count": 50,
+    "interrupt_reason_counts": {
+      "task_deadline_elapsed": 49,
+      "dusk_shelter_required": 1
+    },
+    "expired_task_unique_count": 49,
+    "hostile_emergency_action_count": 0,
+    "server_observed_death_count": 0,
+    "verified_shelter_pass_count": 2,
+    "terminal_resource_verification_emitted": false,
+    "place_target_occupancy_gate_live_validated": true,
+    "first_unrecovered_transition": "m4_task_world_state_reconciliation_grounding",
+    "first_unrecovered_session_event_index": 286,
+    "interrupt_cascade_is_earliest_blocker": false,
+    "runner_reported_eligible": false,
+    "independently_accepted_eligible": false,
+    "live_g4_accepted": true,
+    "bm012_task_accepted": false
+  },
+  "bm012_probe_7_live_observation": {
     "task_id": "BM-012",
     "episode_id": "m4_episode_20260713_121120_75d9ae7d",
     "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
@@ -541,5 +596,30 @@
     "runner_reported_eligible": false,
     "independently_accepted_eligible": false,
     "live_g4_accepted": false
+  },
+  "pending_task_world_state_reconciliation_gate": {
+    "root_hypothesis": "m4_task_world_state_reconciliation_grounding",
+    "status": "diagnosed_offline_gate_pending",
+    "scope": "strict-M4 pre-goal reconciliation of machine-grounded world-state task criteria",
+    "first_unrecovered_session_event_index": 286,
+    "satisfied_task_id": "2f1081b4",
+    "satisfied_task_criterion": {
+      "nearby_block_present": "crafting_table"
+    },
+    "current_reconciliation_allowed_criteria": [
+      "inventory"
+    ],
+    "required_offline_proof": [
+      "complete an accepted nearby_block_present task from exact machine observation before ready-task selection",
+      "leave an unsatisfied world-state task runnable",
+      "preserve urgent survival fallback precedence",
+      "leave non-M4 task selection unchanged",
+      "retire no task from text-only or ambiguous evidence"
+    ],
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "live_episode_run": true,
+    "bm012_live_episode_count": 8,
+    "next_authorized_episode": "none_pending_offline_task_world_state_reconciliation_gate"
   }
 }

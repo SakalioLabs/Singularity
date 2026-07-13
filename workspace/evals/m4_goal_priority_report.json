@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T05:06:12.9242150Z",
+  "generated_at": "2026-07-13T05:44:33.5885887Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "offline_place_target_occupancy_gate_passed_probe_8_authorized_after_push",
-  "decision": "allow_one_fresh_bm012_probe_8_after_gate_commit_push",
+  "readiness": "bm012_probe_8_ineligible_task_world_state_reconciliation_grounding_diagnosed",
+  "decision": "hold_bm012_live_pending_task_world_state_reconciliation_gate",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -209,12 +209,15 @@
   },
   "offline_place_target_occupancy_gate": {
     "root_hypothesis": "planner_place_target_occupancy_grounding",
-    "status": "passed",
+    "status": "passed_live_validated_probe_8",
     "policy_id": "m4-place-target-occupancy-v1",
     "scope": "strict-M4 planner contract, pre-execution ActionVerifier, and generic Mineflayer place target preflight",
     "actual_target_rule": "floor(x),floor(y)+1,floor(z)",
     "exact_probe_7_replay": {
-      "occupied_blocks": ["dark_oak_log", "grass_block"],
+      "occupied_blocks": [
+        "dark_oak_log",
+        "grass_block"
+      ],
       "occupied_fixture_count": 2,
       "action_verifier_rejected_before_execution": true,
       "action_duration_ms": 0,
@@ -235,13 +238,82 @@
     "m4_node_case_count": 11,
     "protocol_changed": false,
     "task_contract_changed": false,
-    "live_episode_run": false,
-    "bm012_live_episode_count": 7,
-    "next_authorized_episode": "bm012_probe_8_once_after_gate_commit_push"
+    "live_episode_run": true,
+    "bm012_live_episode_count": 8,
+    "next_authorized_episode": "consumed_by_bm012_probe_8",
+    "live_probe_8_executed": true,
+    "probe_8_live_validation": {
+      "episode_id": "m4_episode_20260713_132135_a98f59e5",
+      "action_verification_reject_event_index": 243,
+      "rejected_action_event_index": 248,
+      "rejected_target_position": {
+        "x": 93,
+        "y": 135,
+        "z": -38
+      },
+      "rejected_target_block": "dark_oak_log",
+      "rejected_action_duration_ms": 0,
+      "target_aware_replan_requested": true,
+      "replacement_plan_event_index": 259,
+      "replacement_action_verification_event_index": 271,
+      "replacement_action_event_index": 278,
+      "replacement_target_position": {
+        "x": 92,
+        "y": 135,
+        "z": -37
+      },
+      "replacement_target_block_before": "air",
+      "replacement_target_block_after": "crafting_table",
+      "replacement_place_success": true,
+      "prior_failure_recurred": false
+    }
   },
-  "live_episode_count": 25,
-  "live_episode_count_under_current_protocol": 11,
+  "live_episode_count": 26,
+  "live_episode_count_under_current_protocol": 12,
   "latest_live_episode": {
+    "task_id": "BM-012",
+    "episode_id": "m4_episode_20260713_132135_a98f59e5",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "autonomous_goal_count": 10,
+    "completed_goal_count": 7,
+    "failed_goal_count": 2,
+    "interrupted_goal_count": 1,
+    "selection_source": "curriculum_and_survival_goal_generator",
+    "initial_selection_reason": "curriculum_ranked:early_wood_bootstrap",
+    "goal_sequence": [
+      "Gather 6 oak logs for tools and shelter",
+      "Craft crafting table",
+      "Place crafting table for tool progression",
+      "Place crafting table on ground",
+      "Craft oak_planks",
+      "Craft crafting_table",
+      "Dig dirt to clear space",
+      "Dig dirt to clear space",
+      "Build verified shelter before nightfall",
+      "Enter and maintain verified shelter through nightfall"
+    ],
+    "prior_place_target_occupancy_failure_recurred": false,
+    "occupied_target_reject_event_index": 243,
+    "replacement_place_success_event_index": 278,
+    "first_unrecovered_transition": "m4_task_world_state_reconciliation_grounding",
+    "first_unrecovered_session_event_index": 286,
+    "satisfied_world_state_task_reselected_count": 1,
+    "dirt_root_count": 2,
+    "dirt_root_cycle_count": 80,
+    "dirt_root_successful_dig_count": 27,
+    "final_task_status_counts": {
+      "completed": 30,
+      "failed": 71,
+      "accepted": 7
+    },
+    "resource_terminal_inventory_target": false,
+    "server_observed_death_count": 0,
+    "runner_reported_eligible": false,
+    "independently_accepted_eligible": false,
+    "terminal_world_time": 12232
+  },
+  "bm012_probe_7_live_episode": {
     "task_id": "BM-012",
     "episode_id": "m4_episode_20260713_121120_75d9ae7d",
     "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
@@ -562,5 +634,30 @@
     "verified_shelter_safe_state_grounding_event_count": 0
   },
   "bm011_eligible_success_count": 3,
-  "bm012_eligible_success_count": 0
+  "bm012_eligible_success_count": 0,
+  "pending_task_world_state_reconciliation_gate": {
+    "root_hypothesis": "m4_task_world_state_reconciliation_grounding",
+    "status": "diagnosed_offline_gate_pending",
+    "scope": "strict-M4 pre-goal reconciliation of machine-grounded world-state task criteria",
+    "first_unrecovered_session_event_index": 286,
+    "satisfied_task_id": "2f1081b4",
+    "satisfied_task_criterion": {
+      "nearby_block_present": "crafting_table"
+    },
+    "current_reconciliation_allowed_criteria": [
+      "inventory"
+    ],
+    "required_offline_proof": [
+      "complete an accepted nearby_block_present task from exact machine observation before ready-task selection",
+      "leave an unsatisfied world-state task runnable",
+      "preserve urgent survival fallback precedence",
+      "leave non-M4 task selection unchanged",
+      "retire no task from text-only or ambiguous evidence"
+    ],
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "live_episode_run": true,
+    "bm012_live_episode_count": 8,
+    "next_authorized_episode": "none_pending_offline_task_world_state_reconciliation_gate"
+  }
 }

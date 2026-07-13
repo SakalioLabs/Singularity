@@ -50,7 +50,7 @@
 - M4 is `failing`; BM-011 remains repeat-verified, but BM-012 now has a failed live attempt and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after seven failed live attempts. Probe 7 live-validated `m4-place-requested-item-equip-v1` on all 17 place attempts, then exposed `planner_place_target_occupancy_grounding`: the first target cell held `dark_oak_log` and the next 16 held `grass_block`, while ActionVerifier accepted each action from inventory evidence alone. The bounded `m4-place-target-occupancy-v1` offline gate now rejects both exact fixtures before execution, requests a target-aware replan, and adds an independent Mineflayer preflight before equip or mutation. Exactly one fresh Probe 8 is authorized after the gate commit is pushed; BM-013 and BM-014 remain locked.
+- BM-012 is the next target at 0/3 after eight failed live attempts. Probe 8 live-validated `m4-place-target-occupancy-v1`: the occupied `dark_oak_log` target rejected at zero execution duration, a target-aware replan selected air, and the crafting table was placed successfully. The earliest failure is now `m4_task_world_state_reconciliation_grounding`: strict-M4 reselected a duplicate placement task after its machine-world criterion was already satisfied, and stale descendants consumed 80 cycles in two dirt roots. No further live episode is authorized until the bounded offline reconciliation gate passes; BM-013 and BM-014 remain locked.
 
 ## Evidence Policy
 
@@ -70,7 +70,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 seven failed attempts, 0/3; BM-013..014 not_run |
+| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 eight failed attempts, 0/3; BM-013..014 not_run |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |
