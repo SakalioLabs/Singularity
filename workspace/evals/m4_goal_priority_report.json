@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T00:25:11.3310416Z",
+  "generated_at": "2026-07-13T00:45:17.2359121Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_3_ineligible_subtask_numeric_criteria_offline_fix_required",
-  "decision": "do_not_rerun_fix_subtask_numeric_criteria_offline",
+  "readiness": "bm012_subtask_numeric_criteria_offline_gate_passed_probe_4_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_4",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -45,7 +45,7 @@
     "wait_ms": 15000,
     "pending_goal_consumes_new_slot": false,
     "missing_time_fails_closed": true,
-    "full_python_regression": 700,
+    "full_python_regression": 703,
     "node_suite_count": 6,
     "node_internal_pass_count": 36
   },
@@ -58,7 +58,7 @@
     "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
     "scheduled_recovery_count": 1,
     "completed_recovery_count": 1,
-    "next_authorized_episode": "none_subtask_numeric_criteria_offline_gate_pending"
+    "next_authorized_episode": "bm012_probe_4_exactly_one"
   },
   "bm012_autonomous_progression": {
     "task_contract_id": "m4-bm012-resource-contract-v1",
@@ -88,7 +88,24 @@
     "placement_verifier_rule": "world:nearby_crafting_table",
     "world_readiness_live_place_plan_emitted": true,
     "world_readiness_live_place_action_executed": false,
-    "next_authorized_episode": "none_subtask_numeric_criteria_offline_gate_pending"
+    "subtask_numeric_criteria_offline_gate_passed": true,
+    "subtask_numeric_exact_probe_3_plan_replayed": true,
+    "subtask_numeric_normalized_requirement_count": 2,
+    "task_system_numeric_fail_closed": true,
+    "next_authorized_episode": "bm012_probe_4_exactly_one"
+  },
+  "offline_subtask_numeric_criteria_gate": {
+    "passed": true,
+    "scope": "strict_m4_planner_subtask_inventory_counts_and_task_system_fail_closed_defense",
+    "exact_probe_3_plan_replayed": true,
+    "non_equivalent_counts_rejected_before_task_creation": true,
+    "related_python_regression": 134,
+    "full_python_regression": 703,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 36,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "next_authorized_episode": "bm012_probe_4_exactly_one"
   },
   "live_episode_count": 21,
   "live_episode_count_under_current_protocol": 7,

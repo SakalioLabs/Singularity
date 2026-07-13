@@ -1671,6 +1671,44 @@ def test_task_system_reports_readiness_blockers():
     print("PASS: TaskSystem reports readiness blockers")
 
 
+def test_task_system_fails_closed_for_malformed_inventory_counts():
+    tasks = TaskSystem()
+    malformed_success = tasks.create_task(
+        "Malformed success count",
+        status=TaskStatus.ACCEPTED,
+        success_criteria={"inventory": {"oak_planks": ">=8"}},
+    )
+    malformed_precondition = tasks.create_task(
+        "Malformed precondition count",
+        status=TaskStatus.ACCEPTED,
+        preconditions={"inventory": {"oak_log": ">=1"}},
+        success_criteria={"inventory": {"oak_planks": 8}},
+    )
+    zero_precondition = tasks.create_task(
+        "Zero precondition count",
+        status=TaskStatus.ACCEPTED,
+        preconditions={"inventory": {"stick": 0}},
+        success_criteria={"inventory": {"torch": 4}},
+    )
+
+    assert tasks.complete_state_satisfied_tasks({
+        "inventory": {"oak_planks": 4, "oak_log": 64},
+    }) == []
+    assert malformed_success.status == TaskStatus.ACCEPTED
+    report = tasks.task_readiness_report({"inventory": {"oak_log": 64}})
+    blocked = next(item for item in report["tasks"] if item["id"] == malformed_precondition.id)
+    zero_blocked = next(item for item in report["tasks"] if item["id"] == zero_precondition.id)
+    assert blocked["ready"] is False
+    assert blocked["missing_preconditions"] == {
+        "invalid_inventory_requirements": ["oak_log"]
+    }
+    assert zero_blocked["ready"] is False
+    assert zero_blocked["missing_preconditions"] == {
+        "invalid_inventory_requirements": ["stick"]
+    }
+    print("PASS: TaskSystem blocks malformed inventory counts without raising")
+
+
 def test_task_system_uses_causal_opportunity_tags():
     tasks = TaskSystem()
     tasks.create_task(
@@ -4549,6 +4587,7 @@ if __name__ == "__main__":
     test_memory_records_and_retrieves_causal_events()
     test_task_system_dependency_and_opportunity_scheduler()
     test_task_system_reports_readiness_blockers()
+    test_task_system_fails_closed_for_malformed_inventory_counts()
     test_task_system_uses_causal_opportunity_tags()
     test_task_system_can_disable_causal_opportunity_scoring()
     test_task_system_updates_state_from_action_success()

@@ -50,7 +50,7 @@
 - M4 is `failing`; BM-011 remains repeat-verified, but BM-012 now has a failed live attempt and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after three failed live attempts. Probe 3 emitted a canonical `place(item=crafting_table,x,y,z)` plan, so the prior alias rejection did not recur, but the same plan admitted string-valued subtask inventory thresholds. Machine-state reconciliation then raised `int >= str` from cycle 25 through 304 and no place action executed. No further run is authorized until Planner subtask numeric criteria pass an offline gate. BM-013 and BM-014 remain locked.
+- BM-012 is the next target at 0/3 after three failed live attempts. Probe 3 emitted a canonical `place(item=crafting_table,x,y,z)` plan, then exposed string-valued subtask inventory thresholds. Strict-M4 Planner now normalizes only exact positive `>=N` aliases, rejects other count forms before task creation, and TaskSystem blocks malformed leak-through without raising. The offline gate passes and authorizes exactly one fresh Probe 4 after this commit is pushed. BM-013 and BM-014 remain locked.
 
 ## Evidence Policy
 

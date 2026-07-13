@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import math
+import re
 import time
 import uuid
 
@@ -291,6 +292,7 @@ class Planner:
             )
         elif self.strict_m4 and not call_error and not parse_error:
             raw_plan, action_parameter_grounding = self._ground_m4_action_parameters(raw_plan)
+            raw_plan, subtask_numeric_grounding = self._ground_m4_subtask_numeric_criteria(raw_plan)
             raw_plan, shelter_phase_grounding = self._ground_m4_shelter_phase(
                 raw_plan,
                 goal=goal,
@@ -307,7 +309,9 @@ class Planner:
                 expected_kind=plan_kind,
             )
             grounding_issues = list(action_parameter_grounding.get("issues", []))
+            grounding_issues.extend(subtask_numeric_grounding.get("issues", []))
             schema_validation["action_parameter_grounding"] = action_parameter_grounding
+            schema_validation["subtask_numeric_criteria_grounding"] = subtask_numeric_grounding
             schema_validation["shelter_phase_grounding"] = shelter_phase_grounding
             schema_validation["maintenance_phase_grounding"] = maintenance_phase_grounding
             schema_validation["issues"] = sorted(set(
@@ -325,6 +329,9 @@ class Planner:
             if self.strict_m4:
                 plan["action_parameter_grounding"] = dict(
                     schema_validation.get("action_parameter_grounding", {})
+                )
+                plan["subtask_numeric_criteria_grounding"] = dict(
+                    schema_validation.get("subtask_numeric_criteria_grounding", {})
                 )
                 plan["shelter_phase_grounding"] = dict(
                     schema_validation.get("shelter_phase_grounding", {})
@@ -446,6 +453,7 @@ M4 FIXED OUTPUT CONTRACT:
 - If status is planning, return at least one immediate executable action; never pair planning status with completion prose and an empty actions array.
 - If the observed machine state appears to satisfy the exact goal, use status complete and let the machine GoalVerifier decide; prose never completes a goal.
 - Use status blocked only when no grounded progress action exists.
+- In subtask preconditions.inventory and success_criteria.inventory, every count must be a positive integer. Inventory criteria already mean at least N; never emit comparator strings such as ">=8".
 - A dig action must use top-level finite x, y, and z parameters and may use top-level block; never use block_name, position, target, or block_position aliases.
 - Example: {"type":"dig","parameters":{"x":103,"y":139,"z":-30,"block":"oak_log"}}.
 - A craft action must use item and may use a positive integer count; never use recipe as an alias.
@@ -679,6 +687,94 @@ Plan the steps to achieve this goal."""
             "craft_action_count": craft_action_count,
             "place_action_count": place_action_count,
             "normalized_action_count": len(normalizations),
+            "normalizations": normalizations,
+            "issues": sorted(set(issues)),
+        }
+        return grounded_plan, report
+
+    @classmethod
+    def _ground_m4_subtask_numeric_criteria(cls, plan: dict) -> tuple[dict, dict]:
+        """Normalize exact at-least aliases and reject unsafe M4 inventory counts."""
+        grounded_plan = dict(plan or {})
+        subtasks = grounded_plan.get("subtasks")
+        if not isinstance(subtasks, list):
+            return grounded_plan, {
+                "type": "m4_subtask_numeric_criteria_grounding",
+                "schema_version": 1,
+                "passed": True,
+                "subtask_count": 0,
+                "inventory_requirement_count": 0,
+                "normalized_requirement_count": 0,
+                "normalizations": [],
+                "issues": [],
+            }
+
+        grounded_subtasks = []
+        issues: list[str] = []
+        normalizations = []
+        requirement_count = 0
+        for subtask_index, subtask in enumerate(subtasks):
+            if not isinstance(subtask, dict):
+                grounded_subtasks.append(subtask)
+                continue
+            grounded_subtask = dict(subtask)
+            for field_name in ("preconditions", "success_criteria"):
+                if field_name not in subtask:
+                    continue
+                criteria = subtask.get(field_name)
+                prefix = f"subtask[{subtask_index}]:{field_name}"
+                if not isinstance(criteria, dict):
+                    issues.append(prefix + "_not_object")
+                    continue
+                if "inventory" not in criteria:
+                    continue
+                inventory = criteria.get("inventory")
+                if not isinstance(inventory, dict):
+                    issues.append(prefix + "_inventory_not_object")
+                    continue
+
+                canonical_inventory = dict(inventory)
+                for item, count in inventory.items():
+                    requirement_count += 1
+                    canonical_count = None
+                    alias = ""
+                    if isinstance(count, int) and not isinstance(count, bool) and count > 0:
+                        canonical_count = count
+                    elif isinstance(count, str):
+                        match = re.fullmatch(r"\s*>=\s*([1-9]\d*)\s*", count)
+                        if match:
+                            canonical_count = int(match.group(1))
+                            alias = ">=N->N"
+
+                    if canonical_count is None:
+                        issues.append(
+                            prefix + "_inventory_count_invalid:" + str(item)
+                        )
+                        continue
+                    canonical_inventory[item] = canonical_count
+                    if alias:
+                        normalizations.append({
+                            "subtask_index": subtask_index,
+                            "field": field_name,
+                            "item": str(item),
+                            "alias": alias,
+                            "original_value_sha256": cls._parameter_sha256(count),
+                            "canonical_count": canonical_count,
+                        })
+
+                grounded_criteria = dict(criteria)
+                grounded_criteria["inventory"] = canonical_inventory
+                grounded_subtask[field_name] = grounded_criteria
+            grounded_subtasks.append(grounded_subtask)
+
+        grounded_plan["subtasks"] = grounded_subtasks
+        report = {
+            "type": "m4_subtask_numeric_criteria_grounding",
+            "schema_version": 1,
+            "passed": not issues,
+            "subtask_count": len(subtasks),
+            "inventory_requirement_count": requirement_count,
+            "normalized_requirement_count": len(normalizations),
             "normalizations": normalizations,
             "issues": sorted(set(issues)),
         }

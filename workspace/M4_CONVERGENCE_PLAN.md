@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 3 remain ineligible at 0/3. Probe 3 emitted a canonical crafting-table placement plan, then exposed untyped Planner subtask numeric criteria as the new earliest blocker. This round's only live authorization is consumed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 3 remain ineligible at 0/3. Probe 3 emitted a canonical crafting-table placement plan, then exposed untyped Planner subtask numeric criteria as the new earliest blocker. Its bounded offline gate now passes and authorizes exactly one fresh Probe 4 after this commit is pushed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_3_consumed_ineligible_subtask_numeric_criteria_fix_required |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | subtask_numeric_criteria_offline_gate_passed_probe_4_authorized |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -63,6 +63,8 @@ The bounded `curriculum_crafting_station_world_readiness_grounding` fix passes o
 
 Probe 3 reaches that placement boundary but does not execute it. Planner event 510 / call `llm-d1e4384adc0045e6` emitted canonical `place(item=crafting_table,x=106,y=135,z=-29)` with passing action-parameter grounding, so the Probe 2 alias rejection did not recur. The same accepted plan also created a dependent task whose success criterion was `inventory.oak_planks=">=8"` and whose precondition was `inventory.oak_log=">=1"`. At event 525 / monotonic 44047.687 / global cycle 25, inventory-only machine-state reconciliation compared an observed integer count to the string criterion and raised `'>=' not supported between instances of 'int' and 'str'`. The exception repeated 280 times through cycle 304; seven `Place crafting_table` roots each exhausted 40 cycles without a Planner call or action. The earliest failure layer is now `planner_subtask_numeric_criteria_type_grounding`. No code fix or second episode occurs in this round.
 
+The bounded `planner_subtask_numeric_criteria_type_grounding` fix now passes offline. Strict-M4 Planner traverses only `subtasks[*].preconditions.inventory` and `subtasks[*].success_criteria.inventory`, converts exact positive `>=N` strings to the equivalent integer because inventory criteria already mean at least N, and records each conversion in `m4_subtask_numeric_criteria_grounding`. Booleans, nonpositive integers, floats, bare numeric strings, alternate comparators, prose counts, non-object inventory criteria, and other non-equivalent values reject the plan before task creation. TaskSystem independently treats malformed required counts as unsatisfied and reports invalid preconditions instead of throwing or treating them as zero. The exact Probe 3 plan replays to `oak_planks:8` and `oak_log:1`; the base protocol and BM-012 task contract hashes are unchanged. Exactly one fresh Probe 4 is authorized after this gate commit is pushed.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -72,8 +74,8 @@ Probe 3 reaches that placement boundary but does not execute it. Planner event 5
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 700 Python tests, 50 focused goal/curriculum/planner/verifier tests, all six fixed Node suites with 36 internal PASS cases, Python compilation, and `git diff --check` pass
-- Live authorization: consumed by BM-012 Probe 3; no second episode is authorized in this round
+- Regression: 703 Python tests, 134 related Planner/TaskSystem/M4 tests, all six fixed Node suites with 36 internal cases, Python compilation, and `git diff --check` pass
+- Live authorization: exactly one fresh BM-012 Probe 4 after the numeric-criteria gate is committed and pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -99,6 +101,18 @@ Probe 3 reaches that placement boundary but does not execute it. Planner event 5
 - Validation: 50 focused tests, 700 full Python tests, six Node suites with 36 PASS cases, Python compilation, and `git diff --check` pass
 - Live result: Probe 3 emitted one canonical place plan with `item` and finite coordinates, but the current plank goal verified before that action ran; the next `Place crafting_table` root then hit the earlier subtask numeric-type failure
 - Authorization: consumed by BM-012 Probe 3; no second episode may run in this round
+
+## BM-012 Planner Subtask Numeric-Criteria Gate
+
+- Root hypothesis: `planner_subtask_numeric_criteria_type_grounding`
+- Exact reproduction: Probe 3 plan event 510 now normalizes `success_criteria.inventory.oak_planks=">=8"` to `8` and `preconditions.inventory.oak_log=">=1"` to `1` before creating scheduler tasks
+- Evidence: `m4_subtask_numeric_criteria_grounding` records four inventory requirements, two exact normalizations, their source-value hashes, canonical counts, and any rejection issues in both the accepted plan and Planner call evidence
+- Rejection controls: booleans, zero, negatives, floats, bare numeric strings, alternate comparators, prose counts, and non-object inventory criteria fail schema validation and create no tasks
+- Runtime defense: malformed success counts remain unsatisfied without raising; malformed precondition counts appear as `invalid_inventory_requirements` and keep the task blocked
+- Prompt grounding: M4 requires positive integer inventory counts and states that the built-in criterion already means at least N
+- Scope: strict-M4 Planner subtask inventory criteria and TaskSystem numeric fail-closed defense only; M1/M2 fixed contracts, protocol data, action execution, GoalGenerator, GoalVerifier, deadline, and success thresholds are unchanged
+- Validation: 3 exact new gate tests, 134 related tests, 703 full Python tests, six Node suites with 36 cases, Python compilation, and `git diff --check` pass
+- Authorization: exactly one fresh BM-012 Probe 4 after this gate commit is pushed; no second episode may run in the round
 
 ## BM-012 Live Evidence
 

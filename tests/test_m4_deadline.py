@@ -540,6 +540,123 @@ def test_m4_craft_grounding_fails_closed_on_drift():
         assert grounded["actions"][0]["type"] == "craft"
 
 
+def test_m4_planner_normalizes_exact_probe_3_subtask_inventory_aliases():
+    clock = FakeClock()
+
+    class Probe3PlannerLLM(PlannerLLM):
+        def chat(self, messages, **kwargs):
+            super().chat(messages, **kwargs)
+            return json.dumps({
+                "status": "planning",
+                "reasoning": "place the table, then craft more planks",
+                "subtasks": [
+                    {
+                        "title": "Place crafting_table",
+                        "type": "place",
+                        "priority": 1,
+                        "success_criteria": {"block_placed": "crafting_table"},
+                        "preconditions": {"inventory": {"crafting_table": 1}, "flags": []},
+                        "depends_on": [],
+                    },
+                    {
+                        "title": "Craft oak_planks from oak_log",
+                        "type": "craft",
+                        "priority": 1,
+                        "success_criteria": {"inventory": {"oak_planks": ">=8"}},
+                        "preconditions": {
+                            "inventory": {"oak_log": ">=1", "crafting_table": 1},
+                            "flags": ["crafting_table_placed"],
+                        },
+                        "depends_on": ["Place crafting_table"],
+                    },
+                ],
+                "actions": [{
+                    "type": "place",
+                    "parameters": {"item": "crafting_table", "x": 106, "y": 135, "z": -29},
+                }],
+            })
+
+    tasks = TaskSystem()
+    llm = Probe3PlannerLLM(clock)
+    planner = Planner(llm, tasks, protocol="m4-fixed-v1")
+    planner.start_episode("Craft oak_planks from oak_log", "m4-probe-3-numeric-fixture")
+    planner.set_deadline(200.0, 0.0)
+    with patch("singularity.core.planner.time.monotonic", clock.monotonic):
+        plan = planner.plan_from_goal(
+            "Craft oak_planks from oak_log",
+            {"inventory": {"oak_log": 4, "oak_planks": 4, "crafting_table": 1}},
+        )
+
+    assert plan["status"] == "planning"
+    assert plan["schema_validation"]["passed"] is True
+    grounding = plan["subtask_numeric_criteria_grounding"]
+    assert grounding["passed"] is True
+    assert grounding["subtask_count"] == 2
+    assert grounding["inventory_requirement_count"] == 4
+    assert grounding["normalized_requirement_count"] == 2
+    assert [item["canonical_count"] for item in grounding["normalizations"]] == [1, 8]
+    assert all(item["alias"] == ">=N->N" for item in grounding["normalizations"])
+    assert all(len(item["original_value_sha256"]) == 64 for item in grounding["normalizations"])
+    craft_task = next(task for task in tasks.tasks.values() if task.title.startswith("Craft oak_planks"))
+    assert craft_task.preconditions["inventory"]["oak_log"] == 1
+    assert craft_task.success_criteria["inventory"]["oak_planks"] == 8
+    assert "every count must be a positive integer" in llm.calls[0]["messages"][0]["content"]
+    assert "never emit comparator strings" in llm.calls[0]["messages"][0]["content"]
+    print("PASS: M4 normalizes the exact Probe 3 subtask numeric aliases before TaskSystem")
+
+
+def test_m4_subtask_numeric_grounding_rejects_non_equivalent_counts():
+    invalid_counts = [True, 0, -1, 1.5, "8", ">8", "at least 8", ">=0"]
+    for count in invalid_counts:
+        grounded, report = Planner._ground_m4_subtask_numeric_criteria({
+            "status": "planning",
+            "subtasks": [{
+                "title": "fixture",
+                "preconditions": {"inventory": {"oak_log": count}},
+                "success_criteria": {"inventory": {"oak_planks": 8}},
+            }],
+            "actions": [{"type": "wait", "parameters": {"ms": 1}}],
+        })
+        assert report["passed"] is False
+        assert report["issues"] == [
+            "subtask[0]:preconditions_inventory_count_invalid:oak_log"
+        ]
+        assert grounded["subtasks"][0]["preconditions"]["inventory"]["oak_log"] == count
+
+    for field_name in ("preconditions", "success_criteria"):
+        _, report = Planner._ground_m4_subtask_numeric_criteria({
+            "subtasks": [{field_name: {"inventory": []}}],
+        })
+        assert report["passed"] is False
+        assert report["issues"] == [f"subtask[0]:{field_name}_inventory_not_object"]
+
+    class InvalidCountLLM(PlannerLLM):
+        def chat(self, messages, **kwargs):
+            super().chat(messages, **kwargs)
+            return json.dumps({
+                "status": "planning",
+                "subtasks": [{
+                    "title": "unsafe fixture",
+                    "success_criteria": {"inventory": {"oak_planks": ">8"}},
+                }],
+                "actions": [{"type": "wait", "parameters": {"ms": 1}}],
+            })
+
+    clock = FakeClock()
+    tasks = TaskSystem()
+    planner = Planner(InvalidCountLLM(clock), tasks, protocol="m4-fixed-v1")
+    planner.start_episode("Craft oak_planks", "m4-invalid-numeric-fixture")
+    planner.set_deadline(200.0, 0.0)
+    with patch("singularity.core.planner.time.monotonic", clock.monotonic):
+        rejected = planner.plan_from_goal("Craft oak_planks", {"inventory": {"oak_log": 1}})
+    assert rejected["status"] == "error"
+    assert rejected["schema_validation"]["issues"] == [
+        "subtask[0]:success_criteria_inventory_count_invalid:oak_planks"
+    ]
+    assert tasks.tasks == {}
+    print("PASS: M4 subtask numeric grounding fails closed on non-equivalent counts")
+
+
 def test_m4_autonomous_loop_recovers_invalid_planner_envelope_and_transport_failure():
     clock = FakeClock()
     planner = RuntimePlanner()
@@ -948,6 +1065,8 @@ if __name__ == "__main__":
     test_m4_planner_bounds_call_and_rejects_inflight_return()
     test_m4_planner_suppresses_call_after_deadline()
     test_m4_planner_rejects_empty_planning_response_and_marks_replan()
+    test_m4_planner_normalizes_exact_probe_3_subtask_inventory_aliases()
+    test_m4_subtask_numeric_grounding_rejects_non_equivalent_counts()
     test_m4_autonomous_loop_recovers_invalid_planner_envelope_and_transport_failure()
     test_m4_planner_transport_recovery_fails_closed_for_non_transport_errors()
     test_m4_action_controller_enforces_episode_and_action_deadlines()

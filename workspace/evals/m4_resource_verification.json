@@ -1,19 +1,19 @@
 {
   "type": "m4_resource_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T00:25:11.3310416Z",
+  "generated_at": "2026-07-13T00:45:17.2359121Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "task_id": "BM-012",
   "task_name": "Get 8 iron resources",
   "task_contract_id": "m4-bm012-resource-contract-v1",
   "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
-  "readiness": "probe_3_ineligible_subtask_numeric_criteria_offline_fix_required",
-  "decision": "diagnose_subtask_numeric_criteria_without_live_rerun",
+  "readiness": "subtask_numeric_criteria_offline_gate_passed_probe_4_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_4",
   "hypothesis": "planner_subtask_numeric_criteria_type_grounding",
   "eligible_success_count": 0,
   "required_success_count": 3,
-  "next_authorized_episode": "none_subtask_numeric_criteria_offline_gate_pending",
+  "next_authorized_episode": "bm012_probe_4_exactly_one",
   "contract": {
     "terminal_goal": "Collect 8 iron resources",
     "initial_time_of_day": 0,
@@ -83,7 +83,7 @@
   "offline_validation": {
     "passed": true,
     "focused_python_test_count": 50,
-    "full_python_regression": 700,
+    "full_python_regression": 703,
     "node_suite_file_count": 6,
     "node_internal_pass_count": 36,
     "powershell_syntax": "pass",
@@ -403,5 +403,25 @@
     "live_validated_by_probe_3": "partial_plan_boundary_only",
     "next_authorized_episode": "consumed_by_probe_3"
   },
-  "round_boundary": "BM-012 Probe 3 consumed the round's only live authorization; the next hypothesis is offline Planner subtask numeric-criteria type grounding and no second episode is allowed."
+  "offline_subtask_numeric_criteria_gate": {
+    "passed": true,
+    "scope": "strict_m4_planner_subtask_inventory_counts_and_task_system_fail_closed_defense",
+    "exact_probe_3_plan_replayed": true,
+    "normalizations": [
+      {"field": "success_criteria.inventory.oak_planks", "original": ">=8", "canonical": 8},
+      {"field": "preconditions.inventory.oak_log", "original": ">=1", "canonical": 1}
+    ],
+    "non_equivalent_counts_rejected_before_task_creation": true,
+    "task_system_invalid_success_count_raises": false,
+    "task_system_invalid_precondition_ready": false,
+    "prompt_requires_positive_integer_counts": true,
+    "related_python_regression": 134,
+    "full_python_regression": 703,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 36,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "next_authorized_episode": "bm012_probe_4_exactly_one"
+  },
+  "round_boundary": "The subtask numeric-criteria offline gate passes and authorizes exactly one fresh BM-012 Probe 4 after this commit is pushed; no second live episode may run in the round."
 }

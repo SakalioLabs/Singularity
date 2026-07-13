@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T00:25:11.3310416Z",
+  "generated_at": "2026-07-13T00:45:17.2359121Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_3_ineligible_subtask_numeric_criteria_offline_fix_required",
-  "decision": "do_not_rerun_fix_subtask_numeric_criteria_offline",
+  "readiness": "bm012_subtask_numeric_criteria_offline_gate_passed_probe_4_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_4",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -104,13 +104,13 @@
     "bounded_relocation_radius": 6,
     "agent_recovery_event": "m4_shelter_atomicity_recovery",
     "planner_relocation_before_retry": true,
-    "full_python_regression": 700,
+    "full_python_regression": 703,
     "node_suite_file_count": 6,
     "node_internal_pass_count": 36,
     "live_episode_run": true,
     "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
     "live_recovery_passed": true,
-    "next_authorized_episode": "none_subtask_numeric_criteria_offline_gate_pending"
+    "next_authorized_episode": "bm012_probe_4_exactly_one"
   },
   "fixed_runtime_profile": {
     "task_id": "BM-011",
@@ -120,7 +120,7 @@
     "max_total_cycles": 320,
     "harness_requires_exact_match": true,
     "terminal_result_requires_machine_event": true,
-    "full_python_regression": 700,
+    "full_python_regression": 703,
     "node_suite_count": 6,
     "node_internal_pass_count": 36
   },
@@ -139,7 +139,23 @@
     "live_episode_run": true,
     "live_episode_id": "m4_episode_20260713_081730_337b2b6b",
     "live_episode_eligible": false,
-    "next_authorized_episode": "none_subtask_numeric_criteria_offline_gate_pending"
+    "next_authorized_episode": "bm012_probe_4_exactly_one"
+  },
+  "offline_subtask_numeric_criteria_gate": {
+    "passed": true,
+    "scope": "strict_m4_planner_subtask_inventory_counts_and_task_system_fail_closed_defense",
+    "exact_probe_3_plan_replayed": true,
+    "normalized_requirement_count": 2,
+    "non_equivalent_counts_rejected_before_task_creation": true,
+    "task_system_invalid_success_count_raises": false,
+    "task_system_invalid_precondition_ready": false,
+    "related_python_regression": 134,
+    "full_python_regression": 703,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 36,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "next_authorized_episode": "bm012_probe_4_exactly_one"
   },
   "player_lifecycle_gate": {
     "verifier_id": "m4-player-lifecycle-verifier-v1",

@@ -372,13 +372,21 @@ class TaskSystem:
         inventory = world_state.get("inventory", {}) if isinstance(world_state.get("inventory", {}), dict) else {}
         inventory_requirements = preconditions.get("inventory", {}) if isinstance(preconditions.get("inventory", {}), dict) else {}
         inventory_missing = {}
+        invalid_inventory_requirements = []
         for item, count in inventory_requirements.items():
-            required_count = self._safe_count(count)
-            available_count = self._safe_count(inventory.get(item, 0))
+            required_count = self._finite_count(count)
+            if required_count is None or required_count <= 0:
+                invalid_inventory_requirements.append(str(item))
+                continue
+            available_count = self._finite_count(inventory.get(item, 0))
+            if available_count is None:
+                available_count = 0.0
             if available_count < required_count:
                 inventory_missing[str(item)] = self._compact_count(required_count - available_count)
         if inventory_missing:
             missing["inventory"] = dict(sorted(inventory_missing.items()))
+        if invalid_inventory_requirements:
+            missing["invalid_inventory_requirements"] = sorted(invalid_inventory_requirements)
         world_flags = world_state.get("flags", []) if isinstance(world_state.get("flags", []), list) else []
         flags = {str(flag) for flag in world_flags}
         required_flags = preconditions.get("flags", []) if isinstance(preconditions.get("flags", []), list) else []
@@ -590,12 +598,23 @@ class TaskSystem:
             if action_type == "craft":
                 item = result.get("item") or params.get("item")
                 if item:
-                    inventory[item] = max(inventory.get(item, 0), params.get("count", 1))
+                    available = self._finite_count(inventory.get(item, 0)) or 0.0
+                    produced = self._finite_count(params.get("count", 1))
+                    if produced is not None:
+                        inventory[item] = max(available, produced)
             elif action_type == "dig":
                 block = result.get("block")
                 if block:
-                    inventory[block] = max(inventory.get(block, 0), 1)
-        return all(inventory.get(item, 0) >= count for item, count in requirements.items())
+                    available = self._finite_count(inventory.get(block, 0)) or 0.0
+                    inventory[block] = max(available, 1)
+        for item, count in requirements.items():
+            required = self._finite_count(count)
+            if required is None or required <= 0:
+                return False
+            available = self._finite_count(inventory.get(item, 0))
+            if available is None or available < required:
+                return False
+        return True
 
     def _dict_matches(self, expected: dict, actual: dict) -> bool:
         for key, value in expected.items():
@@ -611,6 +630,13 @@ class TaskSystem:
             return float(value or 0)
         except (TypeError, ValueError):
             return 0.0
+
+    @staticmethod
+    def _finite_count(value):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return None
+        number = float(value)
+        return number if math.isfinite(number) else None
 
     def _compact_count(self, value):
         if float(value).is_integer():
