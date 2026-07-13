@@ -350,6 +350,103 @@ async function testM4PlaceHandlerRejectsOccupiedTargetBeforeMutation() {
     console.log('PASS: M4 place handler rejects Probe 7 occupied targets before equip or mutation');
 }
 
+async function testM4PlaceHandlerRejectsPlayerCollisionBeforeMutation() {
+    const playerPosition = new Vec3(103.38354189850078, 136, -30.5);
+    for (const fixture of [
+        {
+            request: { x: 103, y: 135, z: -31 },
+            reference: { x: 103, y: 135, z: -31 },
+            target: { x: 103, y: 136, z: -31 },
+        },
+        {
+            request: { x: 103, y: 136, z: -31 },
+            reference: { x: 103, y: 136, z: -31 },
+            target: { x: 103, y: 137, z: -31 },
+        },
+        {
+            request: { x: 103.8, y: 135.2, z: -30.2 },
+            reference: { x: 103, y: 135, z: -31 },
+            target: { x: 103, y: 136, z: -31 },
+        },
+    ]) {
+        const { bot, blocks, equipCalls } = createShelterBot();
+        bot.entity.position = playerPosition;
+        bot.inventory = { items: () => [{ name: 'crafting_table', count: 1 }] };
+        blocks.set(positionKey(fixture.reference), 'grass_block');
+        blocks.delete(positionKey(fixture.target));
+        let placeCalls = 0;
+        bot.placeBlock = async () => {
+            placeCalls += 1;
+        };
+        const handler = createPlaceHandler(() => ({ bot, botReady: true }));
+        const result = await handler({
+            ...fixture.request,
+            item: 'crafting_table',
+            require_player_clearance: true,
+        });
+
+        assert.strictEqual(result.success, false, JSON.stringify(result));
+        assert.strictEqual(result.error, 'placement target intersects the player collision cells');
+        assert.strictEqual(result.target_player_occupancy_policy_id, 'm4-place-target-player-occupancy-v1');
+        assert.strictEqual(result.target_intersects_player, true);
+        assert.deepStrictEqual(result.player_position, {
+            x: 103.38354189850078,
+            y: 136,
+            z: -30.5,
+        });
+        assert.deepStrictEqual(result.player_collision_cells, [
+            { x: 103, y: 136, z: -31 },
+            { x: 103, y: 137, z: -31 },
+        ]);
+        assert.deepStrictEqual(result.reference_position, fixture.reference);
+        assert.deepStrictEqual(result.placed_position, fixture.target);
+        assert.strictEqual(result.target_block_before.name, 'air');
+        assert.strictEqual(
+            result.required_target_state,
+            'air_or_replaceable_and_outside_player_collision_cells',
+        );
+        assert.strictEqual(result.requires_replan, true);
+        assert.strictEqual(result.replan_mode, 'next_cycle');
+        assert.strictEqual(result.replan_candidate_limit, 4);
+        assert.strictEqual(result.adjacent_reference_candidates.length, 4);
+        assert.deepStrictEqual(equipCalls, []);
+        assert.strictEqual(placeCalls, 0);
+        assert.strictEqual(blocks.has(positionKey(fixture.target)), false);
+    }
+
+    const adjacent = createShelterBot();
+    adjacent.bot.entity.position = playerPosition;
+    adjacent.bot.inventory = { items: () => [{ name: 'crafting_table', count: 1 }] };
+    adjacent.blocks.set('102,135,-31', 'grass_block');
+    const adjacentHandler = createPlaceHandler(() => ({ bot: adjacent.bot, botReady: true }));
+    const adjacentResult = await adjacentHandler({
+        x: 102,
+        y: 135,
+        z: -31,
+        item: 'crafting_table',
+        require_player_clearance: true,
+    });
+    assert.strictEqual(adjacentResult.success, true, JSON.stringify(adjacentResult));
+    assert.strictEqual(adjacentResult.target_intersects_player, false);
+    assert.strictEqual(adjacent.blocks.get('102,136,-31'), 'crafting_table');
+
+    const legacy = createShelterBot();
+    legacy.bot.entity.position = playerPosition;
+    legacy.bot.inventory = { items: () => [{ name: 'crafting_table', count: 1 }] };
+    legacy.blocks.set('103,135,-31', 'grass_block');
+    const legacyHandler = createPlaceHandler(() => ({ bot: legacy.bot, botReady: true }));
+    const legacyResult = await legacyHandler({
+        x: 103,
+        y: 135,
+        z: -31,
+        item: 'crafting_table',
+    });
+    assert.strictEqual(legacyResult.success, true, JSON.stringify(legacyResult));
+    assert.strictEqual(legacyResult.target_player_occupancy_policy_id, undefined);
+    assert.strictEqual(legacy.blocks.get('103,136,-31'), 'crafting_table');
+    console.log('PASS: strict M4 place rejects Probe 13 player collisions while adjacent and legacy controls execute');
+}
+
 async function testM4BoundedSealedCellBuildReturnsNineObservedDeltas() {
     const blocks = new Map();
     let plankCount = 10;
@@ -568,6 +665,7 @@ async function main() {
     await testM4PlaceHandlerReturnsObservedCoordinateDelta();
     await testM4PlaceHandlerRejectsUnequippedRequestedItemBeforeMutation();
     await testM4PlaceHandlerRejectsOccupiedTargetBeforeMutation();
+    await testM4PlaceHandlerRejectsPlayerCollisionBeforeMutation();
     await testM4BoundedSealedCellBuildReturnsNineObservedDeltas();
     await testM4BoundedSealedCellPreflightRejectsProbe16GeometryWithoutMutation();
     await testM4BoundedSealedCellRollsBackUnexpectedPartialPlacement();

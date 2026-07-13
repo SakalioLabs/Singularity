@@ -46,6 +46,10 @@ class ActionVerifier:
 
     SAFE_LOW_INFORMATION_ACTIONS = {"move_to", "walk_to", "look_at", "wait", "chat"}
     M4_PLACE_TARGET_OCCUPANCY_POLICY_ID = "m4-place-target-occupancy-v1"
+    M4_PLACE_TARGET_PLAYER_OCCUPANCY_POLICY_ID = "m4-place-target-player-occupancy-v1"
+    M4_PLAYER_WIDTH = 0.6
+    M4_PLAYER_HEIGHT = 1.8
+    M4_COLLISION_EPSILON = 1e-9
     M4_REPLACEABLE_BLOCKS = {
         "air",
         "cave_air",
@@ -231,6 +235,65 @@ class ActionVerifier:
                 policy_id=policy_id,
             )
 
+        player_policy_id = self.M4_PLACE_TARGET_PLAYER_OCCUPANCY_POLICY_ID
+        raw_player_position = state.get("position")
+        if not isinstance(raw_player_position, dict):
+            raw_player_position = state.get("player_position")
+        player_collision = self._m4_player_collision_evidence(raw_player_position)
+        if player_collision is None:
+            return self._decision(
+                "place",
+                "reject",
+                0.0,
+                "M4 place action requires a finite machine-observed player position",
+                missing=["position.x", "position.y", "position.z"],
+                evidence=[f"policy:{policy_id}", f"policy:{player_policy_id}"],
+                required={
+                    **required,
+                    "target_player_clearance": "outside_player_collision_cells",
+                },
+                policy_id=player_policy_id,
+            )
+
+        collision_cells = player_collision["cells"]
+        target_intersects_player = target in collision_cells
+        adjacent_references = self._m4_adjacent_place_references(
+            reference,
+            collision_cells,
+        )
+        required.update({
+            "player_position": player_collision["position"],
+            "player_collision_box": player_collision["box"],
+            "player_collision_cells": collision_cells,
+            "target_player_clearance": "outside_player_collision_cells",
+            "adjacent_reference_candidates": adjacent_references,
+            "replan_mode": "next_cycle",
+            "replan_candidate_limit": 4,
+        })
+        if target_intersects_player:
+            return self._decision(
+                "place",
+                "reject",
+                0.0,
+                (
+                    f"M4 place target {target['x']},{target['y']},{target['z']} "
+                    "intersects the player's collision cells"
+                ),
+                evidence=[
+                    f"policy:{policy_id}",
+                    f"policy:{player_policy_id}",
+                    (
+                        "player_position:"
+                        f"{player_collision['position']['x']},"
+                        f"{player_collision['position']['y']},"
+                        f"{player_collision['position']['z']}"
+                    ),
+                    f"target_intersects_player:{str(target_intersects_player).lower()}",
+                ],
+                required=required,
+                policy_id=player_policy_id,
+            )
+
         item = str(params.get("item") or "").strip()
         target_evidence = (
             ",".join(sorted({str(block.get("name") or "air") for block in observed}))
@@ -241,10 +304,16 @@ class ActionVerifier:
             "place",
             "accept",
             0.95,
-            "requested item is available and the M4 target is not observed occupied",
-            evidence=[item, f"policy:{policy_id}", f"target:{target_evidence}"],
+            "requested item is available and the M4 target clears block and player occupancy",
+            evidence=[
+                item,
+                f"policy:{policy_id}",
+                f"policy:{player_policy_id}",
+                f"target:{target_evidence}",
+                "target_intersects_player:false",
+            ],
             required=required,
-            policy_id=policy_id,
+            policy_id=player_policy_id,
         )
 
     def _verify_attack(self, params: dict, state: dict) -> ActionVerificationDecision:
@@ -428,6 +497,83 @@ class ActionVerifier:
                 return None
             position[axis] = math.floor(coordinate)
         return position
+
+    @staticmethod
+    def _finite_position(values: dict) -> Optional[dict]:
+        if not isinstance(values, dict):
+            return None
+        position = {}
+        for axis in ("x", "y", "z"):
+            value = values.get(axis)
+            if isinstance(value, bool):
+                return None
+            try:
+                coordinate = float(value)
+            except (TypeError, ValueError):
+                return None
+            if not math.isfinite(coordinate):
+                return None
+            position[axis] = coordinate
+        return position
+
+    @classmethod
+    def _m4_player_collision_evidence(cls, values: dict) -> Optional[dict]:
+        position = cls._finite_position(values)
+        if position is None:
+            return None
+        half_width = cls.M4_PLAYER_WIDTH / 2.0
+        bounds = {
+            "min": {
+                "x": position["x"] - half_width,
+                "y": position["y"],
+                "z": position["z"] - half_width,
+            },
+            "max": {
+                "x": position["x"] + half_width,
+                "y": position["y"] + cls.M4_PLAYER_HEIGHT,
+                "z": position["z"] + half_width,
+            },
+            "width": cls.M4_PLAYER_WIDTH,
+            "height": cls.M4_PLAYER_HEIGHT,
+        }
+        axis_cells = {}
+        for axis in ("x", "y", "z"):
+            first = math.floor(bounds["min"][axis] + cls.M4_COLLISION_EPSILON)
+            last = math.floor(bounds["max"][axis] - cls.M4_COLLISION_EPSILON)
+            axis_cells[axis] = range(first, last + 1)
+        cells = [
+            {"x": x, "y": y, "z": z}
+            for x in axis_cells["x"]
+            for y in axis_cells["y"]
+            for z in axis_cells["z"]
+        ]
+        return {
+            "position": position,
+            "box": bounds,
+            "cells": cells,
+        }
+
+    @staticmethod
+    def _m4_adjacent_place_references(reference: dict, collision_cells: list[dict]) -> list[dict]:
+        occupied = {
+            (cell["x"], cell["y"], cell["z"])
+            for cell in collision_cells
+        }
+        candidates = []
+        for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            candidate = {
+                "x": reference["x"] + dx,
+                "y": reference["y"],
+                "z": reference["z"] + dz,
+            }
+            candidate_target = (
+                candidate["x"],
+                candidate["y"] + 1,
+                candidate["z"],
+            )
+            if candidate_target not in occupied:
+                candidates.append(candidate)
+        return candidates
 
     @classmethod
     def _observed_blocks_at(cls, state: dict, target: dict) -> list[dict]:

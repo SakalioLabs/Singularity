@@ -104,6 +104,15 @@ class PickupPostconditionBot:
         return {"success": True}
 
 
+class PlaceClearanceBot:
+    def __init__(self):
+        self.place_calls = []
+
+    def place(self, x, y, z, item_name=None, require_player_clearance=False):
+        self.place_calls.append((x, y, z, item_name, require_player_clearance))
+        return {"success": True}
+
+
 class ScriptedSocket:
     def __init__(self, response=b'{"success": true}\n', timeout=10.0):
         self.response = response
@@ -569,6 +578,7 @@ def test_m4_place_target_occupancy_gate_replays_probe_7_and_controls():
         decision = verifier.verify(
             action,
             {
+                "position": {"x": 90.5, "y": 135, "z": -40.5},
                 "inventory": inventory,
                 "nearby_blocks": [
                     {"name": "dirt", "position": {"x": 93, "y": 134, "z": -38}},
@@ -589,6 +599,7 @@ def test_m4_place_target_occupancy_gate_replays_probe_7_and_controls():
     replaceable = verifier.verify(
         action,
         {
+            "position": {"x": 90.5, "y": 135, "z": -40.5},
             "inventory": inventory,
             "nearby_blocks": [{
                 "name": "short_grass",
@@ -600,6 +611,7 @@ def test_m4_place_target_occupancy_gate_replays_probe_7_and_controls():
     unobserved = verifier.verify(
         action,
         {
+            "position": {"x": 90.5, "y": 135, "z": -40.5},
             "inventory": inventory,
             "nearby_blocks": [{
                 "name": "grass_block",
@@ -628,6 +640,128 @@ def test_m4_place_target_occupancy_gate_replays_probe_7_and_controls():
     assert "actual target is the block cell at floor(x), floor(y)+1, floor(z)" in prompt
     assert "choose a different reference after an occupied-target rejection" in prompt
     print("PASS: M4 rejects the exact Probe 7 occupied targets while controls remain executable")
+
+
+def test_m4_place_target_player_occupancy_gate_replays_probe_13_and_controls():
+    verifier = ActionVerifier()
+    player_position = {"x": 103.38354189850078, "y": 136, "z": -30.5}
+    action = {
+        "type": "place",
+        "parameters": {
+            "item": "crafting_table",
+            "x": 103,
+            "y": 135,
+            "z": -31,
+        },
+    }
+    state = {
+        "position": player_position,
+        "inventory": {"crafting_table": 1},
+        "nearby_blocks": [{
+            "name": "grass_block",
+            "position": {"x": 103, "y": 135, "z": -31},
+        }],
+    }
+
+    decision = verifier.verify(
+        action,
+        state,
+        goal="Place crafting_table",
+        protocol="m4-fixed-v1",
+    )
+    assert decision.status == "reject"
+    assert decision.policy_id == "m4-place-target-player-occupancy-v1"
+    assert decision.reason == (
+        "M4 place target 103,136,-31 intersects the player's collision cells"
+    )
+    assert decision.required["target_position"] == {"x": 103, "y": 136, "z": -31}
+    assert decision.required["player_position"] == player_position
+    assert decision.required["player_collision_cells"] == [
+        {"x": 103, "y": 136, "z": -31},
+        {"x": 103, "y": 137, "z": -31},
+    ]
+    assert decision.required["adjacent_reference_candidates"] == [
+        {"x": 104, "y": 135, "z": -31},
+        {"x": 102, "y": 135, "z": -31},
+        {"x": 103, "y": 135, "z": -30},
+        {"x": 103, "y": 135, "z": -32},
+    ]
+    assert decision.required["replan_mode"] == "next_cycle"
+    assert decision.required["replan_candidate_limit"] == 4
+    assert "target_intersects_player:true" in decision.evidence
+
+    head_collision = verifier.verify(
+        {
+            "type": "place",
+            "parameters": {
+                "item": "crafting_table",
+                "x": 103,
+                "y": 136,
+                "z": -31,
+            },
+        },
+        state,
+        protocol="m4-fixed-v1",
+    )
+    assert head_collision.status == "reject"
+    assert head_collision.required["target_position"] == {"x": 103, "y": 137, "z": -31}
+
+    boundary_collision = verifier.verify(
+        {
+            "type": "place",
+            "parameters": {
+                "item": "crafting_table",
+                "x": 104,
+                "y": 135,
+                "z": -31,
+            },
+        },
+        {
+            **state,
+            "position": {"x": 103.8, "y": 136, "z": -30.5},
+        },
+        protocol="m4-fixed-v1",
+    )
+    assert boundary_collision.status == "reject"
+    assert {"x": 104, "y": 136, "z": -31} in boundary_collision.required[
+        "player_collision_cells"
+    ]
+
+    adjacent = verifier.verify(
+        {
+            "type": "place",
+            "parameters": {
+                "item": "crafting_table",
+                "x": 102,
+                "y": 135,
+                "z": -31,
+            },
+        },
+        state,
+        protocol="m4-fixed-v1",
+    )
+    assert adjacent.status == "accept"
+    assert adjacent.policy_id == "m4-place-target-player-occupancy-v1"
+    assert "target_intersects_player:false" in adjacent.evidence
+
+    missing_position = verifier.verify(
+        action,
+        {"inventory": {"crafting_table": 1}},
+        protocol="m4-fixed-v1",
+    )
+    assert missing_position.status == "reject"
+    assert missing_position.policy_id == "m4-place-target-player-occupancy-v1"
+    assert missing_position.missing == ["position.x", "position.y", "position.z"]
+
+    non_m4 = verifier.verify(action, state, protocol="m2-fixed-v1")
+    assert non_m4.status == "accept"
+    assert non_m4.policy_id == ""
+
+    prompt = Planner(PlannerLLM(FakeClock()), TaskSystem(), protocol="m4-fixed-v1")._planner_system_prompt()
+    assert "outside every player collision cell" in prompt
+    assert "use one supplied adjacent reference candidate" in prompt
+    assert "never retry the rejected reference" in prompt
+    print("PASS: M4 rejects Probe 13 feet/head and boundary collisions while controls remain scoped")
 
 
 def test_m4_occupied_place_rejection_requests_grounded_replan():
@@ -680,6 +814,67 @@ def test_m4_occupied_place_rejection_requests_grounded_replan():
     assert event["type"] == "action_verification"
     assert event["data"]["verification"]["replan_requested"] is True
     print("PASS: occupied M4 place targets fail before execution and ground the next replan")
+
+
+def test_m4_player_occupied_place_rejection_requests_bounded_adjacent_replan():
+    clock = FakeClock()
+    planner = RuntimePlanner()
+    agent = object.__new__(Agent)
+    agent.config = Config(
+        planner_protocol="m4-fixed-v1",
+        enable_action_verification=True,
+        enforce_action_verification=True,
+    )
+    agent.action_verifier = ActionVerifier()
+    agent.planner = planner
+    agent.session_logger = RuntimeSessionLogger(clock)
+    agent._episode_deadline_monotonic = None
+    agent._write_memory_episode = lambda *args, **kwargs: None
+
+    verification, result = agent._verify_action_for_execution(
+        {
+            "type": "place",
+            "parameters": {
+                "item": "crafting_table",
+                "x": 103,
+                "y": 135,
+                "z": -31,
+            },
+        },
+        {
+            "position": {"x": 103.38354189850078, "y": 136, "z": -30.5},
+            "inventory": {"crafting_table": 1},
+            "nearby_blocks": [{
+                "name": "grass_block",
+                "position": {"x": 103, "y": 135, "z": -31},
+            }],
+        },
+        "Place crafting_table",
+        {"cycle": 40, "mode": "autonomous"},
+    )
+
+    assert verification["status"] == "reject"
+    assert verification["policy_id"] == "m4-place-target-player-occupancy-v1"
+    assert verification["replan_requested"] is True
+    assert verification["replan_candidate_count"] == 4
+    assert result["success"] is False
+    assert result["verification_blocked"] is True
+    assert result["duration_ms"] == 0
+    assert result["requires_replan"] is True
+    assert len(planner.replan_reasons) == 1
+    assert "intersects the player's collision cells" in planner.replan_reasons[0]
+    assert "perform one next-cycle replan" in planner.replan_reasons[0]
+    assert "[(104,135,-31),(102,135,-31),(103,135,-30),(103,135,-32)]" in planner.replan_reasons[0]
+    assert "do not retry the rejected reference" in planner.replan_reasons[0]
+    event = agent.session_logger.events[-1]
+    assert event["type"] == "action_verification"
+    assert event["data"]["verification"]["required"]["player_position"] == {
+        "x": 103.38354189850078,
+        "y": 136.0,
+        "z": -30.5,
+    }
+    assert event["data"]["verification"]["replan_candidate_count"] == 4
+    print("PASS: Probe 13 place rejection preserves coordinates and requests one bounded adjacent replan")
 
 
 def test_m4_craft_grounding_fails_closed_on_drift():
@@ -1727,6 +1922,36 @@ def test_m4_action_controller_requires_expected_drop_pickup_only_for_m4():
     print("PASS: ActionController requires dig pickup only under the fixed M4 profile")
 
 
+def test_m4_action_controller_requires_player_clearance_only_for_m4_place():
+    action = {
+        "type": "place",
+        "parameters": {
+            "item": "crafting_table",
+            "x": 103,
+            "y": 135,
+            "z": -31,
+        },
+    }
+    state = {"health": 20, "inventory": {"crafting_table": 1}}
+
+    m4_bot = PlaceClearanceBot()
+    m4_result = ActionController(
+        m4_bot,
+        Config(planner_protocol="m4-fixed-v1"),
+    ).execute(action, state)
+    control_bot = PlaceClearanceBot()
+    control_result = ActionController(
+        control_bot,
+        Config(planner_protocol="m2-fixed-v1"),
+    ).execute(action, state)
+
+    assert m4_result["success"] is True
+    assert control_result["success"] is True
+    assert m4_bot.place_calls == [(103, 135, -31, "crafting_table", True)]
+    assert control_bot.place_calls == [(103, 135, -31, "crafting_table", False)]
+    print("PASS: ActionController scopes player-clearance place checks to fixed M4")
+
+
 def test_m4_bridge_uses_remaining_budget_without_replay():
     clock = FakeClock()
     bridge = object.__new__(BotBridge)
@@ -1916,6 +2141,7 @@ if __name__ == "__main__":
     test_m4_planner_transport_recovery_fails_closed_for_non_transport_errors()
     test_m4_action_controller_enforces_episode_and_action_deadlines()
     test_m4_action_controller_requires_expected_drop_pickup_only_for_m4()
+    test_m4_action_controller_requires_player_clearance_only_for_m4_place()
     test_m4_bridge_uses_remaining_budget_without_replay()
     test_m4_verifier_return_after_deadline_is_rejected()
     test_session_logger_records_absolute_monotonic_event_time()

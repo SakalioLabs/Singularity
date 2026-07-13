@@ -266,6 +266,14 @@ class ActionController:
         y = params.get("y")
         z = params.get("z")
         item_name = params.get("item")
+        if str(getattr(self.config, "planner_protocol", "") or "") == "m4-fixed-v1":
+            return self.bot.place(
+                x,
+                y,
+                z,
+                item_name,
+                require_player_clearance=True,
+            )
         return self.bot.place(x, y, z, item_name)
 
     def _craft(self, params: dict) -> dict:

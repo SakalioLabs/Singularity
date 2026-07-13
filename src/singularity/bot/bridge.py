@@ -347,8 +347,18 @@ class BotBridge:
             params["require_pickup"] = True
         return self._send_command_single("dig", params)
 
-    def place(self, x: int, y: int, z: int, item_name: str = None) -> dict:
-        return self._send_command("place", {"x": x, "y": y, "z": z, "item": item_name})
+    def place(
+        self,
+        x: int,
+        y: int,
+        z: int,
+        item_name: str = None,
+        require_player_clearance: bool = False,
+    ) -> dict:
+        params = {"x": x, "y": y, "z": z, "item": item_name}
+        if require_player_clearance:
+            params["require_player_clearance"] = True
+        return self._send_command("place", params)
 
     def craft(self, item_name: str, count: int = 1) -> dict:
         return self._send_command("craft", {"item": item_name, "count": count})

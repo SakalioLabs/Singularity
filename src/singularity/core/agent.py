@@ -4361,17 +4361,51 @@ class Agent:
             protocol == "m4-fixed-v1"
             and verification.get("status") == "reject"
             and verification.get("action_type") == "place"
-            and verification.get("policy_id") == ActionVerifier.M4_PLACE_TARGET_OCCUPANCY_POLICY_ID
+            and verification.get("policy_id") in {
+                ActionVerifier.M4_PLACE_TARGET_OCCUPANCY_POLICY_ID,
+                ActionVerifier.M4_PLACE_TARGET_PLAYER_OCCUPANCY_POLICY_ID,
+            }
         ):
             planner = getattr(self, "planner", None)
             if hasattr(planner, "request_replan"):
+                candidates = []
+                if (
+                    verification.get("policy_id")
+                    == ActionVerifier.M4_PLACE_TARGET_PLAYER_OCCUPANCY_POLICY_ID
+                ):
+                    candidates = verification.get("required", {}).get(
+                        "adjacent_reference_candidates",
+                        [],
+                    )
+                    candidate_text = ",".join(
+                        f"({item['x']},{item['y']},{item['z']})"
+                        for item in candidates
+                        if isinstance(item, dict)
+                        and all(axis in item for axis in ("x", "y", "z"))
+                    )
+                    bounded_instruction = (
+                        "perform one next-cycle replan using one adjacent reference candidate "
+                        f"[{candidate_text}] whose cell above is air or replaceable and outside "
+                        "the player collision cells; do not retry the rejected reference"
+                        if candidate_text
+                        else (
+                            "re-observe a finite player position, then perform one next-cycle "
+                            "replan to a different adjacent reference outside the player collision cells"
+                        )
+                    )
+                else:
+                    bounded_instruction = (
+                        "choose a different reference block whose cell above is air or replaceable"
+                    )
                 replan_reason = (
                     f"{verification.get('reason', 'M4 place target rejected')}; "
-                    "choose a different reference block whose cell above is air or replaceable"
+                    f"{bounded_instruction}"
                 )
                 planner.request_replan(replan_reason)
                 verification["replan_requested"] = True
                 verification["replan_reason"] = replan_reason
+                if candidates:
+                    verification["replan_candidate_count"] = len(candidates)
         payload = {
             "goal": goal,
             "context": context or {},

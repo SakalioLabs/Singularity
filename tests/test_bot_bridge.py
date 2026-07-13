@@ -121,6 +121,31 @@ def test_m4_dig_forwards_explicit_pickup_postcondition():
     print("PASS: BotBridge scopes the pickup postcondition to explicit M4 dig requests")
 
 
+def test_m4_place_forwards_explicit_player_clearance_postcondition():
+    bridge = RecordingBridge()
+
+    bridge.place(103, 135, -31, "crafting_table", require_player_clearance=True)
+    bridge.place(103, 135, -31, "crafting_table")
+
+    assert bridge.calls == [
+        (
+            "place",
+            {
+                "x": 103,
+                "y": 135,
+                "z": -31,
+                "item": "crafting_table",
+                "require_player_clearance": True,
+            },
+        ),
+        (
+            "place",
+            {"x": 103, "y": 135, "z": -31, "item": "crafting_table"},
+        ),
+    ]
+    print("PASS: BotBridge scopes player-clearance evidence to explicit M4 place requests")
+
+
 def test_benchmark_protocol_commands_are_fixed_and_typed():
     bridge = RecordingBridge()
     bridge.benchmark_protocol()
@@ -158,6 +183,7 @@ if __name__ == "__main__":
     test_decode_response_handles_empty_or_invalid_payloads()
     test_capture_screenshot_sends_renderer_command()
     test_navigation_commands_omit_null_y_and_forward_pathfinder_controls()
+    test_m4_place_forwards_explicit_player_clearance_postcondition()
     test_benchmark_protocol_commands_are_fixed_and_typed()
     test_single_shot_navigation_extends_and_restores_socket_timeout()
     print("\nBot bridge tests PASSED")

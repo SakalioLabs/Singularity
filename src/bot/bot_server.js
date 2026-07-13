@@ -1161,6 +1161,51 @@ function compactPosition(position) {
     };
 }
 
+const M4_PLAYER_COLLISION_WIDTH = 0.6;
+const M4_PLAYER_COLLISION_HEIGHT = 1.8;
+const M4_PLAYER_COLLISION_EPSILON = 1e-9;
+
+function m4PlayerCollisionEvidence(position) {
+    const playerPosition = compactPosition(position);
+    if (!playerPosition || !Object.values(playerPosition).every(Number.isFinite)) return null;
+    const halfWidth = M4_PLAYER_COLLISION_WIDTH / 2;
+    const box = {
+        min: {
+            x: playerPosition.x - halfWidth,
+            y: playerPosition.y,
+            z: playerPosition.z - halfWidth,
+        },
+        max: {
+            x: playerPosition.x + halfWidth,
+            y: playerPosition.y + M4_PLAYER_COLLISION_HEIGHT,
+            z: playerPosition.z + halfWidth,
+        },
+        width: M4_PLAYER_COLLISION_WIDTH,
+        height: M4_PLAYER_COLLISION_HEIGHT,
+    };
+    const axisCells = {};
+    for (const axis of ['x', 'y', 'z']) {
+        const first = Math.floor(box.min[axis] + M4_PLAYER_COLLISION_EPSILON);
+        const last = Math.floor(box.max[axis] - M4_PLAYER_COLLISION_EPSILON);
+        axisCells[axis] = Array.from({ length: last - first + 1 }, (_, index) => first + index);
+    }
+    const cells = [];
+    for (const x of axisCells.x) {
+        for (const y of axisCells.y) {
+            for (const z of axisCells.z) cells.push({ x, y, z });
+        }
+    }
+    return { player_position: playerPosition, player_collision_box: box, player_collision_cells: cells };
+}
+
+function m4AdjacentPlaceReferences(referencePosition, collisionCells) {
+    const occupied = new Set(collisionCells.map(cell => `${cell.x},${cell.y},${cell.z}`));
+    const reference = compactPosition(referencePosition);
+    return [[1, 0], [-1, 0], [0, 1], [0, -1]]
+        .map(([dx, dz]) => ({ x: reference.x + dx, y: reference.y, z: reference.z + dz }))
+        .filter(candidate => !occupied.has(`${candidate.x},${candidate.y + 1},${candidate.z}`));
+}
+
 function entityName(entity) {
     return String(entity?.name || entity?.mobType || entity?.displayName || entity?.type || 'unknown')
         .trim()
@@ -1266,6 +1311,8 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
     return async (params = {}) => {
         const equipPolicyId = 'm4-place-requested-item-equip-v1';
         const targetOccupancyPolicyId = 'm4-place-target-occupancy-v1';
+        const targetPlayerOccupancyPolicyId = 'm4-place-target-player-occupancy-v1';
+        const requirePlayerClearance = params.require_player_clearance === true;
         const state = getState() || {};
         const activeBot = state.bot;
         if (!state.botReady || !activeBot?.entity?.position) {
@@ -1284,8 +1331,9 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
             return { success: false, error: 'place requires an item name', equip_policy_id: equipPolicyId };
         }
         let equippedItem = '';
+        let playerClearanceEvidence = {};
         try {
-            const referencePosition = new Vec3(...coordinates);
+            const referencePosition = new Vec3(...coordinates.map(Math.floor));
             const referenceBlock = activeBot.blockAt(referencePosition);
             if (!referenceBlock) return { success: false, error: 'No reference block' };
             const targetPosition = referencePosition.offset(0, 1, 0);
@@ -1300,6 +1348,9 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
                     item,
                     equip_policy_id: equipPolicyId,
                     target_occupancy_policy_id: targetOccupancyPolicyId,
+                    ...(requirePlayerClearance ? {
+                        target_player_occupancy_policy_id: targetPlayerOccupancyPolicyId,
+                    } : {}),
                 };
             }
             if (before.solid) {
@@ -1309,12 +1360,65 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
                     item,
                     equip_policy_id: equipPolicyId,
                     target_occupancy_policy_id: targetOccupancyPolicyId,
+                    ...(requirePlayerClearance ? {
+                        target_player_occupancy_policy_id: targetPlayerOccupancyPolicyId,
+                    } : {}),
                     requires_replan: true,
                     reference_position: compactPosition(referencePosition),
                     placed_position: compactPosition(targetPosition),
                     target_block_before: before,
                     required_target_state: 'air_or_replaceable',
                 };
+            }
+            if (requirePlayerClearance) {
+                const collision = m4PlayerCollisionEvidence(activeBot.entity.position);
+                if (!collision) {
+                    return {
+                        success: false,
+                        error: 'M4 placement requires a finite player position',
+                        item,
+                        equip_policy_id: equipPolicyId,
+                        target_occupancy_policy_id: targetOccupancyPolicyId,
+                        target_player_occupancy_policy_id: targetPlayerOccupancyPolicyId,
+                        requires_replan: true,
+                        reference_position: compactPosition(referencePosition),
+                        placed_position: compactPosition(targetPosition),
+                        target_block_before: before,
+                        required_target_state: 'air_or_replaceable_and_outside_player_collision_cells',
+                    };
+                }
+                const target = compactPosition(targetPosition);
+                const targetIntersectsPlayer = collision.player_collision_cells.some(
+                    cell => cell.x === target.x && cell.y === target.y && cell.z === target.z,
+                );
+                const adjacentReferenceCandidates = m4AdjacentPlaceReferences(
+                    referencePosition,
+                    collision.player_collision_cells,
+                );
+                playerClearanceEvidence = {
+                    target_player_occupancy_policy_id: targetPlayerOccupancyPolicyId,
+                    ...collision,
+                    target_intersects_player: targetIntersectsPlayer,
+                    adjacent_reference_candidates: adjacentReferenceCandidates,
+                    replan_mode: 'next_cycle',
+                    replan_candidate_limit: 4,
+                };
+                if (targetIntersectsPlayer) {
+                    return {
+                        success: false,
+                        error: 'placement target intersects the player collision cells',
+                        item,
+                        equip_policy_id: equipPolicyId,
+                        target_occupancy_policy_id: targetOccupancyPolicyId,
+                        ...playerClearanceEvidence,
+                        requires_replan: true,
+                        replan_reason: 'choose one adjacent reference whose target clears block and player occupancy',
+                        reference_position: compactPosition(referencePosition),
+                        placed_position: target,
+                        target_block_before: before,
+                        required_target_state: 'air_or_replaceable_and_outside_player_collision_cells',
+                    };
+                }
             }
             try {
                 await activeBot.equip(inventoryItem, 'hand');
@@ -1325,6 +1429,7 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
                     item,
                     equip_policy_id: equipPolicyId,
                     target_occupancy_policy_id: targetOccupancyPolicyId,
+                    ...playerClearanceEvidence,
                 };
             }
             const heldItem = activeBot.heldItem || (
@@ -1339,6 +1444,7 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
                     equipped_item: equippedItem,
                     equip_policy_id: equipPolicyId,
                     target_occupancy_policy_id: targetOccupancyPolicyId,
+                    ...playerClearanceEvidence,
                 };
             }
             await activeBot.placeBlock(referenceBlock, new Vec3(0, 1, 0));
@@ -1352,6 +1458,7 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
                 requested_item_equipped: true,
                 equip_policy_id: equipPolicyId,
                 target_occupancy_policy_id: targetOccupancyPolicyId,
+                ...playerClearanceEvidence,
                 reference_position: compactPosition(referencePosition),
                 placed_position: compactPosition(targetPosition),
                 target_block_before: before,
@@ -1366,6 +1473,7 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
                 requested_item_equipped: equippedItem === item,
                 equip_policy_id: equipPolicyId,
                 target_occupancy_policy_id: targetOccupancyPolicyId,
+                ...playerClearanceEvidence,
             };
         }
     };

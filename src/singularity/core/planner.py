@@ -482,7 +482,7 @@ M4 FIXED OUTPUT CONTRACT:
 - A craft action must use item and may use a positive integer count; never use recipe as an alias.
 - Example: {"type":"craft","parameters":{"item":"oak_planks","count":4}}.
 - A place action must use item plus top-level finite x, y, and z reference-block coordinates; never use block as an alias.
-- For place, the actual target is the block cell at floor(x), floor(y)+1, floor(z). Choose a reference whose target is air or replaceable; never target an observed solid block, and choose a different reference after an occupied-target rejection.
+- For place, the actual target is the block cell at floor(x), floor(y)+1, floor(z). Choose a reference whose target is air or replaceable; never target an observed solid block, and choose a different reference after an occupied-target rejection. The target must also remain outside every player collision cell; never target the player's feet/head space. After a player-collision rejection, use one supplied adjacent reference candidate and never retry the rejected reference.
 - Example: {"type":"place","parameters":{"item":"crafting_table","x":106,"y":135,"z":-29}}.
 - For an active shelter goal, when the current machine state has at least 10 allowlisted building blocks, immediately use build_shelter_cell with the current shelter player_cell as origin and that inventory material. Nine blocks remain in the structure and one is a temporary roof scaffold. Do not add tools, a crafting table, a furnace, mining, or other unrelated prerequisites.
 - Example: {"type":"build_shelter_cell","parameters":{"origin":{"x":93,"y":136,"z":-36},"material":"oak_planks"}}.
