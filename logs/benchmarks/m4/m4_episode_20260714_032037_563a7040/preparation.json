@@ -1,0 +1,338 @@
+{
+  "type": "m4_resource_progress_report",
+  "schema_version": 1,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "task_contract_id": "m4-bm012-resource-contract-v1",
+  "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+  "readiness": "review",
+  "decision": "diagnose_first_unrecovered_transition",
+  "progress_gate_passed": false,
+  "counts_toward_task_success": false,
+  "episode_id": "m4_episode_20260714_032037_563a7040",
+  "session_id": "5f33e80d-10a",
+  "level_name": "m4_episode_20260714_032037_563a7040_bm012",
+  "autonomous_goals": [
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 1,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 61.0
+    },
+    {
+      "goal": "Craft crafting table",
+      "goal_index": 2,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:unlock_crafting_grid",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 55.0
+    },
+    {
+      "goal": "Place crafting table for tool progression",
+      "goal_index": 3,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:bm012_crafting_table_unplaced",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 66.0
+    },
+    {
+      "goal": "Place crafting table",
+      "goal_index": 4,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "ready_task_selected",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft wooden pickaxe",
+      "goal_index": 5,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:unlock_stone_mining",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 59.0
+    },
+    {
+      "goal": "Collect coal or charcoal for torches",
+      "goal_index": 6,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:night_and_cave_safety",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 58.0
+    },
+    {
+      "goal": "Craft torches",
+      "goal_index": 7,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "ready_task_selected",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Craft crafting_table",
+      "goal_index": 8,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "ready_task_selected",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Place crafting_table",
+      "goal_index": 9,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "ready_task_selected",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Flee from the nearest hostile mob toward safety",
+      "goal_index": 10,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "hostile_within_8_blocks_no_weapon",
+      "priority": 1,
+      "priority_class": "immediate_threat"
+    },
+    {
+      "goal": "Flee from the nearest hostile mob toward safety",
+      "goal_index": 11,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "hostile_within_8_blocks_no_weapon",
+      "priority": 1,
+      "priority_class": "immediate_threat"
+    },
+    {
+      "goal": "Find food and avoid danger until health can recover",
+      "goal_index": 12,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "health_below_critical_no_food",
+      "priority": 2,
+      "priority_class": "critical_health"
+    },
+    {
+      "goal": "Find food and avoid danger until health can recover",
+      "goal_index": 13,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "health_below_critical_no_food",
+      "priority": 2,
+      "priority_class": "critical_health"
+    },
+    {
+      "goal": "Find food and avoid danger until health can recover",
+      "goal_index": 14,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "health_below_critical_no_food",
+      "priority": 2,
+      "priority_class": "critical_health"
+    },
+    {
+      "goal": "Find food and avoid danger until health can recover",
+      "goal_index": 15,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "health_below_critical_no_food",
+      "priority": 2,
+      "priority_class": "critical_health"
+    },
+    {
+      "goal": "Find food and avoid danger until health can recover",
+      "goal_index": 16,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "health_below_critical_no_food",
+      "priority": 2,
+      "priority_class": "critical_health"
+    },
+    {
+      "goal": "Find food and avoid danger until health can recover",
+      "goal_index": 17,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "health_below_critical_no_food",
+      "priority": 2,
+      "priority_class": "critical_health"
+    },
+    {
+      "goal": "Find food and avoid danger until health can recover",
+      "goal_index": 18,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "health_below_critical_no_food",
+      "priority": 2,
+      "priority_class": "critical_health"
+    },
+    {
+      "goal": "Find food and avoid danger until health can recover",
+      "goal_index": 19,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "health_below_critical_no_food",
+      "priority": 2,
+      "priority_class": "critical_health"
+    },
+    {
+      "goal": "Find food and avoid danger until health can recover",
+      "goal_index": 20,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "health_below_critical_no_food",
+      "priority": 2,
+      "priority_class": "critical_health"
+    },
+    {
+      "goal": "Find food and avoid danger until health can recover",
+      "goal_index": 21,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "health_below_critical_no_food",
+      "priority": 2,
+      "priority_class": "critical_health"
+    },
+    {
+      "goal": "Find food and avoid danger until health can recover",
+      "goal_index": 22,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "health_below_critical_no_food",
+      "priority": 2,
+      "priority_class": "critical_health"
+    },
+    {
+      "goal": "Find food and avoid danger until health can recover",
+      "goal_index": 23,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "health_below_critical_no_food",
+      "priority": 2,
+      "priority_class": "critical_health"
+    },
+    {
+      "goal": "Find food and avoid danger until health can recover",
+      "goal_index": 24,
+      "max_goals": 24,
+      "selection_source": "goal_generator",
+      "selection_reason": "health_below_critical_no_food",
+      "priority": 2,
+      "priority_class": "critical_health"
+    }
+  ],
+  "planner_provider_controls": {
+    "passed": false,
+    "call_count": 46,
+    "real_call_count": 46,
+    "schema_valid_real_call_count": 44,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 0,
+    "max_call_duration_ms": 28203.0,
+    "total_token_usage": 170939,
+    "violations": [
+      "llm-04e79b28fe6c4deb:finish_reason_mismatch"
+    ]
+  },
+  "action_count": 47,
+  "successful_action_count": 28,
+  "resource_acquisition": {
+    "target_items": [
+      "raw_iron",
+      "iron_ore"
+    ],
+    "initial_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "initial_target_count": 0,
+    "qualifying_items": [],
+    "terminal_target_passed": false,
+    "positive_inventory_delta": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "positive_inventory_delta_passed": false,
+    "successful_source_action_count": 0,
+    "successful_source_actions": []
+  },
+  "before_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 110,
+    "nearby_hostile_count": 0
+  },
+  "after_state": {
+    "position": {
+      "x": 109.68927981416313,
+      "y": 136,
+      "z": -21.5
+    },
+    "health": 3.3333330154418945,
+    "hunger": 17,
+    "inventory": {
+      "dark_oak_sapling": 1,
+      "dirt": 1,
+      "oak_log": 3,
+      "stick": 1,
+      "torch": 4,
+      "wooden_pickaxe": 1,
+      "oak_planks": 3
+    },
+    "time_of_day": 7230,
+    "nearby_hostile_count": 0
+  },
+  "time_remaining_s": 244.437,
+  "first_unrecovered_transition": {
+    "event_type": "empty_plan",
+    "goal": "Place crafting table for tool progression",
+    "detail": {
+      "goal": "Place crafting table for tool progression",
+      "cycle": 13,
+      "status": "error",
+      "reasoning": "Planner output rejected before execution: action[0]:place_replan_rejected_reference_repeated"
+    },
+    "monotonic_s": 18693.031
+  },
+  "deadline_eligible": true,
+  "evidence_eligible": false,
+  "eligibility_issues": [
+    "event:terminal_resource_verification",
+    "planner_provider_controls",
+    "resource_terminal_inventory_target",
+    "resource_successful_source_actions",
+    "resource_positive_inventory_delta",
+    "terminal_machine_verification",
+    "result_duration_eligible"
+  ]
+}

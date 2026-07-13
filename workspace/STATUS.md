@@ -47,10 +47,10 @@
 
 ## M4 Convergence Result
 
-- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after seventeen failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
+- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after eighteen failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after seventeen failed live attempts. Probe 17 live-exercised `m4-place-replan-feedback-grounding-v1`, then exposed `deadline_bound_bridge_recovery_pathfinder_readiness`: event 550 confirmed a fresh socket/player state after a navigation timeout, but event 578 began nineteen consecutive `PathStopped` failures. The bounded offline `m4-deadline-bound-pathfinder-readiness-v1` gate now passes: strict M4 drains deferred pathfinder stop state, and timeout recovery must confirm pathfinder readiness before player state and before clearing pending recovery. M1/M2 behavior and fixed protocol/deadline/threshold contracts are unchanged. All 35 non-live Python scripts (730 regression definitions) and six Node suites (52 PASS cases) succeed. No live episode ran in this offline round; exactly one fresh Probe 18 is authorized only after this commit is pushed, while BM-013/BM-014 remain locked.
+- BM-012 is the next target at 0/3 after eighteen failed live attempts. Probe 18 did not exercise the deadline-bound readiness branch: no timeout, bridge recovery, recovery report, or `PathStopped` error occurred, and the two bounded completion failures each had a later successful move. Its earliest layer is `critical_health_survival_action_precondition_deadlock`: event 817 rejected an ActionVerifier-approved escape `move_to` at zero duration solely because health was below 4, then fourteen survival-recovery actions were blocked while thirteen critical-health goals consumed the remaining goal budget. Probe 18 completed 7/24 goals and 28/47 actions, acquired no iron, stayed connected/death-free, and passed 67/74 checks. No code or second live run occurred; the next gate is offline-only, no fresh episode is authorized, and BM-013/BM-014 remain locked.
 
 ## Evidence Policy
 

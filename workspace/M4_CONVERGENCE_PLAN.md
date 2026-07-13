@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 17 remain ineligible at 0/3. Probe 17 live-exercised `m4-place-replan-feedback-grounding-v1`, then exposed `deadline_bound_bridge_recovery_pathfinder_readiness`: event 550 confirmed transport and player state after a timed-out navigation, but event 578 began nineteen consecutive later pathfinder failures with no movement. The bounded offline readiness gate now passes without changing protocol, deadlines, or success thresholds. No live episode ran in this offline round; exactly one fresh Probe 18 is authorized only after this gate commit is pushed, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 18 remain ineligible at 0/3. Probe 18 did not exercise the deadline-bound readiness branch and the Probe 17 `PathStopped` cascade did not recur. Its Runner placement candidate recovered, but ActionController then blocked fourteen aligned survival-recovery actions solely because health was critical, exhausting the 24-goal budget with 244.437 seconds remaining. No code fix or second episode ran; the next gate is offline-only, no fresh episode is authorized, and BM-013/BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_deadline_bound_pathfinder_readiness_gate_passed_probe_18_authorized_after_push |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_18_failed_critical_health_survival_action_precondition_review_required |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -143,6 +143,10 @@ Probe 17 then exposed `deadline_bound_bridge_recovery_pathfinder_readiness`. Rec
 
 The bounded offline fix now passes under `m4-deadline-bound-pathfinder-readiness-v1`. Strict-M4 `move_to` failures execute `stop()`, `setGoal(null)`, and `clearControlStates()` so Mineflayer consumes its deferred stop flag instead of rearming it. A deadline-bound transport recovery now records the strict navigation flag, reconnects without replay, sends `recover_navigation`, and requires policy-bound goal-cleared, movement-stopped, control-cleared, no-mutation evidence before requesting `get_player_state`; pending recovery clears only after both confirmations. The recovery command performs two reset passes around one event-loop yield to cover the old `goto()` cleanup race. M1/M2 navigation remains unchanged. Three exact Python gate cases, two exact Node cases, 38 M4 deadline definitions, 730 full Python regression definitions, all 35 non-live Python scripts, and six Node suites with 52 internal cases pass. No live episode ran in this offline round.
 
+Probe 18 did not exercise that policy branch: no deadline-bound action failed, no bridge or navigation-recovery event was emitted, and no `PathStopped` error occurred. Ten moves executed before health became critical, eight succeeded, and each of the two bounded completion failures was followed by a successful navigation. The prior failure did not recur, but pathfinder recovery remains passed offline rather than live-validated.
+
+The new earliest failure layer is `critical_health_survival_action_precondition_deadlock`. A hostile interrupt at event 781 preserved the placement frontier and emergency move event 785 succeeded, but health fell from 20 to 2.33 while the zombie distance increased from 2.4 to 6.4 blocks. Goal event 796 selected immediate-threat flight; real schema-valid plan event 807 emitted a retreat move and event 812 accepted it. Observation event 814 showed health 3.33, food 17, and the zombie at 5.3 blocks, but action event 817 failed at zero duration with `Pre-condition failed: Health critical`. The same blanket check blocked fourteen aligned survival actions. Goal indices 12 through 24 selected the critical-health no-food goal thirteen times; twelve failed through blocked actions and one through a downstream length-truncated Planner response. The 24-goal limit ended the episode after 355.531 seconds with 244.437 seconds remaining. The next experiment must reproduce this boundary offline and permit only bounded, survival-aligned low-health actions without weakening normal action verification or M1/M2 behavior.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -153,7 +157,7 @@ The bounded offline fix now passes under `m4-deadline-bound-pathfinder-readiness
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 730 Python regression definitions, all 35 non-live Python scripts, all six fixed Node suites with 52 internal assertions, Node syntax, and Python compilation pass
-- Live authorization: exactly one fresh Probe 18 after the deadline-bound pathfinder-readiness gate commit is pushed
+- Live authorization: none pending an offline critical-health survival-action precondition gate
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -408,10 +412,32 @@ The bounded offline fix now passes under `m4-deadline-bound-pathfinder-readiness
 - Race control: two reset passes around one event-loop yield cover the old `goto()` rejection cleanup without extending the action or episode deadline
 - Compatibility: M1/M2 move requests omit the strict flag and preserve their established path; protocol/task-contract hashes, Planner, GoalVerifier, success thresholds, skills, vision, and multi-agent behavior are unchanged
 - Validation: three exact Python gate cases, 76 focused Python definitions, 38 M4 deadline definitions, two exact Node navigation cases, 730 full Python regression definitions, all 35 non-live Python scripts, and six fixed Node suites with 52 internal PASS cases; Node syntax, Python compilation, JSON, capability consistency, and repository checks pass
-- Status: passed offline; no live episode ran in this gate round
-- Authorization: exactly one fresh BM-012 Probe 18 after this gate commit is pushed
+- Status: passed offline; Probe 18 had no timeout/recovery branch activation and no `PathStopped` recurrence
+- Authorization: consumed by BM-012 Probe 18; no second episode or new live authorization exists in this round
 
 ## BM-012 Live Evidence
+
+### Probe 18: Pathfinder Cascade Absent; Critical-Health Actions Deadlocked
+
+- Episode: `m4_episode_20260714_032037_563a7040`
+- Session: `5f33e80d-10a`
+- Level: `m4_episode_20260714_032037_563a7040_bm012`
+- Frozen code: `e78ccfc`; protocol and BM-012 task-contract hashes unchanged
+- Prior gate: no deadline-bound action failure, bridge recovery, navigation-recovery report, or `PathStopped`; pre-critical navigation succeeded 8/10, and event 51/event 699 recovered after the two bounded completion failures
+- Runner review: event 303's placement `empty_plan` recovered through successful placement at event 379 and machine goal completion at event 383; it is not the earliest unrecovered transition
+- Hostile transition: event 781 interrupted `Place crafting_table`, preserved seven frontier tasks, and selected an emergency retreat; event 785 moved successfully while health fell from 20 to 2.33 and hostile distance rose from 2.4 to 6.4 blocks
+- Earliest unrecovered transition: immediate-threat goal event 796, real schema-valid plan event 807, and ActionVerifier event 812 produced an accepted retreat move; observation event 814 had health 3.33/food 17 and action event 817 rejected it at 0 ms with `Pre-condition failed: Health critical`
+- Persistence: fourteen survival actions were blocked by the same precondition, including thirteen moves and one craft; critical-health goal indices 12..24 all failed, and the 24-goal limit ended the run
+- Autonomous progress: 24 goals selected, 7 completed, 16 failed, and 1 interrupted across 46 cycles; wood, crafting tables, wooden pickaxe, coal/charcoal, and torches completed, but no iron source action occurred
+- Planner: 46/46 calls were real, 44 schema-valid, total usage 170939 tokens, and maximum duration 28203 ms; the later `finish_reason=length` malformed response is downstream
+- Actions: 47 attempted and 28 successful; move 8/23, dig 9/9, craft 9/10, and place 2/5; ActionVerifier accepted 44 and rejected 3
+- Interrupts: one task deadline recovered, one hostile interrupt preserved the frontier, and event 868 escalated it to critical health; no critical-health recovery completed
+- Terminal machine state: connected bot, health 3.33, food 17, world time 7230, position `(109.689280,136,-21.5)`, zero deaths/respawns, and no raw iron or iron ore
+- Deadline: start 18603.562, deadline 19203.562, Agent end 18959.093, manifest end 18959.125; 244.437 seconds remained and no post-deadline execution occurred
+- Eligibility: 67/74 checks passed with 7 issues; BM-012 remains 0/3 after eighteen attempts
+- Skills: baseline remained off; selected, executed, quarantined, vision, and multi-agent contributions were zero
+- Round boundary: this was the only live episode; no code fix, second run, or new live authorization occurs before an offline critical-health survival-action precondition gate passes and is pushed
+- Evidence: `logs/benchmarks/m4/m4_episode_20260714_032037_563a7040/`
 
 ### Probe 17: Feedback Gate Recovered; Pathfinder Stayed Stopped After Recovery
 

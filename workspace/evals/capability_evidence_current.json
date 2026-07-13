@@ -1,7 +1,7 @@
 {
   "type": "capability_evidence_report",
   "schema_version": 2,
-  "generated_at": "2026-07-13T19:11:00.472692+00:00",
+  "generated_at": "2026-07-13T19:48:57.954897+00:00",
   "readiness": "rejected",
   "claim_readiness": "approved",
   "system_status": "incomplete",
@@ -58,6 +58,7 @@
       "logs/benchmarks/m4/m4_episode_20260713_211548_0605186f/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260714_003738_56b0cd9f/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260714_015708_91dfb104/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260714_032037_563a7040/eligibility.json",
       "logs/benchmarks/m1_benchmark_20260710_174239.json",
       "logs/benchmarks/m1_benchmark_20260710_174806.json",
       "logs/benchmarks/m1_benchmark_20260710_175231.json",
@@ -3311,6 +3312,48 @@
       ]
     },
     {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260714_032037_563a7040/eligibility.json",
+      "session_id": "5f33e80d-10a",
+      "session_ids": [
+        "5f33e80d-10a"
+      ],
+      "content_sha256": "5a9a3bea9cb2aa79e32868e2724b3c78fc8d9cb9f4383af7354bacd708b681b9",
+      "protocol_hash": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "protocol_hashes": [
+        "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260714_032037_563a7040/session.json",
+      "session_id": "5f33e80d-10a",
+      "session_ids": [
+        "5f33e80d-10a"
+      ],
+      "content_sha256": "f14657b62f9b4767f5b088d40a8688786090bee9b8cd15c66ff62982b68f1f01",
+      "protocol_hash": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "protocol_hashes": [
+        "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
       "repo_relative_path": "logs/benchmarks/visual_action_ablation_current.json",
       "session_id": "not_applicable",
       "session_ids": [],
@@ -6390,9 +6433,9 @@
         {
           "task_id": "BM-012",
           "status": "failing",
-          "attempts": 17,
+          "attempts": 18,
           "successes": 0,
-          "failures": 17,
+          "failures": 18,
           "ineligible_successes": 0,
           "ineligibility_reasons": [],
           "repeats_required": 3,
@@ -6413,7 +6456,8 @@
             "ff915dec-db4:logs/benchmarks/m4/m4_episode_20260713_201657_0e6b213e/session.json",
             "7b62bffb-ce9:logs/benchmarks/m4/m4_episode_20260713_211548_0605186f/session.json",
             "4ae6c3ba-783:logs/benchmarks/m4/m4_episode_20260714_003738_56b0cd9f/session.json",
-            "5bbb10cb-8c2:logs/benchmarks/m4/m4_episode_20260714_015708_91dfb104/session.json"
+            "5bbb10cb-8c2:logs/benchmarks/m4/m4_episode_20260714_015708_91dfb104/session.json",
+            "5f33e80d-10a:logs/benchmarks/m4/m4_episode_20260714_032037_563a7040/session.json"
           ]
         },
         {
