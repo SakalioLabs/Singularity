@@ -1,4 +1,4 @@
-# STATUS.md | Last updated: 2026-07-13
+# STATUS.md | Last updated: 2026-07-14
 
 ## M1 Convergence Result
 
@@ -47,10 +47,10 @@
 
 ## M4 Convergence Result
 
-- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after sixteen failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
+- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after seventeen failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after sixteen failed live attempts. Probe 16 did not exercise the passed-offline `m4-deadline-bound-bridge-recovery-v1` branch: deadline-bound action failures, recovery events, and disconnected-bridge action errors were zero, all 10 navigation actions succeeded, and terminal connectivity was valid. Its earliest blocker is `planner_place_replan_feedback_grounding`: event 283 supplied four adjacent candidates and prohibited retry, but events 292/294 repeated reference `(106,135,-29)` and event 304 failed again. The bounded offline `m4-place-replan-feedback-grounding-v1` gate now passes. Structured one-shot feedback binds the next strict-M4 replan to exactly one supplied candidate; repeated, missing, multiple, malformed, or external references reject before task/action output. Exact replay, all adjacent positives, 729 Python regression definitions, and six Node suites with 50 internal cases pass. No live episode ran in this offline round; exactly one fresh Probe 17 is authorized after this commit is pushed, while BM-013 and BM-014 remain locked.
+- BM-012 is the next target at 0/3 after seventeen failed live attempts. Probe 17 live-exercised `m4-place-replan-feedback-grounding-v1`: event 311 rejected a repeated reference before task/action output, while event 354 selected supplied candidate `(104,135,-31)` and event 367 placed the table. That machine objective recovered, so the runner's placement `empty_plan` is not the earliest blocker. The new earliest layer is `deadline_bound_bridge_recovery_pathfinder_readiness`: recovery event 550 confirmed a fresh socket and player state after a 60-second navigation timeout, but event 578 began nineteen consecutive later `move_to` failures with `Path was stopped before it could be completed`, all without movement. Probe 17 completed 5/9 goals and 22/46 actions, acquired no iron, and passed 55/74 eligibility checks. No code or second live run occurred; the next gate is offline-only and BM-013/BM-014 remain locked.
 
 ## Evidence Policy
 
@@ -70,7 +70,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 sixteen failed attempts, 0/3; BM-013..014 not_run |
+| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 seventeen failed attempts, 0/3; BM-013..014 not_run |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |

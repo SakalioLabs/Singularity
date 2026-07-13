@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T17:44:22.2069453Z",
+  "generated_at": "2026-07-13T18:21:22.6108186Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "offline_place_replan_feedback_grounding_gate_passed_probe_17_authorized_after_push",
-  "decision": "allow_one_fresh_bm012_probe_17_after_gate_commit_is_pushed",
+  "readiness": "bm012_probe_17_failed_pathfinder_recovery_readiness_review_required",
+  "decision": "block_live_episode_pending_offline_pathfinder_recovery_readiness_gate",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -268,8 +268,8 @@
       "prior_failure_recurred": false
     }
   },
-  "live_episode_count": 34,
-  "live_episode_count_under_current_protocol": 20,
+  "live_episode_count": 35,
+  "live_episode_count_under_current_protocol": 21,
   "latest_live_episode": {
     "task_id": "BM-012",
     "episode_id": "m4_episode_20260713_184611_5bd188fc",
@@ -1393,7 +1393,7 @@
   },
   "offline_place_replan_feedback_grounding_gate": {
     "root_hypothesis": "planner_place_replan_feedback_grounding",
-    "status": "passed_offline",
+    "status": "passed_offline_live_exercised_probe_17",
     "source_episode_id": "m4_episode_20260714_003738_56b0cd9f",
     "source_session_id": "4ae6c3ba-783",
     "source_rejection_event_index": 283,
@@ -1439,9 +1439,14 @@
     "node_internal_pass_count": 50,
     "goal_priority_policy_changed": false,
     "offline_gate_live_episode_run": false,
-    "current_round_live_episode_run": false,
-    "bm012_live_episode_count": 16,
-    "next_authorized_episode": "bm012_probe_17_after_this_gate_commit_is_pushed"
+    "current_round_live_episode_run": true,
+    "bm012_live_episode_count": 17,
+    "live_activation_count": 2,
+    "live_fail_closed_response_count": 1,
+    "live_accepted_candidate_count": 1,
+    "live_successful_place_action_event_index": 367,
+    "live_machine_objective_recovered": true,
+    "next_authorized_episode": null
   },
   "bm012_probe_16_live_episode": {
     "task_id": "BM-012",
@@ -1569,5 +1574,52 @@
     "runner_reported_eligible": false,
     "independently_accepted_eligible": false,
     "terminal_world_time": 12179
+  },
+  "bm012_probe_17_live_episode": {
+    "task_id": "BM-012",
+    "episode_id": "m4_episode_20260714_015708_91dfb104",
+    "session_id": "5bbb10cb-8c2",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "autonomous_goal_count": 9,
+    "completed_goal_count": 5,
+    "failed_goal_count": 3,
+    "interrupted_goal_count": 1,
+    "total_cycle_count": 95,
+    "selection_source": "curriculum_ready_task_and_goal_generator",
+    "initial_selection_reason": "curriculum_ranked:early_wood_bootstrap",
+    "goal_sequence": [
+      "Gather 6 oak logs for tools and shelter",
+      "Craft crafting table",
+      "Place crafting table for tool progression",
+      "Place crafting table on ground",
+      "Craft wooden pickaxe",
+      "Collect coal or charcoal for torches",
+      "Find and mine coal ore",
+      "Build verified shelter before nightfall",
+      "Enter and maintain verified shelter through nightfall"
+    ],
+    "planner_call_count": 95,
+    "real_planner_call_count": 95,
+    "schema_valid_real_planner_call_count": 94,
+    "schema_invalid_real_planner_call_count": 1,
+    "total_planner_tokens": 339769,
+    "maximum_planner_duration_ms": 9719,
+    "place_feedback_activation_count": 2,
+    "place_feedback_fail_closed_call_event_index": 311,
+    "place_feedback_accepted_candidate_call_event_index": 354,
+    "place_feedback_successful_action_event_index": 367,
+    "place_feedback_machine_objective_recovered": true,
+    "deadline_bound_recovery_event_index": 550,
+    "first_unrecovered_session_event_index": 578,
+    "first_unrecovered_transition": "deadline_bound_bridge_recovery_pathfinder_readiness",
+    "later_pathfinder_stopped_navigation_count": 19,
+    "later_successful_navigation_count": 0,
+    "shelter_priority_goal_count": 2,
+    "resource_terminal_inventory_target": false,
+    "runner_completed": true,
+    "runner_reported_eligible": false,
+    "independently_accepted_eligible": false,
+    "terminal_world_time": 12108
   }
 }
