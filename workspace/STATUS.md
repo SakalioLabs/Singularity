@@ -47,10 +47,10 @@
 
 ## M4 Convergence Result
 
-- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after nineteen failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
+- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after twenty failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after nineteen failed live attempts. Probe 19's earliest layer is `post_place_crafting_table_machine_observation_grounding`: event 621 machine-confirmed placement, event 623 omitted the table, and fourteen later place actions failed against that occupied target. The bounded offline `m4-post-place-crafting-table-machine-observation-v1` gate now passes. Only strict-M4 successful crafting-table results with exact requested-item, reference, placed-target, before/after-name, and integer-coordinate agreement are projected into the post-action and next planner observation, then expire; task reconciliation consumes the same machine evidence. Unsuccessful, mismatched, malformed, non-table, and non-M4 controls fail closed, and Observer range is unchanged. All 35 non-live Python scripts (735 definitions including the separately skipped real M2 integration definition) and six Node suites (52 PASS cases) succeed. No live episode ran in this gate round; exactly one fresh Probe 20 is authorized only after this commit is pushed, while BM-013/BM-014 remain locked.
+- BM-012 is the next target at 0/3 after twenty failed live attempts. Probe 20 live-activated `m4-post-place-crafting-table-machine-observation-v1`: exact placement evidence closed the task at event 273 and remained available at the next planner observation event 288; the prior same-target placement loop did not recur, although Observer directly saw the table so omission projection remains offline-only. The Runner's event-820 torch `empty_plan` recovered through table, stone-pickaxe, and iron progression. The earliest layer is `m4_ready_task_goal_verifier_success_criteria_bypass`: plan event 1189 required `raw_iron:2`, but event 1193 accepted the selected `Mine iron ore` task from existing `raw_iron:1`; fourteen false one-cycle completions then executed zero actions and exhausted the 24-goal budget with 190.516 seconds remaining. The run ended connected, death-free, deadline-eligible, with one raw iron and 68/74 checks passing. No code fix, second run, or new live authorization exists; the next gate is offline-only and BM-013/BM-014 remain locked.
 
 ## Evidence Policy
 
@@ -70,7 +70,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 nineteen failed attempts, 0/3; BM-013..014 not_run |
+| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 twenty failed attempts, 0/3; BM-013..014 not_run |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |
