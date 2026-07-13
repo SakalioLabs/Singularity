@@ -60,6 +60,28 @@ class PlannerLLM:
         })
 
 
+class ScriptedPlannerLLM(PlannerLLM):
+    def __init__(self, clock: FakeClock, responses: list[dict]):
+        super().__init__(clock)
+        self.responses = list(responses)
+
+    def chat(self, messages, **kwargs):
+        if not self.responses:
+            raise AssertionError("unexpected Planner call")
+        self.calls.append({"messages": messages, **kwargs})
+        self.last_call_metadata = {
+            "provider": "fixture",
+            "model": "fixture-planner",
+            "request_sha256": "2" * 64,
+            "timeout_s": kwargs.get("timeout_s"),
+            "max_retries": 0,
+            "finish_reason": "stop",
+            "extra_body": dict(kwargs.get("extra_body", {})),
+            "reasoning_content_byte_count": 0,
+        }
+        return json.dumps(self.responses.pop(0))
+
+
 class DeadlineBot:
     def __init__(self):
         self.deadline_calls = []
@@ -988,6 +1010,314 @@ def test_m4_place_success_criteria_grounding_is_narrow_and_fails_closed():
     print("PASS: M4 placement criterion grounding is intent-bound and fail-closed")
 
 
+def _probe_9_typed_schema_rejection_response() -> dict:
+    return {
+        "status": "planning",
+        "reasoning": "continue the exact wood progression",
+        "subtasks": [
+            {
+                "id": "gather_logs",
+                "title": "Gather oak logs",
+                "preconditions": {"inventory": {"oak_log": 1}},
+                "success_criteria": {"inventory": {"oak_log": 6}},
+            },
+            {
+                "id": "craft_planks",
+                "title": "Craft oak planks",
+                "preconditions": {"inventory": {"oak_log": 6}},
+                "success_criteria": {"inventory": {"oak_planks": 24}},
+                "depends_on": ["gather_logs"],
+            },
+            {
+                "id": "craft_table",
+                "title": "Craft crafting table",
+                "preconditions": {"inventory": {"oak_log": 0}},
+                "success_criteria": {"inventory": {"crafting_table": 1}},
+                "depends_on": ["craft_planks"],
+            },
+        ],
+        "actions": [{
+            "type": "dig",
+            "parameters": {"x": 93, "y": 137, "z": -36, "block": "oak_log"},
+        }],
+    }
+
+
+def _complete_plan_response() -> dict:
+    return {
+        "status": "complete",
+        "reasoning": "machine verifier must decide",
+        "subtasks": [],
+        "actions": [],
+    }
+
+
+def _probe_9_recovery_agent(clock: FakeClock, responses: list[dict]):
+    goal = "Gather 6 oak logs for tools and shelter"
+    task_system = TaskSystem()
+    frontier_task = task_system.create_task(
+        title=goal,
+        success_criteria={"inventory": {"oak_log": 6}},
+        root_plan_id="root-47543f6677034bfc",
+        plan_node_id="gather_logs",
+        planner_call_id="llm-64ad652936ab4e48",
+    )
+    task_system.update_task(frontier_task.id, status=TaskStatus.ACCEPTED)
+    task_system.drain_transition_events()
+    llm = ScriptedPlannerLLM(clock, responses)
+    planner = Planner(llm, task_system, protocol="m4-fixed-v1")
+    action_controller = RuntimeActionController()
+    agent = object.__new__(Agent)
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    agent.session_logger = RuntimeSessionLogger(clock)
+    agent.planner = planner
+    agent.task_system = task_system
+    agent.action_controller = action_controller
+
+    class BM012GoalGenerator:
+        last_decision = {}
+
+        @staticmethod
+        def next_goal(_observation, task_id=""):
+            assert task_id == "BM-012"
+            return goal
+
+    agent.goal_generator = BM012GoalGenerator()
+    agent.explorer = RuntimeExplorer()
+    agent.curriculum = RuntimeCurriculum()
+    agent._episode_deadline_monotonic = None
+    agent._skill_episode_start_index = 0
+    agent._active_skill_execution = {}
+    agent._skill_fallback_goals = set()
+    observation = {
+        "position": {"x": 93.48529599493759, "y": 138, "z": -35.31870286289215},
+        "inventory": {"oak_log": 2},
+        "inventory_count": 1,
+        "nearby_blocks": [{"name": "oak_log", "x": 93, "y": 137, "z": -36}],
+        "health": 20,
+        "food": 20,
+        "time": 1059,
+    }
+    agent._observe = lambda: dict(observation)
+    agent._select_autonomous_goal = lambda _observation, fallback: fallback
+    planned_goals = []
+
+    def think(world_state, override_goal=None):
+        planned_goals.append(str(override_goal or ""))
+        if len(planned_goals) == 1:
+            planner._active_root_plan_id = "root-47543f6677034bfc"
+            planner._last_call_id = "llm-64ad652936ab4e48"
+            planner._call_index = 5
+        return planner.plan_from_goal(str(override_goal or ""), world_state)
+
+    agent._think = think
+    agent._record_task_continuity = lambda *args, **kwargs: None
+    agent._state_with_causal_context = lambda world_state, _goal="": world_state
+    agent._goal_is_verified = lambda *args, **kwargs: (False, None)
+    accepted = GoalVerification(
+        goal=goal,
+        achieved=True,
+        status="achieved",
+        confidence=1.0,
+        evidence=["fixture verifier accepted exact goal"],
+    )
+    agent._accept_plan_completion = lambda *args, **kwargs: (True, accepted)
+    agent._write_memory_episode = lambda *args, **kwargs: None
+    agent._write_memory_context = lambda *args, **kwargs: None
+    agent._record_frontier_budget_outcome = lambda *args, **kwargs: None
+    agent._finalize_skill_learning_episode = lambda *args, **kwargs: None
+    return agent, planner, action_controller, frontier_task, planned_goals, goal, observation
+
+
+def test_m4_typed_schema_rejection_recovers_once_with_same_goal_and_frontier():
+    clock = FakeClock()
+    fixture = _probe_9_recovery_agent(
+        clock,
+        [_probe_9_typed_schema_rejection_response(), _complete_plan_response()],
+    )
+    agent, planner, action_controller, frontier_task, planned_goals, goal, _ = fixture
+
+    with patch("singularity.core.agent.time.monotonic", clock.monotonic), patch(
+        "singularity.core.planner.time.monotonic", clock.monotonic
+    ):
+        result = agent.run_autonomous(
+            max_goals=1,
+            max_cycles_per_goal=2,
+            max_duration_s=5.0,
+            task_id="BM-012",
+        )
+
+    plan_events = [event["data"] for event in agent.session_logger.events if event["type"] == "plan"]
+    event_types = [event["type"] for event in agent.session_logger.events]
+    recovery = next(
+        event["data"] for event in agent.session_logger.events
+        if event["type"] == "m4_planner_output_recovery"
+    )
+    resume = next(
+        event["data"] for event in agent.session_logger.events
+        if event["type"] == "m4_planner_output_recovery_resume"
+    )
+    assert result["goals_completed"] == 1
+    assert result["goals_failed"] == 0
+    assert result["total_cycles"] == 2
+    assert planned_goals == [goal, goal]
+    assert len(planner.llm.calls) == 2
+    assert plan_events[0]["status"] == "error"
+    assert plan_events[0]["plan_kind"] == "continuation"
+    assert plan_events[0]["root_plan_id"] == "root-47543f6677034bfc"
+    assert plan_events[0]["parent_planner_call_id"] == "llm-64ad652936ab4e48"
+    assert plan_events[0]["subtasks"] == []
+    assert plan_events[0]["actions"] == []
+    numeric = plan_events[0]["schema_validation"]["subtask_numeric_criteria_grounding"]
+    assert numeric["subtask_count"] == 3
+    assert numeric["inventory_requirement_count"] == 6
+    assert numeric["normalized_requirement_count"] == 0
+    assert numeric["issues"] == [
+        "subtask[2]:preconditions_inventory_count_invalid:oak_log",
+    ]
+    assert plan_events[1]["status"] == "complete"
+    assert plan_events[1]["planner_evidence"]["plan_kind"] == "replan"
+    assert plan_events[1]["root_plan_id"] == "root-47543f6677034bfc"
+    assert recovery["policy_id"] == "m4-typed-schema-recovery-v1"
+    assert recovery["schema_issues"] == numeric["issues"]
+    assert recovery["recovery_attempt_count"] == 1
+    assert recovery["maximum_recovery_attempts"] == 1
+    assert recovery["same_call_retry_count"] == 0
+    assert recovery["invalid_task_accepted_count"] == 0
+    assert recovery["invalid_action_executed_count"] == 0
+    assert recovery["task_frontier"]["task_count"] == 1
+    assert recovery["task_frontier"]["status_counts"] == {"accepted": 1}
+    assert resume["same_goal"] is True
+    assert resume["task_frontier_preserved"] is True
+    assert resume["task_frontier"]["sha256"] == recovery["task_frontier"]["sha256"]
+    assert action_controller.actions == []
+    assert len(agent.task_system.tasks) == 1
+    assert agent.task_system.tasks[frontier_task.id].status == TaskStatus.COMPLETED
+    assert "m4_planner_output_recovery_exhausted" not in event_types
+    assert "empty_plan" not in event_types
+
+
+def test_m4_repeated_typed_schema_rejection_exhausts_once_and_fails_closed():
+    clock = FakeClock()
+    fixture = _probe_9_recovery_agent(
+        clock,
+        [
+            _probe_9_typed_schema_rejection_response(),
+            _probe_9_typed_schema_rejection_response(),
+        ],
+    )
+    agent, planner, action_controller, frontier_task, planned_goals, goal, _ = fixture
+
+    with patch("singularity.core.agent.time.monotonic", clock.monotonic), patch(
+        "singularity.core.planner.time.monotonic", clock.monotonic
+    ):
+        result = agent.run_autonomous(
+            max_goals=1,
+            max_cycles_per_goal=3,
+            max_duration_s=5.0,
+            task_id="BM-012",
+        )
+
+    events = agent.session_logger.events
+    recovery_events = [event for event in events if event["type"] == "m4_planner_output_recovery"]
+    resume_events = [event for event in events if event["type"] == "m4_planner_output_recovery_resume"]
+    exhausted_events = [
+        event for event in events if event["type"] == "m4_planner_output_recovery_exhausted"
+    ]
+    empty_events = [event for event in events if event["type"] == "empty_plan"]
+    plan_events = [event["data"] for event in events if event["type"] == "plan"]
+    assert result["goals_completed"] == 0
+    assert result["goals_failed"] == 1
+    assert result["total_cycles"] == 2
+    assert planned_goals == [goal, goal]
+    assert len(planner.llm.calls) == 2
+    assert [plan["plan_kind"] for plan in plan_events] == ["continuation", "replan"]
+    assert all(plan["subtasks"] == [] and plan["actions"] == [] for plan in plan_events)
+    assert len(recovery_events) == 1
+    assert len(resume_events) == 1
+    assert len(exhausted_events) == 1
+    assert len(empty_events) == 1
+    exhausted = exhausted_events[0]["data"]
+    assert exhausted["policy_id"] == "m4-typed-schema-recovery-v1"
+    assert exhausted["recovered"] is False
+    assert exhausted["recovery_attempt_count"] == 1
+    assert exhausted["maximum_recovery_attempts"] == 1
+    assert exhausted["reason"] == "typed_schema_recovery_limit_exhausted"
+    assert exhausted["invalid_task_accepted_count"] == 0
+    assert exhausted["invalid_action_executed_count"] == 0
+    assert action_controller.actions == []
+    assert len(agent.task_system.tasks) == 1
+    assert agent.task_system.tasks[frontier_task.id].status == TaskStatus.ACCEPTED
+
+
+def test_m4_typed_schema_recovery_scope_deadline_and_frontier_controls_fail_closed():
+    clock = FakeClock()
+    fixture = _probe_9_recovery_agent(clock, [_probe_9_typed_schema_rejection_response()])
+    agent, planner, _, frontier_task, _, goal, observation = fixture
+    planner.start_episode(goal, agent.session_logger.session_id)
+    planner._active_root_plan_id = "root-47543f6677034bfc"
+    planner._last_call_id = "llm-64ad652936ab4e48"
+    planner._call_index = 5
+    planner.set_deadline(clock.monotonic() + 5.0, 0.0)
+    with patch("singularity.core.planner.time.monotonic", clock.monotonic):
+        rejected = planner.plan_from_goal(goal, observation)
+
+    assert Agent._m4_typed_schema_rejection(rejected)["schema_issues"] == [
+        "subtask[2]:preconditions_inventory_count_invalid:oak_log",
+    ]
+    mixed_issue = json.loads(json.dumps(rejected))
+    mixed_issue["schema_validation"]["issues"].append("status_invalid")
+    mixed_issue["planner_evidence"]["schema_validation"]["issues"].append("status_invalid")
+    assert Agent._m4_typed_schema_rejection(mixed_issue) == {}
+    untrusted = json.loads(json.dumps(rejected))
+    untrusted["planner_evidence"]["real_llm_call"] = False
+    assert Agent._m4_typed_schema_rejection(untrusted) == {}
+    leaked_action = json.loads(json.dumps(rejected))
+    leaked_action["actions"] = [{"type": "wait", "parameters": {"ms": 1}}]
+    assert Agent._m4_typed_schema_rejection(leaked_action) == {}
+    malformed_metric = json.loads(json.dumps(rejected))
+    malformed_metric["schema_validation"]["subtask_numeric_criteria_grounding"][
+        "inventory_requirement_count"
+    ] = "6"
+    assert Agent._m4_typed_schema_rejection(malformed_metric) == {}
+
+    agent._m4_typed_schema_recovery_state = {
+        "goal": goal,
+        "goal_index": 1,
+        "attempt_count": 0,
+        "pending_resume": False,
+    }
+    with patch("singularity.core.agent.time.monotonic", clock.monotonic):
+        assert agent._recover_m4_invalid_plan(goal, rejected, 6) is True
+    agent.task_system.update_task(frontier_task.id, status=TaskStatus.BLOCKED)
+    assert agent._verify_m4_typed_schema_recovery_resume(goal, 7) is False
+    resume = next(
+        event["data"] for event in reversed(agent.session_logger.events)
+        if event["type"] == "m4_planner_output_recovery_resume"
+    )
+    assert resume["same_goal"] is True
+    assert resume["task_frontier_preserved"] is False
+    assert resume["recovered"] is False
+
+    guard_agent = object.__new__(Agent)
+    guard_agent.config = Config(planner_protocol="m4-fixed-v1")
+    guard_agent.session_logger = RuntimeSessionLogger(clock)
+    guard_agent.planner = RuntimePlanner()
+    guard_agent.task_system = TaskSystem()
+    guard_agent._write_memory_episode = lambda *args, **kwargs: None
+    guard_agent._episode_deadline_monotonic = clock.monotonic()
+    with patch("singularity.core.agent.time.monotonic", clock.monotonic):
+        assert guard_agent._recover_m4_invalid_plan(goal, rejected, 6) is False
+    assert guard_agent.planner.replan_reasons == []
+    assert guard_agent.session_logger.events == []
+
+    guard_agent.config = Config(planner_protocol="m2-fixed-v1")
+    guard_agent._episode_deadline_monotonic = None
+    assert guard_agent._recover_m4_invalid_plan(goal, rejected, 6) is False
+    assert guard_agent.planner.replan_reasons == []
+    assert guard_agent.session_logger.events == []
+
+
 def test_m4_autonomous_loop_recovers_invalid_planner_envelope_and_transport_failure():
     clock = FakeClock()
     planner = RuntimePlanner()
@@ -1400,6 +1730,9 @@ if __name__ == "__main__":
     test_m4_subtask_numeric_grounding_rejects_non_equivalent_counts()
     test_m4_planner_grounds_probe_5_place_success_criterion_to_machine_state()
     test_m4_place_success_criteria_grounding_is_narrow_and_fails_closed()
+    test_m4_typed_schema_rejection_recovers_once_with_same_goal_and_frontier()
+    test_m4_repeated_typed_schema_rejection_exhausts_once_and_fails_closed()
+    test_m4_typed_schema_recovery_scope_deadline_and_frontier_controls_fail_closed()
     test_m4_autonomous_loop_recovers_invalid_planner_envelope_and_transport_failure()
     test_m4_planner_transport_recovery_fails_closed_for_non_transport_errors()
     test_m4_action_controller_enforces_episode_and_action_deadlines()

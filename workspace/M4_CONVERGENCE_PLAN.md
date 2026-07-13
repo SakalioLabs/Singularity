@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 9 remain ineligible at 0/3. Probe 9 exercised `m4-task-world-state-reconciliation-v1` on five machine-observed nearby-block shelter tasks and did not reselect an already satisfied world-state root, although progression did not reach the exact crafting-table boundary. It exposed `m4_planner_schema_rejection_recovery_scope`: a single real continuation response failed strict numeric-criteria validation, and the unsupported typed rejection immediately became `empty_plan` instead of a bounded next-cycle replan. No further live episode is authorized until that offline recovery gate passes; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 9 remain ineligible at 0/3. Probe 9 exercised `m4-task-world-state-reconciliation-v1` on five machine-observed nearby-block shelter tasks and did not reselect an already satisfied world-state root, although progression did not reach the exact crafting-table boundary. Its `m4_planner_schema_rejection_recovery_scope` blocker now passes offline under `m4-typed-schema-recovery-v1`: one real strict-M4 subtask inventory-count rejection can trigger one same-goal, hash-verified-frontier replan on the next cycle, while repeated output and every out-of-scope control fail closed. Exactly one fresh Probe 10 is authorized after this gate commit is pushed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_9_ineligible_typed_schema_rejection_recovery_diagnosed |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_typed_schema_rejection_recovery_gate_passed_probe_10_authorized_after_push |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -99,6 +99,8 @@ Probe 9 exercises the policy on live nearby-block state without reaching the exa
 
 The new earliest failure layer is `m4_planner_schema_rejection_recovery_scope`. At inventory `oak_log:2`, world time 1059, real continuation call event 115 / `llm-3bbb8772f5f0473e` returned three subtasks and six inventory requirements. Strict grounding correctly rejected `subtask[2]:preconditions_inventory_count_invalid:oak_log`; the raw source value is not retained, and zero equivalent numeric normalizations applied. The Agent recovery path recognizes transport errors and `planning_actions_missing`, but not this typed schema rejection. Error plan event 116 therefore became `empty_plan` at event 120 / cycle 6 and permanently failed the root at event 122 without executing an action from the invalid response. Later ready-task roots, repeated stale-coordinate digs, 56 distinct task-deadline recoveries, dusk shelter work, and the terminal deadline are downstream. Probe 9 was the round's only live episode; no code fix or second run occurs in this round.
 
+The bounded offline fix now passes under `m4-typed-schema-recovery-v1`. Recovery is restricted to a real `m4-fixed-v1` Planner call whose rejected plan has empty task/action output and whose complete issue set comes from typed subtask inventory-count grounding. Each autonomous goal gets at most one next-cycle replan; the Agent hashes its nonterminal task frontier at rejection and verifies the same goal and frontier before reconciliation or the next Planner call. The exact Probe 9 shape replays three subtasks, six requirements, the one oak-log issue, zero normalization, zero invalid task acceptance, and zero action execution into a `replan` on the same root. A second typed rejection emits one exhausted event and reaches the existing `empty_plan`; frontier drift, malformed metrics, untrusted calls, leaked actions, mixed schema issues, deadline exhaustion, and M2 use reject recovery. Full regression passes 714 Python tests and six Node suites with 38 internal assertions. No live episode ran in this offline round; exactly one fresh Probe 10 is authorized after this commit is pushed.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -108,8 +110,8 @@ The new earliest failure layer is `m4_planner_schema_rejection_recovery_scope`. 
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 711 Python tests, 95 TaskSystem tests, 86 related M4/GoalVerifier lifecycle tests, all six fixed Node suites with 38 internal cases, and Python compilation pass
-- Live authorization: Probe 9 consumed the task-world-state reconciliation gate's sole authorization; no further episode is authorized pending a typed schema-rejection recovery gate
+- Regression: 714 Python tests, including 25 M4 deadline cases and 51 combined M4 deadline/resource/protocol/runtime cases, all six fixed Node suites with 38 internal assertions, and Python compilation pass
+- Live authorization: the typed schema-rejection recovery gate passes offline; exactly one fresh Probe 10 is authorized after the gate commit is pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -224,12 +226,15 @@ The new earliest failure layer is `m4_planner_schema_rejection_recovery_scope`. 
 
 - Root hypothesis: `m4_planner_schema_rejection_recovery_scope`
 - Exact reproduction: real continuation call event 115 / `llm-3bbb8772f5f0473e` failed only `subtask[2]:preconditions_inventory_count_invalid:oak_log`; event 120 emitted `empty_plan`, and event 122 failed the root
-- Current boundary: `_recover_m4_planner_output` preserves M4 goals only for typed transport failures or `planning_actions_missing`; other fail-closed schema issues fall through to immediate `empty_plan`
+- Prior boundary: `_recover_m4_invalid_plan` preserved M4 goals only for typed transport failures or `planning_actions_missing`; other fail-closed schema issues fell through to immediate `empty_plan`
 - Required proof: one typed numeric-criteria schema rejection preserves the same autonomous goal and task frontier for a bounded next-cycle replan, while no invalid task or action is accepted
-- Fail-closed controls: the malformed count is never normalized without provable equivalence, repeated invalid output remains bounded, non-M4 behavior is unchanged, and deadline checks still suppress late replans
+- Policy: `m4-typed-schema-recovery-v1` admits only real strict-M4 subtask inventory-count rejection evidence, allows one next-cycle replan per autonomous goal, and verifies the same goal plus a hash-identical nonterminal task frontier before that call
+- Exact replay: the Probe 9 shape retains three subtasks and six requirements only in hashed Planner evidence, returns zero tasks/actions for execution, then replans on the same root after one verified resume
+- Fail-closed controls: a second typed rejection emits one exhausted event and reaches `empty_plan`; frontier drift, mixed issues, untrusted evidence, leaked actions, malformed metrics, non-M4 behavior, and deadline exhaustion reject recovery
 - Scope: Agent M4 planner-output recovery only; Planner validation, TaskSystem criteria, GoalVerifier, ActionVerifier, bridge execution, protocol/task-contract hashes, deadlines, and fixed M1/M2 protocols remain unchanged
-- Status: diagnosed; offline replay and regression gate pending
-- Authorization: none until the offline gate is committed and pushed
+- Validation: 3 exact gate tests, 25 M4 deadline tests, 51 combined M4 tests, 714 full Python tests, six Node suites with 38 internal assertions, and Python compilation pass
+- Status: passed offline; no live episode ran in this gate round
+- Authorization: exactly one fresh BM-012 Probe 10 after this gate commit is pushed
 
 ## BM-012 Live Evidence
 

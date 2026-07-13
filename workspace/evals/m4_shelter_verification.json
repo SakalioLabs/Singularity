@@ -1,16 +1,16 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T06:50:23.1106195Z",
+  "generated_at": "2026-07-13T07:27:30.1571525Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_9_ineligible_m4_planner_schema_rejection_recovery_scope_diagnosed",
-  "decision": "hold_bm012_live_pending_typed_schema_rejection_recovery_gate",
+  "readiness": "offline_typed_schema_rejection_recovery_gate_passed_probe_10_authorized_after_push",
+  "decision": "allow_one_fresh_bm012_probe_10_after_gate_commit_push",
   "verifier_id": "m4-sealed-cell-shelter-verifier-v1",
   "contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
   "strategy": "sealed_cell_v1",
   "evidence_scope": "offline_gate_and_probe_17_live_validation",
-  "next_authorized_episode": "none_pending_offline_typed_schema_rejection_recovery_gate",
+  "next_authorized_episode": "bm012_probe_10_once_after_gate_commit_push",
   "required_checks": [
     "physical_barriers",
     "overhead_cover_or_approved_alternative",
@@ -674,9 +674,10 @@
     "bm012_live_episode_count": 9,
     "next_authorized_episode": "consumed_by_bm012_probe_9"
   },
-  "pending_typed_schema_rejection_recovery_gate": {
+  "offline_typed_schema_rejection_recovery_gate": {
     "root_hypothesis": "m4_planner_schema_rejection_recovery_scope",
-    "status": "diagnosed_offline_gate_pending",
+    "status": "passed",
+    "policy_id": "m4-typed-schema-recovery-v1",
     "scope": "strict-M4 bounded next-cycle recovery for typed fail-closed Planner schema rejection",
     "planner_call_event_index": 115,
     "error_plan_event_index": 116,
@@ -689,16 +690,66 @@
     "invalid_task_created_count": 0,
     "invalid_action_executed_count": 0,
     "m4_planner_output_recovery_count": 0,
+    "source_response_sha256": "836e1cb6a343a122c621cbf2d08bfe644f6d4f5d38f72d49239c1d34075dc95e",
     "required_offline_proof": [
       "preserve the same autonomous goal and task frontier for one bounded next-cycle replan after the typed numeric schema rejection",
       "accept no malformed task or action from the rejected response",
       "leave repeated invalid output bounded and fail closed",
       "preserve deadlines and non-M4 planner behavior"
     ],
+    "exact_probe_9_shape_replay": {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "plan_kind": "continuation",
+      "root_plan_id": "root-47543f6677034bfc",
+      "parent_planner_call_id": "llm-64ad652936ab4e48",
+      "subtask_count": 3,
+      "inventory_requirement_count": 6,
+      "normalized_requirement_count": 0,
+      "rejected_plan_subtask_count": 0,
+      "rejected_plan_action_count": 0,
+      "recovery_event_count": 1,
+      "resume_event_count": 1,
+      "next_plan_kind": "replan",
+      "same_goal": true,
+      "same_root": true,
+      "task_frontier_preserved": true,
+      "invalid_task_accepted_count": 0,
+      "invalid_action_executed_count": 0
+    },
+    "recovery_contract": {
+      "maximum_recovery_attempts_per_goal": 1,
+      "same_call_retry_count": 0,
+      "resume_phase": "next_cycle_before_task_reconciliation_or_planner_call",
+      "task_frontier_scope": "nonterminal_tasks",
+      "task_frontier_identity": "sha256",
+      "repeated_rejection_exhausted_event_count": 1,
+      "repeated_rejection_empty_plan_count": 1
+    },
+    "fail_closed_controls": [
+      "frontier_drift",
+      "mixed_schema_issues",
+      "untrusted_planner_evidence",
+      "leaked_rejected_action",
+      "malformed_grounding_metrics",
+      "episode_deadline_reached",
+      "non_m4_protocol"
+    ],
+    "focused_python_test_file": "tests/test_m4_deadline.py",
+    "focused_python_test_count": 3,
+    "deadline_python_test_count": 25,
+    "combined_m4_python_test_count": 51,
+    "full_python_regression": 714,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 38,
+    "python_compileall_passed": true,
+    "planner_validation_changed": false,
+    "task_system_changed": false,
     "protocol_changed": false,
     "task_contract_changed": false,
-    "live_episode_run": true,
+    "source_live_episode_run": true,
+    "offline_gate_live_episode_run": false,
+    "current_round_live_episode_run": false,
     "bm012_live_episode_count": 9,
-    "next_authorized_episode": "none_pending_offline_typed_schema_rejection_recovery_gate"
+    "next_authorized_episode": "bm012_probe_10_once_after_gate_commit_push"
   }
 }

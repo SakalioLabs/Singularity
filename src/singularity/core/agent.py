@@ -9,6 +9,7 @@ import time
 import logging
 import hashlib
 import math
+import re
 from dataclasses import asdict
 from typing import Callable, Optional
 
@@ -78,6 +79,11 @@ M4_TASK_WORLD_STATE_RECONCILIATION_CRITERIA = frozenset({
     "inventory",
     "nearby_block_present",
 })
+M4_TYPED_SCHEMA_RECOVERY_POLICY_ID = "m4-typed-schema-recovery-v1"
+M4_TYPED_SCHEMA_RECOVERY_LIMIT = 1
+M4_TYPED_SCHEMA_ISSUE_PATTERN = re.compile(
+    r"^subtask\[(?:0|[1-9]\d*)\]:(?:preconditions|success_criteria)_inventory_count_invalid:.+$"
+)
 
 
 class Agent:
@@ -1968,6 +1974,7 @@ class Agent:
             self._active_runtime_interrupt = {}
             self._runtime_interrupt_sequence = 0
             self._last_runtime_interrupt_yield = ""
+            self._m4_typed_schema_recovery_state = {}
             self._m4_task_id = m4_task_id
         elif max_duration_s is not None:
             max_duration_s = max(0.0, float(max_duration_s))
@@ -2064,6 +2071,13 @@ class Agent:
             goal = self._select_autonomous_goal(observation, generated_goal)
             self._last_plan_cache_signature = START_PLAN_SIGNATURE
             goal_index = goals_completed + goals_failed + goals_interrupted + 1
+            if strict_m4:
+                self._m4_typed_schema_recovery_state = {
+                    "goal": str(goal or ""),
+                    "goal_index": int(goal_index),
+                    "attempt_count": 0,
+                    "pending_resume": False,
+                }
             goal_decision = dict(getattr(self, "_last_autonomous_goal_decision", {}) or {})
             if goal_decision.get("goal") != goal:
                 self._set_autonomous_goal_decision(goal, {}, source="curriculum")
@@ -2172,6 +2186,9 @@ class Agent:
                     self.session_logger.log_observation(observation)
                     if deadline_exceeded("post_observation"):
                         termination_reason = "episode_deadline"
+                        break
+                    if not self._verify_m4_typed_schema_recovery_resume(goal, total_cycles):
+                        termination_reason = "m4_planner_output_recovery_frontier_changed"
                         break
                     self.explorer.record_position(observation.get("position", {}))
                     self._write_memory_context(
@@ -5630,25 +5647,118 @@ class Agent:
         validation = plan.get("schema_validation", {}) if isinstance(plan, dict) else {}
         issues = validation.get("issues", []) if isinstance(validation, dict) else []
         issues = [str(issue) for issue in issues if str(issue)] if isinstance(issues, list) else []
-        if "planning_actions_missing" not in issues:
+        planner = getattr(self, "planner", None)
+        if "planning_actions_missing" in issues:
+            if not hasattr(planner, "request_replan"):
+                return False
+            reason = "M4 planner output rejected: planning status requires an executable action"
+            planner.request_replan(reason)
+            payload = {
+                "goal": str(goal or ""),
+                "cycle": int(cycle),
+                "planner_call_id": str(plan.get("planner_call_id") or ""),
+                "status": str(plan.get("status") or ""),
+                "rejected_status": str(validation.get("status") or ""),
+                "schema_issues": issues,
+                "action_count": int(validation.get("action_count", 0) or 0),
+                "recovered": True,
+                "resume_policy": "replan_next_cycle",
+                "reason": reason,
+            }
+            self.session_logger.log("m4_planner_output_recovery", payload)
+            self._write_memory_episode(
+                "m4_planner_output_recovery",
+                payload,
+                source="autonomous_planner",
+            )
+            return True
+
+        typed_rejection = self._m4_typed_schema_rejection(plan)
+        if not typed_rejection or not hasattr(planner, "request_replan"):
             return False
 
-        planner = getattr(self, "planner", None)
-        if not hasattr(planner, "request_replan"):
+        state = dict(getattr(self, "_m4_typed_schema_recovery_state", {}) or {})
+        if state.get("goal") != str(goal or ""):
+            state = {
+                "goal": str(goal or ""),
+                "goal_index": None,
+                "attempt_count": 0,
+                "pending_resume": False,
+            }
+        frontier = self._m4_task_frontier_snapshot()
+        attempt_count = int(state.get("attempt_count", 0) or 0)
+        if attempt_count >= M4_TYPED_SCHEMA_RECOVERY_LIMIT:
+            payload = {
+                "policy_id": M4_TYPED_SCHEMA_RECOVERY_POLICY_ID,
+                "goal": str(goal or ""),
+                "goal_index": state.get("goal_index"),
+                "cycle": int(cycle),
+                "planner_call_id": str(plan.get("planner_call_id") or ""),
+                "root_plan_id": str(plan.get("root_plan_id") or ""),
+                "schema_issues": list(typed_rejection["schema_issues"]),
+                "recovered": False,
+                "recovery_attempt_count": attempt_count,
+                "maximum_recovery_attempts": M4_TYPED_SCHEMA_RECOVERY_LIMIT,
+                "reason": "typed_schema_recovery_limit_exhausted",
+                "invalid_task_accepted_count": 0,
+                "invalid_action_executed_count": 0,
+                "task_frontier": frontier,
+            }
+            self.session_logger.log("m4_planner_output_recovery_exhausted", payload)
+            self._write_memory_episode(
+                "m4_planner_output_recovery_exhausted",
+                payload,
+                source="autonomous_planner",
+            )
             return False
-        reason = "M4 planner output rejected: planning status requires an executable action"
+
+        reason = (
+            "M4 planner output rejected: typed subtask inventory count requires "
+            "one bounded next-cycle replan"
+        )
         planner.request_replan(reason)
+        deadline = getattr(self, "_episode_deadline_monotonic", None)
+        remaining_s = (
+            max(0.0, float(deadline) - time.monotonic())
+            if deadline is not None
+            else None
+        )
+        state.update({
+            "attempt_count": attempt_count + 1,
+            "pending_resume": True,
+            "rejected_cycle": int(cycle),
+            "planner_call_id": str(plan.get("planner_call_id") or ""),
+            "root_plan_id": str(plan.get("root_plan_id") or ""),
+            "task_frontier_sha256": str(frontier["sha256"]),
+        })
+        self._m4_typed_schema_recovery_state = state
         payload = {
+            "policy_id": M4_TYPED_SCHEMA_RECOVERY_POLICY_ID,
+            "recovery_kind": "typed_subtask_inventory_count_rejection",
             "goal": str(goal or ""),
+            "goal_index": state.get("goal_index"),
             "cycle": int(cycle),
             "planner_call_id": str(plan.get("planner_call_id") or ""),
-            "status": str(plan.get("status") or ""),
-            "rejected_status": str(validation.get("status") or ""),
-            "schema_issues": issues,
-            "action_count": int(validation.get("action_count", 0) or 0),
+            "root_plan_id": str(plan.get("root_plan_id") or ""),
+            "parent_planner_call_id": str(plan.get("parent_planner_call_id") or ""),
+            "plan_kind": str(plan.get("plan_kind") or ""),
+            "schema_issues": list(typed_rejection["schema_issues"]),
+            "subtask_count": typed_rejection["subtask_count"],
+            "inventory_requirement_count": typed_rejection["inventory_requirement_count"],
+            "normalized_requirement_count": typed_rejection["normalized_requirement_count"],
             "recovered": True,
-            "resume_policy": "replan_next_cycle",
+            "goal_preserved": True,
+            "task_frontier_preservation_pending": True,
+            "recovery_attempt_count": attempt_count + 1,
+            "maximum_recovery_attempts": M4_TYPED_SCHEMA_RECOVERY_LIMIT,
+            "same_call_retry_count": 0,
+            "resume_policy": "replan_next_cycle_same_goal_and_frontier",
+            "invalid_task_accepted_count": 0,
+            "invalid_action_executed_count": 0,
+            "task_frontier": frontier,
             "reason": reason,
+            "episode_deadline_monotonic": deadline,
+            "remaining_s": round(remaining_s, 3) if remaining_s is not None else None,
         }
         self.session_logger.log("m4_planner_output_recovery", payload)
         self._write_memory_episode(
@@ -5657,6 +5767,168 @@ class Agent:
             source="autonomous_planner",
         )
         return True
+
+    @staticmethod
+    def _m4_typed_schema_rejection(plan: dict) -> dict:
+        """Return evidence only for fail-closed M4 subtask inventory-count rejection."""
+        if not isinstance(plan, dict) or str(plan.get("status") or "").lower() != "error":
+            return {}
+        actions = plan.get("actions")
+        subtasks = plan.get("subtasks")
+        if not isinstance(actions, list) or actions or not isinstance(subtasks, list) or subtasks:
+            return {}
+
+        validation = plan.get("schema_validation", {})
+        if not isinstance(validation, dict) or validation.get("passed") is not False:
+            return {}
+        issues = validation.get("issues", [])
+        if not isinstance(issues, list):
+            return {}
+        schema_issues = sorted({str(issue) for issue in issues if str(issue)})
+        if not schema_issues or not all(
+            M4_TYPED_SCHEMA_ISSUE_PATTERN.fullmatch(issue) for issue in schema_issues
+        ):
+            return {}
+
+        grounding = validation.get("subtask_numeric_criteria_grounding", {})
+        if not (
+            isinstance(grounding, dict)
+            and grounding.get("type") == "m4_subtask_numeric_criteria_grounding"
+            and grounding.get("passed") is False
+        ):
+            return {}
+        grounding_issues = grounding.get("issues", [])
+        if not isinstance(grounding_issues, list):
+            return {}
+        if sorted({str(issue) for issue in grounding_issues if str(issue)}) != schema_issues:
+            return {}
+
+        evidence = plan.get("planner_evidence", {})
+        planner_call_id = str(plan.get("planner_call_id") or "")
+        root_plan_id = str(plan.get("root_plan_id") or "")
+        parent_planner_call_id = str(plan.get("parent_planner_call_id") or "")
+        plan_kind = str(plan.get("plan_kind") or "")
+        if not (
+            isinstance(evidence, dict)
+            and evidence.get("protocol") == "m4-fixed-v1"
+            and evidence.get("real_llm_call") is True
+            and evidence.get("schema_valid") is False
+            and not str(evidence.get("error") or "")
+            and planner_call_id
+            and str(evidence.get("call_id") or "") == planner_call_id
+            and root_plan_id
+            and str(evidence.get("root_plan_id") or "") == root_plan_id
+            and str(evidence.get("parent_call_id") or "") == parent_planner_call_id
+            and plan_kind in {"root", "continuation", "replan"}
+            and str(evidence.get("plan_kind") or "") == plan_kind
+        ):
+            return {}
+        evidence_validation = evidence.get("schema_validation", {})
+        if not isinstance(evidence_validation, dict):
+            return {}
+        evidence_issues = evidence_validation.get("issues", [])
+        if not isinstance(evidence_issues, list):
+            return {}
+        if (
+            evidence_validation.get("passed") is not False
+            or sorted({str(issue) for issue in evidence_issues if str(issue)}) != schema_issues
+        ):
+            return {}
+
+        numeric_counts = {}
+        for field in (
+            "subtask_count",
+            "inventory_requirement_count",
+            "normalized_requirement_count",
+        ):
+            value = grounding.get(field)
+            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                return {}
+            numeric_counts[field] = value
+        if not numeric_counts["subtask_count"] or not numeric_counts["inventory_requirement_count"]:
+            return {}
+
+        return {
+            "schema_issues": schema_issues,
+            **numeric_counts,
+        }
+
+    def _m4_task_frontier_snapshot(self) -> dict:
+        task_system = getattr(self, "task_system", None)
+        tasks = getattr(task_system, "tasks", {}) if task_system is not None else {}
+        terminal = {
+            TaskStatus.FAILED.value,
+            TaskStatus.COMPLETED.value,
+            TaskStatus.CANCELLED.value,
+        }
+        frontier = []
+        status_counts: dict[str, int] = {}
+        task_items = sorted(tasks.items()) if isinstance(tasks, dict) else []
+        for task_id, task in task_items:
+            task_status = getattr(task, "status", "")
+            status = getattr(task_status, "value", str(task_status))
+            if status in terminal:
+                continue
+            status_counts[status] = status_counts.get(status, 0) + 1
+            frontier.append({
+                "task_id": str(getattr(task, "id", task_id) or task_id),
+                "status": status,
+                "root_plan_id": str(getattr(task, "root_plan_id", "") or ""),
+                "plan_node_id": str(getattr(task, "plan_node_id", "") or ""),
+                "planner_call_id": str(getattr(task, "planner_call_id", "") or ""),
+                "depends_on": sorted(str(item) for item in (getattr(task, "depends_on", []) or [])),
+            })
+        encoded = json.dumps(frontier, sort_keys=True, separators=(",", ":"))
+        return {
+            "task_count": len(frontier),
+            "status_counts": dict(sorted(status_counts.items())),
+            "sha256": hashlib.sha256(encoded.encode("utf-8")).hexdigest(),
+        }
+
+    def _verify_m4_typed_schema_recovery_resume(self, goal: str, cycle: int) -> bool:
+        if str(getattr(self.config, "planner_protocol", "") or "") != "m4-fixed-v1":
+            return True
+        state = dict(getattr(self, "_m4_typed_schema_recovery_state", {}) or {})
+        if not state.get("pending_resume"):
+            return True
+
+        frontier = self._m4_task_frontier_snapshot()
+        same_goal = state.get("goal") == str(goal or "")
+        frontier_preserved = state.get("task_frontier_sha256") == frontier["sha256"]
+        recovered = bool(same_goal and frontier_preserved)
+        payload = {
+            "policy_id": M4_TYPED_SCHEMA_RECOVERY_POLICY_ID,
+            "goal": str(goal or ""),
+            "goal_index": state.get("goal_index"),
+            "cycle": int(cycle),
+            "rejected_cycle": state.get("rejected_cycle"),
+            "planner_call_id": str(state.get("planner_call_id") or ""),
+            "root_plan_id": str(state.get("root_plan_id") or ""),
+            "same_goal": same_goal,
+            "task_frontier_preserved": frontier_preserved,
+            "recovered": recovered,
+            "recovery_attempt_count": int(state.get("attempt_count", 0) or 0),
+            "maximum_recovery_attempts": M4_TYPED_SCHEMA_RECOVERY_LIMIT,
+            "resume_policy": "replan_next_cycle_same_goal_and_frontier",
+            "task_frontier": frontier,
+        }
+        self.session_logger.log(
+            "m4_planner_output_recovery_resume",
+            payload,
+            level="INFO" if recovered else "ERROR",
+        )
+        self._write_memory_episode(
+            "m4_planner_output_recovery_resume",
+            payload,
+            source="autonomous_planner",
+        )
+        state.update({
+            "pending_resume": False,
+            "resume_cycle": int(cycle),
+            "resume_verified": recovered,
+        })
+        self._m4_typed_schema_recovery_state = state
+        return recovered
 
     @staticmethod
     def _m4_planner_transport_failure(plan: dict) -> dict:
