@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 and 2 remain ineligible at 0/3. Probe 2 live-validated the bounded GoalVerifier purpose-phrase fix, then exposed crafting-station world-readiness grounding as the new earliest blocker. Its bounded offline gate now passes and authorizes exactly one fresh Probe 3 after this commit is pushed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 3 remain ineligible at 0/3. Probe 3 emitted a canonical crafting-table placement plan, then exposed untyped Planner subtask numeric criteria as the new earliest blocker. This round's only live authorization is consumed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | world_readiness_offline_gate_passed_probe_3_authorized |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_3_consumed_ineligible_subtask_numeric_criteria_fix_required |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -59,7 +59,9 @@ Probe 2 live-validates that fix. Goal verification event 177 completed `Gather 6
 
 The new earliest unrecovered transition is `curriculum_crafting_station_world_readiness_grounding`. Curriculum event 308 at monotonic 41502.359 selected `Craft wooden pickaxe` with score 59 because `crafting_table:1` existed in inventory, while observation event 313 had zero nearby placed crafting tables. Planner event 321 reasoned that an inventory table was sufficient and omitted placement; event 369 repeated that assumption. Canonical craft action event 395 then failed with underlying bridge error `No recipe for wooden_pickaxe`, `crafting_table_found=false`, and unchanged inventory despite six planks and four sticks. Thirteen later `place(block=crafting_table)` alias rejections, the event-1121 max-cycle failure, dusk progression, and the 0.031-second Agent deadline overrun are downstream. Probe 2 consumed the round's only authorization; no code fix or second episode occurs in this round.
 
-The bounded `curriculum_crafting_station_world_readiness_grounding` fix passes offline. GoalGenerator and Curriculum now distinguish an inventory table from a nearby placed station, select a placement goal before either wooden- or stone-pickaxe crafting when the station is still in inventory, and preserve survival preemption. Strict-M4 Planner grounding canonicalizes Probe 2's `place(block=crafting_table,x,y,z)` into executable `place(item=crafting_table,x,y,z)` while rejecting missing coordinates, conflicts, and unknown aliases. GoalVerifier accepts placement only from a nearby machine-observed `crafting_table`, including the terminal state of `Craft and place...` after the inventory item is consumed. The exact event-308 observation replays to placement first and to wooden-pickaxe crafting only after the table is nearby. Protocol and task-contract hashes are unchanged; exactly one fresh Probe 3 is authorized after this gate commit is pushed.
+The bounded `curriculum_crafting_station_world_readiness_grounding` fix passes offline. GoalGenerator and Curriculum now distinguish an inventory table from a nearby placed station, select a placement goal before either wooden- or stone-pickaxe crafting when the station is still in inventory, and preserve survival preemption. Strict-M4 Planner grounding canonicalizes Probe 2's `place(block=crafting_table,x,y,z)` into executable `place(item=crafting_table,x,y,z)` while rejecting missing coordinates, conflicts, and unknown aliases. GoalVerifier accepts placement only from a nearby machine-observed `crafting_table`, including the terminal state of `Craft and place...` after the inventory item is consumed. The exact event-308 observation replays to placement first and to wooden-pickaxe crafting only after the table is nearby. Protocol and task-contract hashes are unchanged; the gate's one Probe 3 authorization has now been consumed.
+
+Probe 3 reaches that placement boundary but does not execute it. Planner event 510 / call `llm-d1e4384adc0045e6` emitted canonical `place(item=crafting_table,x=106,y=135,z=-29)` with passing action-parameter grounding, so the Probe 2 alias rejection did not recur. The same accepted plan also created a dependent task whose success criterion was `inventory.oak_planks=">=8"` and whose precondition was `inventory.oak_log=">=1"`. At event 525 / monotonic 44047.687 / global cycle 25, inventory-only machine-state reconciliation compared an observed integer count to the string criterion and raised `'>=' not supported between instances of 'int' and 'str'`. The exception repeated 280 times through cycle 304; seven `Place crafting_table` roots each exhausted 40 cycles without a Planner call or action. The earliest failure layer is now `planner_subtask_numeric_criteria_type_grounding`. No code fix or second episode occurs in this round.
 
 ## BM-012 Offline Preflight
 
@@ -71,7 +73,7 @@ The bounded `curriculum_crafting_station_world_readiness_grounding` fix passes o
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 700 Python tests, 50 focused goal/curriculum/planner/verifier tests, all six fixed Node suites with 36 internal PASS cases, Python compilation, and `git diff --check` pass
-- Live authorization: exactly one fresh BM-012 Probe 3 after the world-readiness gate is committed and pushed
+- Live authorization: consumed by BM-012 Probe 3; no second episode is authorized in this round
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -95,9 +97,30 @@ The bounded `curriculum_crafting_station_world_readiness_grounding` fix passes o
 - Completion grounding: `Place crafting table...` and `Craft and place a crafting table...` require `world:nearby_crafting_table`; inventory possession alone fails
 - Scope: BM-012 autonomous crafting-station readiness, strict-M4 place parameters, and machine placement completion; M1/M2 fixed protocols, action execution, task contract, deadline, and success thresholds are unchanged
 - Validation: 50 focused tests, 700 full Python tests, six Node suites with 36 PASS cases, Python compilation, and `git diff --check` pass
-- Authorization: exactly one fresh BM-012 Probe 3; no second episode may run in this round
+- Live result: Probe 3 emitted one canonical place plan with `item` and finite coordinates, but the current plank goal verified before that action ran; the next `Place crafting_table` root then hit the earlier subtask numeric-type failure
+- Authorization: consumed by BM-012 Probe 3; no second episode may run in this round
 
 ## BM-012 Live Evidence
+
+### Probe 3: Canonical Place Plan Emitted; String Subtask Threshold Crashed Reconciliation
+
+- Episode: `m4_episode_20260713_081730_337b2b6b`
+- Session: `bc72df1e-a54`
+- Level: `m4_episode_20260713_081730_337b2b6b_bm012`
+- Preflight: passed with unchanged protocol/task-contract hashes, empty inventory, fresh daylight level, zero-death lifecycle baseline, and exact `600/24/40/320` controls
+- Result: ineligible; BM-012 remains 0/3, 68/74 independent checks passed, no terminal resource event was emitted, and no iron-source action occurred
+- Prior gate live evidence: plan event 510 emitted `place(item=crafting_table,x=106,y=135,z=-29)` and `m4_action_parameter_grounding` passed with one place action and zero normalization; Probe 2's `block` alias rejection did not recur
+- Earliest invalid transition: the same plan accepted `success_criteria.inventory.oak_planks=">=8"` and `preconditions.inventory.oak_log=">=1"` as strings and created scheduler tasks
+- First runtime failure: event 525 / monotonic 44047.687 / global cycle 25 raised `int >= str` before the `Place crafting_table` root could call Planner or execute an action
+- Cascade: 280 identical error events covered cycles 25 through 304; goals 18 through 24 each failed after 40 cycles, while the crafting table remained in inventory and absent from nearby blocks
+- Goals: 24 roots; 17 completed, seven failed, zero interrupted
+- Planner: 24/24 calls were real and schema-valid under the current envelope/action checks, maximum latency 7.796 seconds, 76533 tokens, and zero reasoning bytes
+- Actions: 11/11 succeeded; `move_to` 2/2, `dig` 6/6, and `craft` 3/3; no place action executed
+- Terminal: health/food 20, lifecycle uninterrupted with zero deaths/respawns, world time 2962, inventory `oak_log:4`, `crafting_table:1`, `oak_planks:4`, `oak_sapling:1`
+- Deadline: evidence ended at 44063.468 against deadline 44521.859, leaving 458.391 seconds; no post-deadline execution occurred
+- Skills: baseline remained off; selected/executed/quarantined contribution was zero
+- Round boundary: this was the only live episode; no second BM-012 run is authorized
+- Evidence: `logs/benchmarks/m4/m4_episode_20260713_081730_337b2b6b/`
 
 ### Probe 2: Purpose Phrase Passed; Unplaced Crafting Table Blocked Tool Progression
 

@@ -2,7 +2,7 @@
 
 ## Convergence Result
 
-M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has two failed live attempts and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
+M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has three failed live attempts and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
 
 ## Current Assessment
 
@@ -10,7 +10,7 @@ Singularity has broad source coverage and a large passing offline test surface, 
 
 Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. M1 remains complete at 15/15, M2 contributes 23 eligible current-protocol successes, and M4 now contributes three independently eligible BM-011 episodes with unique session, episode, level, and session hashes. The overall system remains incomplete.
 
-BM-012 remains 0/3. Probe 2 live-validated the purpose-phrase fix at goal-verification event 177, then exposed `curriculum_crafting_station_world_readiness_grounding`: event 308 selected `Craft wooden pickaxe` while `crafting_table:1` was only in inventory and no placed table was nearby. Planner events 321 and 369 treated inventory possession as an available 3x3 station; canonical craft event 395 failed with `No recipe for wooden_pickaxe`. The bounded offline fix now selects placement from that exact state, requires a nearby station before pickaxe crafting, canonicalizes `block` to `item` with finite coordinates, and verifies completion from nearby machine state. Exactly one fresh Probe 3 is authorized after the gate commit is pushed.
+BM-012 remains 0/3. Probe 3 produced the first live canonical crafting-table placement plan at event 510, with `item=crafting_table` and finite reference coordinates, so Probe 2's place-alias rejection did not recur. The plan also carried malformed string thresholds `oak_planks: ">=8"` and `oak_log: ">=1"`; existing M4 validation accepted them and created scheduler tasks. At event 525 / cycle 25, inventory-only task reconciliation compared an integer count to the string threshold and raised `int >= str`. The same exception repeated through cycle 304, seven place roots failed without a Planner call or action, and the episode ended ineligible with no iron progress. The next hypothesis is `planner_subtask_numeric_criteria_type_grounding`; no further live run is authorized before its offline gate passes.
 
 Current report outcome:
 

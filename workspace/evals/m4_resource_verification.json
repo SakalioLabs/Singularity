@@ -1,19 +1,19 @@
 {
   "type": "m4_resource_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T00:12:53.7057848Z",
+  "generated_at": "2026-07-13T00:25:11.3310416Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "task_id": "BM-012",
   "task_name": "Get 8 iron resources",
   "task_contract_id": "m4-bm012-resource-contract-v1",
   "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
-  "readiness": "crafting_station_world_readiness_offline_gate_passed_probe_3_exactly_one_authorized",
-  "decision": "authorize_exactly_one_bm012_probe_3",
-  "hypothesis": "curriculum_crafting_station_world_readiness_grounding",
+  "readiness": "probe_3_ineligible_subtask_numeric_criteria_offline_fix_required",
+  "decision": "diagnose_subtask_numeric_criteria_without_live_rerun",
+  "hypothesis": "planner_subtask_numeric_criteria_type_grounding",
   "eligible_success_count": 0,
   "required_success_count": 3,
-  "next_authorized_episode": "bm012_probe_3_exactly_one",
+  "next_authorized_episode": "none_subtask_numeric_criteria_offline_gate_pending",
   "contract": {
     "terminal_goal": "Collect 8 iron resources",
     "initial_time_of_day": 0,
@@ -113,8 +113,98 @@
     ]
   },
   "live_episode_run": true,
-  "live_episode_count": 2,
+  "live_episode_count": 3,
   "latest_live_episode": {
+    "episode_id": "m4_episode_20260713_081730_337b2b6b",
+    "session_id": "bc72df1e-a54",
+    "level_name": "m4_episode_20260713_081730_337b2b6b_bm012",
+    "preflight_passed": true,
+    "progress_gate_passed": false,
+    "independently_eligible": false,
+    "eligibility_check_count": 74,
+    "eligibility_pass_count": 68,
+    "eligibility_issues": [
+      "event:terminal_resource_verification",
+      "resource_terminal_inventory_target",
+      "resource_successful_source_actions",
+      "resource_positive_inventory_delta",
+      "terminal_machine_verification",
+      "result_duration_eligible"
+    ],
+    "prior_hypothesis_live_validation": {
+      "hypothesis": "curriculum_crafting_station_world_readiness_grounding",
+      "place_plan_emitted": true,
+      "place_plan_event_index": 510,
+      "planner_call_id": "llm-d1e4384adc0045e6",
+      "action": {"type": "place", "parameters": {"item": "crafting_table", "x": 106, "y": 135, "z": -29}},
+      "action_parameter_grounding_passed": true,
+      "place_alias_rejection_recurred": false,
+      "place_action_executed": false,
+      "machine_placement_verifier_exercised": false
+    },
+    "first_unrecovered_transition": {
+      "failure_layer": "planner_subtask_numeric_criteria_type_grounding",
+      "session_event_index": 510,
+      "monotonic_s": 44047.281,
+      "goal": "Craft oak_planks from oak_log",
+      "planner_call_id": "llm-d1e4384adc0045e6",
+      "accepted_success_criteria": {"inventory": {"oak_planks": ">=8"}},
+      "accepted_preconditions": {"inventory": {"oak_log": ">=1", "crafting_table": 1}, "flags": ["crafting_table_placed"]},
+      "first_runtime_error_event_index": 525,
+      "first_runtime_error_monotonic_s": 44047.687,
+      "first_runtime_error_cycle": 25,
+      "runtime_error": "'>=' not supported between instances of 'int' and 'str'",
+      "runtime_error_count": 280,
+      "error_cycle_range": [25, 304],
+      "affected_goal": "Place crafting_table",
+      "affected_goal_repeat_count": 7
+    },
+    "planner": {
+      "call_count": 24,
+      "real_call_count": 24,
+      "schema_valid_count": 24,
+      "schema_invalid_count": 0,
+      "maximum_duration_ms": 7796,
+      "total_tokens": 76533,
+      "reasoning_content_byte_count": 0,
+      "place_plan_count": 1
+    },
+    "actions": {
+      "attempted": 11,
+      "successful": 11,
+      "by_type": {
+        "move_to": {"attempted": 2, "successful": 2},
+        "dig": {"attempted": 6, "successful": 6},
+        "craft": {"attempted": 3, "successful": 3},
+        "place": {"attempted": 0, "successful": 0}
+      }
+    },
+    "autonomous_goals": {"attempted": 24, "completed": 17, "failed": 7, "interrupted": 0},
+    "resource_acquisition": {
+      "initial_target_count": 0,
+      "terminal_target_count": 0,
+      "successful_source_action_count": 0,
+      "terminal_target_passed": false
+    },
+    "terminal_state": {
+      "time_of_day": 2962,
+      "health": 20,
+      "food": 20,
+      "inventory": {"oak_log": 4, "crafting_table": 1, "oak_planks": 4, "oak_sapling": 1},
+      "maximum_death_count": 0,
+      "maximum_respawn_count": 0
+    },
+    "deadline": {
+      "episode_started_monotonic": 43921.859,
+      "episode_deadline_monotonic": 44521.859,
+      "agent_end_monotonic": 44063.421,
+      "evidence_end_monotonic": 44063.468,
+      "time_remaining_s": 458.391,
+      "deadline_eligible": true,
+      "no_post_deadline_execution": true
+    }
+  },
+  "probe_2_live_episode": {
     "episode_id": "m4_episode_20260713_073547_798a7440",
     "session_id": "4fc81174-b01",
     "level_name": "m4_episode_20260713_073547_798a7440_bm012",
@@ -303,5 +393,15 @@
     "live_validated_by_probe_2": true,
     "next_authorized_episode": "consumed_by_probe_2"
   },
-  "round_boundary": "BM-012 Probe 2 consumed the round's only live authorization; the next hypothesis is offline crafting-station world-readiness grounding and no second episode is allowed."
+  "offline_crafting_station_world_readiness_gate": {
+    "passed": true,
+    "scope": "bm012_goal_selection_strict_m4_place_parameters_and_machine_placement_completion",
+    "probe_2_state_replayed": true,
+    "canonical_place_plan_emitted_live": true,
+    "canonical_place_action_executed_live": false,
+    "place_alias_rejection_recurred": false,
+    "live_validated_by_probe_3": "partial_plan_boundary_only",
+    "next_authorized_episode": "consumed_by_probe_3"
+  },
+  "round_boundary": "BM-012 Probe 3 consumed the round's only live authorization; the next hypothesis is offline Planner subtask numeric-criteria type grounding and no second episode is allowed."
 }
