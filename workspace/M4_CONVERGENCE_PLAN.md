@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 14 remain ineligible at 0/3. Probe 14 live-validates `m4-place-target-player-occupancy-v1`: 21 player-collision attempts were rejected before mutation, then an adjacent reference placed the crafting table in 46 ms without repeating Probe 13's `blockUpdate` timeout. Its earliest blocker is now `dig_backend_required_tool_equip_grounding`: action event 1724 had `wooden_pickaxe:1` available but kept `oak_planks` selected, removed stone, and acquired no cobblestone; seven stones were removed under the same mismatch with zero successful stone digs. The next bounded offline required-tool equip gate is not implemented, and no further live episode is authorized until it passes and is pushed. BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 14 remain ineligible at 0/3. Probe 14 live-validates `m4-place-target-player-occupancy-v1`: 21 player-collision attempts were rejected before mutation, then an adjacent reference placed the crafting table in 46 ms without repeating Probe 13's `blockUpdate` timeout. Its earliest blocker is `dig_backend_required_tool_equip_grounding`: action event 1724 had `wooden_pickaxe:1` available but kept `oak_planks` selected, removed stone, and acquired no cobblestone; seven stones were removed under the same mismatch with zero successful stone digs. The bounded offline `m4-dig-required-tool-equip-v1` gate now passes exact replay, positive harvest-tier, fail-closed, hand-harvestable, and non-M4 controls. No live episode ran in this offline round; exactly one fresh BM-012 Probe 15 is authorized only after this gate commit is pushed. BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_14_recorded_offline_dig_required_tool_equip_gate_required |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_dig_required_tool_equip_gate_passed_probe_15_authorized_after_push |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -127,6 +127,8 @@ Probe 14 live-validates the player-occupancy gate. Twenty-one attempts against t
 
 The new earliest failure layer is `dig_backend_required_tool_equip_grounding`. Planner call event 1712 and action-verification event 1719 produced and accepted a canonical stone dig because `wooden_pickaxe:1` was available, but action event 1724 kept `oak_planks` selected. The backend removed stone at `(114,133,-29)`, observed no cobblestone entity or inventory delta, and correctly failed the existing expected-drop postcondition only after irreversible mutation. Seven stone blocks were removed under the same held-item mismatch, with zero successful stone digs and zero cobblestone acquired. Probe 14 was the round's only live episode. The next hypothesis is bounded to selecting, equipping, and machine-confirming a block-compatible harvest tool before strict-M4 dig mutation; no second live episode is authorized before that offline gate passes and is pushed.
 
+The bounded offline fix now passes under `m4-dig-required-tool-equip-v1`. ActionController adds `require_tool_equip=true` only for `m4-fixed-v1`; BotBridge forwards it independently from `require_pickup`. The Mineflayer dig handler reads `block.harvestTools`, selects a positive inventory item accepted by `block.canHarvest`, equips it to hand, and confirms the exact held name/type before calling `bot.dig`. The exact Probe 14 ineffective-equip state now performs one equip attempt, zero dig calls, and zero world mutations. Missing-tool and equip-error controls also fail before mutation; a successful stone path records `equip:wooden_pickaxe -> dig:stone -> cobblestone:+1`, and an iron-tier control rejects wooden pickaxe and selects stone pickaxe for `raw_iron:+1`. Hand-harvestable blocks require no tool, the non-M4 path is unchanged, and the existing expected-drop postcondition remains authoritative. No live episode ran in this offline round.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -136,8 +138,8 @@ The new earliest failure layer is `dig_backend_required_tool_equip_grounding`. P
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 722 Python tests, including 117 cross-module M4/Bridge cases, all six fixed Node suites with 45 internal assertions, Node syntax, and Python compilation pass
-- Live authorization: none; Probe 14 consumed the player-occupancy gate authorization, and a new required-tool equip gate must pass and be pushed first
+- Regression: 722 Python tests, including 117 cross-module M4/Bridge cases, all six fixed Node suites with 50 internal assertions, Node syntax, and Python compilation pass
+- Live authorization: exactly one fresh BM-012 Probe 15 only after the passed required-tool equip gate commit is pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -333,11 +335,16 @@ The new earliest failure layer is `dig_backend_required_tool_equip_grounding`. P
 - Machine state: target `(114,133,-29)` was `stone`, inventory contained `wooden_pickaxe:1`, but selected slot 3 held `oak_planks`
 - Failure: the bridge removed the stone before equipping a harvest tool; no cobblestone entity or inventory delta appeared, and the existing postcondition returned `expected block drop was not acquired`
 - Persistence: seven stone blocks were removed without a drop at events 1724, 1746, 1768, 1811, 1833, 1856, and 1878; zero stone digs succeeded and zero cobblestone was acquired
-- Required policy: strict M4 must resolve a block-compatible harvest tool, select and equip its exact positive inventory stack, and machine-confirm the held item before any dig mutation
-- Mutation boundary: missing tools, equip exceptions, and held-item mismatch must fail closed before `bot.dig`; the existing expected-drop pickup and inventory-delta postcondition remains required after mutation
+- Policy: `m4-dig-required-tool-equip-v1`; strict M4 forwards an explicit `require_tool_equip` bridge flag independently from `require_pickup`
+- Required policy: resolve `block.harvestTools`, select an exact positive inventory item that passes `block.canHarvest`, equip it to hand, and confirm matching held name/type before any dig mutation
+- Exact replay: Probe 14's `wooden_pickaxe:1` plus held `oak_planks` state with ineffective equip performs one equip attempt, zero dig calls, and zero world mutations; target stone remains stone
+- Positive controls: wooden pickaxe is equipped before stone and yields `cobblestone:+1`; inventory containing wooden and stone pickaxes selects only stone pickaxe for iron ore and yields `raw_iron:+1`
+- Mutation boundary: missing tools, equip exceptions, and held-item mismatch fail closed before `bot.dig`; the existing expected-drop pickup and inventory-delta postcondition remains required after mutation
+- Compatibility controls: a hand-harvestable log performs no equip and succeeds under strict M4; the non-M4 path emits no new policy evidence and retains prior behavior
 - Scope: strict-M4 dig backend required-tool grounding only; Planner schema, ActionVerifier acceptance, pickup completion, task semantics, protocol/task-contract hashes, deadlines, success thresholds, skills, vision, and multi-agent execution remain unchanged
-- Status: required, not implemented
-- Authorization: none until this offline gate passes and its commit is pushed
+- Validation: 40 focused Python tests, 722 full Python tests, five exact Node gate cases, all six Node suites with 50 internal PASS cases, Node syntax, Python compilation, and repository checks
+- Status: passed offline; no live episode ran in this gate round
+- Authorization: exactly one fresh BM-012 Probe 15 only after this gate commit is pushed
 
 ## BM-012 Live Evidence
 

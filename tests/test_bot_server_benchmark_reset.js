@@ -337,6 +337,249 @@ async function testM4DigHandlerFailsClosedWhenExpectedDropIsMissing() {
     console.log('PASS: M4 Probe 11 missing pickup fails closed while legacy dig remains unchanged');
 }
 
+function createProbe14RequiredToolFixture(options = {}) {
+    const mcData = require('minecraft-data')('1.20.4');
+    const target = new Vec3(114, 133, -29);
+    const handHarvestable = options.handHarvestable === true;
+    const blockName = handHarvestable ? 'oak_log' : (options.blockName || 'stone');
+    const dropName = handHarvestable
+        ? 'oak_log'
+        : (blockName === 'iron_ore' ? 'raw_iron' : 'cobblestone');
+    const toolNames = options.toolNames || ['wooden_pickaxe'];
+    const tools = toolNames.map(name => ({
+        name,
+        type: mcData.itemsByName[name].id,
+        count: 1,
+    }));
+    const tool = tools[0];
+    const planks = {
+        name: 'oak_planks',
+        type: mcData.itemsByName.oak_planks.id,
+        count: 3,
+    };
+    let heldItem = planks;
+    let removed = false;
+    let items = options.toolAvailable === false ? [planks] : [...tools, planks];
+    const operations = [];
+    const entity = { position: new Vec3(114.5, 134, -28.5), equipment: [heldItem] };
+    const bot = {
+        version: '1.20.4',
+        entity,
+        get heldItem() {
+            return heldItem;
+        },
+        inventory: { items: () => items },
+        blockAt(position) {
+            if (position.x === target.x && position.y === target.y && position.z === target.z) {
+                if (removed) return { name: 'air', type: 0, position: target };
+                return {
+                    name: blockName,
+                    type: mcData.blocksByName[blockName].id,
+                    drops: [mcData.itemsByName[dropName].id],
+                    position: target,
+                    harvestTools: handHarvestable
+                        ? undefined
+                        : mcData.blocksByName[blockName].harvestTools,
+                    canHarvest: itemType => (
+                        handHarvestable
+                        || Boolean(mcData.blocksByName[blockName].harvestTools?.[itemType])
+                    ),
+                };
+            }
+            return { name: 'air', type: 0, position };
+        },
+        async equip(item, destination) {
+            operations.push(`equip:${item.name}:${destination}`);
+            if (options.equipThrows) throw new Error('injected equip failure');
+            if (options.equipEffective !== false) {
+                heldItem = item;
+                entity.equipment[0] = item;
+            }
+        },
+        async dig(block) {
+            operations.push(`dig:${block.name}`);
+            removed = true;
+            if (options.acquireDrop) {
+                items = [...items, { name: dropName, type: mcData.itemsByName[dropName].id, count: 1 }];
+            }
+        },
+    };
+    return {
+        bot,
+        target,
+        tool,
+        tools,
+        operations,
+        removed: () => removed,
+    };
+}
+
+async function testM4DigRequiredToolEquipReplaysProbe14BeforeMutation() {
+    const fixture = createProbe14RequiredToolFixture({ equipEffective: false });
+    const handler = createDigHandler(
+        () => ({ bot: fixture.bot, botReady: true }),
+        async () => {},
+    );
+    const result = await handler({
+        x: fixture.target.x,
+        y: fixture.target.y,
+        z: fixture.target.z,
+        require_pickup: true,
+        require_tool_equip: true,
+    });
+
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.error, 'required harvest tool wooden_pickaxe was not equipped');
+    assert.strictEqual(result.block_removed, false);
+    assert.strictEqual(fixture.removed(), false);
+    assert.deepStrictEqual(fixture.operations, ['equip:wooden_pickaxe:hand']);
+    assert.strictEqual(result.target_block_before.name, 'stone');
+    assert.strictEqual(result.target_block_after.name, 'stone');
+    assert.strictEqual(result.dig_tool_equip.policy, 'm4-dig-required-tool-equip-v1');
+    assert.strictEqual(result.dig_tool_equip.required, true);
+    assert.strictEqual(result.dig_tool_equip.selected_tool, 'wooden_pickaxe');
+    assert.strictEqual(result.dig_tool_equip.equipped_tool, 'oak_planks');
+    assert.strictEqual(result.dig_tool_equip.equip_attempted, true);
+    assert.strictEqual(result.dig_tool_equip.equip_confirmed, false);
+    assert.strictEqual(result.dig_tool_equip.mutation_allowed, false);
+    assert.strictEqual(result.dig_tool_equip.passed, false);
+    assert.strictEqual(result.dig_postcondition.block_removed, false);
+    assert.strictEqual(result.dig_postcondition.passed, false);
+    console.log('PASS: Probe 14 held-item mismatch now fails before stone mutation');
+}
+
+async function testM4DigRequiredToolEquipConfirmsCompatibleToolBeforeMutation() {
+    const fixture = createProbe14RequiredToolFixture({ acquireDrop: true });
+    const handler = createDigHandler(
+        () => ({ bot: fixture.bot, botReady: true }),
+        async () => {},
+    );
+    const result = await handler({
+        x: fixture.target.x,
+        y: fixture.target.y,
+        z: fixture.target.z,
+        require_pickup: true,
+        require_tool_equip: true,
+    });
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.block_removed, true);
+    assert.deepStrictEqual(result.pickup_inventory_delta, { cobblestone: 1 });
+    assert.deepStrictEqual(fixture.operations, ['equip:wooden_pickaxe:hand', 'dig:stone']);
+    assert.strictEqual(result.dig_tool_equip.selected_tool_type, fixture.tool.type);
+    assert.strictEqual(result.dig_tool_equip.equipped_tool, 'wooden_pickaxe');
+    assert.strictEqual(result.dig_tool_equip.equipped_tool_type, fixture.tool.type);
+    assert.strictEqual(result.dig_tool_equip.equip_confirmed, true);
+    assert.strictEqual(result.dig_tool_equip.mutation_allowed, true);
+    assert.strictEqual(result.dig_tool_equip.passed, true);
+    assert.strictEqual(result.dig_postcondition.passed, true);
+    console.log('PASS: M4 equips and confirms a compatible harvest tool before dig');
+}
+
+async function testM4DigRequiredToolEquipSelectsIronHarvestTier() {
+    const fixture = createProbe14RequiredToolFixture({
+        blockName: 'iron_ore',
+        toolNames: ['wooden_pickaxe', 'stone_pickaxe'],
+        acquireDrop: true,
+    });
+    const handler = createDigHandler(
+        () => ({ bot: fixture.bot, botReady: true }),
+        async () => {},
+    );
+    const result = await handler({
+        x: fixture.target.x,
+        y: fixture.target.y,
+        z: fixture.target.z,
+        require_pickup: true,
+        require_tool_equip: true,
+    });
+
+    assert.strictEqual(result.success, true);
+    assert.deepStrictEqual(result.expected_drops, ['raw_iron']);
+    assert.deepStrictEqual(result.pickup_inventory_delta, { raw_iron: 1 });
+    assert.deepStrictEqual(fixture.operations, ['equip:stone_pickaxe:hand', 'dig:iron_ore']);
+    assert.deepStrictEqual(
+        result.dig_tool_equip.compatible_inventory_tools.map(item => item.name),
+        ['stone_pickaxe'],
+    );
+    assert.strictEqual(result.dig_tool_equip.selected_tool, 'stone_pickaxe');
+    assert.strictEqual(result.dig_tool_equip.equipped_tool, 'stone_pickaxe');
+    assert.strictEqual(result.dig_tool_equip.passed, true);
+    console.log('PASS: M4 selects stone pickaxe over incompatible wood for iron ore');
+}
+
+async function testM4DigRequiredToolEquipFailsClosedForMissingToolAndEquipError() {
+    const missing = createProbe14RequiredToolFixture({ toolAvailable: false });
+    const missingResult = await createDigHandler(
+        () => ({ bot: missing.bot, botReady: true }),
+        async () => {},
+    )({
+        x: missing.target.x,
+        y: missing.target.y,
+        z: missing.target.z,
+        require_pickup: true,
+        require_tool_equip: true,
+    });
+    assert.strictEqual(missingResult.success, false);
+    assert.strictEqual(missingResult.error, 'no compatible harvest tool available for stone');
+    assert.strictEqual(missingResult.dig_tool_equip.equip_attempted, false);
+    assert.strictEqual(missingResult.dig_tool_equip.mutation_allowed, false);
+    assert.strictEqual(missing.removed(), false);
+    assert.deepStrictEqual(missing.operations, []);
+
+    const equipError = createProbe14RequiredToolFixture({ equipThrows: true });
+    const equipErrorResult = await createDigHandler(
+        () => ({ bot: equipError.bot, botReady: true }),
+        async () => {},
+    )({
+        x: equipError.target.x,
+        y: equipError.target.y,
+        z: equipError.target.z,
+        require_pickup: true,
+        require_tool_equip: true,
+    });
+    assert.strictEqual(equipErrorResult.success, false);
+    assert.match(equipErrorResult.error, /could not equip required harvest tool/);
+    assert.strictEqual(equipErrorResult.dig_tool_equip.equip_attempted, true);
+    assert.strictEqual(equipErrorResult.dig_tool_equip.equip_confirmed, false);
+    assert.strictEqual(equipError.removed(), false);
+    assert.deepStrictEqual(equipError.operations, ['equip:wooden_pickaxe:hand']);
+    console.log('PASS: Missing or failed M4 harvest-tool equip cannot mutate the block');
+}
+
+async function testM4DigRequiredToolEquipPreservesHandAndLegacyPaths() {
+    const hand = createProbe14RequiredToolFixture({
+        handHarvestable: true,
+        toolAvailable: false,
+        acquireDrop: true,
+    });
+    const handResult = await createDigHandler(
+        () => ({ bot: hand.bot, botReady: true }),
+        async () => {},
+    )({
+        x: hand.target.x,
+        y: hand.target.y,
+        z: hand.target.z,
+        require_pickup: true,
+        require_tool_equip: true,
+    });
+    assert.strictEqual(handResult.success, true);
+    assert.strictEqual(handResult.dig_tool_equip.required, false);
+    assert.strictEqual(handResult.dig_tool_equip.equip_attempted, false);
+    assert.strictEqual(handResult.dig_tool_equip.mutation_allowed, true);
+    assert.deepStrictEqual(hand.operations, ['dig:oak_log']);
+
+    const legacy = createProbe14RequiredToolFixture({ toolAvailable: false });
+    const legacyResult = await createDigHandler(
+        () => ({ bot: legacy.bot, botReady: true }),
+        async () => {},
+    )({ x: legacy.target.x, y: legacy.target.y, z: legacy.target.z });
+    assert.strictEqual(legacyResult.success, true);
+    assert.strictEqual(legacyResult.dig_tool_equip, undefined);
+    assert.deepStrictEqual(legacy.operations, ['dig:stone']);
+    console.log('PASS: Hand-harvestable M4 and legacy dig behavior remain compatible');
+}
+
 async function testM4DigHandlerWaitsForDropAndUsesReachablePickupGoal() {
     const target = new Vec3(93, 139, -36);
     const drop = {
@@ -595,6 +838,11 @@ async function main() {
     await testDigHandlerWaitsForObservedPickup();
     await testDigHandlerApproachesObservedDropForPickup();
     await testM4DigHandlerFailsClosedWhenExpectedDropIsMissing();
+    await testM4DigRequiredToolEquipReplaysProbe14BeforeMutation();
+    await testM4DigRequiredToolEquipConfirmsCompatibleToolBeforeMutation();
+    await testM4DigRequiredToolEquipSelectsIronHarvestTier();
+    await testM4DigRequiredToolEquipFailsClosedForMissingToolAndEquipError();
+    await testM4DigRequiredToolEquipPreservesHandAndLegacyPaths();
     await testM4DigHandlerWaitsForDropAndUsesReachablePickupGoal();
     await testM4PickupCompletionUsesProbe12StandableFallback();
     await testM4PickupCompletionFallbackFailsClosedAndStopsAfterOneAttempt();

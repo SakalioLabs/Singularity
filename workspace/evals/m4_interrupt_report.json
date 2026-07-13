@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T12:33:13.4315405Z",
+  "generated_at": "2026-07-13T13:03:01.8515898Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "probe_14_recorded_offline_dig_required_tool_equip_gate_required",
-  "decision": "build_offline_dig_required_tool_equip_gate_before_next_live_episode",
+  "readiness": "offline_dig_required_tool_equip_gate_passed_probe_15_authorized_after_push",
+  "decision": "allow_one_fresh_bm012_probe_15_after_gate_commit_is_pushed",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -1188,7 +1188,7 @@
   },
   "offline_dig_required_tool_equip_gate": {
     "root_hypothesis": "dig_backend_required_tool_equip_grounding",
-    "status": "required_not_implemented",
+    "status": "passed_offline",
     "source_episode_id": "m4_episode_20260713_201657_0e6b213e",
     "source_session_id": "ff915dec-db4",
     "source_action_event_index": 1724,
@@ -1211,10 +1211,18 @@
     "dusk_interrupt_paused_goal": "Mine 12 cobblestone for stone tools and furnace",
     "interrupt_cascade_is_earliest_blocker": false,
     "required_control": "equip and confirm the required harvest tool before strict-M4 dig mutation while preserving existing interrupt and frontier semantics",
+    "policy_id": "m4-dig-required-tool-equip-v1",
+    "exact_probe_14_replay_passed": true,
+    "pre_mutation_failure_controls_passed": true,
+    "successful_stone_operation_order": ["equip:wooden_pickaxe:hand", "dig:stone"],
+    "focused_node_gate_case_count": 5,
+    "full_python_regression": 722,
+    "node_internal_pass_count": 50,
     "runtime_interrupt_contract_changed": false,
-    "current_round_live_episode_run": true,
+    "offline_gate_live_episode_run": false,
+    "current_round_live_episode_run": false,
     "bm012_live_episode_count": 14,
-    "next_authorized_episode": null
+    "next_authorized_episode": "bm012_probe_15_after_this_gate_commit_is_pushed"
   },
   "bm012_probe_9_live_observation": {
     "task_id": "BM-012",

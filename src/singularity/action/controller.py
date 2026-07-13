@@ -256,6 +256,7 @@ class ActionController:
                 z,
                 timeout_ms=timeout_ms,
                 require_pickup=True,
+                require_tool_equip=True,
             )
         if timeout_ms is None:
             return self.bot.dig(x, y, z)

@@ -99,8 +99,18 @@ class PickupPostconditionBot:
     def __init__(self):
         self.dig_calls = []
 
-    def dig(self, x, y, z, timeout_ms=None, require_pickup=False):
-        self.dig_calls.append((x, y, z, timeout_ms, require_pickup))
+    def dig(
+        self,
+        x,
+        y,
+        z,
+        timeout_ms=None,
+        require_pickup=False,
+        require_tool_equip=False,
+    ):
+        self.dig_calls.append(
+            (x, y, z, timeout_ms, require_pickup, require_tool_equip)
+        )
         return {"success": True}
 
 
@@ -1900,7 +1910,7 @@ def test_m4_action_controller_enforces_episode_and_action_deadlines():
     print("PASS: M4 action controller clamps starts, waits, and in-flight results")
 
 
-def test_m4_action_controller_requires_expected_drop_pickup_only_for_m4():
+def test_m4_action_controller_requires_pickup_and_tool_equip_only_for_m4():
     m4_bot = PickupPostconditionBot()
     m4_controller = ActionController(m4_bot, Config(planner_protocol="m4-fixed-v1"))
     m4_result = m4_controller.execute(
@@ -1917,9 +1927,9 @@ def test_m4_action_controller_requires_expected_drop_pickup_only_for_m4():
 
     assert m4_result["success"] is True
     assert control_result["success"] is True
-    assert m4_bot.dig_calls == [(93, 139, -36, None, True)]
-    assert control_bot.dig_calls == [(93, 139, -36, None, False)]
-    print("PASS: ActionController requires dig pickup only under the fixed M4 profile")
+    assert m4_bot.dig_calls == [(93, 139, -36, None, True, True)]
+    assert control_bot.dig_calls == [(93, 139, -36, None, False, False)]
+    print("PASS: ActionController requires strict dig gates only under fixed M4")
 
 
 def test_m4_action_controller_requires_player_clearance_only_for_m4_place():
@@ -2140,7 +2150,7 @@ if __name__ == "__main__":
     test_m4_autonomous_loop_recovers_invalid_planner_envelope_and_transport_failure()
     test_m4_planner_transport_recovery_fails_closed_for_non_transport_errors()
     test_m4_action_controller_enforces_episode_and_action_deadlines()
-    test_m4_action_controller_requires_expected_drop_pickup_only_for_m4()
+    test_m4_action_controller_requires_pickup_and_tool_equip_only_for_m4()
     test_m4_action_controller_requires_player_clearance_only_for_m4_place()
     test_m4_bridge_uses_remaining_budget_without_replay()
     test_m4_verifier_return_after_deadline_is_rejected()

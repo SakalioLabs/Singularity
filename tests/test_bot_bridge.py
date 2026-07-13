@@ -99,9 +99,17 @@ def test_navigation_commands_omit_null_y_and_forward_pathfinder_controls():
     print("PASS: BotBridge preserves horizontal navigation and pathfinder controls")
 
 
-def test_m4_dig_forwards_explicit_pickup_postcondition():
+def test_m4_dig_forwards_explicit_pickup_and_tool_equip_postconditions():
     bridge = RecordingBridge()
 
+    bridge.dig(
+        93,
+        139,
+        -36,
+        timeout_ms=60000,
+        require_pickup=True,
+        require_tool_equip=True,
+    )
     bridge.dig(93, 139, -36, timeout_ms=60000, require_pickup=True)
     bridge.dig(93, 139, -36, timeout_ms=60000)
 
@@ -114,11 +122,22 @@ def test_m4_dig_forwards_explicit_pickup_postcondition():
                 "z": -36,
                 "timeout_ms": 60000,
                 "require_pickup": True,
+                "require_tool_equip": True,
+            },
+        ),
+        (
+            "dig",
+            {
+                "x": 93,
+                "y": 139,
+                "z": -36,
+                "timeout_ms": 60000,
+                "require_pickup": True,
             },
         ),
         ("dig", {"x": 93, "y": 139, "z": -36, "timeout_ms": 60000}),
     ]
-    print("PASS: BotBridge scopes the pickup postcondition to explicit M4 dig requests")
+    print("PASS: BotBridge scopes strict dig postconditions to explicit M4 requests")
 
 
 def test_m4_place_forwards_explicit_player_clearance_postcondition():

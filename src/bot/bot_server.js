@@ -874,6 +874,49 @@ function blockDropNames(activeBot, block) {
     }
 }
 
+const M4_DIG_REQUIRED_TOOL_EQUIP_POLICY_ID = 'm4-dig-required-tool-equip-v1';
+
+function blockHarvestToolTypes(block) {
+    const harvestTools = block?.harvestTools;
+    if (harvestTools === null || harvestTools === undefined) return [];
+    if (typeof harvestTools !== 'object' || Array.isArray(harvestTools)) return null;
+    return Object.entries(harvestTools)
+        .filter(([, allowed]) => Boolean(allowed))
+        .map(([itemType]) => Number(itemType))
+        .filter(itemType => Number.isInteger(itemType) && itemType > 0)
+        .sort((left, right) => left - right);
+}
+
+function itemCanHarvestBlock(block, item, harvestToolTypes) {
+    const itemType = Number(item?.type);
+    if (!Number.isInteger(itemType) || !harvestToolTypes.includes(itemType)) return false;
+    if (typeof block?.canHarvest !== 'function') return true;
+    try {
+        return block.canHarvest(itemType) === true;
+    } catch (_) {
+        return false;
+    }
+}
+
+function compatibleHarvestTools(activeBot, block, harvestToolTypes) {
+    let inventoryItems = [];
+    try {
+        inventoryItems = activeBot?.inventory?.items?.() || [];
+    } catch (_) {
+        return [];
+    }
+    return inventoryItems.filter(item => (
+        Number(item?.count || 0) > 0
+        && itemCanHarvestBlock(block, item, harvestToolTypes)
+    ));
+}
+
+function heldItemForConfirmation(activeBot) {
+    return activeBot?.heldItem || (
+        Array.isArray(activeBot?.entity?.equipment) ? activeBot.entity.equipment[0] : null
+    );
+}
+
 function nearestDroppedItem(activeBot, target, expectedItems = []) {
     const expected = new Set(expectedItems || []);
     const candidates = [];
@@ -2715,11 +2758,128 @@ function createDigHandler(
             const blockName = block.name;
             const expectedDrops = blockDropNames(activeBot, block);
             const strictPickupPostcondition = params.require_pickup === true;
+            const strictToolEquip = params.require_tool_equip === true;
             const targetBlockBefore = {
                 name: blockName,
                 type: Number(block.type),
                 position: compactPosition(target),
             };
+            const failBeforeDig = (error, digToolEquip) => {
+                const result = {
+                    success: false,
+                    error,
+                    block: blockName,
+                    expected_drops: expectedDrops,
+                    target: compactPosition(target),
+                    block_removed: false,
+                    target_block_before: targetBlockBefore,
+                    target_block_after: { ...targetBlockBefore },
+                    pickup_observed: false,
+                    pickup_inventory_delta: {},
+                    pickup_waited_ms: 0,
+                    pickup_collection: { detected: false, attempted: false },
+                    dig_tool_equip: digToolEquip,
+                };
+                if (strictPickupPostcondition) {
+                    result.dig_postcondition = {
+                        schema_version: 1,
+                        policy: 'm4-expected-drop-pickup-postcondition-v1',
+                        required: true,
+                        block_removed: false,
+                        expected_drop_required: expectedDrops.length > 0,
+                        expected_drop_observed: false,
+                        passed: false,
+                    };
+                }
+                return result;
+            };
+            let digToolEquip;
+            if (strictToolEquip) {
+                const harvestToolTypes = blockHarvestToolTypes(block);
+                if (harvestToolTypes === null) {
+                    digToolEquip = {
+                        schema_version: 1,
+                        policy: M4_DIG_REQUIRED_TOOL_EQUIP_POLICY_ID,
+                        required: true,
+                        block: blockName,
+                        metadata_valid: false,
+                        harvest_tool_item_types: [],
+                        compatible_inventory_tools: [],
+                        selected_tool: null,
+                        selected_tool_type: null,
+                        equip_attempted: false,
+                        equip_confirmed: false,
+                        mutation_allowed: false,
+                        passed: false,
+                    };
+                    return failBeforeDig(`harvest tool metadata is invalid for ${blockName}`, digToolEquip);
+                }
+                const toolRequired = harvestToolTypes.length > 0;
+                digToolEquip = {
+                    schema_version: 1,
+                    policy: M4_DIG_REQUIRED_TOOL_EQUIP_POLICY_ID,
+                    required: toolRequired,
+                    block: blockName,
+                    metadata_valid: true,
+                    harvest_tool_item_types: harvestToolTypes,
+                    compatible_inventory_tools: [],
+                    selected_tool: null,
+                    selected_tool_type: null,
+                    equipped_tool: null,
+                    equipped_tool_type: null,
+                    equip_attempted: false,
+                    equip_confirmed: null,
+                    mutation_allowed: !toolRequired,
+                    passed: !toolRequired,
+                };
+                if (toolRequired) {
+                    const compatibleTools = compatibleHarvestTools(activeBot, block, harvestToolTypes);
+                    digToolEquip.compatible_inventory_tools = compatibleTools.map(item => ({
+                        name: String(item.name || ''),
+                        type: Number(item.type),
+                        count: Number(item.count || 0),
+                    }));
+                    const selectedTool = compatibleTools[0] || null;
+                    if (!selectedTool) {
+                        digToolEquip.equip_confirmed = false;
+                        return failBeforeDig(
+                            `no compatible harvest tool available for ${blockName}`,
+                            digToolEquip,
+                        );
+                    }
+                    digToolEquip.selected_tool = String(selectedTool.name || '');
+                    digToolEquip.selected_tool_type = Number(selectedTool.type);
+                    digToolEquip.equip_attempted = true;
+                    try {
+                        await activeBot.equip(selectedTool, 'hand');
+                    } catch (error) {
+                        digToolEquip.equip_confirmed = false;
+                        return failBeforeDig(
+                            `could not equip required harvest tool ${digToolEquip.selected_tool}: ${error.message}`,
+                            digToolEquip,
+                        );
+                    }
+                    const heldItem = heldItemForConfirmation(activeBot);
+                    digToolEquip.equipped_tool = String(heldItem?.name || '');
+                    digToolEquip.equipped_tool_type = Number.isInteger(Number(heldItem?.type))
+                        ? Number(heldItem.type)
+                        : null;
+                    const exactToolConfirmed = (
+                        digToolEquip.equipped_tool === digToolEquip.selected_tool
+                        && digToolEquip.equipped_tool_type === digToolEquip.selected_tool_type
+                        && itemCanHarvestBlock(block, heldItem, harvestToolTypes)
+                    );
+                    digToolEquip.equip_confirmed = exactToolConfirmed;
+                    digToolEquip.mutation_allowed = exactToolConfirmed;
+                    digToolEquip.passed = exactToolConfirmed;
+                    if (!exactToolConfirmed) {
+                        return failBeforeDig(
+                            `required harvest tool ${digToolEquip.selected_tool} was not equipped`,
+                            digToolEquip,
+                        );
+                    }
+                }
+            }
             await activeBot.dig(block);
             let pickup = await waitForInventoryIncrease(activeBot, beforeInventory, wait, 1000, expectedDrops);
             let pickupCollection = { detected: false, attempted: false };
@@ -2767,6 +2927,7 @@ function createDigHandler(
                 pickup_waited_ms: pickup.waited_ms,
                 pickup_collection: pickupCollection,
             };
+            if (digToolEquip) result.dig_tool_equip = digToolEquip;
             if (strictPickupPostcondition) {
                 result.dig_postcondition = {
                     schema_version: 1,
