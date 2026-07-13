@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 13 remain ineligible at 0/3. Probe 13 live-validates `m4-pickup-collection-completion-grounding-v1`: direct completion outside the one-block envelope was rejected, one bounded standable-cell fallback reached the envelope, and the expected oak-log delta appeared. Its earliest blocker is `place_target_player_occupancy_grounding`: action event 974 attempted to place a correctly equipped crafting table into the player's own floored feet cell, produced no block or inventory change, and timed out waiting for `blockUpdate`; six same-goal attempts and one later shelter retry also failed. The bounded offline `m4-place-target-player-occupancy-v1` gate now passes without a live episode in this round. Exactly one fresh BM-012 Probe 14 is authorized only after this gate commit is pushed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 14 remain ineligible at 0/3. Probe 14 live-validates `m4-place-target-player-occupancy-v1`: 21 player-collision attempts were rejected before mutation, then an adjacent reference placed the crafting table in 46 ms without repeating Probe 13's `blockUpdate` timeout. Its earliest blocker is now `dig_backend_required_tool_equip_grounding`: action event 1724 had `wooden_pickaxe:1` available but kept `oak_planks` selected, removed stone, and acquired no cobblestone; seven stones were removed under the same mismatch with zero successful stone digs. The next bounded offline required-tool equip gate is not implemented, and no further live episode is authorized until it passes and is pushed. BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_place_target_player_occupancy_gate_passed_probe_14_authorized_after_push |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_14_recorded_offline_dig_required_tool_equip_gate_required |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -123,6 +123,10 @@ Probe 13 live-validates that gate. Event 96 rejected direct completion at 1.0143
 
 The bounded offline fix now passes under `m4-place-target-player-occupancy-v1`. Strict M4 derives the player's intersected block cells from the machine observation and a fixed 0.6-by-1.8 collision box, rejects feet, head, and horizontal-boundary intersections before equip or `placeBlock`, and fails closed when the position is missing or invalid. The exact Probe 13 replay rejects target `(103,136,-31)` at zero duration, preserves collision cells `(103,136,-31)` and `(103,137,-31)`, and supplies the four adjacent references `(104,135,-31)`, `(102,135,-31)`, `(103,135,-30)`, and `(103,135,-32)` for one next-cycle replan. Adjacent strict placement executes, while the no-flag/non-M4 path remains unchanged. No live episode ran in this offline gate round.
 
+Probe 14 live-validates the player-occupancy gate. Twenty-one attempts against target `(106,136,-29)` were rejected at zero duration with 21 replan calls, then action event 1554 used adjacent reference `(107,135,-29)` and placed the crafting table successfully in 46 ms. The Probe 13 `blockUpdate` timeout did not recur, so the runner's earlier max-cycle placement candidate is not the first unrecovered transition.
+
+The new earliest failure layer is `dig_backend_required_tool_equip_grounding`. Planner call event 1712 and action-verification event 1719 produced and accepted a canonical stone dig because `wooden_pickaxe:1` was available, but action event 1724 kept `oak_planks` selected. The backend removed stone at `(114,133,-29)`, observed no cobblestone entity or inventory delta, and correctly failed the existing expected-drop postcondition only after irreversible mutation. Seven stone blocks were removed under the same held-item mismatch, with zero successful stone digs and zero cobblestone acquired. Probe 14 was the round's only live episode. The next hypothesis is bounded to selecting, equipping, and machine-confirming a block-compatible harvest tool before strict-M4 dig mutation; no second live episode is authorized before that offline gate passes and is pushed.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -133,7 +137,7 @@ The bounded offline fix now passes under `m4-place-target-player-occupancy-v1`. 
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 722 Python tests, including 117 cross-module M4/Bridge cases, all six fixed Node suites with 45 internal assertions, Node syntax, and Python compilation pass
-- Live authorization: exactly one fresh BM-012 Probe 14 only after the passed place-target player-occupancy gate commit is pushed
+- Live authorization: none; Probe 14 consumed the player-occupancy gate authorization, and a new required-tool equip gate must pass and be pushed first
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -318,10 +322,45 @@ The bounded offline fix now passes under `m4-place-target-player-occupancy-v1`. 
 - Compatibility controls: a strict adjacent target executes, and the legacy/no-clearance path retains its previous behavior
 - Scope: place target/player collision grounding only; pickup completion, Planner schema, TaskSystem, GoalVerifier, deadlines, protocols, success thresholds, skills, vision, and multi-agent execution remain unchanged
 - Validation: 117 cross-module Python tests, 722 full Python tests, all six fixed Node suites with 45 internal PASS cases including 12 M4 protocol cases, Node syntax, Python compilation, and repository checks
-- Status: passed offline; no live episode ran in this gate round
-- Authorization: exactly one fresh BM-012 Probe 14 only after this gate commit is pushed
+- Status: passed offline and live-validated in Probe 14; 21 collision rejects preceded one successful adjacent placement, and the prior timeout did not recur
+- Authorization: consumed by BM-012 Probe 14; no second episode may run in the live round
+
+## BM-012 Dig Required-Tool Equip Gate
+
+- Root hypothesis: `dig_backend_required_tool_equip_grounding`
+- Source transition: Probe 14 action event 1724 / monotonic 87571.656 / elapsed 476.2 / cycle 90 under autonomous goal `Mine 12 cobblestone for stone tools and furnace`
+- Planner lineage: real schema-valid call event 1712 / plan event 1714 / action-verification event 1719 / call ID `llm-204302efb42d4fd7`
+- Machine state: target `(114,133,-29)` was `stone`, inventory contained `wooden_pickaxe:1`, but selected slot 3 held `oak_planks`
+- Failure: the bridge removed the stone before equipping a harvest tool; no cobblestone entity or inventory delta appeared, and the existing postcondition returned `expected block drop was not acquired`
+- Persistence: seven stone blocks were removed without a drop at events 1724, 1746, 1768, 1811, 1833, 1856, and 1878; zero stone digs succeeded and zero cobblestone was acquired
+- Required policy: strict M4 must resolve a block-compatible harvest tool, select and equip its exact positive inventory stack, and machine-confirm the held item before any dig mutation
+- Mutation boundary: missing tools, equip exceptions, and held-item mismatch must fail closed before `bot.dig`; the existing expected-drop pickup and inventory-delta postcondition remains required after mutation
+- Scope: strict-M4 dig backend required-tool grounding only; Planner schema, ActionVerifier acceptance, pickup completion, task semantics, protocol/task-contract hashes, deadlines, success thresholds, skills, vision, and multi-agent execution remain unchanged
+- Status: required, not implemented
+- Authorization: none until this offline gate passes and its commit is pushed
 
 ## BM-012 Live Evidence
+
+### Probe 14: Player Occupancy Passed Live; Stone Dug Without Required Tool
+
+- Episode: `m4_episode_20260713_201657_0e6b213e`
+- Session: `ff915dec-db4`
+- Level: `m4_episode_20260713_201657_0e6b213e_bm012`
+- Frozen code: `a6e13c1`; protocol and BM-012 task-contract hashes unchanged
+- Prior gate: 21 same-reference player-collision placements were rejected at zero duration with 21 replan calls; action event 1554 used adjacent reference `(107,135,-29)` and placed the crafting table at `(107,136,-29)` in 46 ms
+- Prior failure recurrence: Probe 13's placement `blockUpdate` timeout did not recur; the player-occupancy gate recovered live
+- Earliest unrecovered transition: action event 1724 / monotonic 87571.656 / cycle 90 accepted `dig stone` at `(114,133,-29)` because `wooden_pickaxe:1` was available, but the backend held `oak_planks`, removed stone, and acquired no cobblestone
+- Repetition: seven stones were removed without drops, every completed attempt retained `oak_planks` in hand, zero stone digs succeeded, and cobblestone inventory delta stayed zero
+- Autonomous progress: 7 goals selected, 4 completed, 2 failed, and 1 interrupted across 98 cycles; crafting table and wooden pickaxe progression completed, but no iron source or iron delta appeared
+- Planner: 98/98 calls were real and schema-valid, with zero output or transport recovery and 343212 total tokens
+- Actions: 50 attempted and 20 successful; move 7/8, dig 6/14, craft 6/6, and place 1/22
+- Interrupts: 52 unique task-deadline triggers each recovered, then one dusk interrupt suspended cobblestone progression; no duplicate task expiry occurred
+- Last complete machine state: event 1882 / world time 11853 / health 20 / hunger 20 / uninterrupted lifecycle / inventory `wooden_pickaxe:1`, `oak_log:3`, `stick:2`, `dirt:3`, and `oak_planks:3`
+- Deadline: start 87099.828, deadline and Agent end 87699.828, manifest end 87699.843; no Planner call, plan, or action occurred strictly after the deadline, while independent duration and terminal checks failed closed
+- Eligibility: 54/74 checks passed with 20 issues; BM-012 remains 0/3 after fourteen attempts
+- Skills: baseline remained off; selected, executed, quarantined, vision, and multi-agent contributions were zero
+- Round boundary: this was the only live episode; no code fix, second run, or next live authorization occurs in this round
+- Evidence: `logs/benchmarks/m4/m4_episode_20260713_201657_0e6b213e/`
 
 ### Probe 13: Pickup Gate Passed Live; Place Target Matched Player Cell
 

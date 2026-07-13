@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-13T12:00:39.9594601Z",
+  "generated_at": "2026-07-13T12:33:13.4315405Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "current_task_id": "BM-012",
@@ -15,10 +15,10 @@
       "required_success_count": 3
     }
   ],
-  "live_episode_count_under_current_protocol": 17,
+  "live_episode_count_under_current_protocol": 18,
   "current_gate": {
-    "hypothesis": "place_target_player_occupancy_grounding",
-    "status": "offline_place_target_player_occupancy_gate_passed_probe_14_authorized_after_push",
+    "hypothesis": "dig_backend_required_tool_equip_grounding",
+    "status": "probe_14_recorded_offline_dig_required_tool_equip_gate_required",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
@@ -28,9 +28,9 @@
     "m4_shelter_python_case_count": 18,
     "m4_node_case_count": 12,
     "offline_atomicity_gate_passed": true,
-    "live_episode_count_under_current_protocol": 17,
+    "live_episode_count_under_current_protocol": 18,
     "latest_accepted_episode": "m4_episode_20260713_055737_6d976e6d",
-    "latest_episode": "m4_episode_20260713_184611_5bd188fc",
+    "latest_episode": "m4_episode_20260713_201657_0e6b213e",
     "live_atomicity_recovery_passed": true,
     "bm011_eligible_success_count": 3,
     "bm011_status": "repeat_verified",
@@ -38,8 +38,8 @@
     "bm012_task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
     "bm012_offline_gate_passed": true,
     "bm012_eligible_success_count": 0,
-    "bm012_live_episode_count": 13,
-    "bm012_latest_failure_layer": "place_target_player_occupancy_grounding",
+    "bm012_live_episode_count": 14,
+    "bm012_latest_failure_layer": "dig_backend_required_tool_equip_grounding",
     "bm012_purpose_phrase_offline_gate_passed": true,
     "bm012_purpose_phrase_focused_test_count": 57,
     "bm012_purpose_phrase_live_validated": true,
@@ -84,7 +84,7 @@
     "bm012_place_success_criteria_post_action_task_completed": true,
     "bm012_place_success_criteria_fail_closed_controls_passed": true,
     "bm012_place_success_criteria_related_test_count": 138,
-    "next_authorized_episode": "bm012_probe_14_after_this_gate_commit_is_pushed",
+    "next_authorized_episode": null,
     "bm012_place_success_criteria_prompt_path_live_validated": true,
     "bm012_place_success_criteria_normalization_branch_live_exercised": false,
     "bm012_place_success_criteria_prior_failure_recurred": false,
@@ -400,7 +400,43 @@
     "bm012_place_player_occupancy_offline_gate_passed": true,
     "bm012_place_player_occupancy_source_live_episode_run": true,
     "bm012_place_player_occupancy_offline_gate_live_episode_run": false,
-    "bm012_place_player_occupancy_current_round_live_episode_run": false
+    "bm012_place_player_occupancy_live_probe_14_executed": true,
+    "bm012_place_player_occupancy_live_policy_verification_count": 22,
+    "bm012_place_player_occupancy_live_reject_count": 21,
+    "bm012_place_player_occupancy_live_zero_duration_reject_count": 21,
+    "bm012_place_player_occupancy_live_rejected_reference": {"x": 106, "y": 135, "z": -29},
+    "bm012_place_player_occupancy_live_replan_call_count": 21,
+    "bm012_place_player_occupancy_live_adjacent_recovery_event_index": 1554,
+    "bm012_place_player_occupancy_live_adjacent_reference": {"x": 107, "y": 135, "z": -29},
+    "bm012_place_player_occupancy_live_adjacent_target": {"x": 107, "y": 136, "z": -29},
+    "bm012_place_player_occupancy_live_adjacent_duration_ms": 46,
+    "bm012_place_player_occupancy_live_gate_recovered": true,
+    "bm012_place_player_occupancy_prior_blockupdate_timeout_recurred": false,
+    "bm012_place_player_occupancy_current_round_live_episode_run": true,
+    "bm012_probe_14_runner_completed": true,
+    "bm012_probe_14_eligibility_pass_count": 54,
+    "bm012_probe_14_eligibility_issue_count": 20,
+    "bm012_dig_required_tool_equip_gate_status": "required_not_implemented",
+    "bm012_dig_required_tool_equip_source_action_event_index": 1724,
+    "bm012_dig_required_tool_equip_source_action_monotonic_s": 87571.656,
+    "bm012_dig_required_tool_equip_source_elapsed_s": 476.2,
+    "bm012_dig_required_tool_equip_source_cycle": 90,
+    "bm012_dig_required_tool_equip_goal": "Mine 12 cobblestone for stone tools and furnace",
+    "bm012_dig_required_tool_equip_target_position": {"x": 114, "y": 133, "z": -29},
+    "bm012_dig_required_tool_equip_target_block_before": "stone",
+    "bm012_dig_required_tool_equip_target_block_after": "air",
+    "bm012_dig_required_tool_equip_action_verification_status": "accept",
+    "bm012_dig_required_tool_equip_available_tool": "wooden_pickaxe",
+    "bm012_dig_required_tool_equip_available_tool_count": 1,
+    "bm012_dig_required_tool_equip_held_item": "oak_planks",
+    "bm012_dig_required_tool_equip_expected_drop": "cobblestone",
+    "bm012_dig_required_tool_equip_pickup_observed": false,
+    "bm012_dig_required_tool_equip_stone_dig_attempt_count": 8,
+    "bm012_dig_required_tool_equip_stone_removed_without_drop_count": 7,
+    "bm012_dig_required_tool_equip_successful_stone_dig_count": 0,
+    "bm012_dig_required_tool_equip_cobblestone_inventory_delta": 0,
+    "bm012_dig_required_tool_equip_offline_gate_passed": false,
+    "bm012_dig_required_tool_equip_current_round_live_episode_run": true
   },
   "entries": [
     {
@@ -7149,6 +7185,372 @@
       },
       "patch_or_experiment_summary": "Ran exactly one fresh BM-012 Probe 13 from committed and pushed pickup-completion gate 05f0397. No code, protocol, task contract, success threshold, world intervention, external step script, or second episode changed the live run. Raw JSONL and the local summary were used only for source cross-checking and are excluded from version control.",
       "retest_result": "Probe 13 live-exercised the pickup-completion fallback: direct GoalNear resolution at 1.014 blocks was rejected, one standable GoalBlock fallback reached 0.876 blocks under the shared budget, and oak_log:+1 was observed. Independent review confirms event 974 as the next first unrecovered transition because target cell (103,136,-31) exactly matched the player's floored feet cell; the equipped crafting-table placement made no mutation and seven attempts timed out waiting for blockUpdate. The Agent completed seven autonomous goals, crafted a wooden pickaxe and torches, observed iron ore at distance 5, but acquired no iron. The run passed 54/74 eligibility checks, ended at the absolute deadline with no post-deadline Planner call, plan, or action, leaves BM-012 at 0/3 after thirteen attempts, and authorizes no second episode before a new offline player-occupancy gate passes and is pushed."
+    },
+    {
+      "task_id": "BM-012",
+      "episode_id": "m4_episode_20260713_201657_0e6b213e",
+      "session_id": "ff915dec-db4",
+      "level_name": "m4_episode_20260713_201657_0e6b213e_bm012",
+      "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "task_contract_id": "m4-bm012-resource-contract-v1",
+      "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+      "frozen_commit": "a6e13c1",
+      "seed": "12345",
+      "start_monotonic": 87099.828,
+      "deadline_monotonic": 87699.828,
+      "agent_end_monotonic": 87699.828,
+      "end_monotonic": 87699.843,
+      "agent_elapsed_s": 600.0,
+      "duration_s": 600.015,
+      "failure_layer": "dig_backend_required_tool_equip_grounding",
+      "first_unrecovered_transition": {
+        "failure_layer": "dig_backend_required_tool_equip_grounding",
+        "planner_call_event_index": 1712,
+        "plan_event_index": 1714,
+        "action_verification_event_index": 1719,
+        "first_unrecovered_event_index": 1724,
+        "monotonic_s": 87571.656,
+        "elapsed_s": 476.2,
+        "goal": "Mine 12 cobblestone for stone tools and furnace",
+        "cycle": 90,
+        "planner_call_id": "llm-204302efb42d4fd7",
+        "action": {
+          "type": "dig",
+          "parameters": {
+            "x": 114,
+            "y": 133,
+            "z": -29,
+            "block": "stone"
+          }
+        },
+        "action_success": false,
+        "error": "expected block drop was not acquired",
+        "target_block_before": {
+          "name": "stone",
+          "position": {"x": 114, "y": 133, "z": -29}
+        },
+        "target_block_after": {
+          "name": "air",
+          "position": {"x": 114, "y": 133, "z": -29}
+        },
+        "action_verification_status": "accept",
+        "action_verification_reason": "available tool can mine stone",
+        "available_tool": "wooden_pickaxe",
+        "available_tool_count": 1,
+        "held_item": "oak_planks",
+        "selected_slot": 3,
+        "expected_drops": ["cobblestone"],
+        "block_removed": true,
+        "pickup_observed": false,
+        "pickup_inventory_delta": {},
+        "pickup_waited_ms": 2500,
+        "pickup_collection_detected": false,
+        "pickup_collection_attempted": false,
+        "pickup_detection_waited_ms": 1500,
+        "action_duration_ms": 11766,
+        "inventory_before": {
+          "wooden_pickaxe": 1,
+          "oak_log": 3,
+          "stick": 2,
+          "dirt": 3,
+          "oak_planks": 3
+        },
+        "inventory_after": {
+          "wooden_pickaxe": 1,
+          "oak_log": 3,
+          "stick": 2,
+          "dirt": 3,
+          "oak_planks": 3
+        },
+        "same_failure_event_indices": [1724, 1746, 1768, 1811, 1833, 1856, 1878],
+        "deadline_bound_final_dig_event_index": 1902,
+        "successful_stone_dig_count_after_transition": 0,
+        "cobblestone_inventory_delta_after_transition": 0,
+        "recovered": false
+      },
+      "runner_candidate_review": {
+        "runner_candidate_confirmed": false,
+        "runner_candidate_event_index": 1002,
+        "runner_candidate_monotonic_s": 87368.218,
+        "runner_candidate_goal": "Place crafting table for tool progression",
+        "runner_candidate_termination_reason": "max_cycles",
+        "later_recovery_event_index": 1554,
+        "later_recovery_monotonic_s": 87521.015,
+        "later_recovery_action": {
+          "type": "place",
+          "parameters": {"item": "crafting_table", "x": 107, "y": 135, "z": -29}
+        },
+        "later_recovery_success": true,
+        "later_recovery_observed_target": {
+          "name": "crafting_table",
+          "position": {"x": 107, "y": 136, "z": -29}
+        },
+        "first_non_recovered_transition_event_index": 1724
+      },
+      "attempted_plan": {
+        "real_llm_call": true,
+        "schema_valid": true,
+        "response_sha256": "a0a9d164125ff315b179a584123619fa397381b642c028e61eff9cc5c259a06d",
+        "response_byte_count": 963,
+        "duration_ms": 5343,
+        "total_tokens": 3545,
+        "plan_status": "planning",
+        "plan_action_count": 1,
+        "action_type": "dig",
+        "action_parameter_grounding_passed": true,
+        "subtask_precondition": {"wooden_pickaxe": 1},
+        "action_verification_status": "accept"
+      },
+      "prior_hypothesis_live_validation": {
+        "hypothesis": "place_target_player_occupancy_grounding",
+        "policy_id": "m4-place-target-player-occupancy-v1",
+        "first_rejection_event_index": 272,
+        "first_rejection_monotonic_s": 87197.0,
+        "first_rejection_duration_ms": 0,
+        "rejected_reference": {"x": 106, "y": 135, "z": -29},
+        "rejected_target": {"x": 106, "y": 136, "z": -29},
+        "player_position": {"x": 106.39695708172346, "y": 136.0, "z": -28.50000000000035},
+        "player_collision_cells": [
+          {"x": 106, "y": 136, "z": -29},
+          {"x": 106, "y": 137, "z": -29}
+        ],
+        "adjacent_reference_candidates": [
+          {"x": 107, "y": 135, "z": -29},
+          {"x": 105, "y": 135, "z": -29},
+          {"x": 106, "y": 135, "z": -28},
+          {"x": 106, "y": 135, "z": -30}
+        ],
+        "rejection_count": 21,
+        "zero_duration_rejection_count": 21,
+        "replan_call_count": 21,
+        "successful_adjacent_place_event_index": 1554,
+        "successful_adjacent_reference": {"x": 107, "y": 135, "z": -29},
+        "successful_adjacent_target": {"x": 107, "y": 136, "z": -29},
+        "successful_adjacent_place_duration_ms": 46,
+        "prior_blockupdate_timeout_recurred": false,
+        "offline_gate_live_validated": true
+      },
+      "autonomous_goal_summary": {
+        "attempted": 7,
+        "completed": 4,
+        "failed": 2,
+        "interrupted": 1,
+        "total_cycles": 98,
+        "goal_sequence": [
+          {"goal_index": 1, "goal": "Gather 6 oak logs for tools and shelter", "selection_source": "curriculum", "selection_reason": "curriculum_ranked:early_wood_bootstrap", "outcome": "completed", "cycles": 8},
+          {"goal_index": 2, "goal": "Craft crafting table", "selection_source": "curriculum", "selection_reason": "curriculum_ranked:unlock_crafting_grid", "outcome": "completed", "cycles": 2},
+          {"goal_index": 3, "goal": "Place crafting table for tool progression", "selection_source": "curriculum", "selection_reason": "curriculum_ranked:bm012_crafting_table_unplaced", "outcome": "failed_then_recovered_by_next_goal", "cycles": 40},
+          {"goal_index": 4, "goal": "Place crafting table on ground", "selection_source": "curriculum", "selection_reason": "ready_task_selected", "outcome": "completed", "cycles": 34},
+          {"goal_index": 5, "goal": "Craft wooden pickaxe", "selection_source": "curriculum", "selection_reason": "curriculum_ranked:unlock_stone_mining", "outcome": "completed", "cycles": 4},
+          {"goal_index": 6, "goal": "Mine 12 cobblestone for stone tools and furnace", "selection_source": "curriculum", "selection_reason": "curriculum_ranked:stone_age_progression", "outcome": "interrupted", "cycles": 5},
+          {"goal_index": 7, "goal": "Build verified shelter before nightfall", "selection_source": "goal_generator", "selection_reason": "dusk_without_machine_verified_shelter", "outcome": "failed", "cycles": 5}
+        ]
+      },
+      "planner_controls": {
+        "call_count": 98,
+        "real_call_count": 98,
+        "schema_valid_real_call_count": 98,
+        "transport_failure_count": 0,
+        "output_recovery_count": 0,
+        "transport_recovery_count": 0,
+        "empty_plan_count": 0,
+        "max_call_duration_ms": 12328,
+        "total_token_usage": 343212,
+        "provider_controls_passed": true
+      },
+      "action_summary": {
+        "attempted": 50,
+        "successful": 20,
+        "by_type": {
+          "move_to": {"attempted": 8, "successful": 7},
+          "dig": {"attempted": 14, "successful": 6},
+          "craft": {"attempted": 6, "successful": 6},
+          "place": {"attempted": 22, "successful": 1}
+        },
+        "failure_reason_counts": {
+          "player collision rejection": 21,
+          "pathfinder completed without reaching the target tolerance": 1,
+          "expected block drop was not acquired": 7,
+          "episode deadline exceeded during action": 1
+        },
+        "action_verification_accept_count": 29,
+        "action_verification_reject_count": 21,
+        "failure_reflection_suppressed_count": 29,
+        "successful_stone_dig_count_after_first_unrecovered_transition": 0
+      },
+      "task_lifecycle": {
+        "transition_counts": {
+          "proposed": 110,
+          "accepted": 110,
+          "active": 22,
+          "completed": 33,
+          "failed": 62
+        }
+      },
+      "downstream_cascade": {
+        "later_same_failure_event_indices": [1746, 1768, 1811, 1833, 1856, 1878],
+        "dusk_interrupt_event_index": 1784,
+        "auto_goal_interrupted_event_index": 1786,
+        "paused_goal": "Mine 12 cobblestone for stone tools and furnace",
+        "shelter_goal_failed_event_index": 1904,
+        "iron_observation_count": 0,
+        "iron_source_action_count": 0,
+        "not_the_earliest_blocker": true
+      },
+      "runtime_interrupts": {
+        "trigger_count": 53,
+        "recovery_count": 52,
+        "unique_task_deadline_trigger_count": 52,
+        "unique_expired_task_count": 62,
+        "repeated_expired_task_count": 0,
+        "concurrent_root_violation_count": 0,
+        "reason_counts": {
+          "task_deadline_elapsed": 52,
+          "dusk_shelter_required": 1
+        }
+      },
+      "shelter_verification": {
+        "verification_event_count": 8,
+        "verification_pass_count": 0,
+        "bounded_action_count": 0,
+        "bounded_action_success_count": 0,
+        "matched_episode_placement_count": 0,
+        "machine_verified_safe_state": false
+      },
+      "player_lifecycle_continuity": {
+        "active_observation_count": 149,
+        "player_lifecycle_present_observation_count": 148,
+        "player_lifecycle_missing_observation_count": 1,
+        "maximum_valid_death_count": 0,
+        "maximum_valid_respawn_count": 0,
+        "source": "mineflayer_events",
+        "last_valid_lifecycle_event_index": 1882,
+        "last_valid_lifecycle_uninterrupted": true,
+        "terminal_observation_complete": false,
+        "independent_gate_passed": false,
+        "verifier_id": "m4-player-lifecycle-verifier-v1"
+      },
+      "resource_acquisition": {
+        "initial_inventory": {"raw_iron": 0, "iron_ore": 0},
+        "terminal_inventory": {"raw_iron": 0, "iron_ore": 0},
+        "positive_inventory_delta": {"raw_iron": 0, "iron_ore": 0},
+        "successful_source_action_count": 0,
+        "terminal_target_passed": false,
+        "cobblestone_delta": 0,
+        "stone_removed_without_drop_count": 7
+      },
+      "terminal_state": {
+        "source_event_index": 1882,
+        "source_monotonic_s": 87683.921,
+        "source": "last_complete_machine_observation_before_deadline_bound_bridge_timeout",
+        "time_of_day": 11853,
+        "health": 20,
+        "food": 20,
+        "position": {"x": 114.57797150800734, "y": 130, "z": -28.50684488463769},
+        "inventory": {
+          "wooden_pickaxe": 1,
+          "oak_log": 3,
+          "stick": 2,
+          "dirt": 3,
+          "oak_planks": 3
+        },
+        "canonical_terminal_state": {
+          "time_of_day": 0,
+          "position": {},
+          "inventory": {},
+          "bot_connected": false
+        }
+      },
+      "deadline_status": {
+        "episode_started_monotonic": 87099.828,
+        "episode_deadline_monotonic": 87699.828,
+        "agent_end_monotonic": 87699.828,
+        "evidence_end_monotonic": 87699.843,
+        "agent_elapsed_s": 600.0,
+        "evidence_time_overrun_s": 0.015,
+        "last_action_event_index": 1902,
+        "last_action_monotonic": 87699.828,
+        "post_deadline_event_count": 1,
+        "post_deadline_planner_call_count": 0,
+        "post_deadline_plan_count": 0,
+        "post_deadline_action_count": 0,
+        "post_deadline_housekeeping_event_count": 1,
+        "deadline_bound_final_action_replayed": false,
+        "deadline_bound_final_action_reconnected": false,
+        "episode_within_deadline": false,
+        "deadline_eligible": false,
+        "result_duration_eligible": false,
+        "no_post_deadline_execution": false,
+        "runner_completed": true
+      },
+      "eligibility": {
+        "preflight_passed": true,
+        "runner_completed": true,
+        "runner_reported_eligible": false,
+        "independently_accepted_eligible": false,
+        "check_count": 74,
+        "pass_count": 54,
+        "issue_count": 20,
+        "issues": [
+          "event:terminal_resource_verification",
+          "player_lifecycle_observation_complete",
+          "player_lifecycle_observation_valid",
+          "player_lifecycle_baseline_consistent",
+          "player_lifecycle_event_valid",
+          "player_lifecycle_event_baseline_consistent",
+          "player_lifecycle_event_counts_monotonic",
+          "active_episode_death_absent",
+          "active_episode_respawn_absent",
+          "uninterrupted_survival",
+          "natural_time_progression",
+          "terminal_player_lifecycle",
+          "terminal_bot_connected",
+          "resource_terminal_inventory_target",
+          "resource_successful_source_actions",
+          "resource_positive_inventory_delta",
+          "terminal_machine_verification",
+          "episode_within_deadline",
+          "result_duration_eligible",
+          "no_post_deadline_execution"
+        ],
+        "counts_toward_task_success": false
+      },
+      "skill_attribution": {
+        "skill_execution_mode": "off",
+        "selected_count": 0,
+        "executed_count": 0,
+        "successful_action_count": 0,
+        "failed_action_count": 0,
+        "quarantined_contribution_count": 0,
+        "vision_intervention_count": 0,
+        "multi_agent_intervention_count": 0
+      },
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260713_201657_0e6b213e/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260713_201657_0e6b213e/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260713_201657_0e6b213e/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260713_201657_0e6b213e/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260713_201657_0e6b213e/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260713_201657_0e6b213e/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260713_201657_0e6b213e/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260713_201657_0e6b213e/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "6ef95f7f2630c54ea3d50fd4a1b553ba981624aae69883ecf104201548aeb162",
+        "manifest": "dccba3d8ff3c9b7a80b5317ad73af3de319834ddd885f1c9ab8f931657a6d5f0",
+        "session": "e56bae5a874f2440526f5c63ab966fa66721a19213f074733081c87e169f8f47",
+        "result": "edd1265c1328327e6e1b4b08d2bbe78319d580e8f4c7a69d6e721cd111b14ac5",
+        "eligibility": "3c303b0defe8b152ea0ea82bbe7a4772d154cefbb9d47d16cd766f487a894953",
+        "preparation": "ae51b00dc0956af25cb0914cbb4e8273e373a12628faa003800111c3529d2a37",
+        "protocol_status": "0894c722b1df08f6c32acb91f9e765d94b6c2ae8260aa612f447d6d5e7f9142c",
+        "reset": "75c399cda47b8c9cddac477efb9825954aa380386bb50bcac86a3d405d93bf5a"
+      },
+      "source_artifact_sha256": {
+        "raw_session_jsonl": "20f2c9725b7ec038a6ac6af1052a6eda183e590bb729e9669c0da627cec3e062",
+        "raw_session_summary": "ca39d4196587d805c8c8244c2b4f7487bca0b85c8d45418447e95a187113551d"
+      },
+      "patch_or_experiment_summary": "Ran exactly one fresh BM-012 Probe 14 from committed and pushed player-occupancy gate a6e13c1. No code, protocol, task contract, success threshold, world intervention, external step script, or second episode changed the live run. Raw JSONL and the local summary were used only for source cross-checking and are excluded from version control.",
+      "retest_result": "Probe 14 live-exercised m4-place-target-player-occupancy-v1: 21 same-reference player-collision attempts were rejected at zero duration with 21 replan calls, then adjacent reference (107,135,-29) placed the crafting table in 46 ms and the Probe 13 blockUpdate timeout did not recur. Independent review overrides the runner's earlier max-cycle candidate because that placement objective recovered at event 1554. The next first unrecovered transition is event 1724: ActionVerifier saw wooden_pickaxe:1 and accepted a stone dig, but the backend kept oak_planks in hand, removed the stone, produced no cobblestone entity or inventory delta, and repeated that irreversible no-drop failure seven times. The Agent selected seven autonomous goals, completed four, made 98 real schema-valid Planner calls, passed 54/74 eligibility checks, acquired no iron, and ended at the absolute deadline with no post-deadline Planner call, plan, or action. BM-012 remains 0/3 after fourteen attempts; no second episode is authorized before an offline required-tool equip gate passes and is pushed."
     }
   ]
 }
