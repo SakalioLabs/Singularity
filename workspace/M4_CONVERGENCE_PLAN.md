@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 6 remain ineligible at 0/3. Probe 6 live-validated the placement success-criteria prompt path and then exposed that the generic place backend did not equip the requested item. The bounded `place_backend_requested_item_equip_grounding` gate now passes offline and authorizes exactly one fresh Probe 7 after this commit is pushed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 7 remain ineligible at 0/3. Probe 7 live-validated the requested-item equip gate across all 17 place attempts, then exposed `planner_place_target_occupancy_grounding`: every selected target cell was already occupied. No further live episode is authorized until a bounded offline target-occupancy gate passes; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | place_backend_requested_item_equip_offline_gate_passed_probe_7_authorized |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_7_ineligible_place_target_occupancy_grounding_diagnosed |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -81,6 +81,10 @@ The new earliest failure layer is `place_backend_requested_item_equip_grounding`
 
 The bounded `place_backend_requested_item_equip_grounding` fix now passes offline. Generic `createPlaceHandler` requires a nonempty requested item, finds the exact positive inventory stack, equips that stack to `hand`, confirms the actual held item from Mineflayer state, and only then calls `placeBlock`. A missing stack, equip exception, or held-item mismatch returns fail-closed evidence before any block mutation. Success requires the target to change to the exact requested block and records `m4-place-requested-item-equip-v1`, the equipped item, and requested-item confirmation. The exact Probe 6 state with `crafting_table:1` in inventory and `dark_oak_sapling` held now performs zero place calls and zero target mutations when equip is ineffective. Protocol, BM-012 task contract, Planner, ActionVerifier, M1/M2 fixed protocols, deadlines, and success thresholds are unchanged. Exactly one fresh Probe 7 is authorized after this gate commit is pushed.
 
+Probe 7 live-validates the requested-item equip gate on all 17 place actions: each result records `item=crafting_table`, `equipped_item=crafting_table`, `requested_item_equipped=true`, and policy `m4-place-requested-item-equip-v1`. The prior sapling placement and empty-hand cascade did not recur.
+
+The new earliest failure layer is `planner_place_target_occupancy_grounding`. Planner call event 245 / call `llm-433910d52edd4327` and plan event 247 selected dirt reference `(93,134,-38)` but did not check its placement target `(93,135,-38)`, even though observations showed `dark_oak_log` there. ActionVerifier event 273 accepted the place from inventory evidence alone; action event 278 then timed out waiting for `blockUpdate`. The next 16 actions targeted `(93,135,-36)`, which each immediately preceding machine observation showed as `grass_block`, and all timed out identically. Later task deadlines, the successful 9/9 bounded shelter, and the post-deadline wait completion are downstream. Probe 7 was this round's sole live episode; no code fix or second run occurs in the round.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -91,7 +95,7 @@ The bounded `place_backend_requested_item_equip_grounding` fix now passes offlin
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 707 Python tests, 138 related Planner/TaskSystem/M4 tests, all six fixed Node suites with 36 internal cases, Python compilation, and `git diff --check` pass
-- Live authorization: exactly one fresh BM-012 Probe 7 after the requested-item equip gate is committed and pushed
+- Live authorization: Probe 7 consumed the requested-item equip gate's sole authorization; no further episode is authorized pending an offline target-occupancy gate
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -171,9 +175,29 @@ The bounded `place_backend_requested_item_equip_grounding` fix now passes offlin
 - Fail-closed controls: missing item, unavailable item, ineffective equip, wrong held item, and wrong observed target block cannot pass
 - Scope: generic Mineflayer place bridge only; Planner, ActionVerifier, GoalVerifier, task semantics, protocol/task-contract hashes, M1/M2 fixed protocols, deadlines, and thresholds are unchanged
 - Validation: three exact place cases, 166 related Python tests, 707 full Python tests, six Node suites with 37 internal cases, Node/Python syntax checks, and `git diff --check` pass
-- Authorization: exactly one fresh BM-012 Probe 7 after this gate commit is pushed; no live episode ran in the offline gate round
+- Authorization: consumed by BM-012 Probe 7; no second episode ran in the live round
 
 ## BM-012 Live Evidence
+
+### Probe 7: Requested Item Equipped; Placement Target Was Occupied
+
+- Episode: `m4_episode_20260713_121120_75d9ae7d`
+- Session: `81a9bdef-b92`
+- Level: `m4_episode_20260713_121120_75d9ae7d_bm012`
+- Preflight: passed with unchanged protocol/task-contract hashes, empty inventory, fresh daylight level, zero-death lifecycle baseline, and exact `600/24/40/320` controls
+- Result: ineligible; BM-012 remains 0/3, 66/74 independent checks passed, no terminal resource event was emitted, and no iron-source action occurred
+- Prior gate live evidence: all 17 place results recorded `crafting_table` as requested and equipped, `requested_item_equipped=true`, and policy `m4-place-requested-item-equip-v1`; the Probe 6 sapling placement and empty-hand cascade did not recur
+- Earliest invalid transition: Planner event 245 / call `llm-433910d52edd4327` and plan event 247 chose dirt reference `(93,134,-38)` without checking target `(93,135,-38)`, which observation event 255 already showed as `dark_oak_log`; ActionVerifier event 273 accepted the action from inventory evidence and action event 278 timed out after 5.062 seconds
+- Confirmation: the next 16 place actions used reference `(93,134,-36)` while every immediately preceding observation showed target `(93,135,-36)` as `grass_block`; all 16 timed out waiting for the same impossible `blockUpdate`, with the crafting table still equipped and retained
+- Goals: six roots; three completed, two failed, one interrupted. Wood gathering and crafting-table creation completed, the 40-cycle placement root failed, and survival preemption later built a verified shelter
+- Planner: 54 calls; 51 real and schema-valid responses, three recovered connection errors, 170941 tokens, maximum successful latency 22.078 seconds, zero retries, and zero reasoning bytes
+- Actions: 26/44 succeeded; `move_to` 16/17, `dig` 5/5, `craft` 3/3, `place` 0/17, `build_shelter_cell` 1/1, and `wait` 1/1
+- Tasks and interrupts: 55 tasks produced 175 transitions; final states were 12 completed, 38 failed, four accepted, and one active. All 22 interrupt triggers had recoveries; 21 were task deadlines and one was dusk, terminalizing 38 unique expired tasks
+- Shelter and survival: one of eight shelter verifications passed with all 9/9 positions attributed to the bounded build; all 99 observations carried lifecycle state, with zero deaths and respawns. Terminal health/food were 20 and inventory was `dark_oak_log:4`, `oak_planks:2`, `crafting_table:1`, `dirt:5`
+- Deadline: the absolute boundary was 58555.562. A bounded wait accepted before the boundary completed afterward; Agent ended at 58559.875 and manifest evidence at 58559.984, 4.313 and 4.422 seconds late, with one post-boundary action completion. The independent deadline checks rejected the run
+- Skills: baseline remained off; selected/executed/quarantined contribution was zero
+- Round boundary: this was the only live episode; no code fix, second BM-012 run, or new live authorization occurs in this round
+- Evidence: `logs/benchmarks/m4/m4_episode_20260713_121120_75d9ae7d/`
 
 ### Probe 6: Placement Criterion Passed; Requested Item Was Not Equipped
 

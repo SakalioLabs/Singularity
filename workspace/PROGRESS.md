@@ -2,7 +2,7 @@
 
 ## Convergence Result
 
-M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has six failed live attempts and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
+M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has seven failed live attempts and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
 
 ## Current Assessment
 
@@ -10,7 +10,7 @@ Singularity has broad source coverage and a large passing offline test surface, 
 
 Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. M1 remains complete at 15/15, M2 contributes 23 eligible current-protocol successes, and M4 now contributes three independently eligible BM-011 episodes with unique session, episode, level, and session hashes. The overall system remains incomplete.
 
-BM-012 remains 0/3. Probe 6 ran exactly once from committed gate `3aa4cc3` and live-validated its prompt path: Planner call event 277 emitted `success_criteria.nearby_block_present=crafting_table`, all 129 real responses were schema-valid, and the prior placement-criterion rejection did not recur. Action event 298 then requested `crafting_table` while the bot still held `dark_oak_sapling`; the generic bridge handler placed that sapling and failed the requested-item postcondition. The bounded `m4-place-requested-item-equip-v1` gate now requires an exact positive inventory stack, equips it to `hand`, confirms the actual held item, and only then calls `placeBlock`; missing or ineffective equip fails before world mutation. The exact Probe 6 state replays to zero place calls and zero target changes. Exactly one fresh Probe 7 is authorized after this gate commit is pushed.
+BM-012 remains 0/3. Probe 7 ran exactly once from committed and pushed gate `470f368`. All 17 place actions found, equipped, and confirmed `crafting_table`, so Probe 6's requested-item failure did not recur. The first plan selected dirt `(93,134,-38)` as its reference without checking the target cell `(93,135,-38)`, which machine observation already showed as `dark_oak_log`; the next 16 attempts targeted `(93,135,-36)`, observed as `grass_block`. ActionVerifier accepted each action from inventory evidence alone, all 17 bridge calls timed out waiting for an impossible block update, and no iron-source action occurred. The new earliest layer is `planner_place_target_occupancy_grounding`; no further live episode is authorized before its offline gate passes.
 
 Current report outcome:
 
