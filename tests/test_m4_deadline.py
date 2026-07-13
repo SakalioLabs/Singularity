@@ -9,11 +9,12 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from singularity.action.controller import ActionController
+from singularity.action.controller import ActionController, M4_CRITICAL_HEALTH_FOOD_ITEMS
 from singularity.action.verifier import ActionVerifier
 from singularity.bot.bridge import BotBridge
 from singularity.core.agent import Agent
 from singularity.core.config import Config
+from singularity.core.goal_generator import GoalGenerator
 from singularity.core.goal_verifier import GoalVerification
 from singularity.core.planner import Planner
 from singularity.core.task_system import TaskStatus, TaskSystem
@@ -140,6 +141,26 @@ class NavigationRecoveryBot:
             (x, z, y, tolerance, timeout_ms, recover_pathfinder_on_failure)
         )
         return {"success": True, "reached": True}
+
+
+class CriticalHealthSurvivalBot(NavigationRecoveryBot):
+    def __init__(self):
+        super().__init__()
+        self.craft_calls = []
+        self.equip_calls = []
+        self.use_item_calls = 0
+
+    def craft(self, item_name, count=1):
+        self.craft_calls.append((item_name, count))
+        return {"success": True}
+
+    def equip(self, item_name, destination="hand"):
+        self.equip_calls.append((item_name, destination))
+        return {"success": True}
+
+    def use_item(self):
+        self.use_item_calls += 1
+        return {"success": True}
 
 
 class ScriptedSocket:
@@ -2334,6 +2355,166 @@ def test_m4_action_controller_requests_pathfinder_recovery_only_for_m4_navigatio
     print("PASS: ActionController scopes pathfinder failure recovery to fixed M4")
 
 
+def test_m4_critical_health_survival_move_replays_probe_18():
+    action = {
+        "type": "move_to",
+        "parameters": {"x": 108.69, "y": 136, "z": -13.56},
+    }
+    state = {
+        "health": 2.3333330154418945,
+        "hunger": 19,
+        "inventory": {
+            "crafting_table": 1,
+            "oak_log": 1,
+            "oak_planks": 16,
+            "wooden_pickaxe": 1,
+        },
+        "nearby_entities": [{"type": "zombie", "hostile": True, "distance": 6.4}],
+    }
+    verification = ActionVerifier().verify(
+        action,
+        state,
+        goal="Flee from the nearest hostile mob toward safety",
+        protocol="m4-fixed-v1",
+    ).as_dict()
+    bot = CriticalHealthSurvivalBot()
+    result = ActionController(
+        bot,
+        Config(planner_protocol="m4-fixed-v1"),
+    ).execute(action, state)
+
+    assert verification["status"] == "accept"
+    assert result["success"] is True
+    assert result["duration_ms"] >= 0
+    assert bot.move_calls == [(108.69, -13.56, 136, None, 30000, True)]
+    report = result["m4_critical_health_survival_action_precondition"]
+    assert report == {
+        "type": "m4_critical_health_survival_action_precondition",
+        "schema_version": 1,
+        "policy_id": "m4-critical-health-survival-action-precondition-v1",
+        "activated": True,
+        "passed": True,
+        "protocol": "m4-fixed-v1",
+        "action_type": "move_to",
+        "action_class": "escape_or_food_search_navigation",
+        "health": 2.333,
+        "health_critical_threshold": 4.0,
+        "available_food": [],
+        "requested_item": "",
+        "reason": "critical health with no available food permits bounded survival navigation",
+        "fail_closed_before_action_execution": False,
+    }
+    print("PASS: Probe 18 critical-health escape move reaches ActionController execution")
+
+
+def test_m4_critical_health_food_use_is_allowed_while_navigation_fails_closed():
+    state = {
+        "health": 3.3333330154418945,
+        "hunger": 17,
+        "inventory": {"bread": 1, "oak_planks": 4},
+        "nearby_entities": [],
+    }
+    eat = {"type": "use_item", "parameters": {"item": "bread", "destination": "hand"}}
+    move = {"type": "move_to", "parameters": {"x": 109, "y": 135, "z": -21}}
+
+    bot = CriticalHealthSurvivalBot()
+    controller = ActionController(bot, Config(planner_protocol="m4-fixed-v1"))
+    eat_verification = ActionVerifier().verify(
+        eat,
+        state,
+        goal="Eat available food to recover critical health",
+        protocol="m4-fixed-v1",
+    ).as_dict()
+    eat_result = controller.execute(eat, state)
+    move_result = controller.execute(move, state)
+    non_food_result = controller.execute(
+        {"type": "use_item", "parameters": {"item": "oak_planks"}},
+        state,
+    )
+
+    assert M4_CRITICAL_HEALTH_FOOD_ITEMS == frozenset(GoalGenerator.FOOD_ITEMS)
+    assert eat_verification["status"] == "accept"
+    assert eat_result["success"] is True
+    assert eat_result["m4_critical_health_survival_action_precondition"]["passed"] is True
+    assert eat_result["m4_critical_health_survival_action_precondition"]["action_class"] == "food_use"
+    assert bot.equip_calls == [("bread", "hand")]
+    assert bot.use_item_calls == 1
+    assert move_result["success"] is False
+    assert move_result["duration_ms"] == 0
+    assert move_result["m4_critical_health_survival_action_precondition"]["reason"] == (
+        "available food requires use_item before survival navigation"
+    )
+    assert non_food_result["success"] is False
+    assert non_food_result["duration_ms"] == 0
+    assert non_food_result["m4_critical_health_survival_action_precondition"]["reason"] == (
+        "use_item target is not available known food"
+    )
+    assert len(bot.move_calls) == 0
+    print("PASS: Critical-health M4 allows known food use and blocks avoidable movement")
+
+
+def test_m4_critical_health_non_survival_and_legacy_controls_remain_blocked():
+    state = {
+        "health": 3.3333330154418945,
+        "hunger": 17,
+        "inventory": {"oak_log": 1},
+        "nearby_entities": [],
+    }
+    craft = {"type": "craft", "parameters": {"item": "oak_planks", "count": 4}}
+    move = {"type": "move_to", "parameters": {"x": 109, "y": 135, "z": -21}}
+
+    m4_bot = CriticalHealthSurvivalBot()
+    m4_result = ActionController(
+        m4_bot,
+        Config(planner_protocol="m4-fixed-v1"),
+    ).execute(craft, state)
+    assert m4_result["success"] is False
+    assert m4_result["error"] == "Pre-condition failed: Health critical"
+    assert m4_result["duration_ms"] == 0
+    assert m4_result["m4_critical_health_survival_action_precondition"]["passed"] is False
+    assert m4_result["m4_critical_health_survival_action_precondition"]["reason"] == (
+        "action type is not allowlisted for critical-health survival recovery"
+    )
+    assert m4_bot.craft_calls == []
+
+    for parameters in (
+        {"x": 109, "y": 135},
+        {"x": float("inf"), "y": 135, "z": -21},
+        {"x": True, "y": 135, "z": -21},
+    ):
+        malformed = ActionController(
+            m4_bot,
+            Config(planner_protocol="m4-fixed-v1"),
+        ).execute({"type": "move_to", "parameters": parameters}, state)
+        assert malformed["success"] is False
+        assert malformed["duration_ms"] == 0
+        assert malformed["m4_critical_health_survival_action_precondition"]["reason"] == (
+            "critical-health survival navigation requires finite x and z coordinates"
+        )
+    assert m4_bot.move_calls == []
+
+    for protocol in ("", "m1-fixed-v1", "m2-fixed-v1"):
+        control_bot = CriticalHealthSurvivalBot()
+        control = ActionController(
+            control_bot,
+            Config(planner_protocol=protocol),
+        ).execute(move, state)
+        assert control["success"] is False
+        assert control["error"] == "Pre-condition failed: Health critical"
+        assert control["duration_ms"] == 0
+        assert "m4_critical_health_survival_action_precondition" not in control
+        assert control_bot.move_calls == []
+
+    healthy_bot = CriticalHealthSurvivalBot()
+    healthy = ActionController(
+        healthy_bot,
+        Config(planner_protocol="m4-fixed-v1"),
+    ).execute(move, {**state, "health": 4.0})
+    assert healthy["success"] is True
+    assert "m4_critical_health_survival_action_precondition" not in healthy
+    print("PASS: Probe 18 craft and M1/M2 critical-health controls remain fail-closed")
+
+
 def test_m4_bridge_uses_remaining_budget_without_replay():
     clock = FakeClock()
     bridge = object.__new__(BotBridge)
@@ -2877,6 +3058,9 @@ if __name__ == "__main__":
     test_m4_action_controller_requires_pickup_and_tool_equip_only_for_m4()
     test_m4_action_controller_requires_player_clearance_only_for_m4_place()
     test_m4_action_controller_requests_pathfinder_recovery_only_for_m4_navigation()
+    test_m4_critical_health_survival_move_replays_probe_18()
+    test_m4_critical_health_food_use_is_allowed_while_navigation_fails_closed()
+    test_m4_critical_health_non_survival_and_legacy_controls_remain_blocked()
     test_m4_bridge_uses_remaining_budget_without_replay()
     test_m4_bridge_recovers_on_next_observation_with_confirmed_machine_state()
     test_m4_bridge_recovery_respects_deadline_and_fails_closed_without_machine_state()

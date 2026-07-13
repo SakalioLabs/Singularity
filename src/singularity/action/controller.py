@@ -1,5 +1,6 @@
 ﻿"""Action controller — translates structured action commands into bot operations with safety checks."""
 import logging
+import math
 import time
 from typing import Optional
 
@@ -9,6 +10,21 @@ from singularity.action.policy import ActionGranularityPolicy, ActionPolicyDecis
 logger = logging.getLogger("singularity.action")
 
 NAVIGATION_ACTIONS = frozenset({"walk_to", "move_to"})
+M4_CRITICAL_HEALTH_SURVIVAL_POLICY_ID = "m4-critical-health-survival-action-precondition-v1"
+M4_CRITICAL_HEALTH_FOOD_ITEMS = frozenset({
+    "bread",
+    "apple",
+    "cooked_porkchop",
+    "cooked_beef",
+    "cooked_chicken",
+    "baked_potato",
+    "carrot",
+    "potato",
+    "beef",
+    "porkchop",
+    "melon_slice",
+})
+M4_CRITICAL_HEALTH_REPORT_FIELD = "m4_critical_health_survival_action_precondition"
 
 
 class ActionController:
@@ -103,9 +119,13 @@ class ActionController:
             }
 
         # Pre-condition check
-        pre_ok, pre_msg = self._check_preconditions(action_type, params, world_state)
+        pre_ok, pre_msg, precondition_report = self._check_preconditions(
+            action_type,
+            params,
+            world_state,
+        )
         if not pre_ok:
-            return {
+            result = {
                 "success": False,
                 "error": f"Pre-condition failed: {pre_msg}",
                 "duration_ms": 0,
@@ -115,6 +135,9 @@ class ActionController:
                 "backend_params": command.params,
                 "control_policy": policy_decision.as_dict(),
             }
+            if precondition_report:
+                result[M4_CRITICAL_HEALTH_REPORT_FIELD] = precondition_report
+            return result
 
         # Execute
         handler = self._action_handlers.get(action_type)
@@ -144,6 +167,8 @@ class ActionController:
         result["backend_command"] = command.command
         result["backend_params"] = command.params
         result["control_policy"] = policy_decision.as_dict()
+        if precondition_report:
+            result[M4_CRITICAL_HEALTH_REPORT_FIELD] = precondition_report
         if action_budget_s is not None:
             action_deadline_monotonic = started_monotonic + action_budget_s
             accepted_episode = ended_monotonic < self._episode_deadline_monotonic
@@ -207,7 +232,14 @@ class ActionController:
         """Check if action can be safely executed."""
         # Health safety
         if state.get("health", 20) < self.config.health_critical_threshold:
-            return False, "Health critical"
+            report = self._m4_critical_health_survival_precondition(
+                action_type,
+                params,
+                state,
+            )
+            if report.get("passed") is True:
+                return True, "OK", report
+            return False, "Health critical", report
 
         # Action-specific checks
         if action_type == "dig" and not state.get("inventory", {}).get("wooden_pickaxe"):
@@ -218,7 +250,111 @@ class ActionController:
             # Will be validated by the bot itself
             pass
 
-        return True, "OK"
+        return True, "OK", {}
+
+    def _m4_critical_health_survival_precondition(
+        self,
+        action_type: str,
+        params: dict,
+        state: dict,
+    ) -> dict:
+        if str(getattr(self.config, "planner_protocol", "") or "") != "m4-fixed-v1":
+            return {}
+
+        inventory = state.get("inventory", {})
+        inventory = inventory if isinstance(inventory, dict) else {}
+        available_food = sorted(
+            item
+            for item in M4_CRITICAL_HEALTH_FOOD_ITEMS
+            if self._positive_inventory_count(inventory.get(item)) > 0
+        )
+        requested_item = str(params.get("item") or "").strip()
+        try:
+            health = float(state.get("health", 20))
+        except (TypeError, ValueError):
+            health = 20.0
+        try:
+            threshold = float(self.config.health_critical_threshold)
+        except (TypeError, ValueError):
+            threshold = 4.0
+
+        action_class = "blocked"
+        passed = False
+        reason = "action type is not allowlisted for critical-health survival recovery"
+        if action_type == "move_to":
+            action_class = "escape_or_food_search_navigation"
+            if available_food:
+                reason = "available food requires use_item before survival navigation"
+            elif not self._finite_m4_navigation_target(params):
+                reason = "critical-health survival navigation requires finite x and z coordinates"
+            else:
+                passed = True
+                reason = "critical health with no available food permits bounded survival navigation"
+        elif action_type == "use_item":
+            action_class = "food_use"
+            if (
+                requested_item in M4_CRITICAL_HEALTH_FOOD_ITEMS
+                and self._positive_inventory_count(inventory.get(requested_item)) > 0
+            ):
+                passed = True
+                reason = "critical health permits use_item for available known food"
+            else:
+                reason = "use_item target is not available known food"
+
+        return {
+            "type": "m4_critical_health_survival_action_precondition",
+            "schema_version": 1,
+            "policy_id": M4_CRITICAL_HEALTH_SURVIVAL_POLICY_ID,
+            "activated": True,
+            "passed": passed,
+            "protocol": "m4-fixed-v1",
+            "action_type": action_type,
+            "action_class": action_class,
+            "health": round(health, 3) if math.isfinite(health) else None,
+            "health_critical_threshold": (
+                round(threshold, 3) if math.isfinite(threshold) else None
+            ),
+            "available_food": available_food,
+            "requested_item": requested_item,
+            "reason": reason,
+            "fail_closed_before_action_execution": not passed,
+        }
+
+    @staticmethod
+    def _positive_inventory_count(value) -> int:
+        if isinstance(value, bool):
+            return 0
+        try:
+            count = int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+        return max(0, count)
+
+    @staticmethod
+    def _finite_m4_navigation_target(params: dict) -> bool:
+        if not isinstance(params, dict):
+            return False
+        for axis in ("x", "z"):
+            value = params.get(axis)
+            if isinstance(value, bool):
+                return False
+            try:
+                number = float(value)
+            except (TypeError, ValueError):
+                return False
+            if not math.isfinite(number):
+                return False
+        if "y" in params:
+            value = params.get("y")
+            if isinstance(value, bool):
+                return False
+            try:
+                number = float(value)
+            except (TypeError, ValueError):
+                return False
+            if not math.isfinite(number):
+                return False
+        return True
 
     def _move_to(self, params: dict) -> dict:
         x = params.get("x", 0)
