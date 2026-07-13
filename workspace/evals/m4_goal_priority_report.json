@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T08:22:24.4007823Z",
+  "generated_at": "2026-07-13T09:03:00.7285459Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "offline_opportunity_trigger_type_gate_passed_probe_11_authorized_after_push",
-  "decision": "allow_one_fresh_bm012_probe_11_after_gate_commit_push",
+  "readiness": "probe_11_recorded_offline_dig_pickup_postcondition_gate_required",
+  "decision": "build_offline_dig_pickup_postcondition_gate_before_next_live_episode",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -268,9 +268,50 @@
       "prior_failure_recurred": false
     }
   },
-  "live_episode_count": 28,
-  "live_episode_count_under_current_protocol": 14,
+  "live_episode_count": 29,
+  "live_episode_count_under_current_protocol": 15,
   "latest_live_episode": {
+    "task_id": "BM-012",
+    "episode_id": "m4_episode_20260713_163910_b9c148fa",
+    "session_id": "c6939e6f-d6e",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "autonomous_goal_count": 3,
+    "completed_goal_count": 0,
+    "failed_goal_count": 3,
+    "interrupted_goal_count": 0,
+    "total_cycle_count": 112,
+    "selection_source": "curriculum_and_survival_goal_generator",
+    "initial_selection_reason": "curriculum_ranked:early_wood_bootstrap",
+    "goal_sequence": [
+      "Gather 6 oak logs for tools and shelter",
+      "Find and mine oak logs",
+      "Find and mine oak logs"
+    ],
+    "opportunity_trigger_prior_failure_recurred": false,
+    "opportunity_trigger_report_count": 110,
+    "opportunity_trigger_pass_count": 110,
+    "opportunity_trigger_valid_value_count": 117,
+    "opportunity_trigger_rejection_branch_live_exercised": false,
+    "first_unrecovered_transition": "dig_expected_drop_pickup_postcondition",
+    "first_unrecovered_session_event_index": 81,
+    "first_unrecovered_monotonic_s": 74061.859,
+    "first_unrecovered_goal": "Gather 6 oak logs for tools and shelter",
+    "first_unrecovered_cycle": 4,
+    "final_task_status_counts": {
+      "completed": 3,
+      "failed": 81,
+      "accepted": 30
+    },
+    "resource_terminal_inventory_target": false,
+    "server_observed_death_count": 0,
+    "runner_completed": true,
+    "runner_reported_eligible": false,
+    "independently_accepted_eligible": false,
+    "terminal_world_time": 0,
+    "last_valid_machine_world_time": 1877
+  },
+  "bm012_probe_10_live_episode": {
     "task_id": "BM-012",
     "episode_id": "m4_episode_20260713_154035_5459816d",
     "session_id": "d6831d21-e78",
@@ -869,9 +910,19 @@
     "task_contract_changed": false,
     "source_live_episode_run": true,
     "offline_gate_live_episode_run": false,
-    "current_round_live_episode_run": false,
-    "bm012_live_episode_count": 10,
-    "next_authorized_episode": "bm012_probe_11_once_after_gate_commit_push"
+    "current_round_live_episode_run": true,
+    "bm012_live_episode_count": 11,
+    "probe_11_live_validation": {
+      "prior_failure_recurred": false,
+      "accepted_report_count": 110,
+      "passed_report_count": 110,
+      "trigger_count": 117,
+      "valid_trigger_count": 117,
+      "issue_count": 0,
+      "rejection_branch_live_exercised": false,
+      "offline_gate_remains_passed": true
+    },
+    "next_authorized_episode": "none_pending_offline_dig_pickup_postcondition_gate"
   },
   "bm012_probe_9_live_episode": {
     "task_id": "BM-012",

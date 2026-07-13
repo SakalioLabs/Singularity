@@ -1,7 +1,7 @@
 {
   "type": "capability_evidence_report",
   "schema_version": 2,
-  "generated_at": "2026-07-13T08:28:25.767826+00:00",
+  "generated_at": "2026-07-13T09:11:41.408849+00:00",
   "readiness": "rejected",
   "claim_readiness": "approved",
   "system_status": "incomplete",
@@ -51,6 +51,7 @@
       "logs/benchmarks/m4/m4_episode_20260713_132135_a98f59e5/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260713_154035_5459816d/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260713_163910_b9c148fa/eligibility.json",
       "logs/benchmarks/m1_benchmark_20260710_174239.json",
       "logs/benchmarks/m1_benchmark_20260710_174806.json",
       "logs/benchmarks/m1_benchmark_20260710_175231.json",
@@ -2995,6 +2996,48 @@
         "d6831d21-e78"
       ],
       "content_sha256": "004e65fe7817b55e9a7b5f905b6891f6149e0c814bb5efcb4fefd07165284737",
+      "protocol_hash": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "protocol_hashes": [
+        "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260713_163910_b9c148fa/eligibility.json",
+      "session_id": "c6939e6f-d6e",
+      "session_ids": [
+        "c6939e6f-d6e"
+      ],
+      "content_sha256": "c44c2b863fb5c3d55db3b7d72311e960b90875f414bacdd73fb53ff05239d2fc",
+      "protocol_hash": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "protocol_hashes": [
+        "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260713_163910_b9c148fa/session.json",
+      "session_id": "c6939e6f-d6e",
+      "session_ids": [
+        "c6939e6f-d6e"
+      ],
+      "content_sha256": "2e6d2f4acdac56c43cdbc4d4aa502652a4879b43adb144b405f0e8771c56994b",
       "protocol_hash": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
       "protocol_hashes": [
         "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
@@ -6012,7 +6055,7 @@
       "declared": {
         "name": "Autonomous Survival",
         "status": "Failing (failing)",
-        "progress": "BM-011 repeatverified 3/3; BM-012 ten failed attempts, 0/3; BM-013..014 notrun"
+        "progress": "BM-011 repeatverified 3/3; BM-012 eleven failed attempts, 0/3; BM-013..014 notrun"
       },
       "declared_complete": false,
       "claim_assessment": "not_claimed_complete",
@@ -6089,9 +6132,9 @@
         {
           "task_id": "BM-012",
           "status": "failing",
-          "attempts": 10,
+          "attempts": 11,
           "successes": 0,
-          "failures": 10,
+          "failures": 11,
           "ineligible_successes": 0,
           "ineligibility_reasons": [],
           "repeats_required": 3,
@@ -6105,7 +6148,8 @@
             "81a9bdef-b92:logs/benchmarks/m4/m4_episode_20260713_121120_75d9ae7d/session.json",
             "e1c11192-bd9:logs/benchmarks/m4/m4_episode_20260713_132135_a98f59e5/session.json",
             "53044286-3a8:logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/session.json",
-            "d6831d21-e78:logs/benchmarks/m4/m4_episode_20260713_154035_5459816d/session.json"
+            "d6831d21-e78:logs/benchmarks/m4/m4_episode_20260713_154035_5459816d/session.json",
+            "c6939e6f-d6e:logs/benchmarks/m4/m4_episode_20260713_163910_b9c148fa/session.json"
           ]
         },
         {

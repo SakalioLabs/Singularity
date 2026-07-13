@@ -1,0 +1,147 @@
+{
+  "type": "m4_resource_progress_report",
+  "schema_version": 1,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "task_contract_id": "m4-bm012-resource-contract-v1",
+  "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+  "readiness": "review",
+  "decision": "diagnose_first_unrecovered_transition",
+  "progress_gate_passed": false,
+  "counts_toward_task_success": false,
+  "episode_id": "m4_episode_20260713_163910_b9c148fa",
+  "session_id": "c6939e6f-d6e",
+  "level_name": "m4_episode_20260713_163910_b9c148fa_bm012",
+  "autonomous_goals": [
+    {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "goal_index": 1,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+      "priority": 6,
+      "priority_class": "tool_resource_progression",
+      "selection_score": 61.0
+    },
+    {
+      "goal": "Find and mine oak logs",
+      "goal_index": 2,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "ready_task_selected",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    },
+    {
+      "goal": "Find and mine oak logs",
+      "goal_index": 3,
+      "max_goals": 24,
+      "selection_source": "curriculum",
+      "selection_reason": "ready_task_selected",
+      "priority": 6,
+      "priority_class": "tool_resource_progression"
+    }
+  ],
+  "planner_provider_controls": {
+    "passed": true,
+    "call_count": 112,
+    "real_call_count": 110,
+    "schema_valid_real_call_count": 110,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 0,
+    "max_call_duration_ms": 23656.0,
+    "total_token_usage": 283014,
+    "violations": []
+  },
+  "action_count": 39,
+  "successful_action_count": 4,
+  "resource_acquisition": {
+    "target_items": [
+      "raw_iron",
+      "iron_ore"
+    ],
+    "initial_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "terminal_inventory": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "initial_target_count": 0,
+    "qualifying_items": [],
+    "terminal_target_passed": false,
+    "positive_inventory_delta": {
+      "raw_iron": 0,
+      "iron_ore": 0
+    },
+    "positive_inventory_delta_passed": false,
+    "successful_source_action_count": 0,
+    "successful_source_actions": []
+  },
+  "before_state": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 137,
+    "nearby_hostile_count": 0
+  },
+  "after_state": {
+    "position": {},
+    "health": 20,
+    "hunger": 20,
+    "inventory": {},
+    "time_of_day": 0,
+    "nearby_hostile_count": 0
+  },
+  "time_remaining_s": 0.0,
+  "first_unrecovered_transition": {
+    "event_type": "action",
+    "goal": "Gather 6 oak logs for tools and shelter",
+    "action": {
+      "type": "move_to",
+      "parameters": {
+        "x": 93,
+        "y": 138,
+        "z": -36
+      }
+    },
+    "error": "pathfinder completed without reaching the target tolerance",
+    "monotonic_s": 74079.828
+  },
+  "deadline_eligible": false,
+  "evidence_eligible": false,
+  "eligibility_issues": [
+    "event:terminal_resource_verification",
+    "player_lifecycle_observation_complete",
+    "player_lifecycle_observation_valid",
+    "player_lifecycle_baseline_consistent",
+    "player_lifecycle_event_valid",
+    "player_lifecycle_event_baseline_consistent",
+    "player_lifecycle_event_counts_monotonic",
+    "active_episode_death_absent",
+    "active_episode_respawn_absent",
+    "uninterrupted_survival",
+    "natural_time_progression",
+    "terminal_player_lifecycle",
+    "terminal_bot_connected",
+    "resource_terminal_inventory_target",
+    "resource_successful_source_actions",
+    "resource_positive_inventory_delta",
+    "terminal_machine_verification",
+    "episode_within_deadline",
+    "result_duration_eligible",
+    "no_post_deadline_execution"
+  ]
+}
