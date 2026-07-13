@@ -47,10 +47,10 @@
 
 ## M4 Convergence Result
 
-- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after eleven failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
+- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after twelve failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after eleven failed live attempts. Probe 11 produced 110 real schema-valid Planner responses and 110 passing `m4-subtask-opportunity-trigger-type-grounding-v1` reports covering 117 valid string triggers, so Probe 10's malformed-trigger failure did not recur; the rejection branch was not exercised live. Its earliest blocker was action event 81: `dig` removed an `oak_log` but returned success with no expected-drop pickup and no collection attempt. The `m4-expected-drop-pickup-postcondition-v1` offline gate now replays that transition as failure, waits up to 1.5 seconds for a delayed drop, uses a reachable 1-block pickup goal, and requires the expected inventory delta before strict-M4 success. Fixed M1/M2 behavior is unchanged. Exactly one fresh Probe 12 is authorized only after this gate commit is pushed; BM-013 and BM-014 remain locked.
+- BM-012 is the next target at 0/3 after twelve failed live attempts. Probe 12 exercised `m4-expected-drop-pickup-postcondition-v1` on five strict digs: three acquired the expected item, two failed closed, zero false-positive successes occurred, and the first failed pickup recovered through two later successful digs. The new earliest unrecovered transition is action event 169 / monotonic 77764.312: pickup navigation reported success while ending 2.092 blocks from the dropped `oak_log`, outside its 1-block acquisition envelope, and inventory remained `dark_oak_log:3`. A later 60-second movement deadline disconnected the bridge and is downstream. The next gate is restricted to `pickup_collection_pathfinder_completion_grounding`; no fresh episode is authorized until the offline gate passes and is pushed. Fixed M1/M2 behavior is unchanged, while BM-013 and BM-014 remain locked.
 
 ## Evidence Policy
 
@@ -70,7 +70,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 eleven failed attempts, 0/3; BM-013..014 not_run |
+| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 twelve failed attempts, 0/3; BM-013..014 not_run |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |

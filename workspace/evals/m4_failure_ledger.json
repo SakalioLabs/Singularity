@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-13T09:30:11.4958768Z",
+  "generated_at": "2026-07-13T10:01:06.4556330Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "current_task_id": "BM-012",
@@ -15,10 +15,10 @@
       "required_success_count": 3
     }
   ],
-  "live_episode_count_under_current_protocol": 15,
+  "live_episode_count_under_current_protocol": 16,
   "current_gate": {
-    "hypothesis": "dig_expected_drop_pickup_postcondition",
-    "status": "offline_expected_drop_pickup_postcondition_gate_passed_probe_12_authorized_after_push",
+    "hypothesis": "pickup_collection_pathfinder_completion_grounding",
+    "status": "probe_12_recorded_offline_pickup_collection_completion_grounding_gate_required",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
@@ -28,9 +28,9 @@
     "m4_shelter_python_case_count": 18,
     "m4_node_case_count": 11,
     "offline_atomicity_gate_passed": true,
-    "live_episode_count_under_current_protocol": 15,
+    "live_episode_count_under_current_protocol": 16,
     "latest_accepted_episode": "m4_episode_20260713_055737_6d976e6d",
-    "latest_episode": "m4_episode_20260713_163910_b9c148fa",
+    "latest_episode": "m4_episode_20260713_173959_8843046c",
     "live_atomicity_recovery_passed": true,
     "bm011_eligible_success_count": 3,
     "bm011_status": "repeat_verified",
@@ -38,8 +38,8 @@
     "bm012_task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
     "bm012_offline_gate_passed": true,
     "bm012_eligible_success_count": 0,
-    "bm012_live_episode_count": 11,
-    "bm012_latest_failure_layer": "dig_expected_drop_pickup_postcondition",
+    "bm012_live_episode_count": 12,
+    "bm012_latest_failure_layer": "pickup_collection_pathfinder_completion_grounding",
     "bm012_purpose_phrase_offline_gate_passed": true,
     "bm012_purpose_phrase_focused_test_count": 57,
     "bm012_purpose_phrase_live_validated": true,
@@ -84,7 +84,7 @@
     "bm012_place_success_criteria_post_action_task_completed": true,
     "bm012_place_success_criteria_fail_closed_controls_passed": true,
     "bm012_place_success_criteria_related_test_count": 138,
-    "next_authorized_episode": "bm012_probe_12_once_after_gate_commit_push",
+    "next_authorized_episode": null,
     "bm012_place_success_criteria_prompt_path_live_validated": true,
     "bm012_place_success_criteria_normalization_branch_live_exercised": false,
     "bm012_place_success_criteria_prior_failure_recurred": false,
@@ -245,7 +245,7 @@
     "bm012_dig_pickup_missing_expected_drop_count": 2,
     "bm012_dig_pickup_collection_attempt_count": 1,
     "bm012_dig_pickup_collection_success_count": 0,
-    "bm012_bridge_disconnect_action_event_index": 176,
+    "bm012_bridge_disconnect_action_event_index": 212,
     "bm012_probe_11_runner_completed": true,
     "bm012_probe_11_eligibility_pass_count": 54,
     "bm012_probe_11_eligibility_issue_count": 20,
@@ -291,7 +291,35 @@
     "bm012_dig_pickup_task_contract_changed": false,
     "bm012_dig_pickup_deadline_policy_changed": false,
     "bm012_dig_pickup_success_threshold_changed": false,
-    "bm012_dig_pickup_offline_gate_live_episode_run": false
+    "bm012_dig_pickup_offline_gate_live_episode_run": false,
+    "bm012_dig_pickup_probe_12_live_validated": true,
+    "bm012_dig_pickup_probe_12_strict_dig_count": 5,
+    "bm012_dig_pickup_probe_12_postcondition_pass_count": 3,
+    "bm012_dig_pickup_probe_12_fail_closed_count": 2,
+    "bm012_dig_pickup_probe_12_false_positive_success_count": 0,
+    "bm012_dig_pickup_probe_12_first_failure_recovered": true,
+    "bm012_dig_pickup_probe_12_recovery_success_event_indices": [97, 116],
+    "bm012_probe_12_runner_completed": true,
+    "bm012_probe_12_eligibility_pass_count": 54,
+    "bm012_probe_12_eligibility_issue_count": 20,
+    "bm012_pickup_collection_completion_gate_status": "required_not_implemented",
+    "bm012_pickup_collection_source_action_event_index": 169,
+    "bm012_pickup_collection_source_action_monotonic_s": 77764.312,
+    "bm012_pickup_collection_source_cycle": 8,
+    "bm012_pickup_collection_source_planner_call_id": "llm-cf9a449bc8f64b02",
+    "bm012_pickup_collection_entity_id": 871,
+    "bm012_pickup_collection_item": "oak_log",
+    "bm012_pickup_collection_goal_range": 1,
+    "bm012_pickup_collection_initial_distance": 2.1144154202377106,
+    "bm012_pickup_collection_final_distance": 2.0916180548327694,
+    "bm012_pickup_collection_inner_pathfinder_reported_success": true,
+    "bm012_pickup_collection_expected_inventory_delta_observed": false,
+    "bm012_pickup_collection_outer_postcondition_passed": false,
+    "bm012_pickup_collection_bounded_alternate_attempt_limit": 1,
+    "bm012_pickup_collection_offline_gate_passed": false,
+    "bm012_pickup_collection_protocol_changed": false,
+    "bm012_pickup_collection_task_contract_changed": false,
+    "bm012_pickup_collection_fixed_m1_m2_behavior_changed": false
   },
   "entries": [
     {
@@ -6311,6 +6339,417 @@
       },
       "patch_or_experiment_summary": "Ran exactly one fresh BM-012 Probe 11 from committed and pushed opportunity-trigger gate d37b201. No code, protocol, task contract, success threshold, world intervention, external step script, or second episode changed the live run. Raw JSONL and local summary were used only for source cross-checking and are excluded from version control.",
       "retest_result": "Probe 11 produced 110 real schema-valid Planner responses and 110 passing opportunity-trigger reports covering 117 valid string triggers, so the Probe 10 malformed-trigger failure did not recur and the rejection branch was not exercised. Independent review moved the first unrecovered transition to action event 81: an oak log was removed but the expected drop was neither acquired nor collected while the action returned success. Event 152 repeated the missing acquisition with a 6000 ms pickup-navigation timeout. A later 60-second navigation deadline disconnected the bridge, 32 subsequent actions could not connect, the canonical terminal state failed closed, and evidence ended 0.015 seconds after the absolute deadline. No iron-source action occurred, BM-012 remains 0/3, and no second live episode ran in this round."
+    },
+    {
+      "task_id": "BM-012",
+      "episode_id": "m4_episode_20260713_173959_8843046c",
+      "session_id": "72f32a34-ee9",
+      "level_name": "m4_episode_20260713_173959_8843046c_bm012",
+      "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "task_contract_id": "m4-bm012-resource-contract-v1",
+      "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+      "frozen_commit": "65fa34f",
+      "seed": "12345",
+      "start_monotonic": 77672.828,
+      "end_monotonic": 78272.859,
+      "duration_s": 600.031,
+      "agent_end_monotonic": 78272.843,
+      "agent_elapsed_s": 600.015,
+      "failure_layer": "pickup_collection_pathfinder_completion_grounding",
+      "first_unrecovered_transition": {
+        "failure_layer": "pickup_collection_pathfinder_completion_grounding",
+        "planner_call_event_index": 157,
+        "plan_event_index": 159,
+        "action_verification_event_index": 164,
+        "first_unrecovered_event_index": 169,
+        "monotonic_s": 77764.312,
+        "elapsed_s": 91.484,
+        "goal": "Gather 6 oak logs for tools and shelter",
+        "cycle": 8,
+        "planner_call_id": "llm-cf9a449bc8f64b02",
+        "action": {
+          "type": "dig",
+          "parameters": {
+            "x": 93,
+            "y": 138,
+            "z": -36,
+            "block": "oak_log"
+          }
+        },
+        "action_success": false,
+        "error": "expected block drop was not acquired",
+        "block_removed": true,
+        "expected_drops": ["oak_log"],
+        "pickup_observed": false,
+        "pickup_inventory_delta": {},
+        "pickup_collection": {
+          "detected": true,
+          "attempted": true,
+          "detection_waited_ms": 0,
+          "entity_id": 871,
+          "item_name": "oak_log",
+          "entity_position": {
+            "x": 93.125,
+            "y": 138,
+            "z": -35.334716796875
+          },
+          "initial_distance": 2.1144154202377106,
+          "goal_type": "GoalNear",
+          "goal_range": 1,
+          "inner_success": true,
+          "final_distance": 2.0916180548327694
+        },
+        "dig_postcondition": {
+          "policy_id": "m4-expected-drop-pickup-postcondition-v1",
+          "passed": false
+        },
+        "action_duration_ms": 21343,
+        "inventory_before": {
+          "dark_oak_log": 3
+        },
+        "inventory_after": {
+          "dark_oak_log": 3
+        },
+        "successful_action_count_after_transition": 0,
+        "recovered": false
+      },
+      "runner_candidates_overridden_by_independent_review": [
+        {
+          "event_type": "action",
+          "session_event_index": 29,
+          "monotonic_s": 77679.468,
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "action": {
+            "type": "move_to",
+            "parameters": {
+              "x": 94,
+              "y": 142,
+              "z": -31
+            }
+          },
+          "error": "pathfinder completed without reaching the target tolerance",
+          "recovery_event_index": 51,
+          "override_reason": "A later strict dig removed and acquired the exact dark_oak_log target."
+        },
+        {
+          "event_type": "action",
+          "session_event_index": 148,
+          "monotonic_s": 77738.078,
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "action": {
+            "type": "move_to",
+            "parameters": {
+              "x": 93,
+              "y": 138,
+              "z": -36
+            }
+          },
+          "error": "pathfinder completed without reaching the target tolerance",
+          "recovery_event_index": 169,
+          "override_reason": "The next strict dig removed the exact oak_log target, so movement tolerance did not block target interaction."
+        }
+      ],
+      "attempted_plan": {
+        "real_llm_call": true,
+        "schema_valid": true,
+        "response_sha256": "4196053facef6fb1313b6d15b47ab90b8347965bf8a06c51173369c4545554fa",
+        "response_byte_count": 748,
+        "duration_ms": 4047,
+        "total_tokens": 3471,
+        "action_type": "dig",
+        "action_parameter_grounding_passed": true,
+        "opportunity_trigger_grounding_passed": true,
+        "action_verification_status": "accept",
+        "action_verification_reason": "available tool can mine oak_log"
+      },
+      "prior_hypothesis_live_validation": {
+        "hypothesis": "dig_expected_drop_pickup_postcondition",
+        "policy_id": "m4-expected-drop-pickup-postcondition-v1",
+        "strict_dig_count": 5,
+        "policy_report_count": 5,
+        "postcondition_pass_count": 3,
+        "fail_closed_count": 2,
+        "false_positive_success_count": 0,
+        "first_missing_pickup_event_index": 72,
+        "first_missing_pickup_recovered": true,
+        "recovery_success_event_indices": [97, 116],
+        "prior_failure_recurred": false,
+        "offline_gate_remains_passed": true
+      },
+      "autonomous_goal_summary": {
+        "attempted": 3,
+        "completed": 0,
+        "failed": 3,
+        "interrupted": 0,
+        "total_cycles": 117,
+        "goal_sequence": [
+          {
+            "goal_index": 1,
+            "goal": "Gather 6 oak logs for tools and shelter",
+            "selection_source": "curriculum",
+            "selection_reason": "curriculum_ranked:early_wood_bootstrap",
+            "outcome": "failed",
+            "cycles": 40,
+            "termination_reason": "max_cycles"
+          },
+          {
+            "goal_index": 2,
+            "goal": "Find and punch oak trees",
+            "selection_source": "task",
+            "selection_reason": "ready_task_selected",
+            "outcome": "failed",
+            "cycles": 40,
+            "termination_reason": "max_cycles"
+          },
+          {
+            "goal_index": 3,
+            "goal": "Find and punch oak trees",
+            "selection_source": "task",
+            "selection_reason": "ready_task_selected",
+            "outcome": "failed",
+            "cycles": 37,
+            "termination_reason": "episode_deadline"
+          }
+        ]
+      },
+      "planner_controls": {
+        "call_count": 117,
+        "real_call_count": 115,
+        "schema_valid_real_call_count": 115,
+        "schema_invalid_real_call_count": 0,
+        "opportunity_trigger_report_count": 115,
+        "opportunity_trigger_pass_count": 115,
+        "trigger_value_count": 116,
+        "valid_trigger_value_count": 116,
+        "maximum_duration_ms": 50360,
+        "total_tokens": 296133,
+        "reasoning_content_byte_count": 0,
+        "transport_retry_count": 0,
+        "transport_error_count": 2,
+        "transport_recovery_count": 1,
+        "output_recovery_count": 0,
+        "provider_control_violation_count": 0,
+        "first_transport_error_recovered": true,
+        "deadline_transport_timeout_recovered": false
+      },
+      "action_summary": {
+        "attempted": 47,
+        "successful": 3,
+        "by_type": {
+          "move_to": {
+            "attempted": 42,
+            "successful": 0
+          },
+          "dig": {
+            "attempted": 5,
+            "successful": 3,
+            "block_removed": 5,
+            "pickup_observed": 3,
+            "pickup_missing": 2,
+            "postcondition_passed": 3,
+            "postcondition_failed_closed": 2,
+            "false_positive_success": 0
+          }
+        },
+        "failure_reason_counts": {
+          "Not connected to bot bridge": 39,
+          "pathfinder completed without reaching the target tolerance": 2,
+          "expected block drop was not acquired": 2,
+          "action deadline exceeded during action": 1
+        },
+        "action_verification_accept_count": 47,
+        "action_verification_review_count": 0,
+        "action_verification_reject_count": 0,
+        "failure_reflection_suppressed_count": 44,
+        "successful_action_count_after_first_unrecovered_transition": 0
+      },
+      "task_lifecycle": {
+        "terminal_status_counts": {
+          "completed": 1,
+          "failed": 92,
+          "accepted": 23
+        }
+      },
+      "downstream_cascade": {
+        "failure_reflection_suppressed_event_index": 171,
+        "failure_reflection_suppressed_reason": "m4_fixed_profile_immediate_replan",
+        "direct_recovery_plan_event_index": 180,
+        "direct_recovery_action_suppressed_by_task_deadline_event_index": 185,
+        "task_deadline_recovery_event_index": 190,
+        "move_recovery_plan_event_index": 199,
+        "move_action_verification_event_index": 204,
+        "action_deadline_disconnect_event_index": 212,
+        "action_deadline_disconnect_monotonic_s": 77879.609,
+        "action_deadline_duration_ms": 60000,
+        "first_incomplete_observation_event_index": 208,
+        "first_incomplete_observation_monotonic_s": 77879.609,
+        "not_connected_action_count": 39,
+        "incomplete_observation_count": 147,
+        "task_deadline_interrupt_count": 68,
+        "iron_source_action_count": 0,
+        "not_the_earliest_blocker": true
+      },
+      "runtime_interrupts": {
+        "trigger_count": 68,
+        "recovery_count": 68,
+        "unique_trigger_count": 68,
+        "unique_expired_task_count": 92,
+        "repeated_expired_task_count": 0,
+        "concurrent_root_violation_count": 0,
+        "reason_counts": {
+          "task_deadline_elapsed": 68
+        }
+      },
+      "shelter_verification": {
+        "verification_event_count": 5,
+        "verification_pass_count": 0,
+        "bounded_action_count": 0,
+        "bounded_action_success_count": 0,
+        "matched_episode_placement_count": 0,
+        "machine_verified_safe_state": false
+      },
+      "player_lifecycle_continuity": {
+        "active_observation_count": 165,
+        "player_lifecycle_present_observation_count": 18,
+        "player_lifecycle_missing_observation_count": 147,
+        "maximum_valid_death_count": 0,
+        "maximum_valid_respawn_count": 0,
+        "source": "mineflayer_events",
+        "last_valid_lifecycle_event_index": 192,
+        "last_valid_lifecycle_uninterrupted": true,
+        "terminal_observation_complete": false,
+        "independent_gate_passed": false,
+        "verifier_id": "m4-player-lifecycle-verifier-v1"
+      },
+      "resource_acquisition": {
+        "initial_inventory": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "terminal_inventory": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "positive_inventory_delta": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "successful_source_action_count": 0,
+        "terminal_target_passed": false
+      },
+      "terminal_state": {
+        "source_event_index": 192,
+        "source_monotonic_s": 77816.031,
+        "source": "last_complete_machine_observation_before_bridge_disconnect",
+        "time_of_day": 2994,
+        "health": 20,
+        "food": 20,
+        "position": {
+          "x": 93.34238234601303,
+          "y": 140.07472379453523,
+          "z": -35.48680946380416
+        },
+        "inventory": {
+          "dark_oak_log": 3
+        },
+        "canonical_terminal_state": {
+          "time_of_day": 0,
+          "position": {},
+          "inventory": {},
+          "bot_connected": false
+        }
+      },
+      "deadline_status": {
+        "episode_started_monotonic": 77672.828,
+        "episode_deadline_monotonic": 78272.828,
+        "agent_end_monotonic": 78272.843,
+        "evidence_end_monotonic": 78272.859,
+        "recorded_elapsed_s": 600.015,
+        "agent_time_overrun_s": 0.015,
+        "evidence_time_overrun_s": 0.031,
+        "time_remaining_at_last_action_s": 12.157,
+        "last_planner_call_monotonic": 78272.843,
+        "last_plan_monotonic": 78272.843,
+        "last_action_monotonic": 78260.671,
+        "post_deadline_event_count": 8,
+        "post_deadline_planner_call_count": 1,
+        "post_deadline_plan_count": 1,
+        "post_deadline_action_count": 0,
+        "post_deadline_housekeeping_event_count": 6,
+        "episode_within_deadline": false,
+        "deadline_eligible": false,
+        "result_duration_eligible": false,
+        "no_post_deadline_execution": false,
+        "runner_completed": true
+      },
+      "eligibility": {
+        "preflight_passed": true,
+        "runner_completed": true,
+        "runner_reported_eligible": false,
+        "independently_accepted_eligible": false,
+        "check_count": 74,
+        "pass_count": 54,
+        "issue_count": 20,
+        "issues": [
+          "event:terminal_resource_verification",
+          "player_lifecycle_observation_complete",
+          "player_lifecycle_observation_valid",
+          "player_lifecycle_baseline_consistent",
+          "player_lifecycle_event_valid",
+          "player_lifecycle_event_baseline_consistent",
+          "player_lifecycle_event_counts_monotonic",
+          "active_episode_death_absent",
+          "active_episode_respawn_absent",
+          "uninterrupted_survival",
+          "natural_time_progression",
+          "terminal_player_lifecycle",
+          "terminal_bot_connected",
+          "resource_terminal_inventory_target",
+          "resource_successful_source_actions",
+          "resource_positive_inventory_delta",
+          "terminal_machine_verification",
+          "episode_within_deadline",
+          "result_duration_eligible",
+          "no_post_deadline_execution"
+        ],
+        "counts_toward_task_success": false
+      },
+      "skill_attribution": {
+        "skill_execution_mode": "off",
+        "selected_count": 0,
+        "executed_count": 0,
+        "successful_action_count": 0,
+        "failed_action_count": 0,
+        "quarantined_contribution_count": 0,
+        "vision_intervention_count": 0,
+        "multi_agent_intervention_count": 0
+      },
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260713_173959_8843046c/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260713_173959_8843046c/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260713_173959_8843046c/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260713_173959_8843046c/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260713_173959_8843046c/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260713_173959_8843046c/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260713_173959_8843046c/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260713_173959_8843046c/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "31b416772bf68a29a4ef411ed9c3fc9009a5250dd0c9251fa0ffec965b1d4b16",
+        "manifest": "f7c8459d6899c7b47e09bc9de066d92c84c75ee9945b477aaeb5b5fe4351de2e",
+        "session": "0390a2b4410abc740d2908d19fd21913918122aa0a94b1c6e992de248957fbaa",
+        "result": "3f588f583e57246f01a97de14791a3fb778978d7eae8b6020ac064a3e6b24a6b",
+        "eligibility": "654b504975d0c4eb9e3f1b9d812d7db4cd4d8502c31eb335a1c937e38b64b8b7",
+        "preparation": "2d12dc763a36a680b5b4b47721f94541a1a22db4d970a7848f16f7f9ea47ab10",
+        "protocol_status": "e009a1bb09374a3bdc2cf800ad93bdaa82f309c8f6e338e9db6be01118a7a789",
+        "reset": "9ea629434e8e8fdfda447ef645be8cd5044852bbfdb72bb85aa5f2c51f27d6ea"
+      },
+      "source_artifact_sha256": {
+        "raw_session_jsonl": "9fe7205f4c2b5fef0ed83ddeaecee0c2b172a13d9221033b086dc1e6e31cc6de",
+        "raw_session_summary": "5a62989c0111cf529f4d47cd6d970c102d9abe9d51754139cef7b7567934e768"
+      },
+      "patch_or_experiment_summary": "Ran exactly one fresh BM-012 Probe 12 from committed and pushed expected-drop postcondition gate 65fa34f. No code, protocol, task contract, success threshold, world intervention, external step script, or second episode changed the live run. Raw JSONL and local summary were used only for source cross-checking and are excluded from version control.",
+      "retest_result": "Probe 12 live-exercised five strict dig postconditions: three acquired the expected drop, two failed closed, zero false-positive successes occurred, and the first missing-pickup failure recovered through two subsequent successful digs. Independent review overrides two earlier movement-tolerance candidates and places the first unrecovered transition at event 169, where the collector reported inner pathfinder success while ending 2.092 blocks from the drop against a 1-block goal and inventory stayed at three dark-oak logs. A downstream 60-second move deadline disconnected the bridge, 39 later actions could not connect, and 147 observations were incomplete. The run passed 54/74 eligibility checks, acquired no iron, ended 0.031 seconds after the evidence boundary with zero post-deadline actions, leaves BM-012 at 0/3, and authorizes no second live episode before a new offline completion-grounding gate passes and is pushed."
     }
   ]
 }
