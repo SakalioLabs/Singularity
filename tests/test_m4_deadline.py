@@ -3116,6 +3116,410 @@ def test_m4_post_place_machine_observation_fails_closed_for_mismatched_controls(
     print("PASS: post-place grounding rejects unsuccessful, mismatched, malformed, out-of-scope, and non-M4 evidence")
 
 
+def _m4_ready_task_goal_verifier_agent(clock: FakeClock):
+    agent = object.__new__(Agent)
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    agent.session_logger = RuntimeSessionLogger(clock)
+    agent.task_system = TaskSystem()
+    agent._episode_deadline_monotonic = 1_000_000_000.0
+    agent._last_autonomous_goal_decision = {}
+    agent._m4_ready_task_goal_binding = {}
+    agent._write_memory_episode = lambda *args, **kwargs: None
+    agent._record_frontier_budget_decision = lambda *args, **kwargs: None
+    agent._state_with_causal_context = lambda observation, _goal="": observation
+    return agent
+
+
+def _achieved_goal_verification(goal: str) -> GoalVerification:
+    return GoalVerification(
+        goal=goal,
+        achieved=True,
+        status="achieved",
+        confidence=1.0,
+        evidence=["generic goal text matched existing raw_iron:1"],
+        matched_rules=["inventory:raw_iron:1/1"],
+    )
+
+
+def test_m4_ready_task_goal_verifier_replays_probe_20_and_keeps_dig_executable():
+    clock = FakeClock()
+    goal = "Mine iron ore"
+    state = {
+        "position": {"x": 13, "y": -14, "z": -31},
+        "inventory": {"raw_iron": 1, "stone_pickaxe": 1},
+        "inventory_count": 2,
+        "nearby_blocks": [{"name": "iron_ore", "x": 14, "y": -14, "z": -31}],
+        "health": 20,
+        "food": 20,
+        "time": 8295,
+    }
+    task_system = TaskSystem()
+    bound_task = task_system.create_task(
+        title=goal,
+        success_criteria={"inventory": {"raw_iron": 2}},
+        priority=0,
+        root_plan_id="root-probe-20",
+        plan_node_id="mine-second-raw-iron",
+        planner_call_id="probe-20-event-1189",
+    )
+    task_system.update_task(bound_task.id, status=TaskStatus.ACCEPTED)
+    task_system.drain_transition_events()
+
+    class Probe20GoalGenerator:
+        last_decision = {
+            "selection_source": "goal_generator",
+            "selection_reason": "bm012_resource_progression",
+            "priority": 6,
+            "priority_class": "tool_resource_progression",
+        }
+
+        @staticmethod
+        def next_goal(_observation, task_id=""):
+            assert task_id == "BM-012"
+            return "Collect 8 iron resources"
+
+    class Probe20ActionController(RuntimeActionController):
+        def execute(self, action, observation):
+            super().execute(action, observation)
+            assert action == {
+                "type": "dig",
+                "parameters": {"x": 14, "y": -14, "z": -31, "block": "iron_ore"},
+            }
+            state["inventory"]["raw_iron"] = 2
+            return {
+                "success": True,
+                "action_type": "dig",
+                "inventory_delta": {"raw_iron": 1},
+            }
+
+    agent = object.__new__(Agent)
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    agent.session_logger = RuntimeSessionLogger(clock)
+    agent.planner = RuntimePlanner()
+    agent.task_system = task_system
+    agent.action_controller = Probe20ActionController()
+    agent.memory = object()
+    agent.goal_generator = Probe20GoalGenerator()
+    agent.explorer = RuntimeExplorer()
+    agent.curriculum = RuntimeCurriculum()
+    agent._episode_deadline_monotonic = None
+    agent._skill_episode_start_index = 0
+    agent._active_skill_execution = {}
+    agent._skill_fallback_goals = set()
+    agent._last_autonomous_goal_decision = {}
+    agent._m4_ready_task_goal_binding = {}
+    agent._observe = lambda: copy.deepcopy(state)
+    agent._think = lambda observation, override_goal=None: {
+        "status": "planning",
+        "reasoning": "mine the next observed iron ore",
+        "subtasks": [],
+        "actions": [{
+            "type": "dig",
+            "parameters": {"x": 14, "y": -14, "z": -31, "block": "iron_ore"},
+        }],
+    }
+    agent._accept_planned_tasks = lambda: None
+    agent._record_task_continuity = lambda *args, **kwargs: None
+    agent._state_with_causal_context = lambda observation, _goal="": observation
+    agent._goal_is_verified = lambda selected_goal, *args, **kwargs: (
+        True,
+        _achieved_goal_verification(selected_goal),
+    )
+    agent._handle_runtime_interrupt = lambda observation, *args, **kwargs: (False, observation)
+    agent._select_action_for_execution = lambda action, *args, **kwargs: (action, {})
+    agent._verify_action_for_execution = lambda *args, **kwargs: ({}, None)
+    agent._record_action_value = lambda *args, **kwargs: None
+    agent._log_action_event = lambda *args, **kwargs: None
+    agent._record_skill_usage = lambda *args, **kwargs: None
+    agent._write_memory_episode = lambda *args, **kwargs: None
+    agent._write_memory_context = lambda *args, **kwargs: None
+    agent._record_frontier_budget_decision = lambda *args, **kwargs: None
+    agent._record_frontier_budget_outcome = lambda *args, **kwargs: None
+    agent._finalize_skill_learning_episode = lambda *args, **kwargs: None
+
+    with patch("singularity.core.agent.time.monotonic", clock.monotonic):
+        result = agent.run_autonomous(
+            max_goals=1,
+            max_cycles_per_goal=1,
+            max_duration_s=5.0,
+            task_id="BM-012",
+        )
+
+    reports = [
+        event["data"] for event in agent.session_logger.events
+        if event["type"] == "m4_ready_task_goal_verifier_binding"
+    ]
+    assert len(agent.action_controller.actions) == 1
+    assert result["goals_completed"] == 1
+    assert result["total_cycles"] == 1
+    assert bound_task.status == TaskStatus.COMPLETED
+    assert bound_task.result["completed_by"] == "action_result"
+    assert reports[0]["task_id"] == bound_task.id
+    assert reports[0]["success_criteria"] == {"inventory": {"raw_iron": 2}}
+    assert reports[0]["task_status"] == "accepted"
+    assert reports[0]["verifier_accepted"] is True
+    assert reports[0]["verifier_achieved"] is True
+    assert reports[0]["completion_suppressed"] is True
+    assert reports[0]["decision"] == "suppress_until_bound_task_machine_completion"
+    assert reports[1]["task_id"] == bound_task.id
+    assert reports[1]["task_status"] == "completed"
+    assert reports[1]["completion_suppressed"] is False
+    assert reports[1]["decision"] == "allow_bound_task_machine_completion"
+    print("PASS: Probe 20 verifier bypass is suppressed, the dig executes, and exact task completion releases the goal")
+
+
+def test_m4_ready_task_goal_verifier_allows_exact_machine_reconciliation_only():
+    clock = FakeClock()
+    goal = "Mine iron ore"
+    agent = _m4_ready_task_goal_verifier_agent(clock)
+    bound_task = agent.task_system.create_task(
+        title=goal,
+        success_criteria={"inventory": {"raw_iron": 2}},
+        priority=0,
+    )
+    agent.task_system.update_task(bound_task.id, status=TaskStatus.ACCEPTED)
+    selected = agent._select_autonomous_goal(
+        {"inventory": {"raw_iron": 1}, "health": 20, "food": 20},
+        "Collect 8 iron resources",
+    )
+    verification = _achieved_goal_verification(goal)
+
+    suppressed, pending = agent._gate_m4_ready_task_goal_verification(
+        selected,
+        True,
+        verification,
+        {"mode": "autonomous", "phase": "pre_plan", "cycle": 1},
+    )
+    assert suppressed is False
+    assert pending["completion_suppressed"] is True
+
+    agent.task_system.update_task(bound_task.id, status=TaskStatus.ACTIVE)
+    active_suppressed, active = agent._gate_m4_ready_task_goal_verification(
+        selected,
+        True,
+        verification,
+        {"mode": "autonomous", "phase": "pre_plan", "cycle": 2},
+    )
+    assert active_suppressed is False
+    assert active["task_status"] == "active"
+    assert active["completion_suppressed"] is True
+
+    completed = agent._reconcile_m4_satisfied_tasks(
+        {"inventory": {"raw_iron": 2}},
+        goal,
+        3,
+    )
+    allowed, report = agent._gate_m4_ready_task_goal_verification(
+        selected,
+        True,
+        verification,
+        {"mode": "autonomous", "phase": "pre_plan", "cycle": 3},
+    )
+    assert [task.id for task in completed] == [bound_task.id]
+    assert bound_task.status == TaskStatus.COMPLETED
+    assert allowed is True
+    assert report["completion_suppressed"] is False
+    assert report["machine_completion_source"] == "machine_state"
+
+    unknown = GoalVerification(
+        goal=goal,
+        achieved=False,
+        status="unknown",
+        confidence=0.0,
+        evidence=[],
+    )
+    unknown_allowed, unknown_report = agent._gate_m4_ready_task_goal_verification(
+        selected,
+        True,
+        unknown,
+        {"mode": "autonomous", "phase": "planner_complete", "cycle": 3},
+    )
+    assert unknown_allowed is True
+    assert unknown_report["verifier_accepted"] is True
+    assert unknown_report["verifier_achieved"] is False
+    print("PASS: exact bound task machine-state completion releases ready-task root verification")
+
+
+def test_m4_ready_task_goal_verifier_rejects_same_title_task_replacement():
+    clock = FakeClock()
+    goal = "Mine iron ore"
+    agent = _m4_ready_task_goal_verifier_agent(clock)
+    original = agent.task_system.create_task(
+        title=goal,
+        success_criteria={"inventory": {"raw_iron": 2}},
+        priority=0,
+    )
+    agent.task_system.update_task(original.id, status=TaskStatus.ACCEPTED)
+    assert agent._select_autonomous_goal(
+        {"inventory": {"raw_iron": 1}, "health": 20, "food": 20},
+        "Collect 8 iron resources",
+    ) == goal
+
+    replacement = agent.task_system.create_task(
+        title=goal,
+        success_criteria={"inventory": {"raw_iron": 1}},
+        priority=0,
+    )
+    agent.task_system.update_task(replacement.id, status=TaskStatus.ACCEPTED)
+    agent.task_system.complete_state_satisfied_tasks({"inventory": {"raw_iron": 1}})
+    verified, report = agent._gate_m4_ready_task_goal_verification(
+        goal,
+        True,
+        _achieved_goal_verification(goal),
+        {"mode": "autonomous", "phase": "pre_plan", "cycle": 1},
+    )
+
+    assert replacement.status == TaskStatus.COMPLETED
+    assert original.status == TaskStatus.ACCEPTED
+    assert verified is False
+    assert report["task_id"] == original.id
+    assert report["task_status"] == "accepted"
+    assert report["completion_suppressed"] is True
+    print("PASS: a completed same-title task cannot replace the exact selected ready-task identity")
+
+
+def test_m4_ready_task_goal_verifier_scope_binding_and_deadline_controls_fail_closed():
+    clock = FakeClock()
+    goal = "Mine iron ore"
+    verification = _achieved_goal_verification(goal)
+
+    non_ready = _m4_ready_task_goal_verifier_agent(clock)
+    non_ready._last_autonomous_goal_decision = {
+        "goal": goal,
+        "selection_source": "goal_generator",
+        "selection_reason": "rule_generator",
+    }
+    verified, report = non_ready._gate_m4_ready_task_goal_verification(
+        goal,
+        True,
+        verification,
+        {"mode": "autonomous", "phase": "pre_plan"},
+    )
+    assert verified is True
+    assert report == {}
+
+    for protocol in ("m1-fixed-v1", "m2-fixed-v1"):
+        control = _m4_ready_task_goal_verifier_agent(clock)
+        control.config = Config(planner_protocol=protocol)
+        control._last_autonomous_goal_decision = {
+            "goal": goal,
+            "selection_reason": "ready_task_selected",
+        }
+        verified, report = control._gate_m4_ready_task_goal_verification(
+            goal,
+            True,
+            verification,
+            {"mode": "autonomous", "phase": "pre_plan"},
+        )
+        assert verified is True
+        assert report == {}
+
+    malformed = _m4_ready_task_goal_verifier_agent(clock)
+    malformed._last_autonomous_goal_decision = {
+        "goal": goal,
+        "selection_source": "curriculum",
+        "selection_reason": "ready_task_selected",
+    }
+    for binding, expected_issue in (
+        ({}, "binding_missing"),
+        ({"policy_id": "wrong", "task_id": "missing"}, "binding_policy_mismatch"),
+    ):
+        malformed._m4_ready_task_goal_binding = binding
+        verified, report = malformed._gate_m4_ready_task_goal_verification(
+            goal,
+            True,
+            verification,
+            {"mode": "autonomous", "phase": "pre_plan"},
+        )
+        assert verified is False
+        assert report["binding_valid"] is False
+        assert expected_issue in report["binding_issues"]
+        assert report["decision"] == "suppress_invalid_binding"
+
+    mutated = _m4_ready_task_goal_verifier_agent(clock)
+    mutated_task = mutated.task_system.create_task(
+        title=goal,
+        success_criteria={"inventory": {"raw_iron": 2}},
+        priority=0,
+    )
+    mutated.task_system.update_task(mutated_task.id, status=TaskStatus.ACCEPTED)
+    mutated._select_autonomous_goal(
+        {"inventory": {"raw_iron": 1}, "health": 20, "food": 20},
+        "Collect 8 iron resources",
+    )
+    mutated_task.success_criteria["inventory"]["raw_iron"] = 1
+    verified, report = mutated._gate_m4_ready_task_goal_verification(
+        goal,
+        True,
+        verification,
+        {"mode": "autonomous", "phase": "pre_plan"},
+    )
+    assert verified is False
+    assert report["success_criteria"] == {"inventory": {"raw_iron": 2}}
+    assert "bound_task_success_criteria_mismatch" in report["binding_issues"]
+
+    unproven = _m4_ready_task_goal_verifier_agent(clock)
+    unproven_task = unproven.task_system.create_task(
+        title=goal,
+        success_criteria={"inventory": {"raw_iron": 2}},
+        priority=0,
+    )
+    unproven.task_system.update_task(unproven_task.id, status=TaskStatus.ACCEPTED)
+    unproven._select_autonomous_goal(
+        {"inventory": {"raw_iron": 1}, "health": 20, "food": 20},
+        "Collect 8 iron resources",
+    )
+    unproven.task_system.complete_task(unproven_task.id, {"goal": goal})
+    verified, report = unproven._gate_m4_ready_task_goal_verification(
+        goal,
+        True,
+        verification,
+        {"mode": "autonomous", "phase": "pre_plan"},
+    )
+    assert verified is False
+    assert report["task_status"] == "completed"
+    assert report["task_machine_completed"] is False
+    assert report["machine_completion_source"] == ""
+
+    expired = _m4_ready_task_goal_verifier_agent(clock)
+    completed = expired.task_system.create_task(
+        title=goal,
+        success_criteria={"inventory": {"raw_iron": 2}},
+        priority=0,
+    )
+    expired.task_system.update_task(completed.id, status=TaskStatus.ACCEPTED)
+    expired._select_autonomous_goal(
+        {"inventory": {"raw_iron": 1}, "health": 20, "food": 20},
+        "Collect 8 iron resources",
+    )
+    expired.task_system.complete_task(completed.id, {"completed_by": "machine_state"})
+    for malformed_deadline in (None, True, float("nan")):
+        expired._episode_deadline_monotonic = malformed_deadline
+        verified, report = expired._gate_m4_ready_task_goal_verification(
+            goal,
+            True,
+            verification,
+            {"mode": "autonomous", "phase": "pre_plan"},
+        )
+        assert verified is False
+        assert report["deadline_valid"] is False
+        assert report["decision"] == "suppress_invalid_deadline"
+
+    expired._episode_deadline_monotonic = clock.monotonic()
+    with patch("singularity.core.agent.time.monotonic", clock.monotonic):
+        verified, report = expired._gate_m4_ready_task_goal_verification(
+            goal,
+            True,
+            verification,
+            {"mode": "autonomous", "phase": "pre_plan"},
+        )
+    assert verified is False
+    assert report["deadline_valid"] is True
+    assert report["deadline_reached"] is True
+    assert report["decision"] == "suppress_episode_deadline"
+    print("PASS: ready-task gate is M4-only and fails closed for malformed binding or deadline expiry")
+
+
 def test_m4_verifier_return_after_deadline_is_rejected():
     clock = FakeClock()
     agent = object.__new__(Agent)
@@ -3269,6 +3673,10 @@ if __name__ == "__main__":
     test_m4_observation_recovery_gate_rejects_unconfirmed_fallback_and_is_m4_only()
     test_m4_post_place_machine_observation_replays_probe_19_and_closes_task()
     test_m4_post_place_machine_observation_fails_closed_for_mismatched_controls()
+    test_m4_ready_task_goal_verifier_replays_probe_20_and_keeps_dig_executable()
+    test_m4_ready_task_goal_verifier_allows_exact_machine_reconciliation_only()
+    test_m4_ready_task_goal_verifier_rejects_same_title_task_replacement()
+    test_m4_ready_task_goal_verifier_scope_binding_and_deadline_controls_fail_closed()
     test_m4_verifier_return_after_deadline_is_rejected()
     test_session_logger_records_absolute_monotonic_event_time()
     test_m4_autonomous_loop_shares_deadline_and_suppresses_plan_suffix()

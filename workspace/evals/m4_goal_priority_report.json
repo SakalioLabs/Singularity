@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T22:35:41Z",
+  "generated_at": "2026-07-13T23:22:43Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_20_failed_ready_task_goal_verifier_success_criteria_review_required",
-  "decision": "block_live_episode_pending_offline_ready_task_goal_verifier_success_criteria_binding_gate",
+  "readiness": "bm012_probe_21_authorized_ready_task_goal_verifier_success_criteria_offline_gate_passed",
+  "decision": "authorize_exactly_one_bm012_probe_21_after_gate_commit_push",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -37,7 +37,8 @@
     {"name": "maintenance_nightfall_boundary", "status": "pass", "evidence": "tests/test_m4_shelter.py"},
     {"name": "maintenance_dawn_boundary", "status": "pass", "evidence": "tests/test_m4_shelter.py"},
     {"name": "maintenance_bounded_wait_grounding", "status": "pass", "evidence": "tests/test_m4_shelter.py"},
-    {"name": "bounded_shelter_relocation_before_retry", "status": "pass", "evidence": "src/singularity/core/agent.py; src/singularity/core/planner.py; tests/test_m4_shelter.py"}
+    {"name": "bounded_shelter_relocation_before_retry", "status": "pass", "evidence": "src/singularity/core/agent.py; src/singularity/core/planner.py; tests/test_m4_shelter.py"},
+    {"name": "ready_task_exact_identity_precedes_generic_goal_completion", "status": "pass", "evidence": "src/singularity/core/agent.py; tests/test_m4_deadline.py"}
   ],
   "maintenance_lifecycle": {
     "nightfall_boundary_start": 12000,
@@ -1672,6 +1673,36 @@
     "live_probe_20_prior_failure_recurred": false,
     "bm012_live_episode_count": 20,
     "next_authorized_episode": null
+  },
+  "offline_ready_task_goal_verifier_success_criteria_gate": {
+    "root_hypothesis": "m4_ready_task_goal_verifier_success_criteria_bypass",
+    "status": "passed_offline_live_validation_pending_probe_21",
+    "source_episode_id": "m4_episode_20260714_061205_a52cd5f7",
+    "source_session_id": "1f007d99-08f",
+    "source_goal": "Mine iron ore",
+    "source_selection_reason": "ready_task_selected",
+    "source_required_inventory": {"raw_iron": 2},
+    "source_observed_inventory": {"raw_iron": 1},
+    "policy_id": "m4-ready-task-goal-verifier-success-criteria-v1",
+    "goal_priority_policy_changed": false,
+    "planner_goal_order_changed": false,
+    "autonomous_goal_order_changed": false,
+    "survival_preemption_changed": false,
+    "ready_task_identity_bound_before_verification": true,
+    "same_title_replacement_rejected": true,
+    "generic_non_ready_goal_verification_unchanged": true,
+    "fixed_m1_m2_controls_unchanged": true,
+    "exact_python_gate_case_count": 4,
+    "m4_goal_priority_definition_count": 5,
+    "m4_deadline_definition_count": 47,
+    "full_python_regression": 739,
+    "non_live_python_file_count": 35,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 52,
+    "offline_gate_live_episode_run": false,
+    "bm012_live_episode_count": 20,
+    "next_authorized_episode": "bm012_probe_21_after_gate_commit_push",
+    "authorized_episode_count": 1
   },
   "bm012_probe_20_live_episode": {
     "task_id": "BM-012",

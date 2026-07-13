@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_20_failed_ready_task_goal_verifier_success_criteria_review_required |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_21_authorized_after_ready_task_goal_verifier_offline_gate |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -159,6 +159,8 @@ Probe 20 live-activated the policy twice. Event 269 accepted exact machine evide
 
 Independent review rejects the Runner's event-820 torch `empty_plan` as causal because goal 8 later placed a table, goal 9 crafted a stone pickaxe, and action event 1172 acquired `raw_iron:+1`. The new earliest failure layer is `m4_ready_task_goal_verifier_success_criteria_bypass`. Goal 11 came from `ready_task_selected`; readiness event 1186 reported one ready task, plan event 1189 required `raw_iron:2` and supplied a valid dig, but pre-plan verification event 1193 accepted the generic `Mine iron ore` text from existing `raw_iron:1` without a delta. Fourteen schema-valid plans through event 1436 continued to require `raw_iron:2`, while fourteen verifier events through 1440 accepted `raw_iron:1/1`; no action executed after event 1172. The 24-goal limit ended the episode with 190.516 seconds remaining. The next experiment must reproduce this exact Agent/GoalVerifier integration boundary offline and require a selected ready task's machine success criteria before pre-plan root completion, without globally changing generic goal semantics.
 
+The bounded offline fix now passes under `m4-ready-task-goal-verifier-success-criteria-v1`. Agent captures the exact task ID selected by `ready_task_selected` and a deep-copied criteria snapshot. Pre-plan, Planner-complete, and post-action verification can close that root only when the same task is already machine-completed by existing state reconciliation or action feedback; generic GoalVerifier output is otherwise suppressed. The exact `raw_iron:1`/required-`raw_iron:2` replay executes the planned dig and releases only after action feedback completes the bound task. Accepted and active status, same-title replacement, criteria mutation, status-only completion without an approved machine source, missing or malformed binding, invalid or expired deadline, and M1/M2 controls all behave fail-closed or unchanged as required. Four exact gate tests, 47 M4 deadline definitions, 739 full Python regression definitions, all 35 non-live Python scripts, and six Node suites with 52 internal cases pass. No live episode ran in this offline round.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -168,8 +170,8 @@ Independent review rejects the Runner's event-820 torch `empty_plan` as causal b
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 735 Python regression definitions, all 35 non-live Python scripts, all six fixed Node suites with 52 internal assertions, Node syntax, and Python compilation pass
-- Live authorization: none pending an offline ready-task GoalVerifier success-criteria binding gate
+- Regression: 739 Python regression definitions, all 35 non-live Python scripts, all six fixed Node suites with 52 internal assertions, Node syntax, and Python compilation pass
+- Live authorization: exactly one fresh BM-012 Probe 21 after the ready-task gate commit is pushed; no second episode in the same round
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -451,6 +453,19 @@ Independent review rejects the Runner's event-820 torch `empty_plan` as causal b
 - Validation: two exact gate cases, 43 M4 deadline definitions, 735 full Python regression definitions, all 35 non-live Python scripts, and six fixed Node suites with 52 internal PASS cases; Python compilation, Node syntax, 1066 JSON files, capability consistency, credential scan, and repository checks pass
 - Status: passed offline and live-activated in Probe 20; two exact successful results were accepted and nine unsuccessful results failed closed, while the Observer-omission projection branch remains offline-only
 - Authorization: consumed by BM-012 Probe 20; no second episode or new live authorization exists in this round
+
+## BM-012 Ready-Task GoalVerifier Success-Criteria Gate
+
+- Root hypothesis: `m4_ready_task_goal_verifier_success_criteria_bypass`
+- Exact reproduction: a `ready_task_selected` `Mine iron ore` task requires `raw_iron:2` while observation and generic GoalVerifier hold only `raw_iron:1`; the generic achieved result is suppressed and the planned dig remains executable
+- Policy: `m4-ready-task-goal-verifier-success-criteria-v1`; strict M4 binds the exact selected task ID, title, selection reason, and deep-copied machine success criteria
+- Completion rule: pre-plan, Planner-complete, and post-action root acceptance requires that exact task to be `completed` with `completed_by=machine_state` or `completed_by=action_result`
+- Evidence: every applied decision records task ID, criteria, task status, selection reason, verifier result, binding issues, deadline state, suppression decision, and machine completion source
+- Fail closed: accepted or active task, completed same-title replacement, criteria mutation, unproven status-only completion, missing/malformed binding, invalid deadline, and expired deadline cannot finish the root
+- Compatibility: global GoalVerifier semantics, TaskSystem criteria, goal priority, runtime interrupts, protocol/task-contract hashes, deadlines, success thresholds, M1, and M2 are unchanged
+- Validation: four exact gate cases, 47 M4 deadline definitions, 739 full Python regression definitions, all 35 non-live Python scripts, and six fixed Node suites with 52 internal PASS cases; Python compilation, Node syntax, JSON, capability consistency, credential scan, and repository checks pass
+- Status: passed offline; no live episode ran in this gate round
+- Authorization: exactly one fresh BM-012 Probe 21 after this gate commit is pushed; stop after that episode for independent review
 
 ## BM-012 Live Evidence
 

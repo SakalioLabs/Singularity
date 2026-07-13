@@ -3,6 +3,7 @@
 Integrates MemorySystem, SkillLibrary, TaskSystem, GoalGenerator, and Explorer
 for both goal-directed and autonomous survival modes.
 """
+import copy
 import os
 import json
 import time
@@ -84,6 +85,9 @@ M4_POST_PLACE_MACHINE_OBSERVATION_POLICY_ID = (
 )
 M4_POST_PLACE_MACHINE_OBSERVATION_ITEM = "crafting_table"
 M4_POST_PLACE_MACHINE_OBSERVATION_LIMIT = 2
+M4_READY_TASK_GOAL_VERIFIER_POLICY_ID = (
+    "m4-ready-task-goal-verifier-success-criteria-v1"
+)
 M4_TYPED_SCHEMA_RECOVERY_POLICY_ID = "m4-typed-schema-recovery-v1"
 M4_TYPED_SCHEMA_RECOVERY_LIMIT = 1
 M4_TYPED_SCHEMA_ISSUE_PATTERN = re.compile(
@@ -239,6 +243,7 @@ class Agent:
         self._active_skill_advisory_hint = ""
         self._episode_deadline_monotonic = None
         self._last_autonomous_goal_decision: dict = {}
+        self._m4_ready_task_goal_binding: dict = {}
         self._skill_fallback_goals: set[str] = set()
         self._applied_skill_fault_profiles: set[str] = set()
         self._skill_episode_start_index = 0
@@ -1973,6 +1978,7 @@ class Agent:
             max_total_cycles = int(M4_PROTOCOL["limits"]["max_total_cycles"])
             self._m4_episode_block_delta = {"placed": {}, "removed": {}}
             self._m4_post_place_machine_observation = {}
+            self._m4_ready_task_goal_binding = {}
             self._m4_shelter_verification_fingerprint = ""
             self._m4_hostile_safe_state_fingerprint = ""
             self._m4_player_lifecycle_fingerprint = ""
@@ -2237,12 +2243,20 @@ class Agent:
                         observation,
                         {"cycle": total_cycles, "mode": "autonomous", "phase": "pre_plan"},
                     )
+                    verified, ready_task_verification = (
+                        self._gate_m4_ready_task_goal_verification(
+                            goal,
+                            verified,
+                            verification,
+                            {"cycle": total_cycles, "mode": "autonomous", "phase": "pre_plan"},
+                        )
+                    )
                     if deadline_exceeded("post_goal_verifier"):
                         termination_reason = "episode_deadline"
                         break
                     if verified:
                         goal_success = True
-                        if active_task:
+                        if active_task and not ready_task_verification:
                             self.task_system.complete_task(active_task.id, {"goal": goal, "cycle": total_cycles, "verification": verification.to_dict()})
                         break
 
@@ -2256,12 +2270,24 @@ class Agent:
                             plan,
                             {"cycle": total_cycles, "mode": "autonomous", "phase": "planner_complete"},
                         )
+                        accepted, ready_task_verification = (
+                            self._gate_m4_ready_task_goal_verification(
+                                goal,
+                                accepted,
+                                verification,
+                                {
+                                    "cycle": total_cycles,
+                                    "mode": "autonomous",
+                                    "phase": "planner_complete",
+                                },
+                            )
+                        )
                         if deadline_exceeded("post_completion_verifier"):
                             termination_reason = "episode_deadline"
                             break
                         if accepted:
                             goal_success = True
-                            if active_task:
+                            if active_task and not ready_task_verification:
                                 result = {"goal": goal, "cycle": total_cycles}
                                 if verification:
                                     result["verification"] = verification.to_dict()
@@ -2375,6 +2401,16 @@ class Agent:
                                     "before_observation": before_action_observation,
                                     "after_observation": observation,
                                 }],
+                            )
+                            verified, _ = self._gate_m4_ready_task_goal_verification(
+                                goal,
+                                verified,
+                                verification,
+                                {
+                                    "cycle": total_cycles,
+                                    "mode": "autonomous",
+                                    "phase": "post_action",
+                                },
                             )
                             if deadline_exceeded("post_action_goal_verifier"):
                                 termination_reason = "episode_deadline"
@@ -6860,8 +6896,164 @@ class Agent:
         except (TypeError, ValueError):
             return None
 
+    def _bind_m4_ready_task_goal(self, task) -> dict:
+        self._m4_ready_task_goal_binding = {}
+        if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
+            return {}
+        if task is None:
+            return {}
+        criteria = task.success_criteria if isinstance(task.success_criteria, dict) else None
+        binding = {
+            "schema_version": 1,
+            "policy_id": M4_READY_TASK_GOAL_VERIFIER_POLICY_ID,
+            "task_id": str(getattr(task, "id", "") or ""),
+            "goal": str(getattr(task, "title", "") or ""),
+            "selection_reason": "ready_task_selected",
+            "success_criteria": copy.deepcopy(criteria) if criteria is not None else None,
+        }
+        self._m4_ready_task_goal_binding = binding
+        return dict(binding)
+
+    def _gate_m4_ready_task_goal_verification(
+        self,
+        goal: str,
+        verified: bool,
+        verification,
+        context: dict = None,
+    ) -> tuple[bool, dict]:
+        if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
+            return bool(verified), {}
+
+        decision = getattr(self, "_last_autonomous_goal_decision", {})
+        decision = decision if isinstance(decision, dict) else {}
+        binding = getattr(self, "_m4_ready_task_goal_binding", {})
+        binding = binding if isinstance(binding, dict) else {}
+        decision_reason = str(decision.get("selection_reason") or "")
+        binding_reason = str(binding.get("selection_reason") or "")
+        if "ready_task_selected" not in {decision_reason, binding_reason}:
+            return bool(verified), {}
+
+        goal = str(goal or "")
+        task_id = str(binding.get("task_id") or "")
+        bound_criteria = binding.get("success_criteria")
+        task_system = getattr(self, "task_system", None)
+        tasks = getattr(task_system, "tasks", {})
+        task = tasks.get(task_id) if isinstance(tasks, dict) and task_id else None
+        task_status = getattr(task, "status", None)
+        task_status_value = str(getattr(task_status, "value", "") or "")
+        task_criteria = getattr(task, "success_criteria", None)
+
+        binding_issues = []
+        if not binding:
+            binding_issues.append("binding_missing")
+        else:
+            if binding.get("policy_id") != M4_READY_TASK_GOAL_VERIFIER_POLICY_ID:
+                binding_issues.append("binding_policy_mismatch")
+            if binding.get("schema_version") != 1:
+                binding_issues.append("binding_schema_version_mismatch")
+            if binding_reason != "ready_task_selected":
+                binding_issues.append("binding_selection_reason_mismatch")
+            if str(binding.get("goal") or "") != goal:
+                binding_issues.append("binding_goal_mismatch")
+            if not task_id:
+                binding_issues.append("binding_task_id_missing")
+            if not isinstance(bound_criteria, dict) or not bound_criteria:
+                binding_issues.append("binding_success_criteria_missing_or_malformed")
+        if decision_reason != "ready_task_selected":
+            binding_issues.append("decision_selection_reason_mismatch")
+        if str(decision.get("goal") or "") != goal:
+            binding_issues.append("decision_goal_mismatch")
+        if task is None:
+            binding_issues.append("bound_task_missing")
+        else:
+            if str(getattr(task, "title", "") or "") != goal:
+                binding_issues.append("bound_task_goal_mismatch")
+            if not isinstance(task_criteria, dict) or task_criteria != bound_criteria:
+                binding_issues.append("bound_task_success_criteria_mismatch")
+
+        deadline = getattr(self, "_episode_deadline_monotonic", None)
+        deadline_valid = bool(
+            isinstance(deadline, (int, float))
+            and not isinstance(deadline, bool)
+            and math.isfinite(float(deadline))
+        )
+        deadline_reached = bool(deadline_valid and self._episode_deadline_reached())
+        binding_valid = not binding_issues
+        verifier_accepted = bool(verified)
+        verifier_achieved = bool(getattr(verification, "achieved", False))
+        result = getattr(task, "result", None)
+        result = result if isinstance(result, dict) else {}
+        machine_completion_source = str(result.get("completed_by") or "")
+        task_machine_completed = bool(
+            binding_valid
+            and task_status == TaskStatus.COMPLETED
+            and machine_completion_source in {"machine_state", "action_result"}
+        )
+        accepted = bool(
+            verifier_accepted
+            and binding_valid
+            and deadline_valid
+            and not deadline_reached
+            and task_machine_completed
+        )
+
+        if not deadline_valid:
+            gate_decision = "suppress_invalid_deadline"
+        elif deadline_reached:
+            gate_decision = "suppress_episode_deadline"
+        elif not binding_valid:
+            gate_decision = "suppress_invalid_binding"
+        elif not verifier_accepted:
+            gate_decision = "retain_unverified_goal"
+        elif task_machine_completed:
+            gate_decision = "allow_bound_task_machine_completion"
+        else:
+            gate_decision = "suppress_until_bound_task_machine_completion"
+
+        verification_payload = (
+            verification.to_dict()
+            if hasattr(verification, "to_dict")
+            else {"achieved": bool(verified)}
+        )
+        report = {
+            "schema_version": 1,
+            "policy_id": M4_READY_TASK_GOAL_VERIFIER_POLICY_ID,
+            "goal": goal,
+            "task_id": task_id,
+            "success_criteria": copy.deepcopy(bound_criteria) if isinstance(bound_criteria, dict) else bound_criteria,
+            "task_status": task_status_value,
+            "selection_reason": decision_reason or binding_reason,
+            "binding_valid": binding_valid,
+            "binding_issues": binding_issues,
+            "verifier_accepted": verifier_accepted,
+            "verifier_achieved": verifier_achieved,
+            "verifier_result": verification_payload,
+            "task_machine_completed": task_machine_completed,
+            "machine_completion_source": machine_completion_source,
+            "deadline_monotonic": deadline,
+            "deadline_valid": deadline_valid,
+            "deadline_reached": deadline_reached,
+            "completion_suppressed": bool(verifier_accepted and not accepted),
+            "decision": gate_decision,
+            "context": dict(context or {}),
+        }
+        session_log = getattr(getattr(self, "session_logger", None), "log", None)
+        if callable(session_log):
+            session_log(
+                "m4_ready_task_goal_verifier_binding",
+                dict(report),
+                level="WARNING" if report["completion_suppressed"] else "INFO",
+            )
+        self._write_memory_episode(
+            "m4_ready_task_goal_verifier_binding",
+            report,
+            source="m4_ready_task_goal_verifier",
+        )
+        return accepted, report
+
     def _select_autonomous_goal(self, observation: dict, fallback_goal: str) -> str:
         """Let ready tasks and open-ended curriculum override generated goals."""
+        self._m4_ready_task_goal_binding = {}
         if self._should_preserve_autonomous_fallback(observation, fallback_goal):
             self._set_autonomous_goal_decision(fallback_goal, getattr(self, "_last_autonomous_goal_decision", {}))
             return fallback_goal
@@ -6887,6 +7079,7 @@ class Agent:
                 priority=6,
                 priority_class="tool_resource_progression",
             )
+            self._bind_m4_ready_task_goal(next_task)
             self._record_frontier_budget_decision(
                 observation,
                 next_task.title,
@@ -7854,9 +8047,33 @@ class Agent:
     def _apply_action_feedback(self, action: dict, result: dict, fallback_observation: dict, context: dict = None) -> dict:
         """Observe after an action and let TaskSystem update state from evidence."""
         pre_action_task_id = None
-        if str(getattr(self.config, "planner_protocol", "") or "") == "m2-fixed-v1":
+        protocol = str(getattr(self.config, "planner_protocol", "") or "")
+        if protocol == "m2-fixed-v1":
             pre_action_task = self.task_system.get_next_task(fallback_observation or {})
             pre_action_task_id = pre_action_task.id if pre_action_task else None
+        elif protocol == "m4-fixed-v1" and not self._episode_deadline_reached():
+            binding = getattr(self, "_m4_ready_task_goal_binding", {})
+            binding = binding if isinstance(binding, dict) else {}
+            decision = getattr(self, "_last_autonomous_goal_decision", {})
+            decision = decision if isinstance(decision, dict) else {}
+            task_id = str(binding.get("task_id") or "")
+            task = self.task_system.tasks.get(task_id) if task_id else None
+            context_goal = str((context or {}).get("goal") or "")
+            if (
+                binding.get("policy_id") == M4_READY_TASK_GOAL_VERIFIER_POLICY_ID
+                and binding.get("schema_version") == 1
+                and binding.get("selection_reason") == "ready_task_selected"
+                and decision.get("selection_reason") == "ready_task_selected"
+                and str(binding.get("goal") or "") == context_goal
+                and str(decision.get("goal") or "") == context_goal
+                and task is not None
+                and task.title == context_goal
+                and isinstance(binding.get("success_criteria"), dict)
+                and bool(binding.get("success_criteria"))
+                and task.success_criteria == binding.get("success_criteria")
+                and task.status in (TaskStatus.ACCEPTED, TaskStatus.ACTIVE)
+            ):
+                pre_action_task_id = task.id
 
         self._update_m4_shelter_relocation(action, result)
         self._record_m4_episode_block_delta(action, result)
