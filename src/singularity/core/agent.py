@@ -73,6 +73,12 @@ from singularity.vision.visual_memory import VisualMemory
 
 logger = logging.getLogger("singularity")
 
+M4_TASK_WORLD_STATE_RECONCILIATION_POLICY_ID = "m4-task-world-state-reconciliation-v1"
+M4_TASK_WORLD_STATE_RECONCILIATION_CRITERIA = frozenset({
+    "inventory",
+    "nearby_block_present",
+})
+
 
 class Agent:
     """Main agent that orchestrates observe-think-act cycles.
@@ -4736,7 +4742,7 @@ class Agent:
         )
         completed = task_system.complete_state_satisfied_tasks(
             reconciliation_state,
-            allowed_criteria={"inventory"},
+            allowed_criteria=set(M4_TASK_WORLD_STATE_RECONCILIATION_CRITERIA),
         )
         if completed:
             self._flush_task_state_transitions({
@@ -4748,10 +4754,15 @@ class Agent:
         if completed and hasattr(getattr(self, "session_logger", None), "log"):
             self.session_logger.log("m4_task_state_reconciliation", {
                 "schema_version": 1,
+                "policy_id": M4_TASK_WORLD_STATE_RECONCILIATION_POLICY_ID,
                 "goal": goal,
                 "cycle": cycle,
                 "source": str(source or "machine_observation"),
-                "allowed_criteria": ["inventory"],
+                "allowed_criteria": sorted(M4_TASK_WORLD_STATE_RECONCILIATION_CRITERIA),
+                "machine_state_sources": {
+                    "inventory": "observation.inventory",
+                    "nearby_block_present": "observation.nearby_blocks",
+                },
                 "inventory_family_grounding": inventory_family_grounding,
                 "completed_task_count": len(completed),
                 "completed_tasks": [

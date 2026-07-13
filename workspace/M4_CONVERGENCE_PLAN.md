@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 8 remain ineligible at 0/3. Probe 8 live-validated `m4-place-target-occupancy-v1`: the occupied target was rejected before execution, a target-aware replan selected air, and the crafting table was placed successfully. It then exposed `m4_task_world_state_reconciliation_grounding`: strict-M4 reselected an accepted `nearby_block_present` task after machine state had already satisfied it because pre-goal reconciliation allowed only inventory criteria. No further live episode is authorized until that bounded offline gate passes; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 8 remain ineligible at 0/3. Probe 8 live-validated `m4-place-target-occupancy-v1`: the occupied target was rejected before execution, a target-aware replan selected air, and the crafting table was placed successfully. It then exposed `m4_task_world_state_reconciliation_grounding`: strict-M4 reselected an accepted `nearby_block_present` task after machine state had already satisfied it because pre-goal reconciliation allowed only inventory criteria. The bounded offline gate now passes under `m4-task-world-state-reconciliation-v1`; exactly one fresh Probe 9 is authorized after this gate commit is pushed, while BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_8_ineligible_task_world_state_reconciliation_grounding_diagnosed |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_task_world_state_reconciliation_gate_passed_probe_9_authorized_after_push |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -93,6 +93,8 @@ The new earliest failure layer is `m4_task_world_state_reconciliation_grounding`
 
 That stale root was verified complete at event 307 before executing its plan, but the plan had already accepted four descendants. `Dig dirt to clear space` was selected at event 384; two such roots consumed 80 cycles, including 27 successful dirt digs, without one root GoalVerifier event. The first failed at event 1037 and the second was interrupted by dusk at event 1698. Forty-nine task-deadline interrupts, shelter work, the terminal observation fallback, and the deadline-bound wait are downstream. Probe 8 was this round's only live episode; no code fix or second run occurs in the round.
 
+The bounded offline fix now passes. Strict-M4 pre-goal reconciliation accepts only the explicit `inventory` and `nearby_block_present` criteria under `m4-task-world-state-reconciliation-v1`; the latter reads only `observation.nearby_blocks`. The exact Probe 8 task `2f1081b4`, root plan `root-c60df46942bc4cd1`, Planner call `llm-f8f98d5795a541e6`, and event-278 machine state replay to completion before ready-task selection, so fallback progression is selected instead of the stale root. Inventory, entity, landmark, absent-block, empty-list, object-valued, unmet, and non-M4 pre-goal controls fail closed. Full regression passes 711 Python tests and six Node suites with 38 internal cases. No live episode ran in this offline round; exactly one fresh Probe 9 is authorized after this commit is pushed.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -102,8 +104,8 @@ That stale root was verified complete at event 307 before executing its plan, bu
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 707 Python tests, 138 related Planner/TaskSystem/M4 tests, all six fixed Node suites with 36 internal cases, Python compilation, and `git diff --check` pass
-- Live authorization: Probe 8 consumed the target-occupancy gate's sole authorization; no further episode is authorized pending an offline task-world-state reconciliation gate
+- Regression: 711 Python tests, 95 TaskSystem tests, 86 related M4/GoalVerifier lifecycle tests, all six fixed Node suites with 38 internal cases, and Python compilation pass
+- Live authorization: the task-world-state reconciliation gate passes offline; exactly one fresh Probe 9 is authorized after the gate commit is pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -204,13 +206,14 @@ That stale root was verified complete at event 307 before executing its plan, bu
 
 - Root hypothesis: `m4_task_world_state_reconciliation_grounding`
 - Exact reproduction: task `2f1081b4` remained accepted after event 278 placed the required nearby `crafting_table`, then event 286 selected that already-satisfied task as the next autonomous root
-- Current boundary: `_reconcile_m4_satisfied_tasks` calls `complete_state_satisfied_tasks` with `allowed_criteria={inventory}`, excluding the TaskSystem's existing machine-grounded `nearby_block_present` criterion
-- Required proof: an accepted exact-world-state task satisfied by current machine observation completes before ready-task selection, while an unsatisfied task remains runnable
-- Fail-closed controls: text-only evidence, absent or ambiguous nearby-block state, unrelated criterion families, and non-M4 profiles must not retire tasks
+- Policy: `m4-task-world-state-reconciliation-v1` permits only `inventory` and `nearby_block_present`; sources are `observation.inventory` and `observation.nearby_blocks`
+- Exact replay: task `2f1081b4` completes before ready-task selection from the event-278 machine state, and fallback iron-tool progression is selected instead of the stale root
+- Fail-closed controls: inventory, entities, landmarks, absent blocks, empty lists, object-valued criteria, unmet criteria, unrelated criterion families, and non-M4 pre-goal reconciliation do not retire the placement task
 - Priority control: hostile, health, hunger, dusk, and night fallback precedence remains unchanged
-- Scope: strict-M4 Agent task lifecycle only; Planner, GoalVerifier, ActionVerifier, bridge execution, protocol/task-contract hashes, deadlines, success thresholds, and M1/M2 behavior remain unchanged
-- Status: diagnosed; offline implementation and regression gate pending
-- Authorization: none until the offline gate is committed and pushed
+- Scope: strict-M4 Agent task lifecycle plus criterion-specific TaskSystem machine-evidence evaluation; Planner, GoalVerifier, ActionVerifier, bridge execution, protocol/task-contract hashes, deadlines, success thresholds, and fixed M1/M2 protocols remain unchanged
+- Validation: 3 exact gate tests, 95 TaskSystem tests, 86 related M4/GoalVerifier lifecycle tests, 711 full Python tests, six Node suites with 38 internal cases, and Python compilation pass
+- Status: passed offline; no live episode ran in this gate round
+- Authorization: exactly one fresh BM-012 Probe 9 after this gate commit is pushed
 
 ## BM-012 Live Evidence
 

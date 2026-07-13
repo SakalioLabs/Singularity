@@ -1,19 +1,19 @@
 {
   "type": "m4_resource_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T05:44:33.5885887Z",
+  "generated_at": "2026-07-13T06:16:07.9043414Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "task_id": "BM-012",
   "task_name": "Get 8 iron resources",
   "task_contract_id": "m4-bm012-resource-contract-v1",
   "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
-  "readiness": "bm012_probe_8_ineligible_task_world_state_reconciliation_grounding_diagnosed",
-  "decision": "hold_bm012_live_pending_task_world_state_reconciliation_gate",
+  "readiness": "offline_task_world_state_reconciliation_gate_passed_probe_9_authorized_after_push",
+  "decision": "allow_one_fresh_bm012_probe_9_after_gate_commit_push",
   "hypothesis": "m4_task_world_state_reconciliation_grounding",
   "eligible_success_count": 0,
   "required_success_count": 3,
-  "next_authorized_episode": "none_pending_offline_task_world_state_reconciliation_gate",
+  "next_authorized_episode": "bm012_probe_9_once_after_gate_commit_push",
   "contract": {
     "terminal_goal": "Collect 8 iron resources",
     "initial_time_of_day": 0,
@@ -1394,30 +1394,55 @@
       "prior_failure_recurred": false
     }
   },
-  "pending_task_world_state_reconciliation_gate": {
+  "offline_task_world_state_reconciliation_gate": {
     "root_hypothesis": "m4_task_world_state_reconciliation_grounding",
-    "status": "diagnosed_offline_gate_pending",
-    "scope": "strict-M4 pre-goal reconciliation of machine-grounded world-state task criteria",
+    "status": "passed",
+    "policy_id": "m4-task-world-state-reconciliation-v1",
+    "scope": "strict-M4 pre-goal reconciliation plus criterion-specific TaskSystem machine-evidence evaluation",
     "first_unrecovered_session_event_index": 286,
     "satisfied_task_id": "2f1081b4",
     "satisfied_task_criterion": {
       "nearby_block_present": "crafting_table"
     },
-    "current_reconciliation_allowed_criteria": [
-      "inventory"
+    "allowed_criteria": [
+      "inventory",
+      "nearby_block_present"
     ],
-    "required_offline_proof": [
-      "complete an accepted nearby_block_present task from exact machine observation before ready-task selection",
-      "leave an unsatisfied world-state task runnable",
-      "preserve urgent survival fallback precedence",
-      "leave non-M4 task selection unchanged",
-      "retire no task from text-only or ambiguous evidence"
+    "machine_state_sources": {
+      "inventory": "observation.inventory",
+      "nearby_block_present": "observation.nearby_blocks"
+    },
+    "exact_probe_8_replay": {
+      "task_created_event_index": 258,
+      "task_accepted_event_index": 260,
+      "successful_place_action_event_index": 278,
+      "stale_root_selection_event_index": 286,
+      "task_completed_before_ready_selection": true,
+      "fallback_selected": true
+    },
+    "fail_closed_controls": [
+      "inventory_only_evidence",
+      "entity_only_evidence",
+      "landmark_only_evidence",
+      "missing_nearby_block",
+      "empty_requirement",
+      "object_requirement",
+      "unmet_task",
+      "non_m4_pre_goal_reconciliation"
     ],
+    "urgent_survival_priority_preserved": true,
+    "focused_python_test_count": 3,
+    "task_system_python_test_count": 95,
+    "related_python_test_count": 86,
+    "full_python_regression": 711,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 38,
+    "python_compileall_passed": true,
     "protocol_changed": false,
     "task_contract_changed": false,
-    "live_episode_run": true,
+    "live_episode_run": false,
     "bm012_live_episode_count": 8,
-    "next_authorized_episode": "none_pending_offline_task_world_state_reconciliation_gate"
+    "next_authorized_episode": "bm012_probe_9_once_after_gate_commit_push"
   },
-  "round_boundary": "Probe 8 was this round's only live episode. BM-012 remains at eight live attempts and 0/3; no further live episode is authorized pending the offline task-world-state reconciliation gate."
+  "round_boundary": "This was an offline-only gate round with no live episode. BM-012 remains at eight live attempts and 0/3; exactly one fresh Probe 9 is authorized only after this gate commit is pushed."
 }

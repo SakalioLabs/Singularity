@@ -481,7 +481,7 @@ class TaskSystem:
         if "observed" in criteria:
             checks.append(self._observed_names_satisfy(criteria["observed"], world_state, result=result))
         if "nearby_block_present" in criteria:
-            checks.append(self._observed_names_satisfy(criteria["nearby_block_present"], world_state))
+            checks.append(self._nearby_block_names_satisfy(criteria["nearby_block_present"], world_state))
         return bool(checks) and all(checks)
 
     def _failure_criteria_satisfied(self, task: Task, result: dict, world_state: dict) -> bool:
@@ -549,6 +549,31 @@ class TaskSystem:
             return []
         observed = self._observed_name_set(world_state or {}, result or {})
         return sorted(name for name in required_names if name not in observed)
+
+    def _nearby_block_names_satisfy(self, required, world_state: dict) -> bool:
+        if isinstance(required, str):
+            values = [required]
+        elif isinstance(required, list):
+            values = required
+        else:
+            return False
+        if not values or any(not isinstance(value, str) or not value.strip() for value in values):
+            return False
+        required_names = {value.strip().lower() for value in values}
+        nearby_blocks = (world_state or {}).get("nearby_blocks")
+        if not isinstance(nearby_blocks, list):
+            return False
+        observed_names = set()
+        for block in nearby_blocks:
+            if isinstance(block, str):
+                name = block
+            elif isinstance(block, dict):
+                name = block.get("name") or block.get("block")
+            else:
+                continue
+            if isinstance(name, str) and name.strip():
+                observed_names.add(name.strip().lower())
+        return required_names.issubset(observed_names)
 
     def _required_name_set(self, required) -> set[str]:
         if isinstance(required, str):

@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-13T05:44:33.5885887Z",
+  "generated_at": "2026-07-13T06:16:07.9043414Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "current_task_id": "BM-012",
@@ -18,11 +18,11 @@
   "live_episode_count_under_current_protocol": 12,
   "current_gate": {
     "hypothesis": "m4_task_world_state_reconciliation_grounding",
-    "status": "bm012_probe_8_ineligible_task_world_state_reconciliation_grounding_diagnosed",
+    "status": "offline_task_world_state_reconciliation_gate_passed_probe_9_authorized_after_push",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
-    "full_python_regression": 709,
+    "full_python_regression": 711,
     "node_suite_file_count": 6,
     "node_internal_pass_count": 38,
     "m4_shelter_python_case_count": 18,
@@ -84,7 +84,7 @@
     "bm012_place_success_criteria_post_action_task_completed": true,
     "bm012_place_success_criteria_fail_closed_controls_passed": true,
     "bm012_place_success_criteria_related_test_count": 138,
-    "next_authorized_episode": "none_pending_offline_task_world_state_reconciliation_gate",
+    "next_authorized_episode": "bm012_probe_9_once_after_gate_commit_push",
     "bm012_place_success_criteria_prompt_path_live_validated": true,
     "bm012_place_success_criteria_normalization_branch_live_exercised": false,
     "bm012_place_success_criteria_prior_failure_recurred": false,
@@ -129,12 +129,28 @@
     "bm012_place_target_live_replacement_success_count": 1,
     "bm012_place_target_live_timeout_count": 0,
     "bm012_place_target_prior_failure_recurred": false,
-    "bm012_task_world_state_reconciliation_gate_status": "diagnosed_offline_gate_pending",
+    "bm012_task_world_state_reconciliation_gate_status": "passed",
+    "bm012_task_world_state_reconciliation_policy_id": "m4-task-world-state-reconciliation-v1",
     "bm012_task_world_state_first_unrecovered_event_index": 286,
     "bm012_task_world_state_satisfied_task_id": "2f1081b4",
     "bm012_task_world_state_current_allowed_criteria": [
-      "inventory"
+      "inventory",
+      "nearby_block_present"
     ],
+    "bm012_task_world_state_machine_state_sources": {
+      "inventory": "observation.inventory",
+      "nearby_block_present": "observation.nearby_blocks"
+    },
+    "bm012_task_world_state_exact_probe_8_replay_passed": true,
+    "bm012_task_world_state_completed_before_ready_selection": true,
+    "bm012_task_world_state_fallback_selected": true,
+    "bm012_task_world_state_fail_closed_controls_passed": true,
+    "bm012_task_world_state_urgent_survival_priority_preserved": true,
+    "bm012_task_world_state_non_m4_pre_goal_reconciliation_unchanged": true,
+    "bm012_task_world_state_focused_test_count": 3,
+    "bm012_task_world_state_task_system_test_count": 95,
+    "bm012_task_world_state_related_test_count": 86,
+    "bm012_task_world_state_live_episode_run": false,
     "bm012_task_world_state_satisfied_task_reselected_count": 1,
     "bm012_task_world_state_dirt_root_cycle_count": 80
   },

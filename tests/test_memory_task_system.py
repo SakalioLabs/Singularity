@@ -1709,6 +1709,48 @@ def test_task_system_fails_closed_for_malformed_inventory_counts():
     print("PASS: TaskSystem blocks malformed inventory counts without raising")
 
 
+def test_task_system_nearby_block_success_requires_exact_machine_block_evidence():
+    tasks = TaskSystem()
+    placement = tasks.create_task(
+        "Place crafting table on ground",
+        status=TaskStatus.ACCEPTED,
+        success_criteria={"nearby_block_present": "crafting_table"},
+    )
+    empty_requirement = tasks.create_task(
+        "Malformed empty nearby-block requirement",
+        status=TaskStatus.ACCEPTED,
+        success_criteria={"nearby_block_present": []},
+    )
+    malformed_requirement = tasks.create_task(
+        "Malformed object nearby-block requirement",
+        status=TaskStatus.ACCEPTED,
+        success_criteria={"nearby_block_present": {"name": "crafting_table"}},
+    )
+
+    misleading_state = {
+        "inventory": {"crafting_table": 1},
+        "nearby_blocks": [{"name": "stone"}],
+        "nearby_entities": [{"name": "crafting_table"}],
+        "landmarks": [{"name": "crafting_table"}],
+    }
+    assert tasks.complete_state_satisfied_tasks(
+        misleading_state,
+        allowed_criteria={"nearby_block_present"},
+    ) == []
+    assert placement.status == TaskStatus.ACCEPTED
+
+    completed = tasks.complete_state_satisfied_tasks(
+        {"nearby_blocks": [{"name": "crafting_table", "position": {"x": 2, "y": 65, "z": 3}}]},
+        allowed_criteria={"nearby_block_present"},
+    )
+
+    assert [task.id for task in completed] == [placement.id]
+    assert placement.status == TaskStatus.COMPLETED
+    assert empty_requirement.status == TaskStatus.ACCEPTED
+    assert malformed_requirement.status == TaskStatus.ACCEPTED
+    print("PASS: Nearby-block task success requires exact machine block evidence")
+
+
 def test_task_system_uses_causal_opportunity_tags():
     tasks = TaskSystem()
     tasks.create_task(
@@ -2509,7 +2551,66 @@ def test_m4_reconciles_probe_4_log_family_before_ready_task_selection():
     assert insufficient_task.status == TaskStatus.ACCEPTED
 
 
-def test_m4_reconciliation_does_not_accept_non_inventory_claims_or_change_other_protocols():
+def test_m4_reconciles_probe_8_world_state_task_before_ready_task_selection():
+    agent = _initialize_bare_agent_runtime_state(object.__new__(Agent))
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    agent.session_logger = FakeSessionLogger()
+    agent.task_system = TaskSystem()
+    stale_placement = agent.task_system.create_task(
+        "Place crafting table on ground",
+        id="2f1081b4",
+        status=TaskStatus.ACCEPTED,
+        preconditions={"inventory": {"crafting_table": 1}, "flags": []},
+        success_criteria={"nearby_block_present": "crafting_table"},
+        root_plan_id="root-c60df46942bc4cd1",
+        planner_call_id="llm-f8f98d5795a541e6",
+    )
+    observation = {
+        "inventory": {
+            "crafting_table": 1,
+            "oak_log": 3,
+            "dark_oak_log": 2,
+            "oak_sapling": 1,
+            "dirt": 1,
+        },
+        "nearby_blocks": [
+            {
+                "name": "crafting_table",
+                "position": {"x": 92, "y": 135, "z": -37},
+            },
+            {"name": "dirt", "position": {"x": 93, "y": 134, "z": -36}},
+        ],
+        "health": 20,
+        "hunger": 20,
+        "time_of_day": 1938,
+    }
+    fallback = "Advance iron-tool progression"
+
+    selected = agent._select_autonomous_goal(observation, fallback)
+
+    assert selected == fallback
+    assert stale_placement.status == TaskStatus.COMPLETED
+    assert agent.task_system.get_next_task(observation) is None
+    event = agent.session_logger.events[-1]
+    assert event["type"] == "m4_task_state_reconciliation"
+    assert event["data"]["policy_id"] == "m4-task-world-state-reconciliation-v1"
+    assert event["data"]["source"] == "pre_goal_machine_observation"
+    assert event["data"]["allowed_criteria"] == [
+        "inventory",
+        "nearby_block_present",
+    ]
+    assert event["data"]["machine_state_sources"] == {
+        "inventory": "observation.inventory",
+        "nearby_block_present": "observation.nearby_blocks",
+    }
+    assert event["data"]["completed_tasks"] == [{
+        "task_id": stale_placement.id,
+        "title": "Place crafting table on ground",
+        "success_criteria": {"nearby_block_present": "crafting_table"},
+    }]
+
+
+def test_m4_world_state_reconciliation_keeps_unmet_and_non_m4_tasks_runnable():
     agent = _initialize_bare_agent_runtime_state(object.__new__(Agent))
     agent.session_logger = FakeSessionLogger()
     agent.task_system = TaskSystem()
@@ -2523,23 +2624,33 @@ def test_m4_reconciliation_does_not_accept_non_inventory_claims_or_change_other_
         status=TaskStatus.ACTIVE,
         success_criteria={"inventory": {"oak_log": 6}},
     )
+    placement = agent.task_system.create_task(
+        "Place crafting table",
+        status=TaskStatus.ACCEPTED,
+        success_criteria={"nearby_block_present": "crafting_table"},
+    )
     observation = {
-        "inventory": {"oak_log": 9},
+        "inventory": {"oak_log": 9, "crafting_table": 1},
         "flags": ["shelter_complete"],
+        "nearby_blocks": [{"name": "stone"}],
+        "nearby_entities": [{"name": "crafting_table"}],
     }
 
     agent.config = Config(planner_protocol="m4-fixed-v1")
     completed = agent._reconcile_m4_satisfied_tasks(observation, "Survive", 1)
     assert [task.id for task in completed] == [gather.id]
     assert shelter.status == TaskStatus.ACTIVE
+    assert placement.status == TaskStatus.ACCEPTED
 
     other = agent.task_system.create_task(
-        "Gather more logs",
+        "Place another crafting table",
         status=TaskStatus.ACTIVE,
-        success_criteria={"inventory": {"oak_log": 6}},
+        success_criteria={"nearby_block_present": "crafting_table"},
     )
     agent.config = Config(planner_protocol="")
-    assert agent._reconcile_m4_satisfied_tasks(observation, "Gather", 2) == []
+    exact_world_state = dict(observation)
+    exact_world_state["nearby_blocks"] = [{"name": "crafting_table"}]
+    assert agent._reconcile_m4_satisfied_tasks(exact_world_state, "Place", 2) == []
     assert other.status == TaskStatus.ACTIVE
 
 
@@ -4672,6 +4783,7 @@ if __name__ == "__main__":
     test_task_system_dependency_and_opportunity_scheduler()
     test_task_system_reports_readiness_blockers()
     test_task_system_fails_closed_for_malformed_inventory_counts()
+    test_task_system_nearby_block_success_requires_exact_machine_block_evidence()
     test_task_system_uses_causal_opportunity_tags()
     test_task_system_can_disable_causal_opportunity_scoring()
     test_task_system_updates_state_from_action_success()
@@ -4693,7 +4805,8 @@ if __name__ == "__main__":
     test_agent_passes_task_readiness_context_to_llm_planner()
     test_m4_reconciles_inventory_satisfied_tasks_before_planning()
     test_m4_reconciles_probe_4_log_family_before_ready_task_selection()
-    test_m4_reconciliation_does_not_accept_non_inventory_claims_or_change_other_protocols()
+    test_m4_reconciles_probe_8_world_state_task_before_ready_task_selection()
+    test_m4_world_state_reconciliation_keeps_unmet_and_non_m4_tasks_runnable()
     test_agent_injects_skill_memory_context_for_planner()
     test_agent_injects_coach_context_as_advisory_policy_hint()
     test_agent_injects_curriculum_context_for_planner()

@@ -1,7 +1,7 @@
 {
   "type": "capability_evidence_report",
   "schema_version": 2,
-  "generated_at": "2026-07-13T05:57:07.758951+00:00",
+  "generated_at": "2026-07-13T06:20:58.707204+00:00",
   "readiness": "rejected",
   "claim_readiness": "approved",
   "system_status": "incomplete",
