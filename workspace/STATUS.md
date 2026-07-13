@@ -47,10 +47,10 @@
 
 ## M4 Convergence Result
 
-- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after fourteen failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
+- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after fifteen failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after fourteen failed live attempts. Probe 14 live-validates `m4-place-target-player-occupancy-v1`: 21 player-collision placements were rejected at zero duration, then adjacent reference `(107,135,-29)` placed the crafting table in 46 ms and the prior `blockUpdate` timeout did not recur. Its earliest unrecovered transition is action event 1724 / monotonic 87571.656: `wooden_pickaxe:1` was available, but the dig backend kept `oak_planks` selected, removed stone, and acquired no cobblestone. The bounded offline `m4-dig-required-tool-equip-v1` gate now passes: strict M4 selects a harvest-compatible positive inventory tool, equips and confirms it before mutation, and fails closed on missing, failed, or mismatched equip while preserving expected-drop verification. Exact Probe 14 replay, stone and iron-tier positive controls, hand-harvestable and non-M4 controls, 722 Python tests, and six Node suites with 50 internal cases pass. No live episode ran in this offline round; exactly one fresh Probe 15 is authorized only after this gate commit is pushed. Fixed M1/M2 behavior is unchanged, while BM-013 and BM-014 remain locked.
+- BM-012 is the next target at 0/3 after fifteen failed live attempts. Probe 15 live-validates `m4-dig-required-tool-equip-v1`: 13/13 stone digs selected, equipped, and confirmed `wooden_pickaxe`, 12 succeeded, and the cobblestone goal completed with `cobblestone:12`; Probe 14's held-item mismatch did not recur. The earliest unrecovered transition is action event 981 / monotonic 90944.203: a 60-second coal `move_to` timed out with `command_replayed=false` and `bridge_reconnected=false` while 281.859 seconds remained, after which all 16 later actions failed and no iron was acquired. The next gate, `deadline_bound_navigation_bridge_recovery`, is limited to no-replay bridge recovery after deadline-bound navigation timeout. This was the only live episode, so no second run is authorized until that offline gate passes and is pushed. Fixed M1/M2 behavior is unchanged, while BM-013 and BM-014 remain locked.
 
 ## Evidence Policy
 
@@ -70,7 +70,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 fourteen failed attempts, 0/3; BM-013..014 not_run |
+| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 fifteen failed attempts, 0/3; BM-013..014 not_run |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |

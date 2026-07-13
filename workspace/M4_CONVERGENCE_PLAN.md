@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 14 remain ineligible at 0/3. Probe 14 live-validates `m4-place-target-player-occupancy-v1`: 21 player-collision attempts were rejected before mutation, then an adjacent reference placed the crafting table in 46 ms without repeating Probe 13's `blockUpdate` timeout. Its earliest blocker is `dig_backend_required_tool_equip_grounding`: action event 1724 had `wooden_pickaxe:1` available but kept `oak_planks` selected, removed stone, and acquired no cobblestone; seven stones were removed under the same mismatch with zero successful stone digs. The bounded offline `m4-dig-required-tool-equip-v1` gate now passes exact replay, positive harvest-tier, fail-closed, hand-harvestable, and non-M4 controls. No live episode ran in this offline round; exactly one fresh BM-012 Probe 15 is authorized only after this gate commit is pushed. BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 15 remain ineligible at 0/3. Probe 15 live-validates `m4-dig-required-tool-equip-v1`: all 13 stone digs selected, equipped, and confirmed `wooden_pickaxe`; 12 succeeded and the cobblestone goal completed. Its earliest blocker is `deadline_bound_navigation_bridge_recovery`: action event 981 exhausted a 60-second coal navigation budget, correctly did not replay, but left the bridge disconnected with 281.859 seconds remaining and made all 16 later actions fail. No iron was acquired. No second live episode is authorized before the bounded no-replay bridge-recovery gate passes offline and is pushed. BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_dig_required_tool_equip_gate_passed_probe_15_authorized_after_push |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_15_recorded_offline_deadline_bound_navigation_bridge_recovery_gate_required |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -129,6 +129,10 @@ The new earliest failure layer is `dig_backend_required_tool_equip_grounding`. P
 
 The bounded offline fix now passes under `m4-dig-required-tool-equip-v1`. ActionController adds `require_tool_equip=true` only for `m4-fixed-v1`; BotBridge forwards it independently from `require_pickup`. The Mineflayer dig handler reads `block.harvestTools`, selects a positive inventory item accepted by `block.canHarvest`, equips it to hand, and confirms the exact held name/type before calling `bot.dig`. The exact Probe 14 ineffective-equip state now performs one equip attempt, zero dig calls, and zero world mutations. Missing-tool and equip-error controls also fail before mutation; a successful stone path records `equip:wooden_pickaxe -> dig:stone -> cobblestone:+1`, and an iron-tier control rejects wooden pickaxe and selects stone pickaxe for `raw_iron:+1`. Hand-harvestable blocks require no tool, the non-M4 path is unchanged, and the existing expected-drop postcondition remains authoritative. No live episode ran in this offline round.
 
+Probe 15 live-validates that gate. All 19 dig actions emitted `m4-dig-required-tool-equip-v1`; all 13 stone digs required, selected, equipped, and confirmed `wooden_pickaxe`. Twelve stone digs succeeded for `cobblestone:+12`. Event 914's isolated expected-drop failure recovered at event 936, and event 940 completed the 12-cobblestone goal, so Probe 14's held-item mismatch did not recur.
+
+The new earliest failure layer is `deadline_bound_navigation_bridge_recovery`. Planner call event 966 / plan event 969 targeted observed coal ore `(108,130,-34)` from `(112.585511,127,-28.503399)`. Action-verification event 975 accepted the navigation; action event 981 then exhausted its fixed 60-second budget at monotonic 90944.203, returned `command_replayed=false`, `bridge_reconnected=false`, and `navigation_target_unreached`, while the episode still had 281.859 seconds. Sixteen later actions had zero successes, including 15 direct `Not connected to bot bridge` failures. This live round contains no code fix or second episode. The next hypothesis is limited to restoring a fresh bridge connection for the next cycle without replaying the timed-out command, extending the action budget, or weakening the absolute episode deadline.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -139,7 +143,7 @@ The bounded offline fix now passes under `m4-dig-required-tool-equip-v1`. Action
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 722 Python tests, including 117 cross-module M4/Bridge cases, all six fixed Node suites with 50 internal assertions, Node syntax, and Python compilation pass
-- Live authorization: exactly one fresh BM-012 Probe 15 only after the passed required-tool equip gate commit is pushed
+- Live authorization: consumed by Probe 15; no new live episode before the deadline-bound navigation bridge-recovery gate passes offline and is pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -343,10 +347,46 @@ The bounded offline fix now passes under `m4-dig-required-tool-equip-v1`. Action
 - Compatibility controls: a hand-harvestable log performs no equip and succeeds under strict M4; the non-M4 path emits no new policy evidence and retains prior behavior
 - Scope: strict-M4 dig backend required-tool grounding only; Planner schema, ActionVerifier acceptance, pickup completion, task semantics, protocol/task-contract hashes, deadlines, success thresholds, skills, vision, and multi-agent execution remain unchanged
 - Validation: 40 focused Python tests, 722 full Python tests, five exact Node gate cases, all six Node suites with 50 internal PASS cases, Node syntax, Python compilation, and repository checks
-- Status: passed offline; no live episode ran in this gate round
-- Authorization: exactly one fresh BM-012 Probe 15 only after this gate commit is pushed
+- Status: passed offline and live-validated in Probe 15; all 13 stone digs confirmed the required wooden pickaxe and 12 acquired cobblestone
+- Authorization: consumed by BM-012 Probe 15; no second episode may run in the live round
+
+## BM-012 Deadline-Bound Navigation Bridge-Recovery Gate
+
+- Root hypothesis: `deadline_bound_navigation_bridge_recovery`
+- Source transition: Probe 15 action event 981 / monotonic 90944.203 / elapsed 321.74 / cycle 41 under autonomous goal `Collect coal or charcoal for torches`
+- Planner lineage: real schema-valid call event 966 / plan event 969 / action-verification event 975 / call ID `llm-24a053c80ce2455e`
+- Machine state: player `(112.58551109325079,127,-28.50339949004437)`, observed coal ore `(108,130,-34)` at distance 7.071, health 20, hunger 20, inventory including `wooden_pickaxe:1` and `cobblestone:12`
+- Failure: `move_to(108,130,-34)` consumed 60000 ms, did not reach the target, correctly did not replay, and closed the deadline-bound bridge socket without reconnecting
+- Remaining budget: action failure occurred 281.859 seconds before the absolute episode deadline, so the unrecovered bridge state was not caused by exhausting the episode budget
+- Persistence: 16 later actions had zero successes; 15 returned `Not connected to bot bridge`, while task-deadline recovery continued to run without restoring transport
+- Required policy: preserve single-attempt/no-replay semantics, then establish and machine-confirm a fresh bridge connection before the next observation/planning cycle when episode time remains
+- Fail closed: never replay the timed-out action, never reconnect synchronously inside the expired action, never extend either deadline, and never treat empty fallback observations as machine state
+- Scope: BotBridge deadline-bound transport recovery after navigation timeout only; Node pathfinder semantics, Planner goals, task contract, success threshold, skills, vision, multi-agent execution, M1, and M2 remain unchanged
+- Status: required, not implemented; no corresponding offline gate has passed
+- Authorization: none until this bounded offline gate passes and its commit is pushed
 
 ## BM-012 Live Evidence
+
+### Probe 15: Required Tool Equipped Live; Navigation Timeout Left Bridge Offline
+
+- Episode: `m4_episode_20260713_211548_0605186f`
+- Session: `7b62bffb-ce9`
+- Level: `m4_episode_20260713_211548_0605186f_bm012`
+- Frozen code: `b5a74d4`; protocol and BM-012 task-contract hashes unchanged
+- Prior gate: 19/19 dig actions emitted equip policy evidence; 13/13 stone digs required, selected, equipped, and confirmed `wooden_pickaxe`; 12 succeeded and acquired 12 cobblestone
+- Recovery review: event 914 removed one stone without a drop, but event 936 acquired the twelfth cobblestone and event 940 machine-verified the goal; the prior held-item mismatch did not recur
+- Earliest unrecovered transition: event 981 / monotonic 90944.203 / cycle 41, `move_to(108,130,-34)` timed out after 60000 ms with no replay and no bridge reconnect while 281.859 seconds remained
+- Persistence: all 16 later actions failed, including 15 `Not connected to bot bridge` results; five goals completed before the transition and no action succeeded afterward
+- Autonomous progress: 7 goals selected, 5 completed, and 2 failed across 82 cycles; the Agent gathered six logs, placed a crafting table, crafted a wooden pickaxe, and acquired 12 cobblestone, but acquired no iron
+- Planner: 81 real calls were schema-valid; one deadline-time request timed out; 82 Planner events consumed 271917 tokens with zero schema-invalid real responses
+- Actions: 61 attempted and 39 successful; move 14/30, dig 18/19, craft 6/7, and place 1/5
+- Interrupts: 24 unique task-deadline triggers each recovered and expired 170 unique tasks, but recovery did not restore bridge transport
+- Last complete machine state: event 962 / world time 5228 / health 20 / hunger 20 / uninterrupted lifecycle / inventory `oak_sapling:1`, `oak_log:3`, `stick:2`, `oak_planks:3`, `dirt:3`, `wooden_pickaxe:1`, and `cobblestone:12`
+- Deadline: start 90626.062, deadline 91226.062, Agent and manifest end 91226.078; no Planner call, plan, or action occurred strictly after the deadline, while six housekeeping events and the 0.016-second overrun failed closed
+- Eligibility: 54/74 checks passed with 20 issues; BM-012 remains 0/3 after fifteen attempts
+- Skills: baseline remained off; selected, executed, quarantined, vision, and multi-agent contributions were zero
+- Round boundary: this was the only live episode; no code fix, second run, or next live authorization occurs before the new offline gate passes and is pushed
+- Evidence: `logs/benchmarks/m4/m4_episode_20260713_211548_0605186f/`
 
 ### Probe 14: Player Occupancy Passed Live; Stone Dug Without Required Tool
 
