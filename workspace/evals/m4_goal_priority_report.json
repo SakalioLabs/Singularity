@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T02:39:59.5087934Z",
+  "generated_at": "2026-07-13T03:07:13.6890240Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_5_recorded_place_success_criteria_offline_gate_required",
-  "decision": "hold_live_episode_pending_place_success_criteria_offline_gate",
+  "readiness": "bm012_place_success_criteria_offline_gate_passed_probe_6_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_6_after_gate_push",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -95,7 +95,10 @@
     "subtask_numeric_live_validated_by_probe_4": "integer_only_path_no_alias_normalization",
     "task_inventory_family_reconciliation_offline_gate_passed": true,
     "task_inventory_family_progression_replay": "craft_crafting_table",
-    "next_authorized_episode": "none_pending_offline_gate"
+    "place_success_criteria_offline_gate_passed": true,
+    "place_success_criteria_policy_id": "m4-place-success-criteria-grounding-v1",
+    "place_success_criteria_machine_field": "nearby_block_present",
+    "next_authorized_episode": "bm012_probe_6_exactly_one_after_gate_push"
   },
   "offline_subtask_numeric_criteria_gate": {
     "passed": true,
@@ -133,6 +136,31 @@
     "protocol_changed": false,
     "task_contract_changed": false,
     "next_authorized_episode": "consumed_by_probe_5"
+  },
+  "offline_place_success_criteria_grounding_gate": {
+    "passed": true,
+    "scope": "strict_m4_planner_prompt_and_plan_grounding_only",
+    "policy_id": "m4-place-success-criteria-grounding-v1",
+    "probe_5_failure_class_replayed": true,
+    "root_goal": "Place crafting table for tool progression",
+    "root_subtask_action_item_alignment_required": true,
+    "placed_item": "crafting_table",
+    "canonical_success_criteria": {"nearby_block_present": "crafting_table"},
+    "source_value_and_subtask_hashes_recorded": true,
+    "post_action_machine_task_completion": true,
+    "goal_mismatch_rejected": true,
+    "subtask_intent_mismatch_rejected": true,
+    "action_item_mismatch_rejected": true,
+    "nearby_block_conflict_rejected": true,
+    "invalid_precondition_rejected": true,
+    "goal_priority_changed": false,
+    "related_python_regression": 138,
+    "full_python_regression": 707,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 36,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "next_authorized_episode": "bm012_probe_6_exactly_one_after_gate_push"
   },
   "live_episode_count": 23,
   "live_episode_count_under_current_protocol": 9,

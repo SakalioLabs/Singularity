@@ -292,6 +292,9 @@ class Planner:
             )
         elif self.strict_m4 and not call_error and not parse_error:
             raw_plan, action_parameter_grounding = self._ground_m4_action_parameters(raw_plan)
+            raw_plan, place_success_criteria_grounding = (
+                self._ground_m4_place_success_criteria(raw_plan, goal=goal)
+            )
             raw_plan, subtask_numeric_grounding = self._ground_m4_subtask_numeric_criteria(raw_plan)
             raw_plan, shelter_phase_grounding = self._ground_m4_shelter_phase(
                 raw_plan,
@@ -309,8 +312,12 @@ class Planner:
                 expected_kind=plan_kind,
             )
             grounding_issues = list(action_parameter_grounding.get("issues", []))
+            grounding_issues.extend(place_success_criteria_grounding.get("issues", []))
             grounding_issues.extend(subtask_numeric_grounding.get("issues", []))
             schema_validation["action_parameter_grounding"] = action_parameter_grounding
+            schema_validation["place_success_criteria_grounding"] = (
+                place_success_criteria_grounding
+            )
             schema_validation["subtask_numeric_criteria_grounding"] = subtask_numeric_grounding
             schema_validation["shelter_phase_grounding"] = shelter_phase_grounding
             schema_validation["maintenance_phase_grounding"] = maintenance_phase_grounding
@@ -329,6 +336,9 @@ class Planner:
             if self.strict_m4:
                 plan["action_parameter_grounding"] = dict(
                     schema_validation.get("action_parameter_grounding", {})
+                )
+                plan["place_success_criteria_grounding"] = dict(
+                    schema_validation.get("place_success_criteria_grounding", {})
                 )
                 plan["subtask_numeric_criteria_grounding"] = dict(
                     schema_validation.get("subtask_numeric_criteria_grounding", {})
@@ -454,6 +464,8 @@ M4 FIXED OUTPUT CONTRACT:
 - If the observed machine state appears to satisfy the exact goal, use status complete and let the machine GoalVerifier decide; prose never completes a goal.
 - Use status blocked only when no grounded progress action exists.
 - In subtask preconditions.inventory and success_criteria.inventory, every count must be a positive integer. Inventory criteria already mean at least N; never emit comparator strings such as ">=8".
+- For a place subtask, prove the placed item from machine world state with success_criteria {"nearby_block_present":"exact_item_name"}; never use inventory of the placed item as placement proof.
+- Example placement success_criteria: {"nearby_block_present":"crafting_table"}.
 - A dig action must use top-level finite x, y, and z parameters and may use top-level block; never use block_name, position, target, or block_position aliases.
 - Example: {"type":"dig","parameters":{"x":103,"y":139,"z":-30,"block":"oak_log"}}.
 - A craft action must use item and may use a positive integer count; never use recipe as an alias.
@@ -691,6 +703,194 @@ Plan the steps to achieve this goal."""
             "issues": sorted(set(issues)),
         }
         return grounded_plan, report
+
+    @classmethod
+    def _ground_m4_place_success_criteria(
+        cls,
+        plan: dict,
+        *,
+        goal: str,
+    ) -> tuple[dict, dict]:
+        """Ground placement completion in nearby machine-observed block state."""
+        grounded_plan = dict(plan or {})
+        actions = grounded_plan.get("actions")
+        subtasks = grounded_plan.get("subtasks")
+        place_actions = [
+            action for action in actions
+            if (
+                isinstance(action, dict)
+                and str(action.get("type") or "").strip() == "place"
+                and isinstance(action.get("parameters"), dict)
+                and str((action.get("parameters") or {}).get("item") or "").strip()
+            )
+        ] if isinstance(actions, list) else []
+        place_items = sorted({
+            str((action.get("parameters") or {}).get("item") or "").strip()
+            for action in place_actions
+        })
+        original_subtasks_sha256 = cls._parameter_sha256(subtasks)
+        if not isinstance(subtasks, list):
+            return grounded_plan, {
+                "type": "m4_place_success_criteria_grounding",
+                "schema_version": 1,
+                "policy_id": "m4-place-success-criteria-grounding-v1",
+                "passed": True,
+                "goal": str(goal or ""),
+                "place_action_count": len(place_actions),
+                "place_action_items": place_items,
+                "subtask_count": 0,
+                "grounded_subtask_count": 0,
+                "removed_inventory_requirement_count": 0,
+                "original_subtasks_sha256": original_subtasks_sha256,
+                "grounded_subtasks_sha256": original_subtasks_sha256,
+                "normalizations": [],
+                "issues": [],
+            }
+
+        issues: list[str] = []
+        normalizations = []
+        grounded_subtasks = []
+        grounded_subtask_count = 0
+        removed_requirement_count = 0
+        place_item_set = set(place_items)
+
+        for subtask_index, subtask in enumerate(subtasks):
+            if not isinstance(subtask, dict):
+                grounded_subtasks.append(subtask)
+                continue
+            grounded_subtask = dict(subtask)
+            criteria = subtask.get("success_criteria")
+            inventory = criteria.get("inventory") if isinstance(criteria, dict) else None
+            matching_items = sorted(
+                item
+                for item in inventory
+                if isinstance(item, str) and item in place_item_set
+            ) if isinstance(inventory, dict) else []
+            if not matching_items:
+                grounded_subtasks.append(grounded_subtask)
+                continue
+
+            descriptor = " ".join((
+                str(subtask.get("title") or ""),
+                str(subtask.get("type") or ""),
+            ))
+            descriptor_tokens = set(re.findall(
+                r"[a-z0-9]+",
+                descriptor.lower().replace("_", " "),
+            ))
+            placement_intent = bool(
+                descriptor_tokens
+                & {"place", "placed", "places", "placing", "placement"}
+            )
+            if not placement_intent:
+                issues.extend(
+                    f"subtask[{subtask_index}]:place_success_criteria_intent_missing:{item}"
+                    for item in matching_items
+                )
+                grounded_subtasks.append(grounded_subtask)
+                continue
+
+            ungrounded_goal_items = [
+                item for item in matching_items
+                if not cls._m4_goal_requests_item_placement(goal, item)
+            ]
+            if ungrounded_goal_items:
+                issues.extend(
+                    f"subtask[{subtask_index}]:place_success_criteria_goal_mismatch:{item}"
+                    for item in ungrounded_goal_items
+                )
+                grounded_subtasks.append(grounded_subtask)
+                continue
+
+            expected_nearby = (
+                matching_items[0] if len(matching_items) == 1 else matching_items
+            )
+            existing_nearby = criteria.get("nearby_block_present")
+            if (
+                existing_nearby is not None
+                and cls._m4_required_name_set(existing_nearby) != set(matching_items)
+            ):
+                issues.append(
+                    f"subtask[{subtask_index}]:"
+                    "place_success_criteria_nearby_block_conflict"
+                )
+                grounded_subtasks.append(grounded_subtask)
+                continue
+
+            grounded_inventory = dict(inventory)
+            for item in matching_items:
+                source_value = grounded_inventory.pop(item)
+                normalizations.append({
+                    "subtask_index": subtask_index,
+                    "item": item,
+                    "source_field": "success_criteria.inventory",
+                    "source_value_sha256": cls._parameter_sha256(source_value),
+                    "source_count_was_positive_integer": (
+                        isinstance(source_value, int)
+                        and not isinstance(source_value, bool)
+                        and source_value > 0
+                    ),
+                    "canonical_field": "success_criteria.nearby_block_present",
+                    "canonical_value": item,
+                    "reason": "placement_requires_machine_world_state",
+                })
+                removed_requirement_count += 1
+
+            grounded_criteria = dict(criteria)
+            if grounded_inventory:
+                grounded_criteria["inventory"] = grounded_inventory
+            else:
+                grounded_criteria.pop("inventory", None)
+            grounded_criteria["nearby_block_present"] = expected_nearby
+            grounded_subtask["success_criteria"] = grounded_criteria
+            grounded_subtasks.append(grounded_subtask)
+            grounded_subtask_count += 1
+
+        grounded_plan["subtasks"] = grounded_subtasks
+        return grounded_plan, {
+            "type": "m4_place_success_criteria_grounding",
+            "schema_version": 1,
+            "policy_id": "m4-place-success-criteria-grounding-v1",
+            "passed": not issues,
+            "goal": str(goal or ""),
+            "place_action_count": len(place_actions),
+            "place_action_items": place_items,
+            "subtask_count": len(subtasks),
+            "grounded_subtask_count": grounded_subtask_count,
+            "removed_inventory_requirement_count": removed_requirement_count,
+            "original_subtasks_sha256": original_subtasks_sha256,
+            "grounded_subtasks_sha256": cls._parameter_sha256(grounded_subtasks),
+            "normalizations": normalizations,
+            "issues": sorted(set(issues)),
+        }
+
+    @staticmethod
+    def _m4_goal_requests_item_placement(goal: str, item: str) -> bool:
+        normalized_goal = " ".join(re.findall(
+            r"[a-z0-9]+",
+            str(goal or "").lower().replace("_", " "),
+        ))
+        goal_tokens = set(normalized_goal.split())
+        has_place_intent = bool(
+            goal_tokens & {"place", "placed", "places", "placing", "placement"}
+        )
+        normalized_item = " ".join(re.findall(
+            r"[a-z0-9]+",
+            str(item or "").lower().replace("_", " "),
+        ))
+        return bool(
+            has_place_intent
+            and normalized_item
+            and f" {normalized_item} " in f" {normalized_goal} "
+        )
+
+    @staticmethod
+    def _m4_required_name_set(value) -> set[str]:
+        if isinstance(value, str):
+            return {value.strip().lower()} if value.strip() else set()
+        if isinstance(value, list) and all(isinstance(item, str) for item in value):
+            return {item.strip().lower() for item in value if item.strip()}
+        return set()
 
     @classmethod
     def _ground_m4_subtask_numeric_criteria(cls, plan: dict) -> tuple[dict, dict]:

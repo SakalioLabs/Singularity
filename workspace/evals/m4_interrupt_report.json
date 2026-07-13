@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T02:39:59.5087934Z",
+  "generated_at": "2026-07-13T03:07:13.6890240Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_5_recorded_place_success_criteria_offline_gate_required",
-  "decision": "hold_live_episode_pending_place_success_criteria_offline_gate",
+  "readiness": "bm012_place_success_criteria_offline_gate_passed_probe_6_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_6_after_gate_push",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -152,7 +152,7 @@
     "task_frontier_preservation_unchanged": true,
     "offline_gate_passed": true,
     "live_episode_run": true,
-    "live_episode_id": "m4_episode_20260713_085253_4a8a6b25",
+    "live_episode_id": "m4_episode_20260713_092629_6eeeab70",
     "live_episode_eligible": false,
     "purpose_phrase_offline_gate_passed": true,
     "purpose_phrase_live_validated": true,
@@ -162,7 +162,9 @@
     "subtask_numeric_live_validated_by_probe_4": "integer_only_path_no_alias_normalization",
     "task_inventory_family_reconciliation_offline_gate_passed": true,
     "urgent_survival_priority_preserved": true,
-    "next_authorized_episode": "consumed_by_probe_5"
+    "place_success_criteria_offline_gate_passed": true,
+    "runtime_interrupt_contract_changed": false,
+    "next_authorized_episode": "bm012_probe_6_exactly_one_after_gate_push"
   },
   "offline_subtask_numeric_criteria_gate": {
     "passed": true,
@@ -196,6 +198,25 @@
     "protocol_changed": false,
     "task_contract_changed": false,
     "next_authorized_episode": "consumed_by_probe_5"
+  },
+  "offline_place_success_criteria_grounding_gate": {
+    "passed": true,
+    "scope": "strict_m4_planner_prompt_and_plan_grounding_only",
+    "policy_id": "m4-place-success-criteria-grounding-v1",
+    "probe_5_failure_class_replayed": true,
+    "canonical_machine_criterion": {"nearby_block_present": "crafting_table"},
+    "root_subtask_action_item_alignment_required": true,
+    "mismatch_and_malformed_preconditions_rejected": true,
+    "post_action_machine_task_completion": true,
+    "runtime_interrupt_contract_changed": false,
+    "survival_preemption_changed": false,
+    "related_python_regression": 138,
+    "full_python_regression": 707,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 36,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "next_authorized_episode": "bm012_probe_6_exactly_one_after_gate_push"
   },
   "live_episode_count": 23,
   "live_episode_count_under_current_protocol": 9,

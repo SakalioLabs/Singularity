@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T02:39:59.5087934Z",
+  "generated_at": "2026-07-13T03:07:13.6890240Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_5_recorded_place_success_criteria_offline_gate_required",
-  "decision": "hold_live_episode_pending_place_success_criteria_offline_gate",
+  "readiness": "bm012_place_success_criteria_offline_gate_passed_probe_6_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_6_after_gate_push",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -137,9 +137,9 @@
     "post_deadline_execution_allowed": false,
     "offline_gate_passed": true,
     "live_episode_run": true,
-    "live_episode_id": "m4_episode_20260713_085253_4a8a6b25",
+    "live_episode_id": "m4_episode_20260713_092629_6eeeab70",
     "live_episode_eligible": false,
-    "next_authorized_episode": "consumed_by_probe_5"
+    "next_authorized_episode": "bm012_probe_6_exactly_one_after_gate_push"
   },
   "offline_subtask_numeric_criteria_gate": {
     "passed": true,
@@ -177,6 +177,28 @@
     "protocol_changed": false,
     "task_contract_changed": false,
     "next_authorized_episode": "consumed_by_probe_5"
+  },
+  "offline_place_success_criteria_grounding_gate": {
+    "passed": true,
+    "scope": "strict_m4_planner_prompt_and_plan_grounding_only",
+    "policy_id": "m4-place-success-criteria-grounding-v1",
+    "probe_5_failure_class_replayed": true,
+    "raw_probe_5_count_claimed": false,
+    "root_subtask_action_item_alignment_required": true,
+    "inventory_placement_proof_removed": true,
+    "machine_success_criterion": {"nearby_block_present": "crafting_table"},
+    "source_value_sha256_recorded": true,
+    "original_and_grounded_subtask_sha256_recorded": true,
+    "task_system_post_action_machine_completion": true,
+    "mismatch_and_malformed_preconditions_rejected": true,
+    "deadline_contract_changed": false,
+    "related_python_regression": 138,
+    "full_python_regression": 707,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 36,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "next_authorized_episode": "bm012_probe_6_exactly_one_after_gate_push"
   },
   "player_lifecycle_gate": {
     "verifier_id": "m4-player-lifecycle-verifier-v1",

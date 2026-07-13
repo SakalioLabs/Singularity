@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-13T02:39:59.5087934Z",
+  "generated_at": "2026-07-13T03:07:13.6890240Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "current_task_id": "BM-012",
@@ -18,11 +18,11 @@
   "live_episode_count_under_current_protocol": 9,
   "current_gate": {
     "hypothesis": "planner_place_success_criteria_grounding",
-    "status": "bm012_probe_5_recorded_place_success_criteria_offline_gate_required",
+    "status": "bm012_place_success_criteria_offline_gate_passed_probe_6_authorized",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
-    "full_python_regression": 705,
+    "full_python_regression": 707,
     "node_suite_file_count": 6,
     "node_internal_pass_count": 36,
     "m4_shelter_python_case_count": 18,
@@ -75,7 +75,16 @@
     "bm012_place_action_grounding_pass_count": 2,
     "bm012_place_action_executed_count": 0,
     "bm012_place_success_criteria_raw_response_retained": false,
-    "next_authorized_episode": "none_pending_offline_gate"
+    "bm012_place_success_criteria_offline_gate_passed": true,
+    "bm012_place_success_criteria_policy_id": "m4-place-success-criteria-grounding-v1",
+    "bm012_place_success_criteria_machine_field": "nearby_block_present",
+    "bm012_place_success_criteria_exact_item_alignment_required": true,
+    "bm012_place_success_criteria_source_value_hashed": true,
+    "bm012_place_success_criteria_subtasks_before_after_hashed": true,
+    "bm012_place_success_criteria_post_action_task_completed": true,
+    "bm012_place_success_criteria_fail_closed_controls_passed": true,
+    "bm012_place_success_criteria_related_test_count": 138,
+    "next_authorized_episode": "bm012_probe_6_exactly_one_after_gate_push"
   },
   "entries": [
     {

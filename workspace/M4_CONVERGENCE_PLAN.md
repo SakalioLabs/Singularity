@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 5 remain ineligible at 0/3. Probe 5 live-validated task reconciliation and advanced through crafting-table creation, then rejected two otherwise grounded placement plans because `success_criteria.inventory.crafting_table` was not a canonical positive integer. No new live episode is authorized until a bounded offline gate addresses placement success-criteria grounding; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 5 remain ineligible at 0/3. Probe 5 live-validated task reconciliation and advanced through crafting-table creation, then rejected two otherwise grounded placement plans because `success_criteria.inventory.crafting_table` was not a canonical positive integer. The bounded placement success-criteria gate now passes offline and authorizes exactly one fresh Probe 6 after this commit is pushed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_5_recorded_place_success_criteria_offline_gate_required |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | place_success_criteria_offline_gate_passed_probe_6_authorized |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -73,6 +73,8 @@ Probe 5 live-validates both reconciliation boundaries. Event 192 completed seven
 
 The new earliest failure layer is `planner_place_success_criteria_grounding`. Planner calls `llm-747a78336a3e4e79` and `llm-4efc1e7d2e9b4aef` each contained one canonical place action with passing action-parameter grounding, but strict-M4 rejected the envelope as `subtask[0]:success_criteria_inventory_count_invalid:crafting_table`. The canonical trace retains response hashes and byte counts rather than raw response bodies, so it proves a noncanonical inventory count but does not support a stronger claim about its exact raw value. Both rejected plans produced `empty_plan`, no place action executed, the crafting table remained in inventory, and the iron progression chain never started. Later pathfinding, task-deadline interrupts, dusk shelter work, and the final deadline-bound timeout are downstream. Probe 5 consumed this round's sole live authorization; no fix or second episode occurs in this round.
 
+The bounded `planner_place_success_criteria_grounding` fix now passes offline. Strict-M4 Planner runs `m4-place-success-criteria-grounding-v1` after action-parameter grounding and before numeric-criteria validation. It rewrites only a placement subtask's inventory criterion for the exact item that the immediate canonical place action and explicit root goal both request, replacing that non-proof with `nearby_block_present` machine state. The report records source-value, original-subtasks, and grounded-subtasks hashes without retaining raw count text. Goal mismatch, missing placement intent, conflicting nearby-block criteria, a different action item, and malformed preconditions remain rejected; unrelated inventory criteria and non-M4 protocols are unchanged. The Probe 5 failure class creates one executable place action, TaskSystem completes from a post-action nearby `crafting_table`, and the GoalVerifier's existing `world:nearby_crafting_table` rule remains the root authority. Exactly one fresh Probe 6 is authorized after the gate commit is pushed.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -82,8 +84,8 @@ The new earliest failure layer is `planner_place_success_criteria_grounding`. Pl
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 705 Python tests, 136 related Planner/TaskSystem/M4 tests, all six fixed Node suites with 36 internal cases, Python compilation, and `git diff --check` pass
-- Live authorization: Probe 5 consumed the family-reconciliation authorization; none pending until the placement success-criteria offline gate passes and is pushed
+- Regression: 707 Python tests, 138 related Planner/TaskSystem/M4 tests, all six fixed Node suites with 36 internal cases, Python compilation, and `git diff --check` pass
+- Live authorization: exactly one fresh BM-012 Probe 6 after the placement success-criteria gate is committed and pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -136,6 +138,19 @@ The new earliest failure layer is `planner_place_success_criteria_grounding`. Pl
 - Validation: 2 exact new tests, 136 related tests, 705 full Python tests, six Node suites with 36 cases, Python compilation, and `git diff --check` pass
 - Live result: Probe 5 emitted four reconciliation events, completed 18 tasks at those boundaries, activated family projection for `oak_log:5 + birch_log:1`, and produced no repeated fulfilled wood root
 - Authorization: consumed by BM-012 Probe 5; no second episode may run in the round
+
+## BM-012 Placement Success-Criteria Grounding Gate
+
+- Root hypothesis: `planner_place_success_criteria_grounding`
+- Failure-class replay: a `Place crafting table for tool progression` subtask with `success_criteria.inventory.crafting_table` and one canonical `place(item=crafting_table,x,y,z)` action no longer loses the executable plan at numeric validation
+- Semantic contract: possession of the item is never placement proof; strict-M4 uses `success_criteria.nearby_block_present=crafting_table`, which TaskSystem verifies from the post-action machine observation
+- Alignment gate: the root goal, subtask title/type, immediate place action, and inventory criterion must identify the same exact item
+- Evidence: `m4-place-success-criteria-grounding-v1` records source-value SHA-256, original/grounded subtasks SHA-256, item, canonical field/value, and whether the source count was already a positive integer
+- Fail-closed controls: goal mismatch, missing placement intent, conflicting nearby-block evidence, different action item, invalid preconditions, and unrelated invalid inventory criteria remain rejected
+- Machine completion: the grounded task stays incomplete without a nearby block and completes only after a successful action is followed by a machine observation containing `crafting_table`
+- Scope: strict-M4 Planner prompt and plan grounding only; TaskSystem generic semantics, GoalVerifier, ActionVerifier, action execution, protocol/task-contract hashes, M1/M2 fixed protocols, deadlines, and success thresholds are unchanged
+- Validation: 2 exact new tests, 138 related tests, 707 full Python tests, six Node suites with 36 cases, Python compilation, and `git diff --check` pass
+- Authorization: exactly one fresh BM-012 Probe 6 after this gate commit is pushed; no second episode may run in that live round
 
 ## BM-012 Live Evidence
 

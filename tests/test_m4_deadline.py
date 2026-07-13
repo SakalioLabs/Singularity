@@ -16,7 +16,7 @@ from singularity.core.agent import Agent
 from singularity.core.config import Config
 from singularity.core.goal_verifier import GoalVerification
 from singularity.core.planner import Planner
-from singularity.core.task_system import TaskSystem
+from singularity.core.task_system import TaskStatus, TaskSystem
 from singularity.evaluation.m4_protocol import PROTOCOL
 from singularity.logging.session_logger import SessionLogger
 
@@ -657,6 +657,207 @@ def test_m4_subtask_numeric_grounding_rejects_non_equivalent_counts():
     print("PASS: M4 subtask numeric grounding fails closed on non-equivalent counts")
 
 
+def test_m4_planner_grounds_probe_5_place_success_criterion_to_machine_state():
+    clock = FakeClock()
+
+    class Probe5PlannerLLM(PlannerLLM):
+        def chat(self, messages, **kwargs):
+            super().chat(messages, **kwargs)
+            return json.dumps({
+                "status": "planning",
+                "reasoning": "place the inventory crafting table nearby",
+                "subtasks": [{
+                    "title": "Place crafting table for tool progression",
+                    "type": "place",
+                    "priority": 1,
+                    "success_criteria": {"inventory": {"crafting_table": 0}},
+                    "preconditions": {
+                        "inventory": {"crafting_table": 1},
+                        "flags": [],
+                    },
+                    "depends_on": [],
+                }],
+                "actions": [{
+                    "type": "place",
+                    "parameters": {
+                        "item": "crafting_table",
+                        "x": 106,
+                        "y": 135,
+                        "z": -29,
+                    },
+                }],
+            })
+
+    tasks = TaskSystem()
+    llm = Probe5PlannerLLM(clock)
+    planner = Planner(llm, tasks, protocol="m4-fixed-v1")
+    goal = "Place crafting table for tool progression"
+    planner.start_episode(goal, "m4-probe-5-place-criterion-fixture")
+    planner.set_deadline(200.0, 0.0)
+    with patch("singularity.core.planner.time.monotonic", clock.monotonic):
+        plan = planner.plan_from_goal(
+            goal,
+            {"inventory": {"oak_log": 5, "crafting_table": 1}},
+        )
+
+    assert plan["status"] == "planning"
+    assert plan["schema_validation"]["passed"] is True
+    assert plan["schema_validation"]["issues"] == []
+    grounding = plan["place_success_criteria_grounding"]
+    assert grounding["passed"] is True
+    assert grounding["policy_id"] == "m4-place-success-criteria-grounding-v1"
+    assert grounding["place_action_items"] == ["crafting_table"]
+    assert grounding["grounded_subtask_count"] == 1
+    assert grounding["removed_inventory_requirement_count"] == 1
+    assert len(grounding["normalizations"]) == 1
+    assert len(grounding["original_subtasks_sha256"]) == 64
+    assert len(grounding["grounded_subtasks_sha256"]) == 64
+    assert grounding["original_subtasks_sha256"] != grounding["grounded_subtasks_sha256"]
+    normalization = grounding["normalizations"][0]
+    assert normalization["source_count_was_positive_integer"] is False
+    assert len(normalization["source_value_sha256"]) == 64
+    assert normalization["canonical_value"] == "crafting_table"
+    assert plan["subtask_numeric_criteria_grounding"]["passed"] is True
+    assert plan["subtask_numeric_criteria_grounding"]["inventory_requirement_count"] == 1
+
+    task = next(iter(tasks.tasks.values()))
+    assert task.success_criteria == {
+        "nearby_block_present": "crafting_table",
+    }
+    assert task.preconditions == {
+        "inventory": {"crafting_table": 1},
+        "flags": [],
+    }
+    tasks.update_task(task.id, status=TaskStatus.ACCEPTED)
+    tasks.apply_action_result(
+        plan["actions"][0],
+        {"success": True, "item": "crafting_table"},
+        {
+            "inventory": {"oak_log": 5},
+            "nearby_blocks": [{"name": "crafting_table"}],
+        },
+        task_id=task.id,
+    )
+    assert task.status == TaskStatus.COMPLETED
+    prompt = llm.calls[0]["messages"][0]["content"]
+    assert "nearby_block_present" in prompt
+    assert "never use inventory of the placed item as placement proof" in prompt
+    print("PASS: M4 grounds the Probe 5 placement criterion in machine world state")
+
+
+def test_m4_place_success_criteria_grounding_is_narrow_and_fails_closed():
+    def fixture(
+        *,
+        goal="Place crafting table for tool progression",
+        title="Place crafting table",
+        task_type="place",
+        action_item="crafting_table",
+        inventory_item="crafting_table",
+        inventory_count=0,
+        nearby=None,
+        precondition_count=1,
+    ):
+        criteria = {"inventory": {inventory_item: inventory_count}}
+        if nearby is not None:
+            criteria["nearby_block_present"] = nearby
+        return {
+            "goal": goal,
+            "plan": {
+                "status": "planning",
+                "subtasks": [{
+                    "title": title,
+                    "type": task_type,
+                    "success_criteria": criteria,
+                    "preconditions": {
+                        "inventory": {"crafting_table": precondition_count},
+                    },
+                }],
+                "actions": [{
+                    "type": "place",
+                    "parameters": {
+                        "item": action_item,
+                        "x": 106,
+                        "y": 135,
+                        "z": -29,
+                    },
+                }],
+            },
+        }
+
+    positive = fixture(inventory_count=1)
+    grounded, report = Planner._ground_m4_place_success_criteria(
+        positive["plan"],
+        goal=positive["goal"],
+    )
+    assert report["passed"] is True
+    assert report["normalizations"][0]["source_count_was_positive_integer"] is True
+    assert grounded["subtasks"][0]["success_criteria"] == {
+        "nearby_block_present": "crafting_table",
+    }
+
+    controls = [
+        (
+            fixture(goal="Craft crafting table"),
+            "subtask[0]:place_success_criteria_goal_mismatch:crafting_table",
+        ),
+        (
+            fixture(title="Verify tool progression", task_type="verify"),
+            "subtask[0]:place_success_criteria_intent_missing:crafting_table",
+        ),
+        (
+            fixture(nearby="oak_planks"),
+            "subtask[0]:place_success_criteria_nearby_block_conflict",
+        ),
+    ]
+    for case, expected_issue in controls:
+        unchanged, report = Planner._ground_m4_place_success_criteria(
+            case["plan"],
+            goal=case["goal"],
+        )
+        assert report["passed"] is False
+        assert expected_issue in report["issues"]
+        assert unchanged["subtasks"][0]["success_criteria"]["inventory"] == {
+            "crafting_table": 0,
+        }
+
+    unrelated = fixture(action_item="oak_planks")
+    unchanged, report = Planner._ground_m4_place_success_criteria(
+        unrelated["plan"],
+        goal=unrelated["goal"],
+    )
+    assert report["passed"] is True
+    assert report["grounded_subtask_count"] == 0
+    _, numeric_report = Planner._ground_m4_subtask_numeric_criteria(unchanged)
+    assert numeric_report["passed"] is False
+    assert numeric_report["issues"] == [
+        "subtask[0]:success_criteria_inventory_count_invalid:crafting_table",
+    ]
+
+    item_alias = fixture(inventory_item="crafting_table ")
+    unchanged, report = Planner._ground_m4_place_success_criteria(
+        item_alias["plan"],
+        goal=item_alias["goal"],
+    )
+    assert report["passed"] is True
+    assert report["grounded_subtask_count"] == 0
+    assert unchanged["subtasks"][0]["success_criteria"] == {
+        "inventory": {"crafting_table ": 0},
+    }
+
+    invalid_precondition = fixture(precondition_count=0)
+    grounded, report = Planner._ground_m4_place_success_criteria(
+        invalid_precondition["plan"],
+        goal=invalid_precondition["goal"],
+    )
+    assert report["passed"] is True
+    _, numeric_report = Planner._ground_m4_subtask_numeric_criteria(grounded)
+    assert numeric_report["passed"] is False
+    assert numeric_report["issues"] == [
+        "subtask[0]:preconditions_inventory_count_invalid:crafting_table",
+    ]
+    print("PASS: M4 placement criterion grounding is intent-bound and fail-closed")
+
+
 def test_m4_autonomous_loop_recovers_invalid_planner_envelope_and_transport_failure():
     clock = FakeClock()
     planner = RuntimePlanner()
@@ -1067,6 +1268,8 @@ if __name__ == "__main__":
     test_m4_planner_rejects_empty_planning_response_and_marks_replan()
     test_m4_planner_normalizes_exact_probe_3_subtask_inventory_aliases()
     test_m4_subtask_numeric_grounding_rejects_non_equivalent_counts()
+    test_m4_planner_grounds_probe_5_place_success_criterion_to_machine_state()
+    test_m4_place_success_criteria_grounding_is_narrow_and_fails_closed()
     test_m4_autonomous_loop_recovers_invalid_planner_envelope_and_transport_failure()
     test_m4_planner_transport_recovery_fails_closed_for_non_transport_errors()
     test_m4_action_controller_enforces_episode_and_action_deadlines()
