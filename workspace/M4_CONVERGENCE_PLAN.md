@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 12 remain ineligible at 0/3. Probe 12 live-validates `m4-expected-drop-pickup-postcondition-v1`: five strict digs emitted the policy, three acquired their expected drops, two correctly failed closed, and the first failure recovered through two later successful digs. The new earliest blocker is `pickup_collection_pathfinder_completion_grounding`: action event 169 removed an oak log and detected its drop, but pickup navigation reported success while ending outside the 1-block acquisition envelope with no inventory delta. No next live episode is authorized until a bounded offline completion-grounding gate passes and is pushed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 12 remain ineligible at 0/3. Probe 12 live-validates `m4-expected-drop-pickup-postcondition-v1`: five strict digs emitted the policy, three acquired their expected drops, two correctly failed closed, and the first failure recovered through two later successful digs. Its new earliest blocker is `pickup_collection_pathfinder_completion_grounding`: action event 169 removed an oak log and detected its drop, but pickup navigation reported success while ending outside the 1-block acquisition envelope with no inventory delta. The bounded `m4-pickup-collection-completion-grounding-v1` offline gate now passes, and exactly one fresh BM-012 Probe 13 is authorized only after this commit is pushed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_12_recorded_pickup_collection_completion_grounding_gate_required |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_pickup_collection_completion_grounding_gate_passed_probe_13_authorized_after_push |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -117,6 +117,8 @@ The bounded offline fix passes under `m4-expected-drop-pickup-postcondition-v1`.
 
 Probe 12 live-validates the outer postcondition and recovery path. All five strict digs emitted the policy; three acquired the expected drop, two correctly returned failure, zero false-positive successes occurred, and the event-72 failure recovered through successful digs at events 97 and 116. The new earliest failure layer is `pickup_collection_pathfinder_completion_grounding`: event 169 removed the exact oak log and detected its entity, but the inner collector reported pathfinder success at 2.091618 blocks against the 1-block goal with no inventory delta. The outer strict-M4 postcondition remained fail-closed. A later 60-second movement deadline and bridge disconnect are downstream. Probe 12 consumed the only live authorization, and no further live episode may run before an offline completion-grounding gate passes and is pushed.
 
+The bounded offline fix now passes under `m4-pickup-collection-completion-grounding-v1`. Strict M4 records direct `GoalNear` resolution separately from measured completion, accepts only a final distance inside the one-block acquisition envelope or the expected inventory delta, and performs at most one fallback to a machine-validated standable `GoalBlock`. Direct and fallback navigation share one monotonic 6000 ms budget. The exact Probe 12 coordinates reproduce 2.114415 initial and 2.091618 false-final distances, validate `(93,138,-36)` from solid support plus passable feet/head cells, reserve 4000 ms after a 2000 ms direct attempt, and acquire `oak_log:+1`. A second out-of-range completion fails closed without a third navigation; an unsupported cell is rejected before fallback; the non-M4 control retains its prior single-navigation response. No live episode ran in this offline round, and one fresh BM-012 Probe 13 is authorized only after the gate commit is pushed.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -126,8 +128,8 @@ Probe 12 live-validates the outer postcondition and recovery path. All five stri
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 718 Python tests, including 28 M4 deadline cases, all six fixed Node suites with 40 internal assertions, and Python compilation pass
-- Live authorization: none; Probe 12 consumed the prior authorization, and the next run remains blocked on a pushed offline pickup-collection completion-grounding gate
+- Regression: 718 Python tests, including 36 focused M4/Bridge cases, all six fixed Node suites with 44 internal assertions, and Python compilation pass
+- Live authorization: exactly one fresh BM-012 Probe 13 after the pickup-collection completion-grounding gate commit is pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -285,11 +287,15 @@ Probe 12 live-validates the outer postcondition and recovery path. All five stri
 - Root hypothesis: `pickup_collection_pathfinder_completion_grounding`
 - Source transition: Probe 12 action event 169 / monotonic 77764.312 / cycle 8 removed `oak_log` at `(93,138,-36)`, detected entity 871, and entered pickup collection with `dark_oak_log:3`
 - Failure: the inner collector returned `success=true` even though final distance was 2.091618 blocks against `GoalNear(...,1)` and the expected `oak_log` inventory delta remained zero; the outer strict-M4 postcondition correctly returned failure
-- Recovery requirement: collector success must be grounded in expected inventory acquisition and a machine-observed reachable completion state, not merely resolution of `pathfinder.goto`
-- Bounded alternate: if navigation resolves outside the acquisition envelope, attempt at most one deadline-bounded reachable standable pickup position before re-observing inventory; final resource success remains fail-closed
+- Policy: `m4-pickup-collection-completion-grounding-v1`; collector success is grounded in expected inventory acquisition or measured final distance, never merely resolution of `pathfinder.goto`
+- Exact replay: the direct `GoalNear` reproduces 2.114415 initial and 2.091618 final distance and is marked ungrounded; solid support at `(93,137,-36)` plus passable feet/head cells validate fallback `(93,138,-36)`
+- Bounded alternate: one exact `GoalBlock` fallback receives 4000 ms after the deterministic direct attempt consumes 2000 ms of the shared 6000 ms budget, then acquires `oak_log:+1`
+- Fail-closed controls: a still-distant fallback performs no third navigation, an unsupported candidate is rejected before navigation, and final resource success still requires the expected inventory delta
+- Compatibility control: the same direct false completion without strict M4 retains one legacy navigation and no new policy evidence
 - Scope: strict-M4 pickup collector completion semantics only; Planner, TaskSystem, GoalVerifier, deadlines, success thresholds, protocol/task-contract hashes, fixed M1/M2 behavior, skills, vision, and multi-agent execution remain unchanged
-- Status: diagnosed from canonical Probe 12 evidence; offline gate not yet implemented
-- Authorization: none until the offline gate passes and its commit is pushed
+- Validation: 12 benchmark-reset Node cases, six fixed Node suites with 44 internal PASS cases, 36 focused Python tests, 718 full Python tests, syntax check, Python compilation, and `git diff --check`
+- Status: passed offline; no live episode ran in this gate round
+- Authorization: exactly one fresh BM-012 Probe 13 only after this gate commit is pushed
 
 ## BM-012 Live Evidence
 

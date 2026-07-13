@@ -1,16 +1,16 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T10:01:06.4556330Z",
+  "generated_at": "2026-07-13T10:28:50.8632188Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "probe_12_recorded_offline_pickup_collection_completion_grounding_gate_required",
-  "decision": "build_offline_pickup_collection_completion_grounding_gate_before_next_live_episode",
+  "readiness": "offline_pickup_collection_completion_grounding_gate_passed_probe_13_authorized_after_push",
+  "decision": "allow_one_fresh_bm012_probe_13_after_gate_commit_push",
   "verifier_id": "m4-sealed-cell-shelter-verifier-v1",
   "contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
   "strategy": "sealed_cell_v1",
   "evidence_scope": "offline_gate_and_probe_17_live_validation",
-  "next_authorized_episode": null,
+  "next_authorized_episode": "bm012_probe_13_once_after_gate_commit_push",
   "required_checks": [
     "physical_barriers",
     "overhead_cover_or_approved_alternative",
@@ -986,7 +986,8 @@
   },
   "offline_pickup_collection_completion_grounding_gate": {
     "root_hypothesis": "pickup_collection_pathfinder_completion_grounding",
-    "status": "required_not_implemented",
+    "status": "passed",
+    "policy_id": "m4-pickup-collection-completion-grounding-v1",
     "source_episode_id": "m4_episode_20260713_173959_8843046c",
     "source_session_id": "72f32a34-ee9",
     "source_action_event_index": 169,
@@ -1001,7 +1002,51 @@
     "expected_inventory_delta_observed": false,
     "outer_resource_postcondition_passed": false,
     "required_control": "ground collector completion in expected inventory acquisition and a reachable machine-observed final state",
-    "next_authorized_episode": null
+    "exact_probe_12_replay": {
+      "direct_goal_type": "GoalNear",
+      "direct_pathfinder_resolved": true,
+      "direct_completion_grounded": false,
+      "direct_final_distance": 2.0916180548327694,
+      "fallback_candidate": {"x": 93, "y": 138, "z": -36},
+      "fallback_support": {"x": 93, "y": 137, "z": -36, "solid": true},
+      "fallback_feet_passable": true,
+      "fallback_head_passable": true,
+      "fallback_goal_type": "GoalBlock",
+      "fallback_expected_inventory_delta": {"oak_log": 1},
+      "fallback_completion_grounded": true
+    },
+    "runtime_contract": {
+      "direct_completion_requires_measured_distance_or_inventory_delta": true,
+      "fallback_attempt_limit": 1,
+      "fallback_requires_machine_validated_standable_cell": true,
+      "shared_navigation_budget_ms": 6000,
+      "shared_budget_clock": "monotonic",
+      "outer_expected_drop_postcondition_unchanged": true
+    },
+    "fail_closed_controls": {
+      "still_distant_fallback_rejected": true,
+      "third_navigation_count": 0,
+      "unsupported_candidate_rejected_before_navigation": true
+    },
+    "non_m4_control": {
+      "legacy_navigation_count": 1,
+      "completion_policy_emitted": false,
+      "fixed_m1_m2_behavior_changed": false
+    },
+    "focused_node_gate_test_count": 4,
+    "focused_node_file_pass_count": 12,
+    "focused_python_test_count": 36,
+    "full_python_regression": 718,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 44,
+    "python_compileall_passed": true,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "deadline_policy_changed": false,
+    "success_threshold_changed": false,
+    "current_round_live_episode_run": false,
+    "bm012_live_episode_count": 12,
+    "next_authorized_episode": "bm012_probe_13_once_after_gate_commit_push"
   },
   "bm012_probe_9_live_observation": {
     "task_id": "BM-012",

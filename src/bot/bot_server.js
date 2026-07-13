@@ -830,6 +830,16 @@ function positiveInventoryDelta(before, after) {
     return delta;
 }
 
+function inventoryIncreaseState(activeBot, before, expectedItems = []) {
+    const inventory = inventoryCounts(activeBot);
+    const delta = positiveInventoryDelta(before, inventory);
+    const expected = new Set(expectedItems || []);
+    const observed = expected.size === 0
+        ? Object.keys(delta).length > 0
+        : [...expected].some(name => Number(delta[name] || 0) > 0);
+    return { observed, inventory, delta };
+}
+
 async function waitForInventoryIncrease(
     activeBot,
     before,
@@ -838,15 +848,10 @@ async function waitForInventoryIncrease(
     expectedItems = [],
 ) {
     const pollMs = 100;
-    const expected = new Set(expectedItems || []);
     for (let elapsed = 0; elapsed <= maxWaitMs; elapsed += pollMs) {
-        const after = inventoryCounts(activeBot);
-        const delta = positiveInventoryDelta(before, after);
-        const expectedObserved = expected.size === 0
-            ? Object.keys(delta).length > 0
-            : [...expected].some(name => Number(delta[name] || 0) > 0);
-        if (expectedObserved) {
-            return { observed: true, inventory: after, delta, waited_ms: elapsed };
+        const state = inventoryIncreaseState(activeBot, before, expectedItems);
+        if (state.observed) {
+            return { ...state, waited_ms: elapsed };
         }
         if (elapsed < maxWaitMs) await wait(pollMs);
     }
@@ -911,6 +916,56 @@ async function waitForDroppedItem(
     return { drop: null, waited_ms: maxWaitMs };
 }
 
+function pickupStandableCandidate(activeBot, dropPosition, goalRange) {
+    if (!activeBot?.blockAt || !dropPosition) return null;
+    const base = {
+        x: Math.floor(dropPosition.x),
+        y: Math.floor(dropPosition.y),
+        z: Math.floor(dropPosition.z),
+    };
+    const offsets = [
+        [0, 0, 0],
+        [1, 0, 0],
+        [-1, 0, 0],
+        [0, 0, 1],
+        [0, 0, -1],
+        [1, 0, 1],
+        [1, 0, -1],
+        [-1, 0, 1],
+        [-1, 0, -1],
+        [0, -1, 0],
+        [0, 1, 0],
+    ];
+    const candidates = [];
+    for (const [dx, dy, dz] of offsets) {
+        const position = new Vec3(base.x + dx, base.y + dy, base.z + dz);
+        const support = shelterBlockState(activeBot, position.offset(0, -1, 0));
+        const feet = shelterBlockState(activeBot, position);
+        const head = shelterBlockState(activeBot, position.offset(0, 1, 0));
+        if (!support.solid || !feet.passable || !head.passable) continue;
+        const expectedPlayerPosition = new Vec3(position.x + 0.5, position.y, position.z + 0.5);
+        const pickupDistance = navigationDistance(expectedPlayerPosition, dropPosition, true);
+        if (pickupDistance === null || pickupDistance > goalRange) continue;
+        candidates.push({
+            position: positionPayload(position),
+            expected_player_position: positionPayload(expectedPlayerPosition),
+            expected_pickup_distance: pickupDistance,
+            current_distance: navigationDistance(activeBot.entity?.position, expectedPlayerPosition, true),
+            support,
+            feet,
+            head,
+        });
+    }
+    candidates.sort((left, right) => (
+        Number(left.expected_pickup_distance) - Number(right.expected_pickup_distance) ||
+        Number(left.current_distance) - Number(right.current_distance) ||
+        Number(left.position.y) - Number(right.position.y) ||
+        Number(left.position.x) - Number(right.position.x) ||
+        Number(left.position.z) - Number(right.position.z)
+    ));
+    return candidates[0] || null;
+}
+
 async function approachDroppedItem(
     activeBot,
     target,
@@ -919,6 +974,7 @@ async function approachDroppedItem(
     detectionWaitMs = 0,
     goalRange = 0,
     timeoutMs = 6000,
+    options = {},
 ) {
     const detection = await waitForDroppedItem(
         activeBot,
@@ -952,30 +1008,147 @@ async function approachDroppedItem(
     const dropPosition = drop.entity.position.clone
         ? drop.entity.position.clone()
         : new Vec3(drop.entity.position.x, drop.entity.position.y, drop.entity.position.z);
-    let timer = null;
-    try {
-        details.attempted = true;
-        const navigation = Promise.resolve(activeBot.pathfinder.goto(
-            new goals.GoalNear(
-                Math.floor(dropPosition.x),
-                Math.floor(dropPosition.y),
-                Math.floor(dropPosition.z),
-                goalRange,
-            ),
-        ));
-        const timeout = new Promise((_, reject) => {
-            timer = setTimeout(() => reject(new Error(`pickup navigation timed out after ${timeoutMs}ms`)), timeoutMs);
-        });
-        await Promise.race([navigation, timeout]);
-        details.success = true;
-    } catch (error) {
-        details.success = false;
-        details.error = error.message;
-        if (typeof activeBot.pathfinder.stop === 'function') activeBot.pathfinder.stop();
-    } finally {
-        if (timer) clearTimeout(timer);
+    const completionGrounding = options.completionGrounding === true;
+    if (!completionGrounding) {
+        let timer = null;
+        try {
+            details.attempted = true;
+            const navigation = Promise.resolve(activeBot.pathfinder.goto(
+                new goals.GoalNear(
+                    Math.floor(dropPosition.x),
+                    Math.floor(dropPosition.y),
+                    Math.floor(dropPosition.z),
+                    goalRange,
+                ),
+            ));
+            const timeout = new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error(`pickup navigation timed out after ${timeoutMs}ms`)), timeoutMs);
+            });
+            await Promise.race([navigation, timeout]);
+            details.success = true;
+        } catch (error) {
+            details.success = false;
+            details.error = error.message;
+            if (typeof activeBot.pathfinder.stop === 'function') activeBot.pathfinder.stop();
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
+        details.final_distance = navigationDistance(activeBot.entity.position, dropPosition, true);
+        return details;
     }
-    details.final_distance = navigationDistance(activeBot.entity.position, dropPosition, true);
+
+    const monotonicMs = typeof options.monotonicMs === 'function'
+        ? options.monotonicMs
+        : () => Number(process.hrtime.bigint() / 1000000n);
+    const navigationDeadlineMs = monotonicMs() + timeoutMs;
+    const beforeInventory = options.beforeInventory || {};
+    const currentDropPosition = () => {
+        const current = activeBot.entities?.[drop.entity.id];
+        const position = current?.position || drop.entity.position || dropPosition;
+        return position?.clone
+            ? position.clone()
+            : new Vec3(position.x, position.y, position.z);
+    };
+    const runGroundedNavigation = async (goal, goalType) => {
+        const remainingMs = Math.max(0, Math.floor(navigationDeadlineMs - monotonicMs()));
+        const attempt = {
+            attempted: false,
+            goal_type: goalType,
+            timeout_ms: remainingMs,
+            pathfinder_resolved: false,
+        };
+        if (remainingMs <= 0) {
+            attempt.error = 'pickup navigation budget exhausted';
+            return attempt;
+        }
+        let timer = null;
+        try {
+            attempt.attempted = true;
+            const navigation = Promise.resolve(activeBot.pathfinder.goto(goal));
+            const timeout = new Promise((_, reject) => {
+                timer = setTimeout(
+                    () => reject(new Error(`pickup navigation timed out after ${remainingMs}ms`)),
+                    remainingMs,
+                );
+            });
+            await Promise.race([navigation, timeout]);
+            attempt.pathfinder_resolved = true;
+        } catch (error) {
+            attempt.error = error.message;
+            if (typeof activeBot.pathfinder.stop === 'function') activeBot.pathfinder.stop();
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
+        const observedDropPosition = currentDropPosition();
+        const inventoryState = inventoryIncreaseState(activeBot, beforeInventory, expectedItems);
+        attempt.position = positionPayload(activeBot.entity?.position);
+        attempt.drop_position = positionPayload(observedDropPosition);
+        attempt.final_distance = navigationDistance(activeBot.entity?.position, observedDropPosition, true);
+        attempt.goal_range = goalRange;
+        attempt.distance_grounded = attempt.final_distance !== null && attempt.final_distance <= goalRange;
+        attempt.inventory_delta_observed = inventoryState.observed;
+        attempt.inventory_delta = inventoryState.delta;
+        attempt.completion_grounded = attempt.distance_grounded || attempt.inventory_delta_observed;
+        return attempt;
+    };
+
+    details.attempted = true;
+    details.completion_policy = 'm4-pickup-collection-completion-grounding-v1';
+    details.navigation_budget_ms = timeoutMs;
+    details.fallback_attempt_limit = 1;
+    details.fallback_attempt_count = 0;
+    const directGoal = new goals.GoalNear(
+        Math.floor(dropPosition.x),
+        Math.floor(dropPosition.y),
+        Math.floor(dropPosition.z),
+        goalRange,
+    );
+    const direct = await runGroundedNavigation(directGoal, 'GoalNear');
+    details.direct_navigation = direct;
+    details.final_distance = direct.final_distance ?? details.initial_distance;
+    details.inventory_delta_observed = direct.inventory_delta_observed === true;
+    details.inventory_delta = direct.inventory_delta || {};
+    if (direct.completion_grounded) {
+        details.success = true;
+        details.completion_grounded = true;
+        details.completion_grounded_by = direct.inventory_delta_observed ? 'inventory_delta' : 'measured_distance';
+        if (direct.error) details.pathfinder_warning = direct.error;
+        return details;
+    }
+    if (!direct.pathfinder_resolved) {
+        details.success = false;
+        details.completion_grounded = false;
+        details.error = direct.error || 'pickup navigation did not reach the acquisition envelope';
+        return details;
+    }
+
+    const fallbackDropPosition = currentDropPosition();
+    const candidate = pickupStandableCandidate(activeBot, fallbackDropPosition, goalRange);
+    details.fallback_candidate = candidate;
+    if (!candidate) {
+        details.success = false;
+        details.completion_grounded = false;
+        details.error = 'pickup navigation completed outside acquisition range and no standable fallback was available';
+        return details;
+    }
+
+    details.fallback_attempt_count = 1;
+    const fallback = await runGroundedNavigation(
+        new goals.GoalBlock(candidate.position.x, candidate.position.y, candidate.position.z),
+        'GoalBlock',
+    );
+    details.fallback_navigation = fallback;
+    details.final_distance = fallback.final_distance ?? details.final_distance;
+    details.inventory_delta_observed = fallback.inventory_delta_observed === true;
+    details.inventory_delta = fallback.inventory_delta || {};
+    details.success = fallback.completion_grounded === true;
+    details.completion_grounded = details.success;
+    if (details.success) {
+        details.completion_grounded_by = fallback.inventory_delta_observed ? 'inventory_delta' : 'measured_distance';
+        if (fallback.error) details.pathfinder_warning = fallback.error;
+    } else {
+        details.error = fallback.error || 'pickup fallback completed outside acquisition range';
+    }
     return details;
 }
 
@@ -2411,6 +2584,7 @@ function createCraftHandler(
 function createDigHandler(
     getState = () => ({ bot, botReady }),
     wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    options = {},
 ) {
     return async (params = {}) => {
         const state = getState() || {};
@@ -2449,6 +2623,12 @@ function createDigHandler(
                     wait,
                     strictPickupPostcondition ? 1500 : 0,
                     strictPickupPostcondition ? 1 : 0,
+                    6000,
+                    {
+                        completionGrounding: strictPickupPostcondition,
+                        beforeInventory,
+                        monotonicMs: options.monotonicMs,
+                    },
                 );
                 const collected = await waitForInventoryIncrease(activeBot, beforeInventory, wait, 1500, expectedDrops);
                 pickup = {

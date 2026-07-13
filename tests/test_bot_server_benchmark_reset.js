@@ -396,6 +396,196 @@ async function testM4DigHandlerWaitsForDropAndUsesReachablePickupGoal() {
     console.log('PASS: M4 dig waits for a delayed drop and uses a reachable pickup goal');
 }
 
+function createProbe12FalsePickupCompletionFixture(options = {}) {
+    const target = new Vec3(93, 138, -36);
+    const drop = {
+        id: 871,
+        name: 'item',
+        position: new Vec3(93.125, 138, -35.334716796875),
+        getDroppedItem: () => ({ name: 'oak_log' }),
+    };
+    let removed = false;
+    let items = [{ name: 'dark_oak_log', count: 3 }];
+    let clockMs = 0;
+    const navigationGoals = [];
+    const falseCompletionPosition = new Vec3(
+        93.34238234601303,
+        140.07472379453523,
+        -35.48680946380416,
+    );
+    const bot = {
+        version: '1.20.4',
+        entity: {
+            position: new Vec3(
+                93.50127136141536,
+                140.07472379453523,
+                -35.491858797329925,
+            ),
+        },
+        entities: { [drop.id]: drop },
+        inventory: { items: () => items },
+        blockAt(position) {
+            if (position.x === target.x && position.y === target.y && position.z === target.z) {
+                return removed
+                    ? { name: 'air', type: 0, boundingBox: 'empty', position: target }
+                    : { name: 'oak_log', type: 46, boundingBox: 'block', drops: [131], position: target };
+            }
+            if (position.x === target.x && position.y === target.y - 1 && position.z === target.z) {
+                if (options.standable === false) {
+                    return { name: 'air', type: 0, boundingBox: 'empty', position };
+                }
+                return { name: 'oak_log', type: 46, boundingBox: 'block', position };
+            }
+            return { name: 'air', type: 0, boundingBox: 'empty', position };
+        },
+        async dig() {
+            removed = true;
+        },
+        pathfinder: {
+            async goto(goal) {
+                navigationGoals.push(goal);
+                if (navigationGoals.length === 1) {
+                    clockMs += 2000;
+                    bot.entity.position = falseCompletionPosition.clone();
+                    return;
+                }
+                clockMs += 500;
+                if (options.fallbackMoves !== false) {
+                    bot.entity.position = new Vec3(target.x + 0.5, target.y, target.z + 0.5);
+                }
+                if (options.acquireOnFallback !== false) {
+                    items = [...items, { name: 'oak_log', count: 1 }];
+                }
+            },
+            stop() {},
+        },
+    };
+    return {
+        bot,
+        target,
+        drop,
+        navigationGoals,
+        monotonicMs: () => clockMs,
+    };
+}
+
+async function testM4PickupCompletionUsesProbe12StandableFallback() {
+    const fixture = createProbe12FalsePickupCompletionFixture();
+    const handler = createDigHandler(
+        () => ({ bot: fixture.bot, botReady: true }),
+        async () => {},
+        { monotonicMs: fixture.monotonicMs },
+    );
+    const result = await handler({
+        x: fixture.target.x,
+        y: fixture.target.y,
+        z: fixture.target.z,
+        require_pickup: true,
+    });
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.pickup_observed, true);
+    assert.deepStrictEqual(result.pickup_inventory_delta, { oak_log: 1 });
+    assert.strictEqual(result.pickup_collection.completion_policy, 'm4-pickup-collection-completion-grounding-v1');
+    assert.strictEqual(result.pickup_collection.direct_navigation.pathfinder_resolved, true);
+    assert.strictEqual(result.pickup_collection.direct_navigation.completion_grounded, false);
+    assert(Math.abs(result.pickup_collection.initial_distance - 2.1144154202377106) < 1e-9);
+    assert(Math.abs(result.pickup_collection.direct_navigation.final_distance - 2.0916180548327694) < 1e-9);
+    assert.strictEqual(result.pickup_collection.fallback_attempt_limit, 1);
+    assert.strictEqual(result.pickup_collection.fallback_attempt_count, 1);
+    assert.deepStrictEqual(result.pickup_collection.fallback_candidate.position, { x: 93, y: 138, z: -36 });
+    assert.strictEqual(result.pickup_collection.fallback_candidate.support.solid, true);
+    assert.strictEqual(result.pickup_collection.fallback_candidate.feet.passable, true);
+    assert.strictEqual(result.pickup_collection.fallback_candidate.head.passable, true);
+    assert.strictEqual(result.pickup_collection.fallback_navigation.goal_type, 'GoalBlock');
+    assert.strictEqual(result.pickup_collection.fallback_navigation.timeout_ms, 4000);
+    assert.strictEqual(result.pickup_collection.fallback_navigation.inventory_delta_observed, true);
+    assert.strictEqual(result.pickup_collection.completion_grounded, true);
+    assert.strictEqual(result.pickup_collection.completion_grounded_by, 'inventory_delta');
+    assert.strictEqual(fixture.navigationGoals.length, 2);
+    assert.strictEqual(fixture.navigationGoals[0].constructor.name, 'GoalNear');
+    assert.strictEqual(fixture.navigationGoals[1].constructor.name, 'GoalBlock');
+    assert.strictEqual(result.dig_postcondition.passed, true);
+    console.log('PASS: Probe 12 false pickup completion uses one grounded standable-cell fallback');
+}
+
+async function testM4PickupCompletionFallbackFailsClosedAndStopsAfterOneAttempt() {
+    const fixture = createProbe12FalsePickupCompletionFixture({
+        acquireOnFallback: false,
+        fallbackMoves: false,
+    });
+    const handler = createDigHandler(
+        () => ({ bot: fixture.bot, botReady: true }),
+        async () => {},
+        { monotonicMs: fixture.monotonicMs },
+    );
+    const result = await handler({
+        x: fixture.target.x,
+        y: fixture.target.y,
+        z: fixture.target.z,
+        require_pickup: true,
+    });
+
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.error, 'expected block drop was not acquired');
+    assert.strictEqual(result.pickup_observed, false);
+    assert.strictEqual(result.pickup_collection.success, false);
+    assert.strictEqual(result.pickup_collection.completion_grounded, false);
+    assert.strictEqual(result.pickup_collection.fallback_attempt_count, 1);
+    assert.strictEqual(result.pickup_collection.fallback_navigation.pathfinder_resolved, true);
+    assert.strictEqual(result.pickup_collection.fallback_navigation.completion_grounded, false);
+    assert.match(result.pickup_collection.error, /outside acquisition range/);
+    assert.strictEqual(fixture.navigationGoals.length, 2);
+    assert.strictEqual(result.dig_postcondition.passed, false);
+    console.log('PASS: M4 pickup fallback remains fail-closed and performs no third navigation');
+}
+
+async function testM4PickupCompletionRejectsUnsupportedFallbackCell() {
+    const fixture = createProbe12FalsePickupCompletionFixture({ standable: false });
+    const handler = createDigHandler(
+        () => ({ bot: fixture.bot, botReady: true }),
+        async () => {},
+        { monotonicMs: fixture.monotonicMs },
+    );
+    const result = await handler({
+        x: fixture.target.x,
+        y: fixture.target.y,
+        z: fixture.target.z,
+        require_pickup: true,
+    });
+
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.pickup_collection.success, false);
+    assert.strictEqual(result.pickup_collection.fallback_candidate, null);
+    assert.strictEqual(result.pickup_collection.fallback_attempt_count, 0);
+    assert.match(result.pickup_collection.error, /no standable fallback/);
+    assert.strictEqual(fixture.navigationGoals.length, 1);
+    console.log('PASS: M4 pickup completion rejects an unsupported fallback cell before navigation');
+}
+
+async function testPickupCompletionGroundingLeavesLegacyDigUnchanged() {
+    const fixture = createProbe12FalsePickupCompletionFixture();
+    const handler = createDigHandler(
+        () => ({ bot: fixture.bot, botReady: true }),
+        async () => {},
+        { monotonicMs: fixture.monotonicMs },
+    );
+    const result = await handler({
+        x: fixture.target.x,
+        y: fixture.target.y,
+        z: fixture.target.z,
+    });
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.pickup_observed, false);
+    assert.strictEqual(result.pickup_collection.success, true);
+    assert.strictEqual(result.pickup_collection.completion_policy, undefined);
+    assert.strictEqual(result.pickup_collection.fallback_navigation, undefined);
+    assert.strictEqual(fixture.navigationGoals.length, 1);
+    assert.strictEqual(result.dig_postcondition, undefined);
+    console.log('PASS: Pickup completion grounding leaves the fixed legacy dig path unchanged');
+}
+
 async function main() {
     assert.strictEqual(M1_PROTOCOL.episode_strategy, 'fresh_level_per_task_run_v1');
     await testProtocolStatusPinsRuntimeAndDependencies();
@@ -406,6 +596,10 @@ async function main() {
     await testDigHandlerApproachesObservedDropForPickup();
     await testM4DigHandlerFailsClosedWhenExpectedDropIsMissing();
     await testM4DigHandlerWaitsForDropAndUsesReachablePickupGoal();
+    await testM4PickupCompletionUsesProbe12StandableFallback();
+    await testM4PickupCompletionFallbackFailsClosedAndStopsAfterOneAttempt();
+    await testM4PickupCompletionRejectsUnsupportedFallbackCell();
+    await testPickupCompletionGroundingLeavesLegacyDigUnchanged();
     console.log('\nBot server benchmark reset tests PASSED');
 }
 
