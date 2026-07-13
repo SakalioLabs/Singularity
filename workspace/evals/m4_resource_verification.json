@@ -1,19 +1,19 @@
 {
   "type": "m4_resource_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T00:45:17.2359121Z",
+  "generated_at": "2026-07-13T01:00:59.8101676Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "task_id": "BM-012",
   "task_name": "Get 8 iron resources",
   "task_contract_id": "m4-bm012-resource-contract-v1",
   "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
-  "readiness": "subtask_numeric_criteria_offline_gate_passed_probe_4_exactly_one_authorized",
-  "decision": "authorize_exactly_one_bm012_probe_4",
-  "hypothesis": "planner_subtask_numeric_criteria_type_grounding",
+  "readiness": "probe_4_ineligible_task_inventory_family_reconciliation_offline_fix_required",
+  "decision": "diagnose_task_inventory_family_reconciliation_without_live_rerun",
+  "hypothesis": "m4_task_inventory_family_reconciliation_grounding",
   "eligible_success_count": 0,
   "required_success_count": 3,
-  "next_authorized_episode": "bm012_probe_4_exactly_one",
+  "next_authorized_episode": "none_task_inventory_family_reconciliation_offline_gate_pending",
   "contract": {
     "terminal_goal": "Collect 8 iron resources",
     "initial_time_of_day": 0,
@@ -113,8 +113,110 @@
     ]
   },
   "live_episode_run": true,
-  "live_episode_count": 3,
+  "live_episode_count": 4,
   "latest_live_episode": {
+    "episode_id": "m4_episode_20260713_085253_4a8a6b25",
+    "session_id": "e86fce97-657",
+    "level_name": "m4_episode_20260713_085253_4a8a6b25_bm012",
+    "preflight_passed": true,
+    "progress_gate_passed": false,
+    "independently_eligible": false,
+    "eligibility_check_count": 74,
+    "eligibility_pass_count": 68,
+    "eligibility_issues": [
+      "event:terminal_resource_verification",
+      "resource_terminal_inventory_target",
+      "resource_successful_source_actions",
+      "resource_positive_inventory_delta",
+      "terminal_machine_verification",
+      "result_duration_eligible"
+    ],
+    "prior_hypothesis_live_validation": {
+      "hypothesis": "planner_subtask_numeric_criteria_type_grounding",
+      "planner_call_count": 31,
+      "numeric_grounding_report_count": 31,
+      "numeric_grounding_pass_count": 31,
+      "inventory_requirement_count": 31,
+      "observed_requirement_value": 6,
+      "observed_requirement_type": "int",
+      "normalization_count": 0,
+      "issue_count": 0,
+      "runtime_numeric_type_error_count": 0,
+      "prior_failure_recurred": false,
+      "exact_alias_normalization_exercised_live": false
+    },
+    "first_unrecovered_transition": {
+      "failure_layer": "m4_task_inventory_family_reconciliation_grounding",
+      "session_event_index": 160,
+      "monotonic_s": 46122.64,
+      "event_type": "task_readiness_planner_context",
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "observed_inventory": {"oak_log": 4, "dark_oak_log": 2},
+      "goal_verifier_family_count": 6,
+      "task_system_exact_oak_log_count": 4,
+      "ready_task_count": 7,
+      "first_opportunity_task_event_index": 167,
+      "selected_task": "Find and gather 6 oak logs",
+      "goal_verification_event_index": 170,
+      "first_repeated_auto_goal_event_index": 175
+    },
+    "downstream_cascade": {
+      "ready_task_selected_root_count": 23,
+      "one_cycle_completed_root_count": 23,
+      "action_count_after_first_goal_completion": 0,
+      "planner_task_count": 31,
+      "final_completed_task_count": 22,
+      "final_accepted_task_count": 9,
+      "episode_termination_reason": "max_goals_or_stopped",
+      "not_the_earliest_blocker": true
+    },
+    "planner": {
+      "call_count": 31,
+      "real_call_count": 31,
+      "schema_valid_count": 31,
+      "schema_invalid_count": 0,
+      "maximum_duration_ms": 5562,
+      "total_tokens": 100594,
+      "reasoning_content_byte_count": 0,
+      "transport_retry_count": 0,
+      "transport_error_count": 0
+    },
+    "actions": {
+      "attempted": 8,
+      "successful": 7,
+      "by_type": {
+        "move_to": {"attempted": 4, "successful": 3},
+        "dig": {"attempted": 4, "successful": 4},
+        "craft": {"attempted": 0, "successful": 0},
+        "place": {"attempted": 0, "successful": 0}
+      }
+    },
+    "autonomous_goals": {"attempted": 24, "completed": 24, "failed": 0, "interrupted": 0},
+    "resource_acquisition": {
+      "initial_target_count": 0,
+      "terminal_target_count": 0,
+      "successful_source_action_count": 0,
+      "terminal_target_passed": false
+    },
+    "terminal_state": {
+      "time_of_day": 3157,
+      "health": 20,
+      "food": 20,
+      "inventory": {"oak_log": 4, "dark_oak_log": 2},
+      "maximum_death_count": 0,
+      "maximum_respawn_count": 0
+    },
+    "deadline": {
+      "episode_started_monotonic": 46049.515,
+      "episode_deadline_monotonic": 46649.515,
+      "agent_end_monotonic": 46199.921,
+      "evidence_end_monotonic": 46199.984,
+      "time_remaining_s": 449.531,
+      "deadline_eligible": true,
+      "no_post_deadline_execution": true
+    }
+  },
+  "probe_3_live_episode": {
     "episode_id": "m4_episode_20260713_081730_337b2b6b",
     "session_id": "bc72df1e-a54",
     "level_name": "m4_episode_20260713_081730_337b2b6b_bm012",
@@ -421,7 +523,8 @@
     "node_internal_pass_count": 36,
     "protocol_changed": false,
     "task_contract_changed": false,
-    "next_authorized_episode": "bm012_probe_4_exactly_one"
+    "live_validated_by_probe_4": "integer_only_path_no_alias_normalization",
+    "next_authorized_episode": "consumed_by_probe_4"
   },
-  "round_boundary": "The subtask numeric-criteria offline gate passes and authorizes exactly one fresh BM-012 Probe 4 after this commit is pushed; no second live episode may run in the round."
+  "round_boundary": "BM-012 Probe 4 consumed the round's only live authorization; the next hypothesis is offline M4 task inventory-family reconciliation grounding and no second episode is allowed."
 }

@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 3 remain ineligible at 0/3. Probe 3 emitted a canonical crafting-table placement plan, then exposed untyped Planner subtask numeric criteria as the new earliest blocker. Its bounded offline gate now passes and authorizes exactly one fresh Probe 4 after this commit is pushed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 4 remain ineligible at 0/3. Probe 4 eliminated Probe 3's numeric-type crash, then exposed inconsistent log-family semantics between machine GoalVerifier completion and TaskSystem inventory reconciliation. This round's only live authorization is consumed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | subtask_numeric_criteria_offline_gate_passed_probe_4_authorized |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_4_consumed_ineligible_task_inventory_family_reconciliation_fix_required |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -63,7 +63,9 @@ The bounded `curriculum_crafting_station_world_readiness_grounding` fix passes o
 
 Probe 3 reaches that placement boundary but does not execute it. Planner event 510 / call `llm-d1e4384adc0045e6` emitted canonical `place(item=crafting_table,x=106,y=135,z=-29)` with passing action-parameter grounding, so the Probe 2 alias rejection did not recur. The same accepted plan also created a dependent task whose success criterion was `inventory.oak_planks=">=8"` and whose precondition was `inventory.oak_log=">=1"`. At event 525 / monotonic 44047.687 / global cycle 25, inventory-only machine-state reconciliation compared an observed integer count to the string criterion and raised `'>=' not supported between instances of 'int' and 'str'`. The exception repeated 280 times through cycle 304; seven `Place crafting_table` roots each exhausted 40 cycles without a Planner call or action. The earliest failure layer is now `planner_subtask_numeric_criteria_type_grounding`. No code fix or second episode occurs in this round.
 
-The bounded `planner_subtask_numeric_criteria_type_grounding` fix now passes offline. Strict-M4 Planner traverses only `subtasks[*].preconditions.inventory` and `subtasks[*].success_criteria.inventory`, converts exact positive `>=N` strings to the equivalent integer because inventory criteria already mean at least N, and records each conversion in `m4_subtask_numeric_criteria_grounding`. Booleans, nonpositive integers, floats, bare numeric strings, alternate comparators, prose counts, non-object inventory criteria, and other non-equivalent values reject the plan before task creation. TaskSystem independently treats malformed required counts as unsatisfied and reports invalid preconditions instead of throwing or treating them as zero. The exact Probe 3 plan replays to `oak_planks:8` and `oak_log:1`; the base protocol and BM-012 task contract hashes are unchanged. Exactly one fresh Probe 4 is authorized after this gate commit is pushed.
+The bounded `planner_subtask_numeric_criteria_type_grounding` fix now passes offline. Strict-M4 Planner traverses only `subtasks[*].preconditions.inventory` and `subtasks[*].success_criteria.inventory`, converts exact positive `>=N` strings to the equivalent integer because inventory criteria already mean at least N, and records each conversion in `m4_subtask_numeric_criteria_grounding`. Booleans, nonpositive integers, floats, bare numeric strings, alternate comparators, prose counts, non-object inventory criteria, and other non-equivalent values reject the plan before task creation. TaskSystem independently treats malformed required counts as unsatisfied and reports invalid preconditions instead of throwing or treating them as zero. The exact Probe 3 plan replays to `oak_planks:8` and `oak_log:1`; the base protocol and BM-012 task contract hashes are unchanged. Its one fresh Probe 4 authorization was consumed by the live result below.
+
+Probe 4 live-validates the integer-only path but does not exercise alias normalization: 31/31 real Planner calls were schema-valid, all 31 numeric-grounding reports passed, every observed requirement was integer `6`, normalization count was zero, and no runtime error occurred. The initial root gathered `oak_log:4` plus `dark_oak_log:2`; GoalVerifier event 170 accepted the six-member log family. TaskSystem's exact `inventory.oak_log=6` reconciliation did not close the planner frontier: readiness event 160 reported seven ready tasks, event 167 selected `Find and gather 6 oak logs`, and event 175 began 23 consecutive `ready_task_selected` roots. All completed in one cycle under GoalVerifier family semantics, no action executed after event 155, and nine tasks remained accepted when the 24-goal budget ended. The earliest failure layer is now `m4_task_inventory_family_reconciliation_grounding`. No code fix or second episode occurs in this round.
 
 ## BM-012 Offline Preflight
 
@@ -75,7 +77,7 @@ The bounded `planner_subtask_numeric_criteria_type_grounding` fix now passes off
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 703 Python tests, 134 related Planner/TaskSystem/M4 tests, all six fixed Node suites with 36 internal cases, Python compilation, and `git diff --check` pass
-- Live authorization: exactly one fresh BM-012 Probe 4 after the numeric-criteria gate is committed and pushed
+- Live authorization: consumed by BM-012 Probe 4; no second episode is authorized in this round
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -112,9 +114,30 @@ The bounded `planner_subtask_numeric_criteria_type_grounding` fix now passes off
 - Prompt grounding: M4 requires positive integer inventory counts and states that the built-in criterion already means at least N
 - Scope: strict-M4 Planner subtask inventory criteria and TaskSystem numeric fail-closed defense only; M1/M2 fixed contracts, protocol data, action execution, GoalGenerator, GoalVerifier, deadline, and success thresholds are unchanged
 - Validation: 3 exact new gate tests, 134 related tests, 703 full Python tests, six Node suites with 36 cases, Python compilation, and `git diff --check` pass
-- Authorization: exactly one fresh BM-012 Probe 4 after this gate commit is pushed; no second episode may run in the round
+- Live result: Probe 4 emitted 31 passing numeric-grounding reports with integer-only counts and zero runtime errors; the exact `>=N` normalization branch was not exercised live
+- Authorization: consumed by BM-012 Probe 4; no second episode may run in the round
 
 ## BM-012 Live Evidence
+
+### Probe 4: Numeric Crash Cleared; Log-Family Task Reconciliation Repeated Completed Roots
+
+- Episode: `m4_episode_20260713_085253_4a8a6b25`
+- Session: `e86fce97-657`
+- Level: `m4_episode_20260713_085253_4a8a6b25_bm012`
+- Preflight: passed with unchanged protocol/task-contract hashes, empty inventory, fresh daylight level, zero-death lifecycle baseline, and exact `600/24/40/320` controls
+- Result: ineligible; BM-012 remains 0/3, 68/74 independent checks passed, no terminal resource event was emitted, and no iron-source action occurred
+- Prior gate live evidence: 31/31 real Planner calls were schema-valid; all 31 numeric-grounding reports passed with one integer requirement each, zero issues, zero normalization, and zero runtime errors; Probe 3's `int >= str` failure did not recur
+- Family boundary: observation event 157 held `oak_log:4` and `dark_oak_log:2`; GoalVerifier event 170 reported `inventory has 6/6 oak_log` using the pinned log family
+- Earliest invalid transition: task-readiness event 160 still reported seven ready exact-`oak_log:6` tasks; opportunity event 167 selected one, and auto-goal event 175 began the repeated frontier
+- Cascade: 23 later roots used `ready_task_selected`; all verified in one cycle, no action executed after event 155, 31 tasks were created, 22 completed, and nine remained accepted when `max_goals_or_stopped` ended the episode
+- Goals: 24 roots; 24 completed, zero failed, zero interrupted, 31 total cycles
+- Planner: 31/31 calls were real and schema-valid, maximum latency 5.562 seconds, 100594 tokens, zero transport retries/errors, and zero reasoning bytes
+- Actions: 7/8 succeeded; `move_to` 3/4 and `dig` 4/4; no craft, place, shelter, or iron-source action executed
+- Terminal: health/food 20, lifecycle uninterrupted with zero deaths/respawns, world time 3157, inventory `oak_log:4`, `dark_oak_log:2`
+- Deadline: evidence ended at 46199.984 against deadline 46649.515, leaving 449.531 seconds; no post-deadline execution occurred
+- Skills: baseline remained off; selected/executed/quarantined contribution was zero
+- Round boundary: this was the only live episode; no second BM-012 run is authorized
+- Evidence: `logs/benchmarks/m4/m4_episode_20260713_085253_4a8a6b25/`
 
 ### Probe 3: Canonical Place Plan Emitted; String Subtask Threshold Crashed Reconciliation
 

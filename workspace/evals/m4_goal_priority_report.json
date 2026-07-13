@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T00:45:17.2359121Z",
+  "generated_at": "2026-07-13T01:00:59.8101676Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_subtask_numeric_criteria_offline_gate_passed_probe_4_exactly_one_authorized",
-  "decision": "authorize_exactly_one_bm012_probe_4",
+  "readiness": "bm012_probe_4_ineligible_task_inventory_family_reconciliation_offline_fix_required",
+  "decision": "do_not_rerun_fix_task_inventory_family_reconciliation_offline",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -58,7 +58,7 @@
     "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
     "scheduled_recovery_count": 1,
     "completed_recovery_count": 1,
-    "next_authorized_episode": "bm012_probe_4_exactly_one"
+    "next_authorized_episode": "none_task_inventory_family_reconciliation_offline_gate_pending"
   },
   "bm012_autonomous_progression": {
     "task_contract_id": "m4-bm012-resource-contract-v1",
@@ -77,7 +77,7 @@
     "goal_selection_source": "goal_generator",
     "offline_gate_passed": true,
     "live_episode_run": true,
-    "live_episode_id": "m4_episode_20260713_081730_337b2b6b",
+    "live_episode_id": "m4_episode_20260713_085253_4a8a6b25",
     "live_episode_eligible": false,
     "purpose_phrase_offline_gate_passed": true,
     "purpose_phrase_matched_rule": "intent:shelter_purpose_phrase",
@@ -92,7 +92,9 @@
     "subtask_numeric_exact_probe_3_plan_replayed": true,
     "subtask_numeric_normalized_requirement_count": 2,
     "task_system_numeric_fail_closed": true,
-    "next_authorized_episode": "bm012_probe_4_exactly_one"
+    "subtask_numeric_live_validated_by_probe_4": "integer_only_path_no_alias_normalization",
+    "task_inventory_family_reconciliation_consistent": false,
+    "next_authorized_episode": "none_task_inventory_family_reconciliation_offline_gate_pending"
   },
   "offline_subtask_numeric_criteria_gate": {
     "passed": true,
@@ -105,11 +107,45 @@
     "node_internal_pass_count": 36,
     "protocol_changed": false,
     "task_contract_changed": false,
-    "next_authorized_episode": "bm012_probe_4_exactly_one"
+    "live_validated_by_probe_4": "integer_only_path_no_alias_normalization",
+    "next_authorized_episode": "consumed_by_probe_4"
   },
-  "live_episode_count": 21,
-  "live_episode_count_under_current_protocol": 7,
+  "live_episode_count": 22,
+  "live_episode_count_under_current_protocol": 8,
   "latest_live_episode": {
+    "task_id": "BM-012",
+    "episode_id": "m4_episode_20260713_085253_4a8a6b25",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "autonomous_goal_count": 24,
+    "completed_goal_count": 24,
+    "failed_goal_count": 0,
+    "interrupted_goal_count": 0,
+    "selection_source": "curriculum",
+    "initial_selection_reason": "curriculum_ranked:early_wood_bootstrap",
+    "repeated_ready_task_selection_count": 23,
+    "repeated_goal_titles": {"Find and gather 6 oak logs": 18, "Gather 6 oak logs": 5},
+    "family_inventory_at_boundary": {"oak_log": 4, "dark_oak_log": 2},
+    "goal_verifier_family_count": 6,
+    "task_system_exact_oak_log_count": 4,
+    "task_readiness_event_index": 160,
+    "task_readiness_ready_count": 7,
+    "first_repeated_opportunity_event_index": 167,
+    "first_repeated_auto_goal_event_index": 175,
+    "first_unrecovered_transition": "m4_task_inventory_family_reconciliation_grounding",
+    "runtime_numeric_type_error_count": 0,
+    "numeric_grounding_report_count": 31,
+    "numeric_grounding_pass_count": 31,
+    "numeric_grounding_normalization_count": 0,
+    "action_count_after_first_goal_completion": 0,
+    "final_task_status_counts": {"completed": 22, "accepted": 9},
+    "resource_terminal_inventory_target": false,
+    "server_observed_death_count": 0,
+    "runner_reported_eligible": false,
+    "independently_accepted_eligible": false,
+    "terminal_world_time": 3157
+  },
+  "bm012_probe_3_live_episode": {
     "task_id": "BM-012",
     "episode_id": "m4_episode_20260713_081730_337b2b6b",
     "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",

@@ -2,7 +2,7 @@
 
 ## Convergence Result
 
-M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has three failed live attempts and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
+M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has four failed live attempts and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
 
 ## Current Assessment
 
@@ -10,7 +10,7 @@ Singularity has broad source coverage and a large passing offline test surface, 
 
 Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. M1 remains complete at 15/15, M2 contributes 23 eligible current-protocol successes, and M4 now contributes three independently eligible BM-011 episodes with unique session, episode, level, and session hashes. The overall system remains incomplete.
 
-BM-012 remains 0/3. Probe 3 produced the first live canonical crafting-table placement plan at event 510, then exposed malformed string thresholds `oak_planks: ">=8"` and `oak_log: ">=1"`; event 525 began 280 repeated `int >= str` reconciliation errors. The bounded `planner_subtask_numeric_criteria_type_grounding` gate now replays that exact plan into integer counts `8` and `1`, records normalization evidence in the Planner schema, rejects booleans, nonpositive values, floats, and non-equivalent strings before scheduler task creation, and keeps TaskSystem blocked without an exception if malformed data leaks through. All 703 Python tests and six fixed Node suites pass; exactly one fresh Probe 4 is authorized after the gate commit is pushed.
+BM-012 remains 0/3. Probe 4 ran exactly once from committed gate `c9c30a6`. All 31 Planner calls were real and schema-valid; every `m4_subtask_numeric_criteria_grounding` report passed, all 31 observed inventory thresholds were integer `6`, and no runtime error occurred. The initial root gathered four oak and two dark-oak logs and GoalVerifier accepted the six-log family at event 170. TaskSystem still evaluated planner criteria as exact `oak_log:6`: readiness event 160 exposed seven stale ready tasks, opportunity event 167 selected one, and auto-goal event 175 began 23 repeated `ready_task_selected` roots. Each verified in one cycle, no action ran after the initial root, and the 24-goal budget ended with nine accepted tasks. The next hypothesis is `m4_task_inventory_family_reconciliation_grounding`; no further live run is authorized before its offline gate passes.
 
 Current report outcome:
 
