@@ -2,7 +2,7 @@
 
 ## Convergence Result
 
-M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has four failed live attempts and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
+M1, M2, and M3 are `repeat_verified`. M1 has 15 distinct state-grounded benchmark successes. M2 has 23 eligible current-protocol successes across BM-006..010, including 3/3 accepted pairs for both composite tasks. M3 has three distinct raw-log-verified later-session retrieval/outcome pairs plus an approved held-out transfer gate. M4 is `failing`: BM-011 is repeat_verified at 3/3, BM-012 has five failed live attempts and remains 0/3, and BM-013..014 remain unverified. See `workspace/evals/capability_evidence_current.json` for the canonical state.
 
 ## Current Assessment
 
@@ -10,7 +10,7 @@ Singularity has broad source coverage and a large passing offline test surface, 
 
 Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. M1 remains complete at 15/15, M2 contributes 23 eligible current-protocol successes, and M4 now contributes three independently eligible BM-011 episodes with unique session, episode, level, and session hashes. The overall system remains incomplete.
 
-BM-012 remains 0/3. Probe 4 ran exactly once from committed gate `c9c30a6` and localized `m4_task_inventory_family_reconciliation_grounding`: GoalVerifier accepted `oak_log:4 + dark_oak_log:2`, while exact `oak_log:6` tasks stayed ready and consumed 23 roots. The bounded offline fix now uses `m4-task-inventory-family-grounding-v1` only in strict-M4 task reconciliation, records member counts and canonical before/after values, completes all seven event-160 stale tasks, and clears the final post-plan task at pre-goal selection. The original observation is not mutated; `oak_log:4 + dark_oak_log:1` remains incomplete; emergency fallback and non-M4 behavior remain unchanged. The exact combined GoalGenerator/Curriculum state now selects `Craft crafting table`. Exactly one fresh Probe 5 is authorized after the gate commit is pushed.
+BM-012 remains 0/3. Probe 5 ran exactly once from committed gate `d1769b7` and live-validated task reconciliation: event 192 completed seven stale gather tasks before selection, event 535 projected `oak_log:5 + birch_log:1` to canonical six, and no repeated fulfilled wood root recurred. Progression reached `Craft crafting table`, then two canonical place plans were rejected because `success_criteria.inventory.crafting_table` failed the positive-integer schema. No place or iron-source action followed. The earliest failure layer is now `planner_place_success_criteria_grounding`; the later transport recovery, task-deadline interrupts, dusk shelter path, and 0.016-second Agent overrun are downstream. Probe 5 consumed the round's only authorization, and no new live episode is authorized before a bounded offline gate is committed and pushed.
 
 Current report outcome:
 

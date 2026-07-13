@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T01:20:44.0231967Z",
+  "generated_at": "2026-07-13T02:39:59.5087934Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_task_inventory_family_reconciliation_offline_gate_passed_probe_5_exactly_one_authorized",
-  "decision": "authorize_exactly_one_bm012_probe_5",
+  "readiness": "bm012_probe_5_recorded_place_success_criteria_offline_gate_required",
+  "decision": "hold_live_episode_pending_place_success_criteria_offline_gate",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -110,7 +110,7 @@
     "live_episode_run": true,
     "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
     "live_recovery_passed": true,
-    "next_authorized_episode": "bm012_probe_5_exactly_one"
+    "next_authorized_episode": "consumed_by_probe_5"
   },
   "fixed_runtime_profile": {
     "task_id": "BM-011",
@@ -139,7 +139,7 @@
     "live_episode_run": true,
     "live_episode_id": "m4_episode_20260713_085253_4a8a6b25",
     "live_episode_eligible": false,
-    "next_authorized_episode": "bm012_probe_5_exactly_one"
+    "next_authorized_episode": "consumed_by_probe_5"
   },
   "offline_subtask_numeric_criteria_gate": {
     "passed": true,
@@ -176,7 +176,7 @@
     "node_internal_pass_count": 36,
     "protocol_changed": false,
     "task_contract_changed": false,
-    "next_authorized_episode": "bm012_probe_5_exactly_one"
+    "next_authorized_episode": "consumed_by_probe_5"
   },
   "player_lifecycle_gate": {
     "verifier_id": "m4-player-lifecycle-verifier-v1",
@@ -192,7 +192,7 @@
     "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
     "reset_protocol_sha256": "0df412101c5c01bf89b32e26d2d9beead7f9b64d10ba5de714caab51b1b63e52",
     "validation_protocol_sha256": "bd2e7466d18d72927c7ca84a11736597a05eab5adf4b788627fe9377542d1e02",
-    "live_episode_count_under_current_protocol": 8,
+    "live_episode_count_under_current_protocol": 9,
     "probe_16_valid_death_count": 6,
     "probe_16_valid_respawn_count": 6,
     "probe_16_paper_death_count": 6,
@@ -213,12 +213,50 @@
     "bm012_probe_3_valid_respawn_count": 0,
     "bm012_probe_4_active_observation_count": 40,
     "bm012_probe_4_valid_death_count": 0,
-    "bm012_probe_4_valid_respawn_count": 0
+    "bm012_probe_4_valid_respawn_count": 0,
+    "bm012_probe_5_active_observation_count": 137,
+    "bm012_probe_5_valid_death_count": 0,
+    "bm012_probe_5_valid_respawn_count": 0
   },
   "g0_passed": true,
-  "live_episode_count": 22,
-  "live_episode_count_under_current_protocol": 8,
+  "live_episode_count": 23,
+  "live_episode_count_under_current_protocol": 9,
   "latest_live_episode": {
+    "task_id": "BM-012",
+    "episode_id": "m4_episode_20260713_092629_6eeeab70",
+    "session_id": "43503d04-512",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "episode_started_monotonic": 48059.265,
+    "episode_deadline_monotonic": 48659.265,
+    "agent_end_monotonic": 48659.281,
+    "evidence_end_monotonic": 48659.328,
+    "agent_time_overrun_s": 0.016,
+    "evidence_time_overrun_s": 0.063,
+    "post_deadline_action_count": 0,
+    "post_deadline_plan_count": 1,
+    "post_deadline_planner_call_count": 1,
+    "deadline_eligible": false,
+    "result_duration_eligible": false,
+    "runner_reported_eligible": false,
+    "server_observed_death_count": 0,
+    "player_lifecycle_maximum_valid_death_count": 0,
+    "player_lifecycle_maximum_valid_respawn_count": 0,
+    "player_lifecycle_observation_count": 137,
+    "player_lifecycle_present_observation_count": 137,
+    "player_lifecycle_missing_observation_count": 0,
+    "active_episode_survival_continuity_eligible": true,
+    "terminal_world_time": 12081,
+    "independently_accepted_eligible": false,
+    "eligibility_check_count": 74,
+    "eligibility_issue_count": 8,
+    "family_reconciliation_live_validated": true,
+    "first_unrecovered_transition": "planner_place_success_criteria_grounding",
+    "first_invalid_planner_call_event_index": 255,
+    "first_empty_plan_event_index": 258,
+    "deadline_bound_timeout_call_event_index": 1742
+  },
+  "bm012_probe_4_live_episode": {
     "task_id": "BM-012",
     "episode_id": "m4_episode_20260713_085253_4a8a6b25",
     "session_id": "e86fce97-657",

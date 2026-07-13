@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 4 remain ineligible at 0/3. Probe 4 eliminated Probe 3's numeric-type crash, then exposed inconsistent log-family semantics between machine GoalVerifier completion and TaskSystem inventory reconciliation. Its bounded offline gate now passes and authorizes exactly one fresh Probe 5 after this commit is pushed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 5 remain ineligible at 0/3. Probe 5 live-validated task reconciliation and advanced through crafting-table creation, then rejected two otherwise grounded placement plans because `success_criteria.inventory.crafting_table` was not a canonical positive integer. No new live episode is authorized until a bounded offline gate addresses placement success-criteria grounding; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | task_inventory_family_reconciliation_offline_gate_passed_probe_5_authorized |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_5_recorded_place_success_criteria_offline_gate_required |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -67,7 +67,11 @@ The bounded `planner_subtask_numeric_criteria_type_grounding` fix now passes off
 
 Probe 4 live-validates the integer-only path but does not exercise alias normalization: 31/31 real Planner calls were schema-valid, all 31 numeric-grounding reports passed, every observed requirement was integer `6`, normalization count was zero, and no runtime error occurred. The initial root gathered `oak_log:4` plus `dark_oak_log:2`; GoalVerifier event 170 accepted the six-member log family. TaskSystem's exact `inventory.oak_log=6` reconciliation did not close the planner frontier: readiness event 160 reported seven ready tasks, event 167 selected `Find and gather 6 oak logs`, and event 175 began 23 consecutive `ready_task_selected` roots. All completed in one cycle under GoalVerifier family semantics, no action executed after event 155, and nine tasks remained accepted when the 24-goal budget ended. The earliest failure layer is now `m4_task_inventory_family_reconciliation_grounding`. No code fix or second episode occurs in this round.
 
-The bounded `m4_task_inventory_family_reconciliation_grounding` fix passes offline. Strict-M4 task reconciliation projects the existing pinned `GoalVerifier.LOG_ITEMS` family into a copied inventory state under canonical `oak_log`, records `m4-task-inventory-family-grounding-v1` evidence, and never mutates the source observation. It completes state-satisfied inventory tasks during the active cycle and once more before root selection, so the final task created by the last accepted plan cannot consume another goal slot. Completed task transitions are flushed at the reconciliation point rather than the next Planner acceptance. Replaying event 157 completes all seven event-160 stale tasks, clears a newly created post-plan task before selection, and selects `Craft crafting table` from the actual GoalGenerator/Curriculum combination. A five-log family remains incomplete, urgent survival fallback still preempts tasks, non-inventory claims remain excluded, and non-M4 profiles are unchanged. The protocol and BM-012 task-contract hashes remain fixed; exactly one fresh Probe 5 is authorized after this gate commit is pushed.
+The bounded `m4_task_inventory_family_reconciliation_grounding` fix passes offline. Strict-M4 task reconciliation projects the existing pinned `GoalVerifier.LOG_ITEMS` family into a copied inventory state under canonical `oak_log`, records `m4-task-inventory-family-grounding-v1` evidence, and never mutates the source observation. It completes state-satisfied inventory tasks during the active cycle and once more before root selection, so the final task created by the last accepted plan cannot consume another goal slot. Completed task transitions are flushed at the reconciliation point rather than the next Planner acceptance. Replaying event 157 completes all seven event-160 stale tasks, clears a newly created post-plan task before selection, and selects `Craft crafting table` from the actual GoalGenerator/Curriculum combination. A five-log family remains incomplete, urgent survival fallback still preempts tasks, non-inventory claims remain excluded, and non-M4 profiles are unchanged. The protocol and BM-012 task-contract hashes remain fixed; its one fresh Probe 5 authorization was consumed by the live result below.
+
+Probe 5 live-validates both reconciliation boundaries. Event 192 completed seven stale gather tasks before the next root, event 244 completed two crafting-table inventory tasks, and event 535 activated `m4-task-inventory-family-grounding-v1` for `oak_log:5 + birch_log:1`, projected the canonical count from five to six, and completed eight more tasks. No repeated fulfilled wood root recurred, and progression reached `Craft crafting table` and then `Place crafting table for tool progression`.
+
+The new earliest failure layer is `planner_place_success_criteria_grounding`. Planner calls `llm-747a78336a3e4e79` and `llm-4efc1e7d2e9b4aef` each contained one canonical place action with passing action-parameter grounding, but strict-M4 rejected the envelope as `subtask[0]:success_criteria_inventory_count_invalid:crafting_table`. The canonical trace retains response hashes and byte counts rather than raw response bodies, so it proves a noncanonical inventory count but does not support a stronger claim about its exact raw value. Both rejected plans produced `empty_plan`, no place action executed, the crafting table remained in inventory, and the iron progression chain never started. Later pathfinding, task-deadline interrupts, dusk shelter work, and the final deadline-bound timeout are downstream. Probe 5 consumed this round's sole live authorization; no fix or second episode occurs in this round.
 
 ## BM-012 Offline Preflight
 
@@ -79,7 +83,7 @@ The bounded `m4_task_inventory_family_reconciliation_grounding` fix passes offli
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 705 Python tests, 136 related Planner/TaskSystem/M4 tests, all six fixed Node suites with 36 internal cases, Python compilation, and `git diff --check` pass
-- Live authorization: exactly one fresh BM-012 Probe 5 after the family-reconciliation gate is committed and pushed
+- Live authorization: Probe 5 consumed the family-reconciliation authorization; none pending until the placement success-criteria offline gate passes and is pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -130,9 +134,30 @@ The bounded `m4_task_inventory_family_reconciliation_grounding` fix passes offli
 - Transition evidence: completed task transitions are flushed immediately with source `m4_task_state_reconciliation`, reconciliation source, goal, and cycle
 - Scope: strict-M4 Agent task lifecycle only; GoalVerifier rules, TaskSystem generic semantics, Planner schema, action execution, M1/M2 contracts, protocol data, deadline, and success thresholds are unchanged
 - Validation: 2 exact new tests, 136 related tests, 705 full Python tests, six Node suites with 36 cases, Python compilation, and `git diff --check` pass
-- Authorization: exactly one fresh BM-012 Probe 5 after this gate commit is pushed; no second episode may run in the round
+- Live result: Probe 5 emitted four reconciliation events, completed 18 tasks at those boundaries, activated family projection for `oak_log:5 + birch_log:1`, and produced no repeated fulfilled wood root
+- Authorization: consumed by BM-012 Probe 5; no second episode may run in the round
 
 ## BM-012 Live Evidence
+
+### Probe 5: Family Reconciliation Passed; Placement Success Criterion Rejected
+
+- Episode: `m4_episode_20260713_092629_6eeeab70`
+- Session: `43503d04-512`
+- Level: `m4_episode_20260713_092629_6eeeab70_bm012`
+- Preflight: passed with unchanged protocol/task-contract hashes, empty inventory, fresh daylight level, zero-death lifecycle baseline, and exact `600/24/40/320` controls
+- Result: ineligible; BM-012 remains 0/3, 66/74 independent checks passed, no terminal resource event was emitted, and no iron-source action occurred
+- Prior gate live evidence: four `m4_task_state_reconciliation` events completed 18 tasks; event 192 closed seven stale gather tasks before root selection, and event 535 activated the pinned family projection for `oak_log:5 + birch_log:1` and completed eight tasks; stale fulfilled wood roots did not recur
+- Earliest invalid transition: Planner call event 255 / call `llm-747a78336a3e4e79` at monotonic 48146.609 had one place action with passing action grounding, but failed numeric criteria grounding on `success_criteria.inventory.crafting_table`; empty-plan event 258 at 48146.796 ended the root
+- Confirmation: event 273 / call `llm-4efc1e7d2e9b4aef` repeated the same sole schema issue and empty-plan event 276 ended the retry; raw response bodies are not retained, so only the invalid-count class, response hashes, and byte counts are canonical evidence
+- Cascade: the crafting table remained in inventory and unplaced; later exploration, one recovered Planner connection error, 70 task-deadline interrupts, one dusk interrupt, shelter construction, and the final deadline-bound timeout did not recover iron progression
+- Goals: 12 roots; seven completed, four failed, one interrupted, 105 planner tasks created, and final task states were 21 completed, 78 failed, and six accepted
+- Planner: 106 calls; 104 real responses, 102 schema-valid real responses, two placement-criterion schema rejections, one recovered connection error, one deadline-bound timeout, 334971 tokens, maximum latency 17.734 seconds, and zero reasoning bytes
+- Actions: 25/30 succeeded; `move_to` 12/17, `dig` 6/6, `craft` 3/3, `build_shelter_cell` 1/1, and `wait` 3/3; no crafting-table place or iron-source action executed
+- Shelter and survival: one machine shelter verification passed with 9/9 episode placements; terminal health/food were 20, lifecycle remained uninterrupted with zero deaths/respawns, world time was 12081, and inventory was `oak_planks:11`, `crafting_table:1`, `birch_log:2`, `dark_oak_log:1`, `dirt:3`
+- Deadline: Agent ended 0.016 seconds late and manifest evidence ended 0.063 seconds late; one timed-out Planner call and error plan were recorded after the boundary, with zero post-deadline actions
+- Skills: baseline remained off; selected/executed/quarantined contribution was zero
+- Round boundary: this was the only live episode; no code fix or second BM-012 run is authorized
+- Evidence: `logs/benchmarks/m4/m4_episode_20260713_092629_6eeeab70/`
 
 ### Probe 4: Numeric Crash Cleared; Log-Family Task Reconciliation Repeated Completed Roots
 

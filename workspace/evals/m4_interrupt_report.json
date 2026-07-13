@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T01:20:44.0231967Z",
+  "generated_at": "2026-07-13T02:39:59.5087934Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_task_inventory_family_reconciliation_offline_gate_passed_probe_5_exactly_one_authorized",
-  "decision": "authorize_exactly_one_bm012_probe_5",
+  "readiness": "bm012_probe_5_recorded_place_success_criteria_offline_gate_required",
+  "decision": "hold_live_episode_pending_place_success_criteria_offline_gate",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -137,7 +137,7 @@
     "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
     "scheduled_recovery_count": 1,
     "completed_recovery_count": 1,
-    "next_authorized_episode": "bm012_probe_5_exactly_one"
+    "next_authorized_episode": "none_pending_offline_gate"
   },
   "bm012_survival_preemption": {
     "task_contract_id": "m4-bm012-resource-contract-v1",
@@ -162,7 +162,7 @@
     "subtask_numeric_live_validated_by_probe_4": "integer_only_path_no_alias_normalization",
     "task_inventory_family_reconciliation_offline_gate_passed": true,
     "urgent_survival_priority_preserved": true,
-    "next_authorized_episode": "bm012_probe_5_exactly_one"
+    "next_authorized_episode": "consumed_by_probe_5"
   },
   "offline_subtask_numeric_criteria_gate": {
     "passed": true,
@@ -195,11 +195,37 @@
     "node_internal_pass_count": 36,
     "protocol_changed": false,
     "task_contract_changed": false,
-    "next_authorized_episode": "bm012_probe_5_exactly_one"
+    "next_authorized_episode": "consumed_by_probe_5"
   },
-  "live_episode_count": 22,
-  "live_episode_count_under_current_protocol": 8,
+  "live_episode_count": 23,
+  "live_episode_count_under_current_protocol": 9,
   "latest_live_observation": {
+    "task_id": "BM-012",
+    "episode_id": "m4_episode_20260713_092629_6eeeab70",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "verified_g4_case": "task_deadlines_and_dusk_shelter_interrupt_recovery",
+    "runtime_interrupt_count": 71,
+    "runtime_interrupt_unique_trigger_count": 70,
+    "recovery_event_count": 71,
+    "interrupt_reason_counts": {"task_deadline_elapsed": 70, "dusk_shelter_required": 1},
+    "expired_task_unique_count": 78,
+    "hostile_emergency_action_count": 0,
+    "server_observed_death_count": 0,
+    "verified_shelter_pass_count": 1,
+    "terminal_resource_verification_emitted": false,
+    "family_reconciliation_live_validated": true,
+    "first_unrecovered_transition": "planner_place_success_criteria_grounding",
+    "first_unrecovered_session_event_index": 255,
+    "first_empty_plan_event_index": 258,
+    "planner_transport_recovery_count": 1,
+    "deadline_bound_timeout_count": 1,
+    "interrupt_cascade_is_earliest_blocker": false,
+    "runner_reported_eligible": false,
+    "independently_accepted_eligible": false,
+    "live_g4_accepted": true,
+    "bm012_task_accepted": false
+  },
+  "bm012_probe_4_live_observation": {
     "task_id": "BM-012",
     "episode_id": "m4_episode_20260713_085253_4a8a6b25",
     "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",

@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T01:20:44.0231967Z",
+  "generated_at": "2026-07-13T02:39:59.5087934Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_task_inventory_family_reconciliation_offline_gate_passed_probe_5_exactly_one_authorized",
-  "decision": "authorize_exactly_one_bm012_probe_5",
+  "readiness": "bm012_probe_5_recorded_place_success_criteria_offline_gate_required",
+  "decision": "hold_live_episode_pending_place_success_criteria_offline_gate",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -58,7 +58,7 @@
     "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
     "scheduled_recovery_count": 1,
     "completed_recovery_count": 1,
-    "next_authorized_episode": "bm012_probe_5_exactly_one"
+    "next_authorized_episode": "consumed_by_probe_5"
   },
   "bm012_autonomous_progression": {
     "task_contract_id": "m4-bm012-resource-contract-v1",
@@ -77,7 +77,7 @@
     "goal_selection_source": "goal_generator",
     "offline_gate_passed": true,
     "live_episode_run": true,
-    "live_episode_id": "m4_episode_20260713_085253_4a8a6b25",
+    "live_episode_id": "m4_episode_20260713_092629_6eeeab70",
     "live_episode_eligible": false,
     "purpose_phrase_offline_gate_passed": true,
     "purpose_phrase_matched_rule": "intent:shelter_purpose_phrase",
@@ -95,7 +95,7 @@
     "subtask_numeric_live_validated_by_probe_4": "integer_only_path_no_alias_normalization",
     "task_inventory_family_reconciliation_offline_gate_passed": true,
     "task_inventory_family_progression_replay": "craft_crafting_table",
-    "next_authorized_episode": "bm012_probe_5_exactly_one"
+    "next_authorized_episode": "none_pending_offline_gate"
   },
   "offline_subtask_numeric_criteria_gate": {
     "passed": true,
@@ -132,11 +132,45 @@
     "node_internal_pass_count": 36,
     "protocol_changed": false,
     "task_contract_changed": false,
-    "next_authorized_episode": "bm012_probe_5_exactly_one"
+    "next_authorized_episode": "consumed_by_probe_5"
   },
-  "live_episode_count": 22,
-  "live_episode_count_under_current_protocol": 8,
+  "live_episode_count": 23,
+  "live_episode_count_under_current_protocol": 9,
   "latest_live_episode": {
+    "task_id": "BM-012",
+    "episode_id": "m4_episode_20260713_092629_6eeeab70",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "autonomous_goal_count": 12,
+    "completed_goal_count": 7,
+    "failed_goal_count": 4,
+    "interrupted_goal_count": 1,
+    "selection_source": "curriculum_and_survival_goal_generator",
+    "initial_selection_reason": "curriculum_ranked:early_wood_bootstrap",
+    "ready_task_selected_goal_count": 3,
+    "repeated_fulfilled_wood_goal_count": 0,
+    "task_reconciliation_event_count": 4,
+    "task_reconciliation_completed_count": 18,
+    "family_grounding_activation_count": 2,
+    "family_activation_inventory": {"oak_log": 5, "birch_log": 1},
+    "family_activation_canonical_count": 6,
+    "first_place_goal_event_index": 248,
+    "first_invalid_planner_call_event_index": 255,
+    "first_empty_plan_event_index": 258,
+    "first_unrecovered_transition": "planner_place_success_criteria_grounding",
+    "place_schema_rejection_count": 2,
+    "place_action_grounding_pass_count": 2,
+    "place_action_executed_count": 0,
+    "raw_response_content_retained": false,
+    "runtime_numeric_type_error_count": 0,
+    "final_task_status_counts": {"completed": 21, "failed": 78, "accepted": 6},
+    "resource_terminal_inventory_target": false,
+    "server_observed_death_count": 0,
+    "runner_reported_eligible": false,
+    "independently_accepted_eligible": false,
+    "terminal_world_time": 12081
+  },
+  "bm012_probe_4_live_episode": {
     "task_id": "BM-012",
     "episode_id": "m4_episode_20260713_085253_4a8a6b25",
     "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",

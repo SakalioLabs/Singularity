@@ -1,19 +1,19 @@
 {
   "type": "m4_resource_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T01:20:44.0231967Z",
+  "generated_at": "2026-07-13T02:39:59.5087934Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "task_id": "BM-012",
   "task_name": "Get 8 iron resources",
   "task_contract_id": "m4-bm012-resource-contract-v1",
   "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
-  "readiness": "task_inventory_family_reconciliation_offline_gate_passed_probe_5_exactly_one_authorized",
-  "decision": "authorize_exactly_one_bm012_probe_5",
-  "hypothesis": "m4_task_inventory_family_reconciliation_grounding",
+  "readiness": "probe_5_recorded_place_success_criteria_offline_gate_required",
+  "decision": "hold_live_episode_pending_place_success_criteria_offline_gate",
+  "hypothesis": "planner_place_success_criteria_grounding",
   "eligible_success_count": 0,
   "required_success_count": 3,
-  "next_authorized_episode": "bm012_probe_5_exactly_one",
+  "next_authorized_episode": "none_pending_offline_gate",
   "contract": {
     "terminal_goal": "Collect 8 iron resources",
     "initial_time_of_day": 0,
@@ -113,8 +113,141 @@
     ]
   },
   "live_episode_run": true,
-  "live_episode_count": 4,
+  "live_episode_count": 5,
   "latest_live_episode": {
+    "episode_id": "m4_episode_20260713_092629_6eeeab70",
+    "session_id": "43503d04-512",
+    "level_name": "m4_episode_20260713_092629_6eeeab70_bm012",
+    "preflight_passed": true,
+    "progress_gate_passed": false,
+    "independently_eligible": false,
+    "eligibility_check_count": 74,
+    "eligibility_pass_count": 66,
+    "eligibility_issues": [
+      "event:terminal_resource_verification",
+      "resource_terminal_inventory_target",
+      "resource_successful_source_actions",
+      "resource_positive_inventory_delta",
+      "terminal_machine_verification",
+      "episode_within_deadline",
+      "result_duration_eligible",
+      "no_post_deadline_execution"
+    ],
+    "prior_hypothesis_live_validation": {
+      "hypothesis": "m4_task_inventory_family_reconciliation_grounding",
+      "task_reconciliation_event_count": 4,
+      "reconciled_completed_task_count": 18,
+      "first_pre_goal_reconciliation_event_index": 192,
+      "first_pre_goal_completed_task_count": 7,
+      "family_activation_event_index": 535,
+      "family_activation_inventory": {"oak_log": 5, "birch_log": 1},
+      "family_canonical_count_before": 5,
+      "family_canonical_count_after": 6,
+      "family_activation_completed_task_count": 8,
+      "repeated_fulfilled_wood_root_count": 0,
+      "source_observation_unchanged": true,
+      "prior_failure_recurred": false
+    },
+    "first_unrecovered_transition": {
+      "failure_layer": "planner_place_success_criteria_grounding",
+      "planner_call_event_index": 255,
+      "plan_event_index": 256,
+      "empty_plan_event_index": 258,
+      "monotonic_s": 48146.609,
+      "empty_plan_monotonic_s": 48146.796,
+      "cycle": 11,
+      "goal": "Place crafting table for tool progression",
+      "planner_call_id": "llm-747a78336a3e4e79",
+      "schema_issue": "subtask[0]:success_criteria_inventory_count_invalid:crafting_table",
+      "action_parameter_grounding_passed": true,
+      "grounded_place_action_count": 1,
+      "numeric_inventory_requirement_count": 2,
+      "response_sha256": "59525d629135f33008a7497b4df9d98e6708ec274be41ba404faced423caf5cb",
+      "response_byte_count": 992,
+      "raw_response_content_retained": false,
+      "exact_invalid_count_claim_supported": false
+    },
+    "confirming_transition": {
+      "planner_call_event_index": 273,
+      "plan_event_index": 274,
+      "empty_plan_event_index": 276,
+      "planner_call_id": "llm-4efc1e7d2e9b4aef",
+      "schema_issue": "subtask[0]:success_criteria_inventory_count_invalid:crafting_table",
+      "action_parameter_grounding_passed": true,
+      "response_sha256": "4e2a88cd4abba3acc788f4b13a7a99c094ef19312607f538e3d739e447b70cd4",
+      "response_byte_count": 942
+    },
+    "downstream_cascade": {
+      "crafting_table_place_action_count": 0,
+      "crafting_table_remained_in_inventory": true,
+      "iron_progression_started": false,
+      "planner_transport_recovery_count": 1,
+      "task_deadline_interrupt_count": 70,
+      "dusk_shelter_interrupt_count": 1,
+      "deadline_bound_timeout_count": 1,
+      "not_the_earliest_blocker": true
+    },
+    "planner": {
+      "call_count": 106,
+      "real_call_count": 104,
+      "schema_valid_real_call_count": 102,
+      "schema_invalid_real_call_count": 2,
+      "maximum_duration_ms": 17734,
+      "total_tokens": 334971,
+      "reasoning_content_byte_count": 0,
+      "transport_retry_count": 0,
+      "transport_error_count": 2,
+      "transport_recovery_count": 1
+    },
+    "actions": {
+      "attempted": 30,
+      "successful": 25,
+      "by_type": {
+        "move_to": {"attempted": 17, "successful": 12},
+        "dig": {"attempted": 6, "successful": 6},
+        "craft": {"attempted": 3, "successful": 3},
+        "place": {"attempted": 0, "successful": 0},
+        "build_shelter_cell": {"attempted": 1, "successful": 1},
+        "wait": {"attempted": 3, "successful": 3}
+      }
+    },
+    "autonomous_goals": {"attempted": 12, "completed": 7, "failed": 4, "interrupted": 1},
+    "task_terminal_statuses": {"completed": 21, "failed": 78, "accepted": 6},
+    "resource_acquisition": {
+      "initial_target_count": 0,
+      "terminal_target_count": 0,
+      "successful_source_action_count": 0,
+      "terminal_target_passed": false
+    },
+    "shelter": {
+      "verification_event_count": 18,
+      "verification_pass_count": 1,
+      "bounded_action_success_count": 1,
+      "matched_episode_placement_count": 9
+    },
+    "terminal_state": {
+      "time_of_day": 12081,
+      "health": 20,
+      "food": 20,
+      "inventory": {"birch_log": 2, "crafting_table": 1, "dark_oak_log": 1, "dirt": 3, "oak_planks": 11},
+      "maximum_death_count": 0,
+      "maximum_respawn_count": 0
+    },
+    "deadline": {
+      "episode_started_monotonic": 48059.265,
+      "episode_deadline_monotonic": 48659.265,
+      "agent_end_monotonic": 48659.281,
+      "evidence_end_monotonic": 48659.328,
+      "agent_time_overrun_s": 0.016,
+      "evidence_time_overrun_s": 0.063,
+      "post_deadline_planner_call_count": 1,
+      "post_deadline_plan_count": 1,
+      "post_deadline_action_count": 0,
+      "deadline_eligible": false,
+      "no_post_deadline_execution": false
+    }
+  },
+  "probe_4_live_episode": {
     "episode_id": "m4_episode_20260713_085253_4a8a6b25",
     "session_id": "e86fce97-657",
     "level_name": "m4_episode_20260713_085253_4a8a6b25_bm012",
@@ -549,7 +682,7 @@
     "node_internal_pass_count": 36,
     "protocol_changed": false,
     "task_contract_changed": false,
-    "next_authorized_episode": "bm012_probe_5_exactly_one"
+    "next_authorized_episode": "consumed_by_probe_5"
   },
-  "round_boundary": "The task inventory-family reconciliation offline gate passes and authorizes exactly one fresh BM-012 Probe 5 after this commit is pushed; no second live episode may run in the round."
+  "round_boundary": "Probe 5 consumed the round's only live authorization and localized planner_place_success_criteria_grounding. No code fix or second live episode occurs in this round; another live episode requires a bounded offline gate committed and pushed first."
 }
