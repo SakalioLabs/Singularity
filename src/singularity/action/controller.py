@@ -227,6 +227,15 @@ class ActionController:
         timeout_ms = params.get("timeout_ms")
         if timeout_ms is None:
             timeout_ms = getattr(self.config, "max_action_timeout", 30000)
+        if str(getattr(self.config, "planner_protocol", "") or "") == "m4-fixed-v1":
+            return self.bot.move_to(
+                x,
+                z,
+                y,
+                tolerance=params.get("tolerance"),
+                timeout_ms=timeout_ms,
+                recover_pathfinder_on_failure=True,
+            )
         return self.bot.move_to(
             x,
             z,

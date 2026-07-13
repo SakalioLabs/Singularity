@@ -93,12 +93,22 @@ def test_navigation_commands_omit_null_y_and_forward_pathfinder_controls():
     bridge.walk_to(3, 4, ms=750)
     bridge.move_to(8, 9, tolerance=3, timeout_ms=7000)
     bridge.move_to(8, 9, y=64)
+    bridge.move_to(8, 9, y=64, recover_pathfinder_on_failure=True)
     bridge.dig(8, 63, 9, timeout_ms=30000)
 
     assert bridge.calls == [
         ("walk_to", {"x": 3, "z": 4, "ms": 750}),
         ("move_to", {"x": 8, "z": 9, "tolerance": 3, "timeout_ms": 7000}),
         ("move_to", {"x": 8, "z": 9, "y": 64}),
+        (
+            "move_to",
+            {
+                "x": 8,
+                "z": 9,
+                "y": 64,
+                "recover_pathfinder_on_failure": True,
+            },
+        ),
         ("dig", {"x": 8, "y": 63, "z": 9, "timeout_ms": 30000}),
     ]
     print("PASS: BotBridge preserves horizontal navigation and pathfinder controls")

@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T18:21:22.6108186Z",
+  "generated_at": "2026-07-13T19:05:14.4345390Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_17_failed_pathfinder_recovery_readiness_review_required",
-  "decision": "block_live_episode_pending_offline_pathfinder_recovery_readiness_gate",
+  "readiness": "offline_deadline_bound_pathfinder_readiness_gate_passed_probe_18_authorized_after_push",
+  "decision": "allow_one_fresh_bm012_probe_18_after_gate_commit_is_pushed",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -1409,6 +1409,28 @@
     "independently_accepted_eligible": false,
     "live_g4_accepted": true,
     "bm012_task_accepted": false
+  },
+  "offline_deadline_bound_pathfinder_readiness_gate": {
+    "root_hypothesis": "deadline_bound_bridge_recovery_pathfinder_readiness",
+    "status": "passed_offline",
+    "source_episode_id": "m4_episode_20260714_015708_91dfb104",
+    "source_session_id": "5bbb10cb-8c2",
+    "first_failed_fresh_navigation_event_index": 578,
+    "later_pathfinder_stopped_navigation_count": 19,
+    "policy_id": "m4-deadline-bound-pathfinder-readiness-v1",
+    "pending_recovery_clears_after_navigation_and_player_confirmations": true,
+    "recovery_failure_remains_fail_closed": true,
+    "runtime_interrupt_contract_changed": false,
+    "runtime_interrupt_priority_changed": false,
+    "task_frontier_contract_changed": false,
+    "exact_python_gate_case_count": 3,
+    "full_python_regression": 730,
+    "non_live_python_file_count": 35,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 52,
+    "offline_gate_live_episode_run": false,
+    "bm012_live_episode_count": 17,
+    "next_authorized_episode": "bm012_probe_18_after_this_gate_commit_is_pushed"
   },
   "bm012_probe_17_live_observation": {
     "task_id": "BM-012",

@@ -57,6 +57,7 @@ const M4_BM012_PROTOCOL_PATH = path.resolve(__dirname, '..', 'singularity', 'dat
 const M4_BM012_PROTOCOL_BYTES = fs.readFileSync(M4_BM012_PROTOCOL_PATH);
 const M4_BM012_PROTOCOL = JSON.parse(M4_BM012_PROTOCOL_BYTES.toString('utf8'));
 const M4_BM012_PROTOCOL_SHA256 = crypto.createHash('sha256').update(M4_BM012_PROTOCOL_BYTES).digest('hex');
+const M4_PATHFINDER_RECOVERY_POLICY_ID = 'm4-deadline-bound-pathfinder-readiness-v1';
 const HOSTILE_ENTITY_NAMES = new Set([
     'blaze', 'bogged', 'breeze', 'cave_spider', 'creeper', 'drowned', 'elder_guardian',
     'endermite', 'evoker', 'ghast', 'guardian', 'hoglin', 'husk', 'magma_cube',
@@ -470,6 +471,87 @@ function navigationTimeoutMs(distance, requested) {
     return Math.max(5000, Math.min(60000, Math.round(estimated)));
 }
 
+function resetM4PathfinderState(activeBot) {
+    const report = {
+        type: 'm4_navigation_recovery',
+        schema_version: 1,
+        policy_id: M4_PATHFINDER_RECOVERY_POLICY_ID,
+        success: false,
+        pathfinder_ready: false,
+        goal_cleared: false,
+        movement_stopped: false,
+        control_states_cleared: false,
+        command_replayed: false,
+        world_mutation: false,
+    };
+    const activePathfinder = activeBot?.pathfinder;
+    if (
+        !activePathfinder
+        || typeof activePathfinder.stop !== 'function'
+        || typeof activePathfinder.setGoal !== 'function'
+        || typeof activePathfinder.isMoving !== 'function'
+        || typeof activeBot.clearControlStates !== 'function'
+    ) {
+        return { ...report, error: 'pathfinder recovery controls are unavailable' };
+    }
+    try {
+        activePathfinder.stop();
+        activePathfinder.setGoal(null);
+        activeBot.clearControlStates();
+        const goalCleared = activePathfinder.goal === null;
+        const movementStopped = activePathfinder.isMoving() === false;
+        return {
+            ...report,
+            success: goalCleared && movementStopped,
+            pathfinder_ready: goalCleared && movementStopped,
+            goal_cleared: goalCleared,
+            movement_stopped: movementStopped,
+            control_states_cleared: true,
+            error: goalCleared && movementStopped ? '' : 'pathfinder state remained active after reset',
+        };
+    } catch (error) {
+        return { ...report, error: error.message };
+    }
+}
+
+function createRecoverNavigationHandler(
+    getState = () => ({ bot, botReady }),
+    options = {},
+) {
+    const yieldEventLoop = options.yieldEventLoop || (() => new Promise(resolve => setTimeout(resolve, 0)));
+    return async (params = {}) => {
+        const state = getState() || {};
+        const activeBot = state.bot;
+        if (!state.botReady || !activeBot?.entity?.position) {
+            return {
+                type: 'm4_navigation_recovery',
+                schema_version: 1,
+                policy_id: M4_PATHFINDER_RECOVERY_POLICY_ID,
+                success: false,
+                pathfinder_ready: false,
+                goal_cleared: false,
+                movement_stopped: false,
+                control_states_cleared: false,
+                command_replayed: false,
+                world_mutation: false,
+                trigger_command: String(params.trigger_command || ''),
+                error: 'bot is not ready for navigation recovery',
+            };
+        }
+        const firstPass = resetM4PathfinderState(activeBot);
+        if (!firstPass.success) {
+            return { ...firstPass, trigger_command: String(params.trigger_command || '') };
+        }
+        await yieldEventLoop();
+        const finalPass = resetM4PathfinderState(activeBot);
+        return {
+            ...finalPass,
+            trigger_command: String(params.trigger_command || ''),
+            reset_pass_count: 2,
+        };
+    };
+}
+
 function prioritizeTreeResults(trees, limit = 10) {
     const sorted = [...(trees || [])].sort((a, b) => Number(a.distance) - Number(b.distance));
     const selected = sorted.slice(0, Math.max(1, Number(limit) || 10));
@@ -577,7 +659,10 @@ function createMoveToHandler(
                 tolerance,
             };
         } catch (e) {
-            if (activeBot.pathfinder && typeof activeBot.pathfinder.stop === 'function') {
+            let navigationRecovery = null;
+            if (params.recover_pathfinder_on_failure === true) {
+                navigationRecovery = resetM4PathfinderState(activeBot);
+            } else if (activeBot.pathfinder && typeof activeBot.pathfinder.stop === 'function') {
                 activeBot.pathfinder.stop();
             }
             const finalPosition = activeBot.entity?.position;
@@ -596,6 +681,7 @@ function createMoveToHandler(
             } else {
                 result.error = e.message;
             }
+            if (navigationRecovery) result.navigation_recovery = navigationRecovery;
             return result;
         } finally {
             if (timer) clearTimeout(timer);
@@ -3147,6 +3233,8 @@ const handlers = {
     walk_to: createWalkToHandler(),
     move_to: createMoveToHandler(),
 
+    recover_navigation: createRecoverNavigationHandler(),
+
     look_at: async (params) => {
         try {
             await bot.lookAt(new Vec3(params.x, params.y, params.z));
@@ -3275,11 +3363,13 @@ module.exports = {
     createShelterStateHandler,
     createCaptureScreenshotHandler,
     createMoveToHandler,
+    createRecoverNavigationHandler,
     createWalkToHandler,
     fileStatusForScreenshot,
     imageBytesFromCaptureResult,
     navigationDistance,
     navigationTimeoutMs,
+    resetM4PathfinderState,
     prioritizeNearbyBlocks,
     prioritizeTreeResults,
     positiveInventoryDelta,

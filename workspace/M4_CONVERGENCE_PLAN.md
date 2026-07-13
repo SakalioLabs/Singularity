@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 17 remain ineligible at 0/3. Probe 17 live-exercised `m4-place-replan-feedback-grounding-v1`: one repeated reference failed closed, a later replan selected a supplied adjacent candidate, and the crafting table was placed. Independent review therefore rejects the runner's recovered placement candidate. The new earliest blocker is `deadline_bound_bridge_recovery_pathfinder_readiness`: event 550 confirmed transport and player state after a timed-out navigation, but event 578 began nineteen consecutive later pathfinder failures with no movement. No code fix or second episode ran; the next gate is offline-only and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 17 remain ineligible at 0/3. Probe 17 live-exercised `m4-place-replan-feedback-grounding-v1`, then exposed `deadline_bound_bridge_recovery_pathfinder_readiness`: event 550 confirmed transport and player state after a timed-out navigation, but event 578 began nineteen consecutive later pathfinder failures with no movement. The bounded offline readiness gate now passes without changing protocol, deadlines, or success thresholds. No live episode ran in this offline round; exactly one fresh Probe 18 is authorized only after this gate commit is pushed, and BM-013/BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_17_failed_pathfinder_recovery_readiness_review_required |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_deadline_bound_pathfinder_readiness_gate_passed_probe_18_authorized_after_push |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -141,6 +141,8 @@ The bounded offline fix now passes under `m4-place-replan-feedback-grounding-v1`
 
 Probe 17 then exposed `deadline_bound_bridge_recovery_pathfinder_readiness`. Recovery event 550 reconnected a fresh transport and confirmed machine player state after the 60-second `move_to` timeout recorded at action event 555. The first next navigation at event 578 failed immediately with `Path was stopped before it could be completed`; all nineteen subsequent navigation actions failed with the same error and unchanged position, including a move toward the previously reachable crafting-table coordinate. Non-navigation commands still succeeded. The next experiment must reproduce this boundary offline and require evidence that the recovered bridge can accept a fresh navigation without replaying the expired command or weakening either deadline.
 
+The bounded offline fix now passes under `m4-deadline-bound-pathfinder-readiness-v1`. Strict-M4 `move_to` failures execute `stop()`, `setGoal(null)`, and `clearControlStates()` so Mineflayer consumes its deferred stop flag instead of rearming it. A deadline-bound transport recovery now records the strict navigation flag, reconnects without replay, sends `recover_navigation`, and requires policy-bound goal-cleared, movement-stopped, control-cleared, no-mutation evidence before requesting `get_player_state`; pending recovery clears only after both confirmations. The recovery command performs two reset passes around one event-loop yield to cover the old `goto()` cleanup race. M1/M2 navigation remains unchanged. Three exact Python gate cases, two exact Node cases, 38 M4 deadline definitions, 730 full Python regression definitions, all 35 non-live Python scripts, and six Node suites with 52 internal cases pass. No live episode ran in this offline round.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -150,8 +152,8 @@ Probe 17 then exposed `deadline_bound_bridge_recovery_pathfinder_readiness`. Rec
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 727 Python tests, all six fixed Node suites with 50 internal assertions, Node syntax, and Python compilation pass
-- Live authorization: exactly one fresh Probe 16 after the deadline-bound navigation bridge-recovery gate commit is pushed
+- Regression: 730 Python regression definitions, all 35 non-live Python scripts, all six fixed Node suites with 52 internal assertions, Node syntax, and Python compilation pass
+- Live authorization: exactly one fresh Probe 18 after the deadline-bound pathfinder-readiness gate commit is pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -397,6 +399,18 @@ Probe 17 then exposed `deadline_bound_bridge_recovery_pathfinder_readiness`. Rec
 - Status: passed offline and live-exercised in Probe 17; one repeated response failed closed and one supplied candidate passed through successful placement
 - Authorization: consumed by BM-012 Probe 17; no second episode or new live authorization exists in this round
 
+## BM-012 Deadline-Bound Pathfinder Readiness Gate
+
+- Root hypothesis: `deadline_bound_bridge_recovery_pathfinder_readiness`
+- Exact reproduction: Probe 17 recovery event 550 confirmed transport/player state after action event 555 timed out, but event 578 and all 18 later navigations failed `PathStopped`; event 1801 also failed toward the previously reachable crafting-table coordinate
+- Policy: `m4-deadline-bound-pathfinder-readiness-v1`; strict-M4 move failures drain the deferred stop state, and reconnect recovery validates `recover_navigation` before `get_player_state`
+- Recovery evidence: goal cleared, movement stopped, control states cleared, no command replay, and no world mutation; pending recovery remains set and the socket closes if either pathfinder or player-state confirmation fails
+- Race control: two reset passes around one event-loop yield cover the old `goto()` rejection cleanup without extending the action or episode deadline
+- Compatibility: M1/M2 move requests omit the strict flag and preserve their established path; protocol/task-contract hashes, Planner, GoalVerifier, success thresholds, skills, vision, and multi-agent behavior are unchanged
+- Validation: three exact Python gate cases, 76 focused Python definitions, 38 M4 deadline definitions, two exact Node navigation cases, 730 full Python regression definitions, all 35 non-live Python scripts, and six fixed Node suites with 52 internal PASS cases; Node syntax, Python compilation, JSON, capability consistency, and repository checks pass
+- Status: passed offline; no live episode ran in this gate round
+- Authorization: exactly one fresh BM-012 Probe 18 after this gate commit is pushed
+
 ## BM-012 Live Evidence
 
 ### Probe 17: Feedback Gate Recovered; Pathfinder Stayed Stopped After Recovery
@@ -419,7 +433,7 @@ Probe 17 then exposed `deadline_bound_bridge_recovery_pathfinder_readiness`. Rec
 - Deadline: start 13593.39, deadline 14193.39, Agent end 14193.406, manifest end 14193.453; no post-deadline Planner call or plan occurred, but one in-flight wait result logged 0.016 seconds late and failed closed
 - Eligibility: 55/74 checks passed with 19 issues; BM-012 remains 0/3 after seventeen attempts
 - Skills: baseline remained off; selected, executed, quarantined, vision, and multi-agent contributions were zero
-- Round boundary: this was the only live episode; no code fix, second run, or new live authorization occurs before an offline pathfinder-readiness gate passes and is pushed
+- Round boundary: this was the only live episode; the subsequent offline pathfinder-readiness gate passes and authorizes exactly one fresh Probe 18 only after its commit is pushed
 - Evidence: `logs/benchmarks/m4/m4_episode_20260714_015708_91dfb104/`
 
 ### Probe 16: Bridge Stable; Replan Repeated Rejected Placement

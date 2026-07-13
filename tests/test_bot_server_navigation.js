@@ -3,6 +3,7 @@ const { Vec3 } = require('vec3');
 
 const {
     createMoveToHandler,
+    createRecoverNavigationHandler,
     createWalkToHandler,
     navigationDistance,
     navigationTimeoutMs,
@@ -20,6 +21,60 @@ function mockBot(position = new Vec3(0, 64, 0)) {
             stop() {
                 this.stopped = true;
             },
+        },
+    };
+    return bot;
+}
+
+function deferredStopBot(failFirstNavigation = true) {
+    const bot = {
+        entity: { position: new Vec3(0, 64, 0) },
+        controlClearCount: 0,
+        clearControlStates() {
+            this.controlClearCount += 1;
+        },
+    };
+    let firstNavigation = Boolean(failFirstNavigation);
+    bot.pathfinder = {
+        goal: null,
+        moving: false,
+        pendingStop: false,
+        gotoCount: 0,
+        async goto(goal) {
+            this.gotoCount += 1;
+            if (this.pendingStop) {
+                this.setGoal(goal);
+                const error = new Error('Path was stopped before it could be completed! Thus, the desired goal was not reached.');
+                error.name = 'PathStopped';
+                throw error;
+            }
+            this.goal = goal;
+            this.moving = true;
+            if (firstNavigation) {
+                firstNavigation = false;
+                const error = new Error('navigation timed out after 60000ms');
+                error.name = 'Timeout';
+                throw error;
+            }
+            bot.entity.position = new Vec3(goal.target.x, goal.target.y, goal.target.z);
+            this.goal = null;
+            this.moving = false;
+        },
+        stop() {
+            this.pendingStop = true;
+        },
+        setGoal(goal) {
+            if (this.pendingStop) {
+                this.pendingStop = false;
+                this.goal = null;
+                this.moving = false;
+                return;
+            }
+            this.goal = goal;
+            this.moving = goal !== null;
+        },
+        isMoving() {
+            return this.moving;
         },
     };
     return bot;
@@ -79,6 +134,84 @@ async function testMoveToAcceptsMeasuredArrivalAfterLatePathfinderError() {
     assert.ok(result.distance_to_target <= result.tolerance);
     assert.match(result.pathfinder_warning, /late pathfinder failure/);
     console.log('PASS: move_to uses measured arrival after a late pathfinder error');
+}
+
+async function testM4MoveFailureDrainsDeferredPathfinderStopWithoutChangingLegacy() {
+    const strictBot = deferredStopBot();
+    const strictHandler = createMoveToHandler(
+        () => ({ bot: strictBot, botReady: true }),
+        { goalFactory },
+    );
+
+    const failed = await strictHandler({
+        x: 10,
+        y: 64,
+        z: 0,
+        recover_pathfinder_on_failure: true,
+    });
+    const recovered = await strictHandler({
+        x: 10,
+        y: 64,
+        z: 0,
+        recover_pathfinder_on_failure: true,
+    });
+
+    assert.strictEqual(failed.success, false);
+    assert.strictEqual(failed.navigation_recovery.policy_id, 'm4-deadline-bound-pathfinder-readiness-v1');
+    assert.strictEqual(failed.navigation_recovery.pathfinder_ready, true);
+    assert.strictEqual(strictBot.pathfinder.pendingStop, false);
+    assert.strictEqual(recovered.success, true);
+    assert.strictEqual(recovered.reached, true);
+
+    const legacyBot = deferredStopBot();
+    const legacyHandler = createMoveToHandler(
+        () => ({ bot: legacyBot, botReady: true }),
+        { goalFactory },
+    );
+    const legacyFailure = await legacyHandler({ x: 10, y: 64, z: 0 });
+    const legacyCascade = await legacyHandler({ x: 10, y: 64, z: 0 });
+
+    assert.strictEqual(legacyFailure.success, false);
+    assert.strictEqual(legacyFailure.navigation_recovery, undefined);
+    assert.strictEqual(legacyCascade.success, false);
+    assert.match(legacyCascade.error, /Path was stopped/);
+    assert.strictEqual(legacyBot.pathfinder.pendingStop, true);
+    console.log('PASS: strict M4 drains deferred pathfinder stop while legacy behavior is unchanged');
+}
+
+async function testNavigationRecoveryCommandConfirmsReadinessBeforeNextMove() {
+    const bot = deferredStopBot(false);
+    bot.pathfinder.stop();
+    const recoveryHandler = createRecoverNavigationHandler(
+        () => ({ bot, botReady: true }),
+        { yieldEventLoop: async () => {} },
+    );
+    const report = await recoveryHandler({ trigger_command: 'move_to' });
+
+    assert.strictEqual(report.success, true);
+    assert.strictEqual(report.policy_id, 'm4-deadline-bound-pathfinder-readiness-v1');
+    assert.strictEqual(report.pathfinder_ready, true);
+    assert.strictEqual(report.goal_cleared, true);
+    assert.strictEqual(report.movement_stopped, true);
+    assert.strictEqual(report.control_states_cleared, true);
+    assert.strictEqual(report.command_replayed, false);
+    assert.strictEqual(report.world_mutation, false);
+    assert.strictEqual(report.reset_pass_count, 2);
+    assert.strictEqual(bot.pathfinder.pendingStop, false);
+
+    const moveHandler = createMoveToHandler(
+        () => ({ bot, botReady: true }),
+        { goalFactory },
+    );
+    const nextMove = await moveHandler({
+        x: 6,
+        y: 64,
+        z: 0,
+        recover_pathfinder_on_failure: true,
+    });
+    assert.strictEqual(nextMove.success, true);
+    assert.strictEqual(nextMove.reached, true);
+    console.log('PASS: recovery command confirms clean pathfinder state before the next move');
 }
 
 async function testMoveToRejectsInvalidCoordinatesAndUnavailableBot() {
@@ -177,6 +310,8 @@ function testTreeResultsPreserveNearestCandidatePerSpecies() {
     await testMoveToSucceedsOnlyInsideTolerance();
     await testMoveToRejectsFalseSuccessfulPathfinderCompletion();
     await testMoveToAcceptsMeasuredArrivalAfterLatePathfinderError();
+    await testM4MoveFailureDrainsDeferredPathfinderStopWithoutChangingLegacy();
+    await testNavigationRecoveryCommandConfirmsReadinessBeforeNextMove();
     await testMoveToRejectsInvalidCoordinatesAndUnavailableBot();
     await testMoveToSelectsHorizontalOrThreeDimensionalGoal();
     await testWalkToUsesHorizontalDistanceUnlessYIsExplicit();

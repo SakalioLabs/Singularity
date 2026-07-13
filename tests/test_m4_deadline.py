@@ -123,6 +123,25 @@ class PlaceClearanceBot:
         return {"success": True}
 
 
+class NavigationRecoveryBot:
+    def __init__(self):
+        self.move_calls = []
+
+    def move_to(
+        self,
+        x,
+        z,
+        y=None,
+        tolerance=None,
+        timeout_ms=None,
+        recover_pathfinder_on_failure=False,
+    ):
+        self.move_calls.append(
+            (x, z, y, tolerance, timeout_ms, recover_pathfinder_on_failure)
+        )
+        return {"success": True, "reached": True}
+
+
 class ScriptedSocket:
     def __init__(self, response=b'{"success": true}\n', timeout=10.0):
         self.response = response
@@ -151,6 +170,20 @@ class ScriptedSocket:
 class TimeoutSocket(ScriptedSocket):
     def recv(self, _size):
         raise socket.timeout("fixture timeout")
+
+
+class SequencedSocket(ScriptedSocket):
+    def __init__(self, responses, timeout=10.0):
+        super().__init__(b"", timeout)
+        self.responses = list(responses)
+
+    def recv(self, _size):
+        if not self.responses:
+            return b""
+        response = self.responses.pop(0)
+        if isinstance(response, BaseException):
+            raise response
+        return response
 
 
 class RuntimePlanner:
@@ -2276,6 +2309,31 @@ def test_m4_action_controller_requires_player_clearance_only_for_m4_place():
     print("PASS: ActionController scopes player-clearance place checks to fixed M4")
 
 
+def test_m4_action_controller_requests_pathfinder_recovery_only_for_m4_navigation():
+    action = {
+        "type": "move_to",
+        "parameters": {"x": 115, "y": 133, "z": -30, "timeout_ms": 60000},
+    }
+    state = {"health": 20, "inventory": {"wooden_pickaxe": 1}}
+
+    m4_bot = NavigationRecoveryBot()
+    m4_result = ActionController(
+        m4_bot,
+        Config(planner_protocol="m4-fixed-v1"),
+    ).execute(action, state)
+    control_bot = NavigationRecoveryBot()
+    control_result = ActionController(
+        control_bot,
+        Config(planner_protocol="m2-fixed-v1"),
+    ).execute(action, state)
+
+    assert m4_result["success"] is True
+    assert control_result["success"] is True
+    assert m4_bot.move_calls == [(115, -30, 133, None, 60000, True)]
+    assert control_bot.move_calls == [(115, -30, 133, None, 60000, False)]
+    print("PASS: ActionController scopes pathfinder failure recovery to fixed M4")
+
+
 def test_m4_bridge_uses_remaining_budget_without_replay():
     clock = FakeClock()
     bridge = object.__new__(BotBridge)
@@ -2342,7 +2400,13 @@ def test_m4_bridge_recovers_on_next_observation_with_confirmed_machine_state():
     with patch("singularity.bot.bridge.time.monotonic", clock.monotonic):
         result = bridge._send_command(
             "move_to",
-            {"x": 108, "y": 130, "z": -34, "timeout_ms": 60000},
+            {
+                "x": 108,
+                "y": 130,
+                "z": -34,
+                "timeout_ms": 60000,
+                "recover_pathfinder_on_failure": True,
+            },
         )
 
     assert result["success"] is False
@@ -2356,7 +2420,20 @@ def test_m4_bridge_recovers_on_next_observation_with_confirmed_machine_state():
         "health": 20,
         "food": 20,
     }
-    fresh_socket = ScriptedSocket((json.dumps(player_state) + "\n").encode("utf-8"))
+    navigation_state = {
+        "success": True,
+        "policy_id": "m4-deadline-bound-pathfinder-readiness-v1",
+        "pathfinder_ready": True,
+        "goal_cleared": True,
+        "movement_stopped": True,
+        "control_states_cleared": True,
+        "command_replayed": False,
+        "world_mutation": False,
+    }
+    fresh_socket = SequencedSocket([
+        (json.dumps(navigation_state) + "\n").encode("utf-8"),
+        (json.dumps(player_state) + "\n").encode("utf-8"),
+    ])
     deadline_connect_calls = []
 
     def connect_fresh_socket():
@@ -2379,19 +2456,28 @@ def test_m4_bridge_recovers_on_next_observation_with_confirmed_machine_state():
     assert recovery["command_replayed"] is False
     assert recovery["bridge_reconnected"] is True
     assert recovery["machine_state_confirmed"] is True
+    assert recovery["navigation_recovery_required"] is True
+    assert recovery["navigation_state_confirmed"] is True
+    assert recovery["pathfinder_ready"] is True
+    assert recovery["navigation_recovery_command"] == "recover_navigation"
     assert recovery["confirmation_command"] == "get_player_state"
     assert deadline_connect_calls == [True]
-    assert len(fresh_socket.sent) == 1
-    assert json.loads(fresh_socket.sent[0].decode("utf-8"))["command"] == "get_player_state"
+    assert len(fresh_socket.sent) == 2
+    assert json.loads(fresh_socket.sent[0].decode("utf-8"))["command"] == "recover_navigation"
+    assert json.loads(fresh_socket.sent[0].decode("utf-8"))["params"] == {
+        "policy_id": "m4-deadline-bound-pathfinder-readiness-v1",
+        "trigger_command": "move_to",
+    }
+    assert json.loads(fresh_socket.sent[1].decode("utf-8"))["command"] == "get_player_state"
     assert bridge.get_player_state() == player_state
-    assert len(fresh_socket.sent) == 1
+    assert len(fresh_socket.sent) == 2
 
-    fresh_socket.response = b'{"items": []}\n'
+    fresh_socket.responses.append(b'{"items": []}\n')
     with patch("singularity.bot.bridge.time.monotonic", clock.monotonic):
         assert bridge.get_inventory() == []
-    assert len(fresh_socket.sent) == 2
-    assert json.loads(fresh_socket.sent[1].decode("utf-8"))["command"] == "get_inventory"
-    print("PASS: M4 restores a fresh confirmed bridge before the next observation")
+    assert len(fresh_socket.sent) == 3
+    assert json.loads(fresh_socket.sent[2].decode("utf-8"))["command"] == "get_inventory"
+    print("PASS: M4 restores fresh pathfinder and player state before the next observation")
 
 
 def test_m4_bridge_recovery_respects_deadline_and_fails_closed_without_machine_state():
@@ -2416,6 +2502,99 @@ def test_m4_bridge_recovery_respects_deadline_and_fails_closed_without_machine_s
     assert suppressed["deadline_suppressed"] is True
     assert suppressed["connect_attempt_count"] == 0
     assert expired._deadline_bound_recovery_pending is True
+
+    invalid_navigation = object.__new__(BotBridge)
+    invalid_navigation._connected = False
+    invalid_navigation._socket = None
+    invalid_navigation._action_deadline_monotonic = 200.0
+    invalid_navigation._action_timeout_limit_s = 60.0
+    invalid_navigation._deadline_bound_recovery_pending = True
+    invalid_navigation._deadline_bound_recovery_command = "move_to"
+    invalid_navigation._deadline_bound_recovery_error = "fixture timeout"
+    invalid_navigation._deadline_bound_recovery_params = {
+        "recover_pathfinder_on_failure": True,
+    }
+    invalid_navigation._recovered_player_state = None
+    invalid_navigation_socket = ScriptedSocket(
+        b'{"success": false, "error": "pathfinder still stopping"}\n'
+    )
+
+    def connect_invalid_navigation_socket():
+        invalid_navigation._socket = invalid_navigation_socket
+        invalid_navigation._connected = True
+        invalid_navigation._last_recovery_connect_attempts = 1
+        invalid_navigation._last_recovery_connect_error = ""
+        return True
+
+    invalid_navigation._connect_deadline_bound = connect_invalid_navigation_socket
+    with patch("singularity.bot.bridge.time.monotonic", clock.monotonic):
+        rejected_navigation = invalid_navigation.recover_deadline_bound_transport()
+
+    assert rejected_navigation["success"] is False
+    assert rejected_navigation["navigation_recovery_required"] is True
+    assert rejected_navigation["navigation_state_confirmed"] is False
+    assert rejected_navigation["pathfinder_ready"] is False
+    assert rejected_navigation["machine_state_confirmed"] is False
+    assert rejected_navigation["error"] == "pathfinder still stopping"
+    assert invalid_navigation._connected is False
+    assert invalid_navigation._socket is None
+    assert invalid_navigation._deadline_bound_recovery_pending is True
+    assert invalid_navigation._deadline_bound_recovery_command == "move_to"
+    assert invalid_navigation._deadline_bound_recovery_params == {
+        "recover_pathfinder_on_failure": True,
+    }
+    assert len(invalid_navigation_socket.sent) == 1
+    assert json.loads(invalid_navigation_socket.sent[0].decode("utf-8"))["command"] == "recover_navigation"
+
+    state_timeout = object.__new__(BotBridge)
+    state_timeout._connected = False
+    state_timeout._socket = None
+    state_timeout._action_deadline_monotonic = 200.0
+    state_timeout._action_timeout_limit_s = 60.0
+    state_timeout._deadline_bound_recovery_pending = True
+    state_timeout._deadline_bound_recovery_command = "move_to"
+    state_timeout._deadline_bound_recovery_error = "fixture timeout"
+    state_timeout._deadline_bound_recovery_params = {
+        "recover_pathfinder_on_failure": True,
+    }
+    state_timeout._recovered_player_state = None
+    state_timeout_socket = SequencedSocket([
+        (json.dumps({
+            "success": True,
+            "policy_id": "m4-deadline-bound-pathfinder-readiness-v1",
+            "pathfinder_ready": True,
+            "goal_cleared": True,
+            "movement_stopped": True,
+            "control_states_cleared": True,
+            "command_replayed": False,
+            "world_mutation": False,
+        }) + "\n").encode("utf-8"),
+        socket.timeout("player state confirmation timeout"),
+    ])
+
+    def connect_state_timeout_socket():
+        state_timeout._socket = state_timeout_socket
+        state_timeout._connected = True
+        state_timeout._last_recovery_connect_attempts = 1
+        state_timeout._last_recovery_connect_error = ""
+        return True
+
+    state_timeout._connect_deadline_bound = connect_state_timeout_socket
+    with patch("singularity.bot.bridge.time.monotonic", clock.monotonic):
+        rejected_state_timeout = state_timeout.recover_deadline_bound_transport()
+
+    assert rejected_state_timeout["success"] is False
+    assert rejected_state_timeout["navigation_state_confirmed"] is True
+    assert rejected_state_timeout["machine_state_confirmed"] is False
+    assert state_timeout._deadline_bound_recovery_pending is True
+    assert state_timeout._deadline_bound_recovery_command == "move_to"
+    assert state_timeout._deadline_bound_recovery_params == {
+        "recover_pathfinder_on_failure": True,
+    }
+    assert [
+        json.loads(payload.decode("utf-8"))["command"]
+        for payload in state_timeout_socket.sent
+    ] == ["recover_navigation", "get_player_state"]
 
     invalid = object.__new__(BotBridge)
     invalid._connected = False
@@ -2697,6 +2876,7 @@ if __name__ == "__main__":
     test_m4_action_controller_enforces_episode_and_action_deadlines()
     test_m4_action_controller_requires_pickup_and_tool_equip_only_for_m4()
     test_m4_action_controller_requires_player_clearance_only_for_m4_place()
+    test_m4_action_controller_requests_pathfinder_recovery_only_for_m4_navigation()
     test_m4_bridge_uses_remaining_budget_without_replay()
     test_m4_bridge_recovers_on_next_observation_with_confirmed_machine_state()
     test_m4_bridge_recovery_respects_deadline_and_fails_closed_without_machine_state()

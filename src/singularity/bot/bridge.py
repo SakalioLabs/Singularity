@@ -16,6 +16,7 @@ RETRY_BASE_DELAY = 1.0  # seconds, exponential backoff
 ACTION_RESPONSE_GRACE_SECONDS = 5.0
 MAX_ACTION_RESPONSE_TIMEOUT_SECONDS = 370.0
 DEADLINE_BOUND_RECOVERY_POLICY_ID = "m4-deadline-bound-bridge-recovery-v1"
+DEADLINE_BOUND_PATHFINDER_RECOVERY_POLICY_ID = "m4-deadline-bound-pathfinder-readiness-v1"
 ACTION_COMMANDS = frozenset({
     "walk_to", "move_to", "look_at", "dig", "place", "craft", "attack",
     "equip", "use_item", "chat", "build_shelter_5x5", "build_shelter_cell",
@@ -42,6 +43,7 @@ class BotBridge:
         self._deadline_bound_recovery_pending = False
         self._deadline_bound_recovery_command = ""
         self._deadline_bound_recovery_error = ""
+        self._deadline_bound_recovery_params = {}
         self._recovered_player_state = None
         self._last_recovery_connect_attempts = 0
         self._last_recovery_connect_error = ""
@@ -87,6 +89,7 @@ class BotBridge:
         self._deadline_bound_recovery_pending = False
         self._deadline_bound_recovery_command = ""
         self._deadline_bound_recovery_error = ""
+        self._deadline_bound_recovery_params = {}
         self._recovered_player_state = None
         logger.info("Disconnected from bot bridge")
 
@@ -204,6 +207,15 @@ class BotBridge:
         """Recover a timed-out transport before the next M4 observation, never the old command."""
         pending = bool(getattr(self, "_deadline_bound_recovery_pending", False))
         trigger_command = str(getattr(self, "_deadline_bound_recovery_command", "") or "")
+        trigger_params = getattr(self, "_deadline_bound_recovery_params", {})
+        trigger_params = dict(trigger_params) if isinstance(trigger_params, dict) else {}
+        navigation_recovery_required = (
+            trigger_command == "recover_navigation"
+            or (
+                trigger_command in {"move_to", "walk_to"}
+                and trigger_params.get("recover_pathfinder_on_failure") is True
+            )
+        )
         base = {
             "policy_id": DEADLINE_BOUND_RECOVERY_POLICY_ID,
             "recovery_required": pending,
@@ -211,6 +223,7 @@ class BotBridge:
             "trigger_command": trigger_command,
             "trigger_error": str(getattr(self, "_deadline_bound_recovery_error", "") or ""),
             "command_replayed": False,
+            "navigation_recovery_required": navigation_recovery_required,
         }
         if not pending:
             return {
@@ -248,9 +261,59 @@ class BotBridge:
                 "connect_attempt_count": self._last_recovery_connect_attempts,
             }
 
+        navigation_evidence = {}
+        if navigation_recovery_required:
+            navigation_state = self._send_command_single(
+                "recover_navigation",
+                {
+                    "policy_id": DEADLINE_BOUND_PATHFINDER_RECOVERY_POLICY_ID,
+                    "trigger_command": trigger_command,
+                },
+            )
+            navigation_confirmed = self._is_navigation_recovery_state(navigation_state)
+            navigation_evidence = {
+                "navigation_recovery_policy_id": DEADLINE_BOUND_PATHFINDER_RECOVERY_POLICY_ID,
+                "navigation_recovery_command": "recover_navigation",
+                "navigation_state_confirmed": navigation_confirmed,
+                "pathfinder_ready": bool(
+                    isinstance(navigation_state, dict)
+                    and navigation_state.get("pathfinder_ready") is True
+                ),
+            }
+            if not navigation_confirmed:
+                self._deadline_bound_recovery_pending = True
+                self._deadline_bound_recovery_command = trigger_command
+                self._deadline_bound_recovery_params = dict(trigger_params)
+                error = (
+                    str(navigation_state.get("error") or "fresh bridge did not confirm pathfinder readiness")
+                    if isinstance(navigation_state, dict)
+                    else "fresh bridge returned invalid pathfinder readiness"
+                )
+                try:
+                    self._socket.close()
+                except Exception:
+                    pass
+                self._socket = None
+                self._connected = False
+                return {
+                    **base,
+                    **navigation_evidence,
+                    "success": False,
+                    "recovered": False,
+                    "bridge_reconnected": False,
+                    "machine_state_confirmed": False,
+                    "error": error,
+                    "remaining_episode_s": round(max(0.0, self._remaining_action_time_s() or 0.0), 3),
+                    "connect_attempt_count": self._last_recovery_connect_attempts,
+                }
+
         player_state = self._send_command_single("get_player_state")
         confirmed = self._is_machine_player_state(player_state)
         if not confirmed:
+            # A retry must prove both recovery stages again, even if state confirmation timed out.
+            self._deadline_bound_recovery_pending = True
+            self._deadline_bound_recovery_command = trigger_command
+            self._deadline_bound_recovery_params = dict(trigger_params)
             error = (
                 str(player_state.get("error") or "fresh bridge returned invalid player state")
                 if isinstance(player_state, dict)
@@ -264,6 +327,7 @@ class BotBridge:
             self._connected = False
             return {
                 **base,
+                **navigation_evidence,
                 "success": False,
                 "recovered": False,
                 "bridge_reconnected": False,
@@ -277,8 +341,10 @@ class BotBridge:
         self._deadline_bound_recovery_pending = False
         self._deadline_bound_recovery_command = ""
         self._deadline_bound_recovery_error = ""
+        self._deadline_bound_recovery_params = {}
         return {
             **base,
+            **navigation_evidence,
             "success": True,
             "recovered": True,
             "bridge_reconnected": True,
@@ -301,6 +367,20 @@ class BotBridge:
             )
             and BotBridge._is_finite_number(player_state.get("health"))
             and BotBridge._is_finite_number(player_state.get("food"))
+        )
+
+    @staticmethod
+    def _is_navigation_recovery_state(state) -> bool:
+        return (
+            isinstance(state, dict)
+            and state.get("success") is True
+            and state.get("policy_id") == DEADLINE_BOUND_PATHFINDER_RECOVERY_POLICY_ID
+            and state.get("pathfinder_ready") is True
+            and state.get("goal_cleared") is True
+            and state.get("movement_stopped") is True
+            and state.get("control_states_cleared") is True
+            and state.get("command_replayed") is False
+            and state.get("world_mutation") is False
         )
 
     @staticmethod
@@ -437,6 +517,7 @@ class BotBridge:
                     self._deadline_bound_recovery_pending = True
                     self._deadline_bound_recovery_command = str(command)
                     self._deadline_bound_recovery_error = str(e)
+                    self._deadline_bound_recovery_params = dict(params)
                     self._recovered_player_state = None
             else:
                 logger.warning(f"Single-shot command '{command}' failed: {e}; reconnecting without replay")
@@ -513,6 +594,7 @@ class BotBridge:
         y: float = None,
         tolerance: float = None,
         timeout_ms: int = None,
+        recover_pathfinder_on_failure: bool = False,
     ) -> dict:
         params = {"x": x, "z": z}
         if y is not None:
@@ -521,6 +603,8 @@ class BotBridge:
             params["tolerance"] = tolerance
         if timeout_ms is not None:
             params["timeout_ms"] = timeout_ms
+        if recover_pathfinder_on_failure:
+            params["recover_pathfinder_on_failure"] = True
         return self._send_command_single("move_to", params)
 
     def look_at(self, x: float, y: float, z: float) -> dict:
