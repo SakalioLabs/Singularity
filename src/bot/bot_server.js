@@ -895,16 +895,55 @@ function nearestDroppedItem(activeBot, target, expectedItems = []) {
     return candidates[0] || null;
 }
 
-async function approachDroppedItem(activeBot, target, expectedItems, timeoutMs = 6000) {
-    const drop = nearestDroppedItem(activeBot, target, expectedItems);
-    if (!drop) return { detected: false, attempted: false };
+async function waitForDroppedItem(
+    activeBot,
+    target,
+    expectedItems,
+    wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    maxWaitMs = 0,
+) {
+    const pollMs = 100;
+    for (let elapsed = 0; elapsed <= maxWaitMs; elapsed += pollMs) {
+        const drop = nearestDroppedItem(activeBot, target, expectedItems);
+        if (drop) return { drop, waited_ms: elapsed };
+        if (elapsed < maxWaitMs) await wait(pollMs);
+    }
+    return { drop: null, waited_ms: maxWaitMs };
+}
+
+async function approachDroppedItem(
+    activeBot,
+    target,
+    expectedItems,
+    wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    detectionWaitMs = 0,
+    goalRange = 0,
+    timeoutMs = 6000,
+) {
+    const detection = await waitForDroppedItem(
+        activeBot,
+        target,
+        expectedItems,
+        wait,
+        detectionWaitMs,
+    );
+    const drop = detection.drop;
+    if (!drop) {
+        return {
+            detected: false,
+            attempted: false,
+            detection_waited_ms: detection.waited_ms,
+        };
+    }
     const details = {
         detected: true,
         attempted: false,
+        detection_waited_ms: detection.waited_ms,
         entity_id: drop.entity.id ?? null,
         item_name: drop.item_name,
         position: positionPayload(drop.entity.position),
         initial_distance: drop.player_distance,
+        goal_range: goalRange,
     };
     if (!activeBot.pathfinder || typeof activeBot.pathfinder.goto !== 'function') {
         return { ...details, error: 'pathfinder is unavailable for pickup collection' };
@@ -921,7 +960,7 @@ async function approachDroppedItem(activeBot, target, expectedItems, timeoutMs =
                 Math.floor(dropPosition.x),
                 Math.floor(dropPosition.y),
                 Math.floor(dropPosition.z),
-                0,
+                goalRange,
             ),
         ));
         const timeout = new Promise((_, reject) => {
@@ -2393,6 +2432,7 @@ function createDigHandler(
             const beforeInventory = inventoryCounts(activeBot);
             const blockName = block.name;
             const expectedDrops = blockDropNames(activeBot, block);
+            const strictPickupPostcondition = params.require_pickup === true;
             const targetBlockBefore = {
                 name: blockName,
                 type: Number(block.type),
@@ -2402,7 +2442,14 @@ function createDigHandler(
             let pickup = await waitForInventoryIncrease(activeBot, beforeInventory, wait, 1000, expectedDrops);
             let pickupCollection = { detected: false, attempted: false };
             if (!pickup.observed) {
-                pickupCollection = await approachDroppedItem(activeBot, target, expectedDrops);
+                pickupCollection = await approachDroppedItem(
+                    activeBot,
+                    target,
+                    expectedDrops,
+                    wait,
+                    strictPickupPostcondition ? 1500 : 0,
+                    strictPickupPostcondition ? 1 : 0,
+                );
                 const collected = await waitForInventoryIncrease(activeBot, beforeInventory, wait, 1500, expectedDrops);
                 pickup = {
                     ...collected,
@@ -2410,12 +2457,17 @@ function createDigHandler(
                 };
             }
             const blockAfter = activeBot.blockAt(target);
-            return {
-                success: true,
+            const blockRemoved = !blockAfter || blockAfter.type === 0 || blockAfter.name !== blockName;
+            const pickupRequired = strictPickupPostcondition && expectedDrops.length > 0;
+            const success = strictPickupPostcondition
+                ? blockRemoved && (!pickupRequired || pickup.observed)
+                : true;
+            const result = {
+                success,
                 block: blockName,
                 expected_drops: expectedDrops,
                 target: compactPosition(target),
-                block_removed: !blockAfter || blockAfter.type === 0 || blockAfter.name !== blockName,
+                block_removed: blockRemoved,
                 target_block_before: targetBlockBefore,
                 target_block_after: {
                     name: String(blockAfter?.name || 'air'),
@@ -2427,6 +2479,23 @@ function createDigHandler(
                 pickup_waited_ms: pickup.waited_ms,
                 pickup_collection: pickupCollection,
             };
+            if (strictPickupPostcondition) {
+                result.dig_postcondition = {
+                    schema_version: 1,
+                    policy: 'm4-expected-drop-pickup-postcondition-v1',
+                    required: true,
+                    block_removed: blockRemoved,
+                    expected_drop_required: pickupRequired,
+                    expected_drop_observed: pickup.observed,
+                    passed: success,
+                };
+                if (!blockRemoved) {
+                    result.error = 'dug block is still present';
+                } else if (pickupRequired && !pickup.observed) {
+                    result.error = 'expected block drop was not acquired';
+                }
+            }
+            return result;
         } catch (e) {
             return { success: false, pickup_observed: false, error: e.message };
         }

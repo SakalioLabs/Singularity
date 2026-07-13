@@ -268,6 +268,134 @@ async function testDigHandlerApproachesObservedDropForPickup() {
     console.log('PASS: Dig execution approaches its observed drop and verifies pickup');
 }
 
+function createProbe11MissingPickupFixture() {
+    const target = new Vec3(93, 139, -36);
+    let removed = false;
+    const bot = {
+        version: '1.20.4',
+        entity: { position: new Vec3(91, 139, -36) },
+        entities: {},
+        inventory: { items: () => [{ name: 'dark_oak_log', count: 1 }] },
+        blockAt(position) {
+            if (position.x === target.x && position.y === target.y && position.z === target.z) {
+                return removed
+                    ? { name: 'air', type: 0, position: target }
+                    : { name: 'oak_log', type: 10, drops: [131], position: target };
+            }
+            return { name: 'air', type: 0, position };
+        },
+        async dig() {
+            removed = true;
+        },
+    };
+    return { bot, target };
+}
+
+async function testM4DigHandlerFailsClosedWhenExpectedDropIsMissing() {
+    const strictFixture = createProbe11MissingPickupFixture();
+    const strictHandler = createDigHandler(
+        () => ({ bot: strictFixture.bot, botReady: true }),
+        async () => {},
+    );
+    const strictResult = await strictHandler({
+        x: strictFixture.target.x,
+        y: strictFixture.target.y,
+        z: strictFixture.target.z,
+        require_pickup: true,
+    });
+
+    assert.strictEqual(strictResult.success, false);
+    assert.strictEqual(strictResult.error, 'expected block drop was not acquired');
+    assert.strictEqual(strictResult.block_removed, true);
+    assert.deepStrictEqual(strictResult.expected_drops, ['oak_log']);
+    assert.strictEqual(strictResult.pickup_observed, false);
+    assert.strictEqual(strictResult.pickup_collection.detected, false);
+    assert.deepStrictEqual(strictResult.dig_postcondition, {
+        schema_version: 1,
+        policy: 'm4-expected-drop-pickup-postcondition-v1',
+        required: true,
+        block_removed: true,
+        expected_drop_required: true,
+        expected_drop_observed: false,
+        passed: false,
+    });
+
+    const controlFixture = createProbe11MissingPickupFixture();
+    const controlHandler = createDigHandler(
+        () => ({ bot: controlFixture.bot, botReady: true }),
+        async () => {},
+    );
+    const controlResult = await controlHandler({
+        x: controlFixture.target.x,
+        y: controlFixture.target.y,
+        z: controlFixture.target.z,
+    });
+    assert.strictEqual(controlResult.success, true);
+    assert.strictEqual(controlResult.block_removed, true);
+    assert.strictEqual(controlResult.pickup_observed, false);
+    assert.strictEqual(controlResult.dig_postcondition, undefined);
+    console.log('PASS: M4 Probe 11 missing pickup fails closed while legacy dig remains unchanged');
+}
+
+async function testM4DigHandlerWaitsForDropAndUsesReachablePickupGoal() {
+    const target = new Vec3(93, 139, -36);
+    const drop = {
+        id: 11,
+        name: 'item',
+        position: new Vec3(94, 138, -36),
+        getDroppedItem: () => ({ name: 'oak_log' }),
+    };
+    let removed = false;
+    let items = [{ name: 'dark_oak_log', count: 1 }];
+    let waitCalls = 0;
+    let navigationGoal = null;
+    const bot = {
+        version: '1.20.4',
+        entity: { position: new Vec3(91, 139, -36) },
+        entities: {},
+        inventory: { items: () => items },
+        blockAt(position) {
+            if (position.x === target.x && position.y === target.y && position.z === target.z) {
+                return removed
+                    ? { name: 'air', type: 0, position: target }
+                    : { name: 'oak_log', type: 10, drops: [131], position: target };
+            }
+            return { name: 'air', type: 0, position };
+        },
+        async dig() {
+            removed = true;
+        },
+        pathfinder: {
+            async goto(goal) {
+                navigationGoal = goal;
+                bot.entity.position = drop.position.clone();
+                items = [...items, { name: 'oak_log', count: 1 }];
+            },
+            stop() {},
+        },
+    };
+    const handler = createDigHandler(
+        () => ({ bot, botReady: true }),
+        async () => {
+            waitCalls += 1;
+            if (waitCalls === 11) bot.entities[drop.id] = drop;
+        },
+    );
+    const result = await handler({ x: target.x, y: target.y, z: target.z, require_pickup: true });
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.pickup_observed, true);
+    assert.deepStrictEqual(result.pickup_inventory_delta, { oak_log: 1 });
+    assert.strictEqual(result.pickup_collection.detected, true);
+    assert.strictEqual(result.pickup_collection.attempted, true);
+    assert(result.pickup_collection.detection_waited_ms > 0);
+    assert.strictEqual(result.pickup_collection.goal_range, 1);
+    assert.strictEqual(navigationGoal.constructor.name, 'GoalNear');
+    assert.strictEqual(navigationGoal.rangeSq, 1);
+    assert.strictEqual(result.dig_postcondition.passed, true);
+    console.log('PASS: M4 dig waits for a delayed drop and uses a reachable pickup goal');
+}
+
 async function main() {
     assert.strictEqual(M1_PROTOCOL.episode_strategy, 'fresh_level_per_task_run_v1');
     await testProtocolStatusPinsRuntimeAndDependencies();
@@ -276,6 +404,8 @@ async function main() {
     await testCraftHandlerUsesGroundedNearbyTable();
     await testDigHandlerWaitsForObservedPickup();
     await testDigHandlerApproachesObservedDropForPickup();
+    await testM4DigHandlerFailsClosedWhenExpectedDropIsMissing();
+    await testM4DigHandlerWaitsForDropAndUsesReachablePickupGoal();
     console.log('\nBot server benchmark reset tests PASSED');
 }
 

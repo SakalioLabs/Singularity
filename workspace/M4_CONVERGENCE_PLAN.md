@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 11 remain ineligible at 0/3. Probe 11 live-validates `m4-subtask-opportunity-trigger-type-grounding-v1` on 110 accepted real responses and 117 valid string triggers; Probe 10's malformed trigger and `AttributeError` did not recur, although the rejection branch was not exercised. The new earliest blocker is `dig_expected_drop_pickup_postcondition`: a removed oak log was accepted as success without its expected drop or a collection attempt, and a second drop's pickup navigation timed out. No further live episode is authorized until that bounded offline gate passes and is pushed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 11 remain ineligible at 0/3. Probe 11 live-validates `m4-subtask-opportunity-trigger-type-grounding-v1` on 110 accepted real responses and 117 valid string triggers; Probe 10's malformed trigger and `AttributeError` did not recur, although the rejection branch was not exercised. Its earliest blocker was `dig_expected_drop_pickup_postcondition`: a removed oak log was accepted as success without its expected drop or a collection attempt, and a second drop's exact-position pickup navigation timed out. The bounded `m4-expected-drop-pickup-postcondition-v1` offline gate now passes and exactly one fresh Probe 12 is authorized only after this commit is pushed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_11_failed_offline_dig_pickup_postcondition_gate_required |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_expected_drop_pickup_postcondition_gate_passed_probe_12_authorized_after_push |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -113,6 +113,8 @@ The new earliest failure layer is `dig_expected_drop_pickup_postcondition`. Acti
 
 The next hypothesis is bounded to the Mineflayer dig pickup/postcondition path: an expected-drop resource dig must not report successful acquisition until the drop reaches inventory, and collection must use a deadline-bounded reachable-proximity strategy with fail-closed evidence. No code changes or second live run occur in Probe 11's round.
 
+The bounded offline fix now passes under `m4-expected-drop-pickup-postcondition-v1`. Only `m4-fixed-v1` asks the bridge to enforce the postcondition. The exact event-81 fixture still removes the oak log but now returns `success=false`, `expected block drop was not acquired`, and a failed machine-readable postcondition when inventory remains `dark_oak_log:1`. Strict M4 polls up to 1.5 seconds for a delayed expected drop, approaches it with a reachable one-block `GoalNear`, retains the existing 6000 ms navigation limit, and accepts success only after the expected inventory delta is observed. A delayed oak drop reaches inventory in the positive control; the same missing-drop fixture without the strict flag preserves the fixed M1/M2 success response. Full regression passes 718 Python tests and six Node suites with 40 internal assertions. No live episode ran in this offline round; exactly one fresh Probe 12 is authorized only after this gate commit is pushed.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -122,8 +124,8 @@ The next hypothesis is bounded to the Mineflayer dig pickup/postcondition path: 
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 716 Python tests, including 27 M4 deadline cases and 76 fixed M4 cases, all six fixed Node suites with 38 internal assertions, and Python compilation pass
-- Live authorization: consumed by Probe 11; no next live episode is authorized before the expected-drop pickup/postcondition offline gate passes and is pushed
+- Regression: 718 Python tests, including 28 M4 deadline cases, all six fixed Node suites with 40 internal assertions, and Python compilation pass
+- Live authorization: exactly one fresh Probe 12 after the expected-drop pickup/postcondition gate commit is pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -267,9 +269,14 @@ The next hypothesis is bounded to the Mineflayer dig pickup/postcondition path: 
 - Source transition: Probe 11 action event 81 / monotonic 74061.859 / cycle 4 removed `oak_log` at `(93,139,-36)` but recorded no pickup, no inventory delta, and no collection attempt while returning `success=true`
 - Confirmation: action event 152 removed another oak log, detected the expected drop, attempted collection, and timed out after 6000 ms with inventory still `dark_oak_log:1`
 - Required proof: expected-drop resource digs acquire the drop into machine inventory before success, or return a bounded fail-closed result that preserves enough state for a next-cycle recovery
-- Scope: Mineflayer dig pickup collection and M4 resource-action postcondition only; protocol/task-contract hashes, Planner schema, task semantics, deadlines, success thresholds, and fixed M1/M2 behavior remain unchanged
-- Status: pending offline implementation and regression validation
-- Authorization: none until this gate passes offline and its commit is pushed
+- Policy: `m4-expected-drop-pickup-postcondition-v1`; `ActionController` sends `require_pickup=true` only under `m4-fixed-v1`
+- Exact replay: the event-81 state returns `success=false`, preserves `block_removed=true`, names `oak_log` as the expected drop, records no pickup, and emits a failed postcondition instead of resource success
+- Collection control: strict M4 polls up to 1500 ms for the drop, uses `GoalNear(...,1)` under a 6000 ms navigation bound, and verifies the expected inventory delta after collection
+- Compatibility control: the identical missing-drop fixture without `require_pickup` retains legacy success and emits no M4 postcondition; fixed M1/M2 behavior is unchanged
+- Scope: Mineflayer dig pickup collection and M4 resource-action postcondition only; protocol/task-contract hashes, Planner schema, task semantics, deadlines, and success thresholds remain unchanged
+- Validation: 2 exact Python forwarding tests, 2 exact Node gate tests, 36 related Python tests, 718 full Python tests, six Node suites with 40 internal assertions, Python compilation, and `git diff --check` pass
+- Status: passed offline; no live episode ran in this gate round
+- Authorization: exactly one fresh Probe 12 only after this gate commit is pushed
 
 ## BM-012 Live Evidence
 

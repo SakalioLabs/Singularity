@@ -99,6 +99,28 @@ def test_navigation_commands_omit_null_y_and_forward_pathfinder_controls():
     print("PASS: BotBridge preserves horizontal navigation and pathfinder controls")
 
 
+def test_m4_dig_forwards_explicit_pickup_postcondition():
+    bridge = RecordingBridge()
+
+    bridge.dig(93, 139, -36, timeout_ms=60000, require_pickup=True)
+    bridge.dig(93, 139, -36, timeout_ms=60000)
+
+    assert bridge.calls == [
+        (
+            "dig",
+            {
+                "x": 93,
+                "y": 139,
+                "z": -36,
+                "timeout_ms": 60000,
+                "require_pickup": True,
+            },
+        ),
+        ("dig", {"x": 93, "y": 139, "z": -36, "timeout_ms": 60000}),
+    ]
+    print("PASS: BotBridge scopes the pickup postcondition to explicit M4 dig requests")
+
+
 def test_benchmark_protocol_commands_are_fixed_and_typed():
     bridge = RecordingBridge()
     bridge.benchmark_protocol()

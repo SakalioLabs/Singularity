@@ -246,6 +246,17 @@ class ActionController:
         y = params.get("y")
         z = params.get("z")
         timeout_ms = params.get("timeout_ms")
+        require_pickup = (
+            str(getattr(self.config, "planner_protocol", "") or "") == "m4-fixed-v1"
+        )
+        if require_pickup:
+            return self.bot.dig(
+                x,
+                y,
+                z,
+                timeout_ms=timeout_ms,
+                require_pickup=True,
+            )
         if timeout_ms is None:
             return self.bot.dig(x, y, z)
         return self.bot.dig(x, y, z, timeout_ms=timeout_ms)

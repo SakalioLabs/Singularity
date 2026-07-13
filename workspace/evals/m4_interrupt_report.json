@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T09:03:00.7285459Z",
+  "generated_at": "2026-07-13T09:30:11.4958768Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "probe_11_recorded_offline_dig_pickup_postcondition_gate_required",
-  "decision": "build_offline_dig_pickup_postcondition_gate_before_next_live_episode",
+  "readiness": "offline_expected_drop_pickup_postcondition_gate_passed_probe_12_authorized_after_push",
+  "decision": "allow_one_fresh_bm012_probe_12_after_gate_commit_push",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -872,6 +872,106 @@
       "offline_gate_remains_passed": true
     },
     "next_authorized_episode": "none_pending_offline_dig_pickup_postcondition_gate"
+  },
+  "offline_expected_drop_pickup_postcondition_gate": {
+    "root_hypothesis": "dig_expected_drop_pickup_postcondition",
+    "status": "passed",
+    "policy_id": "m4-expected-drop-pickup-postcondition-v1",
+    "scope": "strict-M4 Mineflayer dig pickup collection and expected-drop inventory postcondition",
+    "source_episode_id": "m4_episode_20260713_163910_b9c148fa",
+    "source_session_id": "c6939e6f-d6e",
+    "source_action_event_index": 81,
+    "source_action_monotonic_s": 74061.859,
+    "source_cycle": 4,
+    "source_planner_call_event_index": 67,
+    "source_plan_event_index": 70,
+    "source_action_verification_event_index": 76,
+    "source_planner_call_id": "llm-60dd325bd5d147db",
+    "exact_probe_11_shape_replay": {
+      "goal": "Gather 6 oak logs for tools and shelter",
+      "block": "oak_log",
+      "target": {
+        "x": 93,
+        "y": 139,
+        "z": -36
+      },
+      "inventory_before": {
+        "dark_oak_log": 1
+      },
+      "inventory_after": {
+        "dark_oak_log": 1
+      },
+      "expected_drops": [
+        "oak_log"
+      ],
+      "block_removed": true,
+      "pickup_observed": false,
+      "pickup_collection_detected": false,
+      "pickup_collection_attempted": false,
+      "original_reported_success": true,
+      "replay_reported_success": false,
+      "replay_error": "expected block drop was not acquired",
+      "postcondition_passed": false
+    },
+    "delayed_drop_control": {
+      "drop_appearance_polled": true,
+      "drop_detection_wait_bounded_ms": 1500,
+      "pickup_goal_type": "GoalNear",
+      "pickup_goal_range": 1,
+      "pickup_navigation_timeout_ms": 6000,
+      "expected_inventory_delta": {
+        "oak_log": 1
+      },
+      "pickup_observed": true,
+      "postcondition_passed": true
+    },
+    "non_m4_control": {
+      "require_pickup_sent": false,
+      "missing_drop_reported_success": true,
+      "m4_postcondition_emitted": false,
+      "fixed_m1_m2_behavior_changed": false
+    },
+    "runtime_contract": {
+      "strict_profile": "m4-fixed-v1",
+      "bridge_flag": "require_pickup",
+      "pre_collection_inventory_wait_ms": 1000,
+      "drop_detection_wait_ms": 1500,
+      "pickup_navigation_timeout_ms": 6000,
+      "post_collection_inventory_wait_ms": 1500,
+      "block_removed_required": true,
+      "expected_inventory_delta_required_when_known": true,
+      "failure_preserves_machine_evidence": true,
+      "next_cycle_replan_uses_existing_failure_path": true
+    },
+    "focused_python_test_files": [
+      "tests/test_m4_deadline.py",
+      "tests/test_bot_bridge.py"
+    ],
+    "focused_python_gate_test_count": 2,
+    "focused_python_test_count": 36,
+    "deadline_python_test_count": 28,
+    "bot_bridge_python_test_count": 8,
+    "focused_node_test_file": "tests/test_bot_server_benchmark_reset.js",
+    "focused_node_gate_case_count": 2,
+    "focused_node_file_pass_count": 8,
+    "full_python_regression": 718,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 40,
+    "python_compileall_passed": true,
+    "action_controller_changed": true,
+    "bot_bridge_changed": true,
+    "mineflayer_dig_handler_changed": true,
+    "planner_changed": false,
+    "task_system_changed": false,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "deadline_policy_changed": false,
+    "success_threshold_changed": false,
+    "source_live_episode_run": true,
+    "offline_gate_live_episode_run": false,
+    "current_round_live_episode_run": false,
+    "bm012_live_episode_count": 11,
+    "next_authorized_episode": "bm012_probe_12_once_after_gate_commit_push"
   },
   "bm012_probe_9_live_observation": {
     "task_id": "BM-012",
