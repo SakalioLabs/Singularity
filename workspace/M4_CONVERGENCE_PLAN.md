@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 12 remain ineligible at 0/3. Probe 12 live-validates `m4-expected-drop-pickup-postcondition-v1`: five strict digs emitted the policy, three acquired their expected drops, two correctly failed closed, and the first failure recovered through two later successful digs. Its new earliest blocker is `pickup_collection_pathfinder_completion_grounding`: action event 169 removed an oak log and detected its drop, but pickup navigation reported success while ending outside the 1-block acquisition envelope with no inventory delta. The bounded `m4-pickup-collection-completion-grounding-v1` offline gate now passes, and exactly one fresh BM-012 Probe 13 is authorized only after this commit is pushed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 13 remain ineligible at 0/3. Probe 13 live-validates `m4-pickup-collection-completion-grounding-v1`: direct completion outside the one-block envelope was rejected, one bounded standable-cell fallback reached the envelope, and the expected oak-log delta appeared. The new earliest blocker is `place_target_player_occupancy_grounding`: action event 974 attempted to place a correctly equipped crafting table into the player's own floored feet cell, produced no block or inventory change, and timed out waiting for `blockUpdate`; six same-goal attempts and one later shelter retry also failed. No next live episode is authorized until a bounded offline player-occupancy gate passes and is pushed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_pickup_collection_completion_grounding_gate_passed_probe_13_authorized_after_push |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_13_recorded_place_target_player_occupancy_gate_required |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -119,6 +119,8 @@ Probe 12 live-validates the outer postcondition and recovery path. All five stri
 
 The bounded offline fix now passes under `m4-pickup-collection-completion-grounding-v1`. Strict M4 records direct `GoalNear` resolution separately from measured completion, accepts only a final distance inside the one-block acquisition envelope or the expected inventory delta, and performs at most one fallback to a machine-validated standable `GoalBlock`. Direct and fallback navigation share one monotonic 6000 ms budget. The exact Probe 12 coordinates reproduce 2.114415 initial and 2.091618 false-final distances, validate `(93,138,-36)` from solid support plus passable feet/head cells, reserve 4000 ms after a 2000 ms direct attempt, and acquire `oak_log:+1`. A second out-of-range completion fails closed without a third navigation; an unsupported cell is rejected before fallback; the non-M4 control retains its prior single-navigation response. No live episode ran in this offline round, and one fresh BM-012 Probe 13 is authorized only after the gate commit is pushed.
 
+Probe 13 live-validates that gate. Event 96 rejected direct completion at 1.014387 blocks, used one standable-cell fallback with 5317 ms remaining, reached 0.875760 blocks, and then observed `oak_log:+1`; the prior failure did not recur. The new earliest failure layer is `place_target_player_occupancy_grounding`. Event 974 used reference grass block `(103,135,-31)` and target air cell `(103,136,-31)`, while the player stood at `(103.383542,136,-30.5)` and therefore floored to that exact target cell. Equip and target-occupancy policies accepted, but `placeBlock` made no world or inventory change and timed out after 5000 ms. Six same-goal attempts and one later shelter retry repeated the failure. No code fix or second live episode occurs in this round.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -129,7 +131,7 @@ The bounded offline fix now passes under `m4-pickup-collection-completion-ground
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 718 Python tests, including 36 focused M4/Bridge cases, all six fixed Node suites with 44 internal assertions, and Python compilation pass
-- Live authorization: exactly one fresh BM-012 Probe 13 after the pickup-collection completion-grounding gate commit is pushed
+- Live authorization: none; Probe 13 consumed the prior authorization, and the next run is blocked on a pushed offline place-target player-occupancy gate
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -297,7 +299,41 @@ The bounded offline fix now passes under `m4-pickup-collection-completion-ground
 - Status: passed offline; no live episode ran in this gate round
 - Authorization: exactly one fresh BM-012 Probe 13 only after this gate commit is pushed
 
+## BM-012 Place Target Player Occupancy Gate
+
+- Root hypothesis: `place_target_player_occupancy_grounding`
+- Source transition: Probe 13 action event 974 / monotonic 82047.437 / elapsed 404.37 / cycle 40 under autonomous goal `Place crafting_table`
+- Planner lineage: real schema-valid call event 956 / plan event 958 / action-verification event 969 / call ID `llm-cce9a8671b604d6f`
+- Reference and target: grass block `(103,135,-31)` with an unoccupied block target `(103,136,-31)`
+- Player collision: pre-action player position `(103.38354189850078,136,-30.5)` floors to `(103,136,-31)`, exactly the target cell
+- Existing controls: `m4-place-requested-item-equip-v1` confirmed the crafting table in hand and `m4-place-target-occupancy-v1` accepted the air target
+- Failure: Mineflayer emitted no target mutation, retained `crafting_table:1`, retained the same player position, and timed out waiting 5000 ms for `blockUpdate:(103,136,-31)`
+- Persistence: the initial action plus five same-goal retries and one later shelter attempt failed with the same timeout; no successful place followed the first unrecovered transition
+- Required control: strict M4 must reject or avoid a placement target intersecting the player's feet/head collision cells before invoking `placeBlock`, preserve machine-readable target/player coordinates, and request a bounded adjacent-position replan
+- Scope: place target/player collision grounding only; pickup completion, Planner schema, TaskSystem, GoalVerifier, deadlines, protocols, success thresholds, skills, vision, and multi-agent execution remain unchanged
+- Status: diagnosed from canonical Probe 13 evidence; offline gate not implemented
+- Authorization: none until the offline gate passes and its commit is pushed
+
 ## BM-012 Live Evidence
+
+### Probe 13: Pickup Gate Passed Live; Place Target Matched Player Cell
+
+- Episode: `m4_episode_20260713_184611_5bd188fc`
+- Session: `d37a5ff5-44d`
+- Level: `m4_episode_20260713_184611_5bd188fc_bm012`
+- Frozen code: `05f0397`; protocol and BM-012 task-contract hashes unchanged
+- Pickup gate: event 96 rejected direct distance 1.014387, attempted one `GoalBlock` fallback with 5317 ms remaining, reached 0.875760, and observed `oak_log:+1`
+- Autonomous progress: 9 goals selected, 7 completed, 1 interrupted, 1 failed; wooden pickaxe and four torches crafted; `iron_ore` first observed at event 428 / distance 5; zero iron acquired
+- Planner: 60/60 real responses schema-valid, zero transport errors, zero empty plans, 211913 total tokens
+- Actions: 51 attempted, 37 successful; 15 move, 11 dig, 12 craft, and 13 place attempts
+- Earliest unrecovered transition: event 974 / monotonic 82047.437 / cycle 40, `place(crafting_table,103,135,-31)` targeting the player's own floored feet cell `(103,136,-31)`
+- Repetition: seven post-transition crafting-table placement timeouts at the same target across the interrupted placement and shelter goals; zero later successful place actions
+- Interrupts: 14 unique task-deadline interrupts all recovered, then one dusk-shelter interrupt paused the placement frontier
+- Last complete machine state: event 1362 / time 11844 / health 20 / hunger 20 / uninterrupted lifecycle / inventory without iron
+- Deadline: start 81646.078, deadline and Agent end 82246.078, manifest end 82246.093; no Planner call, plan, or action after the deadline, but independent duration and terminal checks fail closed
+- Eligibility: 54/74 checks passed; BM-012 remains 0/3
+- Round boundary: this was the only live episode; no code fix or second run is authorized
+- Evidence: `logs/benchmarks/m4/m4_episode_20260713_184611_5bd188fc/`
 
 ### Probe 12: Dig Postcondition Passed; Pickup Completion Was Ungrounded
 

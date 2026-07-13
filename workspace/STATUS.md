@@ -47,10 +47,10 @@
 
 ## M4 Convergence Result
 
-- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after twelve failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
+- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after thirteen failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after twelve failed live attempts. Probe 12 exercised `m4-expected-drop-pickup-postcondition-v1` on five strict digs: three acquired the expected item, two failed closed, zero false-positive successes occurred, and the first failed pickup recovered through two later successful digs. Its event-169 collector still reported success 2.092 blocks from the dropped `oak_log` without an inventory delta. The offline `m4-pickup-collection-completion-grounding-v1` gate now requires measured distance or expected inventory acquisition, replays the exact state through one standable-cell `GoalBlock` fallback under the shared 6000 ms budget, rejects unsupported or still-distant fallbacks, and leaves fixed M1/M2 behavior unchanged. Exactly one fresh BM-012 Probe 13 is authorized only after this gate commit is pushed; BM-013 and BM-014 remain locked.
+- BM-012 is the next target at 0/3 after thirteen failed live attempts. Probe 13 live-validates `m4-pickup-collection-completion-grounding-v1`: event 96 rejected direct pathfinder completion at 1.014 blocks, used one standable-cell fallback with 5317 ms remaining, reached 0.876 blocks, and then observed `oak_log:+1`. The new earliest unrecovered transition is action event 974 / monotonic 82047.437: the exact placement target `(103,136,-31)` matched the player's floored feet cell, so an otherwise valid and correctly equipped crafting-table placement timed out waiting for `blockUpdate` without changing inventory, position, or world state. Six same-goal attempts and one later shelter retry failed. The next gate is restricted to `place_target_player_occupancy_grounding`; no fresh episode is authorized until that offline gate passes and is pushed. Fixed M1/M2 behavior is unchanged, while BM-013 and BM-014 remain locked.
 
 ## Evidence Policy
 
@@ -70,7 +70,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 twelve failed attempts, 0/3; BM-013..014 not_run |
+| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 thirteen failed attempts, 0/3; BM-013..014 not_run |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |
