@@ -7168,6 +7168,7 @@ class Agent:
 
     def _observe(self) -> dict:
         """Observe world state and attach lightweight visual grounding when enabled."""
+        self._recover_m4_bridge_before_observation()
         observation = self.observer.observe()
         self._record_m4_player_lifecycle(observation)
         observation = self._attach_m4_shelter_verification(observation)
@@ -7195,6 +7196,33 @@ class Agent:
         enriched = self._merge_visual_analysis(observation, analysis)
         self._log_vision_analysis(analysis, screenshot_path=screenshot_path)
         return enriched
+
+    def _recover_m4_bridge_before_observation(self):
+        protocol = str(
+            getattr(getattr(self, "config", None), "planner_protocol", "") or ""
+        )
+        if protocol != "m4-fixed-v1":
+            return
+        recover = getattr(getattr(self, "bot", None), "recover_deadline_bound_transport", None)
+        if not callable(recover):
+            return
+
+        report = recover()
+        if not isinstance(report, dict) or report.get("recovery_required") is not True:
+            return
+        payload = dict(report)
+        session_logger = getattr(self, "session_logger", None)
+        if session_logger is not None and hasattr(session_logger, "log"):
+            session_logger.log(
+                "m4_deadline_bound_bridge_recovery",
+                payload,
+                level="INFO" if payload.get("success") is True else "ERROR",
+            )
+        if payload.get("success") is not True or payload.get("machine_state_confirmed") is not True:
+            raise RuntimeError(
+                "M4 bridge recovery did not produce confirmed machine state: "
+                + str(payload.get("error") or "unknown recovery failure")
+            )
 
     def _attach_m4_shelter_verification(self, observation: dict) -> dict:
         if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":

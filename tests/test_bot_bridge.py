@@ -44,6 +44,11 @@ class ScriptedSocket:
         return response
 
 
+class TimeoutSocket(ScriptedSocket):
+    def recv(self, _):
+        raise ConnectionError("fixture connection loss")
+
+
 def test_bridge_uses_configured_endpoint():
     bridge = BotBridge(BotConfig(bridge_host="127.0.0.2", bridge_port=3007))
 
@@ -196,6 +201,24 @@ def test_single_shot_navigation_extends_and_restores_socket_timeout():
     print("PASS: Single-shot navigation aligns socket and action timeout budgets")
 
 
+def test_non_deadline_single_shot_transport_reconnect_behavior_is_unchanged():
+    bridge = object.__new__(BotBridge)
+    bridge._connected = True
+    bridge._socket = TimeoutSocket()
+    bridge._action_deadline_monotonic = None
+    reconnect_calls = []
+    bridge._reconnect = lambda: reconnect_calls.append(True)
+
+    result = bridge._send_command_single("move_to", {"x": 8, "z": 9})
+
+    assert result["success"] is False
+    assert result["deadline_bound"] is False
+    assert result["command_replayed"] is False
+    assert reconnect_calls == [True]
+    assert getattr(bridge, "_deadline_bound_recovery_pending", False) is False
+    print("PASS: Non-deadline single-shot transport still uses its legacy reconnect path")
+
+
 if __name__ == "__main__":
     test_bridge_uses_configured_endpoint()
     test_decode_response_handles_valid_json_and_extra_lines()
@@ -205,4 +228,5 @@ if __name__ == "__main__":
     test_m4_place_forwards_explicit_player_clearance_postcondition()
     test_benchmark_protocol_commands_are_fixed_and_typed()
     test_single_shot_navigation_extends_and_restores_socket_timeout()
+    test_non_deadline_single_shot_transport_reconnect_behavior_is_unchanged()
     print("\nBot bridge tests PASSED")

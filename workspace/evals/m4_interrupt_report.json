@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T13:35:14.8444318Z",
+  "generated_at": "2026-07-13T16:18:50.8727336Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "probe_15_recorded_offline_deadline_bound_navigation_bridge_recovery_gate_required",
-  "decision": "build_offline_deadline_bound_navigation_bridge_recovery_gate_before_next_live_episode",
+  "readiness": "offline_deadline_bound_navigation_bridge_recovery_gate_passed_probe_16_authorized_after_push",
+  "decision": "allow_one_fresh_bm012_probe_16_after_gate_commit_is_pushed",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -1232,7 +1232,7 @@
   },
   "offline_deadline_bound_navigation_bridge_recovery_gate": {
     "root_hypothesis": "deadline_bound_navigation_bridge_recovery",
-    "status": "required_not_implemented",
+    "status": "passed_offline",
     "source_episode_id": "m4_episode_20260713_211548_0605186f",
     "source_session_id": "7b62bffb-ce9",
     "source_action_event_index": 981,
@@ -1252,9 +1252,21 @@
     "repeated_expired_task_count": 0,
     "interrupt_contract_is_earliest_blocker": false,
     "required_control": "transport recovery must restore a fresh bridge before the next cycle without replaying the expired command or changing interrupt priority",
-    "current_round_live_episode_run": true,
+    "policy_id": "m4-deadline-bound-bridge-recovery-v1",
+    "recovery_boundary": "strict_m4_pre_observation",
+    "timed_out_navigation_replayed": false,
+    "fresh_socket_machine_confirmed": true,
+    "task_deadline_interrupt_policy_changed": false,
+    "runtime_interrupt_priority_changed": false,
+    "exact_gate_test_count": 5,
+    "focused_python_test_count": 30,
+    "full_python_regression": 727,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 50,
+    "offline_gate_live_episode_run": false,
+    "current_round_live_episode_run": false,
     "bm012_live_episode_count": 15,
-    "next_authorized_episode": null
+    "next_authorized_episode": "bm012_probe_16_after_this_gate_commit_is_pushed"
   },
   "bm012_probe_15_live_observation": {
     "task_id": "BM-012",

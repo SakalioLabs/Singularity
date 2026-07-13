@@ -2008,9 +2008,237 @@ def test_m4_bridge_uses_remaining_budget_without_replay():
     assert timed_out["deadline_bound"] is True
     assert timed_out["command_replayed"] is False
     assert timed_out["bridge_reconnected"] is False
+    assert timed_out["bridge_recovery_pending"] is True
     assert reconnect_calls == []
     assert bridge._connected is False
     print("PASS: M4 bridge clamps transport waits without replay or synchronous reconnect")
+
+
+def test_m4_bridge_recovers_on_next_observation_with_confirmed_machine_state():
+    clock = FakeClock()
+    bridge = object.__new__(BotBridge)
+    bridge._connected = True
+    timed_out_socket = TimeoutSocket()
+    bridge._socket = timed_out_socket
+    bridge._action_deadline_monotonic = 160.0
+    bridge._action_timeout_limit_s = 60.0
+    reconnect_calls = []
+    bridge._reconnect = lambda: reconnect_calls.append(True)
+
+    with patch("singularity.bot.bridge.time.monotonic", clock.monotonic):
+        result = bridge._send_command(
+            "move_to",
+            {"x": 108, "y": 130, "z": -34, "timeout_ms": 60000},
+        )
+
+    assert result["success"] is False
+    assert result["command_replayed"] is False
+    assert result["bridge_recovery_pending"] is True
+    assert len(timed_out_socket.sent) == 1
+    assert reconnect_calls == []
+
+    player_state = {
+        "position": {"x": 112.5, "y": 127, "z": -28.5},
+        "health": 20,
+        "food": 20,
+    }
+    fresh_socket = ScriptedSocket((json.dumps(player_state) + "\n").encode("utf-8"))
+    deadline_connect_calls = []
+
+    def connect_fresh_socket():
+        deadline_connect_calls.append(True)
+        bridge._socket = fresh_socket
+        bridge._connected = True
+        bridge._last_recovery_connect_attempts = 1
+        bridge._last_recovery_connect_error = ""
+        return True
+
+    bridge._connect_deadline_bound = connect_fresh_socket
+    with patch("singularity.bot.bridge.time.monotonic", clock.monotonic):
+        recovery = bridge.recover_deadline_bound_transport()
+
+    assert recovery["success"] is True
+    assert recovery["recovered"] is True
+    assert recovery["policy_id"] == "m4-deadline-bound-bridge-recovery-v1"
+    assert recovery["trigger_command"] == "move_to"
+    assert recovery["trigger_error"] == "fixture timeout"
+    assert recovery["command_replayed"] is False
+    assert recovery["bridge_reconnected"] is True
+    assert recovery["machine_state_confirmed"] is True
+    assert recovery["confirmation_command"] == "get_player_state"
+    assert deadline_connect_calls == [True]
+    assert len(fresh_socket.sent) == 1
+    assert json.loads(fresh_socket.sent[0].decode("utf-8"))["command"] == "get_player_state"
+    assert bridge.get_player_state() == player_state
+    assert len(fresh_socket.sent) == 1
+
+    fresh_socket.response = b'{"items": []}\n'
+    with patch("singularity.bot.bridge.time.monotonic", clock.monotonic):
+        assert bridge.get_inventory() == []
+    assert len(fresh_socket.sent) == 2
+    assert json.loads(fresh_socket.sent[1].decode("utf-8"))["command"] == "get_inventory"
+    print("PASS: M4 restores a fresh confirmed bridge before the next observation")
+
+
+def test_m4_bridge_recovery_respects_deadline_and_fails_closed_without_machine_state():
+    clock = FakeClock(161.0)
+    expired = object.__new__(BotBridge)
+    expired._connected = False
+    expired._socket = None
+    expired._action_deadline_monotonic = 160.0
+    expired._action_timeout_limit_s = 60.0
+    expired._deadline_bound_recovery_pending = True
+    expired._deadline_bound_recovery_command = "move_to"
+    expired._deadline_bound_recovery_error = "fixture timeout"
+    expired._recovered_player_state = None
+    expired._connect_deadline_bound = lambda: (_ for _ in ()).throw(
+        AssertionError("expired recovery must not connect")
+    )
+
+    with patch("singularity.bot.bridge.time.monotonic", clock.monotonic):
+        suppressed = expired.recover_deadline_bound_transport()
+
+    assert suppressed["success"] is False
+    assert suppressed["deadline_suppressed"] is True
+    assert suppressed["connect_attempt_count"] == 0
+    assert expired._deadline_bound_recovery_pending is True
+
+    invalid = object.__new__(BotBridge)
+    invalid._connected = False
+    invalid._socket = None
+    invalid._action_deadline_monotonic = 200.0
+    invalid._action_timeout_limit_s = 60.0
+    invalid._deadline_bound_recovery_pending = True
+    invalid._deadline_bound_recovery_command = "move_to"
+    invalid._deadline_bound_recovery_error = "fixture timeout"
+    invalid._recovered_player_state = None
+    invalid_socket = ScriptedSocket(b'{"success": false, "error": "state unavailable"}\n')
+
+    def connect_invalid_socket():
+        invalid._socket = invalid_socket
+        invalid._connected = True
+        invalid._last_recovery_connect_attempts = 1
+        invalid._last_recovery_connect_error = ""
+        return True
+
+    invalid._connect_deadline_bound = connect_invalid_socket
+    with patch("singularity.bot.bridge.time.monotonic", clock.monotonic):
+        rejected = invalid.recover_deadline_bound_transport()
+
+    assert rejected["success"] is False
+    assert rejected["machine_state_confirmed"] is False
+    assert rejected["error"] == "state unavailable"
+    assert invalid._connected is False
+    assert invalid._socket is None
+    assert invalid._recovered_player_state is None
+    assert invalid._deadline_bound_recovery_pending is True
+    assert BotBridge._is_machine_player_state({
+        "position": {"x": "112.5", "y": 127, "z": -28.5},
+        "health": 20,
+        "food": 20,
+    }) is False
+    assert BotBridge._is_machine_player_state({
+        "position": {"x": 112.5, "y": 127, "z": -28.5},
+        "health": True,
+        "food": 20,
+    }) is False
+    print("PASS: M4 suppresses expired recovery and rejects unconfirmed bridge state")
+
+
+def test_m4_deadline_bound_connect_backoff_cannot_cross_episode_deadline():
+    clock = FakeClock(100.0)
+    bridge = BotBridge(Config().bot)
+    bridge.set_action_deadline(102.0, 60.0)
+    sockets = []
+
+    class FailedConnectSocket:
+        def __init__(self):
+            self.timeout = None
+            self.closed = False
+
+        def settimeout(self, timeout):
+            self.timeout = timeout
+
+        def connect(self, _endpoint):
+            raise ConnectionError("fixture refused")
+
+        def close(self):
+            self.closed = True
+
+    def socket_factory(*_args):
+        candidate = FailedConnectSocket()
+        sockets.append(candidate)
+        return candidate
+
+    with patch("singularity.bot.bridge.socket.socket", side_effect=socket_factory), patch(
+        "singularity.bot.bridge.time.monotonic", clock.monotonic
+    ), patch("singularity.bot.bridge.time.sleep", clock.advance):
+        connected = bridge._connect_deadline_bound()
+
+    assert connected is False
+    assert clock.value == 102.0
+    assert bridge._last_recovery_connect_attempts == 2
+    assert len(sockets) == 2
+    assert [candidate.timeout for candidate in sockets] == [2.0, 1.0]
+    assert all(candidate.closed for candidate in sockets)
+    print("PASS: M4 bridge reconnect attempts and backoff remain inside the absolute deadline")
+
+
+def test_m4_observation_recovery_gate_rejects_unconfirmed_fallback_and_is_m4_only():
+    clock = FakeClock()
+
+    class RecoveryBot:
+        def __init__(self):
+            self.calls = 0
+
+        def recover_deadline_bound_transport(self):
+            self.calls += 1
+            return {
+                "recovery_required": True,
+                "success": False,
+                "machine_state_confirmed": False,
+                "command_replayed": False,
+                "error": "fixture recovery failed",
+            }
+
+    class CountingObserver:
+        def __init__(self):
+            self.calls = 0
+
+        def observe(self):
+            self.calls += 1
+            return {"position": {"x": 1, "y": 64, "z": 1}, "health": 20}
+
+    agent = object.__new__(Agent)
+    agent.config = Config(planner_protocol="m4-fixed-v1", enable_vision_analysis=False)
+    agent.bot = RecoveryBot()
+    agent.observer = CountingObserver()
+    agent.session_logger = RuntimeSessionLogger(clock)
+
+    try:
+        agent._observe()
+        raise AssertionError("unconfirmed M4 recovery must reject the observation")
+    except RuntimeError as exc:
+        assert "confirmed machine state" in str(exc)
+
+    assert agent.bot.calls == 1
+    assert agent.observer.calls == 0
+    recovery_event = agent.session_logger.events[-1]
+    assert recovery_event["type"] == "m4_deadline_bound_bridge_recovery"
+    assert recovery_event["level"] == "ERROR"
+
+    control = object.__new__(Agent)
+    control.config = Config(planner_protocol="m2-fixed-v1", enable_vision_analysis=False)
+    control.bot = RecoveryBot()
+    control.observer = CountingObserver()
+    control.session_logger = RuntimeSessionLogger(clock)
+    observation = control._observe()
+
+    assert observation["health"] == 20
+    assert control.bot.calls == 0
+    assert control.observer.calls == 1
+    assert control.session_logger.events == []
+    print("PASS: M4 rejects unconfirmed recovery before observation without changing M2")
 
 
 def test_m4_verifier_return_after_deadline_is_rejected():
@@ -2153,6 +2381,10 @@ if __name__ == "__main__":
     test_m4_action_controller_requires_pickup_and_tool_equip_only_for_m4()
     test_m4_action_controller_requires_player_clearance_only_for_m4_place()
     test_m4_bridge_uses_remaining_budget_without_replay()
+    test_m4_bridge_recovers_on_next_observation_with_confirmed_machine_state()
+    test_m4_bridge_recovery_respects_deadline_and_fails_closed_without_machine_state()
+    test_m4_deadline_bound_connect_backoff_cannot_cross_episode_deadline()
+    test_m4_observation_recovery_gate_rejects_unconfirmed_fallback_and_is_m4_only()
     test_m4_verifier_return_after_deadline_is_rejected()
     test_session_logger_records_absolute_monotonic_event_time()
     test_m4_autonomous_loop_shares_deadline_and_suppresses_plan_suffix()

@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 15 remain ineligible at 0/3. Probe 15 live-validates `m4-dig-required-tool-equip-v1`: all 13 stone digs selected, equipped, and confirmed `wooden_pickaxe`; 12 succeeded and the cobblestone goal completed. Its earliest blocker is `deadline_bound_navigation_bridge_recovery`: action event 981 exhausted a 60-second coal navigation budget, correctly did not replay, but left the bridge disconnected with 281.859 seconds remaining and made all 16 later actions fail. No iron was acquired. No second live episode is authorized before the bounded no-replay bridge-recovery gate passes offline and is pushed. BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 15 remain ineligible at 0/3. Probe 15 live-validates `m4-dig-required-tool-equip-v1`: all 13 stone digs selected, equipped, and confirmed `wooden_pickaxe`; 12 succeeded and the cobblestone goal completed. Its earliest blocker is `deadline_bound_navigation_bridge_recovery`: action event 981 exhausted a 60-second coal navigation budget, correctly did not replay, but left the bridge disconnected with 281.859 seconds remaining and made all 16 later actions fail. The bounded offline recovery gate now passes without changing protocol, deadlines, or success thresholds. No live episode ran in this offline round; exactly one fresh Probe 16 is authorized only after this gate commit is pushed. BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_15_recorded_offline_deadline_bound_navigation_bridge_recovery_gate_required |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_deadline_bound_navigation_bridge_recovery_gate_passed_probe_16_authorized_after_push |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -133,6 +133,8 @@ Probe 15 live-validates that gate. All 19 dig actions emitted `m4-dig-required-t
 
 The new earliest failure layer is `deadline_bound_navigation_bridge_recovery`. Planner call event 966 / plan event 969 targeted observed coal ore `(108,130,-34)` from `(112.585511,127,-28.503399)`. Action-verification event 975 accepted the navigation; action event 981 then exhausted its fixed 60-second budget at monotonic 90944.203, returned `command_replayed=false`, `bridge_reconnected=false`, and `navigation_target_unreached`, while the episode still had 281.859 seconds. Sixteen later actions had zero successes, including 15 direct `Not connected to bot bridge` failures. This live round contains no code fix or second episode. The next hypothesis is limited to restoring a fresh bridge connection for the next cycle without replaying the timed-out command, extending the action budget, or weakening the absolute episode deadline.
 
+The bounded offline fix now passes under `m4-deadline-bound-bridge-recovery-v1`. A deadline-bound transport timeout closes the stale socket, records a pending recovery, and returns the old action after exactly one send with `command_replayed=false`; it never reconnects inside that expired action. At the next strict-M4 observation boundary, BotBridge limits socket attempts and exponential backoff to the remaining absolute episode budget, establishes a fresh connection, and requires a structurally valid `get_player_state` response before clearing the pending state. The confirmed state is consumed once by Observer. Expired recovery performs zero connects, failed confirmation closes the fresh socket and prevents Observer/Planner from receiving fabricated defaults, and the non-deadline single-shot reconnect path remains unchanged. Five exact gate tests, 30 focused bridge/deadline tests, 727 full Python tests, and all six Node suites with 50 internal cases pass. No live episode ran in this offline round.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -142,8 +144,8 @@ The new earliest failure layer is `deadline_bound_navigation_bridge_recovery`. P
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 722 Python tests, including 117 cross-module M4/Bridge cases, all six fixed Node suites with 50 internal assertions, Node syntax, and Python compilation pass
-- Live authorization: consumed by Probe 15; no new live episode before the deadline-bound navigation bridge-recovery gate passes offline and is pushed
+- Regression: 727 Python tests, all six fixed Node suites with 50 internal assertions, Node syntax, and Python compilation pass
+- Live authorization: exactly one fresh Probe 16 after the deadline-bound navigation bridge-recovery gate commit is pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -362,8 +364,11 @@ The new earliest failure layer is `deadline_bound_navigation_bridge_recovery`. P
 - Required policy: preserve single-attempt/no-replay semantics, then establish and machine-confirm a fresh bridge connection before the next observation/planning cycle when episode time remains
 - Fail closed: never replay the timed-out action, never reconnect synchronously inside the expired action, never extend either deadline, and never treat empty fallback observations as machine state
 - Scope: BotBridge deadline-bound transport recovery after navigation timeout only; Node pathfinder semantics, Planner goals, task contract, success threshold, skills, vision, multi-agent execution, M1, and M2 remain unchanged
-- Status: required, not implemented; no corresponding offline gate has passed
-- Authorization: none until this bounded offline gate passes and its commit is pushed
+- Policy: `m4-deadline-bound-bridge-recovery-v1`; timeout records pending recovery, strict-M4 pre-observation reconnects a fresh socket within the remaining episode deadline, and `get_player_state` must machine-confirm the connection
+- Exact controls: old command one send/no replay/no synchronous reconnect; successful next-observation recovery; expired recovery with zero connect attempts; invalid machine confirmation fail-closed before Observer; non-deadline reconnect unchanged
+- Validation: five exact gate tests, 30 focused Python tests, 727 full Python tests, six fixed Node suites with 50 internal PASS cases, Node syntax, Python compilation, and repository checks
+- Status: passed offline; no live episode ran in this gate round
+- Authorization: exactly one fresh BM-012 Probe 16 after this gate commit is pushed
 
 ## BM-012 Live Evidence
 

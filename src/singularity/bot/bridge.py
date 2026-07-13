@@ -1,5 +1,6 @@
 """Bot bridge -- communicates with the Node.js Mineflayer bot via persistent TCP socket."""
 import json
+import math
 import socket
 import logging
 import time
@@ -14,6 +15,7 @@ MAX_RETRIES = 3
 RETRY_BASE_DELAY = 1.0  # seconds, exponential backoff
 ACTION_RESPONSE_GRACE_SECONDS = 5.0
 MAX_ACTION_RESPONSE_TIMEOUT_SECONDS = 370.0
+DEADLINE_BOUND_RECOVERY_POLICY_ID = "m4-deadline-bound-bridge-recovery-v1"
 ACTION_COMMANDS = frozenset({
     "walk_to", "move_to", "look_at", "dig", "place", "craft", "attack",
     "equip", "use_item", "chat", "build_shelter_5x5", "build_shelter_cell",
@@ -37,6 +39,12 @@ class BotBridge:
         self._retry_count = 0
         self._action_deadline_monotonic = None
         self._action_timeout_limit_s = None
+        self._deadline_bound_recovery_pending = False
+        self._deadline_bound_recovery_command = ""
+        self._deadline_bound_recovery_error = ""
+        self._recovered_player_state = None
+        self._last_recovery_connect_attempts = 0
+        self._last_recovery_connect_error = ""
 
     def set_action_deadline(self, deadline_monotonic, action_timeout_limit_s: float = None):
         self._action_deadline_monotonic = (
@@ -75,6 +83,11 @@ class BotBridge:
                 self._socket.close()
             except Exception:
                 pass
+        self._socket = None
+        self._deadline_bound_recovery_pending = False
+        self._deadline_bound_recovery_command = ""
+        self._deadline_bound_recovery_error = ""
+        self._recovered_player_state = None
         logger.info("Disconnected from bot bridge")
 
     def _send_command(self, command: str, params: dict = None) -> dict:
@@ -127,11 +140,183 @@ class BotBridge:
             self._socket.close()
         except Exception:
             pass
+        self._socket = None
         self._connected = False
         self.connect()
 
+    def _connect_deadline_bound(self) -> bool:
+        """Reconnect without allowing retries or backoff to cross the episode deadline."""
+        deadline = getattr(self, "_action_deadline_monotonic", None)
+        self._last_recovery_connect_attempts = 0
+        self._last_recovery_connect_error = ""
+        if deadline is None:
+            self._last_recovery_connect_error = "deadline context unavailable"
+            return False
+
+        for attempt in range(MAX_RETRIES):
+            remaining_s = float(deadline) - time.monotonic()
+            if remaining_s <= 0:
+                self._last_recovery_connect_error = "episode deadline exhausted before bridge reconnect"
+                break
+
+            candidate = None
+            self._last_recovery_connect_attempts = attempt + 1
+            try:
+                candidate = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                candidate.settimeout(min(10.0, remaining_s))
+                candidate.connect((self._bridge_host, self._bridge_port))
+                self._socket = candidate
+                self._connected = True
+                self._retry_count = 0
+                logger.info(
+                    f"Recovered bot bridge connection at {self._bridge_host}:{self._bridge_port}"
+                )
+                return True
+            except Exception as exc:
+                self._last_recovery_connect_error = str(exc)
+                self._connected = False
+                if candidate is not None:
+                    try:
+                        candidate.close()
+                    except Exception:
+                        pass
+                if self._socket is candidate:
+                    self._socket = None
+
+                if attempt >= MAX_RETRIES - 1:
+                    break
+                remaining_s = float(deadline) - time.monotonic()
+                if remaining_s <= 0:
+                    break
+                delay_s = min(RETRY_BASE_DELAY * (2 ** attempt), remaining_s)
+                logger.warning(
+                    f"Deadline-bound reconnect attempt {attempt + 1}/{MAX_RETRIES} failed: "
+                    f"{exc}; retrying in {delay_s}s"
+                )
+                if delay_s > 0:
+                    time.sleep(delay_s)
+
+        self._connected = False
+        self._socket = None
+        return False
+
+    def recover_deadline_bound_transport(self) -> dict:
+        """Recover a timed-out transport before the next M4 observation, never the old command."""
+        pending = bool(getattr(self, "_deadline_bound_recovery_pending", False))
+        trigger_command = str(getattr(self, "_deadline_bound_recovery_command", "") or "")
+        base = {
+            "policy_id": DEADLINE_BOUND_RECOVERY_POLICY_ID,
+            "recovery_required": pending,
+            "deadline_bound": True,
+            "trigger_command": trigger_command,
+            "trigger_error": str(getattr(self, "_deadline_bound_recovery_error", "") or ""),
+            "command_replayed": False,
+        }
+        if not pending:
+            return {
+                **base,
+                "success": True,
+                "recovered": False,
+                "bridge_reconnected": bool(self._connected and self._socket),
+                "machine_state_confirmed": False,
+            }
+
+        remaining_s = self._remaining_action_time_s()
+        if remaining_s is None or remaining_s <= 0:
+            return {
+                **base,
+                "success": False,
+                "recovered": False,
+                "bridge_reconnected": False,
+                "machine_state_confirmed": False,
+                "deadline_suppressed": True,
+                "error": "episode deadline exhausted before bridge recovery",
+                "remaining_episode_s": 0.0,
+                "connect_attempt_count": 0,
+            }
+
+        self._recovered_player_state = None
+        if not self._connect_deadline_bound():
+            return {
+                **base,
+                "success": False,
+                "recovered": False,
+                "bridge_reconnected": False,
+                "machine_state_confirmed": False,
+                "error": self._last_recovery_connect_error or "bridge reconnect failed",
+                "remaining_episode_s": round(max(0.0, self._remaining_action_time_s() or 0.0), 3),
+                "connect_attempt_count": self._last_recovery_connect_attempts,
+            }
+
+        player_state = self._send_command_single("get_player_state")
+        confirmed = self._is_machine_player_state(player_state)
+        if not confirmed:
+            error = (
+                str(player_state.get("error") or "fresh bridge returned invalid player state")
+                if isinstance(player_state, dict)
+                else "fresh bridge returned invalid player state"
+            )
+            try:
+                self._socket.close()
+            except Exception:
+                pass
+            self._socket = None
+            self._connected = False
+            return {
+                **base,
+                "success": False,
+                "recovered": False,
+                "bridge_reconnected": False,
+                "machine_state_confirmed": False,
+                "error": error,
+                "remaining_episode_s": round(max(0.0, self._remaining_action_time_s() or 0.0), 3),
+                "connect_attempt_count": self._last_recovery_connect_attempts,
+            }
+
+        self._recovered_player_state = dict(player_state)
+        self._deadline_bound_recovery_pending = False
+        self._deadline_bound_recovery_command = ""
+        self._deadline_bound_recovery_error = ""
+        return {
+            **base,
+            "success": True,
+            "recovered": True,
+            "bridge_reconnected": True,
+            "machine_state_confirmed": True,
+            "confirmation_command": "get_player_state",
+            "remaining_episode_s": round(max(0.0, self._remaining_action_time_s() or 0.0), 3),
+            "connect_attempt_count": self._last_recovery_connect_attempts,
+        }
+
+    @staticmethod
+    def _is_machine_player_state(player_state) -> bool:
+        if not isinstance(player_state, dict) or player_state.get("success") is False:
+            return False
+        position = player_state.get("position")
+        return (
+            isinstance(position, dict)
+            and all(
+                BotBridge._is_finite_number(position.get(axis))
+                for axis in ("x", "y", "z")
+            )
+            and BotBridge._is_finite_number(player_state.get("health"))
+            and BotBridge._is_finite_number(player_state.get("food"))
+        )
+
+    @staticmethod
+    def _is_finite_number(value) -> bool:
+        return (
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and math.isfinite(float(value))
+        )
+
     # Observation commands
     def get_player_state(self) -> dict:
+        recovered = getattr(self, "_recovered_player_state", None)
+        if isinstance(recovered, dict):
+            self._recovered_player_state = None
+            return dict(recovered)
         return self._send_command("get_player_state")
 
     def get_player_lifecycle(self) -> dict:
@@ -247,7 +432,12 @@ class BotBridge:
                 except Exception:
                     pass
                 if self._socket is active_socket:
+                    self._socket = None
                     self._connected = False
+                    self._deadline_bound_recovery_pending = True
+                    self._deadline_bound_recovery_command = str(command)
+                    self._deadline_bound_recovery_error = str(e)
+                    self._recovered_player_state = None
             else:
                 logger.warning(f"Single-shot command '{command}' failed: {e}; reconnecting without replay")
                 self._reconnect()
@@ -257,6 +447,10 @@ class BotBridge:
                 "command_replayed": False,
                 "bridge_reconnected": self._connected if not deadline_bound else False,
                 "deadline_bound": deadline_bound,
+                "bridge_recovery_pending": bool(
+                    deadline_bound
+                    and getattr(self, "_deadline_bound_recovery_pending", False)
+                ),
             }
         except Exception as e:
             return {"success": False, "error": str(e), "command_replayed": False}

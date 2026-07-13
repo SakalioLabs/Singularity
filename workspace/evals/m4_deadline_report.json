@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T13:35:14.8444318Z",
+  "generated_at": "2026-07-13T16:18:50.8727336Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "probe_15_recorded_offline_deadline_bound_navigation_bridge_recovery_gate_required",
-  "decision": "build_offline_deadline_bound_navigation_bridge_recovery_gate_before_next_live_episode",
+  "readiness": "offline_deadline_bound_navigation_bridge_recovery_gate_passed_probe_16_authorized_after_push",
+  "decision": "allow_one_fresh_bm012_probe_16_after_gate_commit_is_pushed",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -37,6 +37,11 @@
       "name": "bridge_deadline_bound_commands_single_attempt",
       "status": "pass",
       "evidence": "tests/test_m4_deadline.py"
+    },
+    {
+      "name": "bridge_deadline_bound_next_observation_recovery",
+      "status": "pass",
+      "evidence": "src/singularity/bot/bridge.py; src/singularity/core/agent.py; tests/test_m4_deadline.py; tests/test_bot_bridge.py"
     },
     {
       "name": "autonomous_loop_shared_deadline",
@@ -1439,7 +1444,7 @@
   },
   "offline_deadline_bound_navigation_bridge_recovery_gate": {
     "root_hypothesis": "deadline_bound_navigation_bridge_recovery",
-    "status": "required_not_implemented",
+    "status": "passed_offline",
     "source_episode_id": "m4_episode_20260713_211548_0605186f",
     "source_session_id": "7b62bffb-ce9",
     "source_action_event_index": 981,
@@ -1455,9 +1460,34 @@
     "later_successful_action_count": 0,
     "later_not_connected_action_count": 15,
     "required_control": "restore a fresh bridge connection for the next cycle without replaying the timed-out action or weakening either deadline",
-    "current_round_live_episode_run": true,
+    "policy_id": "m4-deadline-bound-bridge-recovery-v1",
+    "recovery_boundary": "strict_m4_pre_observation",
+    "synchronous_reconnect_inside_failed_action": false,
+    "timed_out_command_replayed": false,
+    "fresh_socket_required": true,
+    "machine_confirmation_command": "get_player_state",
+    "machine_state_confirmed_before_observation": true,
+    "confirmed_state_cached_for_observer": true,
+    "unconfirmed_observation_rejected": true,
+    "expired_recovery_connect_attempt_count": 0,
+    "connect_retry_and_backoff_deadline_bounded": true,
+    "non_deadline_single_shot_reconnect_unchanged": true,
+    "exact_gate_test_count": 5,
+    "focused_python_test_count": 30,
+    "full_python_regression": 727,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 50,
+    "node_syntax_passed": true,
+    "python_compileall_passed": true,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "deadline_limit_changed": false,
+    "success_threshold_changed": false,
+    "fixed_m1_m2_behavior_changed": false,
+    "offline_gate_live_episode_run": false,
+    "current_round_live_episode_run": false,
     "bm012_live_episode_count": 15,
-    "next_authorized_episode": null
+    "next_authorized_episode": "bm012_probe_16_after_this_gate_commit_is_pushed"
   },
   "bm012_probe_15_live_episode": {
     "task_id": "BM-012",
