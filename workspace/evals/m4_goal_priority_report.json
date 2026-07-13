@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T06:16:07.9043414Z",
+  "generated_at": "2026-07-13T06:50:23.1106195Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "offline_task_world_state_reconciliation_gate_passed_probe_9_authorized_after_push",
-  "decision": "allow_one_fresh_bm012_probe_9_after_gate_commit_push",
+  "readiness": "bm012_probe_9_ineligible_m4_planner_schema_rejection_recovery_scope_diagnosed",
+  "decision": "hold_bm012_live_pending_typed_schema_rejection_recovery_gate",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -268,9 +268,52 @@
       "prior_failure_recurred": false
     }
   },
-  "live_episode_count": 26,
-  "live_episode_count_under_current_protocol": 12,
+  "live_episode_count": 27,
+  "live_episode_count_under_current_protocol": 13,
   "latest_live_episode": {
+    "task_id": "BM-012",
+    "episode_id": "m4_episode_20260713_143233_5fe50b8f",
+    "session_id": "53044286-3a8",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "autonomous_goal_count": 7,
+    "completed_goal_count": 3,
+    "failed_goal_count": 3,
+    "interrupted_goal_count": 1,
+    "selection_source": "curriculum_and_survival_goal_generator",
+    "initial_selection_reason": "curriculum_ranked:early_wood_bootstrap",
+    "goal_sequence": [
+      "Gather 6 oak logs for tools and shelter",
+      "Find and gather oak logs",
+      "Find and gather oak logs",
+      "Gather 6 oak logs",
+      "Dig oak log at (93,137,-36)",
+      "Build verified shelter before nightfall",
+      "Enter and maintain verified shelter through nightfall"
+    ],
+    "prior_task_world_state_failure_recurred": false,
+    "task_world_state_policy_event_count": 6,
+    "nearby_block_reconciliation_event_index": 1797,
+    "nearby_block_completed_task_count": 5,
+    "exact_crafting_table_boundary_exercised": false,
+    "first_unrecovered_transition": "m4_planner_schema_rejection_recovery_scope",
+    "planner_call_event_index": 115,
+    "first_unrecovered_session_event_index": 120,
+    "root_failed_event_index": 122,
+    "schema_issue": "subtask[2]:preconditions_inventory_count_invalid:oak_log",
+    "planner_output_recovery_count": 0,
+    "final_task_status_counts": {
+      "completed": 19,
+      "failed": 126,
+      "accepted": 5
+    },
+    "resource_terminal_inventory_target": false,
+    "server_observed_death_count": 0,
+    "runner_reported_eligible": false,
+    "independently_accepted_eligible": false,
+    "terminal_world_time": 12179
+  },
+  "bm012_probe_8_live_episode": {
     "task_id": "BM-012",
     "episode_id": "m4_episode_20260713_132135_a98f59e5",
     "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
@@ -637,7 +680,7 @@
   "bm012_eligible_success_count": 0,
   "offline_task_world_state_reconciliation_gate": {
     "root_hypothesis": "m4_task_world_state_reconciliation_grounding",
-    "status": "passed",
+    "status": "passed_offline_policy_branch_exercised_probe_9",
     "policy_id": "m4-task-world-state-reconciliation-v1",
     "scope": "strict-M4 pre-goal reconciliation plus criterion-specific TaskSystem machine-evidence evaluation",
     "first_unrecovered_session_event_index": 286,
@@ -681,8 +724,41 @@
     "python_compileall_passed": true,
     "protocol_changed": false,
     "task_contract_changed": false,
-    "live_episode_run": false,
-    "bm012_live_episode_count": 8,
-    "next_authorized_episode": "bm012_probe_9_once_after_gate_commit_push"
+    "live_probe_9_executed": true,
+    "live_policy_branch_exercised": true,
+    "live_nearby_reconciliation_event_index": 1797,
+    "live_nearby_completed_task_count": 5,
+    "live_exact_crafting_table_boundary_exercised": false,
+    "prior_failure_recurred": false,
+    "live_episode_run": true,
+    "bm012_live_episode_count": 9,
+    "next_authorized_episode": "consumed_by_bm012_probe_9"
+  },
+  "pending_typed_schema_rejection_recovery_gate": {
+    "root_hypothesis": "m4_planner_schema_rejection_recovery_scope",
+    "status": "diagnosed_offline_gate_pending",
+    "scope": "strict-M4 bounded next-cycle recovery for typed fail-closed Planner schema rejection",
+    "planner_call_event_index": 115,
+    "error_plan_event_index": 116,
+    "first_unrecovered_session_event_index": 120,
+    "root_failed_event_index": 122,
+    "planner_call_id": "llm-3bbb8772f5f0473e",
+    "root_plan_id": "root-47543f6677034bfc",
+    "schema_issue": "subtask[2]:preconditions_inventory_count_invalid:oak_log",
+    "raw_source_value_retained": false,
+    "invalid_task_created_count": 0,
+    "invalid_action_executed_count": 0,
+    "m4_planner_output_recovery_count": 0,
+    "required_offline_proof": [
+      "preserve the same autonomous goal and task frontier for one bounded next-cycle replan after the typed numeric schema rejection",
+      "accept no malformed task or action from the rejected response",
+      "leave repeated invalid output bounded and fail closed",
+      "preserve deadlines and non-M4 planner behavior"
+    ],
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "live_episode_run": true,
+    "bm012_live_episode_count": 9,
+    "next_authorized_episode": "none_pending_offline_typed_schema_rejection_recovery_gate"
   }
 }

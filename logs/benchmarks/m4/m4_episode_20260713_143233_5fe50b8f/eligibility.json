@@ -1,0 +1,896 @@
+{
+  "type": "m4_episode_eligibility",
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "eligible": false,
+  "success": false,
+  "issues": [
+    "event:terminal_resource_verification",
+    "player_lifecycle_observation_complete",
+    "player_lifecycle_observation_valid",
+    "player_lifecycle_baseline_consistent",
+    "player_lifecycle_event_valid",
+    "player_lifecycle_event_baseline_consistent",
+    "player_lifecycle_event_counts_monotonic",
+    "active_episode_death_absent",
+    "active_episode_respawn_absent",
+    "uninterrupted_survival",
+    "natural_time_progression",
+    "terminal_player_lifecycle",
+    "resource_terminal_inventory_target",
+    "resource_successful_source_actions",
+    "resource_positive_inventory_delta",
+    "terminal_machine_verification",
+    "episode_within_deadline",
+    "result_duration_eligible",
+    "no_post_deadline_execution"
+  ],
+  "checks": [
+    {
+      "name": "preflight_eligible",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "protocol_integrity",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "manifest_type",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_task",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_profile",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_protocol",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_reset_protocol",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_validation_protocol",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_episode",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_session",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_level",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_deadline_policy",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_runtime_controls",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_runtime_limits",
+      "passed": true,
+      "detail": {
+        "max_duration_s": 600.0,
+        "max_goals": 24,
+        "max_cycles_per_goal": 40
+      }
+    },
+    {
+      "name": "task_contract_integrity",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "manifest_task_contract_id",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_task_contract_sha256",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "preflight_content_hash",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest_content_hash",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "session_content_hash",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "result_content_hash",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "result_type",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "result_task",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "result_profile",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:autonomous_start",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:observation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:auto_goal",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:llm_planner_call",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:plan",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:action",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:goal_end",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:m4_player_lifecycle",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event:terminal_resource_verification",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "event:autonomous_end",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "planner_provider_controls",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "autonomous_goal_present",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "autonomous_goal_source",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "autonomous_goal_reason",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "autonomous_goal_priority",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "external_step_script_absent",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "action_present",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "action_pre_observations",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "action_post_observations",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "action_verifier",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "active_episode_forbidden_commands_absent",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "quarantined_skill_absent",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "strategic_root_skill_absent",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "player_lifecycle_observation_complete",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "player_lifecycle_observation_valid",
+      "passed": false,
+      "detail": [
+        [
+          "type",
+          "schema_version",
+          "verifier_id",
+          "source",
+          "profile",
+          "protocol_sha256",
+          "tracker_id",
+          "episode_id",
+          "episode_id_match",
+          "level_name",
+          "baseline_id",
+          "baseline_established",
+          "initial_spawn_observed",
+          "baseline_death_count_total",
+          "baseline_respawn_count_total",
+          "baseline_spawn_count_total",
+          "death_count_total",
+          "respawn_count_total",
+          "spawn_count_total",
+          "death_count",
+          "respawn_count",
+          "spawn_count",
+          "pending_respawn_count",
+          "baseline_observed_at_ms",
+          "baseline_bridge_monotonic_ms"
+        ]
+      ]
+    },
+    {
+      "name": "player_lifecycle_baseline_consistent",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "player_lifecycle_counts_monotonic",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "player_lifecycle_event_present",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "player_lifecycle_event_valid",
+      "passed": false,
+      "detail": [
+        [
+          "verifier_id",
+          "source",
+          "profile",
+          "protocol_sha256",
+          "tracker_id",
+          "episode_id",
+          "episode_id_match",
+          "level_name",
+          "baseline_id",
+          "baseline_established",
+          "initial_spawn_observed",
+          "baseline_death_count_total",
+          "baseline_respawn_count_total",
+          "baseline_spawn_count_total",
+          "death_count_total",
+          "respawn_count_total",
+          "spawn_count_total",
+          "death_count",
+          "respawn_count",
+          "spawn_count",
+          "pending_respawn_count",
+          "baseline_observed_at_ms",
+          "baseline_bridge_monotonic_ms"
+        ]
+      ]
+    },
+    {
+      "name": "player_lifecycle_event_baseline_consistent",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "player_lifecycle_event_counts_monotonic",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "active_episode_death_absent",
+      "passed": false,
+      "detail": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        null
+      ]
+    },
+    {
+      "name": "active_episode_respawn_absent",
+      "passed": false,
+      "detail": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        null
+      ]
+    },
+    {
+      "name": "uninterrupted_survival",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "natural_time_progression",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "terminal_player_lifecycle",
+      "passed": false,
+      "detail": []
+    },
+    {
+      "name": "terminal_health",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "terminal_bot_connected",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "resource_initial_inventory_empty",
+      "passed": true,
+      "detail": {
+        "target_items": [
+          "raw_iron",
+          "iron_ore"
+        ],
+        "initial_inventory": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "terminal_inventory": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "initial_target_count": 0,
+        "qualifying_items": [],
+        "terminal_target_passed": false,
+        "positive_inventory_delta": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "positive_inventory_delta_passed": false,
+        "successful_source_action_count": 0,
+        "successful_source_actions": []
+      }
+    },
+    {
+      "name": "resource_terminal_inventory_target",
+      "passed": false,
+      "detail": {
+        "target_items": [
+          "raw_iron",
+          "iron_ore"
+        ],
+        "initial_inventory": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "terminal_inventory": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "initial_target_count": 0,
+        "qualifying_items": [],
+        "terminal_target_passed": false,
+        "positive_inventory_delta": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "positive_inventory_delta_passed": false,
+        "successful_source_action_count": 0,
+        "successful_source_actions": []
+      }
+    },
+    {
+      "name": "resource_successful_source_actions",
+      "passed": false,
+      "detail": {
+        "target_items": [
+          "raw_iron",
+          "iron_ore"
+        ],
+        "initial_inventory": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "terminal_inventory": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "initial_target_count": 0,
+        "qualifying_items": [],
+        "terminal_target_passed": false,
+        "positive_inventory_delta": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "positive_inventory_delta_passed": false,
+        "successful_source_action_count": 0,
+        "successful_source_actions": []
+      }
+    },
+    {
+      "name": "resource_positive_inventory_delta",
+      "passed": false,
+      "detail": {
+        "target_items": [
+          "raw_iron",
+          "iron_ore"
+        ],
+        "initial_inventory": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "terminal_inventory": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "initial_target_count": 0,
+        "qualifying_items": [],
+        "terminal_target_passed": false,
+        "positive_inventory_delta": {
+          "raw_iron": 0,
+          "iron_ore": 0
+        },
+        "positive_inventory_delta_passed": false,
+        "successful_source_action_count": 0,
+        "successful_source_actions": []
+      }
+    },
+    {
+      "name": "terminal_machine_verification",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "monotonic_runtime",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "active_event_monotonic_complete",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "active_event_monotonic_ordered",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "active_event_monotonic_bounds",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "episode_within_deadline",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "result_duration_eligible",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "no_post_deadline_execution",
+      "passed": false,
+      "detail": ""
+    }
+  ],
+  "evidence": {
+    "event_count": 1900,
+    "action_count": 43,
+    "autonomous_goal_count": 7,
+    "planner_provider_controls": {
+      "passed": true,
+      "call_count": 98,
+      "real_call_count": 97,
+      "schema_valid_real_call_count": 96,
+      "expected_extra_body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "expected_finish_reason": "stop",
+      "reasoning_content_max_bytes": 0,
+      "max_call_duration_ms": 15875.0,
+      "total_token_usage": 343153,
+      "violations": []
+    },
+    "night_observation_index": null,
+    "dawn_observation_index": null,
+    "terminal_health": 20,
+    "task_contract_id": "m4-bm012-resource-contract-v1",
+    "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "resource_acquisition": {
+      "target_items": [
+        "raw_iron",
+        "iron_ore"
+      ],
+      "initial_inventory": {
+        "raw_iron": 0,
+        "iron_ore": 0
+      },
+      "terminal_inventory": {
+        "raw_iron": 0,
+        "iron_ore": 0
+      },
+      "initial_target_count": 0,
+      "qualifying_items": [],
+      "terminal_target_passed": false,
+      "positive_inventory_delta": {
+        "raw_iron": 0,
+        "iron_ore": 0
+      },
+      "positive_inventory_delta_passed": false,
+      "successful_source_action_count": 0,
+      "successful_source_actions": []
+    },
+    "player_lifecycle_verifier_id": "m4-player-lifecycle-verifier-v1",
+    "player_lifecycle_event_count": 2,
+    "maximum_death_count": null,
+    "maximum_respawn_count": null,
+    "uninterrupted_survival": false,
+    "episode_duration_s": 600.078,
+    "forbidden_events": []
+  }
+}

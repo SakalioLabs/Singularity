@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-13T06:16:07.9043414Z",
+  "generated_at": "2026-07-13T06:50:23.1106195Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "current_task_id": "BM-012",
@@ -15,10 +15,10 @@
       "required_success_count": 3
     }
   ],
-  "live_episode_count_under_current_protocol": 12,
+  "live_episode_count_under_current_protocol": 13,
   "current_gate": {
-    "hypothesis": "m4_task_world_state_reconciliation_grounding",
-    "status": "offline_task_world_state_reconciliation_gate_passed_probe_9_authorized_after_push",
+    "hypothesis": "m4_planner_schema_rejection_recovery_scope",
+    "status": "bm012_probe_9_ineligible_m4_planner_schema_rejection_recovery_scope_diagnosed",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
@@ -28,9 +28,9 @@
     "m4_shelter_python_case_count": 18,
     "m4_node_case_count": 11,
     "offline_atomicity_gate_passed": true,
-    "live_episode_count_under_current_protocol": 12,
+    "live_episode_count_under_current_protocol": 13,
     "latest_accepted_episode": "m4_episode_20260713_055737_6d976e6d",
-    "latest_episode": "m4_episode_20260713_132135_a98f59e5",
+    "latest_episode": "m4_episode_20260713_143233_5fe50b8f",
     "live_atomicity_recovery_passed": true,
     "bm011_eligible_success_count": 3,
     "bm011_status": "repeat_verified",
@@ -38,8 +38,8 @@
     "bm012_task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
     "bm012_offline_gate_passed": true,
     "bm012_eligible_success_count": 0,
-    "bm012_live_episode_count": 8,
-    "bm012_latest_failure_layer": "m4_task_world_state_reconciliation_grounding",
+    "bm012_live_episode_count": 9,
+    "bm012_latest_failure_layer": "m4_planner_schema_rejection_recovery_scope",
     "bm012_purpose_phrase_offline_gate_passed": true,
     "bm012_purpose_phrase_focused_test_count": 57,
     "bm012_purpose_phrase_live_validated": true,
@@ -84,7 +84,7 @@
     "bm012_place_success_criteria_post_action_task_completed": true,
     "bm012_place_success_criteria_fail_closed_controls_passed": true,
     "bm012_place_success_criteria_related_test_count": 138,
-    "next_authorized_episode": "bm012_probe_9_once_after_gate_commit_push",
+    "next_authorized_episode": "none_pending_offline_typed_schema_rejection_recovery_gate",
     "bm012_place_success_criteria_prompt_path_live_validated": true,
     "bm012_place_success_criteria_normalization_branch_live_exercised": false,
     "bm012_place_success_criteria_prior_failure_recurred": false,
@@ -129,7 +129,7 @@
     "bm012_place_target_live_replacement_success_count": 1,
     "bm012_place_target_live_timeout_count": 0,
     "bm012_place_target_prior_failure_recurred": false,
-    "bm012_task_world_state_reconciliation_gate_status": "passed",
+    "bm012_task_world_state_reconciliation_gate_status": "passed_offline_policy_branch_exercised_probe_9",
     "bm012_task_world_state_reconciliation_policy_id": "m4-task-world-state-reconciliation-v1",
     "bm012_task_world_state_first_unrecovered_event_index": 286,
     "bm012_task_world_state_satisfied_task_id": "2f1081b4",
@@ -150,9 +150,24 @@
     "bm012_task_world_state_focused_test_count": 3,
     "bm012_task_world_state_task_system_test_count": 95,
     "bm012_task_world_state_related_test_count": 86,
-    "bm012_task_world_state_live_episode_run": false,
-    "bm012_task_world_state_satisfied_task_reselected_count": 1,
-    "bm012_task_world_state_dirt_root_cycle_count": 80
+    "bm012_task_world_state_live_episode_run": true,
+    "bm012_task_world_state_live_reconciliation_event_count": 6,
+    "bm012_task_world_state_live_nearby_event_index": 1797,
+    "bm012_task_world_state_live_nearby_completed_task_count": 5,
+    "bm012_task_world_state_live_exact_crafting_table_boundary_exercised": false,
+    "bm012_task_world_state_prior_failure_recurred": false,
+    "bm012_task_world_state_satisfied_task_reselected_count": 0,
+    "bm012_task_world_state_probe_8_satisfied_task_reselected_count": 1,
+    "bm012_task_world_state_probe_8_dirt_root_cycle_count": 80,
+    "bm012_planner_schema_rejection_recovery_gate_status": "diagnosed_offline_gate_pending",
+    "bm012_planner_schema_rejection_call_event_index": 115,
+    "bm012_planner_schema_rejection_plan_event_index": 116,
+    "bm012_planner_schema_rejection_empty_plan_event_index": 120,
+    "bm012_planner_schema_rejection_root_failed_event_index": 122,
+    "bm012_planner_schema_rejection_call_id": "llm-3bbb8772f5f0473e",
+    "bm012_planner_schema_rejection_issue": "subtask[2]:preconditions_inventory_count_invalid:oak_log",
+    "bm012_planner_schema_rejection_output_recovery_count": 0,
+    "bm012_planner_schema_rejection_live_episode_run": true
   },
   "entries": [
     {
@@ -5085,6 +5100,339 @@
       },
       "patch_or_experiment_summary": "Ran exactly one fresh BM-012 Probe 8 from committed and pushed target-occupancy gate 27d9a54. No code, protocol, success threshold, world intervention, external step script, or second episode changed the live run.",
       "retest_result": "Probe 8 live-validated m4-place-target-occupancy-v1: the occupied target was rejected at zero execution duration with a target-aware replan, and the next air target placed the crafting table successfully. Strict-M4 then reselected a duplicate nearby_block_present task that machine state had already satisfied because pre-goal reconciliation allowed only inventory criteria. Its stale descendants consumed 80 cycles in two dirt roots, no iron-source action occurred, BM-012 remains 0/3, and no second live episode ran in this round."
+    },
+    {
+      "task_id": "BM-012",
+      "episode_id": "m4_episode_20260713_143233_5fe50b8f",
+      "session_id": "53044286-3a8",
+      "level_name": "m4_episode_20260713_143233_5fe50b8f_bm012",
+      "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "task_contract_id": "m4-bm012-resource-contract-v1",
+      "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+      "seed": "12345",
+      "start_monotonic": 66430.984,
+      "end_monotonic": 67031.062,
+      "duration_s": 600.078,
+      "agent_end_monotonic": 67030.984,
+      "agent_elapsed_s": 600.0,
+      "failure_layer": "m4_planner_schema_rejection_recovery_scope",
+      "first_unrecovered_transition": {
+        "failure_layer": "m4_planner_schema_rejection_recovery_scope",
+        "planner_call_event_index": 115,
+        "error_plan_event_index": 116,
+        "first_unrecovered_event_index": 120,
+        "root_failed_event_index": 122,
+        "monotonic_s": 66480.359,
+        "elapsed_s": 49.375,
+        "goal": "Gather 6 oak logs for tools and shelter",
+        "cycle": 6,
+        "planner_call_id": "llm-3bbb8772f5f0473e",
+        "root_plan_id": "root-47543f6677034bfc",
+        "parent_planner_call_id": "llm-64ad652936ab4e48",
+        "plan_kind": "continuation",
+        "schema_issue": "subtask[2]:preconditions_inventory_count_invalid:oak_log",
+        "subtask_count": 3,
+        "inventory_requirement_count": 6,
+        "normalized_requirement_count": 0,
+        "raw_source_value_retained": false,
+        "invalid_task_created_count": 0,
+        "invalid_action_executed_count": 0,
+        "m4_planner_output_recovery_count": 0,
+        "termination_reason": "empty_plan"
+      },
+      "before_state": {
+        "event_index": 108,
+        "position": {
+          "x": 93.48529599493759,
+          "y": 138,
+          "z": -35.31870286289215
+        },
+        "health": 20,
+        "food": 20,
+        "inventory": {
+          "oak_log": 2
+        },
+        "time_of_day": 1059,
+        "observed_next_oak_log": {
+          "x": 93,
+          "y": 137,
+          "z": -36
+        },
+        "successful_log_dig_count": 2
+      },
+      "attempted_plan": {
+        "real_llm_call": true,
+        "schema_valid": false,
+        "response_sha256": "836e1cb6a343a122c621cbf2d08bfe644f6d4f5d38f72d49239c1d34075dc95e",
+        "response_byte_count": 1661,
+        "duration_ms": 4453,
+        "prompt_tokens": 3215,
+        "completion_tokens": 520,
+        "finish_reason": "stop",
+        "reasoning_content_byte_count": 0,
+        "rejected_before_execution": true
+      },
+      "confirming_transition": {
+        "next_ready_root_event_index": 126,
+        "first_ready_root_complete_event_index": 142,
+        "second_ready_root_event_index": 146,
+        "second_ready_root_complete_event_index": 161,
+        "gather_root_event_index": 165,
+        "gather_root_failed_event_index": 941,
+        "gather_root_cycle_count": 40,
+        "stale_dig_root_event_index": 945,
+        "stale_dig_root_interrupted_event_index": 1666,
+        "iron_source_action_count": 0
+      },
+      "prior_hypothesis_live_validation": {
+        "hypothesis": "m4_task_world_state_reconciliation_grounding",
+        "prior_failure_recurred": false,
+        "policy_id": "m4-task-world-state-reconciliation-v1",
+        "policy_event_count": 6,
+        "nearby_block_reconciliation_event_index": 1797,
+        "nearby_block_completed_task_count": 5,
+        "nearby_block_name": "oak_planks",
+        "satisfied_world_state_root_reselected_count": 0,
+        "exact_crafting_table_boundary_exercised": false,
+        "policy_branch_live_exercised": true,
+        "exact_probe_8_path_live_validated": false
+      },
+      "autonomous_goal_summary": {
+        "attempted": 7,
+        "completed": 3,
+        "failed": 3,
+        "interrupted": 1,
+        "first_goal": "Gather 6 oak logs for tools and shelter",
+        "first_goal_completed": false,
+        "verified_shelter_goal_completed": true,
+        "total_cycles": 98,
+        "goal_sequence": [
+          "Gather 6 oak logs for tools and shelter",
+          "Find and gather oak logs",
+          "Find and gather oak logs",
+          "Gather 6 oak logs",
+          "Dig oak log at (93,137,-36)",
+          "Build verified shelter before nightfall",
+          "Enter and maintain verified shelter through nightfall"
+        ]
+      },
+      "planner_controls": {
+        "call_count": 98,
+        "real_call_count": 97,
+        "schema_valid_real_call_count": 96,
+        "schema_invalid_real_call_count": 1,
+        "maximum_duration_ms": 15875,
+        "total_tokens": 343153,
+        "reasoning_content_byte_count": 0,
+        "transport_retry_count": 0,
+        "transport_error_count": 1,
+        "transport_recovery_count": 1,
+        "output_recovery_count": 0,
+        "provider_control_violation_count": 0
+      },
+      "action_summary": {
+        "attempted": 43,
+        "successful": 22,
+        "by_type": {
+          "move_to": {
+            "attempted": 14,
+            "successful": 13
+          },
+          "dig": {
+            "attempted": 22,
+            "successful": 4
+          },
+          "look_at": {
+            "attempted": 1,
+            "successful": 1
+          },
+          "craft": {
+            "attempted": 1,
+            "successful": 1
+          },
+          "build_shelter_cell": {
+            "attempted": 2,
+            "successful": 1
+          },
+          "wait": {
+            "attempted": 3,
+            "successful": 2
+          }
+        },
+        "action_verification_accept_count": 29,
+        "action_verification_review_count": 14,
+        "action_verification_reject_count": 0
+      },
+      "task_lifecycle": {
+        "transition_count": 461,
+        "unique_task_count": 150,
+        "terminal_status_counts": {
+          "completed": 19,
+          "failed": 126,
+          "accepted": 5
+        }
+      },
+      "downstream_cascade": {
+        "failed_dig_action_count": 18,
+        "task_deadline_interrupt_count": 56,
+        "dusk_shelter_interrupt_count": 1,
+        "bounded_shelter_action_count": 2,
+        "bounded_shelter_action_success_count": 1,
+        "terminal_deadline_event_index": 1886,
+        "at_deadline_wait_action_event_index": 1891,
+        "not_the_earliest_blocker": true
+      },
+      "runtime_interrupts": {
+        "trigger_count": 57,
+        "recovery_count": 57,
+        "task_deadline_trigger_count": 56,
+        "unique_deadline_trigger_task_count": 56,
+        "expired_task_count": 126,
+        "unique_expired_task_count": 126,
+        "dusk_shelter_trigger_count": 1,
+        "repeated_expired_task_count": 0,
+        "concurrent_root_violation_count": 0
+      },
+      "shelter_verification": {
+        "verification_event_count": 8,
+        "verification_pass_count": 2,
+        "bounded_action_count": 2,
+        "bounded_action_success_count": 1,
+        "matched_episode_placement_count": 9,
+        "first_verification_pass_event_index": 1776,
+        "first_verification_pass_monotonic": 66962.734,
+        "first_success_action_event_index": 1780,
+        "first_success_action_monotonic": 66962.734,
+        "final_machine_verification_event_index": 1899,
+        "machine_verified_safe_state": true
+      },
+      "player_lifecycle_continuity": {
+        "active_observation_count": 142,
+        "player_lifecycle_present_observation_count": 141,
+        "player_lifecycle_missing_observation_count": 1,
+        "canonical_lifecycle_event_count": 3,
+        "maximum_valid_death_count": 0,
+        "maximum_valid_respawn_count": 0,
+        "source": "mineflayer_events",
+        "terminal_food": 20,
+        "terminal_health": 20,
+        "last_valid_lifecycle_event_index": 1898,
+        "last_valid_lifecycle_uninterrupted": true,
+        "terminal_observation_complete": false,
+        "independent_gate_passed": false,
+        "verifier_id": "m4-player-lifecycle-verifier-v1"
+      },
+      "resource_acquisition": {
+        "initial_inventory": {
+          "iron_ore": 0,
+          "raw_iron": 0
+        },
+        "terminal_inventory": {
+          "iron_ore": 0,
+          "raw_iron": 0
+        },
+        "positive_inventory_delta": {
+          "iron_ore": 0,
+          "raw_iron": 0
+        },
+        "successful_source_action_count": 0,
+        "terminal_target_passed": false
+      },
+      "terminal_state": {
+        "time_of_day": 12179,
+        "health": 20,
+        "food": 20,
+        "position": {
+          "x": 92.5,
+          "y": 135,
+          "z": -35.5
+        },
+        "inventory": {
+          "oak_planks": 7,
+          "dirt": 1
+        },
+        "bot_connected": true
+      },
+      "deadline_status": {
+        "episode_started_monotonic": 66430.984,
+        "episode_deadline_monotonic": 67030.984,
+        "agent_end_monotonic": 67030.984,
+        "evidence_end_monotonic": 67031.062,
+        "agent_time_overrun_s": 0.0,
+        "evidence_time_overrun_s": 0.078,
+        "last_planner_call_monotonic": 67016.328,
+        "post_deadline_planner_call_count": 0,
+        "post_deadline_plan_count": 0,
+        "strictly_post_deadline_action_count": 0,
+        "at_or_after_deadline_action_count": 1,
+        "at_deadline_action_event_index": 1891,
+        "at_deadline_action_accepted": false,
+        "deadline_eligible": false,
+        "result_duration_eligible": false,
+        "no_post_deadline_execution": false
+      },
+      "eligibility": {
+        "preflight_passed": true,
+        "runner_reported_eligible": false,
+        "independently_accepted_eligible": false,
+        "check_count": 74,
+        "pass_count": 55,
+        "issue_count": 19,
+        "issues": [
+          "event:terminal_resource_verification",
+          "player_lifecycle_observation_complete",
+          "player_lifecycle_observation_valid",
+          "player_lifecycle_baseline_consistent",
+          "player_lifecycle_event_valid",
+          "player_lifecycle_event_baseline_consistent",
+          "player_lifecycle_event_counts_monotonic",
+          "active_episode_death_absent",
+          "active_episode_respawn_absent",
+          "uninterrupted_survival",
+          "natural_time_progression",
+          "terminal_player_lifecycle",
+          "resource_terminal_inventory_target",
+          "resource_successful_source_actions",
+          "resource_positive_inventory_delta",
+          "terminal_machine_verification",
+          "episode_within_deadline",
+          "result_duration_eligible",
+          "no_post_deadline_execution"
+        ],
+        "counts_toward_task_success": false
+      },
+      "skill_attribution": {
+        "skill_execution_mode": "off",
+        "selected_count": 0,
+        "executed_count": 0,
+        "successful_action_count": 0,
+        "failed_action_count": 0,
+        "quarantined_contribution_count": 0,
+        "vision_intervention_count": 0,
+        "multi_agent_intervention_count": 0
+      },
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "3c5393cd99970311289571eeb734acfcaeec02e4ef3534a296b635e638dee9b6",
+        "manifest": "b8f9a99fd4ee5b5a86a21cd947a9f051da0745780ecf34d6b0adf69f86bcf894",
+        "session": "2053e2e15268a9c2e862f5545a996832182e48bcc99489ef603fc93f6d1249dd",
+        "result": "ab60e95dde7d3d192454126d08ba44573472d489b72519986bbcaef303dd5832",
+        "eligibility": "565b38869c97dc57c97de9e6ffa5730088be7d8d3442c8d2023803facbf576f4",
+        "preparation": "ac4cb2ea0292f15f886af74bac51bd0eb2717d9220336f2e6a085b914cf95697",
+        "protocol_status": "a2aa61d4d82c9a21a1e01f7843cc0ed7fc386e7ddf65f87c72781cb138137b96",
+        "reset": "074a709eaaf893bbccab65ce8b66c4c196f22d5aa8667c75cae0a2b32bd978a7"
+      },
+      "patch_or_experiment_summary": "Ran exactly one fresh BM-012 Probe 9 from committed and pushed world-state reconciliation gate 9d370bf. No code, protocol, success threshold, world intervention, external step script, or second episode changed the live run.",
+      "retest_result": "Probe 9 exercised m4-task-world-state-reconciliation-v1 on five nearby-block shelter tasks and did not reselect an already satisfied world-state root, although the exact crafting-table path was not reached. One real continuation response then exposed the new earliest blocker: strict numeric validation rejected a noncanonical oak_log precondition, but the Agent had no typed output-recovery branch, so the root failed through empty_plan. No iron-source action occurred, BM-012 remains 0/3, and no second live episode ran in this round."
     }
   ]
 }

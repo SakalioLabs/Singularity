@@ -1,7 +1,7 @@
 {
   "type": "capability_evidence_report",
   "schema_version": 2,
-  "generated_at": "2026-07-13T06:20:58.707204+00:00",
+  "generated_at": "2026-07-13T07:01:57.705681+00:00",
   "readiness": "rejected",
   "claim_readiness": "approved",
   "system_status": "incomplete",
@@ -49,6 +49,7 @@
       "logs/benchmarks/m4/m4_episode_20260713_112039_496a9152/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260713_121120_75d9ae7d/eligibility.json",
       "logs/benchmarks/m4/m4_episode_20260713_132135_a98f59e5/eligibility.json",
+      "logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/eligibility.json",
       "logs/benchmarks/m1_benchmark_20260710_174239.json",
       "logs/benchmarks/m1_benchmark_20260710_174806.json",
       "logs/benchmarks/m1_benchmark_20260710_175231.json",
@@ -2909,6 +2910,48 @@
         "e1c11192-bd9"
       ],
       "content_sha256": "d2ac5cee5b1d69b42952c482cac568f156abc478149ed0f910ad7e94162ad161",
+      "protocol_hash": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "protocol_hashes": [
+        "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "failure",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_source_session"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/eligibility.json",
+      "session_id": "53044286-3a8",
+      "session_ids": [
+        "53044286-3a8"
+      ],
+      "content_sha256": "09b3f609c3d46a93be05393b785de338a1a3feedc7a3bf32c528e2301b527173",
+      "protocol_hash": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "protocol_hashes": [
+        "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
+      ],
+      "evidence_kind": "live_minecraft_m4",
+      "evidence_kinds": [
+        "live_minecraft_m4"
+      ],
+      "eligibility": "eligible_failure_evidence",
+      "counts_toward_repeat_verified": false,
+      "roles": [
+        "benchmark_result"
+      ]
+    },
+    {
+      "repo_relative_path": "logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/session.json",
+      "session_id": "53044286-3a8",
+      "session_ids": [
+        "53044286-3a8"
+      ],
+      "content_sha256": "e27695aa5ae667bb3da5927967cfd9696238225e6c18d647e715f813ae05c3d4",
       "protocol_hash": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
       "protocol_hashes": [
         "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
@@ -5926,7 +5969,7 @@
       "declared": {
         "name": "Autonomous Survival",
         "status": "Failing (failing)",
-        "progress": "BM-011 repeatverified 3/3; BM-012 eight failed attempts, 0/3; BM-013..014 notrun"
+        "progress": "BM-011 repeatverified 3/3; BM-012 nine failed attempts, 0/3; BM-013..014 notrun"
       },
       "declared_complete": false,
       "claim_assessment": "not_claimed_complete",
@@ -6003,9 +6046,9 @@
         {
           "task_id": "BM-012",
           "status": "failing",
-          "attempts": 8,
+          "attempts": 9,
           "successes": 0,
-          "failures": 8,
+          "failures": 9,
           "ineligible_successes": 0,
           "ineligibility_reasons": [],
           "repeats_required": 3,
@@ -6017,7 +6060,8 @@
             "43503d04-512:logs/benchmarks/m4/m4_episode_20260713_092629_6eeeab70/session.json",
             "19e3c9df-8e3:logs/benchmarks/m4/m4_episode_20260713_112039_496a9152/session.json",
             "81a9bdef-b92:logs/benchmarks/m4/m4_episode_20260713_121120_75d9ae7d/session.json",
-            "e1c11192-bd9:logs/benchmarks/m4/m4_episode_20260713_132135_a98f59e5/session.json"
+            "e1c11192-bd9:logs/benchmarks/m4/m4_episode_20260713_132135_a98f59e5/session.json",
+            "53044286-3a8:logs/benchmarks/m4/m4_episode_20260713_143233_5fe50b8f/session.json"
           ]
         },
         {

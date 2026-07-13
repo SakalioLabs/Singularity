@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 8 remain ineligible at 0/3. Probe 8 live-validated `m4-place-target-occupancy-v1`: the occupied target was rejected before execution, a target-aware replan selected air, and the crafting table was placed successfully. It then exposed `m4_task_world_state_reconciliation_grounding`: strict-M4 reselected an accepted `nearby_block_present` task after machine state had already satisfied it because pre-goal reconciliation allowed only inventory criteria. The bounded offline gate now passes under `m4-task-world-state-reconciliation-v1`; exactly one fresh Probe 9 is authorized after this gate commit is pushed, while BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 9 remain ineligible at 0/3. Probe 9 exercised `m4-task-world-state-reconciliation-v1` on five machine-observed nearby-block shelter tasks and did not reselect an already satisfied world-state root, although progression did not reach the exact crafting-table boundary. It exposed `m4_planner_schema_rejection_recovery_scope`: a single real continuation response failed strict numeric-criteria validation, and the unsupported typed rejection immediately became `empty_plan` instead of a bounded next-cycle replan. No further live episode is authorized until that offline recovery gate passes; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_task_world_state_reconciliation_gate_passed_probe_9_authorized_after_push |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_9_ineligible_typed_schema_rejection_recovery_diagnosed |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -95,6 +95,10 @@ That stale root was verified complete at event 307 before executing its plan, bu
 
 The bounded offline fix now passes. Strict-M4 pre-goal reconciliation accepts only the explicit `inventory` and `nearby_block_present` criteria under `m4-task-world-state-reconciliation-v1`; the latter reads only `observation.nearby_blocks`. The exact Probe 8 task `2f1081b4`, root plan `root-c60df46942bc4cd1`, Planner call `llm-f8f98d5795a541e6`, and event-278 machine state replay to completion before ready-task selection, so fallback progression is selected instead of the stale root. Inventory, entity, landmark, absent-block, empty-list, object-valued, unmet, and non-M4 pre-goal controls fail closed. Full regression passes 711 Python tests and six Node suites with 38 internal cases. No live episode ran in this offline round; exactly one fresh Probe 9 is authorized after this commit is pushed.
 
+Probe 9 exercises the policy on live nearby-block state without reaching the exact crafting-table boundary. All six reconciliation events carry `m4-task-world-state-reconciliation-v1`; event 1797 completes five accepted shelter tasks whose `nearby_block_present=oak_planks` criteria are satisfied by `observation.nearby_blocks`, and no satisfied world-state task is later selected as a root. The exact Probe 8 crafting-table transition remains live-unexercised because progression stopped earlier.
+
+The new earliest failure layer is `m4_planner_schema_rejection_recovery_scope`. At inventory `oak_log:2`, world time 1059, real continuation call event 115 / `llm-3bbb8772f5f0473e` returned three subtasks and six inventory requirements. Strict grounding correctly rejected `subtask[2]:preconditions_inventory_count_invalid:oak_log`; the raw source value is not retained, and zero equivalent numeric normalizations applied. The Agent recovery path recognizes transport errors and `planning_actions_missing`, but not this typed schema rejection. Error plan event 116 therefore became `empty_plan` at event 120 / cycle 6 and permanently failed the root at event 122 without executing an action from the invalid response. Later ready-task roots, repeated stale-coordinate digs, 56 distinct task-deadline recoveries, dusk shelter work, and the terminal deadline are downstream. Probe 9 was the round's only live episode; no code fix or second run occurs in this round.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -105,7 +109,7 @@ The bounded offline fix now passes. Strict-M4 pre-goal reconciliation accepts on
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 711 Python tests, 95 TaskSystem tests, 86 related M4/GoalVerifier lifecycle tests, all six fixed Node suites with 38 internal cases, and Python compilation pass
-- Live authorization: the task-world-state reconciliation gate passes offline; exactly one fresh Probe 9 is authorized after the gate commit is pushed
+- Live authorization: Probe 9 consumed the task-world-state reconciliation gate's sole authorization; no further episode is authorized pending a typed schema-rejection recovery gate
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -212,10 +216,40 @@ The bounded offline fix now passes. Strict-M4 pre-goal reconciliation accepts on
 - Priority control: hostile, health, hunger, dusk, and night fallback precedence remains unchanged
 - Scope: strict-M4 Agent task lifecycle plus criterion-specific TaskSystem machine-evidence evaluation; Planner, GoalVerifier, ActionVerifier, bridge execution, protocol/task-contract hashes, deadlines, success thresholds, and fixed M1/M2 protocols remain unchanged
 - Validation: 3 exact gate tests, 95 TaskSystem tests, 86 related M4/GoalVerifier lifecycle tests, 711 full Python tests, six Node suites with 38 internal cases, and Python compilation pass
-- Status: passed offline; no live episode ran in this gate round
-- Authorization: exactly one fresh BM-012 Probe 9 after this gate commit is pushed
+- Live result: Probe 9 event 1797 completed five nearby-block shelter tasks under the new policy; no satisfied world-state task was reselected, while the exact crafting-table boundary was not reached
+- Status: passed offline; policy branch exercised live in Probe 9
+- Authorization: consumed by BM-012 Probe 9
+
+## BM-012 Typed Schema-Rejection Recovery Gate
+
+- Root hypothesis: `m4_planner_schema_rejection_recovery_scope`
+- Exact reproduction: real continuation call event 115 / `llm-3bbb8772f5f0473e` failed only `subtask[2]:preconditions_inventory_count_invalid:oak_log`; event 120 emitted `empty_plan`, and event 122 failed the root
+- Current boundary: `_recover_m4_planner_output` preserves M4 goals only for typed transport failures or `planning_actions_missing`; other fail-closed schema issues fall through to immediate `empty_plan`
+- Required proof: one typed numeric-criteria schema rejection preserves the same autonomous goal and task frontier for a bounded next-cycle replan, while no invalid task or action is accepted
+- Fail-closed controls: the malformed count is never normalized without provable equivalence, repeated invalid output remains bounded, non-M4 behavior is unchanged, and deadline checks still suppress late replans
+- Scope: Agent M4 planner-output recovery only; Planner validation, TaskSystem criteria, GoalVerifier, ActionVerifier, bridge execution, protocol/task-contract hashes, deadlines, and fixed M1/M2 protocols remain unchanged
+- Status: diagnosed; offline replay and regression gate pending
+- Authorization: none until the offline gate is committed and pushed
 
 ## BM-012 Live Evidence
+
+### Probe 9: World-State Policy Exercised; Typed Schema Rejection Failed Root
+
+- Episode: `m4_episode_20260713_143233_5fe50b8f`
+- Session: `53044286-3a8`
+- Level: `m4_episode_20260713_143233_5fe50b8f_bm012`
+- Frozen gate: committed and pushed `9d370bf`; preflight passed under unchanged protocol and task-contract hashes
+- Reconciliation retest: six policy events; event 1797 completed five `nearby_block_present=oak_planks` tasks from machine block state, with no satisfied world-state root later selected; exact crafting-table boundary not reached
+- First unrecovered transition: call event 115 / `llm-3bbb8772f5f0473e`, error plan event 116, `empty_plan` event 120, and root failure event 122 at monotonic 66480.359 / cycle 6
+- Before state: `oak_log:2`, health/food 20, world time 1059, and one observed oak log at `(93,137,-36)` after two successful source digs
+- Schema evidence: one of 97 real calls was invalid with `subtask[2]:preconditions_inventory_count_invalid:oak_log`; strict rejection passed, zero equivalent normalization occurred, and no action from that response executed
+- Recovery gap: zero `m4_planner_output_recovery` events; the existing policy did recover one independent transport error
+- Autonomy: seven goals, three completed, three failed, one interrupted; one machine-verified 9/9 shelter was built after the resource chain stalled
+- Actions: 43 attempted, 22 successful; four successful digs, one craft, one bounded shelter success, and zero iron-source actions
+- Interrupts: 57 triggers and 57 recoveries; 56 distinct expired-task triggers plus one dusk shelter trigger, with 126 unique expired tasks and no repeated expired task
+- Deadline: Agent ended exactly at 67030.984; manifest ended at 67031.062, 0.078 seconds late; the last wait action was recorded unsuccessful exactly at the deadline and no Planner call or plan occurred after it
+- Eligibility: 55/74 checks passed, 19 issues, no terminal resource verification, no iron delta, deadline-ineligible, BM-012 remains 0/3
+- Round boundary: this was the only live episode; no code fix or second BM-012 run is authorized
 
 ### Probe 8: Occupancy Gate Passed; Satisfied World-State Task Reentered
 
