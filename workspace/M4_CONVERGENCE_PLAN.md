@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 15 remain ineligible at 0/3. Probe 15 live-validates `m4-dig-required-tool-equip-v1`: all 13 stone digs selected, equipped, and confirmed `wooden_pickaxe`; 12 succeeded and the cobblestone goal completed. Its earliest blocker is `deadline_bound_navigation_bridge_recovery`: action event 981 exhausted a 60-second coal navigation budget, correctly did not replay, but left the bridge disconnected with 281.859 seconds remaining and made all 16 later actions fail. The bounded offline recovery gate now passes without changing protocol, deadlines, or success thresholds. No live episode ran in this offline round; exactly one fresh Probe 16 is authorized only after this gate commit is pushed. BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 16 remain ineligible at 0/3. Probe 16 did not exercise the passed-offline bridge-recovery branch: all 10 navigation actions succeeded, no deadline-bound action or disconnected-bridge error occurred, and terminal connectivity remained valid. Its earliest blocker is `planner_place_replan_feedback_grounding`: after event 283 supplied four adjacent references and prohibited retry, events 292/294 repeated the rejected `(106,135,-29)` reference and event 304 failed again without state change. The same reference was attempted 20 times; the original root failed at event 1024, while adjacent placement recovered only at event 1413 after 268.812 seconds of delay. No second live episode is authorized before the bounded offline feedback-grounding gate passes and is pushed. BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_deadline_bound_navigation_bridge_recovery_gate_passed_probe_16_authorized_after_push |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_16_recorded_offline_place_replan_feedback_grounding_gate_required |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -367,10 +367,49 @@ The bounded offline fix now passes under `m4-deadline-bound-bridge-recovery-v1`.
 - Policy: `m4-deadline-bound-bridge-recovery-v1`; timeout records pending recovery, strict-M4 pre-observation reconnects a fresh socket within the remaining episode deadline, and `get_player_state` must machine-confirm the connection
 - Exact controls: old command one send/no replay/no synchronous reconnect; successful next-observation recovery; expired recovery with zero connect attempts; invalid machine confirmation fail-closed before Observer; non-deadline reconnect unchanged
 - Validation: five exact gate tests, 30 focused Python tests, 727 full Python tests, six fixed Node suites with 50 internal PASS cases, Node syntax, Python compilation, and repository checks
-- Status: passed offline; no live episode ran in this gate round
-- Authorization: exactly one fresh BM-012 Probe 16 after this gate commit is pushed
+- Status: passed offline but not live-exercised in Probe 16; no deadline-bound action failure or bridge recovery event occurred, all 10 navigation actions succeeded, and terminal connectivity remained valid
+- Authorization: consumed by BM-012 Probe 16; no second episode may run in the live round
+
+## BM-012 Planner Place-Replan Feedback-Grounding Gate
+
+- Root hypothesis: `planner_place_replan_feedback_grounding`
+- Source transition: Probe 16 action event 304 / monotonic 8936.656 / elapsed 103.85 / cycle 13 under autonomous goal `Place crafting table for tool progression`
+- Required precursor: event 283 rejected reference `(106,135,-29)` because target `(106,136,-29)` intersected the player's collision cells, supplied `(107,135,-29)`, `(105,135,-29)`, `(106,135,-28)`, and `(106,135,-30)`, and explicitly prohibited retry
+- Violating lineage: real schema-valid replan call event 292 / plan event 294 / action-verification event 299 / call ID `llm-7aea1a8f6bfa4281` / root plan `root-2a952d3aa6424a33`
+- Planner evidence: response SHA-256 `298670e24839bb6d9be9eec99e2926129caf26c52f3eb6bad16bd9fbb688369e`, 1003 bytes, 3452 ms, and 3498 tokens; the returned action repeated the exact rejected reference
+- Machine state: position `(106.31411726239254,136,-28.508541454767705)` and inventory `oak_log:5, crafting_table:1` were unchanged across the zero-duration rejection
+- Persistence: the rejected reference was attempted 20 times; the original root used 40 real schema-valid calls, 17 replans, and 17 rejected actions before event 1024 failed it at 40 cycles
+- Delayed recovery: event 1413 used adjacent reference `(107,135,-29)` and placed the table successfully at monotonic 9205.468, 268.812 seconds after the first violating retry; remaining episode budget fell from 499.594 to 230.782 seconds
+- Required policy: after a strict-M4 place verifier rejection, the next replan must exclude the rejected reference and select at most one verifier-supplied adjacent candidate
+- Fail closed: if a replan repeats the rejected reference, reject the plan before action execution; do not widen candidate count, synthesize unbounded coordinates, weaken player occupancy, or alter deadlines
+- Scope: Planner/replan feedback grounding only; ActionVerifier, bridge placement, protocol/task-contract hashes, success thresholds, skills, vision, multi-agent execution, M1, and M2 remain unchanged
+- Status: required, not implemented; Probe 16 was this round's only live episode
+- Authorization: none until the exact offline gate passes and its commit is pushed
 
 ## BM-012 Live Evidence
+
+### Probe 16: Bridge Stable; Replan Repeated Rejected Placement
+
+- Episode: `m4_episode_20260714_003738_56b0cd9f`
+- Session: `4ae6c3ba-783`
+- Level: `m4_episode_20260714_003738_56b0cd9f_bm012`
+- Frozen code: `a7b9d42`; protocol and BM-012 task-contract hashes unchanged
+- Prior gate: no deadline-bound action failures, bridge-recovery events, or `Not connected to bot bridge` action errors occurred; `move_to` succeeded 10/10 and the terminal bot remained connected, so the offline bridge gate was not live-exercised
+- Earliest causal blocker: event 283 rejected `(106,135,-29)`, supplied four adjacent references, and prohibited retry; replan events 292/294 repeated the rejected reference and action event 304 failed again with unchanged position and inventory
+- Planner lineage: call `llm-7aea1a8f6bfa4281`, root `root-2a952d3aa6424a33`, response SHA-256 `298670e24839bb6d9be9eec99e2926129caf26c52f3eb6bad16bd9fbb688369e`, 1003 bytes, 3452 ms, 3498 tokens, real and schema-valid
+- Persistence: 20 actions attempted the rejected reference; the original placement root made 40 real schema-valid calls with 17 replans and 17 verifier rejections before failing at event 1024
+- Delayed recovery: adjacent reference `(107,135,-29)` succeeded at event 1413 / monotonic 9205.468, 268.812 seconds after event 304; the machine objective recovered but the failed root and elapsed budget did not
+- Autonomous progress: 14 goals selected, 12 completed, and 2 failed across 103 cycles; the Agent gathered wood, placed the table, made torches and planks, then entered dusk shelter preparation without iron progression
+- Planner: 103 calls, 101 real schema-valid responses, 2 transport failures, 358579 total tokens, and maximum duration 10156 ms
+- Actions: 53 attempted and 30 successful; move 10/10, dig 8/8, craft 11/11, place 1/23, and bounded shelter 0/1
+- Interrupts: 46 unique task-deadline triggers each emitted one recovery; no duplicate expired task ID or concurrent-root violation occurred
+- Downstream shelter: event 2066 rejected the bounded sealed cell mutation-free because no grounded neighbor existed; event 2062 scheduled relocation to `(114.5,136,-45.5)`, but only 1.688 seconds remained and no relocation action ran
+- Terminal machine state: health/food 20/20, world time 12154, connected bot, zero deaths/respawns, inventory `oak_planks:13`, `stick:5`, `torch:4`, `crafting_table:1`, `dirt:1`, and `wooden_pickaxe:1`; raw iron and iron ore remained zero
+- Deadline: start 8836.25, deadline 9436.25, Agent end 9436.265, manifest end 9436.343; one Planner call and one error plan appeared after the deadline, no post-deadline action ran, and the 0.015-second Agent overrun failed closed
+- Eligibility: 66/74 checks passed with 8 issues; BM-012 remains 0/3 after sixteen attempts
+- Skills: baseline remained off; selected, executed, quarantined, vision, and multi-agent contributions were zero
+- Round boundary: this was the only live episode; no code fix, second run, or next live authorization occurs before the new offline gate passes and is pushed
+- Evidence: `logs/benchmarks/m4/m4_episode_20260714_003738_56b0cd9f/`
 
 ### Probe 15: Required Tool Equipped Live; Navigation Timeout Left Bridge Offline
 
