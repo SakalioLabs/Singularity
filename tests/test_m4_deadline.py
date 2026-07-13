@@ -169,6 +169,27 @@ class RuntimePlanner:
         self.replan_reasons.append(reason)
 
 
+class StructuredReplanRuntimePlanner(RuntimePlanner):
+    def __init__(self):
+        super().__init__()
+        self.place_replan_feedback = []
+
+    def request_place_replan(
+        self,
+        reason,
+        *,
+        rejected_reference,
+        adjacent_reference_candidates,
+    ):
+        self.request_replan(reason)
+        self.place_replan_feedback.append({
+            "rejected_reference": dict(rejected_reference),
+            "adjacent_reference_candidates": [
+                dict(item) for item in adjacent_reference_candidates
+            ],
+        })
+
+
 class RuntimeActionController:
     def __init__(self):
         self.deadline_calls = []
@@ -828,7 +849,7 @@ def test_m4_occupied_place_rejection_requests_grounded_replan():
 
 def test_m4_player_occupied_place_rejection_requests_bounded_adjacent_replan():
     clock = FakeClock()
-    planner = RuntimePlanner()
+    planner = StructuredReplanRuntimePlanner()
     agent = object.__new__(Agent)
     agent.config = Config(
         planner_protocol="m4-fixed-v1",
@@ -876,6 +897,15 @@ def test_m4_player_occupied_place_rejection_requests_bounded_adjacent_replan():
     assert "perform one next-cycle replan" in planner.replan_reasons[0]
     assert "[(104,135,-31),(102,135,-31),(103,135,-30),(103,135,-32)]" in planner.replan_reasons[0]
     assert "do not retry the rejected reference" in planner.replan_reasons[0]
+    assert planner.place_replan_feedback == [{
+        "rejected_reference": {"x": 103, "y": 135, "z": -31},
+        "adjacent_reference_candidates": [
+            {"x": 104, "y": 135, "z": -31},
+            {"x": 102, "y": 135, "z": -31},
+            {"x": 103, "y": 135, "z": -30},
+            {"x": 103, "y": 135, "z": -32},
+        ],
+    }]
     event = agent.session_logger.events[-1]
     assert event["type"] == "action_verification"
     assert event["data"]["verification"]["required"]["player_position"] == {
@@ -885,6 +915,290 @@ def test_m4_player_occupied_place_rejection_requests_bounded_adjacent_replan():
     }
     assert event["data"]["verification"]["replan_candidate_count"] == 4
     print("PASS: Probe 13 place rejection preserves coordinates and requests one bounded adjacent replan")
+
+
+def _probe_16_place_plan(reference: dict) -> dict:
+    return {
+        "status": "planning",
+        "reasoning": "Place the crafting table on the selected ground reference.",
+        "subtasks": [{
+            "title": "Place crafting table on ground",
+            "type": "place",
+            "priority": 5,
+            "success_criteria": {"nearby_block_present": "crafting_table"},
+            "preconditions": {
+                "inventory": {"crafting_table": 1},
+                "flags": [],
+            },
+            "depends_on": [],
+            "opportunity_triggers": ["grass_block"],
+            "tags": ["crafting", "tool_progression"],
+            "deadline_seconds": 60,
+            "assigned_skill": "",
+            "rationale": "A placed table unlocks tool progression.",
+        }],
+        "actions": [{
+            "type": "place",
+            "parameters": {"item": "crafting_table", **reference},
+        }],
+    }
+
+
+def _probe_16_place_feedback() -> dict:
+    return {
+        "policy_id": "m4-place-replan-feedback-grounding-v1",
+        "rejected_reference": {"x": 106, "y": 135, "z": -29},
+        "adjacent_reference_candidates": [
+            {"x": 107, "y": 135, "z": -29},
+            {"x": 105, "y": 135, "z": -29},
+            {"x": 106, "y": 135, "z": -28},
+            {"x": 106, "y": 135, "z": -30},
+        ],
+    }
+
+
+def test_m4_place_replan_feedback_grounding_replays_probe_16_and_fails_closed():
+    feedback = _probe_16_place_feedback()
+    repeated_plan = _probe_16_place_plan({"x": 106, "y": 135, "z": -29})
+    unchanged, repeated = Planner._ground_m4_place_replan_feedback(
+        repeated_plan,
+        plan_kind="replan",
+        feedback=feedback,
+    )
+    assert unchanged == repeated_plan
+    assert repeated == {
+        "type": "m4_place_replan_feedback_grounding",
+        "schema_version": 1,
+        "policy_id": "m4-place-replan-feedback-grounding-v1",
+        "activated": True,
+        "passed": False,
+        "plan_kind": "replan",
+        "reason": "verifier_place_replan_feedback_applied",
+        "rejected_reference": {"x": 106, "y": 135, "z": -29},
+        "adjacent_reference_candidates": feedback["adjacent_reference_candidates"],
+        "candidate_count": 4,
+        "place_action_count": 1,
+        "selected_reference": {"x": 106, "y": 135, "z": -29},
+        "selected_candidate_index": None,
+        "repeated_rejected_reference": True,
+        "fail_closed_before_action_execution": True,
+        "issues": ["action[0]:place_replan_rejected_reference_repeated"],
+    }
+
+    for index, candidate in enumerate(feedback["adjacent_reference_candidates"]):
+        adjacent_plan = _probe_16_place_plan(candidate)
+        unchanged, adjacent = Planner._ground_m4_place_replan_feedback(
+            adjacent_plan,
+            plan_kind="replan",
+            feedback=feedback,
+        )
+        assert unchanged == adjacent_plan
+        assert adjacent["passed"] is True
+        assert adjacent["selected_candidate_index"] == index
+        assert adjacent["selected_reference"] == candidate
+        assert adjacent["issues"] == []
+
+    controls = [
+        (
+            {"status": "planning", "actions": [{"type": "wait", "parameters": {"ms": 1}}]},
+            "place_replan_feedback_place_action_missing",
+        ),
+        (
+            _probe_16_place_plan({"x": 999, "y": 135, "z": -29}),
+            "action[0]:place_replan_reference_not_adjacent_candidate",
+        ),
+        (
+            {
+                "status": "planning",
+                "actions": [
+                    {"type": "place", "parameters": {"item": "crafting_table", "x": 107, "y": 135, "z": -29}},
+                    {"type": "place", "parameters": {"item": "crafting_table", "x": 105, "y": 135, "z": -29}},
+                ],
+            },
+            "place_replan_feedback_place_action_count_invalid:2",
+        ),
+    ]
+    for plan, issue in controls:
+        _, report = Planner._ground_m4_place_replan_feedback(
+            plan,
+            plan_kind="replan",
+            feedback=feedback,
+        )
+        assert report["passed"] is False
+        assert issue in report["issues"]
+        assert report["fail_closed_before_action_execution"] is True
+
+    feedback_controls = [
+        (
+            {**feedback, "adjacent_reference_candidates": []},
+            "place_replan_feedback_candidate_count_invalid",
+        ),
+        (
+            {
+                **feedback,
+                "adjacent_reference_candidates": [
+                    *feedback["adjacent_reference_candidates"],
+                    {"x": 108, "y": 135, "z": -29},
+                ],
+            },
+            "place_replan_feedback_candidate_count_invalid",
+        ),
+        (
+            {
+                **feedback,
+                "adjacent_reference_candidates": [
+                    feedback["adjacent_reference_candidates"][0],
+                    feedback["adjacent_reference_candidates"][0],
+                ],
+            },
+            "place_replan_feedback_candidate[1]_duplicate",
+        ),
+        (
+            {
+                **feedback,
+                "adjacent_reference_candidates": [feedback["rejected_reference"]],
+            },
+            "place_replan_feedback_candidate[0]_is_rejected_reference",
+        ),
+        (
+            {
+                **feedback,
+                "adjacent_reference_candidates": [{"x": float("inf"), "y": 135, "z": -29}],
+            },
+            "place_replan_feedback_candidate[0]_invalid",
+        ),
+        (
+            {**feedback, "rejected_reference": {"x": 106, "y": 135}},
+            "place_replan_feedback_rejected_reference_invalid",
+        ),
+    ]
+    for invalid_feedback, issue in feedback_controls:
+        _, report = Planner._ground_m4_place_replan_feedback(
+            _probe_16_place_plan({"x": 107, "y": 135, "z": -29}),
+            plan_kind="replan",
+            feedback=invalid_feedback,
+        )
+        assert report["passed"] is False
+        assert issue in report["issues"]
+        assert report["fail_closed_before_action_execution"] is True
+
+    _, continuation = Planner._ground_m4_place_replan_feedback(
+        repeated_plan,
+        plan_kind="continuation",
+        feedback=feedback,
+    )
+    assert continuation["activated"] is False
+    assert continuation["passed"] is True
+    assert continuation["reason"] == "plan_kind_is_not_replan"
+    print("PASS: Probe 16 place-replan feedback rejects repeats and bounds adjacent selection")
+
+
+def test_m4_planner_place_replan_feedback_gate_blocks_output_and_preserves_controls():
+    clock = FakeClock()
+    rejected_tasks = TaskSystem()
+    rejected_llm = ScriptedPlannerLLM(
+        clock,
+        [_probe_16_place_plan({"x": 106, "y": 135, "z": -29})],
+    )
+    rejected_planner = Planner(rejected_llm, rejected_tasks, protocol="m4-fixed-v1")
+    rejected_planner.start_episode(
+        "Place crafting table for tool progression",
+        episode_id="probe-16-exact-replay",
+    )
+    rejected_planner.set_deadline(clock.monotonic() + 100.0)
+    rejected_planner.request_place_replan(
+        "player collision; use an adjacent candidate and do not retry the rejected reference",
+        rejected_reference=_probe_16_place_feedback()["rejected_reference"],
+        adjacent_reference_candidates=(
+            _probe_16_place_feedback()["adjacent_reference_candidates"]
+        ),
+    )
+    with patch("singularity.core.planner.time.monotonic", clock.monotonic):
+        rejected = rejected_planner.plan_from_goal(
+            "Place crafting table for tool progression",
+            {
+                "position": {"x": 106.31411726239254, "y": 136, "z": -28.508541454767705},
+                "inventory": {"oak_log": 5, "crafting_table": 1},
+            },
+        )
+    grounding = rejected["schema_validation"]["place_replan_feedback_grounding"]
+    assert rejected["status"] == "error"
+    assert rejected["subtasks"] == []
+    assert rejected["actions"] == []
+    assert grounding["activated"] is True
+    assert grounding["passed"] is False
+    assert grounding["repeated_rejected_reference"] is True
+    assert grounding["issues"] == [
+        "action[0]:place_replan_rejected_reference_repeated",
+    ]
+    assert rejected_planner.last_call_evidence["plan_kind"] == "replan"
+    assert rejected_planner.last_call_evidence["schema_valid"] is False
+    assert rejected_planner.last_call_evidence["schema_validation"][
+        "place_replan_feedback_grounding"
+    ] == grounding
+    assert rejected_planner._pending_m4_place_replan_feedback == {}
+    assert rejected_tasks.tasks == {}
+    assert "do not retry the rejected reference" in rejected_llm.calls[0]["messages"][1]["content"]
+
+    accepted_tasks = TaskSystem()
+    accepted_planner = Planner(
+        ScriptedPlannerLLM(
+            clock,
+            [_probe_16_place_plan({"x": 107, "y": 135, "z": -29})],
+        ),
+        accepted_tasks,
+        protocol="m4-fixed-v1",
+    )
+    accepted_planner.start_episode("Place crafting table for tool progression")
+    accepted_planner.set_deadline(clock.monotonic() + 100.0)
+    accepted_planner.request_place_replan(
+        "use one supplied adjacent candidate",
+        rejected_reference=_probe_16_place_feedback()["rejected_reference"],
+        adjacent_reference_candidates=(
+            _probe_16_place_feedback()["adjacent_reference_candidates"]
+        ),
+    )
+    with patch("singularity.core.planner.time.monotonic", clock.monotonic):
+        accepted = accepted_planner.plan_from_goal(
+            "Place crafting table for tool progression",
+            {"inventory": {"crafting_table": 1}},
+        )
+    assert accepted["status"] == "planning"
+    assert accepted["actions"] == [{
+        "type": "place",
+        "parameters": {"item": "crafting_table", "x": 107, "y": 135, "z": -29},
+    }]
+    assert accepted["place_replan_feedback_grounding"]["passed"] is True
+    assert accepted["place_replan_feedback_grounding"]["selected_candidate_index"] == 0
+    assert accepted_planner.last_call_evidence["schema_valid"] is True
+    assert len(accepted_tasks.tasks) == 1
+
+    legacy_planner = Planner(
+        ScriptedPlannerLLM(
+            clock,
+            [_probe_16_place_plan({"x": 106, "y": 135, "z": -29})],
+        ),
+        TaskSystem(),
+        protocol="",
+    )
+    legacy_planner.start_episode("Place crafting table for tool progression")
+    legacy_planner.request_place_replan(
+        "legacy control",
+        rejected_reference=_probe_16_place_feedback()["rejected_reference"],
+        adjacent_reference_candidates=(
+            _probe_16_place_feedback()["adjacent_reference_candidates"]
+        ),
+    )
+    legacy = legacy_planner.plan_from_goal("Place crafting table for tool progression", {})
+    assert legacy["status"] == "planning"
+    assert legacy["actions"][0]["parameters"] == {
+        "item": "crafting_table",
+        "x": 106,
+        "y": 135,
+        "z": -29,
+    }
+    assert "place_replan_feedback_grounding" not in legacy
+    print("PASS: M4 place-replan feedback fails before task/action output and leaves legacy unchanged")
 
 
 def test_m4_craft_grounding_fails_closed_on_drift():
@@ -2372,6 +2686,9 @@ if __name__ == "__main__":
     test_m4_opportunity_trigger_type_gate_preserves_strings_and_fails_closed()
     test_m4_planner_grounds_probe_5_place_success_criterion_to_machine_state()
     test_m4_place_success_criteria_grounding_is_narrow_and_fails_closed()
+    test_m4_player_occupied_place_rejection_requests_bounded_adjacent_replan()
+    test_m4_place_replan_feedback_grounding_replays_probe_16_and_fails_closed()
+    test_m4_planner_place_replan_feedback_gate_blocks_output_and_preserves_controls()
     test_m4_typed_schema_rejection_recovers_once_with_same_goal_and_frontier()
     test_m4_repeated_typed_schema_rejection_exhausts_once_and_fails_closed()
     test_m4_typed_schema_recovery_scope_deadline_and_frontier_controls_fail_closed()

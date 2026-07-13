@@ -41,6 +41,8 @@ except Exception as e:
 
 
 class Planner:
+    M4_PLACE_REPLAN_FEEDBACK_POLICY_ID = "m4-place-replan-feedback-grounding-v1"
+
     def __init__(self, llm: LLMProvider, task_system: TaskSystem, protocol: str = ""):
         self.llm = llm
         self.task_system = task_system
@@ -54,6 +56,7 @@ class Planner:
         self._active_root_plan_id = ""
         self._last_call_id = ""
         self._pending_replan_reason = ""
+        self._pending_m4_place_replan_feedback: dict = {}
         self._goal_deadline_monotonic = None
         self._action_guard_s = 0.0
 
@@ -65,6 +68,7 @@ class Planner:
         self._last_call_id = ""
         self.last_call_evidence = {}
         self._pending_replan_reason = ""
+        self._pending_m4_place_replan_feedback = {}
         self._goal_deadline_monotonic = None
         self._action_guard_s = 0.0
 
@@ -77,6 +81,32 @@ class Planner:
 
     def request_replan(self, reason: str):
         self._pending_replan_reason = str(reason or "action_failure")[:500]
+        self._pending_m4_place_replan_feedback = {}
+
+    def request_place_replan(
+        self,
+        reason: str,
+        *,
+        rejected_reference: dict,
+        adjacent_reference_candidates: list,
+    ):
+        """Bind one strict-M4 place replan to verifier-supplied coordinates."""
+        self.request_replan(reason)
+        if not self.strict_m4:
+            return
+        self._pending_m4_place_replan_feedback = {
+            "policy_id": self.M4_PLACE_REPLAN_FEEDBACK_POLICY_ID,
+            "rejected_reference": (
+                dict(rejected_reference)
+                if isinstance(rejected_reference, dict)
+                else rejected_reference
+            ),
+            "adjacent_reference_candidates": (
+                [dict(item) if isinstance(item, dict) else item for item in adjacent_reference_candidates]
+                if isinstance(adjacent_reference_candidates, list)
+                else adjacent_reference_candidates
+            ),
+        }
 
     def plan_from_goal(self, goal: str, world_state: dict, memory_context: str = "") -> dict:
         if self.strict_m2 and self._call_index == 0:
@@ -91,9 +121,21 @@ class Planner:
             )
         else:
             plan_kind = "continuation"
-        plan = self._call_planner(goal, world_state, memory_context, plan_kind)
+        place_replan_feedback = (
+            dict(self._pending_m4_place_replan_feedback)
+            if plan_kind == "replan" and self.strict_m4
+            else {}
+        )
+        plan = self._call_planner(
+            goal,
+            world_state,
+            memory_context,
+            plan_kind,
+            m4_place_replan_feedback=place_replan_feedback,
+        )
         if plan_kind == "replan":
             self._pending_replan_reason = ""
+            self._pending_m4_place_replan_feedback = {}
         return plan
 
     def replan(self, failed_task: Task, world_state: dict, failure_reason: str) -> dict:
@@ -110,6 +152,7 @@ class Planner:
         world_state: dict,
         memory_context: str,
         plan_kind: str,
+        m4_place_replan_feedback: dict = None,
     ) -> dict:
         call_id = f"llm-{uuid.uuid4().hex[:16]}"
         root_plan_id = self._active_root_plan_id or f"root-{uuid.uuid4().hex[:16]}"
@@ -292,6 +335,13 @@ class Planner:
             )
         elif self.strict_m4 and not call_error and not parse_error:
             raw_plan, action_parameter_grounding = self._ground_m4_action_parameters(raw_plan)
+            raw_plan, place_replan_feedback_grounding = (
+                self._ground_m4_place_replan_feedback(
+                    raw_plan,
+                    plan_kind=plan_kind,
+                    feedback=m4_place_replan_feedback,
+                )
+            )
             raw_plan, place_success_criteria_grounding = (
                 self._ground_m4_place_success_criteria(raw_plan, goal=goal)
             )
@@ -315,10 +365,14 @@ class Planner:
                 expected_kind=plan_kind,
             )
             grounding_issues = list(action_parameter_grounding.get("issues", []))
+            grounding_issues.extend(place_replan_feedback_grounding.get("issues", []))
             grounding_issues.extend(place_success_criteria_grounding.get("issues", []))
             grounding_issues.extend(subtask_numeric_grounding.get("issues", []))
             grounding_issues.extend(opportunity_trigger_grounding.get("issues", []))
             schema_validation["action_parameter_grounding"] = action_parameter_grounding
+            schema_validation["place_replan_feedback_grounding"] = (
+                place_replan_feedback_grounding
+            )
             schema_validation["place_success_criteria_grounding"] = (
                 place_success_criteria_grounding
             )
@@ -343,6 +397,9 @@ class Planner:
             if self.strict_m4:
                 plan["action_parameter_grounding"] = dict(
                     schema_validation.get("action_parameter_grounding", {})
+                )
+                plan["place_replan_feedback_grounding"] = dict(
+                    schema_validation.get("place_replan_feedback_grounding", {})
                 )
                 plan["place_success_criteria_grounding"] = dict(
                     schema_validation.get("place_success_criteria_grounding", {})
@@ -715,6 +772,124 @@ Plan the steps to achieve this goal."""
             "issues": sorted(set(issues)),
         }
         return grounded_plan, report
+
+    @classmethod
+    def _ground_m4_place_replan_feedback(
+        cls,
+        plan: dict,
+        *,
+        plan_kind: str,
+        feedback: dict = None,
+    ) -> tuple[dict, dict]:
+        """Fail closed when a place replan violates the verifier's bounded candidates."""
+        grounded_plan = dict(plan or {})
+        report = {
+            "type": "m4_place_replan_feedback_grounding",
+            "schema_version": 1,
+            "policy_id": cls.M4_PLACE_REPLAN_FEEDBACK_POLICY_ID,
+            "activated": False,
+            "passed": True,
+            "plan_kind": str(plan_kind or ""),
+            "reason": "no_pending_place_replan_feedback",
+            "rejected_reference": {},
+            "adjacent_reference_candidates": [],
+            "candidate_count": 0,
+            "place_action_count": 0,
+            "selected_reference": {},
+            "selected_candidate_index": None,
+            "repeated_rejected_reference": False,
+            "fail_closed_before_action_execution": True,
+            "issues": [],
+        }
+        if str(plan_kind or "") != "replan" or not feedback:
+            if str(plan_kind or "") != "replan":
+                report["reason"] = "plan_kind_is_not_replan"
+            return grounded_plan, report
+
+        report["activated"] = True
+        report["reason"] = "verifier_place_replan_feedback_applied"
+        issues: list[str] = []
+
+        rejected_reference = cls._m4_reference_coordinates(
+            feedback.get("rejected_reference") if isinstance(feedback, dict) else None
+        )
+        if rejected_reference is None:
+            issues.append("place_replan_feedback_rejected_reference_invalid")
+            rejected_reference = {}
+        report["rejected_reference"] = rejected_reference
+
+        raw_candidates = (
+            feedback.get("adjacent_reference_candidates")
+            if isinstance(feedback, dict)
+            else None
+        )
+        candidates = []
+        if not isinstance(raw_candidates, list) or not 1 <= len(raw_candidates) <= 4:
+            issues.append("place_replan_feedback_candidate_count_invalid")
+            raw_candidates = raw_candidates if isinstance(raw_candidates, list) else []
+        for index, value in enumerate(raw_candidates):
+            candidate = cls._m4_reference_coordinates(value)
+            if candidate is None:
+                issues.append(f"place_replan_feedback_candidate[{index}]_invalid")
+                continue
+            if candidate in candidates:
+                issues.append(f"place_replan_feedback_candidate[{index}]_duplicate")
+                continue
+            if rejected_reference and candidate == rejected_reference:
+                issues.append(f"place_replan_feedback_candidate[{index}]_is_rejected_reference")
+                continue
+            candidates.append(candidate)
+        report["adjacent_reference_candidates"] = candidates
+        report["candidate_count"] = len(candidates)
+
+        actions = grounded_plan.get("actions")
+        actions = actions if isinstance(actions, list) else []
+        place_actions = [
+            (index, action)
+            for index, action in enumerate(actions)
+            if isinstance(action, dict) and str(action.get("type") or "") == "place"
+        ]
+        report["place_action_count"] = len(place_actions)
+        if not place_actions:
+            issues.append("place_replan_feedback_place_action_missing")
+        elif len(place_actions) != 1:
+            issues.append(
+                f"place_replan_feedback_place_action_count_invalid:{len(place_actions)}"
+            )
+        else:
+            action_index, action = place_actions[0]
+            selected = cls._m4_reference_coordinates(action.get("parameters"))
+            if selected is None:
+                issues.append(f"action[{action_index}]:place_replan_reference_invalid")
+            else:
+                report["selected_reference"] = selected
+                if rejected_reference and selected == rejected_reference:
+                    report["repeated_rejected_reference"] = True
+                    issues.append(
+                        f"action[{action_index}]:place_replan_rejected_reference_repeated"
+                    )
+                elif selected not in candidates:
+                    issues.append(
+                        f"action[{action_index}]:place_replan_reference_not_adjacent_candidate"
+                    )
+                else:
+                    report["selected_candidate_index"] = candidates.index(selected)
+
+        report["issues"] = sorted(set(issues))
+        report["passed"] = not report["issues"]
+        return grounded_plan, report
+
+    @classmethod
+    def _m4_reference_coordinates(cls, value) -> dict | None:
+        if not isinstance(value, dict):
+            return None
+        reference = {}
+        for axis in ("x", "y", "z"):
+            coordinate = cls._finite_parameter(value.get(axis))
+            if coordinate is None:
+                return None
+            reference[axis] = coordinate
+        return reference
 
     @classmethod
     def _ground_m4_place_success_criteria(

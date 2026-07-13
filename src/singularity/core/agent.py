@@ -4401,7 +4401,18 @@ class Agent:
                     f"{verification.get('reason', 'M4 place target rejected')}; "
                     f"{bounded_instruction}"
                 )
-                planner.request_replan(replan_reason)
+                if candidates and hasattr(planner, "request_place_replan"):
+                    parameters = action.get("parameters", {}) if isinstance(action, dict) else {}
+                    planner.request_place_replan(
+                        replan_reason,
+                        rejected_reference={
+                            axis: parameters.get(axis)
+                            for axis in ("x", "y", "z")
+                        },
+                        adjacent_reference_candidates=candidates,
+                    )
+                else:
+                    planner.request_replan(replan_reason)
                 verification["replan_requested"] = True
                 verification["replan_reason"] = replan_reason
                 if candidates:
