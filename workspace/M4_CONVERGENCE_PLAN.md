@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 6 remain ineligible at 0/3. Probe 6 live-validated the placement success-criteria prompt path and executed 31 canonical place actions, then exposed that the generic place backend does not select or equip the requested item before `placeBlock`. The next bounded offline gate is `place_backend_requested_item_equip_grounding`; no second live episode is authorized, and BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 6 remain ineligible at 0/3. Probe 6 live-validated the placement success-criteria prompt path and then exposed that the generic place backend did not equip the requested item. The bounded `place_backend_requested_item_equip_grounding` gate now passes offline and authorizes exactly one fresh Probe 7 after this commit is pushed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_6_failed_place_backend_requested_item_equip_offline_gate_required |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | place_backend_requested_item_equip_offline_gate_passed_probe_7_authorized |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -79,6 +79,8 @@ Probe 6 live-validates the prompt path without exercising the normalization bran
 
 The new earliest failure layer is `place_backend_requested_item_equip_grounding`. Observation event 273 showed `crafting_table:1` in inventory while selected slot 0 held `dark_oak_sapling:1`. The canonical action was accepted at event 292, but action event 298 called generic `createPlaceHandler` without selecting or equipping the requested item; Mineflayer placed the held sapling at `(104,136,-31)`, the requested-item postcondition failed, and event 302 showed the sapling consumed while the crafting table remained in inventory. Thirty later place actions failed `must be holding an item to place`. Task-deadline interrupts, the later shelter timeout and bridge disconnect, missing terminal lifecycle evidence, and the deadline rejection are downstream. Probe 6 was this round's only live episode; no code fix or second run occurs in the round.
 
+The bounded `place_backend_requested_item_equip_grounding` fix now passes offline. Generic `createPlaceHandler` requires a nonempty requested item, finds the exact positive inventory stack, equips that stack to `hand`, confirms the actual held item from Mineflayer state, and only then calls `placeBlock`. A missing stack, equip exception, or held-item mismatch returns fail-closed evidence before any block mutation. Success requires the target to change to the exact requested block and records `m4-place-requested-item-equip-v1`, the equipped item, and requested-item confirmation. The exact Probe 6 state with `crafting_table:1` in inventory and `dark_oak_sapling` held now performs zero place calls and zero target mutations when equip is ineffective. Protocol, BM-012 task contract, Planner, ActionVerifier, M1/M2 fixed protocols, deadlines, and success thresholds are unchanged. Exactly one fresh Probe 7 is authorized after this gate commit is pushed.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -89,7 +91,7 @@ The new earliest failure layer is `place_backend_requested_item_equip_grounding`
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 707 Python tests, 138 related Planner/TaskSystem/M4 tests, all six fixed Node suites with 36 internal cases, Python compilation, and `git diff --check` pass
-- Live authorization: consumed by BM-012 Probe 6; none pending until the requested-item equip gate passes offline
+- Live authorization: exactly one fresh BM-012 Probe 7 after the requested-item equip gate is committed and pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -156,6 +158,20 @@ The new earliest failure layer is `place_backend_requested_item_equip_grounding`
 - Validation: 2 exact new tests, 138 related tests, 707 full Python tests, six Node suites with 36 cases, Python compilation, and `git diff --check` pass
 - Live result: Probe 6 emitted canonical `nearby_block_present=crafting_table` directly on the first placement plan; 129/129 real Planner responses were schema-valid, the prior rejection did not recur, and the normalization branch remained unexercised
 - Authorization: consumed by BM-012 Probe 6; no second episode may run in that live round
+
+## BM-012 Requested-Item Equip Gate
+
+- Root hypothesis: `place_backend_requested_item_equip_grounding`
+- Exact reproduction: inventory contains `crafting_table:1`, the bot holds `dark_oak_sapling`, and an ineffective equip attempt must fail before `placeBlock`; the target remains unchanged
+- Runtime policy: `m4-place-requested-item-equip-v1`
+- Inventory gate: the requested item name is required and must match an exact positive Mineflayer inventory stack
+- Equip gate: the exact stack is equipped to `hand`, then Mineflayer `heldItem` or hand equipment must report the same requested name
+- Mutation boundary: missing inventory, equip exceptions, and held-item mismatch return before any `placeBlock` call or world mutation
+- Success evidence: the result records policy ID, requested item, equipped item, confirmation, reference/target coordinates, and before/after target block state; success requires the exact requested block
+- Fail-closed controls: missing item, unavailable item, ineffective equip, wrong held item, and wrong observed target block cannot pass
+- Scope: generic Mineflayer place bridge only; Planner, ActionVerifier, GoalVerifier, task semantics, protocol/task-contract hashes, M1/M2 fixed protocols, deadlines, and thresholds are unchanged
+- Validation: three exact place cases, 166 related Python tests, 707 full Python tests, six Node suites with 37 internal cases, Node/Python syntax checks, and `git diff --check` pass
+- Authorization: exactly one fresh BM-012 Probe 7 after this gate commit is pushed; no live episode ran in the offline gate round
 
 ## BM-012 Live Evidence
 

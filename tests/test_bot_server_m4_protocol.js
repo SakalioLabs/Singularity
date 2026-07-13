@@ -212,11 +212,18 @@ function positionKey(position) {
 
 function createShelterBot() {
     const blocks = new Map();
-    const player = { position: new Vec3(0.5, 64, 0.5) };
+    const oakPlanks = { name: 'oak_planks', count: 4 };
+    const darkOakSapling = { name: 'dark_oak_sapling', count: 1 };
+    const equipCalls = [];
+    const player = { position: new Vec3(0.5, 64, 0.5), equipment: [darkOakSapling] };
     const zombie = { name: 'zombie', type: 'mob', position: new Vec3(4, 64, 0) };
     const bot = {
         entity: player,
         entities: { player, 17: zombie },
+        inventory: { items: () => [oakPlanks, darkOakSapling] },
+        get heldItem() {
+            return this.entity.equipment[0] || null;
+        },
         blockAt(position) {
             const name = blocks.get(positionKey(position)) || 'air';
             return {
@@ -226,9 +233,14 @@ function createShelterBot() {
                 position: position.clone ? position.clone() : new Vec3(position.x, position.y, position.z),
             };
         },
+        async equip(item, destination) {
+            equipCalls.push({ item: item.name, destination });
+            this.entity.equipment[0] = item;
+        },
         async placeBlock(reference, face) {
+            if (!this.heldItem) throw new Error('must be holding an item to place');
             const target = reference.position.plus(face);
-            blocks.set(positionKey(target), 'oak_planks');
+            blocks.set(positionKey(target), this.heldItem.name);
         },
     };
     blocks.set('0,63,0', 'stone');
@@ -237,7 +249,7 @@ function createShelterBot() {
         blocks.set(`${dx},65,${dz}`, 'oak_planks');
     }
     blocks.set('0,66,0', 'oak_planks');
-    return { bot, blocks };
+    return { bot, blocks, equipCalls };
 }
 
 async function testM4ShelterSnapshotReturnsCompleteBoundedMachineState() {
@@ -258,20 +270,56 @@ async function testM4ShelterSnapshotReturnsCompleteBoundedMachineState() {
 }
 
 async function testM4PlaceHandlerReturnsObservedCoordinateDelta() {
-    const { bot, blocks } = createShelterBot();
+    const { bot, blocks, equipCalls } = createShelterBot();
     blocks.delete('0,64,0');
     const handler = createPlaceHandler(() => ({ bot, botReady: true }));
     const missing = await handler({ item: 'oak_planks' });
     assert.strictEqual(missing.success, false);
     assert.match(missing.error, /finite reference coordinates/);
+    const unavailable = await handler({ x: 0, y: 63, z: 0, item: 'crafting_table' });
+    assert.strictEqual(unavailable.success, false);
+    assert.strictEqual(unavailable.error, 'crafting_table is not available for placement');
+    assert.deepStrictEqual(equipCalls, []);
+    assert.strictEqual(blocks.has('0,64,0'), false);
     const result = await handler({ x: 0, y: 63, z: 0, item: 'oak_planks' });
 
     assert.strictEqual(result.success, true);
+    assert.deepStrictEqual(equipCalls, [{ item: 'oak_planks', destination: 'hand' }]);
+    assert.strictEqual(result.equipped_item, 'oak_planks');
+    assert.strictEqual(result.requested_item_equipped, true);
+    assert.strictEqual(result.equip_policy_id, 'm4-place-requested-item-equip-v1');
     assert.deepStrictEqual(result.placed_position, { x: 0, y: 64, z: 0 });
     assert.strictEqual(result.target_block_before.name, 'air');
     assert.strictEqual(result.target_block_after.name, 'oak_planks');
     assert.strictEqual(result.target_block_after.solid, true);
     console.log('PASS: M4 place evidence binds the requested action to an observed block delta');
+}
+
+async function testM4PlaceHandlerRejectsUnequippedRequestedItemBeforeMutation() {
+    const { bot, blocks } = createShelterBot();
+    blocks.delete('0,64,0');
+    let placeCalls = 0;
+    bot.inventory = {
+        items: () => [
+            { name: 'crafting_table', count: 1 },
+            { name: 'dark_oak_sapling', count: 1 },
+        ],
+    };
+    bot.equip = async () => {};
+    bot.placeBlock = async () => {
+        placeCalls += 1;
+        blocks.set('0,64,0', 'dark_oak_sapling');
+    };
+    const handler = createPlaceHandler(() => ({ bot, botReady: true }));
+    const result = await handler({ x: 0, y: 63, z: 0, item: 'crafting_table' });
+
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.error, 'requested item crafting_table was not equipped');
+    assert.strictEqual(result.equipped_item, 'dark_oak_sapling');
+    assert.strictEqual(result.equip_policy_id, 'm4-place-requested-item-equip-v1');
+    assert.strictEqual(placeCalls, 0);
+    assert.strictEqual(blocks.has('0,64,0'), false);
+    console.log('PASS: M4 place handler fails closed before world mutation when exact equip does not hold');
 }
 
 async function testM4BoundedSealedCellBuildReturnsNineObservedDeltas() {
@@ -490,6 +538,7 @@ async function main() {
     await testM4ResetRejectsLifecycleWithoutInitialMineflayerSpawn();
     await testM4ShelterSnapshotReturnsCompleteBoundedMachineState();
     await testM4PlaceHandlerReturnsObservedCoordinateDelta();
+    await testM4PlaceHandlerRejectsUnequippedRequestedItemBeforeMutation();
     await testM4BoundedSealedCellBuildReturnsNineObservedDeltas();
     await testM4BoundedSealedCellPreflightRejectsProbe16GeometryWithoutMutation();
     await testM4BoundedSealedCellRollsBackUnexpectedPartialPlacement();

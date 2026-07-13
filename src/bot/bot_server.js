@@ -1052,6 +1052,7 @@ function createShelterStateHandler(getState = () => ({ bot, botReady })) {
 
 function createPlaceHandler(getState = () => ({ bot, botReady })) {
     return async (params = {}) => {
+        const equipPolicyId = 'm4-place-requested-item-equip-v1';
         const state = getState() || {};
         const activeBot = state.bot;
         if (!state.botReady || !activeBot?.entity?.position) {
@@ -1065,27 +1066,75 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
         if (!coordinates.every(Number.isFinite)) {
             return { success: false, error: 'place requires finite reference coordinates' };
         }
+        const item = String(params.item || '').trim();
+        if (!item) {
+            return { success: false, error: 'place requires an item name', equip_policy_id: equipPolicyId };
+        }
+        let equippedItem = '';
         try {
             const referencePosition = new Vec3(...coordinates);
             const referenceBlock = activeBot.blockAt(referencePosition);
             if (!referenceBlock) return { success: false, error: 'No reference block' };
             const targetPosition = referencePosition.offset(0, 1, 0);
             const before = shelterBlockState(activeBot, targetPosition);
+            const inventoryItem = activeBot.inventory?.items?.().find(
+                entry => entry.name === item && Number(entry.count || 0) > 0,
+            );
+            if (!inventoryItem) {
+                return {
+                    success: false,
+                    error: `${item} is not available for placement`,
+                    item,
+                    equip_policy_id: equipPolicyId,
+                };
+            }
+            try {
+                await activeBot.equip(inventoryItem, 'hand');
+            } catch (error) {
+                return {
+                    success: false,
+                    error: `could not equip ${item}: ${error.message}`,
+                    item,
+                    equip_policy_id: equipPolicyId,
+                };
+            }
+            const heldItem = activeBot.heldItem || (
+                Array.isArray(activeBot.entity?.equipment) ? activeBot.entity.equipment[0] : null
+            );
+            equippedItem = String(heldItem?.name || '');
+            if (equippedItem !== item) {
+                return {
+                    success: false,
+                    error: `requested item ${item} was not equipped`,
+                    item,
+                    equipped_item: equippedItem,
+                    equip_policy_id: equipPolicyId,
+                };
+            }
             await activeBot.placeBlock(referenceBlock, new Vec3(0, 1, 0));
             const after = shelterBlockState(activeBot, targetPosition);
-            const item = String(params.item || '');
-            const observed = after.name !== 'air' && after.name !== before.name && (!item || after.name === item);
+            const observed = after.name !== 'air' && after.name !== before.name && after.name === item;
             return {
                 success: observed,
                 error: observed ? '' : 'placed block was not observed at the target',
                 item,
+                equipped_item: equippedItem,
+                requested_item_equipped: true,
+                equip_policy_id: equipPolicyId,
                 reference_position: compactPosition(referencePosition),
                 placed_position: compactPosition(targetPosition),
                 target_block_before: before,
                 target_block_after: after,
             };
         } catch (e) {
-            return { success: false, error: e.message };
+            return {
+                success: false,
+                error: e.message,
+                item,
+                equipped_item: equippedItem,
+                requested_item_equipped: equippedItem === item,
+                equip_policy_id: equipPolicyId,
+            };
         }
     };
 }

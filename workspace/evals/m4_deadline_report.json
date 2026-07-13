@@ -1,11 +1,11 @@
 {
   "type": "m4_deadline_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T03:40:03.0304917Z",
+  "generated_at": "2026-07-13T04:04:12.3696516Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_6_recorded_place_backend_offline_gate_required",
-  "decision": "diagnose_place_backend_requested_item_equip_grounding",
+  "readiness": "bm012_place_backend_requested_item_equip_offline_gate_passed_probe_7_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_7_after_gate_push",
   "absolute_deadline_field": "episode_deadline_monotonic",
   "checks": [
     {
@@ -207,6 +207,39 @@
     "prior_failure_recurred": false,
     "live_place_action_count": 31,
     "live_place_success_count": 0
+  },
+  "offline_place_requested_item_equip_gate": {
+    "root_hypothesis": "place_backend_requested_item_equip_grounding",
+    "status": "passed",
+    "policy_id": "m4-place-requested-item-equip-v1",
+    "exact_probe_6_replay": {
+      "requested_item": "crafting_table",
+      "inventory_item_count": 1,
+      "initially_equipped_item": "dark_oak_sapling",
+      "ineffective_equip_rejected": true,
+      "place_block_call_count": 0,
+      "target_block_mutation_count": 0
+    },
+    "exact_inventory_stack_lookup_required": true,
+    "exact_hand_equip_required": true,
+    "held_item_post_equip_match_required": true,
+    "missing_item_rejected_before_mutation": true,
+    "equip_mismatch_rejected_before_mutation": true,
+    "successful_place_requires_exact_observed_block": true,
+    "failure_result_preserves_equip_evidence": true,
+    "focused_node_test_file": "tests/test_bot_server_m4_protocol.js",
+    "exact_regression_case_count": 3,
+    "related_python_test_count": 166,
+    "full_python_regression": 707,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 37,
+    "m4_node_case_count": 10,
+    "python_compilation": "pass",
+    "node_syntax_check": "pass",
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "scope": "generic Mineflayer place bridge requested-item selection, equip, and observed postcondition only",
+    "next_authorized_episode": "bm012_probe_7_exactly_one_after_gate_push"
   },
   "player_lifecycle_gate": {
     "verifier_id": "m4-player-lifecycle-verifier-v1",
