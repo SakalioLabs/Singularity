@@ -47,10 +47,10 @@
 
 ## M4 Convergence Result
 
-- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after eighteen failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
+- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after nineteen failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after eighteen failed live attempts. Probe 18's earliest layer is `critical_health_survival_action_precondition_deadlock`: event 817 rejected an ActionVerifier-approved escape `move_to` at zero duration, then fourteen low-health actions were blocked while thirteen critical-health goals consumed the goal budget. The bounded offline `m4-critical-health-survival-action-precondition-v1` gate now passes. Strict M4 permits finite `move_to` only when no known food is available and permits `use_item` only for available known food; non-survival actions, avoidable movement, malformed coordinates, and fixed M1/M2 controls remain fail-closed. All 35 non-live Python scripts (733 regression definitions including the separately skipped real M2 integration definition) and six Node suites (52 PASS cases) succeed. No live episode ran in this gate round; exactly one fresh Probe 19 is authorized only after this commit is pushed, while BM-013/BM-014 remain locked.
+- BM-012 is the next target at 0/3 after nineteen failed live attempts. Probe 19 stayed at health/food 20, so the critical-health gate was not live-exercised. Its earliest layer is `post_place_crafting_table_machine_observation_grounding`: event 621 machine-confirmed placement, event 623 omitted the table from nearby machine state, and fourteen later place actions failed at zero duration because that same target was occupied. The 40-cycle torch goal consumed 209.688 seconds before a move adjacent exposed the table and recovered only the machine objective. Stone-pickaxe progression resumed, but shelter preparation began at world time 10039 and the episode ended 0.015 seconds beyond the absolute deadline with no iron and 10 eligibility issues. No code fix, second run, or new live authorization exists; the next gate is offline-only and BM-013/BM-014 remain locked.
 
 ## Evidence Policy
 
@@ -70,7 +70,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 seventeen failed attempts, 0/3; BM-013..014 not_run |
+| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 nineteen failed attempts, 0/3; BM-013..014 not_run |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |

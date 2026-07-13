@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 18 remain ineligible at 0/3. Probe 18 did not exercise the deadline-bound readiness branch and its Runner placement candidate recovered, but ActionController then blocked fourteen low-health actions solely because health was critical. The bounded offline critical-health survival-action gate now passes without changing protocol, deadlines, ActionVerifier, GoalGenerator, RuntimeSupervisor, or success thresholds. No live episode ran in this gate round; exactly one fresh Probe 19 is authorized only after this gate commit is pushed, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 19 remain ineligible at 0/3. Probe 19 did not exercise the critical-health survival-action branch. Its Runner coal candidate recovered, but a successful crafting-table placement was omitted from subsequent machine observations and drove a 40-cycle torch loop. No code fix or second episode ran; the next gate is offline-only, no fresh episode is authorized, and BM-013/BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_critical_health_survival_action_precondition_gate_passed_probe_19_authorized_after_push |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_19_failed_post_place_crafting_table_machine_observation_review_required |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -149,6 +149,10 @@ The new earliest failure layer is `critical_health_survival_action_precondition_
 
 The bounded offline fix now passes under `m4-critical-health-survival-action-precondition-v1`. Only strict M4 may cross the blanket health guard. A finite `move_to` is permitted only when the machine inventory contains no known food; `use_item` is permitted only when its named known food is present. Probe 18's exact event-817 move reaches bot execution in the gate fixture, while `craft oak_planks`, movement despite available food, non-food use, missing/non-finite/boolean coordinates, and fixed M1/M2 controls remain blocked before execution. Every activated decision emits a machine-readable policy report. Three exact gate cases, 41 M4 deadline definitions, 733 full Python regression definitions, all 35 non-live Python scripts, and six Node suites with 52 internal cases pass. No live episode ran in this offline round.
 
+Probe 19 did not exercise that policy branch. All 155 complete observations held health and food at 20, no action entered the critical-health path, and no `m4-critical-health-survival-action-precondition-v1` report was emitted. The Probe 18 deadlock did not recur, but the gate remains live-unverified.
+
+Independent review rejects the Runner's event-424 coal `empty_plan` as causal because goal 8 later verified `coal:+1` at dig event 574, and stone-tool progression subsequently recovered. The new earliest failure layer is `post_place_crafting_table_machine_observation_grounding`. Action event 621 machine-confirmed a crafting table at `(106,136,-36)`, while post-action observation event 623 omitted it and task reconciliation did not close the placement prerequisite. Planner event 677 then asserted the table remained unplaced, and action event 686 was the first of fourteen zero-duration failures against that occupied target. The torch root consumed all 40 real schema-valid calls and 209.688 seconds before failing at event 1419. Moving adjacent later exposed the original table at observation event 1437 and event 1445 machine-verified the placement objective, but the elapsed dusk budget was not recovered. The next experiment must reproduce this exact cross-layer boundary offline and ground successful placement in machine state/task readiness without trusting Planner text or weakening generic placement verification.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -159,7 +163,7 @@ The bounded offline fix now passes under `m4-critical-health-survival-action-pre
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
 - Regression: 733 Python regression definitions, all 35 non-live Python scripts, all six fixed Node suites with 52 internal assertions, Node syntax, and Python compilation pass
-- Live authorization: exactly one fresh Probe 19 after the critical-health survival-action gate commit is pushed
+- Live authorization: none pending an offline post-place crafting-table machine-observation grounding gate
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -427,10 +431,32 @@ The bounded offline fix now passes under `m4-critical-health-survival-action-pre
 - Evidence: activated pass/fail decisions are attached to the action result with policy ID, health threshold, action class, available food, reason, and pre-execution fail-closed status
 - Compatibility: ActionVerifier, GoalGenerator priority, RuntimeSupervisor interrupt/frontier contracts, protocol/task-contract hashes, deadlines, success thresholds, skills, vision, and multi-agent behavior are unchanged
 - Validation: three exact gate cases, 41 M4 deadline definitions, 733 full Python regression definitions, all 35 non-live Python scripts, and six fixed Node suites with 52 internal PASS cases; Python compilation, Node syntax, JSON, capability consistency, and repository checks pass
-- Status: passed offline; no live episode ran in this gate round
-- Authorization: exactly one fresh BM-012 Probe 19 after this gate commit is pushed
+- Status: passed offline; Probe 19 stayed at health/food 20 and emitted no policy report, so the branch remains live-unverified
+- Authorization: consumed by BM-012 Probe 19; no second episode or new live authorization exists in this round
 
 ## BM-012 Live Evidence
+
+### Probe 19: Placement Succeeded; Machine Observation Lost the Table
+
+- Episode: `m4_episode_20260714_043836_18afe612`
+- Session: `4593446f-4ff`
+- Level: `m4_episode_20260714_043836_18afe612_bm012`
+- Frozen code: `692cf77`; protocol and BM-012 task-contract hashes unchanged
+- Prior gate: health and food remained 20 in all 155 complete observations; no critical-health action or policy report occurred, so the Probe 18 deadlock did not recur and the branch was not exercised
+- Runner review: event 424's coal `empty_plan` recovered through goal 8 and machine-verified `coal:+1` at dig event 574; it is not the earliest unrecovered transition
+- Earliest unrecovered transition: action event 621 verified `crafting_table` at `(106,136,-36)`, but observation event 623 exposed no nearby table and did not close the placement task; event 686 first failed because the same target was already occupied
+- Persistence: the torch root made 40 real schema-valid Planner calls, issued 15 place actions and two craft actions, and repeated the occupied target fourteen times before event 1419 ended it at 40 cycles
+- Recovery boundary: goal 10 moved adjacent, observation event 1437 exposed the original table, and event 1445 machine-verified placement completion; the machine objective recovered after 221.016 seconds, but the 209.688-second root cost and 4080 world ticks were not recovered
+- Autonomous progress: 15 goals selected, 10 completed, 5 failed, and 0 interrupted across 89 cycles; coal, twelve cobblestone, and a stone pickaxe were obtained, but no iron source action occurred
+- Planner/actions: 89 real calls, 85 schema-valid, 322059 tokens, maximum 19297 ms; 66 actions attempted and 41 succeeded, including move 9/11, dig 19/22, craft 11/11, place 2/20, and shelter 0/2
+- Interrupts: all 23 triggers and 23 recoveries were task-deadline churn inside the torch root; no hostile, health, hunger, dusk, or night interrupt fired
+- Shelter cascade: preparation started at world time 10039 with 103.641 seconds remaining; two bounded shelter actions timed out, their bridge recoveries succeeded, and the final move crossed the deadline
+- Last complete machine state: event 1987, health/food 20, world time 11599, connected zero-death lifecycle, position `(106.5,128,-35.5)`, coal 1, cobblestone 7, and stone pickaxe 1
+- Deadline: start 23290.250, deadline 23890.250, Agent end 23890.265, manifest end 23890.281; Agent overrun 0.015 seconds, evidence overrun 0.031 seconds, and one action result was recorded post-deadline
+- Eligibility: 64/74 checks passed with 10 issues; BM-012 remains 0/3 after nineteen attempts
+- Skills: baseline remained off; selected, executed, quarantined, vision, and multi-agent contributions were zero
+- Round boundary: this was the only live episode; no code fix, second run, or new live authorization exists before a bounded offline post-place crafting-table machine-observation gate passes and is pushed
+- Evidence: `logs/benchmarks/m4/m4_episode_20260714_043836_18afe612/`
 
 ### Probe 18: Pathfinder Cascade Absent; Critical-Health Actions Deadlocked
 
@@ -451,7 +477,7 @@ The bounded offline fix now passes under `m4-critical-health-survival-action-pre
 - Deadline: start 18603.562, deadline 19203.562, Agent end 18959.093, manifest end 18959.125; 244.437 seconds remained and no post-deadline execution occurred
 - Eligibility: 67/74 checks passed with 7 issues; BM-012 remains 0/3 after eighteen attempts
 - Skills: baseline remained off; selected, executed, quarantined, vision, and multi-agent contributions were zero
-- Round boundary: this was the only live episode; the subsequent offline critical-health survival-action precondition gate passes and authorizes exactly one fresh Probe 19 only after its commit is pushed
+- Round boundary: this was the only live episode; the subsequent offline critical-health survival-action precondition gate authorized Probe 19, and that authorization is now consumed
 - Evidence: `logs/benchmarks/m4/m4_episode_20260714_032037_563a7040/`
 
 ### Probe 17: Feedback Gate Recovered; Pathfinder Stayed Stopped After Recovery
