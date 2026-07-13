@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from singularity.core.goal_generator import GoalGenerator
 from singularity.core.agent import Agent
 from singularity.core.config import Config
+from singularity.core.curriculum import CurriculumManager
 from singularity.core.task_system import TaskStatus, TaskSystem
 from singularity.evaluation.m4_shelter import (
     M4_SHELTER_CONTRACT_SHA256,
@@ -257,9 +258,42 @@ def test_bm012_goal_progression_is_autonomous_and_survival_preemptible():
     print("PASS: BM-012 intermediate goals are autonomous while survival priorities still preempt")
 
 
+def test_bm012_probe_4_family_state_advances_after_stale_task_reconciliation():
+    observation = _observation(
+        time_of_day=3157,
+        inventory={"oak_log": 4, "dark_oak_log": 2},
+        nearby_blocks=[],
+    )
+    generator = GoalGenerator()
+    fallback = generator.next_goal(observation, task_id="BM-012")
+    assert "Gather 6 oak logs" in fallback
+
+    agent = object.__new__(Agent)
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    agent.task_system = TaskSystem()
+    stale = agent.task_system.create_task(
+        "Find and gather 6 oak logs",
+        status=TaskStatus.ACCEPTED,
+        success_criteria={"inventory": {"oak_log": 6}},
+    )
+    agent.curriculum = CurriculumManager()
+    agent._last_autonomous_goal_decision = dict(generator.last_decision)
+
+    selected = agent._select_autonomous_goal(observation, fallback)
+
+    assert stale.status == TaskStatus.COMPLETED
+    assert selected == "Craft crafting table"
+    assert agent._last_autonomous_goal_decision["selection_source"] == "curriculum"
+    assert agent._last_autonomous_goal_decision["selection_reason"] == (
+        "curriculum_ranked:unlock_crafting_grid"
+    )
+    print("PASS: Probe 4 mixed-log state clears stale tasks and advances BM-012")
+
+
 if __name__ == "__main__":
     test_m4_goal_priority_fixed_state_matrix()
     test_m4_goal_priority_precedence_and_machine_shelter_requirement()
     test_m4_hunger_priority_survives_ready_task_selection()
     test_bm012_goal_progression_is_autonomous_and_survival_preemptible()
+    test_bm012_probe_4_family_state_advances_after_stale_task_reconciliation()
     print("\nM4 G1 goal-priority tests PASSED")

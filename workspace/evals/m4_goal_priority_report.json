@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T01:00:59.8101676Z",
+  "generated_at": "2026-07-13T01:20:44.0231967Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_4_ineligible_task_inventory_family_reconciliation_offline_fix_required",
-  "decision": "do_not_rerun_fix_task_inventory_family_reconciliation_offline",
+  "readiness": "bm012_task_inventory_family_reconciliation_offline_gate_passed_probe_5_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_5",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -45,7 +45,7 @@
     "wait_ms": 15000,
     "pending_goal_consumes_new_slot": false,
     "missing_time_fails_closed": true,
-    "full_python_regression": 703,
+    "full_python_regression": 705,
     "node_suite_count": 6,
     "node_internal_pass_count": 36
   },
@@ -58,7 +58,7 @@
     "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
     "scheduled_recovery_count": 1,
     "completed_recovery_count": 1,
-    "next_authorized_episode": "none_task_inventory_family_reconciliation_offline_gate_pending"
+    "next_authorized_episode": "bm012_probe_5_exactly_one"
   },
   "bm012_autonomous_progression": {
     "task_contract_id": "m4-bm012-resource-contract-v1",
@@ -93,8 +93,9 @@
     "subtask_numeric_normalized_requirement_count": 2,
     "task_system_numeric_fail_closed": true,
     "subtask_numeric_live_validated_by_probe_4": "integer_only_path_no_alias_normalization",
-    "task_inventory_family_reconciliation_consistent": false,
-    "next_authorized_episode": "none_task_inventory_family_reconciliation_offline_gate_pending"
+    "task_inventory_family_reconciliation_offline_gate_passed": true,
+    "task_inventory_family_progression_replay": "craft_crafting_table",
+    "next_authorized_episode": "bm012_probe_5_exactly_one"
   },
   "offline_subtask_numeric_criteria_gate": {
     "passed": true,
@@ -102,13 +103,36 @@
     "exact_probe_3_plan_replayed": true,
     "non_equivalent_counts_rejected_before_task_creation": true,
     "related_python_regression": 134,
-    "full_python_regression": 703,
+    "full_python_regression": 705,
     "node_suite_file_count": 6,
     "node_internal_pass_count": 36,
     "protocol_changed": false,
     "task_contract_changed": false,
     "live_validated_by_probe_4": "integer_only_path_no_alias_normalization",
     "next_authorized_episode": "consumed_by_probe_4"
+  },
+  "offline_task_inventory_family_reconciliation_gate": {
+    "passed": true,
+    "scope": "strict_m4_agent_task_lifecycle_only",
+    "policy_id": "m4-task-inventory-family-grounding-v1",
+    "exact_probe_4_state_replayed": true,
+    "observed_member_counts": {"oak_log": 4, "dark_oak_log": 2},
+    "canonical_count_before": 4,
+    "canonical_count_after": 6,
+    "cycle_stale_task_count": 7,
+    "cycle_completed_task_count": 7,
+    "post_plan_task_completed_before_goal_selection": true,
+    "selected_progression_goal": "Craft crafting table",
+    "insufficient_family_count_rejected": true,
+    "urgent_survival_priority_preserved": true,
+    "source_observation_unchanged": true,
+    "full_python_regression": 705,
+    "related_python_regression": 136,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 36,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "next_authorized_episode": "bm012_probe_5_exactly_one"
   },
   "live_episode_count": 22,
   "live_episode_count_under_current_protocol": 8,

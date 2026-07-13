@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 4 remain ineligible at 0/3. Probe 4 eliminated Probe 3's numeric-type crash, then exposed inconsistent log-family semantics between machine GoalVerifier completion and TaskSystem inventory reconciliation. This round's only live authorization is consumed; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 4 remain ineligible at 0/3. Probe 4 eliminated Probe 3's numeric-type crash, then exposed inconsistent log-family semantics between machine GoalVerifier completion and TaskSystem inventory reconciliation. Its bounded offline gate now passes and authorizes exactly one fresh Probe 5 after this commit is pushed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_4_consumed_ineligible_task_inventory_family_reconciliation_fix_required |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | task_inventory_family_reconciliation_offline_gate_passed_probe_5_authorized |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -67,6 +67,8 @@ The bounded `planner_subtask_numeric_criteria_type_grounding` fix now passes off
 
 Probe 4 live-validates the integer-only path but does not exercise alias normalization: 31/31 real Planner calls were schema-valid, all 31 numeric-grounding reports passed, every observed requirement was integer `6`, normalization count was zero, and no runtime error occurred. The initial root gathered `oak_log:4` plus `dark_oak_log:2`; GoalVerifier event 170 accepted the six-member log family. TaskSystem's exact `inventory.oak_log=6` reconciliation did not close the planner frontier: readiness event 160 reported seven ready tasks, event 167 selected `Find and gather 6 oak logs`, and event 175 began 23 consecutive `ready_task_selected` roots. All completed in one cycle under GoalVerifier family semantics, no action executed after event 155, and nine tasks remained accepted when the 24-goal budget ended. The earliest failure layer is now `m4_task_inventory_family_reconciliation_grounding`. No code fix or second episode occurs in this round.
 
+The bounded `m4_task_inventory_family_reconciliation_grounding` fix passes offline. Strict-M4 task reconciliation projects the existing pinned `GoalVerifier.LOG_ITEMS` family into a copied inventory state under canonical `oak_log`, records `m4-task-inventory-family-grounding-v1` evidence, and never mutates the source observation. It completes state-satisfied inventory tasks during the active cycle and once more before root selection, so the final task created by the last accepted plan cannot consume another goal slot. Completed task transitions are flushed at the reconciliation point rather than the next Planner acceptance. Replaying event 157 completes all seven event-160 stale tasks, clears a newly created post-plan task before selection, and selects `Craft crafting table` from the actual GoalGenerator/Curriculum combination. A five-log family remains incomplete, urgent survival fallback still preempts tasks, non-inventory claims remain excluded, and non-M4 profiles are unchanged. The protocol and BM-012 task-contract hashes remain fixed; exactly one fresh Probe 5 is authorized after this gate commit is pushed.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -76,8 +78,8 @@ Probe 4 live-validates the integer-only path but does not exercise alias normali
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 703 Python tests, 134 related Planner/TaskSystem/M4 tests, all six fixed Node suites with 36 internal cases, Python compilation, and `git diff --check` pass
-- Live authorization: consumed by BM-012 Probe 4; no second episode is authorized in this round
+- Regression: 705 Python tests, 136 related Planner/TaskSystem/M4 tests, all six fixed Node suites with 36 internal cases, Python compilation, and `git diff --check` pass
+- Live authorization: exactly one fresh BM-012 Probe 5 after the family-reconciliation gate is committed and pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -116,6 +118,19 @@ Probe 4 live-validates the integer-only path but does not exercise alias normali
 - Validation: 3 exact new gate tests, 134 related tests, 703 full Python tests, six Node suites with 36 cases, Python compilation, and `git diff --check` pass
 - Live result: Probe 4 emitted 31 passing numeric-grounding reports with integer-only counts and zero runtime errors; the exact `>=N` normalization branch was not exercised live
 - Authorization: consumed by BM-012 Probe 4; no second episode may run in the round
+
+## BM-012 Task Inventory-Family Reconciliation Gate
+
+- Root hypothesis: `m4_task_inventory_family_reconciliation_grounding`
+- Exact reproduction: Probe 4 event-157 inventory `oak_log:4 + dark_oak_log:2` now completes all seven exact `inventory.oak_log=6` tasks reported ready at event 160
+- Family grounding: `m4-task-inventory-family-grounding-v1` reuses the pinned `GoalVerifier.LOG_ITEMS`, records observed members plus canonical before/after counts, and operates on a copied observation
+- Root-boundary control: a task created by the final Planner response is reconciled at `pre_goal_machine_observation` before scheduler selection, preventing one residual repeated root
+- Progression replay: BM-012 GoalGenerator still emits its exact-species fallback, but Curriculum sees the six-log family and selects `Craft crafting table` after stale tasks close
+- Fail-closed controls: `oak_log:4 + dark_oak_log:1` does not complete the threshold; non-inventory criteria, non-M4 profiles, and urgent survival fallback retain prior behavior
+- Transition evidence: completed task transitions are flushed immediately with source `m4_task_state_reconciliation`, reconciliation source, goal, and cycle
+- Scope: strict-M4 Agent task lifecycle only; GoalVerifier rules, TaskSystem generic semantics, Planner schema, action execution, M1/M2 contracts, protocol data, deadline, and success thresholds are unchanged
+- Validation: 2 exact new tests, 136 related tests, 705 full Python tests, six Node suites with 36 cases, Python compilation, and `git diff --check` pass
+- Authorization: exactly one fresh BM-012 Probe 5 after this gate commit is pushed; no second episode may run in the round
 
 ## BM-012 Live Evidence
 

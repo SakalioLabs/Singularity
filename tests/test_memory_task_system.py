@@ -2423,6 +2423,90 @@ def test_m4_reconciles_inventory_satisfied_tasks_before_planning():
     assert event["data"]["completed_tasks"][0]["success_criteria"] == {
         "inventory": {"oak_log": 6}
     }
+    grounding = event["data"]["inventory_family_grounding"]
+    assert grounding["policy_id"] == "m4-task-inventory-family-grounding-v1"
+    assert grounding["canonical_count_before"] == 9
+    assert grounding["canonical_count_after"] == 9
+    assert grounding["activated"] is False
+
+
+def test_m4_reconciles_probe_4_log_family_before_ready_task_selection():
+    agent = _initialize_bare_agent_runtime_state(object.__new__(Agent))
+    agent.config = Config(planner_protocol="m4-fixed-v1")
+    agent.session_logger = FakeSessionLogger()
+    agent.task_system = TaskSystem()
+    observation = {
+        "inventory": {"oak_log": 4, "dark_oak_log": 2},
+        "health": 20,
+        "hunger": 20,
+        "time_of_day": 3157,
+        "nearby_blocks": [],
+        "nearby_entities": [],
+    }
+    original_inventory = dict(observation["inventory"])
+    stale_tasks = [
+        agent.task_system.create_task(
+            "Find and gather 6 oak logs" if index < 4 else "Gather 6 oak logs",
+            status=TaskStatus.ACCEPTED,
+            success_criteria={"inventory": {"oak_log": 6}},
+        )
+        for index in range(7)
+    ]
+
+    completed = agent._reconcile_m4_satisfied_tasks(
+        observation,
+        "Gather 6 oak logs for tools and shelter",
+        8,
+    )
+
+    assert {task.id for task in completed} == {task.id for task in stale_tasks}
+    assert all(task.status == TaskStatus.COMPLETED for task in stale_tasks)
+    assert observation["inventory"] == original_inventory
+    event = agent.session_logger.events[-1]
+    assert event["type"] == "m4_task_state_reconciliation"
+    assert event["data"]["source"] == "machine_observation"
+    grounding = event["data"]["inventory_family_grounding"]
+    assert grounding["observed_member_counts"] == {"oak_log": 4, "dark_oak_log": 2}
+    assert grounding["canonical_count_before"] == 4
+    assert grounding["canonical_count_after"] == 6
+    assert grounding["activated"] is True
+
+    post_plan_task = agent.task_system.create_task(
+        "Gather 6 oak logs",
+        status=TaskStatus.ACCEPTED,
+        success_criteria={"inventory": {"oak_log": 6}},
+    )
+    fallback = "Place the crafting table nearby for iron-tool progression"
+    selected = agent._select_autonomous_goal(observation, fallback)
+
+    assert selected == fallback
+    assert post_plan_task.status == TaskStatus.COMPLETED
+    assert agent.task_system.get_next_task(observation) is None
+    pre_goal_event = agent.session_logger.events[-1]
+    assert pre_goal_event["type"] == "m4_task_state_reconciliation"
+    assert pre_goal_event["data"]["source"] == "pre_goal_machine_observation"
+    assert pre_goal_event["data"]["completed_tasks"][0]["task_id"] == post_plan_task.id
+    completed_transitions = [
+        event for event in agent.session_logger.events
+        if event["type"] == "task_state_transition"
+        and event["data"].get("to_status") == "completed"
+    ]
+    assert completed_transitions
+    assert all(
+        event["data"]["context"]["source"] == "m4_task_state_reconciliation"
+        for event in completed_transitions
+    )
+
+    insufficient_task = agent.task_system.create_task(
+        "Gather one more log",
+        status=TaskStatus.ACCEPTED,
+        success_criteria={"inventory": {"oak_log": 6}},
+    )
+    insufficient = dict(observation)
+    insufficient["inventory"] = {"oak_log": 4, "dark_oak_log": 1}
+    selected = agent._select_autonomous_goal(insufficient, fallback)
+    assert selected == insufficient_task.title
+    assert insufficient_task.status == TaskStatus.ACCEPTED
 
 
 def test_m4_reconciliation_does_not_accept_non_inventory_claims_or_change_other_protocols():
@@ -4607,6 +4691,9 @@ if __name__ == "__main__":
     test_agent_records_and_reads_task_continuity_context()
     test_agent_injects_task_readiness_context_for_planner()
     test_agent_passes_task_readiness_context_to_llm_planner()
+    test_m4_reconciles_inventory_satisfied_tasks_before_planning()
+    test_m4_reconciles_probe_4_log_family_before_ready_task_selection()
+    test_m4_reconciliation_does_not_accept_non_inventory_claims_or_change_other_protocols()
     test_agent_injects_skill_memory_context_for_planner()
     test_agent_injects_coach_context_as_advisory_policy_hint()
     test_agent_injects_curriculum_context_for_planner()

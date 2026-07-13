@@ -4691,23 +4691,41 @@ class Agent:
             return {}
         return report if isinstance(report, dict) else {}
 
-    def _reconcile_m4_satisfied_tasks(self, observation: dict, goal: str, cycle: int) -> list:
+    def _reconcile_m4_satisfied_tasks(
+        self,
+        observation: dict,
+        goal: str,
+        cycle: int,
+        *,
+        source: str = "machine_observation",
+    ) -> list:
         if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
             return []
         task_system = getattr(self, "task_system", None)
         if not task_system or not hasattr(task_system, "complete_state_satisfied_tasks"):
             return []
+        reconciliation_state, inventory_family_grounding = self._m4_task_inventory_family_state(
+            observation
+        )
         completed = task_system.complete_state_satisfied_tasks(
-            observation if isinstance(observation, dict) else {},
+            reconciliation_state,
             allowed_criteria={"inventory"},
         )
+        if completed:
+            self._flush_task_state_transitions({
+                "source": "m4_task_state_reconciliation",
+                "reconciliation_source": str(source or "machine_observation"),
+                "goal": goal,
+                "cycle": cycle,
+            })
         if completed and hasattr(getattr(self, "session_logger", None), "log"):
             self.session_logger.log("m4_task_state_reconciliation", {
                 "schema_version": 1,
                 "goal": goal,
                 "cycle": cycle,
-                "source": "machine_observation",
+                "source": str(source or "machine_observation"),
                 "allowed_criteria": ["inventory"],
+                "inventory_family_grounding": inventory_family_grounding,
                 "completed_task_count": len(completed),
                 "completed_tasks": [
                     {
@@ -4719,6 +4737,43 @@ class Agent:
                 ],
             })
         return completed
+
+    @staticmethod
+    def _m4_task_inventory_family_state(observation: dict) -> tuple[dict, dict]:
+        """Project the GoalVerifier log family into M4 task inventory criteria."""
+        state = dict(observation) if isinstance(observation, dict) else {}
+        inventory = (
+            dict(state.get("inventory", {}))
+            if isinstance(state.get("inventory", {}), dict)
+            else {}
+        )
+        member_counts = {}
+        for item in GoalVerifier.LOG_ITEMS:
+            value = inventory.get(item, 0)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                continue
+            count = float(value)
+            if not math.isfinite(count) or count < 0 or not count.is_integer():
+                continue
+            if count:
+                member_counts[item] = int(count)
+
+        canonical_before = member_counts.get("oak_log", 0)
+        canonical_after = sum(member_counts.values())
+        inventory["oak_log"] = canonical_after
+        state["inventory"] = inventory
+        return state, {
+            "type": "m4_task_inventory_family_grounding",
+            "schema_version": 1,
+            "policy_id": "m4-task-inventory-family-grounding-v1",
+            "canonical_item": "oak_log",
+            "member_items": list(GoalVerifier.LOG_ITEMS),
+            "observed_member_counts": member_counts,
+            "canonical_count_before": canonical_before,
+            "canonical_count_after": canonical_after,
+            "activated": canonical_after != canonical_before,
+            "source_observation_unchanged": True,
+        }
 
     def _task_readiness_context(
         self,
@@ -6448,6 +6503,12 @@ class Agent:
         if self._should_preserve_autonomous_fallback(observation, fallback_goal):
             self._set_autonomous_goal_decision(fallback_goal, getattr(self, "_last_autonomous_goal_decision", {}))
             return fallback_goal
+        self._reconcile_m4_satisfied_tasks(
+            observation,
+            fallback_goal,
+            0,
+            source="pre_goal_machine_observation",
+        )
         scheduling_state = self._state_with_causal_context(observation, fallback_goal)
         readiness_report = (
             self.task_system.task_readiness_report(scheduling_state)

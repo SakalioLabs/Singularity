@@ -1,16 +1,16 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T01:00:59.8101676Z",
+  "generated_at": "2026-07-13T01:20:44.0231967Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_4_ineligible_task_inventory_family_reconciliation_offline_fix_required",
-  "decision": "do_not_rerun_fix_task_inventory_family_reconciliation_offline",
+  "readiness": "bm012_task_inventory_family_reconciliation_offline_gate_passed_probe_5_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_5",
   "verifier_id": "m4-sealed-cell-shelter-verifier-v1",
   "contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
   "strategy": "sealed_cell_v1",
   "evidence_scope": "offline_gate_and_probe_17_live_validation",
-  "next_authorized_episode": "none_task_inventory_family_reconciliation_offline_gate_pending",
+  "next_authorized_episode": "bm012_probe_5_exactly_one",
   "required_checks": [
     "physical_barriers",
     "overhead_cover_or_approved_alternative",
@@ -65,7 +65,7 @@
       {"id": "failed_rollback", "expected": "fail_closed_without_relocation", "status": "pass"},
       {"id": "bounded_relocation_before_retry", "expected": "canonical_move_then_template_retry", "status": "pass"}
     ],
-    "full_python_regression": {"status": "pass", "test_count": 703},
+    "full_python_regression": {"status": "pass", "test_count": 705},
     "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 36},
     "live_episode_run": true,
     "partial_failure_atomicity": {
@@ -106,7 +106,8 @@
     "subtask_numeric_criteria_offline_gate_passed": true,
     "shelter_priority_contract_changed": false,
     "subtask_numeric_live_validated_by_probe_4": "integer_only_path_no_alias_normalization",
-    "next_authorized_episode": "none_task_inventory_family_reconciliation_offline_gate_pending"
+    "task_inventory_family_reconciliation_offline_gate_passed": true,
+    "next_authorized_episode": "bm012_probe_5_exactly_one"
   },
   "offline_subtask_numeric_criteria_gate": {
     "passed": true,
@@ -115,13 +116,32 @@
     "exact_probe_3_plan_replayed": true,
     "non_equivalent_counts_rejected_before_task_creation": true,
     "related_python_regression": 134,
-    "full_python_regression": 703,
+    "full_python_regression": 705,
     "node_suite_file_count": 6,
     "node_internal_pass_count": 36,
     "protocol_changed": false,
     "task_contract_changed": false,
     "live_validated_by_probe_4": "integer_only_path_no_alias_normalization",
     "next_authorized_episode": "consumed_by_probe_4"
+  },
+  "offline_task_inventory_family_reconciliation_gate": {
+    "passed": true,
+    "scope": "strict_m4_agent_task_lifecycle_only",
+    "policy_id": "m4-task-inventory-family-grounding-v1",
+    "shelter_verifier_contract_changed": false,
+    "shelter_priority_contract_changed": false,
+    "exact_probe_4_state_replayed": true,
+    "cycle_stale_tasks_completed": 7,
+    "post_plan_task_completed_before_goal_selection": true,
+    "urgent_survival_priority_preserved": true,
+    "source_observation_unchanged": true,
+    "full_python_regression": 705,
+    "related_python_regression": 136,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 36,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "next_authorized_episode": "bm012_probe_5_exactly_one"
   },
   "live_episode_count": 22,
   "live_episode_count_under_current_protocol": 8,
