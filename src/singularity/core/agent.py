@@ -79,6 +79,11 @@ M4_TASK_WORLD_STATE_RECONCILIATION_CRITERIA = frozenset({
     "inventory",
     "nearby_block_present",
 })
+M4_POST_PLACE_MACHINE_OBSERVATION_POLICY_ID = (
+    "m4-post-place-crafting-table-machine-observation-v1"
+)
+M4_POST_PLACE_MACHINE_OBSERVATION_ITEM = "crafting_table"
+M4_POST_PLACE_MACHINE_OBSERVATION_LIMIT = 2
 M4_TYPED_SCHEMA_RECOVERY_POLICY_ID = "m4-typed-schema-recovery-v1"
 M4_TYPED_SCHEMA_RECOVERY_LIMIT = 1
 M4_TYPED_SCHEMA_ISSUE_PATTERN = re.compile(
@@ -258,6 +263,7 @@ class Agent:
         self.goal_verifier = GoalVerifier(skill_library=self.skill_library)
         self.m4_shelter_verifier = M4ShelterVerifier()
         self._m4_episode_block_delta = {"placed": {}, "removed": {}}
+        self._m4_post_place_machine_observation = {}
         self._m4_shelter_verification_fingerprint = ""
         self._m4_hostile_safe_state_fingerprint = ""
         self._m4_player_lifecycle_fingerprint = ""
@@ -1966,6 +1972,7 @@ class Agent:
             )
             max_total_cycles = int(M4_PROTOCOL["limits"]["max_total_cycles"])
             self._m4_episode_block_delta = {"placed": {}, "removed": {}}
+            self._m4_post_place_machine_observation = {}
             self._m4_shelter_verification_fingerprint = ""
             self._m4_hostile_safe_state_fingerprint = ""
             self._m4_player_lifecycle_fingerprint = ""
@@ -7183,6 +7190,7 @@ class Agent:
         observation = self.observer.observe()
         self._record_m4_player_lifecycle(observation)
         observation = self._attach_m4_shelter_verification(observation)
+        observation = self._attach_m4_post_place_machine_observation(observation)
         relocation = getattr(self, "_m4_shelter_relocation", {})
         if isinstance(relocation, dict) and relocation:
             observation = dict(observation)
@@ -7310,6 +7318,171 @@ class Agent:
                 action_type,
                 "remove",
             )
+
+    @staticmethod
+    def _m4_integral_block_position(value) -> dict:
+        if not isinstance(value, dict):
+            return {}
+        position = {}
+        for axis in ("x", "y", "z"):
+            coordinate = value.get(axis)
+            if isinstance(coordinate, bool) or not isinstance(coordinate, (int, float)):
+                return {}
+            coordinate = float(coordinate)
+            if not math.isfinite(coordinate) or not coordinate.is_integer():
+                return {}
+            position[axis] = int(coordinate)
+        return position
+
+    @classmethod
+    def _m4_post_place_machine_observation_report(cls, action: dict, result: dict) -> dict:
+        report = {
+            "schema_version": 1,
+            "policy_id": M4_POST_PLACE_MACHINE_OBSERVATION_POLICY_ID,
+            "passed": False,
+            "reason": "invalid_action",
+            "projection_observation_limit": M4_POST_PLACE_MACHINE_OBSERVATION_LIMIT,
+        }
+        if not isinstance(action, dict) or str(action.get("type") or "") != "place":
+            return report
+        params = action.get("parameters") if isinstance(action.get("parameters"), dict) else {}
+        item = params.get("item")
+        if item != M4_POST_PLACE_MACHINE_OBSERVATION_ITEM:
+            report["reason"] = "item_out_of_scope"
+            return report
+        report["item"] = item
+        if not isinstance(result, dict) or result.get("success") is not True:
+            report["reason"] = "result_not_successful"
+            return report
+        if result.get("item") != item:
+            report["reason"] = "result_item_mismatch"
+            return report
+
+        action_reference = cls._m4_integral_block_position(params)
+        result_reference = cls._m4_integral_block_position(result.get("reference_position"))
+        placed_position = cls._m4_integral_block_position(result.get("placed_position"))
+        if not action_reference or not result_reference or not placed_position:
+            report["reason"] = "position_missing_or_malformed"
+            return report
+        expected_position = {
+            "x": action_reference["x"],
+            "y": action_reference["y"] + 1,
+            "z": action_reference["z"],
+        }
+        if result_reference != action_reference or placed_position != expected_position:
+            report["reason"] = "placed_target_mismatch"
+            return report
+
+        before = result.get("target_block_before")
+        after = result.get("target_block_after")
+        if not isinstance(before, dict) or not isinstance(after, dict):
+            report["reason"] = "target_block_evidence_missing"
+            return report
+        before_position = cls._m4_integral_block_position(before.get("position"))
+        after_position = cls._m4_integral_block_position(after.get("position"))
+        before_name = before.get("name")
+        after_name = after.get("name")
+        if before_position != placed_position or after_position != placed_position:
+            report["reason"] = "target_block_position_mismatch"
+            return report
+        if (
+            not isinstance(before_name, str)
+            or not before_name.strip()
+            or before_name == "unknown"
+            or before_name == item
+            or after_name != item
+        ):
+            report["reason"] = "target_block_name_mismatch"
+            return report
+
+        report.update({
+            "passed": True,
+            "reason": "machine_verified_target_block_after",
+            "reference_position": action_reference,
+            "placed_position": placed_position,
+            "target_block_before": {"name": before_name, "position": placed_position},
+            "target_block_after": {"name": after_name, "position": placed_position},
+            "machine_state_source": "action_result.target_block_after",
+        })
+        return report
+
+    def _record_m4_post_place_machine_observation(self, action: dict, result: dict) -> dict:
+        if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
+            return {}
+        report = self._m4_post_place_machine_observation_report(action, result)
+        if report.get("reason") == "item_out_of_scope" or report.get("reason") == "invalid_action":
+            return report
+        if report.get("passed") is True:
+            self._m4_post_place_machine_observation = {
+                "report": dict(report),
+                "remaining_observations": M4_POST_PLACE_MACHINE_OBSERVATION_LIMIT,
+            }
+        log = getattr(getattr(self, "session_logger", None), "log", None)
+        if callable(log):
+            log("m4_post_place_machine_observation_grounding", dict(report))
+        return report
+
+    def _attach_m4_post_place_machine_observation(self, observation: dict) -> dict:
+        if str(getattr(getattr(self, "config", None), "planner_protocol", "") or "") != "m4-fixed-v1":
+            return observation
+        state = getattr(self, "_m4_post_place_machine_observation", {})
+        if not isinstance(state, dict) or not state:
+            return observation
+        report = state.get("report") if isinstance(state.get("report"), dict) else {}
+        block = report.get("target_block_after") if isinstance(report.get("target_block_after"), dict) else {}
+        remaining = state.get("remaining_observations")
+        if (
+            report.get("passed") is not True
+            or report.get("policy_id") != M4_POST_PLACE_MACHINE_OBSERVATION_POLICY_ID
+            or block.get("name") != M4_POST_PLACE_MACHINE_OBSERVATION_ITEM
+            or not self._m4_integral_block_position(block.get("position"))
+            or isinstance(remaining, bool)
+            or not isinstance(remaining, int)
+            or remaining <= 0
+            or not isinstance(observation, dict)
+            or not isinstance(observation.get("nearby_blocks"), list)
+        ):
+            self._m4_post_place_machine_observation = {}
+            return observation
+
+        placed_position = self._m4_integral_block_position(block["position"])
+        nearby_blocks = list(observation["nearby_blocks"])
+        already_observed = any(
+            isinstance(candidate, dict)
+            and candidate.get("name") == block["name"]
+            and self._m4_integral_block_position(candidate.get("position")) == placed_position
+            for candidate in nearby_blocks
+        )
+        if not already_observed:
+            nearby_blocks.append({
+                "name": block["name"],
+                "position": placed_position,
+                "machine_verified": True,
+                "machine_state_source": report["machine_state_source"],
+                "grounding_policy_id": M4_POST_PLACE_MACHINE_OBSERVATION_POLICY_ID,
+            })
+
+        remaining_after = remaining - 1
+        enriched = dict(observation)
+        enriched["nearby_blocks"] = nearby_blocks
+        enriched["m4_post_place_machine_observation"] = {
+            "schema_version": 1,
+            "policy_id": M4_POST_PLACE_MACHINE_OBSERVATION_POLICY_ID,
+            "passed": True,
+            "projected": not already_observed,
+            "placed_position": placed_position,
+            "item": block["name"],
+            "remaining_observations": remaining_after,
+            "machine_state_source": report["machine_state_source"],
+        }
+        if remaining_after > 0:
+            self._m4_post_place_machine_observation = {
+                **state,
+                "remaining_observations": remaining_after,
+            }
+        else:
+            self._m4_post_place_machine_observation = {}
+        return enriched
 
     @staticmethod
     def _m4_relocation_action_matches(action: dict, relocation: dict) -> bool:
@@ -7687,6 +7860,7 @@ class Agent:
 
         self._update_m4_shelter_relocation(action, result)
         self._record_m4_episode_block_delta(action, result)
+        self._record_m4_post_place_machine_observation(action, result)
         observation = fallback_observation
         try:
             observation = self._observe()
@@ -7709,6 +7883,23 @@ class Agent:
             "source": "action_feedback",
             **(context or {}),
         })
+        post_place_grounding = (
+            observation.get("m4_post_place_machine_observation", {})
+            if isinstance(observation, dict)
+            else {}
+        )
+        if (
+            isinstance(post_place_grounding, dict)
+            and post_place_grounding.get("passed") is True
+            and post_place_grounding.get("policy_id")
+            == M4_POST_PLACE_MACHINE_OBSERVATION_POLICY_ID
+        ):
+            self._reconcile_m4_satisfied_tasks(
+                observation,
+                str((context or {}).get("goal") or getattr(self, "current_goal", "") or ""),
+                (context or {}).get("cycle", 0),
+                source="post_place_machine_observation",
+            )
         if task:
             self._write_memory_episode("task_state_update", {
                 "task_id": task.id,

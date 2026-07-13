@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 19 remain ineligible at 0/3. Probe 19 did not exercise the critical-health survival-action branch. Its Runner coal candidate recovered, but a successful crafting-table placement was omitted from subsequent machine observations and drove a 40-cycle torch loop. No code fix or second episode ran; the next gate is offline-only, no fresh episode is authorized, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 19 remain ineligible at 0/3. Probe 19 did not exercise the critical-health survival-action branch. Its Runner coal candidate recovered, but a successful crafting-table placement was omitted from subsequent machine observations and drove a 40-cycle torch loop. The bounded offline post-place machine-observation gate now passes without changing Observer range, protocol, deadlines, or success thresholds. No live episode ran in this gate round; exactly one fresh Probe 20 is authorized only after this gate commit is pushed, and BM-013/BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_19_failed_post_place_crafting_table_machine_observation_review_required |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_post_place_crafting_table_machine_observation_gate_passed_probe_20_authorized_after_push |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -153,6 +153,8 @@ Probe 19 did not exercise that policy branch. All 155 complete observations held
 
 Independent review rejects the Runner's event-424 coal `empty_plan` as causal because goal 8 later verified `coal:+1` at dig event 574, and stone-tool progression subsequently recovered. The new earliest failure layer is `post_place_crafting_table_machine_observation_grounding`. Action event 621 machine-confirmed a crafting table at `(106,136,-36)`, while post-action observation event 623 omitted it and task reconciliation did not close the placement prerequisite. Planner event 677 then asserted the table remained unplaced, and action event 686 was the first of fourteen zero-duration failures against that occupied target. The torch root consumed all 40 real schema-valid calls and 209.688 seconds before failing at event 1419. Moving adjacent later exposed the original table at observation event 1437 and event 1445 machine-verified the placement objective, but the elapsed dusk budget was not recovered. The next experiment must reproduce this exact cross-layer boundary offline and ground successful placement in machine state/task readiness without trusting Planner text or weakening generic placement verification.
 
+The bounded offline fix now passes under `m4-post-place-crafting-table-machine-observation-v1`. It accepts only strict-M4 `place(item=crafting_table)` results where success is true, the result item matches, action and result references match, the placed target is exactly one block above the integral reference, both target-block coordinates match that target, and the before/after names prove a change to `crafting_table`. The confirmed block is projected into the immediate post-action observation and one next planner-facing observation, feeds both TaskSystem action-result completion and existing M4 state reconciliation, then expires. Probe 19's exact event-621 state completes the placement task despite the event-623 omission. Failed results, item/name/position drift, malformed coordinates, non-table actions, and non-M4 controls produce no projection. Observer scan radius and 50-block truncation remain unchanged. Two exact gate cases, 43 M4 deadline definitions, 735 full Python regression definitions, all 35 non-live Python scripts, and six Node suites with 52 internal cases pass. No live episode ran in this offline round.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -162,8 +164,8 @@ Independent review rejects the Runner's event-424 coal `empty_plan` as causal be
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 733 Python regression definitions, all 35 non-live Python scripts, all six fixed Node suites with 52 internal assertions, Node syntax, and Python compilation pass
-- Live authorization: none pending an offline post-place crafting-table machine-observation grounding gate
+- Regression: 735 Python regression definitions, all 35 non-live Python scripts, all six fixed Node suites with 52 internal assertions, Node syntax, and Python compilation pass
+- Live authorization: exactly one fresh Probe 20 after the post-place crafting-table machine-observation gate commit is pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -434,6 +436,18 @@ Independent review rejects the Runner's event-424 coal `empty_plan` as causal be
 - Status: passed offline; Probe 19 stayed at health/food 20 and emitted no policy report, so the branch remains live-unverified
 - Authorization: consumed by BM-012 Probe 19; no second episode or new live authorization exists in this round
 
+## BM-012 Post-Place Crafting-Table Machine-Observation Gate
+
+- Root hypothesis: `post_place_crafting_table_machine_observation_grounding`
+- Exact reproduction: Probe 19 action event 621 placed `crafting_table` from reference `(106,135,-36)` to target `(106,136,-36)` with a machine-confirmed air-to-table delta; observation event 623 omitted that target and left the placement task open
+- Policy: `m4-post-place-crafting-table-machine-observation-v1`; only strict-M4 successful crafting-table results with exact item, reference, placed-target, before/after-name, and integral-coordinate agreement may create a bounded projection
+- Lifetime: the verified target appears in the immediate post-action observation and one next planner-facing observation, drives TaskSystem completion and M4 state reconciliation, and then expires
+- Fail closed: unsuccessful results, result-item mismatch, placed-target mismatch, after-name mismatch, before/after-position mismatch, malformed/non-integral coordinates, non-table actions, and non-M4 profiles create no projection
+- Compatibility: Observer radius and truncation, bridge placement, ActionVerifier, GoalVerifier rules, protocol/task-contract hashes, deadlines, success thresholds, skills, vision, multi-agent behavior, M1, and M2 are unchanged
+- Validation: two exact gate cases, 43 M4 deadline definitions, 735 full Python regression definitions, all 35 non-live Python scripts, and six fixed Node suites with 52 internal PASS cases; Python compilation, Node syntax, 1066 JSON files, capability consistency, credential scan, and repository checks pass
+- Status: passed offline; no live episode ran in this gate round
+- Authorization: exactly one fresh BM-012 Probe 20 after this gate commit is pushed
+
 ## BM-012 Live Evidence
 
 ### Probe 19: Placement Succeeded; Machine Observation Lost the Table
@@ -455,7 +469,7 @@ Independent review rejects the Runner's event-424 coal `empty_plan` as causal be
 - Deadline: start 23290.250, deadline 23890.250, Agent end 23890.265, manifest end 23890.281; Agent overrun 0.015 seconds, evidence overrun 0.031 seconds, and one action result was recorded post-deadline
 - Eligibility: 64/74 checks passed with 10 issues; BM-012 remains 0/3 after nineteen attempts
 - Skills: baseline remained off; selected, executed, quarantined, vision, and multi-agent contributions were zero
-- Round boundary: this was the only live episode; no code fix, second run, or new live authorization exists before a bounded offline post-place crafting-table machine-observation gate passes and is pushed
+- Round boundary: this was the only live episode; the subsequent offline post-place crafting-table machine-observation gate passes and authorizes exactly one fresh Probe 20 only after its commit is pushed
 - Evidence: `logs/benchmarks/m4/m4_episode_20260714_043836_18afe612/`
 
 ### Probe 18: Pathfinder Cascade Absent; Critical-Health Actions Deadlocked

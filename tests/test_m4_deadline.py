@@ -1,5 +1,6 @@
 """Deterministic runtime tests for the shared M4 absolute episode deadline."""
 
+import copy
 import json
 import os
 import socket
@@ -2915,6 +2916,206 @@ def test_m4_observation_recovery_gate_rejects_unconfirmed_fallback_and_is_m4_onl
     print("PASS: M4 rejects unconfirmed recovery before observation without changing M2")
 
 
+def _probe_19_place_action() -> dict:
+    return {
+        "type": "place",
+        "parameters": {
+            "item": "crafting_table",
+            "x": 106,
+            "y": 135,
+            "z": -36,
+        },
+    }
+
+
+def _probe_19_place_result() -> dict:
+    return {
+        "success": True,
+        "item": "crafting_table",
+        "reference_position": {"x": 106, "y": 135, "z": -36},
+        "placed_position": {"x": 106, "y": 136, "z": -36},
+        "target_block_before": {
+            "name": "air",
+            "position": {"x": 106, "y": 136, "z": -36},
+        },
+        "target_block_after": {
+            "name": "crafting_table",
+            "position": {"x": 106, "y": 136, "z": -36},
+        },
+    }
+
+
+def test_m4_post_place_machine_observation_replays_probe_19_and_closes_task():
+    clock = FakeClock()
+    raw_observation = {
+        "position": {"x": 107.49044025396036, "y": 132, "z": -35.68254052803044},
+        "inventory": {
+            "crafting_table": 1,
+            "oak_log": 2,
+            "dirt": 4,
+            "stick": 2,
+            "oak_planks": 3,
+            "wooden_pickaxe": 1,
+            "coal": 1,
+        },
+        "nearby_blocks": [
+            {"name": "stone", "position": {"x": 106, "y": 132, "z": -36}},
+            {"name": "grass_block", "position": {"x": 106, "y": 135, "z": -36}},
+            {"name": "iron_ore", "position": {"x": 107, "y": 129, "z": -40}},
+        ],
+        "health": 20,
+        "hunger": 20,
+    }
+
+    class Probe19Observer:
+        def __init__(self):
+            self.calls = 0
+
+        def observe(self):
+            self.calls += 1
+            return copy.deepcopy(raw_observation)
+
+    agent = object.__new__(Agent)
+    agent.config = Config(planner_protocol="m4-fixed-v1", enable_vision_analysis=False)
+    agent.session_logger = RuntimeSessionLogger(clock)
+    agent.task_system = TaskSystem()
+    agent.explorer = RuntimeExplorer()
+    agent.memory = object()
+    agent.observer = Probe19Observer()
+    agent._m4_episode_block_delta = {"placed": {}, "removed": {}}
+    agent._m4_post_place_machine_observation = {}
+    agent._m4_shelter_relocation = {}
+    agent._record_m4_player_lifecycle = lambda observation: None
+    agent._attach_m4_shelter_verification = lambda observation: observation
+    agent._write_memory_context = lambda *args, **kwargs: None
+    agent._write_memory_episode = lambda *args, **kwargs: None
+    agent._record_task_continuity = lambda *args, **kwargs: None
+    placement = agent.task_system.create_task(
+        "Place crafting table on ground",
+        status=TaskStatus.ACCEPTED,
+        preconditions={"inventory": {"crafting_table": 1}},
+        success_criteria={"nearby_block_present": "crafting_table"},
+    )
+
+    post_observation = agent._apply_action_feedback(
+        _probe_19_place_action(),
+        _probe_19_place_result(),
+        raw_observation,
+        {"cycle": 26, "goal": "Craft torches", "mode": "autonomous"},
+    )
+
+    projected = post_observation["nearby_blocks"][-1]
+    assert projected == {
+        "name": "crafting_table",
+        "position": {"x": 106, "y": 136, "z": -36},
+        "machine_verified": True,
+        "machine_state_source": "action_result.target_block_after",
+        "grounding_policy_id": "m4-post-place-crafting-table-machine-observation-v1",
+    }
+    assert post_observation["m4_post_place_machine_observation"]["remaining_observations"] == 1
+    assert placement.status == TaskStatus.COMPLETED
+    assert placement.result["completed_by"] == "action_result"
+
+    next_planner_observation = agent._observe()
+    assert next_planner_observation["nearby_blocks"][-1]["name"] == "crafting_table"
+    assert next_planner_observation["m4_post_place_machine_observation"]["remaining_observations"] == 0
+    assert agent._m4_post_place_machine_observation == {}
+    later_observation = agent._observe()
+    assert all(block["name"] != "crafting_table" for block in later_observation["nearby_blocks"])
+
+    agent._record_m4_post_place_machine_observation(
+        _probe_19_place_action(),
+        _probe_19_place_result(),
+    )
+    directly_observed = copy.deepcopy(raw_observation)
+    directly_observed["nearby_blocks"].append({
+        "name": "crafting_table",
+        "position": {"x": 106, "y": 136, "z": -36},
+    })
+    direct = agent._attach_m4_post_place_machine_observation(directly_observed)
+    assert direct["m4_post_place_machine_observation"]["projected"] is False
+    assert direct["m4_post_place_machine_observation"]["remaining_observations"] == 1
+    assert len([block for block in direct["nearby_blocks"] if block["name"] == "crafting_table"]) == 1
+    omitted_next = agent._attach_m4_post_place_machine_observation(copy.deepcopy(raw_observation))
+    assert omitted_next["nearby_blocks"][-1]["name"] == "crafting_table"
+    assert agent._m4_post_place_machine_observation == {}
+
+    grounding = next(
+        event for event in agent.session_logger.events
+        if event["type"] == "m4_post_place_machine_observation_grounding"
+    )["data"]
+    assert grounding["passed"] is True
+    assert grounding["reference_position"] == {"x": 106, "y": 135, "z": -36}
+    assert grounding["placed_position"] == {"x": 106, "y": 136, "z": -36}
+    assert grounding["projection_observation_limit"] == 2
+    print("PASS: Probe 19 machine-verified placement closes the task and reaches the next planner observation")
+
+
+def test_m4_post_place_machine_observation_fails_closed_for_mismatched_controls():
+    action = _probe_19_place_action()
+    result = _probe_19_place_result()
+    controls = []
+
+    failed = copy.deepcopy(result)
+    failed["success"] = False
+    controls.append((action, failed, "result_not_successful"))
+
+    result_item_mismatch = copy.deepcopy(result)
+    result_item_mismatch["item"] = "oak_planks"
+    controls.append((action, result_item_mismatch, "result_item_mismatch"))
+
+    placed_target_mismatch = copy.deepcopy(result)
+    placed_target_mismatch["placed_position"]["y"] = 137
+    controls.append((action, placed_target_mismatch, "placed_target_mismatch"))
+
+    after_name_mismatch = copy.deepcopy(result)
+    after_name_mismatch["target_block_after"]["name"] = "oak_planks"
+    controls.append((action, after_name_mismatch, "target_block_name_mismatch"))
+
+    after_position_mismatch = copy.deepcopy(result)
+    after_position_mismatch["target_block_after"]["position"]["x"] = 107
+    controls.append((action, after_position_mismatch, "target_block_position_mismatch"))
+
+    malformed_action = copy.deepcopy(action)
+    malformed_action["parameters"]["x"] = 106.5
+    controls.append((malformed_action, result, "position_missing_or_malformed"))
+
+    malformed_result = copy.deepcopy(result)
+    malformed_result["target_block_after"]["position"]["x"] = "106"
+    controls.append((action, malformed_result, "target_block_position_mismatch"))
+
+    for candidate_action, candidate_result, expected_reason in controls:
+        agent = object.__new__(Agent)
+        agent.config = Config(planner_protocol="m4-fixed-v1")
+        agent.session_logger = RuntimeSessionLogger(FakeClock())
+        agent._m4_post_place_machine_observation = {}
+        report = agent._record_m4_post_place_machine_observation(
+            candidate_action,
+            candidate_result,
+        )
+        assert report["passed"] is False
+        assert report["reason"] == expected_reason
+        assert agent._m4_post_place_machine_observation == {}
+
+    non_table = copy.deepcopy(action)
+    non_table["parameters"]["item"] = "oak_planks"
+    scoped = object.__new__(Agent)
+    scoped.config = Config(planner_protocol="m4-fixed-v1")
+    scoped._m4_post_place_machine_observation = {}
+    assert scoped._record_m4_post_place_machine_observation(non_table, result)["reason"] == "item_out_of_scope"
+    assert scoped._m4_post_place_machine_observation == {}
+
+    non_m4 = object.__new__(Agent)
+    non_m4.config = Config(planner_protocol="m2-fixed-v1")
+    non_m4._m4_post_place_machine_observation = {}
+    assert non_m4._record_m4_post_place_machine_observation(action, result) == {}
+    assert non_m4._attach_m4_post_place_machine_observation({"nearby_blocks": []}) == {
+        "nearby_blocks": []
+    }
+    assert non_m4._m4_post_place_machine_observation == {}
+    print("PASS: post-place grounding rejects unsuccessful, mismatched, malformed, out-of-scope, and non-M4 evidence")
+
+
 def test_m4_verifier_return_after_deadline_is_rejected():
     clock = FakeClock()
     agent = object.__new__(Agent)
@@ -3066,6 +3267,8 @@ if __name__ == "__main__":
     test_m4_bridge_recovery_respects_deadline_and_fails_closed_without_machine_state()
     test_m4_deadline_bound_connect_backoff_cannot_cross_episode_deadline()
     test_m4_observation_recovery_gate_rejects_unconfirmed_fallback_and_is_m4_only()
+    test_m4_post_place_machine_observation_replays_probe_19_and_closes_task()
+    test_m4_post_place_machine_observation_fails_closed_for_mismatched_controls()
     test_m4_verifier_return_after_deadline_is_rejected()
     test_session_logger_records_absolute_monotonic_event_time()
     test_m4_autonomous_loop_shares_deadline_and_suppresses_plan_suffix()
