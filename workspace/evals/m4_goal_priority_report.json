@@ -1,11 +1,11 @@
 {
   "type": "m4_goal_priority_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T23:51:02.7166522Z",
+  "generated_at": "2026-07-13T00:12:53.7057848Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_2_ineligible_world_readiness_offline_fix_required",
-  "decision": "do_not_rerun_fix_crafting_station_world_readiness_offline",
+  "readiness": "bm012_world_readiness_offline_gate_passed_probe_3_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_3",
   "priority_order": [
     "immediate_threat",
     "critical_health",
@@ -45,7 +45,7 @@
     "wait_ms": 15000,
     "pending_goal_consumes_new_slot": false,
     "missing_time_fails_closed": true,
-    "full_python_regression": 696,
+    "full_python_regression": 700,
     "node_suite_count": 6,
     "node_internal_pass_count": 36
   },
@@ -58,7 +58,7 @@
     "live_episode_id": "m4_episode_20260713_053155_0f5a150e",
     "scheduled_recovery_count": 1,
     "completed_recovery_count": 1,
-    "next_authorized_episode": "none_world_readiness_offline_gate_pending"
+    "next_authorized_episode": "bm012_probe_3_exactly_one"
   },
   "bm012_autonomous_progression": {
     "task_contract_id": "m4-bm012-resource-contract-v1",
@@ -82,7 +82,11 @@
     "purpose_phrase_offline_gate_passed": true,
     "purpose_phrase_matched_rule": "intent:shelter_purpose_phrase",
     "purpose_phrase_live_validated": true,
-    "next_authorized_episode": "none_world_readiness_offline_gate_pending"
+    "crafting_station_world_readiness_offline_gate_passed": true,
+    "world_readiness_focused_test_count": 50,
+    "placement_selection_reason": "bm012_crafting_table_unplaced",
+    "placement_verifier_rule": "world:nearby_crafting_table",
+    "next_authorized_episode": "bm012_probe_3_exactly_one"
   },
   "live_episode_count": 20,
   "live_episode_count_under_current_protocol": 6,

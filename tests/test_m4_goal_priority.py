@@ -195,6 +195,14 @@ def test_bm012_goal_progression_is_autonomous_and_survival_preemptible():
             "bm012_crafting_table_missing",
         ),
         (
+            _observation(
+                time_of_day=1000,
+                inventory={"oak_log": 4, "oak_planks": 4, "crafting_table": 1},
+            ),
+            "Place the crafting table nearby",
+            "bm012_crafting_table_unplaced",
+        ),
+        (
             _observation(time_of_day=1000, inventory={"oak_log": 6}, nearby_blocks=table),
             "wooden pickaxe",
             "bm012_wooden_pickaxe_missing",

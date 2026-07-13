@@ -471,6 +471,56 @@ def test_m4_planner_canonicalizes_probe_8_craft_recipe_alias():
     assert decision.status == "accept"
 
 
+def test_m4_planner_canonicalizes_probe_2_place_block_alias():
+    grounded, report = Planner._ground_m4_action_parameters({
+        "status": "planning",
+        "reasoning": "place the inventory crafting table on observed ground",
+        "subtasks": [],
+        "actions": [{
+            "type": "place",
+            "parameters": {"x": 106, "y": 135, "z": -29, "block": "crafting_table"},
+        }],
+    })
+
+    action = grounded["actions"][0]
+    assert action == {
+        "type": "place",
+        "parameters": {"item": "crafting_table", "x": 106, "y": 135, "z": -29},
+    }
+    assert report["passed"] is True
+    assert report["place_action_count"] == 1
+    assert report["normalized_action_count"] == 1
+    assert report["normalizations"][0]["aliases"] == ["block->item"]
+    decision = ActionVerifier().verify(
+        action,
+        {"inventory": {"crafting_table": 1}, "nearby_blocks": [{"name": "grass_block"}]},
+        goal="Place crafting table for tool progression",
+    )
+    assert decision.status == "accept"
+    prompt = Planner(PlannerLLM(FakeClock()), TaskSystem(), protocol="m4-fixed-v1")._planner_system_prompt()
+    assert "place action must use item plus top-level finite x, y, and z" in prompt
+    assert "never use block as an alias" in prompt
+    print("PASS: M4 canonicalizes the exact Probe 2 place alias before ActionVerifier")
+
+
+def test_m4_planner_rejects_unexecutable_place_parameters():
+    fixtures = [
+        ({"block": "crafting_table", "x": 106, "y": 135}, "action[0]:place_coordinates_missing:z"),
+        ({"item": "crafting_table", "block": "oak_planks", "x": 106, "y": 135, "z": -29}, "action[0]:place_item_conflict"),
+        ({"item": "crafting_table", "x": 106, "y": 135, "z": -29, "position": {}}, "action[0]:place_unknown_parameters:position"),
+    ]
+    for parameters, expected_issue in fixtures:
+        _, report = Planner._ground_m4_action_parameters({
+            "status": "planning",
+            "reasoning": "fixture",
+            "subtasks": [],
+            "actions": [{"type": "place", "parameters": parameters}],
+        })
+        assert report["passed"] is False
+        assert expected_issue in report["issues"]
+    print("PASS: M4 place grounding fails closed on missing coordinates, conflicts, and unknown aliases")
+
+
 def test_m4_craft_grounding_fails_closed_on_drift():
     fixtures = [
         ({"item": "oak_planks", "recipe": "stick", "count": 4}, "craft_item_conflict"),

@@ -198,6 +198,32 @@ def test_goal_verifier_accepts_custom_anchor():
     print("PASS: GoalVerifier accepts caller-provided verifier anchor")
 
 
+def test_goal_verifier_requires_nearby_crafting_table_for_place_goal():
+    verifier = GoalVerifier(use_knowledge_base=False)
+    goal = "Place crafting table for tool progression"
+
+    inventory_only = verifier.verify(goal, {"inventory": {"crafting_table": 1}, "nearby_blocks": []})
+    placed = verifier.verify(
+        goal,
+        {
+            "inventory": {},
+            "nearby_blocks": [{"name": "crafting_table", "position": {"x": 106, "y": 136, "z": -29}}],
+        },
+    )
+    craft_and_place = verifier.verify(
+        "Craft and place a crafting table for iron-tool progression",
+        {"inventory": {}, "nearby_blocks": [{"name": "crafting_table"}]},
+    )
+
+    assert not inventory_only.achieved
+    assert inventory_only.missing == ["crafting_table is not observed nearby"]
+    assert placed.achieved
+    assert craft_and_place.achieved
+    assert placed.matched_rules == ["world:nearby_crafting_table"]
+    assert craft_and_place.matched_rules == ["world:nearby_crafting_table"]
+    print("PASS: GoalVerifier uses machine world state for crafting-table placement")
+
+
 def test_goal_verifier_mines_skill_postcondition_anchor():
     skills = SkillLibrary(persist=False)
     skills.create_skill(

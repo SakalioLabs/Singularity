@@ -254,6 +254,10 @@ class GoalVerifier:
         recent_actions = recent_actions or []
         checks: list[GoalVerification] = []
 
+        crafting_table_placement = self._crafting_table_placement_check(goal_text, observation)
+        if crafting_table_placement:
+            checks.append(crafting_table_placement)
+
         inventory_checks = self._inventory_checks(goal_text, observation, recent_actions)
         checks.extend(inventory_checks)
 
@@ -391,6 +395,8 @@ class GoalVerifier:
         for anchor in self._ranked_anchors():
             if anchor.canonical in seen:
                 continue
+            if anchor.canonical == "crafting_table" and self._phrase_in_goal("place", goal_lower):
+                continue
             if not self._anchor_verb_matches(anchor, goal_lower):
                 continue
             if not any(self._phrase_in_goal(alias, goal_lower) for alias in anchor.phrases):
@@ -402,6 +408,32 @@ class GoalVerifier:
             checks.append(self._inventory_check(goal, anchor, have, required, recent_actions=recent_actions))
             seen.add(anchor.canonical)
         return checks
+
+    def _crafting_table_placement_check(
+        self,
+        goal: str,
+        observation: dict,
+    ) -> Optional[GoalVerification]:
+        goal_lower = goal.lower()
+        if not (
+            self._phrase_in_goal("place", goal_lower)
+            and self._phrase_in_goal("crafting table", goal_lower)
+        ):
+            return None
+        nearby = observation.get("nearby_blocks", []) or []
+        placed = any(
+            isinstance(block, dict) and str(block.get("name") or "").lower() == "crafting_table"
+            for block in nearby
+        )
+        return GoalVerification(
+            goal=goal,
+            achieved=placed,
+            status="achieved" if placed else "failed",
+            confidence=1.0,
+            evidence=["nearby machine observation contains crafting_table"] if placed else [],
+            missing=[] if placed else ["crafting_table is not observed nearby"],
+            matched_rules=["world:nearby_crafting_table"],
+        )
 
     def _inventory_check(
         self,

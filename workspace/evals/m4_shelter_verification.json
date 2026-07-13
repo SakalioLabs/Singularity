@@ -1,16 +1,16 @@
 {
   "type": "m4_shelter_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T23:51:02.7166522Z",
+  "generated_at": "2026-07-13T00:12:53.7057848Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_2_ineligible_world_readiness_offline_fix_required",
-  "decision": "do_not_rerun_fix_crafting_station_world_readiness_offline",
+  "readiness": "bm012_world_readiness_offline_gate_passed_probe_3_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_3",
   "verifier_id": "m4-sealed-cell-shelter-verifier-v1",
   "contract_sha256": "5660b2ea4cbfb8e09c3919db714006961e1eeb9ee7b7c8d8dfec8a3217c4479f",
   "strategy": "sealed_cell_v1",
   "evidence_scope": "offline_gate_and_probe_17_live_validation",
-  "next_authorized_episode": "none_world_readiness_offline_gate_pending",
+  "next_authorized_episode": "bm012_probe_3_exactly_one",
   "required_checks": [
     "physical_barriers",
     "overhead_cover_or_approved_alternative",
@@ -65,7 +65,7 @@
       {"id": "failed_rollback", "expected": "fail_closed_without_relocation", "status": "pass"},
       {"id": "bounded_relocation_before_retry", "expected": "canonical_move_then_template_retry", "status": "pass"}
     ],
-    "full_python_regression": {"status": "pass", "test_count": 696},
+    "full_python_regression": {"status": "pass", "test_count": 700},
     "node_regression": {"status": "pass", "suite_file_count": 6, "test_count": 36},
     "live_episode_run": true,
     "partial_failure_atomicity": {
@@ -102,7 +102,8 @@
     "resource_episode_eligible": false,
     "purpose_phrase_offline_gate_preserves_direct_shelter_goals": true,
     "purpose_phrase_live_validated": true,
-    "next_authorized_episode": "none_world_readiness_offline_gate_pending"
+    "crafting_station_placement_requires_nearby_machine_state": true,
+    "next_authorized_episode": "bm012_probe_3_exactly_one"
   },
   "live_episode_count": 20,
   "live_episode_count_under_current_protocol": 6,

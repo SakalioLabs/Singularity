@@ -120,6 +120,7 @@ class CurriculumManager:
         torches = self._count_any(inventory, ["torch"])
         raw_iron = self._count_any(inventory, ["raw_iron", "iron_ore"])
         iron_ingots = self._count_any(inventory, ["iron_ingot"])
+        crafting_table_nearby = self._any_nearby(nearby, ["crafting_table"])
 
         if oak_logs < 6:
             candidates.append(self._candidate(
@@ -135,7 +136,7 @@ class CurriculumManager:
                 opportunity=10.0 if self._any_nearby(nearby, ["log", "tree", "oak"]) else 0.0,
             ))
 
-        if not inventory.get("crafting_table") and oak_logs + planks >= 1:
+        if not inventory.get("crafting_table") and not crafting_table_nearby and oak_logs + planks >= 1:
             candidates.append(self._candidate(
                 "Craft crafting table",
                 "crafting",
@@ -149,7 +150,28 @@ class CurriculumManager:
                 reasons=["unlock_crafting_grid"],
             ))
 
-        if not inventory.get("wooden_pickaxe") and inventory.get("crafting_table") and (oak_logs + planks >= 3 or sticks >= 2):
+        wooden_pickaxe_ready = not inventory.get("wooden_pickaxe") and (oak_logs + planks >= 3 or sticks >= 2)
+        stone_pickaxe_ready = (
+            inventory.get("wooden_pickaxe")
+            and not inventory.get("stone_pickaxe")
+            and cobble >= 3
+            and sticks >= 2
+        )
+        if inventory.get("crafting_table") and not crafting_table_nearby and (wooden_pickaxe_ready or stone_pickaxe_ready):
+            candidates.append(self._candidate(
+                "Place crafting table for tool progression",
+                "tool_progression",
+                64.0,
+                observation,
+                discovered,
+                skill_library,
+                target_items=["crafting_table"],
+                required_items={"crafting_table": 1},
+                skill_targets=["place_block"],
+                reasons=["bm012_crafting_table_unplaced"],
+            ))
+
+        if wooden_pickaxe_ready and crafting_table_nearby:
             candidates.append(self._candidate(
                 "Craft wooden pickaxe",
                 "tool_progression",
@@ -178,7 +200,7 @@ class CurriculumManager:
                 opportunity=8.0 if self._any_nearby(nearby, ["stone", "cobblestone"]) else 0.0,
             ))
 
-        if inventory.get("crafting_table") and not inventory.get("stone_pickaxe") and cobble >= 3 and sticks >= 2:
+        if crafting_table_nearby and stone_pickaxe_ready:
             candidates.append(self._candidate(
                 "Craft stone pickaxe",
                 "tool_progression",

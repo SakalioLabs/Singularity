@@ -47,6 +47,36 @@ def test_curriculum_promotes_ready_crafting_progression():
     print("PASS: Curriculum promotes ready crafting progression")
 
 
+def test_curriculum_requires_world_ready_crafting_station_before_pickaxe():
+    manager = CurriculumManager()
+    observation = {
+        "health": 20,
+        "time_of_day": 1806,
+        "inventory": {"oak_log": 4, "crafting_table": 1, "oak_planks": 4},
+        "nearby_entities": [],
+        "nearby_blocks": [{"name": "grass_block"}, {"name": "oak_log"}],
+    }
+
+    goals = manager.propose_goals(
+        observation,
+        "Gather 6 oak logs for iron-tool progression",
+        skill_library=SkillLibrary(persist=False),
+    )
+
+    assert goals[0].title == "Place crafting table for tool progression"
+    assert goals[0].reasons[0] == "bm012_crafting_table_unplaced"
+    assert all(candidate.title != "Craft wooden pickaxe" for candidate in goals)
+
+    observation["nearby_blocks"].append({"name": "crafting_table"})
+    ready = manager.propose_goals(
+        observation,
+        "Gather 6 oak logs for iron-tool progression",
+        skill_library=SkillLibrary(persist=False),
+    )
+    assert ready[0].title == "Craft wooden pickaxe"
+    print("PASS: Curriculum replays Probe 2 with machine-grounded crafting-station readiness")
+
+
 def test_curriculum_uses_visible_novel_resource_when_stable():
     manager = CurriculumManager()
     memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)

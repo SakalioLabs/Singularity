@@ -1,19 +1,19 @@
 {
   "type": "m4_resource_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-12T23:51:02.7166522Z",
+  "generated_at": "2026-07-13T00:12:53.7057848Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "task_id": "BM-012",
   "task_name": "Get 8 iron resources",
   "task_contract_id": "m4-bm012-resource-contract-v1",
   "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
-  "readiness": "probe_2_ineligible_crafting_station_world_readiness_offline_fix_required",
-  "decision": "diagnose_crafting_station_world_readiness_without_live_rerun",
+  "readiness": "crafting_station_world_readiness_offline_gate_passed_probe_3_exactly_one_authorized",
+  "decision": "authorize_exactly_one_bm012_probe_3",
   "hypothesis": "curriculum_crafting_station_world_readiness_grounding",
   "eligible_success_count": 0,
   "required_success_count": 3,
-  "next_authorized_episode": "none_world_readiness_offline_gate_pending",
+  "next_authorized_episode": "bm012_probe_3_exactly_one",
   "contract": {
     "terminal_goal": "Collect 8 iron resources",
     "initial_time_of_day": 0,
@@ -82,8 +82,8 @@
   },
   "offline_validation": {
     "passed": true,
-    "focused_python_test_count": 57,
-    "full_python_regression": 696,
+    "focused_python_test_count": 50,
+    "full_python_regression": 700,
     "node_suite_file_count": 6,
     "node_internal_pass_count": 36,
     "powershell_syntax": "pass",
@@ -104,7 +104,12 @@
       {"id": "probe_1_exact_resource_purpose_phrase_acceptance", "status": "pass"},
       {"id": "purpose_phrase_incomplete_inventory_rejected", "status": "pass"},
       {"id": "explicit_shelter_compound_requirements_preserved", "status": "pass"},
-      {"id": "agent_completion_gate_exact_reproduction", "status": "pass"}
+      {"id": "agent_completion_gate_exact_reproduction", "status": "pass"},
+      {"id": "probe_2_inventory_table_selects_placement", "status": "pass"},
+      {"id": "nearby_table_unlocks_pickaxe_goal", "status": "pass"},
+      {"id": "probe_2_place_block_alias_canonicalized", "status": "pass"},
+      {"id": "place_coordinates_and_alias_drift_rejected", "status": "pass"},
+      {"id": "crafting_table_placement_requires_nearby_machine_state", "status": "pass"}
     ]
   },
   "live_episode_run": true,

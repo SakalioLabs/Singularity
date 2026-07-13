@@ -450,6 +450,8 @@ M4 FIXED OUTPUT CONTRACT:
 - Example: {"type":"dig","parameters":{"x":103,"y":139,"z":-30,"block":"oak_log"}}.
 - A craft action must use item and may use a positive integer count; never use recipe as an alias.
 - Example: {"type":"craft","parameters":{"item":"oak_planks","count":4}}.
+- A place action must use item plus top-level finite x, y, and z reference-block coordinates; never use block as an alias.
+- Example: {"type":"place","parameters":{"item":"crafting_table","x":106,"y":135,"z":-29}}.
 - For an active shelter goal, when the current machine state has at least 10 allowlisted building blocks, immediately use build_shelter_cell with the current shelter player_cell as origin and that inventory material. Nine blocks remain in the structure and one is a temporary roof scaffold. Do not add tools, a crafting table, a furnace, mining, or other unrelated prerequisites.
 - Example: {"type":"build_shelter_cell","parameters":{"origin":{"x":93,"y":136,"z":-36},"material":"oak_planks"}}.
 - A verified-shelter maintenance goal is continuous: before its named nightfall or dawn boundary, return a wait action and preserve the same root instead of reporting complete or expanding another goal."""
@@ -622,6 +624,7 @@ Plan the steps to achieve this goal."""
                 "action_count": 0,
                 "dig_action_count": 0,
                 "craft_action_count": 0,
+                "place_action_count": 0,
                 "normalized_action_count": 0,
                 "normalizations": [],
                 "issues": [],
@@ -631,6 +634,7 @@ Plan the steps to achieve this goal."""
         normalizations = []
         dig_action_count = 0
         craft_action_count = 0
+        place_action_count = 0
 
         for index, action in enumerate(actions):
             if not isinstance(action, dict):
@@ -638,7 +642,7 @@ Plan the steps to achieve this goal."""
                 continue
             grounded_action = dict(action)
             action_type = str(action.get("type") or "")
-            if action_type not in {"dig", "craft"}:
+            if action_type not in {"dig", "craft", "place"}:
                 grounded_actions.append(grounded_action)
                 continue
             if action_type == "dig":
@@ -647,9 +651,15 @@ Plan the steps to achieve this goal."""
                     action.get("parameters"),
                     action_index=index,
                 )
-            else:
+            elif action_type == "craft":
                 craft_action_count += 1
                 canonical, evidence = cls._ground_m4_craft_parameters(
+                    action.get("parameters"),
+                    action_index=index,
+                )
+            else:
+                place_action_count += 1
+                canonical, evidence = cls._ground_m4_place_parameters(
                     action.get("parameters"),
                     action_index=index,
                 )
@@ -667,6 +677,7 @@ Plan the steps to achieve this goal."""
             "action_count": len(actions),
             "dig_action_count": dig_action_count,
             "craft_action_count": craft_action_count,
+            "place_action_count": place_action_count,
             "normalized_action_count": len(normalizations),
             "normalizations": normalizations,
             "issues": sorted(set(issues)),
@@ -822,6 +833,74 @@ Plan the steps to achieve this goal."""
         return canonical, {
             "action_index": action_index,
             "action_type": "craft",
+            "normalized": normalized,
+            "aliases": sorted(set(aliases)),
+            "original_parameters_sha256": cls._parameter_sha256(params),
+            "canonical_parameters": canonical,
+            "issues": sorted(set(issues)),
+        }
+
+    @classmethod
+    def _ground_m4_place_parameters(cls, value, *, action_index: int) -> tuple[dict, dict]:
+        prefix = f"action[{action_index}]:"
+        if not isinstance(value, dict):
+            return {}, {
+                "action_index": action_index,
+                "action_type": "place",
+                "normalized": False,
+                "aliases": [],
+                "original_parameters_sha256": cls._parameter_sha256(value),
+                "canonical_parameters": {},
+                "issues": [prefix + "place_parameters_not_object"],
+            }
+
+        params = dict(value)
+        issues: list[str] = []
+        aliases: list[str] = []
+        unknown = sorted(str(key) for key in params if key not in {"item", "block", "x", "y", "z"})
+        if unknown:
+            issues.append(prefix + "place_unknown_parameters:" + ",".join(unknown))
+
+        item = params.get("item")
+        block = params.get("block")
+        if "block" in params:
+            aliases.append("block->item")
+        if item is not None and (not isinstance(item, str) or not item.strip()):
+            issues.append(prefix + "place_item_invalid")
+            item = None
+        if block is not None and (not isinstance(block, str) or not block.strip()):
+            issues.append(prefix + "place_block_invalid")
+            block = None
+        if isinstance(item, str):
+            item = item.strip()
+        if isinstance(block, str):
+            block = block.strip()
+        if item and block and item != block:
+            issues.append(prefix + "place_item_conflict")
+
+        canonical = {}
+        selected_item = item or block
+        if selected_item:
+            canonical["item"] = selected_item
+        else:
+            issues.append(prefix + "place_item_missing")
+
+        missing = []
+        for axis in ("x", "y", "z"):
+            coordinate = cls._finite_parameter(params.get(axis)) if axis in params else None
+            if axis in params and coordinate is None:
+                issues.append(prefix + f"place_{axis}_not_finite")
+            if coordinate is None:
+                missing.append(axis)
+            else:
+                canonical[axis] = coordinate
+        if missing:
+            issues.append(prefix + "place_coordinates_missing:" + ",".join(missing))
+
+        normalized = bool(aliases or canonical != params)
+        return canonical, {
+            "action_index": action_index,
+            "action_type": "place",
             "normalized": normalized,
             "aliases": sorted(set(aliases)),
             "original_parameters_sha256": cls._parameter_sha256(params),

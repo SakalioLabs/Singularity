@@ -213,6 +213,21 @@ class GoalGenerator:
                 hunger,
                 shelter_verified,
             )
+        nearby_blocks = observation.get("nearby_blocks", [])
+        nearby_blocks = nearby_blocks if isinstance(nearby_blocks, list) else []
+        table_nearby = any(
+            isinstance(block, dict) and block.get("name") == "crafting_table"
+            for block in nearby_blocks
+        )
+        if not table_nearby and self._count(inventory.get("crafting_table")) > 0:
+            return self._progression(
+                "Place the crafting table nearby for iron-tool progression",
+                "bm012_crafting_table_unplaced",
+                time_of_day,
+                health,
+                hunger,
+                shelter_verified,
+            )
         if self._count(inventory.get("oak_log")) < 6:
             return self._progression(
                 "Gather 6 oak logs for iron-tool progression",
@@ -222,13 +237,7 @@ class GoalGenerator:
                 hunger,
                 shelter_verified,
             )
-        nearby_blocks = observation.get("nearby_blocks", [])
-        nearby_blocks = nearby_blocks if isinstance(nearby_blocks, list) else []
-        table_available = self._count(inventory.get("crafting_table")) > 0 or any(
-            isinstance(block, dict) and block.get("name") == "crafting_table"
-            for block in nearby_blocks
-        )
-        if not table_available:
+        if not table_nearby:
             return self._progression(
                 "Craft and place a crafting table for iron-tool progression",
                 "bm012_crafting_table_missing",
