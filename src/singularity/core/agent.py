@@ -4315,8 +4315,17 @@ class Agent:
         if verifier is None:
             return None, None
         self._apply_controlled_skill_fault(action)
+        protocol = str(getattr(getattr(self, "config", None), "planner_protocol", "") or "")
         try:
-            decision = verifier.verify(action, observation or {}, goal=goal)
+            if isinstance(verifier, ActionVerifier):
+                decision = verifier.verify(
+                    action,
+                    observation or {},
+                    goal=goal,
+                    protocol=protocol,
+                )
+            else:
+                decision = verifier.verify(action, observation or {}, goal=goal)
         except Exception as e:
             logger.warning(f"Action verification failed: {e}")
             return None, None
@@ -4325,6 +4334,21 @@ class Agent:
             return self._deadline_action_rejection(action, "after_action_verifier")
 
         verification = decision.as_dict() if hasattr(decision, "as_dict") else dict(decision)
+        if (
+            protocol == "m4-fixed-v1"
+            and verification.get("status") == "reject"
+            and verification.get("action_type") == "place"
+            and verification.get("policy_id") == ActionVerifier.M4_PLACE_TARGET_OCCUPANCY_POLICY_ID
+        ):
+            planner = getattr(self, "planner", None)
+            if hasattr(planner, "request_replan"):
+                replan_reason = (
+                    f"{verification.get('reason', 'M4 place target rejected')}; "
+                    "choose a different reference block whose cell above is air or replaceable"
+                )
+                planner.request_replan(replan_reason)
+                verification["replan_requested"] = True
+                verification["replan_reason"] = replan_reason
         payload = {
             "goal": goal,
             "context": context or {},
@@ -4344,6 +4368,9 @@ class Agent:
                 "action_verification": verification,
                 "verification_blocked": True,
             }
+            if verification.get("replan_requested"):
+                result["requires_replan"] = True
+                result["replan_reason"] = verification.get("replan_reason", "")
             return verification, result
         return verification, None
 

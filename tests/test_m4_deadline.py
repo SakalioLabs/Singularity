@@ -521,6 +521,136 @@ def test_m4_planner_rejects_unexecutable_place_parameters():
     print("PASS: M4 place grounding fails closed on missing coordinates, conflicts, and unknown aliases")
 
 
+def test_m4_place_target_occupancy_gate_replays_probe_7_and_controls():
+    verifier = ActionVerifier()
+    action = {
+        "type": "place",
+        "parameters": {
+            "item": "crafting_table",
+            "x": 93,
+            "y": 134,
+            "z": -38,
+        },
+    }
+    inventory = {"crafting_table": 1, "oak_log": 6}
+
+    for occupied_by in ("dark_oak_log", "grass_block"):
+        decision = verifier.verify(
+            action,
+            {
+                "inventory": inventory,
+                "nearby_blocks": [
+                    {"name": "dirt", "position": {"x": 93, "y": 134, "z": -38}},
+                    {"name": occupied_by, "position": {"x": 93, "y": 135, "z": -38}},
+                ],
+            },
+            goal="Place the crafting table nearby",
+            protocol="m4-fixed-v1",
+        )
+        assert decision.status == "reject"
+        assert decision.policy_id == "m4-place-target-occupancy-v1"
+        assert f"observed_target:{occupied_by}" in decision.evidence
+        assert decision.required == {
+            "target_position": {"x": 93, "y": 135, "z": -38},
+            "target_state": "air_or_replaceable",
+        }
+
+    replaceable = verifier.verify(
+        action,
+        {
+            "inventory": inventory,
+            "nearby_blocks": [{
+                "name": "short_grass",
+                "position": {"x": 93, "y": 135, "z": -38},
+            }],
+        },
+        protocol="m4-fixed-v1",
+    )
+    unobserved = verifier.verify(
+        action,
+        {
+            "inventory": inventory,
+            "nearby_blocks": [{
+                "name": "grass_block",
+                "position": {"x": 94, "y": 135, "z": -38},
+            }],
+        },
+        protocol="m4-fixed-v1",
+    )
+    non_m4 = verifier.verify(
+        action,
+        {
+            "inventory": inventory,
+            "nearby_blocks": [{
+                "name": "grass_block",
+                "position": {"x": 93, "y": 135, "z": -38},
+            }],
+        },
+    )
+    assert replaceable.status == "accept"
+    assert "target:short_grass" in replaceable.evidence
+    assert unobserved.status == "accept"
+    assert "target:not_observed_occupied" in unobserved.evidence
+    assert non_m4.status == "accept"
+
+    prompt = Planner(PlannerLLM(FakeClock()), TaskSystem(), protocol="m4-fixed-v1")._planner_system_prompt()
+    assert "actual target is the block cell at floor(x), floor(y)+1, floor(z)" in prompt
+    assert "choose a different reference after an occupied-target rejection" in prompt
+    print("PASS: M4 rejects the exact Probe 7 occupied targets while controls remain executable")
+
+
+def test_m4_occupied_place_rejection_requests_grounded_replan():
+    clock = FakeClock()
+    planner = RuntimePlanner()
+    agent = object.__new__(Agent)
+    agent.config = Config(
+        planner_protocol="m4-fixed-v1",
+        enable_action_verification=True,
+        enforce_action_verification=True,
+    )
+    agent.action_verifier = ActionVerifier()
+    agent.planner = planner
+    agent.session_logger = RuntimeSessionLogger(clock)
+    agent._episode_deadline_monotonic = None
+    agent._write_memory_episode = lambda *args, **kwargs: None
+
+    verification, result = agent._verify_action_for_execution(
+        {
+            "type": "place",
+            "parameters": {
+                "item": "crafting_table",
+                "x": 93,
+                "y": 134,
+                "z": -36,
+            },
+        },
+        {
+            "inventory": {"crafting_table": 1},
+            "nearby_blocks": [{
+                "name": "grass_block",
+                "position": {"x": 93, "y": 135, "z": -36},
+            }],
+        },
+        "Place the crafting table nearby",
+        {"cycle": 6, "mode": "autonomous"},
+    )
+
+    assert verification["status"] == "reject"
+    assert verification["policy_id"] == "m4-place-target-occupancy-v1"
+    assert verification["replan_requested"] is True
+    assert result["success"] is False
+    assert result["verification_blocked"] is True
+    assert result["duration_ms"] == 0
+    assert result["requires_replan"] is True
+    assert len(planner.replan_reasons) == 1
+    assert "occupied by grass_block" in planner.replan_reasons[0]
+    assert "cell above is air or replaceable" in planner.replan_reasons[0]
+    event = agent.session_logger.events[-1]
+    assert event["type"] == "action_verification"
+    assert event["data"]["verification"]["replan_requested"] is True
+    print("PASS: occupied M4 place targets fail before execution and ground the next replan")
+
+
 def test_m4_craft_grounding_fails_closed_on_drift():
     fixtures = [
         ({"item": "oak_planks", "recipe": "stick", "count": 4}, "craft_item_conflict"),

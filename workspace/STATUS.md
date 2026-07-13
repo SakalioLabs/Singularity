@@ -50,7 +50,7 @@
 - M4 is `failing`; BM-011 remains repeat-verified, but BM-012 now has a failed live attempt and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after seven failed live attempts. Probe 7 live-validated `m4-place-requested-item-equip-v1` on all 17 place attempts, then exposed `planner_place_target_occupancy_grounding`: the first target cell held `dark_oak_log` and the next 16 held `grass_block`, while ActionVerifier accepted each action from inventory evidence alone. No further live episode is authorized before an offline target-occupancy gate passes. BM-013 and BM-014 remain locked.
+- BM-012 is the next target at 0/3 after seven failed live attempts. Probe 7 live-validated `m4-place-requested-item-equip-v1` on all 17 place attempts, then exposed `planner_place_target_occupancy_grounding`: the first target cell held `dark_oak_log` and the next 16 held `grass_block`, while ActionVerifier accepted each action from inventory evidence alone. The bounded `m4-place-target-occupancy-v1` offline gate now rejects both exact fixtures before execution, requests a target-aware replan, and adds an independent Mineflayer preflight before equip or mutation. Exactly one fresh Probe 8 is authorized after the gate commit is pushed; BM-013 and BM-014 remain locked.
 
 ## Evidence Policy
 

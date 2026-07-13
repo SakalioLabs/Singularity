@@ -1,19 +1,19 @@
 {
   "type": "m4_resource_verification_report",
   "schema_version": 1,
-  "generated_at": "2026-07-13T04:31:01.0780362Z",
+  "generated_at": "2026-07-13T05:06:12.9242150Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "task_id": "BM-012",
   "task_name": "Get 8 iron resources",
   "task_contract_id": "m4-bm012-resource-contract-v1",
   "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
-  "readiness": "probe_7_ineligible_place_target_occupancy_grounding_diagnosed",
-  "decision": "hold_live_rerun_pending_offline_place_target_occupancy_gate",
+  "readiness": "offline_place_target_occupancy_gate_passed_probe_8_authorized_after_push",
+  "decision": "allow_one_fresh_bm012_probe_8_after_gate_commit_push",
   "hypothesis": "planner_place_target_occupancy_grounding",
   "eligible_success_count": 0,
   "required_success_count": 3,
-  "next_authorized_episode": "none_pending_offline_place_target_occupancy_gate",
+  "next_authorized_episode": "bm012_probe_8_once_after_gate_commit_push",
   "contract": {
     "terminal_goal": "Collect 8 iron resources",
     "initial_time_of_day": 0,
@@ -1103,5 +1103,37 @@
     "live_requested_item_equipped_count": 17,
     "prior_failure_recurred": false
   },
-  "round_boundary": "Probe 7 was the only live episode in this round. The requested-item equip gate passed live on all 17 place actions; no code fix, second episode, or new live authorization occurs pending an offline target-occupancy gate."
+  "offline_place_target_occupancy_gate": {
+    "root_hypothesis": "planner_place_target_occupancy_grounding",
+    "status": "passed",
+    "policy_id": "m4-place-target-occupancy-v1",
+    "scope": "strict-M4 planner contract, pre-execution ActionVerifier, and generic Mineflayer place target preflight",
+    "actual_target_rule": "floor(x),floor(y)+1,floor(z)",
+    "exact_probe_7_replay": {
+      "occupied_blocks": ["dark_oak_log", "grass_block"],
+      "occupied_fixture_count": 2,
+      "action_verifier_rejected_before_execution": true,
+      "action_duration_ms": 0,
+      "target_aware_replan_requested": true,
+      "bridge_equip_call_count": 0,
+      "bridge_place_call_count": 0,
+      "target_mutation_count": 0
+    },
+    "replaceable_target_control_accepted": true,
+    "target_absent_from_observed_non_air_set_accepted": true,
+    "non_m4_action_verifier_control_unchanged": true,
+    "bridge_air_target_control_accepted": true,
+    "focused_python_test_count": 22,
+    "cross_module_python_test_count": 149,
+    "full_python_regression": 709,
+    "node_suite_file_count": 6,
+    "node_internal_pass_count": 38,
+    "m4_node_case_count": 11,
+    "protocol_changed": false,
+    "task_contract_changed": false,
+    "live_episode_run": false,
+    "bm012_live_episode_count": 7,
+    "next_authorized_episode": "bm012_probe_8_once_after_gate_commit_push"
+  },
+  "round_boundary": "This was an offline-only gate round. BM-012 remains at seven live attempts and 0/3; exactly one fresh Probe 8 is authorized after this gate commit is pushed."
 }

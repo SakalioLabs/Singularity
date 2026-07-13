@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 7 remain ineligible at 0/3. Probe 7 live-validated the requested-item equip gate across all 17 place attempts, then exposed `planner_place_target_occupancy_grounding`: every selected target cell was already occupied. No further live episode is authorized until a bounded offline target-occupancy gate passes; BM-013 and BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 7 remain ineligible at 0/3. Probe 7 live-validated the requested-item equip gate across all 17 place attempts, then exposed `planner_place_target_occupancy_grounding`: every selected target cell was already occupied. The bounded target-occupancy gate now passes offline and authorizes exactly one fresh Probe 8 after this gate commit is pushed; BM-013 and BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_7_ineligible_place_target_occupancy_grounding_diagnosed |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | offline_place_target_occupancy_gate_passed_probe_8_authorized_after_push |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -84,6 +84,8 @@ The bounded `place_backend_requested_item_equip_grounding` fix now passes offlin
 Probe 7 live-validates the requested-item equip gate on all 17 place actions: each result records `item=crafting_table`, `equipped_item=crafting_table`, `requested_item_equipped=true`, and policy `m4-place-requested-item-equip-v1`. The prior sapling placement and empty-hand cascade did not recur.
 
 The new earliest failure layer is `planner_place_target_occupancy_grounding`. Planner call event 245 / call `llm-433910d52edd4327` and plan event 247 selected dirt reference `(93,134,-38)` but did not check its placement target `(93,135,-38)`, even though observations showed `dark_oak_log` there. ActionVerifier event 273 accepted the place from inventory evidence alone; action event 278 then timed out waiting for `blockUpdate`. The next 16 actions targeted `(93,135,-36)`, which each immediately preceding machine observation showed as `grass_block`, and all timed out identically. Later task deadlines, the successful 9/9 bounded shelter, and the post-deadline wait completion are downstream. Probe 7 was this round's sole live episode; no code fix or second run occurs in the round.
+
+The bounded `planner_place_target_occupancy_grounding` fix now passes offline under `m4-place-target-occupancy-v1`. The strict-M4 prompt defines the actual placement target as `floor(x),floor(y)+1,floor(z)`. ActionVerifier checks exact-position machine observations, rejects observed solid targets at zero execution duration, and requests a next-cycle replan naming the occupied block and required air-or-replaceable state. The generic Mineflayer place bridge independently reads the exact target and rejects a solid occupant before equip, `placeBlock`, or mutation. The exact Probe 7 `dark_oak_log` and `grass_block` states fail closed; replaceable, target-absent, non-M4 ActionVerifier, and successful air-target controls pass. The protocol and BM-012 task-contract hashes, deadlines, and success thresholds are unchanged. Full regression passes 709 Python tests and six Node suites with 38 internal cases. No live episode ran in this offline round; exactly one fresh Probe 8 is authorized after this gate commit is pushed.
 
 ## BM-012 Offline Preflight
 
@@ -176,6 +178,20 @@ The new earliest failure layer is `planner_place_target_occupancy_grounding`. Pl
 - Scope: generic Mineflayer place bridge only; Planner, ActionVerifier, GoalVerifier, task semantics, protocol/task-contract hashes, M1/M2 fixed protocols, deadlines, and thresholds are unchanged
 - Validation: three exact place cases, 166 related Python tests, 707 full Python tests, six Node suites with 37 internal cases, Node/Python syntax checks, and `git diff --check` pass
 - Authorization: consumed by BM-012 Probe 7; no second episode ran in the live round
+
+## BM-012 Placement Target Occupancy Gate
+
+- Root hypothesis: `planner_place_target_occupancy_grounding`
+- Runtime policy: `m4-place-target-occupancy-v1`
+- Coordinate contract: `place(x,y,z)` names the reference block; the actual target is `floor(x),floor(y)+1,floor(z)`
+- Exact replay: Probe 7 reference `(93,134,-38)` with target `dark_oak_log` and reference `(93,134,-36)` with target `grass_block` both reject before execution
+- ActionVerifier boundary: strict-M4 uses exact positioned machine observations, requires air or a conservative replaceable block, returns zero-duration rejection evidence, and requests a target-aware next-cycle replan
+- Bridge boundary: Mineflayer reads the exact target and rejects a solid occupant before item equip, `placeBlock`, or world mutation
+- Controls: `short_grass`, a target absent from the observed non-air set, non-M4 ActionVerifier behavior, and the existing air-target success path remain accepted
+- Scope: M4 placement grounding plus the generic impossible-target bridge preflight; GoalVerifier, task semantics, fixed protocol/task-contract hashes, deadlines, and success thresholds are unchanged
+- Validation: 22 focused M4 Python tests, 149 cross-module Python tests, 709 full Python tests, and six Node suites with 38 internal cases pass
+- Live count: unchanged at seven BM-012 attempts and 0/3 eligible successes; this gate is offline evidence only
+- Authorization: exactly one fresh Probe 8 after this gate commit is pushed; no live episode ran in the offline gate round
 
 ## BM-012 Live Evidence
 

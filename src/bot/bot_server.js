@@ -1053,6 +1053,7 @@ function createShelterStateHandler(getState = () => ({ bot, botReady })) {
 function createPlaceHandler(getState = () => ({ bot, botReady })) {
     return async (params = {}) => {
         const equipPolicyId = 'm4-place-requested-item-equip-v1';
+        const targetOccupancyPolicyId = 'm4-place-target-occupancy-v1';
         const state = getState() || {};
         const activeBot = state.bot;
         if (!state.botReady || !activeBot?.entity?.position) {
@@ -1086,6 +1087,21 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
                     error: `${item} is not available for placement`,
                     item,
                     equip_policy_id: equipPolicyId,
+                    target_occupancy_policy_id: targetOccupancyPolicyId,
+                };
+            }
+            if (before.solid) {
+                return {
+                    success: false,
+                    error: `placement target is occupied by ${before.name}`,
+                    item,
+                    equip_policy_id: equipPolicyId,
+                    target_occupancy_policy_id: targetOccupancyPolicyId,
+                    requires_replan: true,
+                    reference_position: compactPosition(referencePosition),
+                    placed_position: compactPosition(targetPosition),
+                    target_block_before: before,
+                    required_target_state: 'air_or_replaceable',
                 };
             }
             try {
@@ -1096,6 +1112,7 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
                     error: `could not equip ${item}: ${error.message}`,
                     item,
                     equip_policy_id: equipPolicyId,
+                    target_occupancy_policy_id: targetOccupancyPolicyId,
                 };
             }
             const heldItem = activeBot.heldItem || (
@@ -1109,6 +1126,7 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
                     item,
                     equipped_item: equippedItem,
                     equip_policy_id: equipPolicyId,
+                    target_occupancy_policy_id: targetOccupancyPolicyId,
                 };
             }
             await activeBot.placeBlock(referenceBlock, new Vec3(0, 1, 0));
@@ -1121,6 +1139,7 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
                 equipped_item: equippedItem,
                 requested_item_equipped: true,
                 equip_policy_id: equipPolicyId,
+                target_occupancy_policy_id: targetOccupancyPolicyId,
                 reference_position: compactPosition(referencePosition),
                 placed_position: compactPosition(targetPosition),
                 target_block_before: before,
@@ -1134,6 +1153,7 @@ function createPlaceHandler(getState = () => ({ bot, botReady })) {
                 equipped_item: equippedItem,
                 requested_item_equipped: equippedItem === item,
                 equip_policy_id: equipPolicyId,
+                target_occupancy_policy_id: targetOccupancyPolicyId,
             };
         }
     };

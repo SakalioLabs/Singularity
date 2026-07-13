@@ -17,6 +17,7 @@ class ActionVerificationDecision:
     missing: list[str] = field(default_factory=list)
     evidence: list[str] = field(default_factory=list)
     required: dict = field(default_factory=dict)
+    policy_id: str = ""
 
     @property
     def rejected(self) -> bool:
@@ -35,6 +36,8 @@ class ActionVerificationDecision:
             data["evidence"] = list(self.evidence)
         if self.required:
             data["required"] = dict(self.required)
+        if self.policy_id:
+            data["policy_id"] = self.policy_id
         return data
 
 
@@ -42,11 +45,32 @@ class ActionVerifier:
     """Rule-based verifier for obvious Minecraft action feasibility gaps."""
 
     SAFE_LOW_INFORMATION_ACTIONS = {"move_to", "walk_to", "look_at", "wait", "chat"}
+    M4_PLACE_TARGET_OCCUPANCY_POLICY_ID = "m4-place-target-occupancy-v1"
+    M4_REPLACEABLE_BLOCKS = {
+        "air",
+        "cave_air",
+        "void_air",
+        "short_grass",
+        "tall_grass",
+        "fern",
+        "large_fern",
+        "dead_bush",
+        "vine",
+        "snow",
+        "fire",
+        "soul_fire",
+    }
 
     def __init__(self, knowledge_base: Optional[KnowledgeBase] = None):
         self.kb = knowledge_base or KnowledgeBase()
 
-    def verify(self, action: dict, world_state: dict = None, goal: str = "") -> ActionVerificationDecision:
+    def verify(
+        self,
+        action: dict,
+        world_state: dict = None,
+        goal: str = "",
+        protocol: str = "",
+    ) -> ActionVerificationDecision:
         if not isinstance(action, dict):
             return self._decision("unknown", "reject", 0.0, "action is not a structured object")
         action_type = str(action.get("type") or "").strip() or "unknown"
@@ -64,7 +88,9 @@ class ActionVerifier:
             return self._verify_shelter_template(params, state, inventory)
         if action_type == "build_shelter_cell":
             return self._verify_m4_shelter_cell(params, state, inventory)
-        if action_type in {"place", "equip", "use_item"}:
+        if action_type == "place":
+            return self._verify_place(params, state, inventory, protocol=protocol)
+        if action_type in {"equip", "use_item"}:
             return self._verify_inventory_item_action(action_type, params, inventory)
         if action_type == "attack":
             return self._verify_attack(params, state)
@@ -150,6 +176,76 @@ class ActionVerifier:
         if inventory.get(item, 0) <= 0:
             return self._decision(action_type, "reject", 0.1, f"{item} not present in inventory", missing=[item])
         return self._decision(action_type, "accept", 0.9, f"{item} available in inventory", evidence=[item])
+
+    def _verify_place(
+        self,
+        params: dict,
+        state: dict,
+        inventory: dict,
+        *,
+        protocol: str,
+    ) -> ActionVerificationDecision:
+        inventory_decision = self._verify_inventory_item_action("place", params, inventory)
+        if inventory_decision.rejected or str(protocol or "") != "m4-fixed-v1":
+            return inventory_decision
+
+        policy_id = self.M4_PLACE_TARGET_OCCUPANCY_POLICY_ID
+        reference = self._finite_block_position(params)
+        if reference is None:
+            return self._decision(
+                "place",
+                "reject",
+                0.0,
+                "M4 place action requires finite reference coordinates",
+                missing=["x", "y", "z"],
+                evidence=[f"policy:{policy_id}"],
+                policy_id=policy_id,
+            )
+
+        target = {
+            "x": reference["x"],
+            "y": reference["y"] + 1,
+            "z": reference["z"],
+        }
+        observed = self._observed_blocks_at(state, target)
+        occupied = [
+            block for block in observed
+            if not self._m4_block_is_replaceable(block)
+        ]
+        required = {
+            "target_position": target,
+            "target_state": "air_or_replaceable",
+        }
+        if occupied:
+            names = sorted({str(block.get("name") or "unknown") for block in occupied})
+            return self._decision(
+                "place",
+                "reject",
+                0.0,
+                (
+                    f"M4 place target {target['x']},{target['y']},{target['z']} "
+                    f"is occupied by {','.join(names)}"
+                ),
+                evidence=[f"policy:{policy_id}"] + [f"observed_target:{name}" for name in names],
+                required=required,
+                policy_id=policy_id,
+            )
+
+        item = str(params.get("item") or "").strip()
+        target_evidence = (
+            ",".join(sorted({str(block.get("name") or "air") for block in observed}))
+            if observed
+            else "not_observed_occupied"
+        )
+        return self._decision(
+            "place",
+            "accept",
+            0.95,
+            "requested item is available and the M4 target is not observed occupied",
+            evidence=[item, f"policy:{policy_id}", f"target:{target_evidence}"],
+            required=required,
+            policy_id=policy_id,
+        )
 
     def _verify_attack(self, params: dict, state: dict) -> ActionVerificationDecision:
         if params.get("entity_id"):
@@ -317,6 +413,53 @@ class ActionVerifier:
                     names.add(item)
         return names
 
+    @staticmethod
+    def _finite_block_position(values: dict) -> Optional[dict]:
+        position = {}
+        for axis in ("x", "y", "z"):
+            value = values.get(axis)
+            if isinstance(value, bool):
+                return None
+            try:
+                coordinate = float(value)
+            except (TypeError, ValueError):
+                return None
+            if not math.isfinite(coordinate):
+                return None
+            position[axis] = math.floor(coordinate)
+        return position
+
+    @classmethod
+    def _observed_blocks_at(cls, state: dict, target: dict) -> list[dict]:
+        observed = []
+        for key in ("nearby_blocks", "blocks", "visible_blocks"):
+            values = state.get(key, [])
+            if not isinstance(values, list):
+                continue
+            for item in values:
+                if not isinstance(item, dict):
+                    continue
+                raw_position = item.get("position")
+                raw_position = raw_position if isinstance(raw_position, dict) else item
+                position = cls._finite_block_position(raw_position)
+                if position != target:
+                    continue
+                name = item.get("name") or item.get("block")
+                if not name and isinstance(item.get("type"), str):
+                    name = item.get("type")
+                block = dict(item)
+                block["name"] = str(name or "unknown").strip().lower()
+                observed.append(block)
+        return observed
+
+    @classmethod
+    def _m4_block_is_replaceable(cls, block: dict) -> bool:
+        name = str(block.get("name") or "").strip().lower()
+        return bool(
+            block.get("replaceable") is True
+            or name in cls.M4_REPLACEABLE_BLOCKS
+        )
+
     def _inventory(self, state: dict) -> dict:
         inventory = state.get("inventory", {}) if isinstance(state, dict) else {}
         if not isinstance(inventory, dict):
@@ -341,6 +484,7 @@ class ActionVerifier:
         missing: Optional[list[str]] = None,
         evidence: Optional[list[str]] = None,
         required: Optional[dict] = None,
+        policy_id: str = "",
     ) -> ActionVerificationDecision:
         return ActionVerificationDecision(
             action_type=action_type,
@@ -350,4 +494,5 @@ class ActionVerifier:
             missing=missing or [],
             evidence=evidence or [],
             required=required or {},
+            policy_id=str(policy_id or ""),
         )

@@ -288,6 +288,7 @@ async function testM4PlaceHandlerReturnsObservedCoordinateDelta() {
     assert.strictEqual(result.equipped_item, 'oak_planks');
     assert.strictEqual(result.requested_item_equipped, true);
     assert.strictEqual(result.equip_policy_id, 'm4-place-requested-item-equip-v1');
+    assert.strictEqual(result.target_occupancy_policy_id, 'm4-place-target-occupancy-v1');
     assert.deepStrictEqual(result.placed_position, { x: 0, y: 64, z: 0 });
     assert.strictEqual(result.target_block_before.name, 'air');
     assert.strictEqual(result.target_block_after.name, 'oak_planks');
@@ -320,6 +321,33 @@ async function testM4PlaceHandlerRejectsUnequippedRequestedItemBeforeMutation() 
     assert.strictEqual(placeCalls, 0);
     assert.strictEqual(blocks.has('0,64,0'), false);
     console.log('PASS: M4 place handler fails closed before world mutation when exact equip does not hold');
+}
+
+async function testM4PlaceHandlerRejectsOccupiedTargetBeforeMutation() {
+    for (const occupiedBy of ['dark_oak_log', 'grass_block']) {
+        const { bot, blocks, equipCalls } = createShelterBot();
+        blocks.set('0,64,0', occupiedBy);
+        let placeCalls = 0;
+        bot.placeBlock = async () => {
+            placeCalls += 1;
+        };
+        const handler = createPlaceHandler(() => ({ bot, botReady: true }));
+        const result = await handler({ x: 0, y: 63, z: 0, item: 'oak_planks' });
+
+        assert.strictEqual(result.success, false);
+        assert.strictEqual(result.error, `placement target is occupied by ${occupiedBy}`);
+        assert.strictEqual(result.target_occupancy_policy_id, 'm4-place-target-occupancy-v1');
+        assert.strictEqual(result.requires_replan, true);
+        assert.deepStrictEqual(result.reference_position, { x: 0, y: 63, z: 0 });
+        assert.deepStrictEqual(result.placed_position, { x: 0, y: 64, z: 0 });
+        assert.strictEqual(result.target_block_before.name, occupiedBy);
+        assert.strictEqual(result.target_block_before.solid, true);
+        assert.strictEqual(result.required_target_state, 'air_or_replaceable');
+        assert.deepStrictEqual(equipCalls, []);
+        assert.strictEqual(placeCalls, 0);
+        assert.strictEqual(blocks.get('0,64,0'), occupiedBy);
+    }
+    console.log('PASS: M4 place handler rejects Probe 7 occupied targets before equip or mutation');
 }
 
 async function testM4BoundedSealedCellBuildReturnsNineObservedDeltas() {
@@ -539,6 +567,7 @@ async function main() {
     await testM4ShelterSnapshotReturnsCompleteBoundedMachineState();
     await testM4PlaceHandlerReturnsObservedCoordinateDelta();
     await testM4PlaceHandlerRejectsUnequippedRequestedItemBeforeMutation();
+    await testM4PlaceHandlerRejectsOccupiedTargetBeforeMutation();
     await testM4BoundedSealedCellBuildReturnsNineObservedDeltas();
     await testM4BoundedSealedCellPreflightRejectsProbe16GeometryWithoutMutation();
     await testM4BoundedSealedCellRollsBackUnexpectedPartialPlacement();
