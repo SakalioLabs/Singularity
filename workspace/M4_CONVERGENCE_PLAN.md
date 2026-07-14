@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 20 remain ineligible at 0/3. Probe 20 live-activated the bounded post-place gate and the Probe 19 same-target loop did not recur. It acquired one raw iron, but a ready-task root then bypassed its stricter machine success criterion and consumed fourteen goal slots without another action. No code fix or second episode ran; the next gate is offline-only, no fresh episode is authorized, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 21 remain ineligible at 0/3. Probe 21 live-activated the exact ready-task binding gate with 61 fail-closed reports and zero improper allow decisions. Broader progression recovered through a crafting table and wooden pickaxe, but readiness recovery then machine-completed an inventory-family task without closing or redirecting its exact-item root. Probe 21 consumed the only authorization; the next gate is offline-only, no fresh episode is authorized, and BM-013/BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_21_authorized_after_ready_task_goal_verifier_offline_gate |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_22_locked_pending_readiness_recovery_inventory_family_root_completion_offline_gate |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -161,6 +161,10 @@ Independent review rejects the Runner's event-820 torch `empty_plan` as causal b
 
 The bounded offline fix now passes under `m4-ready-task-goal-verifier-success-criteria-v1`. Agent captures the exact task ID selected by `ready_task_selected` and a deep-copied criteria snapshot. Pre-plan, Planner-complete, and post-action verification can close that root only when the same task is already machine-completed by existing state reconciliation or action feedback; generic GoalVerifier output is otherwise suppressed. The exact `raw_iron:1`/required-`raw_iron:2` replay executes the planned dig and releases only after action feedback completes the bound task. Accepted and active status, same-title replacement, criteria mutation, status-only completion without an approved machine source, missing or malformed binding, invalid or expired deadline, and M1/M2 controls all behave fail-closed or unchanged as required. Four exact gate tests, 47 M4 deadline definitions, 739 full Python regression definitions, all 35 non-live Python scripts, and six Node suites with 52 internal cases pass. No live episode ran in this offline round.
 
+Probe 21 live-validates that gate. Across 61 binding reports, 37 retained an unverified goal and 24 suppressed generic completion until exact machine completion; none allowed an unproven ready-task root to finish. Task `7790c984` activated at event 814 and failed at event 851. Event 970 later placed the requested table, event 973 achieved the generic GoalVerifier rule, and event 974 correctly suppressed completion because the exact bound task remained failed. The added suppression caused local churn, but the episode recovered through the event-1491 wooden-pickaxe craft and event-1495 root completion.
+
+The new earliest failure layer is `m4_readiness_recovery_inventory_family_root_completion_disconnect`. Event 1504 selected `Acquire 4 oak_log for Craft oak_planks from oak_logs` for stale blocked task `d37f41ea`, replacing the iron-progression fallback. Event 1509 already held `dark_oak_log:4`, a wooden pickaxe, and a nearby crafting table. Recovery task `25fa2b53` was created at event 1511 and machine-completed at events 1512/1513 when the existing inventory-family policy projected the four dark-oak logs to canonical `oak_log:4`. Planner event 1519 nevertheless reasoned that exact oak-log inventory was zero, created another collection chain, and event 1532 moved away. The root consumed nine cycles and event 1721 suspended it at dusk with six stale accepted crafting tasks. No stone-pickaxe or iron progression followed. The next experiment is limited to this readiness-recovery root/task completion boundary; no fix or second episode occurs in this round.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -170,8 +174,8 @@ The bounded offline fix now passes under `m4-ready-task-goal-verifier-success-cr
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression: 739 Python regression definitions, all 35 non-live Python scripts, all six fixed Node suites with 52 internal assertions, Node syntax, and Python compilation pass
-- Live authorization: exactly one fresh BM-012 Probe 21 after the ready-task gate commit is pushed; no second episode in the same round
+- Regression baseline: 739 Python regression definitions, all 35 non-live Python scripts, all six fixed Node suites with 52 internal assertions, Node syntax, and Python compilation passed before Probe 21
+- Live authorization: consumed by BM-012 Probe 21; no Probe 22 is authorized before the readiness-recovery inventory-family root-completion offline gate is implemented, validated, committed, and pushed
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -465,9 +469,40 @@ The bounded offline fix now passes under `m4-ready-task-goal-verifier-success-cr
 - Compatibility: global GoalVerifier semantics, TaskSystem criteria, goal priority, runtime interrupts, protocol/task-contract hashes, deadlines, success thresholds, M1, and M2 are unchanged
 - Validation: four exact gate cases, 47 M4 deadline definitions, 739 full Python regression definitions, all 35 non-live Python scripts, and six fixed Node suites with 52 internal PASS cases; Python compilation, Node syntax, JSON, capability consistency, credential scan, and repository checks pass
 - Status: passed offline; no live episode ran in this gate round
-- Authorization: exactly one fresh BM-012 Probe 21 after this gate commit is pushed; stop after that episode for independent review
+- Live validation: Probe 21 emitted 61 reports (`37` retain, `24` suppress, `0` allow); event 974 suppressed generic completion because exact bound task `7790c984` had failed
+- Authorization: consumed by BM-012 Probe 21; stop before any further live episode
+
+## BM-012 Readiness-Recovery Inventory-Family Root-Completion Gate
+
+- Root hypothesis: `m4_readiness_recovery_inventory_family_root_completion_disconnect`
+- Exact reproduction: event 1511 creates recovery task `25fa2b53` for `oak_log:4`; events 1512/1513 machine-complete it from `dark_oak_log:4`, while plan event 1519 still reasons from exact `oak_log:0` and continues the same root
+- Required boundary: when a readiness-recovery task is machine-completed through the existing pinned inventory-family projection, the active recovery root must close or deterministically return to fresh fallback selection before another Planner action executes
+- Fail closed: unrelated task completion, criteria drift, same-title replacement, missing machine source, malformed family projection, and non-M4 profiles must not complete the root
+- Compatibility: generic GoalVerifier, TaskSystem inventory-family semantics, Planner schema, priority order, deadlines, success thresholds, M1, and M2 remain unchanged
+- Status: required offline; implementation and validation have not started in this live-evidence round
+- Authorization: none; Probe 22 remains locked until this gate is implemented, validated, committed, and pushed
 
 ## BM-012 Live Evidence
+
+### Probe 21: Ready-Task Gate Held; Recovery Root Ignored Inventory-Family Completion
+
+- Episode: `m4_episode_20260714_073801_99ea1735`
+- Session: `ce75c8dc-5d3`
+- Level: `m4_episode_20260714_073801_99ea1735_bm012`
+- Frozen code: `84ca601`; protocol and BM-012 task-contract hashes unchanged
+- Prior gate: 61 machine-readable reports emitted 37 `retain_unverified_goal`, 24 `suppress_until_bound_task_machine_completion`, and zero allow decisions; task `7790c984` activated at event 814, failed at event 851, and event 974 suppressed generic completion after event 970 placed the table and event 973 achieved the GoalVerifier rule
+- Runner review: event 318's placement-replan `empty_plan` recovered through seven sibling task reconciliations at events 963-968, successful placement at event 970, wooden-pickaxe craft at event 1491, and root completion at event 1495
+- Earliest unrecovered transition: event 1504 selected an exact-`oak_log` recovery for stale blocked task `d37f41ea`; event 1511 created task `25fa2b53`, events 1512/1513 machine-completed it from `dark_oak_log:4`, but event 1519 still planned from exact `oak_log:0`
+- Persistence: event 1532 executed the unnecessary move; the recovery root consumed nine cycles and event 1721 suspended it at dusk with six stale `Craft oak_planks from oak_logs` tasks still accepted
+- Autonomous progress: nine goals attempted, three completed, five failed, and one interrupted across 77 cycles; the table and wooden pickaxe recovered, but no stone-pickaxe or iron progression followed
+- Planner/actions: 77 real calls, 73 schema-valid, 278025 tokens, maximum 27905 ms; 64 actions attempted and 38 succeeded, including move 17/21, dig 11/12, craft 6/7, place 3/23, and equip 1/1
+- Interrupts: 18 triggers and 17 recoveries; 17 task-deadline triggers recovered, while the final dusk-shelter trigger suspended the root
+- Last valid machine state: event 1787, health/food 20, world time 11752, connected zero-death lifecycle, `dark_oak_log:4`, `oak_log:4`, `oak_planks:3`, `stick:2`, `wooden_pickaxe:1`, and no iron
+- Deadline: start 34051.656, deadline 34651.656, Agent/evidence end 34651.671; elapsed 600.015 seconds, result `episode_deadline`, and independent deadline checks failed closed
+- Eligibility: 64/74 checks passed with ten issues; BM-012 remains 0/3 after twenty-one attempts
+- Skills: baseline remained off; selected, executed, quarantined, vision, and multi-agent contributions were zero
+- Round boundary: this was the only live episode; Probe 21 authorization is consumed, no code fix or second run occurs, and Probe 22 remains locked behind the offline readiness-recovery root-completion gate
+- Evidence: `logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/`
 
 ### Probe 20: Post-Place Gate Activated; Ready-Task Verification Bypassed Criteria
 

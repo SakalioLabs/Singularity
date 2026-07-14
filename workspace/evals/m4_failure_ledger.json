@@ -1,7 +1,7 @@
 {
   "type": "m4_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-13T23:22:43Z",
+  "generated_at": "2026-07-14T00:09:53Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
   "current_task_id": "BM-012",
@@ -15,12 +15,12 @@
       "required_success_count": 3
     }
   ],
-  "live_episode_count_under_current_protocol": 24,
+  "live_episode_count_under_current_protocol": 25,
   "current_gate": {
-    "hypothesis": "m4_ready_task_goal_verifier_success_criteria_bypass",
-    "policy_id": "m4-ready-task-goal-verifier-success-criteria-v1",
-    "status": "bm012_probe_21_authorized_ready_task_goal_verifier_success_criteria_offline_gate_passed",
-    "earliest_blocker": "m4_ready_task_goal_verifier_success_criteria_bypass",
+    "hypothesis": "m4_readiness_recovery_inventory_family_root_completion_disconnect",
+    "policy_id": "pending-offline-readiness-recovery-inventory-family-root-completion-gate",
+    "status": "bm012_probe_22_locked_readiness_recovery_inventory_family_root_completion_offline_gate_required",
+    "earliest_blocker": "m4_readiness_recovery_inventory_family_root_completion_disconnect",
     "verifier_id": "m4-player-lifecycle-verifier-v1",
     "source": "mineflayer_events",
     "probe_14_false_positive_fixture_rejected": true,
@@ -30,9 +30,9 @@
     "m4_shelter_python_case_count": 18,
     "m4_node_case_count": 12,
     "offline_atomicity_gate_passed": true,
-    "live_episode_count_under_current_protocol": 24,
+    "live_episode_count_under_current_protocol": 25,
     "latest_accepted_episode": "m4_episode_20260713_055737_6d976e6d",
-    "latest_episode": "m4_episode_20260714_061205_a52cd5f7",
+    "latest_episode": "m4_episode_20260714_073801_99ea1735",
     "live_atomicity_recovery_passed": true,
     "bm011_eligible_success_count": 3,
     "bm011_status": "repeat_verified",
@@ -40,8 +40,8 @@
     "bm012_task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
     "bm012_offline_gate_passed": true,
     "bm012_eligible_success_count": 0,
-    "bm012_live_episode_count": 20,
-    "bm012_latest_failure_layer": "m4_ready_task_goal_verifier_success_criteria_bypass",
+    "bm012_live_episode_count": 21,
+    "bm012_latest_failure_layer": "m4_readiness_recovery_inventory_family_root_completion_disconnect",
     "bm012_purpose_phrase_offline_gate_passed": true,
     "bm012_purpose_phrase_focused_test_count": 57,
     "bm012_purpose_phrase_live_validated": true,
@@ -86,7 +86,7 @@
     "bm012_place_success_criteria_post_action_task_completed": true,
     "bm012_place_success_criteria_fail_closed_controls_passed": true,
     "bm012_place_success_criteria_related_test_count": 138,
-    "next_authorized_episode": "bm012_probe_21_after_gate_commit_push",
+    "next_authorized_episode": null,
     "bm012_place_success_criteria_prompt_path_live_validated": true,
     "bm012_place_success_criteria_normalization_branch_live_exercised": false,
     "bm012_place_success_criteria_prior_failure_recurred": false,
@@ -834,8 +834,33 @@
     "bm012_ready_task_node_suite_file_count": 6,
     "bm012_ready_task_node_internal_pass_count": 52,
     "bm012_ready_task_offline_gate_live_episode_run": false,
-    "bm012_ready_task_next_authorized_episode": "bm012_probe_21_after_gate_commit_push",
-    "bm012_ready_task_authorized_episode_count": 1
+    "bm012_ready_task_live_validation_episode_run": true,
+    "bm012_ready_task_live_policy_report_count": 61,
+    "bm012_ready_task_live_retain_unverified_goal_count": 37,
+    "bm012_ready_task_live_suppress_until_bound_task_machine_completion_count": 24,
+    "bm012_ready_task_live_allow_count": 0,
+    "bm012_ready_task_live_bound_task_id": "7790c984",
+    "bm012_ready_task_live_bound_task_activation_event_index": 814,
+    "bm012_ready_task_live_bound_task_failure_event_index": 851,
+    "bm012_ready_task_live_generic_goal_verification_event_index": 973,
+    "bm012_ready_task_live_suppression_event_index": 974,
+    "bm012_ready_task_live_prior_failure_recurred": false,
+    "bm012_readiness_recovery_selection_event_index": 1504,
+    "bm012_readiness_recovery_task_id": "25fa2b53",
+    "bm012_readiness_recovery_task_creation_event_index": 1511,
+    "bm012_readiness_recovery_machine_completion_event_index": 1512,
+    "bm012_readiness_recovery_family_report_event_index": 1513,
+    "bm012_readiness_recovery_inventory_family_policy_id": "m4-task-inventory-family-grounding-v1",
+    "bm012_readiness_recovery_canonical_count_before": 0,
+    "bm012_readiness_recovery_canonical_count_after": 4,
+    "bm012_readiness_recovery_root_disconnect_event_index": 1519,
+    "bm012_readiness_recovery_unnecessary_move_event_index": 1532,
+    "bm012_readiness_recovery_root_cycle_count": 9,
+    "bm012_readiness_recovery_dusk_interrupt_event_index": 1721,
+    "bm012_readiness_recovery_stale_crafting_task_count": 6,
+    "bm012_readiness_recovery_offline_gate_status": "required_not_implemented",
+    "bm012_ready_task_next_authorized_episode": null,
+    "bm012_ready_task_authorized_episode_count": 0
   },
   "entries": [
     {
@@ -9649,6 +9674,265 @@
       },
       "patch_or_experiment_summary": "Ran exactly one fresh BM-012 Probe 20 from committed and pushed post-place machine-observation gate 06957bd. No code, protocol, task contract, success threshold, world intervention, external step script, or second episode changed the live run. Raw JSONL and the local summary were used only for source cross-checking and remain excluded from version control.",
       "retest_result": "Probe 20 live-activated m4-post-place-crafting-table-machine-observation-v1 twice: the first exact result closed the placement task and remained available to the next planner observation, nine failed place results were rejected, and Probe 19's same-target loop did not recur. Observer directly saw both successful tables, so omission projection remains offline-only. The Runner's event-820 torch empty-plan recovered through event-1083 placement, event-1116 stone-pickaxe craft, and event-1172 raw-iron acquisition. The earliest unrecovered transition is event 1193: plan event 1189 required raw_iron:2 and supplied a valid dig, but pre-plan GoalVerifier accepted the ready-task root from existing raw_iron:1 without a delta. Fourteen false completions then executed zero actions and exhausted all 24 goal slots with 190.516 seconds remaining. The Agent acquired one raw iron, remained connected and death-free, stayed inside the deadline, and passed 68/74 checks. BM-012 remains 0/3 after twenty attempts; no code fix, second episode, or new live authorization exists before a bounded offline ready-task GoalVerifier criteria-binding gate passes and is pushed."
+    },
+    {
+      "task_id": "BM-012",
+      "episode_id": "m4_episode_20260714_073801_99ea1735",
+      "session_id": "ce75c8dc-5d3",
+      "level_name": "m4_episode_20260714_073801_99ea1735_bm012",
+      "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "task_contract_id": "m4-bm012-resource-contract-v1",
+      "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+      "frozen_commit": "84ca601",
+      "seed": 12345,
+      "start_monotonic": 34051.656,
+      "deadline_monotonic": 34651.656,
+      "agent_end_monotonic": 34651.671,
+      "end_monotonic": 34651.671,
+      "agent_elapsed_s": 600.015,
+      "duration_s": 600.015,
+      "failure_layer": "m4_readiness_recovery_inventory_family_root_completion_disconnect",
+      "first_unrecovered_transition": {
+        "failure_layer": "m4_readiness_recovery_inventory_family_root_completion_disconnect",
+        "recovery_selection_event_index": 1504,
+        "recovery_selection_monotonic_s": 34463.468,
+        "recovery_goal_start_event_index": 1506,
+        "observation_event_index": 1509,
+        "recovery_task_creation_event_index": 1511,
+        "recovery_task_completion_event_index": 1512,
+        "inventory_family_reconciliation_event_index": 1513,
+        "first_unrecovered_event_index": 1519,
+        "monotonic_s": 34467.25,
+        "elapsed_s": 417.6,
+        "goal": "Acquire 4 oak_log for Craft oak_planks from oak_logs",
+        "selection_reason": "task_readiness_recovery_goal",
+        "blocked_task_id": "d37f41ea",
+        "blocked_task_title": "Craft oak_planks from oak_logs",
+        "recovery_task_id": "25fa2b53",
+        "fallback_goal": "Gather 6 oak logs for iron-tool progression",
+        "before_state": {
+          "position": {"x": 94.31443599509109, "y": 135, "z": -37.486083113279726},
+          "inventory": {
+            "dark_oak_log": 4,
+            "oak_log": 0,
+            "oak_planks": 3,
+            "stick": 2,
+            "wooden_pickaxe": 1
+          },
+          "nearby_crafting_table_count": 1,
+          "nearby_iron_ore_position": {"x": 100, "y": 132, "z": -41},
+          "health": 20,
+          "food": 20,
+          "time_of_day": 8352
+        },
+        "machine_completion": {
+          "policy_id": "m4-task-inventory-family-grounding-v1",
+          "observed_member_counts": {"dark_oak_log": 4},
+          "canonical_item": "oak_log",
+          "canonical_count_before": 0,
+          "canonical_count_after": 4,
+          "task_status": "completed",
+          "completion_source": "machine_state"
+        },
+        "attempted_plan_action": {
+          "planner_call_id": "llm-ef8ffb7778074eb3",
+          "planner_reasoning": "Currently have 0 oak_log but have dark_oak_log; explore to find oak trees",
+          "type": "move_to",
+          "parameters": {"x": 100, "y": 135, "z": -40},
+          "action_event_index": 1532,
+          "action_success": true
+        },
+        "after_state": {
+          "recovery_root_completed": false,
+          "root_cycle_count": 9,
+          "dusk_interrupt_event_index": 1721,
+          "stale_accepted_crafting_task_count": 6,
+          "stone_pickaxe_present": false,
+          "iron_progress_count": 0
+        }
+      },
+      "runner_candidate_review": {
+        "runner_candidate_confirmed": false,
+        "runner_candidate_event_index": 318,
+        "runner_candidate_monotonic_s": 34144.718,
+        "runner_candidate_goal": "Place crafting table for tool progression",
+        "runner_candidate_issue": "place replan rejected repeated reference",
+        "recovery_task_reconciliation_event_index": 968,
+        "recovery_place_action_event_index": 970,
+        "recovery_wooden_pickaxe_action_event_index": 1491,
+        "recovery_goal_completion_event_index": 1495,
+        "selected_causal_event_index": 1519,
+        "reason": "placement and wooden-pickaxe progression recovered; the later readiness-recovery root ignored its own inventory-family machine completion and consumed nine cycles before dusk"
+      },
+      "prior_hypothesis_live_validation": {
+        "hypothesis": "m4_ready_task_goal_verifier_success_criteria_bypass",
+        "policy_id": "m4-ready-task-goal-verifier-success-criteria-v1",
+        "policy_report_count": 61,
+        "retain_unverified_goal_count": 37,
+        "suppress_until_bound_task_machine_completion_count": 24,
+        "allow_count": 0,
+        "bound_task_id": "7790c984",
+        "bound_task_activation_event_index": 814,
+        "bound_task_failure_event_index": 851,
+        "placement_action_event_index": 970,
+        "generic_goal_verification_event_index": 973,
+        "suppression_event_index": 974,
+        "bound_task_machine_completed": false,
+        "prior_failure_recurred": false
+      },
+      "autonomous_goals": {
+        "attempted": 9,
+        "completed": 3,
+        "failed": 5,
+        "interrupted": 1,
+        "total_cycles": 77,
+        "goal_sequence": [
+          {"goal_index": 1, "goal": "Gather 6 oak logs for tools and shelter", "outcome": "completed", "cycles": 7},
+          {"goal_index": 2, "goal": "Craft crafting table", "outcome": "completed", "cycles": 2},
+          {"goal_index": 3, "goal": "Place crafting table for tool progression", "outcome": "failed", "cycles": 4},
+          {"goal_index": 4, "goal": "Place crafting table on ground", "outcome": "failed", "cycles": 10},
+          {"goal_index": 5, "goal": "Place crafting table on ground", "outcome": "failed", "cycles": 14},
+          {"goal_index": 6, "goal": "Place crafting table on ground", "outcome": "failed", "cycles": 21},
+          {"goal_index": 7, "goal": "Craft wooden pickaxe", "outcome": "completed", "cycles": 7},
+          {"goal_index": 8, "goal": "Acquire 4 oak_log for Craft oak_planks from oak_logs", "outcome": "interrupted", "cycles": 9},
+          {"goal_index": 9, "goal": "Build verified shelter before nightfall", "outcome": "failed", "cycles": 3}
+        ]
+      },
+      "goal_transitions": [
+        {"event_index": 318, "transition": "placement_replan_empty_plan", "recovered": true},
+        {"event_index": 970, "transition": "crafting_table_placed", "recovered": true},
+        {"event_index": 1495, "transition": "wooden_pickaxe_goal_completed", "recovered": true},
+        {"event_index": 1512, "transition": "readiness_recovery_task_machine_completed", "recovered": false},
+        {"event_index": 1519, "transition": "readiness_recovery_root_ignored_family_completion", "recovered": false},
+        {"event_index": 1721, "transition": "dusk_shelter_interrupt", "recovered": false}
+      ],
+      "planner_controls": {
+        "call_count": 77,
+        "real_call_count": 77,
+        "schema_valid_real_call_count": 73,
+        "schema_invalid_real_call_count": 4,
+        "max_call_duration_ms": 27905,
+        "total_token_usage": 278025,
+        "provider_controls_passed": true
+      },
+      "action_summary": {
+        "attempted": 64,
+        "successful": 38,
+        "by_type": {
+          "move_to": {"attempted": 21, "successful": 17},
+          "dig": {"attempted": 12, "successful": 11},
+          "craft": {"attempted": 7, "successful": 6},
+          "place": {"attempted": 23, "successful": 3},
+          "equip": {"attempted": 1, "successful": 1}
+        },
+        "action_verification_accept_count": 44,
+        "action_verification_reject_count": 20
+      },
+      "runtime_interrupts": {
+        "trigger_count": 18,
+        "recovery_count": 17,
+        "reason_counts": {
+          "task_deadline_elapsed": 17,
+          "dusk_shelter_required": 1
+        },
+        "all_task_deadline_interrupts_recovered": true,
+        "active_interrupt_at_terminal": "dusk_shelter_required",
+        "downstream_or_noncausal": true
+      },
+      "resource_acquisition": {
+        "initial_inventory": {"raw_iron": 0, "iron_ore": 0},
+        "terminal_inventory": {"raw_iron": 0, "iron_ore": 0},
+        "positive_inventory_delta": {"raw_iron": 0, "iron_ore": 0},
+        "successful_source_action_count": 0,
+        "successful_source_action_event_index": null,
+        "terminal_target_passed": false
+      },
+      "survival_state": {
+        "source": "last_valid_observation",
+        "event_index": 1787,
+        "health": 20,
+        "food": 20,
+        "time_of_day": 11752,
+        "bot_connected": true,
+        "position": {"x": 118.43507925184953, "y": 140, "z": -32.5},
+        "inventory": {
+          "dark_oak_log": 4,
+          "oak_log": 4,
+          "oak_planks": 3,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "death_count": 0,
+        "respawn_count": 0,
+        "uninterrupted": true,
+        "terminal_machine_state_complete": false
+      },
+      "deadline": {
+        "episode_started_monotonic": 34051.656,
+        "episode_deadline_monotonic": 34651.656,
+        "agent_end_monotonic": 34651.671,
+        "evidence_end_monotonic": 34651.671,
+        "agent_elapsed_s": 600.015,
+        "evidence_elapsed_s": 600.015,
+        "episode_time_overrun_s": 0.015,
+        "episode_within_deadline": false,
+        "deadline_eligible": false,
+        "post_deadline_action_count": 1,
+        "no_post_deadline_execution": false,
+        "result_duration_eligible": false
+      },
+      "skill_attribution": {
+        "skill_execution_mode": "off",
+        "selected_count": 0,
+        "executed_count": 0,
+        "quarantined_contribution_count": 0,
+        "vision_intervention_count": 0,
+        "multi_agent_intervention_count": 0
+      },
+      "evidence_eligibility": {
+        "eligible": false,
+        "check_count": 74,
+        "pass_count": 64,
+        "issue_count": 10,
+        "issues": [
+          "event:terminal_resource_verification",
+          "terminal_player_lifecycle",
+          "terminal_bot_connected",
+          "resource_terminal_inventory_target",
+          "resource_successful_source_actions",
+          "resource_positive_inventory_delta",
+          "terminal_machine_verification",
+          "episode_within_deadline",
+          "result_duration_eligible",
+          "no_post_deadline_execution"
+        ]
+      },
+      "evidence_paths": {
+        "preflight": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/preflight.json",
+        "manifest": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/manifest.json",
+        "session": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/session.json",
+        "result": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/result.json",
+        "eligibility": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/eligibility.json",
+        "preparation": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/preparation.json",
+        "protocol_status": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/protocol_status.json",
+        "reset": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/reset.json"
+      },
+      "evidence_file_sha256": {
+        "preflight": "d3e9128fb925541afa7d06aaa5c80c3177a96fac9ca493dabad36eadf48fd382",
+        "manifest": "c42f9db6b6434b95194896fb8e266f32d834afd409b4e3cbe9b8c2b782484192",
+        "session": "34787ab322ff02909bf5b24650d13485330736d2c6ad19c3de5f38eab590c2ad",
+        "result": "af33e3555cbb0953c9fee16a64d5bfc092c5e5755a0484981f4994a753a8fc90",
+        "eligibility": "5d8ce3dcfd4560fa42a59623859eb458c3a3c65dddd698291601b01b7a99259e",
+        "preparation": "8193242402a61f59e3b8d991620d1d2143b2d61ea64dacc4e5ce9281c8cb5b79",
+        "protocol_status": "06c0fa5833537f0560aae9e733871840feb7c50d1afc732fa0390579f44329a7",
+        "reset": "59c30d44c1ebc0a65d30461b87ec9ae69a276be76bcb50fa9a05d27e31e04071"
+      },
+      "source_artifact_sha256": {
+        "raw_session_jsonl": "c9d87313a42e9e2d2f296452a884c33871bf13170b8751c6a126a5308c204fdc",
+        "raw_session_summary": "114f6adc456df65710f7a37ffb89c645c8ab6fe1dce29b2ecc9a82af91475a25"
+      },
+      "patch_or_experiment_summary": "Ran exactly one fresh BM-012 Probe 21 from committed and pushed ready-task GoalVerifier gate 84ca601. No code, protocol, task contract, success threshold, world intervention, external step script, or second episode changed the live run. Raw JSONL and the local summary were used only for source cross-checking and remain excluded from version control.",
+      "retest_result": "Probe 21 live-validated m4-ready-task-goal-verifier-success-criteria-v1 with 61 fail-closed reports and zero improper allow decisions. Exact failed task 7790c984 stayed suppressed after the generic table goal was achieved. Runner event 318 recovered through event-970 placement and event-1491 wooden-pickaxe crafting. The earliest unrecovered transition is event 1519: recovery task 25fa2b53 had already been machine-completed at events 1512/1513 from dark_oak_log:4, but the root still planned from exact oak_log:0 and executed an unnecessary move at event 1532. The root consumed nine cycles and was interrupted at dusk with six stale crafting tasks accepted. The episode ended 0.015 seconds over deadline, acquired no iron, and passed 64/74 checks. BM-012 remains 0/3 after twenty-one attempts; no code fix, second episode, or Probe 22 authorization exists before a bounded offline readiness-recovery root-completion gate is implemented, validated, committed, and pushed."
     }
   ]
 }
