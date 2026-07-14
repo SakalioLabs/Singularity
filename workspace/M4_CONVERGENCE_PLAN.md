@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 21 remain ineligible at 0/3. Probe 21 live-activated the exact ready-task binding gate with 61 fail-closed reports and zero improper allow decisions. Broader progression recovered through a crafting table and wooden pickaxe, but readiness recovery then machine-completed an inventory-family task without closing or redirecting its exact-item root. The bounded root-completion fix now passes offline under `m4-readiness-recovery-inventory-family-root-completion-v1`; exactly one fresh Probe 22 is authorized only after this gate commit is pushed. BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 22 remain ineligible at 0/3. Probe 22 ran once from frozen commit `fa7bb5c`; the inventory-family readiness-recovery branch was not exercised, so its child/root completion and stale-sibling behavior remain unmeasured. A failed named wooden-pickaxe dependency instead remained authoritative after the item was machine-created and equivalent tasks were reconciled, blocking coal progression for the final 21 goals. Probe 22 consumed its sole authorization, no Probe 23 or retry ran, and next authorization is false. BM-013/BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_22_authorized_after_readiness_recovery_gate_commit_push |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_22_ineligible_next_authorization_false |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -165,6 +165,10 @@ Probe 21 live-validates that gate. Across 61 binding reports, 37 retained an unv
 
 The new earliest failure layer is `m4_readiness_recovery_inventory_family_root_completion_disconnect`. Event 1504 selected `Acquire 4 oak_log for Craft oak_planks from oak_logs` for stale blocked task `d37f41ea`, replacing the iron-progression fallback. Event 1509 already held `dark_oak_log:4`, a wooden pickaxe, and a nearby crafting table. Recovery task `25fa2b53` was created at event 1511 and machine-completed at events 1512/1513 when the existing inventory-family policy projected the four dark-oak logs to canonical `oak_log:4`. Planner event 1519 nevertheless reasoned that exact oak-log inventory was zero, created another collection chain, and event 1532 moved away. The root consumed nine cycles and event 1721 suspended it at dusk with six stale accepted crafting tasks. No stone-pickaxe or iron progression followed. The next experiment is limited to this readiness-recovery root/task completion boundary; no fix or second episode occurs in this round.
 
+The bounded offline fix passed as `m4-readiness-recovery-inventory-family-root-completion-v1` and Probe 22 consumed its one live authorization from frozen commit `fa7bb5c`. The episode emitted no completion-propagation, stale-sibling-sweep, or bounded planner-context event, and no inventory-family recovery child/root binding was created. Therefore root latency, idempotency, and stale-sibling before/after counts are not measurable; the old oak/root disconnect did not recur, but the intervention is neither live-validated nor live-rejected.
+
+The new earliest layer is `m4_readiness_recovery_failed_dependency_machine_state_disconnect`. Task `ac997fe4` (`Craft wooden pickaxe`) was created at event 230, activated at 287, and failed on task deadline at 548. Dependent task `4cbefa6a` (`Mine coal ore`) remained accepted. Event 855 later machine-crafted `wooden_pickaxe:1`, and events 863-872 plus reconciliation event 873 completed ten equivalent accepted pickaxe tasks, but the original dependency remained failed. Event 1326 began 21 repeated readiness selections of the already-satisfied dependency with empty child, root, fingerprint, and inventory-proof fields. The run ended inside the deadline after 326.329 seconds with no stone-pickaxe or iron progression and 68/74 checks passing. The required enum is recorded as `infrastructure_ineligible` because it lacks an intervention-not-exercised value; preflight infrastructure passed. No further live episode is authorized.
+
 ## BM-012 Offline Preflight
 
 - Task contract: `m4-bm012-resource-contract-v1`; SHA-256 `389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d`
@@ -174,8 +178,8 @@ The new earliest failure layer is `m4_readiness_recovery_inventory_family_root_c
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression baseline: 739 Python regression definitions, all 35 non-live Python scripts, all six fixed Node suites with 52 internal assertions, Node syntax, and Python compilation passed before Probe 21
-- Live authorization: consumed by BM-012 Probe 21; no Probe 22 is authorized before the readiness-recovery inventory-family root-completion offline gate is implemented, validated, committed, and pushed
+- Regression baseline: the frozen `fa7bb5c` gate retained 744 repository Python definitions, all 35 non-live Python scripts, and all six fixed Node suites with 52 internal assertions before Probe 22
+- Live authorization: consumed by BM-012 Probe 22 at autonomous-start monotonic 78162.171; next authorization is false
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -483,10 +487,29 @@ The new earliest failure layer is `m4_readiness_recovery_inventory_family_root_c
 - Planner context: at most four normalized inventory requirements and 640 characters expose exact count, family total, required count, satisfaction, and root status; lifecycle propagation remains independent of this text
 - Compatibility: generic GoalVerifier, global TaskSystem inventory-family semantics, Planner schema, priority order, deadlines, success thresholds, M1, M2, and M3 remain unchanged
 - Validation: five exact gate cases, 100 Memory/TaskSystem definitions, 47 M4 deadline definitions, all 743 definitions across 35 non-live Python files (744 repository definitions total), and six Node suites with 52 internal PASS cases; Python compilation, Probe 21 eight-file hashes, protocol identity, JSON, capability consistency, credential scan, and repository checks pass
-- Status: passed offline; no live episode ran in this gate round
-- Authorization: exactly one fresh BM-012 Probe 22 only after this gate commit is pushed; do not run it in this round
+- Status: passed offline; Probe 22 did not exercise the inventory-family recovery branch, so live validation remains unresolved
+- Authorization: consumed by BM-012 Probe 22; no retry, Probe 23, or additional live episode is authorized
 
 ## BM-012 Live Evidence
+
+### Probe 22: Root-Completion Branch Unexercised; Failed Dependency Stayed Authoritative
+
+- Episode: `m4_episode_20260714_195257_3aa3b171`
+- Session: `8e6da3cf-017`
+- Level: `m4_episode_20260714_195257_3aa3b171_bm012`
+- Frozen code: `fa7bb5c846bd7c4783aeffce6d82cd103c798b92`; protocol and BM-012 task-contract hashes unchanged
+- Authorization: consumed exactly once at event 1 / monotonic 78162.171 / `2026-07-14T11:53:37.544782Z`; no retry or Probe 23 ran
+- Intervention measurement: zero completion-propagation, zero stale-sibling-sweep, and zero bounded planner-context events; no child/root IDs, fingerprint, inventory proof, latency, idempotency count, or stale-sibling before/after counts exist
+- Old blocker: no inventory-family recovery child was created, no duplicate oak-recovery chain appeared, and no post-satisfaction `Currently have 0 oak_log` reasoning appeared; this does not live-validate the unexercised branch
+- Runner review: event 593's placement-replan `empty_plan` recovered through successful table placement at event 775 and wooden-pickaxe crafting at event 855
+- Earliest blocker: task `ac997fe4` failed at event 548; after event 855 created `wooden_pickaxe:1`, events 863-872 completed ten equivalent accepted tasks and event 873 reconciled machine state, but dependent coal task `4cbefa6a` remained blocked
+- Persistence: event 1326 began 21 repeated `Craft wooden pickaxe` readiness selections with empty child/root/fingerprint fields; goals 4-24 completed generically in one cycle without releasing coal progression
+- Autonomous progress: 24 goals started, 22 completed and two failed across 85 cycles; 85 real Planner calls, 84 schema-valid, 289928 tokens, and maximum 7218 ms
+- Actions: 31 attempted and 20 succeeded, including move 7/7, dig 6/6, craft 6/14, and place 1/4; no stone-pickaxe, iron approach, iron dig, pickup, or iron delta occurred
+- Interrupts/deadline: five task-deadline triggers all recovered; elapsed 326.329 seconds, 273.671 seconds remained, and no post-deadline action occurred
+- Eligibility: 68/74 checks passed with six issues; BM-012 remains 0/3 after twenty-two attempts
+- Decision: `infrastructure_ineligible` only because the mandated enum has no intervention-not-exercised value; preflight infrastructure passed and next authorization is false
+- Evidence: `logs/benchmarks/m4/m4_episode_20260714_195257_3aa3b171/`, `workspace/evals/m4_probe22_report.json`, and `workspace/evals/m4_probe21_probe22_comparison.json`
 
 ### Probe 21: Ready-Task Gate Held; Recovery Root Ignored Inventory-Family Completion
 

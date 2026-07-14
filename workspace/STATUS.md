@@ -47,10 +47,10 @@
 
 ## M4 Convergence Result
 
-- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after twenty-one failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
+- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after twenty-two failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after twenty-one failed live attempts. Probe 21 live-validated the prior ready-task gate but exposed `m4_readiness_recovery_inventory_family_root_completion_disconnect`: events 1512/1513 machine-completed a recovery child from `dark_oak_log:4`, while event 1519 kept its root active and six stale crafting tasks remained at dusk. `m4-readiness-recovery-inventory-family-root-completion-v1` now passes offline: it binds child/root identity and canonical requirement semantics, closes the root before Planner, cancels only siblings frozen at binding time, preserves exact-oak fail-closed behavior and future consumers, and emits idempotent machine evidence. All 743 definitions in 35 non-live Python files (744 repository definitions total) and six Node suites pass without changing protocol or capability status. No live episode ran; exactly one fresh Probe 22 is authorized only after this gate commit is pushed. BM-013/BM-014 remain locked.
+- BM-012 is the next target at 0/3 after twenty-two failed live attempts. Probe 22 ran once from pushed commit `fa7bb5c`, stayed within deadline, passed 68/74 checks, and acquired no iron. The inventory-family root-completion intervention was not exercised: all three intervention event types had count zero, so child/root identity, latency, idempotency, inventory proof, and stale-sibling closure are unmeasured; the Probe 21 oak/root disconnect did not recur but is not live-validated. The new earliest layer is `m4_readiness_recovery_failed_dependency_machine_state_disconnect`: task `ac997fe4` failed at event 548, event 855 later machine-crafted the wooden pickaxe, events 863-872 completed ten equivalent accepted tasks, but dependent coal task `4cbefa6a` stayed blocked and event 1326 began 21 repeated missing-dependency selections. Probe 22 authorization is consumed, the mandated decision is `infrastructure_ineligible` only because the enum lacks an intervention-not-exercised value, preflight infrastructure passed, and next authorization is false. BM-013/BM-014 remain locked.
 
 ## Evidence Policy
 
@@ -70,7 +70,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 twenty-one failed attempts, 0/3; BM-013..014 not_run |
+| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 twenty-two failed attempts, 0/3; BM-013..014 not_run |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |

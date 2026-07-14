@@ -1,0 +1,917 @@
+{
+  "type": "m4_episode_result",
+  "schema_version": 1,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "completed": false,
+  "termination_reason": "max_goals_or_stopped",
+  "elapsed_s": 326.329,
+  "deadline_eligible": true,
+  "external_step_script": false,
+  "terminal_state": {
+    "health": 20,
+    "food": 20,
+    "time_of_day": 6857,
+    "position": {
+      "x": 107.5,
+      "y": 136,
+      "z": -29.529509754716063
+    },
+    "inventory": {
+      "oak_log": 3,
+      "stick": 2,
+      "oak_planks": 3,
+      "wooden_pickaxe": 1
+    },
+    "nearby_blocks": [
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 107,
+          "y": 135,
+          "z": -30
+        },
+        "distance": 1
+      },
+      {
+        "name": "crafting_table",
+        "position": {
+          "x": 108,
+          "y": 136,
+          "z": -30
+        },
+        "distance": 1
+      },
+      {
+        "name": "short_grass",
+        "position": {
+          "x": 106,
+          "y": 136,
+          "z": -31
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 107,
+          "y": 137,
+          "z": -31
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 107,
+          "y": 137,
+          "z": -29
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 108,
+          "y": 135,
+          "z": -30
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 110,
+          "y": 136,
+          "z": -26
+        },
+        "distance": 5
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 114,
+          "y": 133,
+          "z": -29
+        },
+        "distance": 7.681145747868608
+      },
+      {
+        "name": "gravel",
+        "position": {
+          "x": 113,
+          "y": 133,
+          "z": -34
+        },
+        "distance": 7.810249675906654
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 115,
+          "y": 134,
+          "z": -29
+        },
+        "distance": 8.306623862918075
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 106,
+          "y": 135,
+          "z": -30
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 107,
+          "y": 135,
+          "z": -31
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 107,
+          "y": 135,
+          "z": -29
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 108,
+          "y": 137,
+          "z": -30
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 106,
+          "y": 135,
+          "z": -31
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 106,
+          "y": 135,
+          "z": -29
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 106,
+          "y": 137,
+          "z": -31
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 108,
+          "y": 135,
+          "z": -31
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 108,
+          "y": 135,
+          "z": -29
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 108,
+          "y": 137,
+          "z": -31
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 108,
+          "y": 137,
+          "z": -29
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 107,
+          "y": 134,
+          "z": -30
+        },
+        "distance": 2
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 107,
+          "y": 138,
+          "z": -30
+        },
+        "distance": 2
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 105,
+          "y": 135,
+          "z": -30
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "short_grass",
+        "position": {
+          "x": 105,
+          "y": 136,
+          "z": -29
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 105,
+          "y": 137,
+          "z": -30
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 106,
+          "y": 134,
+          "z": -30
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 106,
+          "y": 138,
+          "z": -30
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 107,
+          "y": 134,
+          "z": -31
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 107,
+          "y": 134,
+          "z": -29
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 107,
+          "y": 135,
+          "z": -32
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 107,
+          "y": 135,
+          "z": -28
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 107,
+          "y": 137,
+          "z": -28
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 107,
+          "y": 138,
+          "z": -31
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 107,
+          "y": 138,
+          "z": -29
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 108,
+          "y": 134,
+          "z": -30
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 108,
+          "y": 138,
+          "z": -30
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 109,
+          "y": 135,
+          "z": -30
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 109,
+          "y": 137,
+          "z": -30
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 105,
+          "y": 135,
+          "z": -31
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 105,
+          "y": 135,
+          "z": -29
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 105,
+          "y": 137,
+          "z": -31
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 106,
+          "y": 134,
+          "z": -31
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 106,
+          "y": 134,
+          "z": -29
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 106,
+          "y": 135,
+          "z": -32
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 106,
+          "y": 135,
+          "z": -28
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 106,
+          "y": 137,
+          "z": -28
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 106,
+          "y": 138,
+          "z": -31
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 106,
+          "y": 138,
+          "z": -29
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 108,
+          "y": 134,
+          "z": -31
+        },
+        "distance": 2.449489742783178
+      }
+    ],
+    "nearby_entities": [],
+    "player_lifecycle": {
+      "type": "m4_player_lifecycle",
+      "schema_version": 1,
+      "verifier_id": "m4-player-lifecycle-verifier-v1",
+      "source": "mineflayer_events",
+      "profile": "m4-fixed-v1",
+      "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "tracker_id": "43e22f9a-fa20-432b-827f-0feeadcac284",
+      "episode_id": "m4_episode_20260714_195257_3aa3b171",
+      "level_name": "m4_episode_20260714_195257_3aa3b171_bm012",
+      "baseline_id": "6797d3459a4b9db1dc1558fcd76eb4338d15390d5d0a6d6898fd49af87e3dcbf",
+      "baseline_established": true,
+      "initial_spawn_observed": true,
+      "baseline_death_count_total": 0,
+      "baseline_respawn_count_total": 0,
+      "baseline_spawn_count_total": 1,
+      "baseline_observed_at_ms": 1784030004538,
+      "baseline_bridge_monotonic_ms": 78149193,
+      "death_count_total": 0,
+      "respawn_count_total": 0,
+      "spawn_count_total": 1,
+      "death_count": 0,
+      "respawn_count": 0,
+      "spawn_count": 0,
+      "pending_respawn_count": 0,
+      "uninterrupted": true,
+      "last_death": null,
+      "last_respawn": null
+    },
+    "bot_connected": true
+  },
+  "autonomous_result": {
+    "mode": "autonomous",
+    "goals_completed": 22,
+    "goals_failed": 2,
+    "goals_interrupted": 0,
+    "total_cycles": 85,
+    "termination_reason": "max_goals_or_stopped",
+    "elapsed_s": 326.329,
+    "max_duration_s": 600.0,
+    "episode_started_monotonic": 78162.171,
+    "episode_ended_monotonic": 78488.5,
+    "episode_deadline_monotonic": 78762.171,
+    "deadline_eligible": true,
+    "active_runtime_interrupt": {},
+    "landmarks_discovered": 0,
+    "curriculum": {
+      "recent_goals": [
+        {
+          "goal": "Craft wooden pickaxe",
+          "success": true,
+          "cycles": 1
+        },
+        {
+          "goal": "Craft wooden pickaxe",
+          "success": true,
+          "cycles": 1
+        },
+        {
+          "goal": "Craft wooden pickaxe",
+          "success": true,
+          "cycles": 1
+        },
+        {
+          "goal": "Craft wooden pickaxe",
+          "success": true,
+          "cycles": 1
+        },
+        {
+          "goal": "Craft wooden pickaxe",
+          "success": true,
+          "cycles": 1
+        },
+        {
+          "goal": "Craft wooden pickaxe",
+          "success": true,
+          "cycles": 1
+        },
+        {
+          "goal": "Craft wooden pickaxe",
+          "success": true,
+          "cycles": 1
+        },
+        {
+          "goal": "Craft wooden pickaxe",
+          "success": true,
+          "cycles": 1
+        },
+        {
+          "goal": "Craft wooden pickaxe",
+          "success": true,
+          "cycles": 1
+        },
+        {
+          "goal": "Craft wooden pickaxe",
+          "success": true,
+          "cycles": 1
+        }
+      ],
+      "goal_stats": {
+        "Gather 6 oak logs for tools and shelter": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 9
+        },
+        "Collect coal or charcoal for torches": {
+          "attempts": 1,
+          "successes": 0,
+          "failures": 1,
+          "last_cycles": 15
+        },
+        "Craft wooden pickaxe": {
+          "attempts": 22,
+          "successes": 21,
+          "failures": 1,
+          "last_cycles": 1
+        }
+      },
+      "last_decision": {
+        "selected": "Collect coal or charcoal for torches",
+        "fallback": "Craft and place a crafting table for iron-tool progression",
+        "candidates": [
+          {
+            "title": "Collect coal or charcoal for torches",
+            "category": "resource",
+            "score": 70.0,
+            "reasons": [
+              "night_and_cave_safety",
+              "novelty",
+              "skill_gap"
+            ],
+            "tags": [
+              "charcoal",
+              "coal",
+              "dig_block",
+              "mine_stone",
+              "resource"
+            ],
+            "target_items": [
+              "coal",
+              "charcoal"
+            ],
+            "required_items": {},
+            "skill_targets": [
+              "mine_stone",
+              "dig_block"
+            ]
+          },
+          {
+            "title": "Craft crafting table",
+            "category": "crafting",
+            "score": 55.0,
+            "reasons": [
+              "unlock_crafting_grid",
+              "novelty",
+              "skill_gap"
+            ],
+            "tags": [
+              "craft_item",
+              "crafting",
+              "crafting_table"
+            ],
+            "target_items": [
+              "crafting_table"
+            ],
+            "required_items": {
+              "oak_log": 1
+            },
+            "skill_targets": [
+              "craft_item"
+            ]
+          },
+          {
+            "title": "Inspect nearby birch_log and learn a safe collection route",
+            "category": "exploration",
+            "score": 55.0,
+            "reasons": [
+              "visible_novel_resource",
+              "novelty",
+              "skill_gap"
+            ],
+            "tags": [
+              "birch_log",
+              "exploration",
+              "move_to",
+              "navigate_to_target"
+            ],
+            "target_items": [
+              "birch_log"
+            ],
+            "required_items": {},
+            "skill_targets": [
+              "navigate_to_target",
+              "move_to"
+            ]
+          },
+          {
+            "title": "Craft and place a crafting table for iron-tool progression",
+            "category": "fallback",
+            "score": 30.0,
+            "reasons": [
+              "rule_generator"
+            ],
+            "tags": [],
+            "target_items": [],
+            "required_items": {},
+            "skill_targets": []
+          }
+        ]
+      },
+      "exploration_feedback": {
+        "discovered_blocks": [],
+        "discovered_resources": [],
+        "discovered_entities": [],
+        "action_failure_categories": {},
+        "low_movement_log_count": 0,
+        "hostile_encounter_count": 0,
+        "path_distance": 0.0
+      },
+      "world_model_feedback": {
+        "suggested_goals": [],
+        "frontiers": [],
+        "resource_hotspots": [],
+        "danger_cells": [],
+        "frontier_count": 0,
+        "resource_hotspot_count": 0,
+        "danger_cell_count": 0
+      }
+    },
+    "summary": {
+      "session_id": "8e6da3cf-017",
+      "duration_s": 339.32,
+      "total_events": 1703,
+      "action_count": 31,
+      "error_count": 0,
+      "intervention_metrics": {
+        "policy_hint_count": 0,
+        "policy_intervention_count": 0,
+        "policy_intervention_actions": 0,
+        "policy_intervention_successes": 0,
+        "policy_intervention_failures": 0,
+        "policy_intervention_success_rate": 0.0,
+        "policy_intervention_skills": [],
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": [],
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {},
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": [],
+        "action_verification_event_count": 31,
+        "action_verification_status_counts": {
+          "accept": 28,
+          "reject": 3
+        },
+        "action_verification_action_types": {
+          "move_to": 7,
+          "dig": 6,
+          "craft": 14,
+          "place": 4
+        },
+        "action_verification_blocked_count": 3,
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "visual_action_metrics": {
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": []
+      },
+      "skill_memory_metrics": {
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {}
+      },
+      "skill_learning_metrics": {
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": []
+      },
+      "action_verification_metrics": {
+        "action_verification_event_count": 31,
+        "action_verification_status_counts": {
+          "accept": 28,
+          "reject": 3
+        },
+        "action_verification_action_types": {
+          "move_to": 7,
+          "dig": 6,
+          "craft": 14,
+          "place": 4
+        },
+        "action_verification_blocked_count": 3
+      },
+      "action_candidate_selection_metrics": {
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "goal_verification_metrics": {
+        "count": 83,
+        "achieved": 83,
+        "failed": 0,
+        "unknown": 0,
+        "accepted": 83,
+        "rejected": 0,
+        "acceptance_reasons": {
+          "deterministic_evidence_satisfied": 30
+        }
+      },
+      "plan_cache_metrics": {
+        "plan_cache_hit_count": 0,
+        "plan_cache_hybrid_hint_count": 0,
+        "plan_cache_workflow_intervention_count": 0,
+        "plan_cache_miss_count": 0,
+        "plan_cache_signature_count": 0,
+        "plan_cache_hit_rate": 0.0,
+        "plan_cache_hit_entries": {},
+        "plan_cache_hit_goals": [],
+        "plan_cache_execution_stage_counts": {
+          "hybrid": 0,
+          "deterministic": 0
+        }
+      },
+      "episode_abort_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "gate_readiness": "not_configured",
+        "viability_probe_count": 0,
+        "early_abort_trigger_count": 0,
+        "active_early_abort_count": 0,
+        "shadow_would_abort_count": 0,
+        "probe_round_counts": {},
+        "average_viability_risk_score": 0.0
+      },
+      "frontier_budget_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "policy": "information",
+        "allocation_event_count": 0,
+        "planner_context_event_count": 0,
+        "outcome_event_count": 0,
+        "completed_outcome_count": 0,
+        "recovery_credit_event_count": 0,
+        "recovered_rounds": 0,
+        "reallocated_rounds_consumed": 0,
+        "allocation_pool_rounds": 0,
+        "allocated_rounds": 0,
+        "budget_conservation_failure_count": 0,
+        "policy_counts": {}
+      },
+      "memory_policy_metrics": {
+        "memory_write_count": 484,
+        "memory_read_count": 109,
+        "memory_manage_count": 0,
+        "memory_write_layers": {
+          "episodic": 368,
+          "context": 116
+        },
+        "memory_write_types": {
+          "autonomous_start": 1,
+          "curriculum_goal": 2,
+          "auto_goal": 24,
+          "context": 116,
+          "opportunity_task": 29,
+          "action_verification": 31,
+          "task_state_update": 25,
+          "action": 31,
+          "goal_verification": 83,
+          "auto_goal_complete": 22,
+          "failure_reflection_suppressed": 11,
+          "runtime_interrupt": 5,
+          "runtime_interrupt_recovery": 5,
+          "empty_plan": 1,
+          "auto_goal_failed": 2,
+          "m4_ready_task_goal_verifier_binding": 75,
+          "task_readiness_recovery_goal": 21
+        },
+        "memory_read_types": {
+          "opportunity_context": 109
+        },
+        "memory_manage_operations": {},
+        "memory_policy_decisions": {
+          "write_blocked": 484,
+          "read_allowed": 109
+        },
+        "memory_read_filter_event_count": 0,
+        "memory_read_filtered_entries": 0,
+        "memory_read_filter_reasons": {},
+        "memory_retrieval_trace_event_count": 0,
+        "weighted_memory_read_count": 0,
+        "weighted_memory_match_count": 0,
+        "weighted_transfer_match_count": 0,
+        "memory_attribution_policy_counts": {}
+      },
+      "log_path": "logs/benchmarks/m4/m4_episode_20260714_195257_3aa3b171\\session_8e6da3cf-017.jsonl"
+    }
+  },
+  "evidence_hashes": {
+    "preflight_sha256": "33b861fc47a0fa445a06d12bd7c2b965c5cefbf7aae90c337cbd2ef0e0d3676a",
+    "manifest_sha256": "f65401c353e9f05217a9e2046180af4084bcd352301c8cdd14a43019b8d4ccee",
+    "session_sha256": "9a4fb6215a2d1f377dc600cedfce40aa3397bcb76420c95f24745b8dcc4750a9",
+    "result_sha256": "d811eab8570b1a911ec9d238ef2165ac2ad4f4043f690e708d1ee17d535ff06e"
+  }
+}
