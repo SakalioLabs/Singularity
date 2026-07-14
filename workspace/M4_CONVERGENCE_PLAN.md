@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 21 remain ineligible at 0/3. Probe 21 live-activated the exact ready-task binding gate with 61 fail-closed reports and zero improper allow decisions. Broader progression recovered through a crafting table and wooden pickaxe, but readiness recovery then machine-completed an inventory-family task without closing or redirecting its exact-item root. Probe 21 consumed the only authorization; the next gate is offline-only, no fresh episode is authorized, and BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 21 remain ineligible at 0/3. Probe 21 live-activated the exact ready-task binding gate with 61 fail-closed reports and zero improper allow decisions. Broader progression recovered through a crafting table and wooden pickaxe, but readiness recovery then machine-completed an inventory-family task without closing or redirecting its exact-item root. The bounded root-completion fix now passes offline under `m4-readiness-recovery-inventory-family-root-completion-v1`; exactly one fresh Probe 22 is authorized only after this gate commit is pushed. BM-013/BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_22_locked_pending_readiness_recovery_inventory_family_root_completion_offline_gate |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_22_authorized_after_readiness_recovery_gate_commit_push |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -476,11 +476,15 @@ The new earliest failure layer is `m4_readiness_recovery_inventory_family_root_c
 
 - Root hypothesis: `m4_readiness_recovery_inventory_family_root_completion_disconnect`
 - Exact reproduction: event 1511 creates recovery task `25fa2b53` for `oak_log:4`; events 1512/1513 machine-complete it from `dark_oak_log:4`, while plan event 1519 still reasons from exact `oak_log:0` and continues the same root
-- Required boundary: when a readiness-recovery task is machine-completed through the existing pinned inventory-family projection, the active recovery root must close or deterministically return to fresh fallback selection before another Planner action executes
-- Fail closed: unrelated task completion, criteria drift, same-title replacement, missing machine source, malformed family projection, and non-M4 profiles must not complete the root
-- Compatibility: generic GoalVerifier, TaskSystem inventory-family semantics, Planner schema, priority order, deadlines, success thresholds, M1, and M2 remain unchanged
-- Status: required offline; implementation and validation have not started in this live-evidence round
-- Authorization: none; Probe 22 remains locked until this gate is implemented, validated, committed, and pushed
+- Policy: `m4-readiness-recovery-inventory-family-root-completion-v1` binds the machine-completable recovery child to a stable synthetic root and a canonical requirement fingerprint over item family, count, exact/family semantics, consumer provenance, and task family
+- Completion boundary: a child completed by machine state or action result recomputes the normalized inventory postcondition and closes the root in the same scheduler cycle before Planner execution
+- Stale-task handling: the binding freezes the matching active sibling IDs that existed when recovery began; once the requirement is satisfied, those tasks become `cancelled_as_satisfied`, leave readiness/frontier context, and retain status history, while later same-fingerprint consumers remain untouched
+- Fail closed: exact `oak_log` does not accept dark oak, insufficient family totals leave the root active, replayed observations/ticks emit no duplicate completion, and unrelated/non-M4 tasks cannot complete the root
+- Planner context: at most four normalized inventory requirements and 640 characters expose exact count, family total, required count, satisfaction, and root status; lifecycle propagation remains independent of this text
+- Compatibility: generic GoalVerifier, global TaskSystem inventory-family semantics, Planner schema, priority order, deadlines, success thresholds, M1, M2, and M3 remain unchanged
+- Validation: five exact gate cases, 100 Memory/TaskSystem definitions, 47 M4 deadline definitions, all 743 definitions across 35 non-live Python files (744 repository definitions total), and six Node suites with 52 internal PASS cases; Python compilation, Probe 21 eight-file hashes, protocol identity, JSON, capability consistency, credential scan, and repository checks pass
+- Status: passed offline; no live episode ran in this gate round
+- Authorization: exactly one fresh BM-012 Probe 22 only after this gate commit is pushed; do not run it in this round
 
 ## BM-012 Live Evidence
 

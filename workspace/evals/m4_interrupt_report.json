@@ -1,11 +1,11 @@
 {
   "type": "m4_interrupt_report",
   "schema_version": 1,
-  "generated_at": "2026-07-14T00:09:53Z",
+  "generated_at": "2026-07-14T03:07:00Z",
   "profile": "m4-fixed-v1",
   "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
-  "readiness": "bm012_probe_22_locked_readiness_recovery_inventory_family_root_completion_offline_gate_required",
-  "decision": "require_offline_readiness_recovery_inventory_family_root_completion_gate_before_any_probe_22_authorization",
+  "readiness": "bm012_probe_22_authorized_after_readiness_recovery_gate_commit_push",
+  "decision": "authorize_exactly_one_bm012_probe_22_after_gate_commit_push",
   "required_cases": [
     "hostile_interrupt",
     "critical_health_interrupt",
@@ -1537,16 +1537,19 @@
   },
   "offline_readiness_recovery_inventory_family_root_completion_gate": {
     "root_hypothesis": "m4_readiness_recovery_inventory_family_root_completion_disconnect",
-    "status": "required_not_implemented",
+    "status": "passed_offline_probe_22_authorized_after_gate_commit_push",
+    "policy_id": "m4-readiness-recovery-inventory-family-root-completion-v1",
     "source_episode_id": "m4_episode_20260714_073801_99ea1735",
     "source_session_id": "ce75c8dc-5d3",
     "source_root_disconnect_event_index": 1519,
     "source_dusk_interrupt_event_index": 1721,
+    "root_completed_before_planner": true,
+    "stale_frontier_cleared": true,
     "interrupt_policy_changed": false,
     "frontier_preservation_changed": false,
     "offline_gate_live_episode_run": false,
-    "next_authorized_episode": null,
-    "authorized_episode_count": 0
+    "next_authorized_episode": "bm012_probe_22_after_this_gate_commit_is_pushed",
+    "authorized_episode_count": 1
   },
   "bm012_probe_21_live_observation": {
     "task_id": "BM-012",

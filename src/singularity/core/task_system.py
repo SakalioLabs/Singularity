@@ -49,6 +49,7 @@ class Task:
     root_plan_id: str = ""
     planner_call_id: str = ""
     status_history: list[dict] = field(default_factory=list)
+    metadata: dict = field(default_factory=dict)
 
 
 class TaskSystem:
@@ -68,12 +69,19 @@ class TaskSystem:
         self._record_transition(task, None, task.status, "task_created")
         return task
 
-    def update_task(self, task_id: str, status: Optional[TaskStatus] = None, observations: Optional[list] = None, result: Optional[dict] = None):
+    def update_task(
+        self,
+        task_id: str,
+        status: Optional[TaskStatus] = None,
+        observations: Optional[list] = None,
+        result: Optional[dict] = None,
+        reason: str = "task_updated",
+    ):
         task = self.tasks.get(task_id)
         if not task:
             return
         if status and status != task.status:
-            self._set_status(task, status, "task_updated")
+            self._set_status(task, status, str(reason or "task_updated"))
         if observations:
             task.observations.extend(observations)
         if result:
@@ -158,15 +166,22 @@ class TaskSystem:
         self,
         world_state: Optional[dict] = None,
         allowed_criteria: Optional[set[str]] = None,
+        candidate_task_ids: Optional[set[str]] = None,
     ) -> list[Task]:
         """Complete runnable tasks whose machine-state criteria already hold."""
         world_state = world_state or {}
         allowed = set(allowed_criteria or set())
+        candidate_ids = (
+            {str(task_id) for task_id in candidate_task_ids if task_id}
+            if candidate_task_ids is not None
+            else None
+        )
         completed = []
         candidates = sorted(
             (
                 task for task in self.tasks.values()
                 if task.status in (TaskStatus.ACCEPTED, TaskStatus.ACTIVE)
+                and (candidate_ids is None or task.id in candidate_ids)
             ),
             key=lambda task: (task.created_at, task.id),
         )
@@ -232,8 +247,21 @@ class TaskSystem:
             expired.append(task)
         return expired
 
-    def complete_task(self, task_id: str, result: dict = None):
-        self.update_task(task_id, status=TaskStatus.COMPLETED, result=result or {})
+    def complete_task(self, task_id: str, result: dict = None, reason: str = "task_updated"):
+        self.update_task(
+            task_id,
+            status=TaskStatus.COMPLETED,
+            result=result or {},
+            reason=reason,
+        )
+
+    def cancel_task(self, task_id: str, result: dict = None, reason: str = "task_cancelled"):
+        self.update_task(
+            task_id,
+            status=TaskStatus.CANCELLED,
+            result=result or {},
+            reason=reason,
+        )
 
     def complete_verified_plan(self, root_plan_id: str, result: dict = None) -> list[str]:
         """Close one machine-verified root plan in dependency order with full state paths."""

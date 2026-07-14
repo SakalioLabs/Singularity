@@ -1,5 +1,6 @@
 """Unit tests for memory transfer records, task scheduling, and knowledge loading."""
 import json
+import hashlib
 import os
 import sys
 import tempfile
@@ -270,6 +271,29 @@ def _initialize_bare_agent_runtime_state(agent: Agent) -> Agent:
     agent.skill_extractor = None
     agent.skill_candidate_queue = None
     agent.skill_learning_ledger = None
+    return agent
+
+
+def _m4_readiness_recovery_test_agent() -> Agent:
+    agent = _initialize_bare_agent_runtime_state(object.__new__(Agent))
+    agent.config = Config(
+        planner_protocol="m4-fixed-v1",
+        enable_task_readiness_recovery=True,
+        enable_task_readiness_context=True,
+        enable_autocurriculum=False,
+    )
+    agent.task_system = TaskSystem()
+    agent.session_logger = FakeSessionLogger()
+    agent.memory = MemorySystem(memory_dir=tempfile.mkdtemp(), persist=False)
+    agent.memory_policy = MemoryLifecyclePolicy()
+    agent.knowledge_base = KnowledgeBase()
+    agent.frontier_budget_controller = None
+    agent._episode_deadline_monotonic = None
+    agent._last_autonomous_goal_decision = {}
+    agent._m4_ready_task_goal_binding = {}
+    agent._m4_readiness_recovery_bindings = {}
+    agent._m4_readiness_recovery_propagated_roots = set()
+    agent._m4_active_readiness_recovery_root_id = ""
     return agent
 
 
@@ -2030,6 +2054,278 @@ def test_agent_readiness_recovery_uses_real_dependencies_and_skips_opaque_flags(
     assert dependency["create_task"] is False
     assert opaque_flag == {}
     print("PASS: Agent readiness recovery uses dependencies and skips opaque flags")
+
+
+def _create_m4_log_consumer_tasks(agent: Agent, count: int = 6, exact: bool = False):
+    tasks = []
+    for index in range(count):
+        tasks.append(agent.task_system.create_task(
+            "Craft oak_planks from oak_logs",
+            task_type="craft" if index else "crafting",
+            status=TaskStatus.ACCEPTED,
+            priority=2 + min(index, 2),
+            preconditions={"inventory": {"oak_log": 4}},
+            success_criteria={"inventory": {"oak_planks": 8 if index == 0 else 16}},
+            tags=["crafting", "exact_item:oak_log"] if exact else ["crafting"],
+            root_plan_id=f"root-probe21-{index}",
+            planner_call_id=f"llm-probe21-{index}",
+        ))
+    return tasks
+
+
+def test_m4_readiness_recovery_propagates_probe21_family_completion_idempotently():
+    agent = _m4_readiness_recovery_test_agent()
+    siblings = _create_m4_log_consumer_tasks(agent)
+    observation = {
+        "inventory": {
+            "dark_oak_log": 4,
+            "oak_planks": 3,
+            "stick": 2,
+            "wooden_pickaxe": 1,
+        },
+        "health": 20,
+        "hunger": 20,
+        "time_of_day": 8352,
+        "nearby_blocks": [{"name": "crafting_table"}, {"name": "iron_ore"}],
+        "nearby_entities": [],
+    }
+    fallback = "Gather 6 oak logs for iron-tool progression"
+
+    selected = agent._select_autonomous_goal(observation, fallback)
+
+    recovery_tasks = [
+        task for task in agent.task_system.tasks.values()
+        if "readiness_recovery" in task.tags
+    ]
+    assert selected == fallback
+    assert len(recovery_tasks) == 1
+    child = recovery_tasks[0]
+    assert child.status == TaskStatus.COMPLETED
+    assert child.result["completed_by"] == "machine_state"
+    binding = next(iter(agent._m4_readiness_recovery_bindings.values()))
+    requirement = binding["requirement"]
+    assert binding["root_status"] == "completed"
+    assert binding["child_id"] == child.id
+    assert binding["completion_source"] == "machine_state"
+    assert requirement["item_family"] == "minecraft:logs"
+    assert requirement["required_count"] == 4
+    assert requirement["inventory_semantics"] == "family"
+    assert requirement["consumer_root_provenance"] == "crafting:oak_planks"
+    assert all(task.status == TaskStatus.CANCELLED for task in siblings)
+    assert all(task.result["disposition"] == "cancelled_as_satisfied" for task in siblings)
+    assert all(
+        task.status_history[-1]["reason"] == "m4_readiness_recovery_requirement_satisfied"
+        for task in siblings
+    )
+    assert agent.task_system.get_next_task(observation) is None
+    assert agent.task_system.task_readiness_report(observation)["task_count"] == 0
+
+    completion_events = [
+        event for event in agent.session_logger.events
+        if event["type"] == "m4_readiness_recovery_completion_propagation"
+    ]
+    assert len(completion_events) == 1
+    evidence = completion_events[0]["data"]
+    assert evidence["root_id"] == binding["root_id"]
+    assert evidence["child_id"] == child.id
+    assert evidence["requirement_fingerprint"] == requirement["requirement_fingerprint"]
+    assert evidence["inventory_proof"]["exact_item_counts"] == {"oak_log": 0}
+    assert evidence["inventory_proof"]["family_member_counts"] == {"dark_oak_log": 4}
+    assert evidence["inventory_proof"]["family_total"] == 4
+    assert evidence["inventory_proof"]["satisfied"] is True
+    assert evidence["stale_sibling_count"] == 6
+
+    context = agent._task_readiness_context(
+        "Acquire 4 oak_log for Craft oak_planks from oak_logs",
+        observation,
+    )
+    assert "exact_count=0" in context
+    assert "family_total=4" in context
+    assert "required=4" in context
+    assert "satisfied=true" in context
+    assert "satisfied=false" not in context
+    assert len(context) <= 640
+
+    task_count = len(agent.task_system.tasks)
+    repeated = agent._select_autonomous_goal(observation, fallback)
+    assert repeated == fallback
+    assert len(agent.task_system.tasks) == task_count
+    assert len([
+        event for event in agent.session_logger.events
+        if event["type"] == "m4_readiness_recovery_completion_propagation"
+    ]) == 1
+    assert agent.task_system.task_readiness_report(observation)["task_count"] == 0
+
+    future_consumer = _create_m4_log_consumer_tasks(agent, count=1)[0]
+    agent._propagate_m4_readiness_recovery_completion(
+        observation,
+        [],
+        goal=fallback,
+        cycle=2,
+        source="repeated_scheduler_tick",
+    )
+    assert future_consumer.status == TaskStatus.ACCEPTED
+    assert future_consumer.id not in binding["stale_sibling_candidate_ids"]
+    assert len(binding["stale_sibling_ids"]) == len(siblings)
+    assert set(binding["stale_sibling_ids"]) == {task.id for task in siblings}
+
+    depleted = {**observation, "inventory": {}}
+    future_goal = agent._task_readiness_recovery_goal(depleted, fallback)
+    future_binding = next(
+        item
+        for item in agent._m4_readiness_recovery_bindings.values()
+        if item["root_id"] != binding["root_id"]
+    )
+    assert future_goal.startswith("Acquire 4 oak_log")
+    assert future_binding["child_id"] != binding["child_id"]
+    assert future_binding["blocked_task_id"] == future_consumer.id
+    assert agent.task_system.tasks[future_binding["child_id"]].status == TaskStatus.ACCEPTED
+    print("PASS: M4 readiness recovery propagates Probe 21 family completion idempotently")
+
+
+def test_m4_readiness_recovery_exact_and_insufficient_requirements_fail_closed():
+    exact_agent = _m4_readiness_recovery_test_agent()
+    _create_m4_log_consumer_tasks(exact_agent, count=1, exact=True)
+    dark_only = {
+        "inventory": {"dark_oak_log": 4},
+        "health": 20,
+        "hunger": 20,
+        "time_of_day": 8352,
+        "nearby_blocks": [],
+        "nearby_entities": [],
+    }
+
+    exact_goal = exact_agent._task_readiness_recovery_goal(dark_only, "Advance iron progression")
+    exact_binding = next(iter(exact_agent._m4_readiness_recovery_bindings.values()))
+    exact_child = exact_agent.task_system.tasks[exact_binding["child_id"]]
+    assert exact_goal.startswith("Acquire 4 oak_log")
+    assert exact_binding["requirement"]["inventory_semantics"] == "exact"
+    assert exact_child.status == TaskStatus.ACCEPTED
+    assert exact_binding["root_status"] == "active"
+    exact_agent._reconcile_m4_satisfied_tasks(dark_only, exact_goal, 1)
+    assert exact_child.status == TaskStatus.ACCEPTED
+    assert exact_binding["root_status"] == "active"
+
+    exact_ready = dict(dark_only)
+    exact_ready["inventory"] = {"dark_oak_log": 4, "oak_log": 4}
+    exact_agent._reconcile_m4_satisfied_tasks(exact_ready, exact_goal, 2)
+    assert exact_child.status == TaskStatus.COMPLETED
+    assert exact_binding["root_status"] == "completed"
+    assert exact_binding["inventory_proof"]["exact_item_counts"] == {"oak_log": 4}
+
+    insufficient_agent = _m4_readiness_recovery_test_agent()
+    _create_m4_log_consumer_tasks(insufficient_agent, count=1)
+    insufficient = dict(dark_only)
+    insufficient["inventory"] = {"dark_oak_log": 3}
+    family_goal = insufficient_agent._task_readiness_recovery_goal(
+        insufficient,
+        "Advance iron progression",
+    )
+    family_binding = next(iter(insufficient_agent._m4_readiness_recovery_bindings.values()))
+    family_child = insufficient_agent.task_system.tasks[family_binding["child_id"]]
+    assert family_goal.startswith("Acquire 4 oak_log")
+    assert family_child.status == TaskStatus.ACCEPTED
+    assert family_binding["root_status"] == "active"
+    context = insufficient_agent._task_readiness_context(family_goal, insufficient)
+    assert "family_total=3" in context
+    assert "satisfied=false" in context
+
+    sufficient = dict(insufficient)
+    sufficient["inventory"] = {"dark_oak_log": 4}
+    insufficient_agent._reconcile_m4_satisfied_tasks(sufficient, family_goal, 2)
+    assert family_child.status == TaskStatus.COMPLETED
+    assert family_binding["root_status"] == "completed"
+    assert insufficient_agent._m4_readiness_recovery_goal_machine_completed(family_goal)
+    print("PASS: M4 exact and insufficient readiness requirements fail closed")
+
+
+def test_m4_readiness_recovery_fingerprint_mixed_family_and_context_bounds():
+    agent = _m4_readiness_recovery_test_agent()
+    generic_consumer = _create_m4_log_consumer_tasks(agent, count=1)[0]
+    exact_consumer = agent.task_system.create_task(
+        "Collect exact oak logs",
+        task_type="resource_collection",
+        status=TaskStatus.ACCEPTED,
+        preconditions={"inventory": {"oak_log": 4}},
+        success_criteria={"inventory": {"oak_log": 4}},
+        tags=["exact_item:oak_log"],
+    )
+    generic = agent._m4_readiness_recovery_requirement("oak_log", 4, generic_consumer)
+    exact = agent._m4_readiness_recovery_requirement("oak_log", 4, exact_consumer)
+    mixed = {"inventory": {"oak_log": 1, "dark_oak_log": 2, "birch_log": 1}}
+    generic_proof = agent._m4_requirement_inventory_proof(generic, mixed)
+    exact_proof = agent._m4_requirement_inventory_proof(exact, mixed)
+
+    assert generic_proof["family_total"] == 4
+    assert generic_proof["satisfied"] is True
+    assert exact_proof["exact_item_counts"] == {"oak_log": 1}
+    assert exact_proof["satisfied"] is False
+    assert generic["requirement_fingerprint"] != exact["requirement_fingerprint"]
+    assert {
+        "item_family",
+        "required_count",
+        "inventory_semantics",
+        "consumer_root_provenance",
+        "task_family",
+    }.issubset(generic)
+
+    agent._m4_readiness_recovery_bindings = {}
+    for index in range(7):
+        consumer = agent.task_system.create_task(
+            f"Craft product_{index}",
+            task_type="craft",
+            status=TaskStatus.ACCEPTED,
+            preconditions={"inventory": {"oak_log": index + 1}},
+            success_criteria={"inventory": {f"product_{index}": 1}},
+        )
+        requirement = agent._m4_readiness_recovery_requirement(
+            "oak_log",
+            index + 1,
+            consumer,
+        )
+        child = agent.task_system.create_task(
+            f"Acquire logs for product_{index}",
+            task_type="recovery",
+            status=TaskStatus.ACCEPTED,
+            success_criteria={"inventory": {"oak_log": index + 1}},
+            tags=["readiness_recovery", "m4_inventory_family:logs"],
+        )
+        agent._bind_m4_readiness_recovery_goal(child, consumer, requirement)
+
+    bounded_context = agent._m4_readiness_recovery_inventory_context(mixed)
+    context_event = agent.session_logger.events[-1]
+    assert context_event["type"] == "m4_readiness_recovery_planner_context"
+    assert context_event["data"]["requirement_count"] == 7
+    assert context_event["data"]["rendered_requirement_count"] <= 4
+    assert context_event["data"]["max_requirement_count"] == 4
+    assert context_event["data"]["char_count"] <= 640
+    assert len(bounded_context) <= 640
+    print("PASS: M4 readiness fingerprint preserves semantics and planner bounds")
+
+
+def test_probe_21_evidence_hashes_remain_immutable():
+    base = os.path.join(
+        "logs",
+        "benchmarks",
+        "m4",
+        "m4_episode_20260714_073801_99ea1735",
+    )
+    expected = {
+        "preflight.json": "5852b2e20d2544ca59274fec2ff65d426bf4109db79d81b29fd93dc292b47def",
+        "manifest.json": "1b766f232fc1b1e5a4ebbff968d9e20ce1144329721027194d5bb31c1de96f7d",
+        "session.json": "6781102c659d64c8191db4ab82d54d794b430717ff61c8e6ab9fc8e6414f7657",
+        "result.json": "64d2df96f0efba60bddc2a37e0c875448939e70632538c5a61de0514ed169f60",
+        "eligibility.json": "e3dddf3789515d92e235cae159739cce0add9cecdf83d7f5627335db1c6d8339",
+        "preparation.json": "344dfd7291ea70d89cdff51befcd7b07c278398bfbcd137ccbb57dd06d7be6c7",
+        "protocol_status.json": "6044351a0c5ba53d4bf0309b7bc5c332a3fddcf9a798d4045dd22c2a337b9b28",
+        "reset.json": "74b3823a41c809cb6e6b6392cc1e28d1316352b018314fe09694054c5a2717c4",
+    }
+    for name, expected_hash in expected.items():
+        with open(os.path.join(base, name), "rb") as handle:
+            normalized = handle.read().replace(b"\r\n", b"\n")
+        assert b"\r" not in normalized, name
+        assert hashlib.sha256(normalized).hexdigest() == expected_hash, name
+    print("PASS: Probe 21 evidence hashes remain immutable")
 
 
 def test_agent_loads_world_model_feedback_only_with_approved_gate():
@@ -4643,6 +4939,118 @@ def test_llm_planner_uses_bounded_typed_memory_contract():
     print("PASS: LLM planner uses bounded typed memory contract")
 
 
+def test_m4_autonomous_scheduler_completes_recovery_root_before_planner():
+    class GoalGenerator:
+        last_decision = {}
+
+        def next_goal(self, observation, task_id=""):
+            assert task_id == "BM-012"
+            return "Gather 6 oak logs for iron-tool progression"
+
+    class Explorer:
+        landmarks = []
+
+        def set_base(self, x, y, z):
+            self.base = (x, y, z)
+
+        def should_return(self, position, inventory_count):
+            return False, ""
+
+        def record_position(self, position):
+            pass
+
+    class Curriculum:
+        def __init__(self):
+            self.outcomes = []
+
+        def record_goal_outcome(self, goal, success, cycles):
+            self.outcomes.append((goal, success, cycles))
+
+        def summary(self):
+            return {"outcomes": len(self.outcomes)}
+
+    class PlannerGuard:
+        def __init__(self):
+            self.plan_call_count = 0
+
+        def set_deadline(self, *args):
+            pass
+
+        def start_episode(self, *args):
+            pass
+
+        def plan_from_goal(self, *args, **kwargs):
+            self.plan_call_count += 1
+            raise AssertionError("Planner must not run after machine completion propagation")
+
+    class ActionController:
+        def set_episode_deadline(self, *args):
+            pass
+
+    agent = _m4_readiness_recovery_test_agent()
+    agent.goal_generator = GoalGenerator()
+    agent.explorer = Explorer()
+    agent.curriculum = Curriculum()
+    agent.planner = PlannerGuard()
+    agent.action_controller = ActionController()
+    agent.reflector = None
+    agent._record_task_continuity = lambda *args, **kwargs: None
+    agent._finalize_skill_learning_episode = lambda *args, **kwargs: None
+    _create_m4_log_consumer_tasks(agent, count=1)
+    observations = iter([
+        {
+            "position": {"x": 94, "y": 135, "z": -37},
+            "inventory": {"dark_oak_log": 3},
+            "inventory_count": 1,
+            "health": 20,
+            "hunger": 20,
+            "time_of_day": 8352,
+            "nearby_blocks": [{"name": "crafting_table"}],
+            "nearby_entities": [],
+        },
+        {
+            "position": {"x": 94, "y": 135, "z": -37},
+            "inventory": {"dark_oak_log": 4},
+            "inventory_count": 1,
+            "health": 20,
+            "hunger": 20,
+            "time_of_day": 8392,
+            "nearby_blocks": [{"name": "crafting_table"}],
+            "nearby_entities": [],
+        },
+    ])
+    agent._observe = lambda: dict(next(observations))
+
+    result = agent.run_autonomous(
+        max_goals=1,
+        max_cycles_per_goal=3,
+        max_duration_s=10,
+        episode_deadline_monotonic=time.monotonic() + 10,
+        task_id="BM-012",
+    )
+
+    assert result["goals_completed"] == 1
+    assert result["goals_failed"] == 0
+    assert result["total_cycles"] == 1
+    assert agent.planner.plan_call_count == 0
+    completion = next(
+        event for event in agent.session_logger.events
+        if event["type"] == "m4_readiness_recovery_completion_propagation"
+    )
+    outcome = next(
+        event for event in agent.session_logger.events
+        if event["type"] == "auto_goal_complete"
+    )
+    assert completion["data"]["completion_source"] == "machine_state"
+    assert outcome["data"]["termination_reason"] == "machine_verified_readiness_recovery"
+    assert outcome["data"]["m4_readiness_recovery"]["root_id"] == completion["data"]["root_id"]
+    assert len([
+        event for event in agent.session_logger.events
+        if event["type"] == "m4_readiness_recovery_completion_propagation"
+    ]) == 1
+    print("PASS: M4 autonomous scheduler completes readiness root before Planner")
+
+
 def test_autonomous_loop_logs_machine_checkable_subgoal_events():
     class GoalGenerator:
         def next_goal(self, observation):
@@ -4794,6 +5202,10 @@ if __name__ == "__main__":
     test_agent_autonomous_goal_creates_readiness_recovery_task()
     test_agent_autonomous_goal_preserves_emergency_over_tasks()
     test_agent_readiness_recovery_uses_real_dependencies_and_skips_opaque_flags()
+    test_m4_readiness_recovery_propagates_probe21_family_completion_idempotently()
+    test_m4_readiness_recovery_exact_and_insufficient_requirements_fail_closed()
+    test_m4_readiness_recovery_fingerprint_mixed_family_and_context_bounds()
+    test_probe_21_evidence_hashes_remain_immutable()
     test_agent_loads_world_model_feedback_only_with_approved_gate()
     test_agent_logs_memory_lifecycle_events_for_policy_report()
     test_agent_logs_weighted_memory_retrieval_trace()
@@ -4851,5 +5263,6 @@ if __name__ == "__main__":
     test_agent_visual_action_grounding_prepends_resource_focus()
     test_rule_planner_uses_bounded_typed_memory_contract()
     test_llm_planner_uses_bounded_typed_memory_contract()
+    test_m4_autonomous_scheduler_completes_recovery_root_before_planner()
     test_autonomous_loop_logs_machine_checkable_subgoal_events()
     print("\nMemory/task system tests PASSED")

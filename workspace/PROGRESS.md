@@ -22,7 +22,9 @@ Event 1511 created recovery task `25fa2b53`; events 1512/1513 immediately machin
 
 The 600-second deadline produced 18 interrupts and 17 recoveries: 17 task-deadline pairs plus the final dusk trigger. The last valid observation at event 1787 remained connected and death-free with health/food 20, world time 11752, a wooden pickaxe, `dark_oak_log:4`, `oak_log:4`, three planks, and two sticks. Independent eligibility rejected the missing terminal resource/lifecycle evidence, absent iron provenance, duration overrun, and post-deadline state.
 
-Probe 21 consumed the only live authorization. The next action is offline-only: reproduce and bind readiness-recovery root completion to its already machine-completed inventory-family task without changing generic GoalVerifier, TaskSystem family semantics, M1/M2 protocols, or success thresholds. No Probe 22 is authorized before that gate is implemented, validated, committed, and pushed; BM-013 and BM-014 remain locked.
+The offline reproduction now closes that exact disconnect. `m4-readiness-recovery-inventory-family-root-completion-v1` binds the recovery child to a stable root and canonical requirement fingerprint, recomputes family/exact inventory proof after machine completion, closes the root before Planner execution, and cancels only the matching stale siblings frozen at binding time. Completion is idempotent, future same-fingerprint consumers remain active, exact oak requirements reject dark-oak-only inventory, mixed compatible logs accumulate correctly, and Planner context is bounded to four requirements and 640 characters.
+
+Five focused gate cases, 100 Memory/TaskSystem definitions, 47 M4 deadline definitions, all 743 definitions in 35 non-live Python files (744 repository definitions total), and six Node suites with 52 internal cases pass. Probe 21's eight evidence hashes, protocol hash, BM-012 task contract, generic GoalVerifier, global TaskSystem family semantics, M1/M2 protocols, and capability thresholds are unchanged. No live episode ran. Exactly one fresh Probe 22 is authorized only after this gate commit is pushed; BM-013 and BM-014 remain locked.
 
 Current report outcome:
 
