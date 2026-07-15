@@ -17,11 +17,11 @@
 
 ## Stone Pickaxe Skill Convergence
 
-- Phase 0/1 is implemented under `stone-pickaxe-skill-fixed-v1`: the repository, existing skill lifecycle, current authorization, and Probe 21/22/23 evidence hashes are frozen; the fixed protocol and 30-case offline harness are present.
+- Phase 0/1 and the controlled Phase 2 runtime are implemented under `stone-pickaxe-skill-fixed-v1`: the repository, existing skill lifecycle, authorization state, and Probe 21/22/23 evidence hashes are frozen; the fixed protocol and 30-case offline harness are present.
 - SP-001 Acquire Cobblestone is 0/3, SP-002 Craft Stone Pickaxe is 0/3, and SP-003 Composite Stone Pickaxe Chain is 0/3 and locked.
-- `learned:acquire_cobblestone` and `learned:craft_stone_pickaxe` do not exist. No candidate, advisory, paired evaluation, executable promotion, live episode, or run artifact has been created.
+- `learned:acquire_cobblestone` and `learned:craft_stone_pickaxe` do not exist. No candidate, advisory, paired evaluation, executable promotion, SP-001 live episode, or SP run artifact has been created.
 - Offline verifier fixtures do not count toward a skill gate, capability evidence, or M4. The canonical capability report and existing `custom_skills.jsonl` are unchanged.
-- Current live authorization is false. The project must stop after the protocol/offline-harness commit is pushed.
+- The single authorized non-counting fixture-preparation session failed machine audit after an empty Planner response and zero actions. No fixture snapshot was created, the conditional SP-001 authorization never activated, and current live authorization is false.
 
 ## M2 Convergence Result
 
@@ -139,7 +139,8 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 ## Stone-Pickaxe Workstream
 
 - Current gate: SP-001 0/3; SP-002 0/3; SP-003 locked.
-- Runtime state: controlled fixture/snapshot/SP-001 harness passes offline; no Minecraft process has started in this phase.
+- Runtime state: the controlled fixture/snapshot/SP-001 harness passes offline. The only authorized fixture-preparation session ran and stopped; its Planner exhausted the completion budget in reasoning, emitted an empty response, and produced zero gameplay actions.
+- Fixture state: machine audit failed exact wooden-pickaxe and three-reachable-stone checks. No snapshot was sealed and no SP-001 episode ran. Controlled ports are clear and Paper/Bridge are stopped.
 - Learned skills: `learned:acquire_cobblestone` and `learned:craft_stone_pickaxe` are not created. Existing wooden-pickaxe history is unchanged.
 - Capability impact: none. M4 remains failing and BM-012 remains 0/3; this microbenchmark evidence never counts directly toward M4.
-- Current authorization: one fixture-preparation session, then exactly one SP-001 episode if the fixture audit passes. No retry, SP-002/SP-003, Probe 24, full BM-012, or iron mining is authorized.
+- Current authorization: false. No retry, SP-001/SP-002/SP-003, Probe 24, full BM-012, or iron mining is authorized. A new fixture session requires an offline empty-plan fix, pushed validation, and new explicit authorization.

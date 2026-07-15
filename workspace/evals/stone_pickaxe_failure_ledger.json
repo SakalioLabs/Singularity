@@ -1,21 +1,29 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-15T14:23:43+08:00",
+  "generated_at": "2026-07-15T14:37:26+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_2_sp001_controlled_runtime",
-  "status": "runtime_harness_verified_authorization_not_consumed",
+  "phase": "phase_2_sp001_fixture_preparation_blocked",
+  "status": "fixture_preparation_failed_sp001_not_authorized",
   "capability_evidence": false,
   "m4_evidence": false,
-  "live_authorization": true,
-  "fixture_preparation_authorization": true,
-  "authorized_live_episode_count": 1,
-  "authorization_scope": "one_non_counting_survival_fixture_preparation_then_exactly_one_sp001_live_episode_if_fixture_audit_passes",
+  "live_authorization": false,
+  "fixture_preparation_authorization": false,
+  "authorized_live_episode_count": 0,
+  "authorization_scope": "closed_after_single_fixture_preparation_failed_machine_audit",
   "automatic_live_resume_allowed": false,
+  "authorization_consumption": {
+    "fixture_preparation_sessions_authorized": 1,
+    "fixture_preparation_sessions_consumed": 1,
+    "fixture_audit_passed": false,
+    "conditional_sp001_authorization_activated": false,
+    "sp001_live_episodes_run": 0,
+    "next_live_authorization": false
+  },
   "current_gate": {
     "SP-001": {
       "eligible_live_successes": 0,
@@ -81,13 +89,15 @@
     {
       "phase": 2,
       "name": "controlled_sp001_runtime",
-      "status": "offline_verified_authorization_not_consumed",
-      "fixture_preparation_session_count": 0,
+      "status": "fixture_preparation_failed_stopped",
+      "fixture_preparation_session_count": 1,
       "live_episode_count": 0,
       "automatic_retry_allowed": false,
       "stone_pickaxe_runtime_cases_passed": 11,
       "stone_pickaxe_runtime_cases_total": 11,
-      "minecraft_process_started": false
+      "minecraft_process_started": true,
+      "controlled_listener_count_after_stop": 0,
+      "matching_runtime_process_count_after_stop": 0
     }
   ],
   "failure_taxonomy": [
@@ -98,9 +108,95 @@
     "wrong_resource_target",
     "duplicate_action_loop",
     "unsafe_navigation",
-    "parameter_outside_transfer_scope"
+    "parameter_outside_transfer_scope",
+    "fixture_preparation_planner_empty_plan"
   ],
-  "failures": [],
+  "failures": [
+    {
+      "id": "sp-fixture-prep-001-empty-plan",
+      "phase": "fixture_preparation",
+      "classification": "fixture_preparation_planner_empty_plan",
+      "status": "retained_blocker",
+      "attributable_to_learned_skill": false,
+      "episode_id": "sp_fixture_prep_20260715_143222_b0e58483",
+      "session_id": "2cb7f2fd-a55",
+      "occurred_at_utc": "2026-07-15T06:33:19.044961+00:00",
+      "earliest_unrecovered_transition": "planner_call_0_finished_at_length_with_empty_response",
+      "first_failed_action_or_task_transition": "no_action_or_task_transition_plan_was_empty",
+      "goal_result": {
+        "completed": false,
+        "termination_reason": "empty_plan",
+        "cycles": 1,
+        "action_count": 0,
+        "elapsed_s": 37.5,
+        "deadline_eligible": true
+      },
+      "planner_decision": {
+        "call_index": 0,
+        "plan_kind": "continuation",
+        "finish_reason": "length",
+        "prompt_tokens": 1240,
+        "completion_tokens": 4096,
+        "total_tokens": 5336,
+        "reasoning_content_byte_count": 15685,
+        "response_byte_count": 0,
+        "response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "retry_count": 0
+      },
+      "world_state_proof": {
+        "position": {
+          "x": 99.5,
+          "y": 145.0,
+          "z": -31.5
+        },
+        "ground_block": "dark_oak_leaves",
+        "inventory": {},
+        "game_mode": "survival",
+        "health": 20.0,
+        "safe": true,
+        "movable": true,
+        "reachable_observed_stone_source_count": 0
+      },
+      "machine_audit": {
+        "passed": false,
+        "issues": [
+          "three_reachable_observed_stone_sources",
+          "wooden_pickaxe_exact"
+        ],
+        "wooden_pickaxe_exact": false,
+        "cobblestone_absent": true,
+        "stone_pickaxe_absent": true,
+        "survival_mode": true,
+        "safe": true,
+        "movable": true,
+        "three_reachable_observed_stone_sources": false
+      },
+      "evidence": [
+        {
+          "path": "logs/stone_pickaxe/fixture_preparations/sp_fixture_prep_20260715_143222_b0e58483/preparation.json",
+          "sha256": "372f8379b79d5139311d2e50479be66dcacad0c744c3db50c33b765b37e1203f"
+        },
+        {
+          "path": "logs/stone_pickaxe/fixture_preparations/sp_fixture_prep_20260715_143222_b0e58483/session.json",
+          "sha256": "d2150990c8ca0b4eaace2982604df2ef40fdfc6b7e84bb77cf02001b0ff9b491"
+        },
+        {
+          "path": "logs/stone_pickaxe/fixture_preparations/sp_fixture_prep_20260715_143222_b0e58483/session_2cb7f2fd-a55.jsonl",
+          "sha256": "28b40f3bcb9bd3c004a4094581b5f488c2207daee81eb2ec1907788ecee48563"
+        },
+        {
+          "path": "logs/stone_pickaxe/fixture_preparations/sp_fixture_prep_20260715_143222_b0e58483/session_2cb7f2fd-a55_summary.json",
+          "sha256": "338e3ad17286fa38346de18305777696f6918a4b6432b43f5b01e0d59a50020c"
+        }
+      ],
+      "counts_toward_skill_gate": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_attempted": false,
+      "conditional_sp001_episode_run": false,
+      "single_next_offline_fix": "ensure_the_fixture_planner_preserves_a_schema_valid_json_plan_when_reasoning_reaches_the_completion_budget_then_reproduce_offline_before_requesting_new_live_authorization"
+    }
+  ],
   "validation": {
     "stone_pickaxe_offline_cases": {
       "passed": 30,
@@ -133,22 +229,21 @@
     "matching_runtime_process_count": 0
   },
   "next_required_gate": {
-    "id": "sp001_fixture_preparation_then_first_authorized_live_episode",
-    "authorization": true,
+    "id": "offline_empty_plan_fix_before_new_fixture_authorization",
+    "authorization": false,
     "prerequisites": [
-      "protocol_and_offline_harness_commit_pushed",
-      "head_equal_origin_main",
-      "worktree_clean",
-      "credential_scan_clean",
-      "controlled_runtime_commit_pushed",
-      "fixture_snapshot_identity_verified",
-      "single_explicit_live_authorization"
+      "empty_plan_root_cause_reproduced_offline",
+      "planner_output_budget_fix_tested_offline",
+      "fix_commit_pushed",
+      "new_explicit_fixture_preparation_authorization"
     ],
     "automatic_retry_allowed": false
   },
   "artifact_state": {
     "fixture_manifest_created": false,
     "fixture_snapshot_created": false,
+    "fixture_preparation_artifacts_created": 4,
+    "fixture_preparation_artifacts_retained_locally": true,
     "sp001_run_artifacts_created": 0,
     "sp002_run_artifacts_created": 0,
     "sp003_run_artifacts_created": 0,
