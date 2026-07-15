@@ -10,6 +10,14 @@ Singularity has broad source coverage and a large passing offline test surface, 
 
 Official Paper 1.20.4 build 499 is hash-pinned and all counted runs use hash-verified protocol identities. M1 remains complete at 15/15, M2 contributes 23 eligible current-protocol successes, and M4 now contributes three independently eligible BM-011 episodes with unique session, episode, level, and session hashes. The overall system remains incomplete.
 
+## Stone Pickaxe Skill Convergence
+
+The dedicated stone-pickaxe project is at Phase 1 under `stone-pickaxe-skill-fixed-v1`. SP-001 Acquire Cobblestone is 0/3, SP-002 Craft Stone Pickaxe is 0/3, and SP-003 Composite Stone Pickaxe Chain is 0/3 and locked. No live episode ran, no authorization was consumed, and `learned:acquire_cobblestone` plus `learned:craft_stone_pickaxe` remain uncreated.
+
+The fixed protocol pins Minecraft/Paper/Mineflayer, seed and fixture contracts, Planner/provider/model, Action Backend, GoalVerifier, TaskSystem, bounded skill mode, task-specific episode deadlines and cycle limits, initial inventories, crafting-table observation policy, exact `stone` source allowlist, machine success, and evidence eligibility. The protocol and offline harness pass 30 numbered cases covering exact preconditions, deterministic nearest-observed selection, source/pickup proof, stable craft re-observation, exact item semantics, dependency release, idempotent recovery, quarantine exclusion, attribution separation, and immutable prior evidence.
+
+Offline fixtures are explicitly non-capability evidence. The canonical capability report and custom skill library are unchanged; M1/M2/M3 remain `repeat_verified`, BM-012 remains 0/3 after twenty-three failed attempts, and M4 remains `failing`. The next live authorization is false.
+
 BM-012 remains 0/3 after twenty-three attempts. Probe 23 ran exactly once from frozen committed and pushed gate commit `f528ea17`. Its authorization was consumed by `autonomous_start` event 1 at monotonic 132071.343; no retry or Probe 24 ran. The Agent started 10 goals, completed six, failed three, and interrupted one across 82 cycles. It executed 47/73 actions successfully and made 82 Planner calls: 80 real, 78 schema-valid real responses, two schema-invalid responses, two transport failures, and 289117 total tokens.
 
 The failed-dependency machine-state reconciliation intervention was not exercised. Observation event 563 proved exact `wooden_pickaxe:1` and action event 573 recorded `+1`. Existing reconciliation event 572 completed seven nonterminal equivalent pickaxe tasks but reported zero failed-dependency reconciliations. Failed tasks `006ddc9b`, `7c9d9eee`, and `c395cbb4` remained terminal; none was a direct dependency of an active-frontier task, so no live requirement fingerprint, reconciliation event, latency, dependent/root readiness transition, or history-preservation transition exists.

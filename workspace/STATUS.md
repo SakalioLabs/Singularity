@@ -1,4 +1,4 @@
-# STATUS.md | Last updated: 2026-07-14
+# STATUS.md | Last updated: 2026-07-15
 
 ## M1 Convergence Result
 
@@ -14,6 +14,14 @@
 - Three distinct later-session skill retrieval/outcome pairs pass raw-log hash, protocol, GoalVerifier, and attribution checks.
 - The gather-wood held-out transfer gate is approved with two disjoint live support sessions.
 - The historical 37-session failing report remains retained evidence, but it is superseded for current M3 status by the newer bounded-loop evidence.
+
+## Stone Pickaxe Skill Convergence
+
+- Phase 0/1 is implemented under `stone-pickaxe-skill-fixed-v1`: the repository, existing skill lifecycle, current authorization, and Probe 21/22/23 evidence hashes are frozen; the fixed protocol and 30-case offline harness are present.
+- SP-001 Acquire Cobblestone is 0/3, SP-002 Craft Stone Pickaxe is 0/3, and SP-003 Composite Stone Pickaxe Chain is 0/3 and locked.
+- `learned:acquire_cobblestone` and `learned:craft_stone_pickaxe` do not exist. No candidate, advisory, paired evaluation, executable promotion, live episode, or run artifact has been created.
+- Offline verifier fixtures do not count toward a skill gate, capability evidence, or M4. The canonical capability report and existing `custom_skills.jsonl` are unchanged.
+- Current live authorization is false. The project must stop after the protocol/offline-harness commit is pushed.
 
 ## M2 Convergence Result
 
@@ -47,10 +55,10 @@
 
 ## M4 Convergence Result
 
-- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after twenty-two failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
+- M4 is `failing`; BM-011 remains repeat-verified, but BM-012 remains 0/3 after twenty-three failed live attempts and the phase is not complete until BM-011 through BM-014 each reach 3/3.
 - BM-011 is `repeat_verified` with three independently eligible fresh `m4-fixed-v1` survival-to-dawn episodes.
 - Every accepted BM-011 run has a unique episode, session, level, and session hash; all pass machine shelter, zero-death lifecycle, natural-time, absolute-deadline, and independent eligibility checks.
-- BM-012 is the next target at 0/3 after twenty-two failed live attempts. Probe 22 ran once from pushed commit `fa7bb5c`, stayed within deadline, passed 68/74 checks, and acquired no iron. The inventory-family root-completion intervention was not exercised: all three intervention event types had count zero, so child/root identity, latency, idempotency, inventory proof, and stale-sibling closure are unmeasured; the Probe 21 oak/root disconnect did not recur but is not live-validated. The new earliest layer is `m4_readiness_recovery_failed_dependency_machine_state_disconnect`: task `ac997fe4` failed at event 548, event 855 later machine-crafted the wooden pickaxe, events 863-872 completed ten equivalent accepted tasks, but dependent coal task `4cbefa6a` stayed blocked and event 1326 began 21 repeated missing-dependency selections. Probe 22 authorization is consumed, the mandated decision is `infrastructure_ineligible` only because the enum lacks an intervention-not-exercised value, preflight infrastructure passed, and next authorization is false. BM-013/BM-014 remain locked.
+- BM-012 is 0/3 after twenty-three failed live attempts. Probe 23 ran once from pushed gate `f528ea17`; the failed-dependency reconciliation branch was not exercised because no failed pickaxe task was a direct dependency on the active frontier. The next earliest layer is `m4_ready_task_failed_root_machine_state_disconnect`: a failed torch root remained bound after machine state contained four torches. Probe 23 reached the deadline, passed 66/74 checks, acquired no iron, and is classified `intervention_not_exercised`. Its authorization is consumed, next authorization is false, and BM-013/BM-014 remain locked.
 
 ## Evidence Policy
 
@@ -70,7 +78,7 @@ Capability status is derived from `workspace/evals/capability_evidence_current.j
 | M1 | Minimum Viable Bot | **Complete (`repeat_verified`)** | BM-001..005 each 3/3; 15/15 distinct eligible live successes |
 | M2 | LLM Task Planning | **Complete (`repeat_verified`)** | BM-006/BM-007: 3/3 eligible pairs each; BM-008..010: 3/3 each; recovery gate approved |
 | M3 | Skill Library & Memory | **Complete (`repeat_verified`)** | 3/3 raw-log-verified runtime sessions plus approved held-out transfer support |
-| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 twenty-two failed attempts, 0/3; BM-013..014 not_run |
+| M4 | Autonomous Survival | **Failing (`failing`)** | BM-011 repeat_verified 3/3; BM-012 twenty-three failed attempts, 0/3; BM-013..014 not_run |
 | M5 | Open-World Exploration | **Failing (`failing`)** | World-model gate passes, but 0/27 historical goals completed |
 | M6 | Vision & Multimodal | **Failing (`failing`)** | No verified screenshots or live-source visual-action interventions |
 | M7 | Multi-Agent Collaboration | **Pending (`not_run`)** | BM-701: no tracked live execution |

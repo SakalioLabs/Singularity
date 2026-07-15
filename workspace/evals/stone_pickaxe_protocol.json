@@ -1,0 +1,416 @@
+{
+  "type": "stone_pickaxe_skill_protocol",
+  "schema_version": 1,
+  "id": "stone-pickaxe-skill-fixed-v1",
+  "phase_scope": "protocol_and_offline_harness",
+  "base_protocol": {
+    "profile": "m4-fixed-v1",
+    "sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d"
+  },
+  "environment": {
+    "minecraft_version": "1.20.4",
+    "server_type": "Paper",
+    "server_build": "paper-1.20.4-499",
+    "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+    "world_seed": "12345",
+    "game_mode": "survival",
+    "difficulty": "normal",
+    "runtime_versions": {
+      "python": "3.12.8",
+      "node": "22.16.0",
+      "mineflayer": "4.37.1",
+      "mineflayer_pathfinder": "2.4.5",
+      "minecraft_data": "3.111.0"
+    }
+  },
+  "planner": {
+    "identity": "llm-autonomous-planner-v1",
+    "provider": "openai",
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash",
+    "temperature": 0.0,
+    "max_tokens": 4096,
+    "thinking": "disabled",
+    "provider_retries": 0
+  },
+  "identities": {
+    "action_backend": "mineflayer-bridge-v1",
+    "goal_verifier": "stone-pickaxe-machine-verifier-v1",
+    "task_system": "singularity-task-system-v1",
+    "failed_dependency_reconciliation": "m4-failed-dependency-machine-state-reconciliation-v1",
+    "skill_runtime": "bounded_action_template_v1",
+    "fixture_contract": "stone-pickaxe-fixture-contract-v1"
+  },
+  "deadline_policy": {
+    "id": "stone-pickaxe-absolute-deadline-v1",
+    "single_absolute_deadline_required": true,
+    "per_action_timeout_s": 60,
+    "post_deadline_planner_call_allowed": false,
+    "post_deadline_action_allowed": false,
+    "in_flight_result_after_deadline_allowed": false
+  },
+  "runtime_controls": {
+    "default_skill_execution_mode": "off",
+    "learned_skill_allowlist": [],
+    "quarantined_skills_enabled": false,
+    "policy_skills_enabled": false,
+    "memory_persistence_enabled": false,
+    "vision_enabled": false,
+    "multi_agent_enabled": false,
+    "autocurriculum_enabled": false,
+    "goal_verification_enabled": true,
+    "action_verification_enabled": true,
+    "action_verification_enforced": true,
+    "one_live_episode_at_a_time": true,
+    "automatic_retry_allowed": false,
+    "external_step_script_allowed": false,
+    "candidate_arm_policy": "exact_target_skill_only_after_advisory_authorization"
+  },
+  "fixture_policy": {
+    "fresh_level_per_run": true,
+    "fixture_materialization": "immutable_seeded_world_and_playerdata_snapshot",
+    "fixture_snapshot_hash_required_before_live": true,
+    "active_episode_reset_allowed": false,
+    "target_result_injection_allowed": false,
+    "forbidden_commands": [
+      "give",
+      "teleport",
+      "gamemode",
+      "setblock",
+      "result_injection"
+    ],
+    "nearby_crafting_table": {
+      "block": "crafting_table",
+      "must_be_observed": true,
+      "must_be_interactive": true,
+      "maximum_distance": 4.5,
+      "source": "immutable_fixture",
+      "active_episode_placement_allowed": false
+    },
+    "cobblestone_sources": {
+      "block_allowlist": [
+        "stone"
+      ],
+      "target_drop": "cobblestone",
+      "selector": "nearest_observed",
+      "search_radius": 32,
+      "interaction_range": 4.5,
+      "navigation_tolerance": 1.75,
+      "source_must_be_observed": true,
+      "source_must_be_reachable": true,
+      "duplicate_source_dig_allowed": false
+    }
+  },
+  "evidence_policy": {
+    "live_evidence_kind": "live_verified",
+    "offline_evidence_kind": "offline_fixture",
+    "offline_counts_toward_skill_gate": false,
+    "offline_counts_toward_capability": false,
+    "skill_microbenchmark_counts_toward_m4": false,
+    "session_id_required": true,
+    "episode_id_required": true,
+    "session_sha256_required": true,
+    "protocol_identity_required": true,
+    "reset_clean_required": true,
+    "no_forbidden_intervention_required": true,
+    "no_post_deadline_action_required": true,
+    "quarantined_skill_count_maximum": 0,
+    "stable_reobservation_delay_s": 0.25
+  },
+  "tasks": [
+    {
+      "id": "SP-001",
+      "name": "Acquire Cobblestone",
+      "fixture_id": "sp001-acquire-cobblestone-v1",
+      "episode_timeout_s": 180,
+      "maximum_cycles": 12,
+      "maximum_actions": 8,
+      "initial_inventory": {
+        "wooden_pickaxe": 1
+      },
+      "forbidden_initial_inventory": [
+        "cobblestone",
+        "stone_pickaxe"
+      ],
+      "initial_state": {
+        "safe": true,
+        "movable": true,
+        "reachable_observed_source_required": true
+      },
+      "target": {
+        "inventory": {
+          "cobblestone": 3
+        }
+      },
+      "machine_success": {
+        "minimum_distinct_source_removals": 3,
+        "pre_and_post_observation_per_dig": true,
+        "approved_tools": [
+          "wooden_pickaxe"
+        ],
+        "minimum_inventory_delta": {
+          "cobblestone": 3
+        },
+        "pickup_provenance_required": true,
+        "action_result_only_success_allowed": false,
+        "planner_text_success_allowed": false,
+        "goal_verifier_text_success_allowed": false,
+        "session_eligibility_required": true
+      }
+    },
+    {
+      "id": "SP-002",
+      "name": "Craft Stone Pickaxe",
+      "fixture_id": "sp002-craft-stone-pickaxe-v1",
+      "episode_timeout_s": 90,
+      "maximum_cycles": 6,
+      "maximum_actions": 1,
+      "initial_inventory": {
+        "cobblestone": 3,
+        "stick": 2
+      },
+      "forbidden_initial_inventory": [
+        "stone_pickaxe"
+      ],
+      "initial_state": {
+        "nearby_crafting_table_required": true
+      },
+      "target": {
+        "inventory": {
+          "stone_pickaxe": 1
+        }
+      },
+      "machine_success": {
+        "craft_action": {
+          "type": "craft",
+          "item": "stone_pickaxe",
+          "count": 1
+        },
+        "exact_material_consumption": {
+          "cobblestone": 3,
+          "stick": 2
+        },
+        "minimum_inventory_delta": {
+          "stone_pickaxe": 1
+        },
+        "crafting_table_interaction_required": true,
+        "stable_reobservation_required": true,
+        "transient_inventory_ghost_allowed": false,
+        "action_result_only_success_allowed": false,
+        "session_eligibility_required": true
+      }
+    },
+    {
+      "id": "SP-003",
+      "name": "Composite Stone Pickaxe Chain",
+      "fixture_id": "sp003-composite-stone-pickaxe-v1",
+      "episode_timeout_s": 300,
+      "maximum_cycles": 20,
+      "maximum_actions": 9,
+      "initial_inventory": {
+        "wooden_pickaxe": 1,
+        "stick": 2
+      },
+      "forbidden_initial_inventory": [
+        "cobblestone",
+        "stone_pickaxe"
+      ],
+      "initial_state": {
+        "nearby_crafting_table_required": true,
+        "reachable_observed_source_required": true
+      },
+      "dependency_path": [
+        "SP-001",
+        "SP-002"
+      ],
+      "target": {
+        "inventory": {
+          "stone_pickaxe": 1
+        }
+      },
+      "machine_success": {
+        "sp001_success_required": true,
+        "sp002_success_required": true,
+        "acquire_completion_releases_craft": true,
+        "maximum_distinct_source_removals": 3,
+        "wooden_pickaxe_recraft_count_maximum": 0,
+        "crafting_table_recraft_count_maximum": 0,
+        "iron_mining_action_count_maximum": 0,
+        "bm012_terminal_criteria_allowed": false,
+        "separate_skill_attribution_required": true
+      }
+    }
+  ],
+  "prospective_skill_contracts": {
+    "SP-001": {
+      "artifact_state": "not_created",
+      "skill_id": "learned:acquire_cobblestone",
+      "task_family": "mining",
+      "layer": "composite",
+      "preconditions": {
+        "inventory": {
+          "wooden_pickaxe": 1
+        }
+      },
+      "required_observations": [
+        "inventory",
+        "observed_block:stone"
+      ],
+      "postconditions": {
+        "inventory": {
+          "cobblestone": 3
+        }
+      },
+      "bounded_action_template": {
+        "dsl_version": "bounded_action_template_v1",
+        "max_actions": 8,
+        "parameters": {
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 3,
+            "maximum": 8
+          }
+        },
+        "phases": [
+          {
+            "id": "acquire_target",
+            "op": "acquire_block_drop",
+            "source_blocks": [
+              "stone"
+            ],
+            "target_item": "cobblestone",
+            "target_count": {
+              "parameter": "quantity",
+              "default": 3
+            },
+            "selector": "nearest_observed",
+            "search_radius": 32,
+            "interaction_range": 4.5,
+            "navigation_tolerance": 1.75
+          }
+        ]
+      }
+    },
+    "SP-002": {
+      "artifact_state": "not_created",
+      "skill_id": "learned:craft_stone_pickaxe",
+      "task_family": "crafting",
+      "layer": "composite",
+      "preconditions": {
+        "inventory": {
+          "cobblestone": 3,
+          "stick": 2
+        },
+        "nearby_block_present": [
+          "crafting_table"
+        ],
+        "nearby_block_max_distance": {
+          "crafting_table": 4.5
+        }
+      },
+      "required_observations": [
+        "inventory",
+        "nearby_block:crafting_table"
+      ],
+      "postconditions": {
+        "inventory": {
+          "stone_pickaxe": 1
+        }
+      },
+      "bounded_action_template": {
+        "dsl_version": "bounded_action_template_v1",
+        "max_actions": 1,
+        "phases": [
+          {
+            "id": "craft_target",
+            "op": "craft_item",
+            "item": "stone_pickaxe",
+            "count": 1,
+            "target_item": "stone_pickaxe",
+            "target_count": 1
+          }
+        ]
+      }
+    }
+  },
+  "promotion_gates": {
+    "lifecycle_order": [
+      "candidate",
+      "advisory",
+      "paired_evaluation",
+      "executable"
+    ],
+    "minimum_independent_eligible_live_successes_before_extraction": 3,
+    "minimum_independent_eligible_baseline_candidate_pairs": 3,
+    "candidate_must_be_selected_and_executed": true,
+    "baseline_and_candidate_must_succeed": true,
+    "no_completion_rate_regression": true,
+    "failed_versions_retained": true,
+    "in_place_version_rewrite_allowed": false,
+    "sp002_promotion_requires_sp001_live_successes": 3,
+    "sp003_requires_both_skills_executable": true,
+    "sp003_minimum_candidate_successes": 3
+  },
+  "regression_gate": {
+    "required_capability_statuses": {
+      "M1": "repeat_verified",
+      "M2": "repeat_verified",
+      "M3": "repeat_verified"
+    },
+    "goal_verifier_regression_required": true,
+    "task_system_regression_required": true,
+    "skill_runtime_regression_required": true,
+    "capability_threshold_changes_allowed": false,
+    "goal_verifier_relaxation_allowed": false,
+    "m1_m2_m3_success_criteria_changes_allowed": false
+  },
+  "artifact_policy": {
+    "paths_must_be_repository_relative": true,
+    "future_run_directories": [
+      "workspace/evals/sp001_runs",
+      "workspace/evals/sp002_runs",
+      "workspace/evals/sp003_runs"
+    ],
+    "future_promotion_artifacts": [
+      "workspace/evals/acquire_cobblestone_promotion.json",
+      "workspace/evals/craft_stone_pickaxe_promotion.json",
+      "workspace/evals/stone_pickaxe_skill_acceptance.json"
+    ],
+    "future_artifacts_created_before_evidence": false,
+    "custom_skill_mutation_requires_formal_lifecycle": true,
+    "probe_evidence_mutation_allowed": false
+  },
+  "offline_acceptance_cases": [
+    {"id": 1, "name": "exact_wooden_pickaxe_precondition"},
+    {"id": 2, "name": "missing_wooden_pickaxe_blocked"},
+    {"id": 3, "name": "allowlisted_source_only"},
+    {"id": 4, "name": "deterministic_nearest_observed"},
+    {"id": 5, "name": "already_satisfied_zero_actions"},
+    {"id": 6, "name": "quantity_parameter_bounds"},
+    {"id": 7, "name": "coordinate_free_template"},
+    {"id": 8, "name": "no_duplicate_source_dig"},
+    {"id": 9, "name": "pickup_required"},
+    {"id": 10, "name": "wrong_drop_rejected"},
+    {"id": 11, "name": "exact_craft_preconditions_pass"},
+    {"id": 12, "name": "cobblestone_shortage_rejected"},
+    {"id": 13, "name": "stick_shortage_rejected"},
+    {"id": 14, "name": "missing_table_rejected"},
+    {"id": 15, "name": "wooden_pickaxe_not_terminal"},
+    {"id": 16, "name": "transient_ghost_rejected"},
+    {"id": 17, "name": "stable_reobservation_required"},
+    {"id": 18, "name": "craft_max_actions_one"},
+    {"id": 19, "name": "recipe_alias_rejected"},
+    {"id": 20, "name": "family_substitute_rejected"},
+    {"id": 21, "name": "acquire_releases_craft_dependency"},
+    {"id": 22, "name": "completed_acquire_not_recreated"},
+    {"id": 23, "name": "completed_craft_not_rescheduled"},
+    {"id": 24, "name": "one_active_recovery_child_per_fingerprint"},
+    {"id": 25, "name": "no_stale_sibling_in_frontier"},
+    {"id": 26, "name": "fallback_excludes_quarantined"},
+    {"id": 27, "name": "skill_attribution_separated"},
+    {"id": 28, "name": "m1_m2_m3_regressions_required"},
+    {"id": 29, "name": "wooden_pickaxe_history_immutable"},
+    {"id": 30, "name": "probe_evidence_hashes_immutable"}
+  ]
+}

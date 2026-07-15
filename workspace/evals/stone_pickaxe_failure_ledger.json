@@ -1,0 +1,273 @@
+{
+  "type": "stone_pickaxe_failure_ledger",
+  "schema_version": 1,
+  "generated_at": "2026-07-15T12:31:14+08:00",
+  "protocol": {
+    "id": "stone-pickaxe-skill-fixed-v1",
+    "path": "workspace/evals/stone_pickaxe_protocol.json",
+    "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+  },
+  "phase": "phase_1_offline_harness",
+  "status": "offline_harness_verified",
+  "capability_evidence": false,
+  "m4_evidence": false,
+  "live_authorization": false,
+  "automatic_live_resume_allowed": false,
+  "current_gate": {
+    "SP-001": {
+      "eligible_live_successes": 0,
+      "required_before_candidate_extraction": 3,
+      "candidate_created": false,
+      "learned_skill_status": "not_created"
+    },
+    "SP-002": {
+      "eligible_live_successes": 0,
+      "required_before_candidate_extraction": 3,
+      "candidate_created": false,
+      "learned_skill_status": "not_created"
+    },
+    "SP-003": {
+      "eligible_live_successes": 0,
+      "required_after_both_skills_executable": 3,
+      "unlocked": false
+    }
+  },
+  "existing_learned_skills": [
+    {
+      "skill_id": "learned:gather_wood",
+      "current_version": "1.0.1",
+      "current_status": "executable"
+    },
+    {
+      "skill_id": "learned:craft_crafting_table",
+      "current_version": "1.0.1",
+      "current_status": "executable"
+    },
+    {
+      "skill_id": "learned:craft_wooden_pickaxe",
+      "current_version": "1.0.2",
+      "current_status": "executable",
+      "retained_quarantined_version": "1.0.1"
+    }
+  ],
+  "phase_history": [
+    {
+      "phase": 0,
+      "name": "freeze_and_audit",
+      "status": "complete",
+      "base_commit": "e4e06980caebaa79528b7bc187db0c8422e4f5c8",
+      "head_equal_origin_main": true,
+      "worktree_clean_at_freeze": true,
+      "branch_names": [
+        "main"
+      ],
+      "controlled_port_listener_count": 0,
+      "agent_bridge_paper_process_count": 0,
+      "live_authorization": false
+    },
+    {
+      "phase": 1,
+      "name": "protocol_and_offline_harness",
+      "status": "complete",
+      "required_test_case_count": 30,
+      "passed_test_case_count": 30,
+      "live_episode_count": 0,
+      "skill_artifact_mutation_count": 0,
+      "capability_report_mutation_count": 0
+    }
+  ],
+  "failure_taxonomy": [
+    "skill_error",
+    "precondition_misclassification",
+    "postcondition_failure",
+    "action_verifier_reject",
+    "wrong_resource_target",
+    "duplicate_action_loop",
+    "unsafe_navigation",
+    "parameter_outside_transfer_scope"
+  ],
+  "failures": [],
+  "validation": {
+    "stone_pickaxe_offline_cases": {
+      "passed": 30,
+      "total": 30
+    },
+    "repository_non_live_python_scripts": {
+      "passed": 37,
+      "total": 37
+    },
+    "fixed_node_suites": {
+      "passed": 6,
+      "total": 6
+    },
+    "repository_json_files_parsed": 1110,
+    "python_compileall_passed": true,
+    "capability_consistency_passed": true,
+    "immutable_baseline_hashes_passed": true,
+    "credential_scan_passed": true,
+    "git_diff_check_passed": true,
+    "controlled_listener_count": 0,
+    "matching_runtime_process_count": 0
+  },
+  "next_required_gate": {
+    "id": "sp001_first_authorized_live_episode",
+    "authorization": false,
+    "prerequisites": [
+      "protocol_and_offline_harness_commit_pushed",
+      "head_equal_origin_main",
+      "worktree_clean",
+      "credential_scan_clean",
+      "fixture_snapshot_identity_verified",
+      "single_explicit_live_authorization"
+    ],
+    "automatic_retry_allowed": false
+  },
+  "artifact_state": {
+    "sp001_run_artifacts_created": 0,
+    "sp002_run_artifacts_created": 0,
+    "sp003_run_artifacts_created": 0,
+    "promotion_artifacts_created": 0,
+    "acceptance_artifacts_created": 0,
+    "custom_skills_modified": false,
+    "capability_report_modified": false
+  },
+  "immutable_baseline": {
+    "commit": "e4e06980caebaa79528b7bc187db0c8422e4f5c8",
+    "custom_skills": {
+      "path": "workspace/skills/custom_skills.jsonl",
+      "sha256": "1bb41d47b165229b19ee4f8c0e7c7f8a38411ad7f6829170d4dc1219b5ec102d"
+    },
+    "probe_evidence": [
+      {
+        "probe": 21,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/eligibility.json",
+        "sha256": "5d8ce3dcfd4560fa42a59623859eb458c3a3c65dddd698291601b01b7a99259e"
+      },
+      {
+        "probe": 21,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/manifest.json",
+        "sha256": "c42f9db6b6434b95194896fb8e266f32d834afd409b4e3cbe9b8c2b782484192"
+      },
+      {
+        "probe": 21,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/preflight.json",
+        "sha256": "d3e9128fb925541afa7d06aaa5c80c3177a96fac9ca493dabad36eadf48fd382"
+      },
+      {
+        "probe": 21,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/preparation.json",
+        "sha256": "8193242402a61f59e3b8d991620d1d2143b2d61ea64dacc4e5ce9281c8cb5b79"
+      },
+      {
+        "probe": 21,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/protocol_status.json",
+        "sha256": "06c0fa5833537f0560aae9e733871840feb7c50d1afc732fa0390579f44329a7"
+      },
+      {
+        "probe": 21,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/reset.json",
+        "sha256": "59c30d44c1ebc0a65d30461b87ec9ae69a276be76bcb50fa9a05d27e31e04071"
+      },
+      {
+        "probe": 21,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/result.json",
+        "sha256": "af33e3555cbb0953c9fee16a64d5bfc092c5e5755a0484981f4994a753a8fc90"
+      },
+      {
+        "probe": 21,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_073801_99ea1735/session.json",
+        "sha256": "34787ab322ff02909bf5b24650d13485330736d2c6ad19c3de5f38eab590c2ad"
+      },
+      {
+        "probe": 22,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_195257_3aa3b171/eligibility.json",
+        "sha256": "f87b362179feaa8017354af94c2205dc603f81812963809ad5226a19f46066f2"
+      },
+      {
+        "probe": 22,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_195257_3aa3b171/manifest.json",
+        "sha256": "880c794a66a292b70fa8d6ff5024e242df073900aba8f85cd297a464ce3c4a8f"
+      },
+      {
+        "probe": 22,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_195257_3aa3b171/preflight.json",
+        "sha256": "5b2ab6de44e1b9fcf18981d2109640b00d2d8f1e6c69da2d5a8fc10372937407"
+      },
+      {
+        "probe": 22,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_195257_3aa3b171/preparation.json",
+        "sha256": "c15c478d453da9af12301aa76ab1147071874a47a3284f9a3757c09fef063119"
+      },
+      {
+        "probe": 22,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_195257_3aa3b171/protocol_status.json",
+        "sha256": "d8ba7ff1319a4a12e7324747f04e4027107ea9fb2dc16ab199ade5f670fff6d6"
+      },
+      {
+        "probe": 22,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_195257_3aa3b171/reset.json",
+        "sha256": "78d7c05977b59d220a877d343d7ac609e1d95e2ec8168872241df29188e9e6b8"
+      },
+      {
+        "probe": 22,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_195257_3aa3b171/result.json",
+        "sha256": "1a145d4bdf1543d3b933a237599cb509abf0d16159cde059d8eea44aab8eefa2"
+      },
+      {
+        "probe": 22,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_195257_3aa3b171/session.json",
+        "sha256": "ae9d31b2a8a1d1b145eefab1737138f678fa9c15d17102437d42f4c0fafabce6"
+      },
+      {
+        "probe": 22,
+        "path": "logs/benchmarks/m4/m4_episode_20260714_195257_3aa3b171/session_8e6da3cf-017.jsonl",
+        "sha256": "6957f1cf23b8318ac54088500afbde67d391bae37afa26ef89dde914c0e7a5b7"
+      },
+      {
+        "probe": 23,
+        "path": "logs/benchmarks/m4/m4_episode_20260715_105127_137d4a01/eligibility.json",
+        "sha256": "398c2b2dc5c83f3e9848c046740fad3255ac7d9552069ece1c2fbdabb4af351d"
+      },
+      {
+        "probe": 23,
+        "path": "logs/benchmarks/m4/m4_episode_20260715_105127_137d4a01/manifest.json",
+        "sha256": "0712a909f55c6aa459459a995aa17bb2dc2e221844b36f69ebd16de387d69927"
+      },
+      {
+        "probe": 23,
+        "path": "logs/benchmarks/m4/m4_episode_20260715_105127_137d4a01/preflight.json",
+        "sha256": "caa9f424e5b7d30839aa14b057a1990b2b1aa8226a75f20f42ba571fdf8bb670"
+      },
+      {
+        "probe": 23,
+        "path": "logs/benchmarks/m4/m4_episode_20260715_105127_137d4a01/preparation.json",
+        "sha256": "58fa3c4a1832181015cc1c1d535f1d5083d9ea4794a1c67d03694d4f9bab3684"
+      },
+      {
+        "probe": 23,
+        "path": "logs/benchmarks/m4/m4_episode_20260715_105127_137d4a01/protocol_status.json",
+        "sha256": "5923c73a87778db2976401a49a605275beb22ce01f0b87c78ab084b847d6dd77"
+      },
+      {
+        "probe": 23,
+        "path": "logs/benchmarks/m4/m4_episode_20260715_105127_137d4a01/reset.json",
+        "sha256": "83936507cacf07d731809f6f4c048a34a2de50c6b6fd6206fc818810c3c008b0"
+      },
+      {
+        "probe": 23,
+        "path": "logs/benchmarks/m4/m4_episode_20260715_105127_137d4a01/result.json",
+        "sha256": "0118bace0b4fd4654e0e8d609e74ec08613390efefc553822929308386c58e13"
+      },
+      {
+        "probe": 23,
+        "path": "logs/benchmarks/m4/m4_episode_20260715_105127_137d4a01/session.json",
+        "sha256": "499c044c1ad43005a0086192a803a1f0c9d8898c2f7e5eabdfd2d9def86d1509"
+      },
+      {
+        "probe": 23,
+        "path": "logs/benchmarks/m4/m4_episode_20260715_105127_137d4a01/session_36f5f959-6da.jsonl",
+        "sha256": "c296bb0d5bca977a8671d4a2dc8ad6e422602b768e7dd20ef129c58b713a7808"
+      }
+    ]
+  }
+}
