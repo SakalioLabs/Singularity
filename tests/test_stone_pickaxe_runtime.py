@@ -1,22 +1,59 @@
 import json
 import tempfile
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
 from singularity.action.controller import ActionController
 from singularity.core.agent import Agent
 from singularity.core.goal_verifier import GoalVerification
+from singularity.core.planner import Planner
+from singularity.core.task_system import TaskSystem
 from singularity.evaluation.stone_pickaxe_protocol import PROTOCOL, PROTOCOL_SHA256
 from singularity.evaluation.stone_pickaxe_runtime import (
     build_fixture_artifact,
     build_runtime_config,
     build_sp001_episode,
     guard_runtime_action,
+    planner_request_controls_audit,
     snapshot_tree_report,
     source_id,
     verify_fixture_manifest,
     verify_sp001_runtime_episode,
 )
+
+
+class _PlannerEvidenceLLM:
+    def __init__(
+        self,
+        response: str,
+        *,
+        finish_reason: str = "stop",
+        reasoning_bytes: int = 0,
+    ):
+        self.response = response
+        self.finish_reason = finish_reason
+        self.reasoning_bytes = reasoning_bytes
+        self.calls = []
+        self.last_call_metadata = {}
+
+    def chat(self, messages, **kwargs):
+        self.calls.append({"messages": messages, **kwargs})
+        self.last_call_metadata = {
+            "provider": "openai",
+            "base_url": PROTOCOL["planner"]["base_url"],
+            "model": PROTOCOL["planner"]["model"],
+            "temperature": PROTOCOL["planner"]["temperature"],
+            "max_tokens": PROTOCOL["planner"]["max_tokens"],
+            "response_format": {"type": "json_object"},
+            "request_sha256": "a" * 64,
+            "timeout_s": kwargs.get("timeout_s"),
+            "max_retries": 0 if kwargs.get("timeout_s") is not None else None,
+            "finish_reason": self.finish_reason,
+            "extra_body": dict(kwargs.get("extra_body", {})),
+            "reasoning_content_byte_count": self.reasoning_bytes,
+        }
+        return self.response
 
 
 def _raw_observation(cobblestone=0, remaining=(1, 2, 3)):
@@ -69,8 +106,58 @@ def _fixture_manifest(tree):
     }
 
 
+def _planner_event():
+    request_timeout = 179.5
+    return {
+        "type": "llm_planner_call",
+        "monotonic_s": 10.0,
+        "data": {
+            "protocol": PROTOCOL["id"],
+            "call_id": "offline-stone-call-1",
+            "call_index": 0,
+            "real_llm_call": True,
+            "schema_valid": True,
+            "response_sha256": "e" * 64,
+            "response_byte_count": 128,
+            "deadline_policy": {
+                "policy_id": PROTOCOL["deadline_policy"]["id"],
+                "remaining_before_call_s": 180.0,
+                "request_timeout_s": request_timeout,
+                "max_retries": 0,
+            },
+            "transport_evidence": {
+                "policy_id": "single-attempt",
+                "attempt_count": 1,
+                "retry_count": 0,
+                "attempts": [{
+                    "attempt_index": 0,
+                    "success": True,
+                    "timeout_s": request_timeout,
+                    "sdk_max_retries": 0,
+                    "finish_reason": "stop",
+                }],
+            },
+            "provider_metadata": {
+                "provider": PROTOCOL["planner"]["provider"],
+                "base_url": PROTOCOL["planner"]["base_url"],
+                "model": PROTOCOL["planner"]["model"],
+                "temperature": PROTOCOL["planner"]["temperature"],
+                "max_tokens": PROTOCOL["planner"]["max_tokens"],
+                "response_format": {"type": "json_object"},
+                "extra_body": {"thinking": {"type": "disabled"}},
+                "request_sha256": "d" * 64,
+                "timeout_s": request_timeout,
+                "max_retries": 0,
+                "finish_reason": "stop",
+                "reasoning_content_byte_count": 0,
+            },
+            "error": "",
+        },
+    }
+
+
 def _sp001_events():
-    events = []
+    events = [_planner_event()]
     for index, x in enumerate((1, 2, 3), start=1):
         before = _raw_observation(index - 1, tuple(range(x, 4)))
         after = _raw_observation(index, tuple(range(x + 1, 4)))
@@ -411,6 +498,7 @@ def test_synthetic_sp001_episode_passes_full_machine_verifier():
         level_name="sp001-test",
     )
     verification = verify_sp001_runtime_episode(episode)
+    assert episode["planner_request_controls"]["passed"]
     assert verification["passed"]
     assert verification["metrics"]["source_removal_count"] == 3
     assert verification["metrics"]["inventory_delta"]["cobblestone"] == 3
@@ -444,6 +532,97 @@ def test_action_failure_prevents_sp001_evidence_eligibility():
     assert "zero_action_failures" in verification["criteria_issues"]
 
 
+def test_planner_request_drift_prevents_sp001_evidence_eligibility():
+    events = _sp001_events()
+    events[0]["data"]["provider_metadata"]["extra_body"] = {}
+    audit = planner_request_controls_audit(events)
+    assert not audit["passed"]
+    assert "offline-stone-call-1:extra_body" in audit["issues"]
+
+    fixture = _fixture_manifest({"tree_sha256": "b" * 64, "file_count": 3, "total_bytes": 30})
+    episode = build_sp001_episode(
+        episode_id="sp001-planner-drift",
+        session_id="session-planner-drift",
+        session_sha256="f" * 64,
+        events=events,
+        initial_observation=_raw_observation(),
+        terminal_observation=_raw_observation(3, ()),
+        initial_monotonic=10.0,
+        terminal_monotonic=14.0,
+        goal_result={
+            "episode_started_monotonic": 10.0,
+            "episode_deadline_monotonic": 190.0,
+            "deadline_policy_id": PROTOCOL["deadline_policy"]["id"],
+        },
+        fixture_manifest=fixture,
+        hypothesis_path="workspace/evals/sp001_runs/sp001-planner-drift/hypothesis.json",
+        level_name="sp001-planner-drift",
+    )
+    verification = verify_sp001_runtime_episode(episode)
+    assert not verification["passed"]
+    assert "eligibility:planner_request_controls" in verification["eligibility_issues"]
+
+
+def test_stone_planner_propagates_fixed_request_controls():
+    response = json.dumps({
+        "status": "planning",
+        "reasoning": "take one bounded preparation action",
+        "subtasks": [],
+        "actions": [{"type": "wait", "parameters": {"ms": 1}}],
+    })
+    llm = _PlannerEvidenceLLM(response)
+    planner = Planner(llm, TaskSystem(), protocol=PROTOCOL["id"])
+    planner.start_episode("Prepare the fixed fixture", "offline-stone-request")
+    planner.set_deadline(time.monotonic() + 30.0, 0.0)
+
+    plan = planner.plan_from_goal("Prepare the fixed fixture", {"inventory": {}}, "")
+
+    assert plan["schema_validation"]["passed"]
+    assert len(llm.calls) == 1
+    assert llm.calls[0]["extra_body"] == {"thinking": {"type": "disabled"}}
+    assert 0.0 < llm.calls[0]["timeout_s"] <= 30.0
+    evidence = plan["planner_evidence"]
+    assert evidence["deadline_policy"]["policy_id"] == PROTOCOL["deadline_policy"]["id"]
+    assert evidence["deadline_policy"]["max_retries"] == 0
+    assert evidence["transport_evidence"]["retry_count"] == 0
+    assert evidence["provider_metadata"]["extra_body"] == {"thinking": {"type": "disabled"}}
+
+
+def test_stone_planner_rejects_empty_length_response_before_execution():
+    llm = _PlannerEvidenceLLM("", finish_reason="length", reasoning_bytes=15685)
+    planner = Planner(llm, TaskSystem(), protocol=PROTOCOL["id"])
+    planner.start_episode("Prepare the fixed fixture", "offline-stone-empty")
+    planner.set_deadline(time.monotonic() + 30.0, 0.0)
+
+    plan = planner.plan_from_goal("Prepare the fixed fixture", {"inventory": {}}, "")
+
+    assert len(llm.calls) == 1
+    assert plan["status"] == "error"
+    assert plan["actions"] == []
+    assert not plan["schema_validation"]["passed"]
+    assert "planner_response_empty" in plan["schema_validation"]["issues"]
+    assert plan["planner_evidence"]["real_llm_call"] is False
+
+
+def test_stone_planner_suppresses_post_deadline_call():
+    response = json.dumps({
+        "status": "planning",
+        "reasoning": "this response must never be requested",
+        "subtasks": [],
+        "actions": [{"type": "wait", "parameters": {"ms": 1}}],
+    })
+    llm = _PlannerEvidenceLLM(response)
+    planner = Planner(llm, TaskSystem(), protocol=PROTOCOL["id"])
+    planner.start_episode("Prepare the fixed fixture", "offline-stone-deadline")
+    planner.set_deadline(time.monotonic() - 1.0, 0.0)
+
+    plan = planner.plan_from_goal("Prepare the fixed fixture", {"inventory": {}}, "")
+
+    assert llm.calls == []
+    assert plan["status"] == "error"
+    assert "stone_total_deadline_exhausted_before_planner_call" in plan["schema_validation"]["issues"]
+
+
 def test_fixture_artifact_never_counts_as_skill_or_capability_evidence():
     preparation = {
         "protocol_sha256": PROTOCOL_SHA256,
@@ -452,6 +631,7 @@ def test_fixture_artifact_never_counts_as_skill_or_capability_evidence():
         "forbidden_interventions": [],
         "target_result_injection": False,
         "fixture_audit": {"passed": True},
+        "planner_request_controls": {"passed": True},
     }
     tree = {"passed": True, "tree_sha256": "d" * 64, "file_count": 3, "total_bytes": 30, "components": []}
     artifact = build_fixture_artifact(preparation, tree, snapshot_path="logs/stone_pickaxe/fixture")
@@ -459,6 +639,15 @@ def test_fixture_artifact_never_counts_as_skill_or_capability_evidence():
     assert artifact["counts_toward_skill_gate"] is False
     assert artifact["counts_toward_capability"] is False
     assert artifact["counts_toward_m4"] is False
+    missing_planner_audit = dict(preparation)
+    missing_planner_audit.pop("planner_request_controls")
+    rejected = build_fixture_artifact(
+        missing_planner_audit,
+        tree,
+        snapshot_path="logs/stone_pickaxe/fixture",
+    )
+    assert not rejected["snapshot_identity_verified"]
+    assert "preparation_planner_request_controls" in rejected["issues"]
 
 
 if __name__ == "__main__":

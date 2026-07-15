@@ -22,6 +22,7 @@ from singularity.evaluation.stone_pickaxe_runtime import (
     build_sp001_episode,
     build_sp001_run_audit,
     file_sha256,
+    planner_request_controls_audit,
     read_json,
     repo_relative,
     runtime_controls,
@@ -122,7 +123,9 @@ def run_prepare_fixture(args: argparse.Namespace) -> int:
     terminal = {}
     result = {}
     audit = {}
+    planner_request_audit = {}
     admin_commands = []
+    events = []
     initial_monotonic = time.monotonic()
     terminal_monotonic = initial_monotonic
     try:
@@ -145,6 +148,18 @@ def run_prepare_fixture(args: argparse.Namespace) -> int:
         terminal = agent._observe()
         terminal_monotonic = time.monotonic()
         audit = audit_sp001_fixture(terminal)
+        events = list(agent.session_logger.events)
+        planner_request_audit = planner_request_controls_audit(events)
+        audit = dict(audit)
+        audit["checks"] = {
+            **dict(audit.get("checks", {})),
+            "planner_request_controls": planner_request_audit["passed"],
+        }
+        audit["passed"] = bool(audit.get("passed") and planner_request_audit["passed"])
+        if not planner_request_audit["passed"]:
+            audit["issues"] = sorted(set(
+                list(audit.get("issues", [])) + ["planner_request_controls"]
+            ))
         if audit["passed"]:
             save_result = agent.bot.chat("/save-all flush")
             admin_commands.append({
@@ -156,7 +171,6 @@ def run_prepare_fixture(args: argparse.Namespace) -> int:
                 audit = dict(audit)
                 audit["passed"] = False
                 audit["issues"] = sorted(set(audit.get("issues", []) + ["save_all_flush_failed"]))
-        events = list(agent.session_logger.events)
         session_id = str(agent.session_logger.session_id)
         graph = task_graph_snapshot(agent)
         health = agent.bot.health()
@@ -185,6 +199,7 @@ def run_prepare_fixture(args: argparse.Namespace) -> int:
         "initial_monotonic": initial_monotonic,
         "terminal_monotonic": terminal_monotonic,
         "fixture_audit": audit,
+        "planner_request_controls": planner_request_audit,
         "task_graph": graph,
         "runtime_controls": runtime_controls(config),
         "protocol_status": protocol_status,

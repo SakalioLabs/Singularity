@@ -62,6 +62,7 @@ def _base_episode(task_id: str) -> dict:
         "eligibility": {
             "passed": True,
             "protocol_match": True,
+            "planner_request_controls": True,
             "reset_clean": True,
             "no_forbidden_intervention": True,
             "no_post_deadline_action": True,

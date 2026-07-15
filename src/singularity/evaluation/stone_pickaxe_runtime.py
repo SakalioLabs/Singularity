@@ -18,6 +18,7 @@ from typing import Any
 from singularity.core.agent import Agent
 from singularity.core.config import BotConfig, Config, LLMConfig
 from singularity.core.goal_verifier import GoalVerification
+from singularity.evaluation.m4_protocol import PROTOCOL as M4_PROTOCOL
 from singularity.evaluation.stone_pickaxe_protocol import (
     PROTOCOL,
     PROTOCOL_SHA256,
@@ -540,6 +541,135 @@ def runtime_controls(config: Config) -> dict:
     }
 
 
+def planner_request_controls_audit(events: Any) -> dict:
+    values = events if isinstance(events, list) else []
+    calls = [
+        event.get("data", {})
+        for event in values
+        if isinstance(event, dict)
+        and event.get("type") == "llm_planner_call"
+        and isinstance(event.get("data"), dict)
+    ]
+    planner = PROTOCOL["planner"]
+    base_contract = M4_PROTOCOL["validation_contract"]["planner_evidence"]
+    expected_extra_body = dict(base_contract["required_extra_body"])
+    expected_finish_reason = str(base_contract["finish_reason"])
+    reasoning_limit = int(base_contract["reasoning_content_max_bytes"])
+    issues = []
+    reports = []
+    if not calls:
+        issues.append("planner_call_missing")
+
+    for index, call in enumerate(calls):
+        call_id = str(call.get("call_id") or f"call_{index}")
+        metadata = (
+            call.get("provider_metadata")
+            if isinstance(call.get("provider_metadata"), dict)
+            else {}
+        )
+        deadline = (
+            call.get("deadline_policy")
+            if isinstance(call.get("deadline_policy"), dict)
+            else {}
+        )
+        transport = (
+            call.get("transport_evidence")
+            if isinstance(call.get("transport_evidence"), dict)
+            else {}
+        )
+        attempts = (
+            transport.get("attempts")
+            if isinstance(transport.get("attempts"), list)
+            else []
+        )
+        attempt = (
+            attempts[0]
+            if len(attempts) == 1 and isinstance(attempts[0], dict)
+            else {}
+        )
+        remaining = _finite(deadline.get("remaining_before_call_s"))
+        request_timeout = _finite(deadline.get("request_timeout_s"))
+        provider_timeout = _finite(metadata.get("timeout_s"))
+        reasoning_bytes = _finite(metadata.get("reasoning_content_byte_count"))
+        checks = {
+            "protocol": call.get("protocol") == PROTOCOL["id"],
+            "real_llm_call": call.get("real_llm_call") is True,
+            "schema_valid": call.get("schema_valid") is True,
+            "nonempty_response": _count(call.get("response_byte_count")) > 0,
+            "no_call_error": not str(call.get("error") or ""),
+            "deadline_policy": (
+                deadline.get("policy_id") == PROTOCOL["deadline_policy"]["id"]
+            ),
+            "deadline_remaining_positive": remaining is not None and remaining > 0,
+            "request_timeout_positive": request_timeout is not None and request_timeout > 0,
+            "request_timeout_within_remaining": (
+                remaining is not None
+                and request_timeout is not None
+                and request_timeout <= remaining + 0.01
+            ),
+            "deadline_max_retries_zero": deadline.get("max_retries") == 0,
+            "transport_single_attempt": transport.get("policy_id") == "single-attempt",
+            "transport_attempt_count": transport.get("attempt_count") == 1,
+            "transport_retry_count_zero": transport.get("retry_count") == 0,
+            "transport_attempt_success": attempt.get("success") is True,
+            "transport_attempt_timeout_matches_request": (
+                _finite(attempt.get("timeout_s")) is not None
+                and request_timeout is not None
+                and abs(float(attempt["timeout_s"]) - request_timeout) <= 0.01
+            ),
+            "transport_sdk_retries_zero": attempt.get("sdk_max_retries") == 0,
+            "transport_finish_reason": (
+                attempt.get("finish_reason") == expected_finish_reason
+            ),
+            "provider": metadata.get("provider") == planner["provider"],
+            "base_url": (
+                str(metadata.get("base_url") or "").rstrip("/")
+                == str(planner["base_url"]).rstrip("/")
+            ),
+            "model": metadata.get("model") == planner["model"],
+            "temperature": _finite(metadata.get("temperature")) == float(planner["temperature"]),
+            "max_tokens": metadata.get("max_tokens") == int(planner["max_tokens"]),
+            "response_format": metadata.get("response_format") == {"type": "json_object"},
+            "extra_body": metadata.get("extra_body") == expected_extra_body,
+            "provider_timeout_positive": provider_timeout is not None and provider_timeout > 0,
+            "provider_timeout_matches_request": (
+                provider_timeout is not None
+                and request_timeout is not None
+                and abs(provider_timeout - request_timeout) <= 0.01
+            ),
+            "provider_retries_zero": metadata.get("max_retries") == 0,
+            "finish_reason": metadata.get("finish_reason") == expected_finish_reason,
+            "reasoning_content_bounded": (
+                reasoning_bytes is not None
+                and 0 <= reasoning_bytes <= reasoning_limit
+            ),
+        }
+        for name, passed in checks.items():
+            if not passed:
+                issues.append(f"{call_id}:{name}")
+        reports.append({
+            "call_id": call_id,
+            "call_index": call.get("call_index"),
+            "passed": all(checks.values()),
+            "checks": checks,
+            "response_sha256": str(call.get("response_sha256") or ""),
+            "request_sha256": str(metadata.get("request_sha256") or ""),
+        })
+
+    return {
+        "type": "stone_pickaxe_planner_request_controls_audit",
+        "schema_version": 1,
+        "passed": not issues,
+        "protocol_id": PROTOCOL["id"],
+        "call_count": len(calls),
+        "expected_extra_body": expected_extra_body,
+        "expected_finish_reason": expected_finish_reason,
+        "reasoning_content_max_bytes": reasoning_limit,
+        "calls": reports,
+        "issues": sorted(set(issues)),
+    }
+
+
 def build_fixture_artifact(
     preparation: dict,
     snapshot_report: dict,
@@ -547,9 +677,15 @@ def build_fixture_artifact(
     snapshot_path: str,
 ) -> dict:
     audit = preparation.get("fixture_audit", {}) if isinstance(preparation, dict) else {}
+    planner_audit = (
+        preparation.get("planner_request_controls")
+        if isinstance(preparation.get("planner_request_controls"), dict)
+        else {}
+    )
     checks = {
         "protocol_identity": preparation.get("protocol_sha256") == PROTOCOL_SHA256,
         "preparation_machine_audit": audit.get("passed") is True,
+        "preparation_planner_request_controls": planner_audit.get("passed") is True,
         "survival_preparation": preparation.get("game_mode") == "survival",
         "normal_agent_actions": preparation.get("external_step_script") is False,
         "no_forbidden_intervention": preparation.get("forbidden_interventions") == [],
@@ -581,6 +717,7 @@ def build_fixture_artifact(
             "evidence_path": str(preparation.get("evidence_path") or ""),
             "goal": str(preparation.get("goal") or ""),
             "machine_audit": audit,
+            "planner_request_controls": planner_audit,
             "administrative_commands": list(preparation.get("administrative_commands", [])),
         },
         "checks": checks,
@@ -763,15 +900,18 @@ def build_sp001_episode(
     fixture_snapshot = fixture_manifest.get("snapshot", {}) if isinstance(fixture_manifest, dict) else {}
     fixture_verified = fixture_manifest.get("snapshot_identity_verified") is True
     protocol_match = fixture_manifest.get("protocol_sha256") == PROTOCOL_SHA256
+    planner_audit = planner_request_controls_audit(events)
     eligibility = {
         "passed": bool(
             fixture_verified
             and protocol_match
+            and planner_audit["passed"]
             and not forbidden_interventions
             and not post_deadline_actions
             and not selected_skills
         ),
         "protocol_match": protocol_match,
+        "planner_request_controls": planner_audit["passed"],
         "reset_clean": fixture_verified,
         "no_forbidden_intervention": not forbidden_interventions,
         "no_post_deadline_action": not post_deadline_actions,
@@ -815,6 +955,7 @@ def build_sp001_episode(
         "post_deadline_action_indexes": post_deadline_actions,
         "forbidden_interventions": forbidden_interventions,
         "selected_skills": selected_skills,
+        "planner_request_controls": planner_audit,
         "external_step_script": False,
         "counts_toward_capability": False,
         "counts_toward_m4": False,

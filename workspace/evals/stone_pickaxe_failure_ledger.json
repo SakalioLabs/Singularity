@@ -1,14 +1,14 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-15T14:37:26+08:00",
+  "generated_at": "2026-07-15T15:00:16+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_2_sp001_fixture_preparation_blocked",
-  "status": "fixture_preparation_failed_sp001_not_authorized",
+  "phase": "phase_2_sp001_planner_request_offline_fixed",
+  "status": "offline_fix_verified_new_live_authorization_required",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
@@ -89,15 +89,20 @@
     {
       "phase": 2,
       "name": "controlled_sp001_runtime",
-      "status": "fixture_preparation_failed_stopped",
+      "status": "fixture_preparation_blocker_offline_fixed",
       "fixture_preparation_session_count": 1,
       "live_episode_count": 0,
       "automatic_retry_allowed": false,
-      "stone_pickaxe_runtime_cases_passed": 11,
-      "stone_pickaxe_runtime_cases_total": 11,
+      "stone_pickaxe_runtime_cases_passed": 15,
+      "stone_pickaxe_runtime_cases_total": 15,
       "minecraft_process_started": true,
       "controlled_listener_count_after_stop": 0,
-      "matching_runtime_process_count_after_stop": 0
+      "matching_runtime_process_count_after_stop": 0,
+      "offline_fix": {
+        "status": "reproduced_fixed_and_tested",
+        "live_rerun_performed": false,
+        "new_live_authorization_required": true
+      }
     }
   ],
   "failure_taxonomy": [
@@ -116,7 +121,7 @@
       "id": "sp-fixture-prep-001-empty-plan",
       "phase": "fixture_preparation",
       "classification": "fixture_preparation_planner_empty_plan",
-      "status": "retained_blocker",
+      "status": "retained_failure_offline_fixed",
       "attributable_to_learned_skill": false,
       "episode_id": "sp_fixture_prep_20260715_143222_b0e58483",
       "session_id": "2cb7f2fd-a55",
@@ -194,7 +199,49 @@
       "counts_toward_m4": false,
       "automatic_retry_attempted": false,
       "conditional_sp001_episode_run": false,
-      "single_next_offline_fix": "ensure_the_fixture_planner_preserves_a_schema_valid_json_plan_when_reasoning_reaches_the_completion_budget_then_reproduce_offline_before_requesting_new_live_authorization"
+      "single_next_offline_fix": "ensure_the_fixture_planner_preserves_a_schema_valid_json_plan_when_reasoning_reaches_the_completion_budget_then_reproduce_offline_before_requesting_new_live_authorization",
+      "offline_resolution": {
+        "status": "reproduced_fixed_and_tested",
+        "root_cause": "stone_pickaxe_protocol_was_not_in_the_planner_fixed_request_policy_allowlist",
+        "observed_effects": [
+          "thinking_disabled_was_not_sent_in_extra_body",
+          "planner_request_timeout_was_not_bound_to_the_episode_deadline",
+          "empty_response_was_marked_schema_valid"
+        ],
+        "reproduction": {
+          "test": "test_stone_planner_propagates_fixed_request_controls",
+          "pre_fix_failure": "missing_extra_body"
+        },
+        "fix": {
+          "planner_protocol": "stone-pickaxe-skill-fixed-v1",
+          "request_extra_body": {
+            "thinking": {
+              "type": "disabled"
+            }
+          },
+          "request_timeout": "remaining_episode_time",
+          "provider_retry_count": 0,
+          "empty_response_policy": "fail_closed_before_action_execution",
+          "post_deadline_planner_call_allowed": false,
+          "planner_request_audit_required_for_fixture_sealing": true,
+          "planner_request_audit_required_for_sp001_eligibility": true
+        },
+        "regressions": {
+          "fixed_request_controls": "passed",
+          "empty_length_response_rejection": "passed",
+          "post_deadline_call_suppression": "passed",
+          "planner_request_drift_eligibility_rejection": "passed",
+          "stone_pickaxe_runtime_cases": "15/15",
+          "stone_pickaxe_protocol_cases": "30/30",
+          "repository_non_live_python_scripts": "39/39",
+          "fixed_node_suites": "6/6",
+          "python_compileall": "passed"
+        },
+        "protocol_sha256_unchanged": true,
+        "counts_toward_skill_gate": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      }
     }
   ],
   "validation": {
@@ -203,8 +250,8 @@
       "total": 30
     },
     "stone_pickaxe_runtime_cases": {
-      "passed": 11,
-      "total": 11
+      "passed": 15,
+      "total": 15
     },
     "impacted_runtime_regressions": {
       "m2_harness_passed": true,
@@ -229,11 +276,12 @@
     "matching_runtime_process_count": 0
   },
   "next_required_gate": {
-    "id": "offline_empty_plan_fix_before_new_fixture_authorization",
+    "id": "new_explicit_fixture_preparation_authorization_after_offline_fix_push",
     "authorization": false,
     "prerequisites": [
       "empty_plan_root_cause_reproduced_offline",
       "planner_output_budget_fix_tested_offline",
+      "all_non_live_regressions_passed",
       "fix_commit_pushed",
       "new_explicit_fixture_preparation_authorization"
     ],

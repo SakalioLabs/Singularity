@@ -74,7 +74,15 @@ def protocol_integrity_report() -> dict:
     m4_llm = M4_PROTOCOL.get("llm", {})
     for key in ("provider", "base_url", "model", "temperature", "max_tokens"):
         require(f"planner:{key}", planner.get(key) == m4_llm.get(key))
-    require("planner:thinking", planner.get("thinking") == "disabled")
+    base_thinking = (
+        m4_llm.get("extra_body", {}).get("thinking", {}).get("type")
+        if isinstance(m4_llm.get("extra_body"), dict)
+        else None
+    )
+    require(
+        "planner:thinking",
+        planner.get("thinking") == base_thinking == "disabled",
+    )
     require("planner:retries", planner.get("provider_retries") == 0)
 
     identities = PROTOCOL.get("identities", {})
@@ -814,7 +822,14 @@ def _eligibility_issues(task_id: str, evidence: dict) -> list[str]:
     if evidence.get("evidence_kind") != PROTOCOL["evidence_policy"]["live_evidence_kind"]:
         issues.append("live_evidence_required")
     eligibility = evidence.get("eligibility") if isinstance(evidence.get("eligibility"), dict) else {}
-    for key in ("passed", "protocol_match", "reset_clean", "no_forbidden_intervention", "no_post_deadline_action"):
+    for key in (
+        "passed",
+        "protocol_match",
+        "planner_request_controls",
+        "reset_clean",
+        "no_forbidden_intervention",
+        "no_post_deadline_action",
+    ):
         if eligibility.get(key) is not True:
             issues.append(f"eligibility:{key}")
     if evidence.get("reset_contamination") is not False:

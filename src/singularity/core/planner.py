@@ -49,6 +49,7 @@ class Planner:
         self.protocol = str(protocol or "")
         self.strict_m2 = self.protocol == "m2-fixed-v1"
         self.strict_m4 = self.protocol == "m4-fixed-v1"
+        self.strict_stone_pickaxe = self.protocol == "stone-pickaxe-skill-fixed-v1"
         self.last_call_evidence: dict = {}
         self._episode_goal = ""
         self._episode_id = ""
@@ -168,15 +169,25 @@ class Planner:
         deadline_evidence = {}
         transport_evidence = {}
         deadline_protocol = None
-        strict_deadline = self.strict_m2 or self.strict_m4
+        strict_deadline = self.strict_m2 or self.strict_m4 or self.strict_stone_pickaxe
         if strict_deadline:
             if self.strict_m2:
                 from singularity.evaluation.m2_protocol import PROTOCOL as deadline_protocol
-            else:
+            elif self.strict_m4:
                 from singularity.evaluation.m4_protocol import PROTOCOL as deadline_protocol
+            else:
+                from singularity.evaluation.stone_pickaxe_protocol import (
+                    PROTOCOL as deadline_protocol,
+                )
 
             policy = deadline_protocol["deadline_policy"]
             expected_guard_s = float(policy.get("action_guard_ms", 0)) / 1000.0
+            planner_max_retries = int(
+                policy.get(
+                    "planner_max_retries",
+                    deadline_protocol.get("planner", {}).get("provider_retries", 0),
+                )
+            )
             remaining_s = (
                 self._goal_deadline_monotonic - time.monotonic()
                 if self._goal_deadline_monotonic is not None
@@ -197,7 +208,7 @@ class Planner:
                 "remaining_before_call_s": round(remaining_s, 3) if remaining_s is not None else None,
                 "action_guard_s": round(self._action_guard_s, 3),
                 "request_timeout_s": round(planner_budget_s, 3) if planner_budget_s is not None else None,
-                "max_retries": int(policy["planner_max_retries"]),
+                "max_retries": planner_max_retries,
             }
             if self._goal_deadline_monotonic is None:
                 call_error = f"{self.protocol.split('-', 1)[0]}_episode_deadline_not_configured"
@@ -244,6 +255,12 @@ class Planner:
                     chat_kwargs["timeout_s"] = request_timeout_s
                 if self.strict_m2 or self.strict_m4:
                     chat_kwargs["extra_body"] = dict(deadline_protocol["llm"].get("extra_body", {}))
+                elif self.strict_stone_pickaxe:
+                    thinking = str(
+                        deadline_protocol.get("planner", {}).get("thinking") or ""
+                    ).strip()
+                    if thinking:
+                        chat_kwargs["extra_body"] = {"thinking": {"type": thinking}}
                 try:
                     response = self.llm.chat(messages, **chat_kwargs)
                     metadata = dict(getattr(self.llm, "last_call_metadata", {}) or {})
@@ -311,6 +328,8 @@ class Planner:
             response = ""
 
         parse_error = ""
+        if self.strict_stone_pickaxe and not response and not call_error:
+            parse_error = "planner_response_empty"
         try:
             raw_plan = json.loads(response) if response else {}
             if not isinstance(raw_plan, dict):
@@ -386,6 +405,12 @@ class Planner:
                 list(schema_validation.get("issues", [])) + grounding_issues
             ))
             schema_validation["passed"] = not schema_validation["issues"]
+        elif self.strict_stone_pickaxe and not call_error and not parse_error:
+            schema_validation = self._validate_stone_pickaxe_plan_envelope(
+                raw_plan,
+                expected_goal=goal,
+                expected_kind=plan_kind,
+            )
 
         schema_valid = bool(schema_validation.get("passed"))
         if schema_valid:
@@ -453,7 +478,9 @@ class Planner:
             "planner_id": (
                 "llm-root-planner-v1"
                 if self.strict_m2
-                else "llm-autonomous-planner-v1" if self.strict_m4 else "llm-planner-v1"
+                else "llm-autonomous-planner-v1"
+                if self.strict_m4 or self.strict_stone_pickaxe
+                else "llm-planner-v1"
             ),
             "protocol": self.protocol,
             "episode_id": self._episode_id,
@@ -668,6 +695,37 @@ World state:
 {f'Relevant memory: {memory_context}' if memory_context else ''}
 
 Plan the steps to achieve this goal."""
+
+    @staticmethod
+    def _validate_stone_pickaxe_plan_envelope(
+        plan: dict,
+        expected_goal: str,
+        expected_kind: str,
+    ) -> dict:
+        """Fail closed on a malformed stone-pickaxe Planner envelope."""
+        issues: list[str] = []
+        status = str(plan.get("status") or "")
+        if status not in {"planning", "complete", "blocked"}:
+            issues.append("status_invalid")
+
+        actions = plan.get("actions")
+        if not isinstance(actions, list):
+            issues.append("actions_not_array")
+            actions = []
+        if status == "planning" and not actions:
+            issues.append("planning_actions_missing")
+
+        return {
+            "type": "stone_pickaxe_plan_envelope_validation",
+            "schema_version": 1,
+            "passed": not issues,
+            "expected_goal": str(expected_goal or ""),
+            "expected_kind": str(expected_kind or ""),
+            "status": status,
+            "action_count": len(actions),
+            "completion_requires_machine_verifier": True,
+            "issues": sorted(set(issues)),
+        }
 
     @staticmethod
     def _validate_m4_plan_envelope(

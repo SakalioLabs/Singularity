@@ -17,7 +17,7 @@ This project isolates two bounded Minecraft capabilities:
 | SP-002 Craft Stone Pickaxe | 0 | 3 | `learned:craft_stone_pickaxe` not created |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 2 stopped at fixture preparation after the single authorized non-counting session failed its machine audit; no fixture was sealed and SP-001 did not run**.
+Current phase: **Phase 2 paused after the single authorized fixture-preparation failure; its Planner request blocker is now reproduced, fixed, and tested offline, but no fixture was sealed and SP-001 did not run**.
 
 Current authorization: **false**. The one fixture-preparation authorization was consumed; because its audit failed, the conditional SP-001 authorization never activated. Automatic retry, another fixture session, Probe 24, full BM-012, SP-001/SP-002/SP-003, and iron mining remain forbidden.
 
@@ -129,9 +129,10 @@ The 30 numbered cases cover:
 - Fixture preparation permits ordinary survival wood/table/wooden-pickaxe actions but rejects stone mining and duplicate wooden-pickaxe craft. Its output is non-counting.
 - SP-001 keeps learned skills off and allows only bounded observation/navigation, exact wooden-pickaxe equip, and the nearest reachable observed `stone` dig. Every dig requires strict tool, block-removal, pickup, and pre/post-observation proof.
 - `Agent.run_goal` can now bind Planner and ActionController to one supplied absolute deadline and suppress every action beyond a supplied total budget. Existing callers retain their previous behavior when those optional bounds are absent.
-- Offline status: 30/30 protocol cases, 11/11 runtime cases, M2 harness, ActionController, and M4 deadline regressions pass.
+- Offline status: 30/30 protocol cases and 15/15 runtime cases pass. All 39 non-live Python test scripts, all six fixed Node suites, and Python compilation also pass.
 - The one authorized fixture-preparation session `sp_fixture_prep_20260715_143222_b0e58483` started Paper, Bridge, and the normal Agent/Planner, then stopped them. Planner call 0 consumed the 4096-token completion budget as reasoning, finished with `finish_reason=length`, and returned zero response bytes. The Agent therefore terminated with `empty_plan` after one cycle and zero actions.
 - Machine audit rejected the unchanged survival state because `wooden_pickaxe_exact=false` and `three_reachable_observed_stone_sources=false`. No forbidden intervention, stone mining, target-result injection, automatic retry, fixture snapshot, or SP-001 episode occurred. The four local evidence files and their SHA-256 values are retained in `workspace/evals/stone_pickaxe_failure_ledger.json`.
+- Offline reproduction proved that the Planner recognized only M2/M4 as fixed request protocols, so the stone-pickaxe call omitted `extra_body.thinking=disabled`, had no episode-bound request timeout, and accepted an empty response as schema-valid. The repair adds stone-pickaxe fixed-request recognition without changing the protocol artifact or hash, sends the pinned non-thinking payload, binds one zero-retry call to remaining episode time, rejects an empty response before execution, and suppresses post-deadline calls. Fixture sealing and SP-001 eligibility now independently reject any Planner provider, model, payload, retry, deadline, finish-reason, or reasoning-content drift.
 
 ## Phase Status
 
@@ -139,7 +140,7 @@ The 30 numbered cases cover:
 |---|---|
 | 0. Freeze and audit | Complete |
 | 1. Protocol and offline harness | Complete; pushed at `8a5cd0c3` |
-| 2. SP-001 controlled live convergence | Stopped: one fixture-preparation audit failed; SP-001 not run |
+| 2. SP-001 controlled live convergence | Paused: fixture failure retained; Planner blocker fixed offline; new authorization required |
 | 3. SP-001 3/3 gate | 0/3 |
 | 4. Acquire candidate/advisory | Not started |
 | 5. SP-002 controlled live convergence | Not started |
@@ -157,4 +158,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The earliest blocker is `fixture_preparation_planner_empty_plan`: the configured model exhausted its completion budget in reasoning and emitted no JSON plan. The single next offline fix is to preserve a schema-valid plan within the fixed output budget and reproduce that behavior offline. No automatic resume is allowed. A new fixture session requires a tested and pushed offline fix plus new explicit authorization. Until then, do not retry, create either learned skill, promote a candidate, run SP-001/SP-002/SP-003, run full BM-012, run Probe 24, or begin iron mining.
+The retained blocker `fixture_preparation_planner_empty_plan` is reproduced and fixed offline; the failed live evidence remains immutable and non-counting. No automatic resume is allowed. After this fix is pushed, a new fixture-preparation session still requires new explicit authorization. Until then, do not retry, create either learned skill, promote a candidate, run SP-001/SP-002/SP-003, run full BM-012, run Probe 24, or begin iron mining.
