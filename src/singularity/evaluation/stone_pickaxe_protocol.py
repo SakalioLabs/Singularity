@@ -332,6 +332,31 @@ def verify_sp001_episode(evidence: Any) -> dict:
     _require_issue(criteria_issues, "initial_reachable_source", bool(_sp001_source_candidates(initial, set())))
 
     transitions = value.get("transitions") if isinstance(value.get("transitions"), list) else []
+    action_count = value.get("action_count")
+    action_failure_count = value.get("action_failure_count")
+    false_success_dig_count = value.get("false_success_dig_count")
+    non_target_mutations = value.get("world_mutating_non_target_actions")
+    _require_issue(
+        criteria_issues,
+        "maximum_action_count",
+        _strict_integer(action_count)
+        and len(transitions) <= action_count <= int(task["maximum_actions"]),
+    )
+    _require_issue(
+        criteria_issues,
+        "zero_action_failures",
+        _strict_integer(action_failure_count) and action_failure_count == 0,
+    )
+    _require_issue(
+        criteria_issues,
+        "zero_false_success_digs",
+        _strict_integer(false_success_dig_count) and false_success_dig_count == 0,
+    )
+    _require_issue(
+        criteria_issues,
+        "no_non_target_world_mutation",
+        isinstance(non_target_mutations, list) and not non_target_mutations,
+    )
     seen_sources: set[str] = set()
     removal_count = 0
     pickup_count = 0
@@ -346,6 +371,7 @@ def verify_sp001_episode(evidence: Any) -> dict:
             continue
         source_id = str(transition.get("source_id") or "")
         source_block = str(transition.get("source_block") or "")
+        previously_seen_sources = set(seen_sources)
         _require_issue(criteria_issues, f"{prefix}:source_id", bool(source_id))
         _require_issue(criteria_issues, f"{prefix}:distinct_source", bool(source_id) and source_id not in seen_sources)
         if source_id:
@@ -362,6 +388,12 @@ def verify_sp001_episode(evidence: Any) -> dict:
 
         pre = transition.get("pre_observation") if isinstance(transition.get("pre_observation"), dict) else {}
         post = transition.get("post_observation") if isinstance(transition.get("post_observation"), dict) else {}
+        nearest = _sp001_source_candidates(pre, previously_seen_sources)
+        _require_issue(
+            criteria_issues,
+            f"{prefix}:nearest_observed_source",
+            bool(nearest) and nearest[0].get("source_id") == source_id,
+        )
         _require_issue(criteria_issues, f"{prefix}:pre_observation", bool(str(pre.get("observation_id") or "")))
         _require_issue(criteria_issues, f"{prefix}:post_observation", bool(str(post.get("observation_id") or "")))
         _require_issue(
@@ -421,6 +453,9 @@ def verify_sp001_episode(evidence: Any) -> dict:
         value,
         criteria_issues,
         {
+            "action_count": action_count,
+            "action_failure_count": action_failure_count,
+            "false_success_dig_count": false_success_dig_count,
             "source_removal_count": removal_count,
             "distinct_source_count": len(seen_sources),
             "pickup_count": pickup_count,

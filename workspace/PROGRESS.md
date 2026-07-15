@@ -177,3 +177,12 @@ The material below is retained as historical context and is not active work whil
 2. Keep independently promoted wooden-pickaxe `1.0.2` executable and historical `1.0.1` quarantined.
 3. Keep the M2 protocol, paired evidence, retained failures, and recovery sessions immutable unless a tracked change requires full revalidation.
 4. Leave M4-M7 unopened in this workstream; M4 is the next acceptance gate when a new convergence cycle is explicitly started.
+
+## Stone-Pickaxe Convergence Runtime
+
+- Protocol/offline commit `8a5cd0c3` is synchronized with `origin/main`; SP-001, SP-002, and SP-003 remain 0/3 and neither prospective learned skill exists.
+- Added a fail-closed survival-fixture and SP-001 runtime without changing M1/M2/M3 criteria, GoalVerifier thresholds, capability status, custom skills, BM-012, or prior probe evidence.
+- Immutable snapshot identity covers canonical overworld/nether/end trees and is rechecked after restoration before Paper starts. Active benchmark reset and target-result injection are absent.
+- The live path keeps skills off, gives action choice to the normal LLM Planner, bounds the whole goal to one absolute deadline and eight attempted actions, and independently verifies nearest-source selection, exact wooden-pickaxe equip, block removal, pickup, and terminal inventory delta.
+- Offline validation passes 30/30 protocol cases and 11/11 runtime cases, plus the affected M2 harness, ActionController, and M4 deadline suites. No Minecraft process was started during this implementation step.
+- The user authorized one non-counting survival fixture-preparation session and, only after its snapshot audit passes and is pushed, exactly one SP-001 live episode. Neither authorization has yet been consumed; automatic retry remains false.

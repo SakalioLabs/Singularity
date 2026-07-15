@@ -1,17 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-15T12:31:14+08:00",
+  "generated_at": "2026-07-15T14:23:43+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_1_offline_harness",
-  "status": "offline_harness_verified",
+  "phase": "phase_2_sp001_controlled_runtime",
+  "status": "runtime_harness_verified_authorization_not_consumed",
   "capability_evidence": false,
   "m4_evidence": false,
-  "live_authorization": false,
+  "live_authorization": true,
+  "fixture_preparation_authorization": true,
+  "authorized_live_episode_count": 1,
+  "authorization_scope": "one_non_counting_survival_fixture_preparation_then_exactly_one_sp001_live_episode_if_fixture_audit_passes",
   "automatic_live_resume_allowed": false,
   "current_gate": {
     "SP-001": {
@@ -74,6 +77,17 @@
       "live_episode_count": 0,
       "skill_artifact_mutation_count": 0,
       "capability_report_mutation_count": 0
+    },
+    {
+      "phase": 2,
+      "name": "controlled_sp001_runtime",
+      "status": "offline_verified_authorization_not_consumed",
+      "fixture_preparation_session_count": 0,
+      "live_episode_count": 0,
+      "automatic_retry_allowed": false,
+      "stone_pickaxe_runtime_cases_passed": 11,
+      "stone_pickaxe_runtime_cases_total": 11,
+      "minecraft_process_started": false
     }
   ],
   "failure_taxonomy": [
@@ -92,9 +106,18 @@
       "passed": 30,
       "total": 30
     },
+    "stone_pickaxe_runtime_cases": {
+      "passed": 11,
+      "total": 11
+    },
+    "impacted_runtime_regressions": {
+      "m2_harness_passed": true,
+      "action_controller_passed": true,
+      "m4_deadline_passed": true
+    },
     "repository_non_live_python_scripts": {
-      "passed": 37,
-      "total": 37
+      "passed": 39,
+      "total": 39
     },
     "fixed_node_suites": {
       "passed": 6,
@@ -110,19 +133,22 @@
     "matching_runtime_process_count": 0
   },
   "next_required_gate": {
-    "id": "sp001_first_authorized_live_episode",
-    "authorization": false,
+    "id": "sp001_fixture_preparation_then_first_authorized_live_episode",
+    "authorization": true,
     "prerequisites": [
       "protocol_and_offline_harness_commit_pushed",
       "head_equal_origin_main",
       "worktree_clean",
       "credential_scan_clean",
+      "controlled_runtime_commit_pushed",
       "fixture_snapshot_identity_verified",
       "single_explicit_live_authorization"
     ],
     "automatic_retry_allowed": false
   },
   "artifact_state": {
+    "fixture_manifest_created": false,
+    "fixture_snapshot_created": false,
     "sp001_run_artifacts_created": 0,
     "sp002_run_artifacts_created": 0,
     "sp003_run_artifacts_created": 0,

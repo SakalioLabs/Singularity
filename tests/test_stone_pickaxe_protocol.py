@@ -77,6 +77,10 @@ def _base_episode(task_id: str) -> dict:
 def _valid_sp001_episode() -> dict:
     episode = _base_episode("SP-001")
     episode["initial_observation"] = _sp001_observation()
+    episode["action_count"] = 3
+    episode["action_failure_count"] = 0
+    episode["false_success_dig_count"] = 0
+    episode["world_mutating_non_target_actions"] = []
     transitions = []
     for index in range(3):
         source_id = f"stone-{index + 1}"
@@ -97,6 +101,11 @@ def _valid_sp001_episode() -> dict:
                 "observation_id": f"sp001-pre-{index + 1}",
                 "monotonic_s": 10.0 + index * 2,
                 "inventory": {"wooden_pickaxe": 1, "cobblestone": pre_count},
+                "position": {"x": 0, "y": 64, "z": 0},
+                "observed_blocks": [
+                    _source(f"stone-{candidate + 1}", candidate + 1)
+                    for candidate in range(index, 3)
+                ],
                 "source": {"id": source_id, "name": "stone", "present": True},
             },
             "post_observation": {

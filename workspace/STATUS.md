@@ -135,3 +135,11 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 2. Preserve executable wooden-pickaxe `1.0.2` as the independently gated repair; never restore executable authority to quarantined `1.0.1`.
 3. Keep the completed M2 evidence set immutable and rerun the canonical audit after any planner, bridge, verifier, or skill-lifecycle change.
 4. Treat M4 as the next unopened acceptance gate; no M4-M7 execution was started during M2 convergence.
+
+## Stone-Pickaxe Workstream
+
+- Current gate: SP-001 0/3; SP-002 0/3; SP-003 locked.
+- Runtime state: controlled fixture/snapshot/SP-001 harness passes offline; no Minecraft process has started in this phase.
+- Learned skills: `learned:acquire_cobblestone` and `learned:craft_stone_pickaxe` are not created. Existing wooden-pickaxe history is unchanged.
+- Capability impact: none. M4 remains failing and BM-012 remains 0/3; this microbenchmark evidence never counts directly toward M4.
+- Current authorization: one fixture-preparation session, then exactly one SP-001 episode if the fixture audit passes. No retry, SP-002/SP-003, Probe 24, full BM-012, or iron mining is authorized.

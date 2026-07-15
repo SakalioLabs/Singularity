@@ -17,9 +17,9 @@ This project isolates two bounded Minecraft capabilities:
 | SP-002 Craft Stone Pickaxe | 0 | 3 | `learned:craft_stone_pickaxe` not created |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 1, protocol and offline harness validated; commit and push pending**.
+Current phase: **Phase 2, controlled SP-001 runtime and immutable-fixture harness validated offline; fixture preparation has not started**.
 
-Current live authorization: **false**. No live episode, retry, Probe 24, full BM-012 run, or iron-mining step is authorized.
+Current authorization: **one non-counting survival fixture-preparation session followed, only if its machine audit passes, by exactly one SP-001 live episode**. Authorization has not yet been consumed. Automatic retry, Probe 24, full BM-012, SP-002/SP-003, and iron mining remain forbidden.
 
 ## Fixed Protocol
 
@@ -121,13 +121,23 @@ The 30 numbered cases cover:
 - Cases 21-27: dependency release, terminal-task idempotency, one recovery child per fingerprint, stale-sibling removal, quarantine-safe fallback, and local attribution.
 - Cases 28-30: M1/M2/M3 regression obligations, immutable wooden-pickaxe skill history, and immutable Probe 21/22/23 evidence hashes.
 
+## Controlled Runtime
+
+- `scripts/stone-pickaxe-runtime.ps1` owns only the Paper/Bridge processes it starts, restores `server.properties`, verifies the existing EULA state, and refuses occupied ports, a dirty or unsynchronized `main`, reused worlds, or a mismatched Paper hash.
+- `scripts/stone_pickaxe_episode_runner.py` gives the normal Agent/Planner one high-level preparation or SP-001 goal. It does not issue benchmark reset, target-result injection, or a scripted gameplay action sequence.
+- `src/singularity/evaluation/stone_pickaxe_runtime.py` seals canonical `world`, `world_nether`, and `world_the_end` trees under one content identity; restoration is hash-checked before Paper starts.
+- Fixture preparation permits ordinary survival wood/table/wooden-pickaxe actions but rejects stone mining and duplicate wooden-pickaxe craft. Its output is non-counting.
+- SP-001 keeps learned skills off and allows only bounded observation/navigation, exact wooden-pickaxe equip, and the nearest reachable observed `stone` dig. Every dig requires strict tool, block-removal, pickup, and pre/post-observation proof.
+- `Agent.run_goal` can now bind Planner and ActionController to one supplied absolute deadline and suppress every action beyond a supplied total budget. Existing callers retain their previous behavior when those optional bounds are absent.
+- Offline status: 30/30 protocol cases, 11/11 runtime cases, M2 harness, ActionController, and M4 deadline regressions pass. No Minecraft process was started by this implementation phase.
+
 ## Phase Status
 
 | Phase | Status |
 |---|---|
 | 0. Freeze and audit | Complete |
-| 1. Protocol and offline harness | Validated; commit and push pending |
-| 2. SP-001 controlled live convergence | Not started; authorization false |
+| 1. Protocol and offline harness | Complete; pushed at `8a5cd0c3` |
+| 2. SP-001 controlled live convergence | Runtime validated offline; authorization granted but not consumed |
 | 3. SP-001 3/3 gate | 0/3 |
 | 4. Acquire candidate/advisory | Not started |
 | 5. SP-002 controlled live convergence | Not started |
@@ -145,4 +155,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-After the Phase 1 commit is pushed, stop with live authorization still false. Do not start Minecraft, create either learned skill, promote a candidate, run full BM-012, run Probe 24, or begin iron mining.
+The next operation is one survival fixture-preparation session. If and only if the sealed snapshot passes exact inventory, safe/movable state, three-source reachability, no-forbidden-intervention, and tree-identity checks, commit and push the fixture manifest before consuming the one SP-001 authorization. After that single episode, stop all runtime processes immediately, retain its outcome, set next live authorization to false, commit and push, then stop. Do not retry, create either learned skill, promote a candidate, run SP-002/SP-003, run full BM-012, run Probe 24, or begin iron mining.

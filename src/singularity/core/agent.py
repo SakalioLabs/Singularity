@@ -1549,6 +1549,10 @@ class Agent:
         goal: str,
         max_cycles: int = 100,
         max_duration_s: Optional[float] = None,
+        episode_deadline_monotonic: Optional[float] = None,
+        per_action_timeout_s: Optional[float] = None,
+        max_actions: Optional[int] = None,
+        deadline_policy_id: str = "",
     ) -> dict:
         """Pursue a specific natural-language goal."""
         try:
@@ -1561,6 +1565,30 @@ class Agent:
             max_duration_s = None
         if max_duration_s is not None and max_duration_s <= 0:
             max_duration_s = None
+        if max_actions is not None:
+            try:
+                if isinstance(max_actions, bool):
+                    raise ValueError
+                max_actions = int(max_actions)
+            except (TypeError, ValueError):
+                raise ValueError("max_actions must be a positive integer")
+            if max_actions <= 0:
+                raise ValueError("max_actions must be a positive integer")
+        strict_deadline_binding = episode_deadline_monotonic is not None
+        if strict_deadline_binding:
+            try:
+                episode_deadline_monotonic = float(episode_deadline_monotonic)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("episode_deadline_monotonic must be finite") from exc
+            if not math.isfinite(episode_deadline_monotonic):
+                raise ValueError("episode_deadline_monotonic must be finite")
+        if per_action_timeout_s is not None:
+            try:
+                per_action_timeout_s = float(per_action_timeout_s)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("per_action_timeout_s must be positive") from exc
+            if not math.isfinite(per_action_timeout_s) or per_action_timeout_s <= 0:
+                raise ValueError("per_action_timeout_s must be positive")
 
         self.current_goal = goal
         self._last_plan_cache_signature = START_PLAN_SIGNATURE
@@ -1589,6 +1617,9 @@ class Agent:
         goal_limits = {
             "max_cycles": max_cycles,
             "max_duration_s": max_duration_s,
+            "max_actions": max_actions,
+            "deadline_policy_id": str(deadline_policy_id or ""),
+            "per_action_timeout_s": per_action_timeout_s,
         }
         if strict_m2:
             goal_limits.update({
@@ -1602,6 +1633,23 @@ class Agent:
         deadline_monotonic = (
             started_at + max_duration_s if max_duration_s is not None else None
         )
+        if strict_deadline_binding:
+            deadline_monotonic = min(
+                value
+                for value in (deadline_monotonic, episode_deadline_monotonic)
+                if value is not None
+            )
+        action_controller = getattr(self, "action_controller", None)
+        previous_episode_deadline = getattr(self, "_episode_deadline_monotonic", None)
+        previous_action_deadline = getattr(action_controller, "_episode_deadline_monotonic", None)
+        previous_action_timeout = getattr(action_controller, "_action_timeout_limit_s", None)
+        if strict_deadline_binding:
+            self._episode_deadline_monotonic = deadline_monotonic
+            if hasattr(action_controller, "set_episode_deadline"):
+                action_controller.set_episode_deadline(
+                    deadline_monotonic,
+                    per_action_timeout_s,
+                )
         if hasattr(planner, "set_deadline"):
             planner.set_deadline(deadline_monotonic, action_guard_s if strict_m2 else 0.0)
         deadline_event_logged = False
@@ -1615,12 +1663,21 @@ class Agent:
                 return False
             if not deadline_event_logged:
                 elapsed = now - started_at
+                effective_duration = (
+                    max_duration_s
+                    if max_duration_s is not None
+                    else max(0.0, deadline_monotonic - started_at)
+                )
                 payload = {
-                    "policy_id": str(deadline_policy.get("id") or "goal-max-duration-v1"),
+                    "policy_id": str(
+                        deadline_policy_id
+                        or deadline_policy.get("id")
+                        or "goal-max-duration-v1"
+                    ),
                     "phase": str(phase),
-                    "max_duration_s": max_duration_s,
+                    "max_duration_s": effective_duration,
                     "elapsed_s": round(elapsed, 3),
-                    "overrun_s": round(max(0.0, elapsed - max_duration_s), 3),
+                    "overrun_s": round(max(0.0, elapsed - effective_duration), 3),
                     "action_suppressed": bool(action_suppressed),
                 }
                 self.session_logger.log("goal_deadline_exceeded", payload, level="ERROR")
@@ -1636,6 +1693,7 @@ class Agent:
         last_observation = {}
         last_plan = {}
         termination_reason = ""
+        action_count = 0
 
         while self.running and cycle < max_cycles:
             if deadline_exceeded("cycle_start"):
@@ -1765,6 +1823,16 @@ class Agent:
                 for action in actions:
                     if not self.running:
                         break
+                    if max_actions is not None and action_count >= max_actions:
+                        termination_reason = "max_actions"
+                        self.session_logger.log("goal_action_budget_exhausted", {
+                            "goal": goal,
+                            "cycle": cycle,
+                            "max_actions": max_actions,
+                            "action_count": action_count,
+                            "action_suppressed": True,
+                        }, level="ERROR")
+                        break
                     if deadline_exceeded("pre_action"):
                         termination_reason = "max_duration"
                         break
@@ -1779,6 +1847,7 @@ class Agent:
                         goal,
                         {"cycle": cycle, "mode": "goal"},
                     )
+                    action_count += 1
                     action_verification, rejected_result = self._verify_action_for_execution(
                         action,
                         observation,
@@ -1887,7 +1956,7 @@ class Agent:
                         )
                         break
 
-                if termination_reason == "max_duration":
+                if termination_reason in {"max_duration", "max_actions"}:
                     break
                 if success:
                     break
@@ -1905,8 +1974,10 @@ class Agent:
                 logger.error(f"Error in cycle {cycle}: {e}")
                 self.session_logger.log_error(str(e), {"cycle": cycle})
 
-        elapsed_s = (success_at if success_at is not None else time.monotonic()) - started_at
-        if max_duration_s is not None and elapsed_s >= max_duration_s:
+        ended_monotonic = time.monotonic()
+        completion_monotonic = success_at if success_at is not None else ended_monotonic
+        elapsed_s = completion_monotonic - started_at
+        if deadline_monotonic is not None and completion_monotonic >= deadline_monotonic:
             if success:
                 success = False
                 success_at = None
@@ -1940,13 +2011,35 @@ class Agent:
             "termination_reason": "goal_verified" if success else termination_reason,
             "max_cycles": max_cycles,
             "max_duration_s": max_duration_s,
+            "max_actions": max_actions,
+            "action_count": action_count,
             "elapsed_s": round(elapsed_s, 3),
+            "episode_started_monotonic": started_at,
+            "episode_ended_monotonic": ended_monotonic,
+            "episode_deadline_monotonic": deadline_monotonic,
+            "deadline_policy_id": str(
+                deadline_policy_id
+                or deadline_policy.get("id")
+                or ("goal-max-duration-v1" if deadline_monotonic is not None else "")
+            ),
+            "deadline_eligible": bool(
+                deadline_monotonic is None or completion_monotonic < deadline_monotonic
+            ),
             "summary": self.session_logger.get_summary(),
         }
         self.session_logger.log_goal_end(goal, result)
         self._write_memory_episode("goal_end", {"goal": goal, "success": success, "cycles": cycle}, source="run_goal")
         self._finalize_skill_learning_episode(goal, success, last_observation, result)
         result["summary"] = self.session_logger.get_summary()
+        if strict_deadline_binding:
+            self._episode_deadline_monotonic = previous_episode_deadline
+            if hasattr(action_controller, "set_episode_deadline"):
+                action_controller.set_episode_deadline(
+                    previous_action_deadline,
+                    previous_action_timeout,
+                )
+            if hasattr(planner, "set_deadline"):
+                planner.set_deadline(previous_episode_deadline, 0.0)
         return result
 
     # ── Autonomous mode (M4 + M5) ──────────────────────────────────────

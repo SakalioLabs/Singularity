@@ -161,6 +161,8 @@ class ActionController:
 
         ended_monotonic = time.monotonic()
         duration_ms = int((ended_monotonic - started_monotonic) * 1000)
+        result["action_started_monotonic"] = started_monotonic
+        result["action_finished_monotonic"] = ended_monotonic
         result["duration_ms"] = duration_ms
         result["action_type"] = action.get("type", action_type)
         result["backend"] = command.backend
@@ -391,9 +393,9 @@ class ActionController:
         y = params.get("y")
         z = params.get("z")
         timeout_ms = params.get("timeout_ms")
-        require_pickup = (
-            str(getattr(self.config, "planner_protocol", "") or "") == "m4-fixed-v1"
-        )
+        require_pickup = str(
+            getattr(self.config, "planner_protocol", "") or ""
+        ) in {"m4-fixed-v1", "stone-pickaxe-skill-fixed-v1"}
         if require_pickup:
             return self.bot.dig(
                 x,
