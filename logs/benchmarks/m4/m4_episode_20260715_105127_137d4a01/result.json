@@ -1,0 +1,1089 @@
+{
+  "type": "m4_episode_result",
+  "schema_version": 1,
+  "task_id": "BM-012",
+  "profile": "m4-fixed-v1",
+  "completed": false,
+  "termination_reason": "episode_deadline",
+  "elapsed_s": 600.016,
+  "deadline_eligible": false,
+  "external_step_script": false,
+  "terminal_state": {
+    "health": 20,
+    "food": 20,
+    "time_of_day": 12218,
+    "position": {
+      "x": 107.5,
+      "y": 130,
+      "z": -35.43806494827605
+    },
+    "inventory": {
+      "oak_planks": 9,
+      "torch": 8,
+      "stick": 4,
+      "crafting_table": 1,
+      "coal": 1,
+      "dirt": 5,
+      "wooden_pickaxe": 1,
+      "cobblestone": 8
+    },
+    "nearby_blocks": [
+      {
+        "name": "stone",
+        "position": {
+          "x": 106,
+          "y": 130,
+          "z": -36
+        },
+        "distance": 1
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 107,
+          "y": 130,
+          "z": -37
+        },
+        "distance": 1
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 108,
+          "y": 132,
+          "z": -36
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "gravel",
+        "position": {
+          "x": 108,
+          "y": 132,
+          "z": -34
+        },
+        "distance": 3
+      },
+      {
+        "name": "iron_ore",
+        "position": {
+          "x": 107,
+          "y": 129,
+          "z": -40
+        },
+        "distance": 4.123105625617661
+      },
+      {
+        "name": "cobblestone",
+        "position": {
+          "x": 113,
+          "y": 129,
+          "z": -29
+        },
+        "distance": 9.273618495495704
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 114,
+          "y": 133,
+          "z": -29
+        },
+        "distance": 10.344080432788601
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 107,
+          "y": 129,
+          "z": -36
+        },
+        "distance": 1
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 107,
+          "y": 130,
+          "z": -35
+        },
+        "distance": 1
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 108,
+          "y": 130,
+          "z": -36
+        },
+        "distance": 1
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 106,
+          "y": 129,
+          "z": -36
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 106,
+          "y": 130,
+          "z": -37
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 106,
+          "y": 130,
+          "z": -35
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 106,
+          "y": 131,
+          "z": -36
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 107,
+          "y": 129,
+          "z": -37
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 107,
+          "y": 129,
+          "z": -35
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 107,
+          "y": 131,
+          "z": -37
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 107,
+          "y": 131,
+          "z": -35
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 108,
+          "y": 129,
+          "z": -36
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 108,
+          "y": 130,
+          "z": -37
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 108,
+          "y": 130,
+          "z": -35
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 108,
+          "y": 131,
+          "z": -36
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 106,
+          "y": 129,
+          "z": -37
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 106,
+          "y": 129,
+          "z": -35
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 106,
+          "y": 131,
+          "z": -37
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 106,
+          "y": 131,
+          "z": -35
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 108,
+          "y": 129,
+          "z": -37
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 108,
+          "y": 129,
+          "z": -35
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 108,
+          "y": 131,
+          "z": -37
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 108,
+          "y": 131,
+          "z": -35
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 105,
+          "y": 130,
+          "z": -36
+        },
+        "distance": 2
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 107,
+          "y": 128,
+          "z": -36
+        },
+        "distance": 2
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 107,
+          "y": 130,
+          "z": -38
+        },
+        "distance": 2
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 107,
+          "y": 130,
+          "z": -34
+        },
+        "distance": 2
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 109,
+          "y": 130,
+          "z": -36
+        },
+        "distance": 2
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 105,
+          "y": 129,
+          "z": -36
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 105,
+          "y": 130,
+          "z": -37
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 105,
+          "y": 130,
+          "z": -35
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 105,
+          "y": 131,
+          "z": -36
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 106,
+          "y": 128,
+          "z": -36
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 106,
+          "y": 130,
+          "z": -38
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 106,
+          "y": 130,
+          "z": -34
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 106,
+          "y": 132,
+          "z": -36
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 107,
+          "y": 128,
+          "z": -37
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 107,
+          "y": 128,
+          "z": -35
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 107,
+          "y": 129,
+          "z": -38
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 107,
+          "y": 129,
+          "z": -34
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 107,
+          "y": 131,
+          "z": -38
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 107,
+          "y": 131,
+          "z": -34
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 107,
+          "y": 132,
+          "z": -37
+        },
+        "distance": 2.23606797749979
+      }
+    ],
+    "nearby_entities": [],
+    "player_lifecycle": {
+      "type": "m4_player_lifecycle",
+      "schema_version": 1,
+      "verifier_id": "m4-player-lifecycle-verifier-v1",
+      "source": "mineflayer_events",
+      "profile": "m4-fixed-v1",
+      "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "tracker_id": "b0ad58fe-604c-43c6-8350-420f1b32196a",
+      "episode_id": "m4_episode_20260715_105127_137d4a01",
+      "level_name": "m4_episode_20260715_105127_137d4a01_bm012",
+      "baseline_id": "0b332f15bfa088a00ee3a1fc5a30267ce7c0a415e682376b3afc1961afde5d3c",
+      "baseline_established": true,
+      "initial_spawn_observed": true,
+      "baseline_death_count_total": 0,
+      "baseline_respawn_count_total": 0,
+      "baseline_spawn_count_total": 1,
+      "baseline_observed_at_ms": 1784083919677,
+      "baseline_bridge_monotonic_ms": 132064331,
+      "death_count_total": 0,
+      "respawn_count_total": 0,
+      "spawn_count_total": 1,
+      "death_count": 0,
+      "respawn_count": 0,
+      "spawn_count": 0,
+      "pending_respawn_count": 0,
+      "uninterrupted": true,
+      "last_death": null,
+      "last_respawn": null
+    },
+    "bot_connected": true
+  },
+  "autonomous_result": {
+    "mode": "autonomous",
+    "goals_completed": 6,
+    "goals_failed": 3,
+    "goals_interrupted": 1,
+    "total_cycles": 82,
+    "termination_reason": "episode_deadline",
+    "elapsed_s": 600.016,
+    "max_duration_s": 600.0,
+    "episode_started_monotonic": 132071.343,
+    "episode_ended_monotonic": 132671.359,
+    "episode_deadline_monotonic": 132671.343,
+    "deadline_eligible": false,
+    "active_runtime_interrupt": {
+      "trigger_id": "interrupt-0001",
+      "reason": "night_shelter_required",
+      "recommended_goal": "Reach or build emergency verified shelter immediately",
+      "paused_goal": "Craft torches",
+      "paused_task": {
+        "task_id": "f9d1cfc0",
+        "title": "Place crafting table",
+        "status": "active",
+        "priority": 5
+      },
+      "frontier_before": [
+        {
+          "task_id": "031b1970",
+          "title": "Place crafting table",
+          "status": "accepted",
+          "priority": 5
+        },
+        {
+          "task_id": "23e866f7",
+          "title": "Place crafting table",
+          "status": "accepted",
+          "priority": 5
+        },
+        {
+          "task_id": "31e25280",
+          "title": "Craft torches",
+          "status": "accepted",
+          "priority": 5
+        },
+        {
+          "task_id": "33f0a939",
+          "title": "Place crafting table",
+          "status": "accepted",
+          "priority": 5
+        },
+        {
+          "task_id": "37147818",
+          "title": "Place crafting table",
+          "status": "active",
+          "priority": 5
+        },
+        {
+          "task_id": "5186d4f9",
+          "title": "Craft torches",
+          "status": "accepted",
+          "priority": 5
+        },
+        {
+          "task_id": "55f288a3",
+          "title": "Craft torches",
+          "status": "accepted",
+          "priority": 5
+        },
+        {
+          "task_id": "78275b35",
+          "title": "Craft torches",
+          "status": "accepted",
+          "priority": 5
+        },
+        {
+          "task_id": "9b2e2ca5",
+          "title": "Craft torches",
+          "status": "accepted",
+          "priority": 5
+        },
+        {
+          "task_id": "a19ab720",
+          "title": "Craft torches",
+          "status": "accepted",
+          "priority": 5
+        },
+        {
+          "task_id": "a2867e38",
+          "title": "Place crafting table",
+          "status": "active",
+          "priority": 5
+        },
+        {
+          "task_id": "a60a7668",
+          "title": "Craft torches",
+          "status": "accepted",
+          "priority": 5
+        },
+        {
+          "task_id": "ae33fdf6",
+          "title": "Place crafting table",
+          "status": "accepted",
+          "priority": 5
+        },
+        {
+          "task_id": "b99a4935",
+          "title": "Craft torches",
+          "status": "accepted",
+          "priority": 5
+        },
+        {
+          "task_id": "ba03b755",
+          "title": "Craft torches",
+          "status": "accepted",
+          "priority": 5
+        },
+        {
+          "task_id": "c4261fb3",
+          "title": "Place crafting table",
+          "status": "accepted",
+          "priority": 5
+        }
+      ],
+      "trigger_context": {
+        "cycle": 63,
+        "mode": "autonomous"
+      },
+      "evidence": {
+        "time_of_day": 12078,
+        "shelter_verified": false
+      }
+    },
+    "landmarks_discovered": 0,
+    "curriculum": {
+      "recent_goals": [
+        {
+          "goal": "Gather 6 oak logs for tools and shelter",
+          "success": true,
+          "cycles": 8
+        },
+        {
+          "goal": "Craft crafting table",
+          "success": true,
+          "cycles": 2
+        },
+        {
+          "goal": "Place crafting table for tool progression",
+          "success": false,
+          "cycles": 2
+        },
+        {
+          "goal": "Place crafting table",
+          "success": true,
+          "cycles": 2
+        },
+        {
+          "goal": "Craft wooden pickaxe",
+          "success": true,
+          "cycles": 10
+        },
+        {
+          "goal": "Mine 12 cobblestone for stone tools and furnace",
+          "success": true,
+          "cycles": 13
+        },
+        {
+          "goal": "Collect coal or charcoal for torches",
+          "success": true,
+          "cycles": 3
+        },
+        {
+          "goal": "Build verified shelter before nightfall",
+          "success": false,
+          "cycles": 16
+        },
+        {
+          "goal": "Build verified shelter before nightfall",
+          "success": false,
+          "cycles": 3
+        }
+      ],
+      "goal_stats": {
+        "Gather 6 oak logs for tools and shelter": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 8
+        },
+        "Craft crafting table": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 2
+        },
+        "Place crafting table for tool progression": {
+          "attempts": 1,
+          "successes": 0,
+          "failures": 1,
+          "last_cycles": 2
+        },
+        "Place crafting table": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 2
+        },
+        "Craft wooden pickaxe": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 10
+        },
+        "Mine 12 cobblestone for stone tools and furnace": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 13
+        },
+        "Collect coal or charcoal for torches": {
+          "attempts": 1,
+          "successes": 1,
+          "failures": 0,
+          "last_cycles": 3
+        },
+        "Build verified shelter before nightfall": {
+          "attempts": 2,
+          "successes": 0,
+          "failures": 2,
+          "last_cycles": 3
+        }
+      },
+      "last_decision": {
+        "selected": "Collect coal or charcoal for torches",
+        "fallback": "Gather 6 oak logs for iron-tool progression",
+        "candidates": [
+          {
+            "title": "Collect coal or charcoal for torches",
+            "category": "resource",
+            "score": 70.0,
+            "reasons": [
+              "night_and_cave_safety",
+              "novelty",
+              "skill_gap"
+            ],
+            "tags": [
+              "charcoal",
+              "coal",
+              "dig_block",
+              "mine_stone",
+              "resource"
+            ],
+            "target_items": [
+              "coal",
+              "charcoal"
+            ],
+            "required_items": {},
+            "skill_targets": [
+              "mine_stone",
+              "dig_block"
+            ]
+          },
+          {
+            "title": "Inspect nearby birch_log and learn a safe collection route",
+            "category": "exploration",
+            "score": 55.0,
+            "reasons": [
+              "visible_novel_resource",
+              "novelty",
+              "skill_gap"
+            ],
+            "tags": [
+              "birch_log",
+              "exploration",
+              "move_to",
+              "navigate_to_target"
+            ],
+            "target_items": [
+              "birch_log"
+            ],
+            "required_items": {},
+            "skill_targets": [
+              "navigate_to_target",
+              "move_to"
+            ]
+          },
+          {
+            "title": "Gather 6 oak logs for tools and shelter",
+            "category": "resource",
+            "score": 50.0,
+            "reasons": [
+              "early_wood_bootstrap",
+              "skill_gap",
+              "repeat_success_penalty"
+            ],
+            "tags": [
+              "dig_block",
+              "gather_wood",
+              "oak_log",
+              "resource"
+            ],
+            "target_items": [
+              "oak_log"
+            ],
+            "required_items": {},
+            "skill_targets": [
+              "gather_wood",
+              "dig_block"
+            ]
+          },
+          {
+            "title": "Craft crafting table",
+            "category": "crafting",
+            "score": 49.0,
+            "reasons": [
+              "unlock_crafting_grid",
+              "novelty",
+              "repeat_success_penalty"
+            ],
+            "tags": [
+              "craft_item",
+              "crafting",
+              "crafting_table"
+            ],
+            "target_items": [
+              "crafting_table"
+            ],
+            "required_items": {
+              "oak_log": 1
+            },
+            "skill_targets": [
+              "craft_item"
+            ]
+          },
+          {
+            "title": "Gather 6 oak logs for iron-tool progression",
+            "category": "fallback",
+            "score": 30.0,
+            "reasons": [
+              "rule_generator"
+            ],
+            "tags": [],
+            "target_items": [],
+            "required_items": {},
+            "skill_targets": []
+          }
+        ]
+      },
+      "exploration_feedback": {
+        "discovered_blocks": [],
+        "discovered_resources": [],
+        "discovered_entities": [],
+        "action_failure_categories": {},
+        "low_movement_log_count": 0,
+        "hostile_encounter_count": 0,
+        "path_distance": 0.0
+      },
+      "world_model_feedback": {
+        "suggested_goals": [],
+        "frontiers": [],
+        "resource_hotspots": [],
+        "danger_cells": [],
+        "frontier_count": 0,
+        "resource_hotspot_count": 0,
+        "danger_cell_count": 0
+      }
+    },
+    "summary": {
+      "session_id": "36f5f959-6da",
+      "duration_s": 607.04,
+      "total_events": 1981,
+      "action_count": 73,
+      "error_count": 0,
+      "intervention_metrics": {
+        "policy_hint_count": 0,
+        "policy_intervention_count": 0,
+        "policy_intervention_actions": 0,
+        "policy_intervention_successes": 0,
+        "policy_intervention_failures": 0,
+        "policy_intervention_success_rate": 0.0,
+        "policy_intervention_skills": [],
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": [],
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {},
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": [],
+        "action_verification_event_count": 73,
+        "action_verification_status_counts": {
+          "accept": 52,
+          "reject": 21
+        },
+        "action_verification_action_types": {
+          "move_to": 14,
+          "dig": 22,
+          "craft": 13,
+          "place": 13,
+          "build_shelter_cell": 11
+        },
+        "action_verification_blocked_count": 21,
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "visual_action_metrics": {
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": []
+      },
+      "skill_memory_metrics": {
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {}
+      },
+      "skill_learning_metrics": {
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": []
+      },
+      "action_verification_metrics": {
+        "action_verification_event_count": 73,
+        "action_verification_status_counts": {
+          "accept": 52,
+          "reject": 21
+        },
+        "action_verification_action_types": {
+          "move_to": 14,
+          "dig": 22,
+          "craft": 13,
+          "place": 13,
+          "build_shelter_cell": 11
+        },
+        "action_verification_blocked_count": 21
+      },
+      "action_candidate_selection_metrics": {
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "goal_verification_metrics": {
+        "count": 36,
+        "achieved": 36,
+        "failed": 0,
+        "unknown": 0,
+        "accepted": 36,
+        "rejected": 0,
+        "acceptance_reasons": {}
+      },
+      "plan_cache_metrics": {
+        "plan_cache_hit_count": 0,
+        "plan_cache_hybrid_hint_count": 0,
+        "plan_cache_workflow_intervention_count": 0,
+        "plan_cache_miss_count": 0,
+        "plan_cache_signature_count": 0,
+        "plan_cache_hit_rate": 0.0,
+        "plan_cache_hit_entries": {},
+        "plan_cache_hit_goals": [],
+        "plan_cache_execution_stage_counts": {
+          "hybrid": 0,
+          "deterministic": 0
+        }
+      },
+      "episode_abort_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "gate_readiness": "not_configured",
+        "viability_probe_count": 0,
+        "early_abort_trigger_count": 0,
+        "active_early_abort_count": 0,
+        "shadow_would_abort_count": 0,
+        "probe_round_counts": {},
+        "average_viability_risk_score": 0.0
+      },
+      "frontier_budget_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "policy": "information",
+        "allocation_event_count": 0,
+        "planner_context_event_count": 0,
+        "outcome_event_count": 0,
+        "completed_outcome_count": 0,
+        "recovery_credit_event_count": 0,
+        "recovered_rounds": 0,
+        "reallocated_rounds_consumed": 0,
+        "allocation_pool_rounds": 0,
+        "allocated_rounds": 0,
+        "budget_conservation_failure_count": 0,
+        "policy_counts": {}
+      },
+      "memory_policy_metrics": {
+        "memory_write_count": 585,
+        "memory_read_count": 89,
+        "memory_manage_count": 0,
+        "memory_write_layers": {
+          "episodic": 430,
+          "context": 155
+        },
+        "memory_write_types": {
+          "autonomous_start": 1,
+          "curriculum_goal": 6,
+          "auto_goal": 10,
+          "context": 155,
+          "opportunity_task": 67,
+          "action_verification": 73,
+          "task_state_update": 68,
+          "action": 73,
+          "goal_verification": 36,
+          "auto_goal_complete": 6,
+          "failure_reflection_suppressed": 26,
+          "empty_plan": 2,
+          "auto_goal_failed": 3,
+          "m4_ready_task_goal_verifier_binding": 35,
+          "runtime_interrupt": 11,
+          "runtime_interrupt_recovery": 10,
+          "m4_planner_transport_recovery": 1,
+          "auto_goal_interrupted": 1,
+          "runtime_interrupt_escalation": 1
+        },
+        "memory_read_types": {
+          "opportunity_context": 89
+        },
+        "memory_manage_operations": {},
+        "memory_policy_decisions": {
+          "write_blocked": 585,
+          "read_allowed": 89
+        },
+        "memory_read_filter_event_count": 0,
+        "memory_read_filtered_entries": 0,
+        "memory_read_filter_reasons": {},
+        "memory_retrieval_trace_event_count": 0,
+        "weighted_memory_read_count": 0,
+        "weighted_memory_match_count": 0,
+        "weighted_transfer_match_count": 0,
+        "memory_attribution_policy_counts": {}
+      },
+      "log_path": "logs/benchmarks/m4/m4_episode_20260715_105127_137d4a01\\session_36f5f959-6da.jsonl"
+    }
+  },
+  "evidence_hashes": {
+    "preflight_sha256": "68ff0fa974447cd42209fdbbd7dcb017c446d16a4d6915fe58f61a15f3d9c369",
+    "manifest_sha256": "2d4f4dd2356c6dc9afdfbf8748cfd61d338a86c77ae3807a8cc810f4f21ab1fa",
+    "session_sha256": "e966abe6486c81e7f311ca96918aeed38c9ff8b49659c7e83ded17269d8a4ad0",
+    "result_sha256": "444d1b623746abd692f87d5d88c914ecfcf8bf665dca99715cae80310ccc9f3e"
+  }
+}

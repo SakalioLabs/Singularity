@@ -1,0 +1,120 @@
+{
+  "type": "m4_probe_comparison_report",
+  "schema_version": 1,
+  "generated_at": "2026-07-15T03:20:19Z",
+  "profile": "m4-fixed-v1",
+  "task_id": "BM-012",
+  "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+  "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+  "fixed_control": {
+    "same_task": true,
+    "same_seed": true,
+    "same_protocol": true,
+    "same_task_contract": true,
+    "same_server_jar": true,
+    "same_runtime_versions": true,
+    "same_planner_provider_model": true,
+    "same_goal_generator": true,
+    "same_curriculum": true,
+    "same_action_backend": true,
+    "same_goal_verifier": true,
+    "same_task_system_configuration_except_intended_policy_delta": true,
+    "same_skill_switches": true,
+    "same_deadlines": true,
+    "same_cycle_limits": true,
+    "reset_and_preflight_passed_in_both": true,
+    "expected_code_delta": "f528ea17 m4-failed-dependency-machine-state-reconciliation-v1"
+  },
+  "probe_22": {
+    "commit": "fa7bb5c846bd7c4783aeffce6d82cd103c798b92",
+    "episode_id": "m4_episode_20260714_195257_3aa3b171",
+    "session_id": "8e6da3cf-017",
+    "eligible": false,
+    "eligibility_pass_count": 68,
+    "eligibility_check_count": 74,
+    "wooden_pickaxe_machine_state_satisfied": true,
+    "wooden_pickaxe_machine_action_event_index": 855,
+    "wooden_pickaxe_terminal_count": 1,
+    "qualifying_failed_direct_dependency_present": true,
+    "failed_dependency_task_id": "ac997fe4",
+    "failed_dependency_reconciliation_count": 0,
+    "failed_task_direct_reselection_count": 21,
+    "recovery_child_count": 0,
+    "cobblestone_progression": {
+      "successful_stone_dig_count": 0,
+      "maximum_inventory": 0,
+      "terminal_inventory": 0
+    },
+    "stone_pickaxe_progression": {
+      "plan_count": 0,
+      "craft_action_count": 0,
+      "inventory_delta": 0
+    },
+    "iron_progression": {
+      "goal_count": 0,
+      "approach_action_count": 0,
+      "dig_action_count": 0,
+      "pickup_count": 0,
+      "terminal_inventory_delta": 0
+    },
+    "failure_layer": "m4_readiness_recovery_failed_dependency_machine_state_disconnect"
+  },
+  "probe_23": {
+    "commit": "f528ea17e6ba8c79295cf07cccaba225e7ed9af4",
+    "episode_id": "m4_episode_20260715_105127_137d4a01",
+    "session_id": "36f5f959-6da",
+    "eligible": false,
+    "eligibility_pass_count": 66,
+    "eligibility_check_count": 74,
+    "wooden_pickaxe_machine_state_satisfied": true,
+    "wooden_pickaxe_machine_observation_event_index": 563,
+    "wooden_pickaxe_machine_action_event_index": 573,
+    "wooden_pickaxe_terminal_count": 1,
+    "qualifying_failed_direct_dependency_present": false,
+    "failed_wooden_pickaxe_candidate_task_ids": ["006ddc9b", "7c9d9eee", "c395cbb4"],
+    "failed_dependency_reconciliation_count": 0,
+    "failed_task_direct_reselection_count": 0,
+    "recovery_child_count": 0,
+    "maximum_active_recovery_children_per_fingerprint": 0,
+    "cobblestone_progression": {
+      "successful_stone_dig_count": 12,
+      "maximum_inventory": 12,
+      "terminal_inventory": 8,
+      "terminal_inventory_delta": 8
+    },
+    "stone_pickaxe_progression": {
+      "plan_count": 0,
+      "craft_action_count": 0,
+      "inventory_delta": 0
+    },
+    "iron_progression": {
+      "goal_count": 0,
+      "approach_action_count": 0,
+      "dig_action_count": 0,
+      "pickup_count": 0,
+      "terminal_inventory_delta": 0
+    },
+    "intervention_branch_exercised": false,
+    "failure_layer": "m4_ready_task_failed_root_machine_state_disconnect"
+  },
+  "causal_difference": {
+    "probe_22_failed_dependency_disconnect_recurred": false,
+    "probe_23_intervention_live_validated": false,
+    "probe_23_intervention_live_rejected": false,
+    "probe_23_intervention_not_exercised": true,
+    "direct_failed_task_reselection_delta": -21,
+    "cobblestone_successful_dig_delta": 12,
+    "cobblestone_terminal_inventory_delta": 8,
+    "stone_pickaxe_delta": 0,
+    "iron_inventory_delta": 0,
+    "eligibility_passed_check_delta": -2,
+    "attribution_limit": "Probe 23 had no failed direct dependency on the active frontier, so its zero reselections and cobblestone progression cannot live-validate the intended policy branch.",
+    "new_observed_disconnect": "A selected ready-task root for Craft torches failed before torch machine completion and then suppressed generic completion for 23 cycles because the failed bound root itself was not reconcilable by the direct-dependency policy."
+  },
+  "decision": {
+    "value": "intervention_not_exercised",
+    "reason": "no_qualifying_failed_direct_dependency_at_machine_state_boundary",
+    "bm012_eligible_success": false,
+    "next_authorization": false
+  }
+}

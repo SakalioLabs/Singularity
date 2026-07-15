@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 22 remain ineligible at 0/3. Probe 22 ran once from frozen commit `fa7bb5c`; the inventory-family readiness-recovery branch was not exercised, so its child/root completion and stale-sibling behavior remain unmeasured. A failed named wooden-pickaxe dependency instead remained authoritative after the item was machine-created and equivalent tasks were reconciled, blocking coal progression for the final 21 goals. The bounded `m4-failed-dependency-machine-state-reconciliation-v1` repair now passes offline without changing capability evidence. Probe 22 consumed its sole authorization, no Probe 23 or retry ran, and next authorization is false. BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 23 remain ineligible at 0/3. Probe 23 ran exactly once from frozen commit `f528ea17` and consumed its authorization at `autonomous_start`. The failed-dependency reconciliation branch was not exercised: three failed wooden-pickaxe tasks existed when `wooden_pickaxe:1` was machine-observed, but none was a direct dependency of an active-frontier task. No reconciliation event, failed-task reselection, or recovery child occurred. The Agent nevertheless advanced through twelve successful stone digs before a failed bound `Craft torches` ready-task suppressed machine-grounded completion for 23 cycles. The outcome is `intervention_not_exercised`; next authorization is false and BM-013/BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | failed_dependency_reconciliation_passed_offline_probe_23_unauthorized |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_23_intervention_not_exercised_new_blocker |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -171,7 +171,7 @@ The new earliest layer is `m4_readiness_recovery_failed_dependency_machine_state
 
 The bounded offline repair now reconciles only failed or blocked direct dependencies on the active frontier whose structured inventory postconditions are satisfied by a fresh machine observation. Exact item matching is the default; family aggregation requires an explicit trusted internal contract. Completion records the previous terminal status, original failure result and transition, attempts, proof, observation identity, requirement fingerprint, state generation, timestamp, and deterministic event ID. The same task/fingerprint/state generation is idempotent, and the existing root binding handles propagation.
 
-If the state is not satisfied, the terminal task itself is never selected. At most one active recovery child is created per requirement fingerprint with a new ID, parent/root provenance, and a three-attempt budget. The exact Probe 22 wooden-pickaxe boundary, wrong-item rejection, explicitly authorized log-family aggregation, repeated observations, existing root propagation, and arbitrary post-action observation boundary pass offline. This is not live capability evidence: BM-012 remains 0/3, M4 remains `failing`, and Probe 23 authorization remains false.
+If the state is not satisfied, the terminal task itself is never selected. At most one active recovery child is created per requirement fingerprint with a new ID, parent/root provenance, and a three-attempt budget. The exact Probe 22 wooden-pickaxe boundary, wrong-item rejection, explicitly authorized log-family aggregation, repeated observations, existing root propagation, and arbitrary post-action observation boundary pass offline. Probe 23 did not exercise that direct-dependency branch, so the latency, history-preservation transition, dependent/root readiness transition, and event idempotency remain live-unmeasured. BM-012 remains 0/3 and M4 remains `failing`.
 
 The original Probe 22 `infrastructure_ineligible` decision is retained byte-for-byte. `workspace/evals/m4_probe22_derived_audit.json` marks it as a decision-taxonomy limitation and adds the prospective value `intervention_not_exercised_new_blocker`; the annotation explicitly grants no capability upgrade.
 
@@ -183,9 +183,10 @@ The original Probe 22 `infrastructure_ineligible` decision is retained byte-for-
 - Scheduler invariant: failed/blocked terminal tasks are never returned directly; an unmet requirement creates at most one bounded provenance-linked recovery child per fingerprint
 - Exact/family scope: exact requirements reject substitutes; family totals are accepted only through an explicit schema-v1 internal contract and trusted family catalog
 - Runtime boundary: full reconciliation runs after every M4 observation used for scheduling and after every post-action machine observation, independent of action type
-- Evidence discipline: Probe 21/22 raw artifacts remain immutable; the derived taxonomy audit does not alter the original Probe 22 decision or capability state
-- Validation: six exact Memory/TaskSystem cases plus one derived-audit schema case, 106 Memory/TaskSystem definitions, 47 M4 deadline definitions, all 751 definitions across 37 non-live Python files, and six Node suites with 52 internal PASS cases; Python compilation, Node syntax, 1065 JSON files, capability consistency, credential scan, and repository checks pass
-- Authorization: no live episode ran for this gate; Probe 23 remains unauthorized
+- Live result: Probe 23 machine-observed `wooden_pickaxe:1` but had zero qualifying failed direct dependencies on the active frontier; the policy emitted zero reconciliation events and is neither live-validated nor live-rejected
+- Evidence discipline: Probe 21/22 raw artifacts remain immutable; Probe 23 is retained as a new ineligible bundle and grants no capability upgrade
+- Validation: six exact Memory/TaskSystem cases plus one derived-audit schema case, 106 Memory/TaskSystem definitions, 47 M4 deadline definitions, all 751 definitions across 37 non-live Python files, and six Node suites with 52 internal PASS cases; Python compilation, Node syntax, all repository JSON artifacts, capability consistency, credential scan, and repository checks pass
+- Authorization: Probe 23 consumed its one authorization at event 1 / monotonic 132071.343; no retry, Probe 24, or additional episode is authorized
 
 ## BM-012 Offline Preflight
 
@@ -196,8 +197,8 @@ The original Probe 22 `infrastructure_ineligible` decision is retained byte-for-
 - Machine terminal: `m4-resource-inventory-verifier-v1` emits `terminal_resource_verification` only for `raw_iron:8` or `iron_ore:8`, positive health, online bot, and uninterrupted zero-death lifecycle
 - Independent provenance: initial target inventory is zero; terminal target inventory and positive net delta are required; at least eight successful verified `dig` actions must remove `iron_ore` or `deepslate_iron_ore`
 - Fail closed: preloaded inventory, missing source actions, text-only completion, task-contract drift, runtime-limit drift, content-hash drift, lifecycle failure, and deadline overrun are rejected
-- Regression baseline: the frozen `fa7bb5c` gate retained 744 repository Python definitions, all 35 non-live Python scripts, and all six fixed Node suites with 52 internal assertions before Probe 22
-- Live authorization: consumed by BM-012 Probe 22 at autonomous-start monotonic 78162.171; next authorization is false
+- Regression baseline: the frozen `f528ea17` gate retained 751 repository Python definitions, all 37 non-live Python scripts, and all six fixed Node suites with 52 internal assertions before Probe 23
+- Live authorization: consumed by BM-012 Probe 23 at autonomous-start monotonic 132071.343; next authorization is false
 - Report: `workspace/evals/m4_resource_verification.json`
 
 ## BM-012 GoalVerifier Purpose-Phrase Gate
@@ -506,9 +507,26 @@ The original Probe 22 `infrastructure_ineligible` decision is retained byte-for-
 - Compatibility: generic GoalVerifier, global TaskSystem inventory-family semantics, Planner schema, priority order, deadlines, success thresholds, M1, M2, and M3 remain unchanged
 - Validation: five exact gate cases, 100 Memory/TaskSystem definitions, 47 M4 deadline definitions, all 743 definitions across 35 non-live Python files (744 repository definitions total), and six Node suites with 52 internal PASS cases; Python compilation, Probe 21 eight-file hashes, protocol identity, JSON, capability consistency, credential scan, and repository checks pass
 - Status: passed offline; Probe 22 did not exercise the inventory-family recovery branch, so live validation remains unresolved
-- Authorization: consumed by BM-012 Probe 22; no retry, Probe 23, or additional live episode is authorized
+- Authorization: consumed by BM-012 Probe 22; Probe 23 was later separately authorized only after the failed-dependency offline gate
 
 ## BM-012 Live Evidence
+
+### Probe 23: Failed-Dependency Branch Unexercised; Failed Bound Root Blocked Torch Completion
+
+- Episode: `m4_episode_20260715_105127_137d4a01`
+- Session: `36f5f959-6da`
+- Level: `m4_episode_20260715_105127_137d4a01_bm012`
+- Frozen code: `f528ea17e6ba8c79295cf07cccaba225e7ed9af4`; protocol, task contract, Paper jar, runtime identities, provider/model, limits, and skill switches matched Probe 22
+- Authorization: consumed exactly once at event 1 / monotonic 132071.343 / `2026-07-15T02:52:06.710000Z`; no retry or Probe 24 ran
+- Machine boundary: observation event 563 proved exact `wooden_pickaxe:1`; action event 573 recorded delta `+1`; event 572 completed seven nonterminal equivalent tasks and reported `failed_dependency_reconciliation_count=0`
+- Intervention measurement: failed tasks `006ddc9b`, `7c9d9eee`, and `c395cbb4` remained terminal, but none was a direct dependency of an active-frontier task. No live requirement fingerprint, reconciliation event, latency, dependent/root transition, or history-preservation transition exists
+- Scheduler: zero `task_readiness_recovery_goal` events, zero post-satisfaction direct failed-task reselections, zero recovery children, and maximum active children per derived candidate fingerprint zero
+- Frontier/progression: seven accepted equivalent pickaxe tasks before event 563 became zero after event 572; event 583 next selected `Mine 12 cobblestone for stone tools and furnace`, and events 630-854 completed twelve stone digs. Cobblestone reached 12 and ended at 8
+- Earliest blocker: ready task `f3622be3` under root `root-50de86f68e3244e4` failed at event 956; event 980 crafted `torch:+4`, but events 984-1558 produced 30 `suppress_until_bound_task_machine_completion` decisions across 23 cycles until dusk. This failed selected root was outside the direct-dependency policy scope
+- Planner/actions: 82 calls, 80 real, 78 schema-valid real responses, two schema-invalid responses, two transport failures, and 289117 tokens; 47/73 actions succeeded
+- Iron/deadline: no stone-pickaxe plan or craft, iron goal, approach, dig, pickup, or inventory delta occurred. The Agent ended 0.016 seconds after the deadline; no action was post-deadline, but one error plan returned after the boundary, so 66/74 checks passed
+- Decision: `intervention_not_exercised`; BM-012 remains 0/3 after twenty-three attempts, M4 remains `failing`, and next authorization is false
+- Evidence: `logs/benchmarks/m4/m4_episode_20260715_105127_137d4a01/`, `workspace/evals/m4_probe23_report.json`, and `workspace/evals/m4_probe22_probe23_comparison.json`
 
 ### Probe 22: Root-Completion Branch Unexercised; Failed Dependency Stayed Authoritative
 
