@@ -1,4 +1,5 @@
 """Unit tests for memory transfer records, task scheduling, and knowledge loading."""
+import copy
 import json
 import hashlib
 import os
@@ -2303,6 +2304,302 @@ def test_m4_readiness_recovery_fingerprint_mixed_family_and_context_bounds():
     print("PASS: M4 readiness fingerprint preserves semantics and planner bounds")
 
 
+def _m4_failed_dependency_fixture(agent: Agent, *, item: str = "wooden_pickaxe"):
+    dependency = agent.task_system.create_task(
+        f"Craft {item.replace('_', ' ')}",
+        task_type="crafting",
+        status=TaskStatus.ACTIVE,
+        priority=1,
+        success_criteria={"inventory": {item: 1}},
+        root_plan_id="root-probe22-replay",
+        planner_call_id="llm-probe22-replay",
+    )
+    dependency.blockers.append("task deadline elapsed")
+    agent.task_system.update_task(
+        dependency.id,
+        status=TaskStatus.FAILED,
+        observations=["FAILURE: task deadline elapsed"],
+        result={"failed_by": "task_deadline_elapsed", "deadline_wallclock": 42.0},
+        reason="task_deadline_elapsed",
+    )
+    dependent = agent.task_system.create_task(
+        "Mine coal ore",
+        task_type="mining",
+        status=TaskStatus.ACCEPTED,
+        priority=2,
+        preconditions={"inventory": {item: 1}},
+        success_criteria={"inventory": {"coal": 1}},
+        depends_on=[dependency.id],
+        root_plan_id="root-probe22-replay",
+        planner_call_id="llm-probe22-replay",
+    )
+    return dependency, dependent
+
+
+def test_m4_failed_dependency_machine_state_reconciliation_replays_probe22_once():
+    agent = _m4_readiness_recovery_test_agent()
+    dependency, dependent = _m4_failed_dependency_fixture(agent)
+    original_result = copy.deepcopy(dependency.result)
+    original_history = copy.deepcopy(dependency.status_history)
+    original_observations = copy.deepcopy(dependency.observations)
+    original_blockers = copy.deepcopy(dependency.blockers)
+    original_attempts = dependency.attempts
+    observation = {
+        "observation_id": "probe22-event-855",
+        "state_generation": "probe22-generation-855",
+        "inventory": {"wooden_pickaxe": 1},
+        "nearby_blocks": [{"name": "coal_ore"}],
+    }
+
+    selected = agent._select_autonomous_goal(observation, "Advance iron progression")
+
+    assert selected == dependent.title
+    assert dependency.status == TaskStatus.COMPLETED
+    assert dependency.attempts == original_attempts
+    assert dependency.blockers == original_blockers
+    assert dependency.observations[:len(original_observations)] == original_observations
+    assert dependency.status_history[:len(original_history)] == original_history
+    assert dependency.status_history[-1]["reason"] == "machine_state_reconciliation"
+    assert dependency.result["completed_by"] == "machine_state_reconciliation"
+    assert dependency.result["completion_source"] == "machine_state_reconciliation"
+    assert dependency.result["previous_status"] == "failed"
+    assert dependency.result["original_failure_reason"] == "task_deadline_elapsed"
+    assert dependency.result["original_attempts"] == original_attempts
+    assert dependency.result["original_failure_result"] == original_result
+    assert dependency.result["original_failure_event"] == original_history[-1]
+    assert dependency.result["observation_id"] == "probe22-event-855"
+    assert dependency.result["state_generation"] == "probe22-generation-855"
+    assert dependency.result["proof"]["exact_item_counts"] == {"wooden_pickaxe": 1}
+    assert dependency.result["proof"]["satisfied"] is True
+    assert agent.task_system._missing_dependencies(dependent) == []
+    assert dependent in agent.task_system.get_ready_tasks(observation)
+    assert dependency not in agent.task_system.get_ready_tasks(observation)
+
+    events = [
+        event for event in agent.session_logger.events
+        if event["type"] == "m4_failed_dependency_machine_state_reconciliation"
+    ]
+    assert len(events) == 1
+    event = events[0]["data"]
+    assert event["policy_id"] == "m4-failed-dependency-machine-state-reconciliation-v1"
+    assert event["task_id"] == dependency.id
+    assert event["dependent_task_ids"] == [dependent.id]
+    assert event["event_id"] == dependency.result["reconciliation_event_id"]
+    assert len(event["requirement_fingerprint"]) == 64
+
+    repeated = agent._select_autonomous_goal(observation, "Advance iron progression")
+    assert repeated == dependent.title
+    assert len([
+        event for event in agent.session_logger.events
+        if event["type"] == "m4_failed_dependency_machine_state_reconciliation"
+    ]) == 1
+    assert len(dependency.metadata["machine_state_reconciliations"]) == 1
+    print("PASS: Probe 22 failed dependency reconciles within one scheduler tick exactly once")
+
+
+def test_m4_failed_dependency_unmet_state_creates_one_bounded_recovery_child():
+    agent = _m4_readiness_recovery_test_agent()
+    dependency, dependent = _m4_failed_dependency_fixture(agent)
+    observation = {
+        "observation_id": "wrong-family-observation",
+        "state_generation": "wrong-family-generation",
+        "inventory": {"stone_pickaxe": 1},
+        "nearby_blocks": [{"name": "coal_ore"}],
+    }
+
+    selected = agent._select_autonomous_goal(observation, "Advance iron progression")
+    recovery_tasks = [
+        task for task in agent.task_system.tasks.values()
+        if "failed_dependency_machine_state_unmet" in set(task.tags or [])
+    ]
+
+    assert dependency.status == TaskStatus.FAILED
+    assert dependency not in agent.task_system.get_ready_tasks(observation)
+    assert selected != dependency.title
+    assert len(recovery_tasks) == 1
+    child = recovery_tasks[0]
+    assert selected == child.title
+    assert child.id != dependency.id
+    assert child.parent_id == dependent.id
+    assert child.root_plan_id == dependency.root_plan_id
+    assert child.planner_call_id == dependency.planner_call_id
+    assert child.failure_criteria == {"max_failures": 3}
+    recovery_metadata = child.metadata["m4_failed_dependency_recovery"]
+    assert recovery_metadata["failed_dependency_id"] == dependency.id
+    assert recovery_metadata["parent_task_id"] == dependent.id
+    assert recovery_metadata["attempt_budget"] == 3
+    assert recovery_metadata["requirement_fingerprint"]
+
+    repeated = agent._select_autonomous_goal(observation, "Advance iron progression")
+    assert repeated == child.title
+    assert len([
+        task for task in agent.task_system.tasks.values()
+        if "failed_dependency_machine_state_unmet" in set(task.tags or [])
+        and task.status in {TaskStatus.ACCEPTED, TaskStatus.ACTIVE}
+    ]) == 1
+    assert not any(
+        event["type"] == "m4_failed_dependency_machine_state_reconciliation"
+        for event in agent.session_logger.events
+    )
+    print("PASS: unmet failed dependency creates one bounded provenance-linked child")
+
+
+def test_m4_failed_dependency_family_reconciliation_requires_explicit_contract():
+    agent = _m4_readiness_recovery_test_agent()
+    exact_dependency = agent.task_system.create_task(
+        "Collect exact oak logs",
+        status=TaskStatus.ACTIVE,
+        success_criteria={"inventory": {"oak_log": 4}},
+    )
+    family_dependency = agent.task_system.create_task(
+        "Collect log family",
+        status=TaskStatus.ACTIVE,
+        success_criteria={"inventory": {"oak_log": 4}},
+        metadata={
+            "machine_state_reconciliation": {
+                "schema_version": 1,
+                "inventory_semantics": "family",
+                "canonical_item": "oak_log",
+                "inventory_family_id": "minecraft:logs",
+                "required_count": 4,
+            },
+        },
+    )
+    agent.task_system.update_task(
+        exact_dependency.id,
+        status=TaskStatus.FAILED,
+        result={"reason": "exact fixture failure"},
+        reason="exact_fixture_failure",
+    )
+    agent.task_system.update_task(
+        family_dependency.id,
+        status=TaskStatus.FAILED,
+        result={"reason": "family fixture failure"},
+        reason="family_fixture_failure",
+    )
+    exact_consumer = agent.task_system.create_task(
+        "Use exact logs",
+        status=TaskStatus.ACCEPTED,
+        depends_on=[exact_dependency.id],
+        success_criteria={"inventory": {"exact_product": 1}},
+    )
+    family_consumer = agent.task_system.create_task(
+        "Use log family",
+        status=TaskStatus.ACCEPTED,
+        depends_on=[family_dependency.id],
+        success_criteria={"inventory": {"family_product": 1}},
+    )
+    observation = {
+        "observation_id": "family-observation",
+        "state_generation": "family-generation",
+        "inventory": {"dark_oak_log": 4},
+    }
+
+    completed = agent._reconcile_m4_satisfied_tasks(observation, "Craft products", 1)
+
+    assert family_dependency in completed
+    assert family_dependency.status == TaskStatus.COMPLETED
+    assert family_dependency.result["proof"]["family_member_counts"] == {"dark_oak_log": 4}
+    assert family_dependency.result["proof"]["family_total"] == 4
+    assert agent.task_system._missing_dependencies(family_consumer) == []
+    assert exact_dependency.status == TaskStatus.FAILED
+    assert agent.task_system._missing_dependencies(exact_consumer) == [{
+        "id": exact_dependency.id,
+        "title": exact_dependency.title,
+        "status": "failed",
+    }]
+    print("PASS: failed dependency reconciliation is exact by default and family only by contract")
+
+
+def test_m4_blocked_recovery_child_reconciles_existing_root_binding():
+    agent = _m4_readiness_recovery_test_agent()
+    consumer = agent.task_system.create_task(
+        "Mine coal after tool recovery",
+        status=TaskStatus.ACCEPTED,
+        preconditions={"inventory": {"wooden_pickaxe": 1}},
+        success_criteria={"inventory": {"coal": 1}},
+        root_plan_id="root-recovery-binding",
+    )
+    requirement = agent._m4_readiness_recovery_requirement(
+        "wooden_pickaxe",
+        1,
+        consumer,
+    )
+    child = agent.task_system.create_task(
+        "Recover wooden pickaxe",
+        task_type="recovery",
+        status=TaskStatus.ACTIVE,
+        success_criteria={"inventory": {"wooden_pickaxe": 1}},
+        tags=["readiness_recovery", "m4_exact_item:wooden_pickaxe"],
+        root_plan_id="root-recovery-binding",
+    )
+    consumer.depends_on = [child.id]
+    binding = agent._bind_m4_readiness_recovery_goal(child, consumer, requirement)
+    agent.task_system.update_task(
+        child.id,
+        status=TaskStatus.BLOCKED,
+        result={"reason": "blocked fixture"},
+        reason="blocked_fixture",
+    )
+
+    agent._reconcile_m4_satisfied_tasks(
+        {
+            "observation_id": "blocked-child-observation",
+            "state_generation": "blocked-child-generation",
+            "inventory": {"wooden_pickaxe": 1},
+        },
+        child.title,
+        1,
+    )
+
+    assert child.status == TaskStatus.COMPLETED
+    assert child.result["previous_status"] == "blocked"
+    assert binding["root_status"] == "completed"
+    assert binding["completion_source"] == "machine_state_reconciliation"
+    assert agent._m4_readiness_recovery_goal_machine_completed(child.title, binding["root_id"])
+    assert agent.task_system._missing_dependencies(consumer) == []
+    print("PASS: blocked dependency reconciliation propagates through the existing root binding")
+
+
+def test_m4_post_action_observation_reconciles_failed_dependency_without_place():
+    agent = _m4_readiness_recovery_test_agent()
+    dependency, dependent = _m4_failed_dependency_fixture(agent)
+    post_action_observation = {
+        "observation_id": "post-action-craft-observation",
+        "state_generation": "post-action-generation",
+        "inventory": {"wooden_pickaxe": 1},
+        "position": {"x": 0, "y": 64, "z": 0},
+    }
+    agent.current_goal = "Advance iron progression"
+    agent.explorer = FakeExplorer()
+    agent._observe = lambda: copy.deepcopy(post_action_observation)
+    agent._obs_summary = lambda observation: observation
+    agent._write_memory_context = lambda *args, **kwargs: None
+    agent._write_memory_episode = lambda *args, **kwargs: None
+    agent._record_task_continuity = lambda *args, **kwargs: None
+    agent._update_m4_shelter_relocation = lambda *args, **kwargs: None
+    agent._record_m4_episode_block_delta = lambda *args, **kwargs: None
+    agent._record_m4_post_place_machine_observation = lambda *args, **kwargs: {}
+
+    returned = agent._apply_action_feedback(
+        {"type": "wait", "parameters": {"ticks": 1}},
+        {"success": True, "action_type": "wait"},
+        {"inventory": {}},
+        {"cycle": 7, "goal": agent.current_goal, "mode": "autonomous"},
+    )
+
+    assert returned == post_action_observation
+    assert dependency.status == TaskStatus.COMPLETED
+    assert agent.task_system._missing_dependencies(dependent) == []
+    event = next(
+        event for event in agent.session_logger.events
+        if event["type"] == "m4_failed_dependency_machine_state_reconciliation"
+    )
+    assert event["data"]["source"] == "post_action_machine_observation"
+    assert event["data"]["cycle"] == 7
+    print("PASS: every M4 post-action observation reconciles failed dependencies")
+
+
 def test_probe_21_evidence_hashes_remain_immutable():
     base = os.path.join(
         "logs",
@@ -2326,6 +2623,33 @@ def test_probe_21_evidence_hashes_remain_immutable():
         assert b"\r" not in normalized, name
         assert hashlib.sha256(normalized).hexdigest() == expected_hash, name
     print("PASS: Probe 21 evidence hashes remain immutable")
+
+
+def test_probe_22_evidence_hashes_and_original_report_remain_immutable():
+    base = os.path.join(
+        "logs",
+        "benchmarks",
+        "m4",
+        "m4_episode_20260714_195257_3aa3b171",
+    )
+    expected = {
+        "preflight.json": "5b2ab6de44e1b9fcf18981d2109640b00d2d8f1e6c69da2d5a8fc10372937407",
+        "manifest.json": "880c794a66a292b70fa8d6ff5024e242df073900aba8f85cd297a464ce3c4a8f",
+        "session.json": "ae9d31b2a8a1d1b145eefab1737138f678fa9c15d17102437d42f4c0fafabce6",
+        "result.json": "1a145d4bdf1543d3b933a237599cb509abf0d16159cde059d8eea44aab8eefa2",
+        "eligibility.json": "f87b362179feaa8017354af94c2205dc603f81812963809ad5226a19f46066f2",
+        "preparation.json": "c15c478d453da9af12301aa76ab1147071874a47a3284f9a3757c09fef063119",
+        "protocol_status.json": "d8ba7ff1319a4a12e7324747f04e4027107ea9fb2dc16ab199ade5f670fff6d6",
+        "reset.json": "78d7c05977b59d220a877d343d7ac609e1d95e2ec8168872241df29188e9e6b8",
+        "session_8e6da3cf-017.jsonl": "6957f1cf23b8318ac54088500afbde67d391bae37afa26ef89dde914c0e7a5b7",
+    }
+    for name, expected_hash in expected.items():
+        with open(os.path.join(base, name), "rb") as handle:
+            assert hashlib.sha256(handle.read()).hexdigest() == expected_hash, name
+    with open(os.path.join("workspace", "evals", "m4_probe22_report.json"), "rb") as handle:
+        report_hash = hashlib.sha256(handle.read()).hexdigest()
+    assert report_hash == "3db980c2c95efa9c505cd3da92d78883f5628006871210904e18cf8f782251f0"
+    print("PASS: Probe 22 evidence and original report hashes remain immutable")
 
 
 def test_agent_loads_world_model_feedback_only_with_approved_gate():
@@ -5205,7 +5529,13 @@ if __name__ == "__main__":
     test_m4_readiness_recovery_propagates_probe21_family_completion_idempotently()
     test_m4_readiness_recovery_exact_and_insufficient_requirements_fail_closed()
     test_m4_readiness_recovery_fingerprint_mixed_family_and_context_bounds()
+    test_m4_failed_dependency_machine_state_reconciliation_replays_probe22_once()
+    test_m4_failed_dependency_unmet_state_creates_one_bounded_recovery_child()
+    test_m4_failed_dependency_family_reconciliation_requires_explicit_contract()
+    test_m4_blocked_recovery_child_reconciles_existing_root_binding()
+    test_m4_post_action_observation_reconciles_failed_dependency_without_place()
     test_probe_21_evidence_hashes_remain_immutable()
+    test_probe_22_evidence_hashes_and_original_report_remain_immutable()
     test_agent_loads_world_model_feedback_only_with_approved_gate()
     test_agent_logs_memory_lifecycle_events_for_policy_report()
     test_agent_logs_weighted_memory_retrieval_trace()

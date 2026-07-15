@@ -1,4 +1,7 @@
 ﻿"""Task system — hierarchical task management with states, dependencies, and priorities."""
+import copy
+import hashlib
+import json
 import time
 import uuid
 import logging
@@ -8,6 +11,11 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 logger = logging.getLogger("singularity.task")
+
+FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID = (
+    "m4-failed-dependency-machine-state-reconciliation-v1"
+)
+FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_MAX_CANDIDATES = 32
 
 
 class TaskStatus(Enum):
@@ -198,6 +206,282 @@ class TaskSystem:
             }
             completed.append(task)
         return completed
+
+    def machine_state_reconciliation_requirement(
+        self,
+        task_id: str,
+        *,
+        inventory_families: Optional[dict] = None,
+    ) -> dict:
+        """Return one validated inventory postcondition for reconciliation."""
+        task = self.tasks.get(str(task_id or ""))
+        if task is None:
+            return {}
+        criteria = task.success_criteria if isinstance(task.success_criteria, dict) else {}
+        if set(criteria) != {"inventory"}:
+            return {}
+        inventory = criteria.get("inventory")
+        if not isinstance(inventory, dict) or len(inventory) != 1:
+            return {}
+        item, raw_count = next(iter(inventory.items()))
+        if not isinstance(item, str) or not item or item != item.strip().lower():
+            return {}
+        if any(not (character.isalnum() or character in {"_", ":"}) for character in item):
+            return {}
+        count = self._finite_count(raw_count)
+        if count is None or count <= 0 or not count.is_integer():
+            return {}
+        required_count = int(count)
+
+        semantics = "exact"
+        family_id = f"exact:{item}"
+        family_members = [item]
+        metadata = task.metadata if isinstance(task.metadata, dict) else {}
+        contract = metadata.get("machine_state_reconciliation", {})
+        contract = contract if isinstance(contract, dict) else {}
+        recovery_requirement = metadata.get("m4_readiness_recovery_requirement", {})
+        recovery_requirement = (
+            recovery_requirement if isinstance(recovery_requirement, dict) else {}
+        )
+        permission = {}
+        if (
+            contract.get("schema_version") == 1
+            and contract.get("inventory_semantics") == "family"
+            and contract.get("canonical_item") == item
+        ):
+            permission = contract
+        elif (
+            recovery_requirement.get("inventory_semantics") == "family"
+            and recovery_requirement.get("canonical_item") == item
+        ):
+            permission = recovery_requirement
+
+        if permission:
+            permitted_count = permission.get("required_count")
+            if permitted_count is not None:
+                normalized_count = self._finite_count(permitted_count)
+                if (
+                    normalized_count is None
+                    or not normalized_count.is_integer()
+                    or int(normalized_count) != required_count
+                ):
+                    return {}
+            requested_family_id = str(
+                permission.get("inventory_family_id")
+                or permission.get("item_family")
+                or ""
+            )
+            family = self._validated_inventory_family(
+                requested_family_id,
+                item,
+                inventory_families or {},
+            )
+            if not family:
+                return {}
+            declared_members = permission.get("family_members")
+            if declared_members is not None and (
+                not isinstance(declared_members, list)
+                or set(declared_members) != set(family["members"])
+            ):
+                return {}
+            semantics = "family"
+            family_id = family["family_id"]
+            family_members = family["members"]
+
+        fingerprint_payload = {
+            "policy_id": FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+            "task_id": task.id,
+            "canonical_item": item,
+            "required_count": required_count,
+            "inventory_semantics": semantics,
+            "item_family": family_id,
+            "family_members": family_members,
+        }
+        fingerprint = hashlib.sha256(
+            json.dumps(
+                fingerprint_payload,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        return {
+            "schema_version": 1,
+            "policy_id": FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+            "source_task_id": task.id,
+            "canonical_item": item,
+            "required_count": required_count,
+            "inventory_semantics": semantics,
+            "item_family": family_id,
+            "family_members": list(family_members),
+            "requirement_fingerprint": fingerprint,
+        }
+
+    def reconcile_failed_dependencies(
+        self,
+        world_state: Optional[dict] = None,
+        *,
+        inventory_families: Optional[dict] = None,
+        observation_id: str = "",
+        state_generation: str = "",
+        reconciled_at: Optional[float] = None,
+        max_candidates: int = FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_MAX_CANDIDATES,
+    ) -> list[dict]:
+        """Complete satisfied failed/blocked dependencies on the active frontier."""
+        world_state = world_state if isinstance(world_state, dict) else {}
+        try:
+            limit = int(max_candidates)
+        except (TypeError, ValueError):
+            limit = FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_MAX_CANDIDATES
+        limit = max(1, min(limit, FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_MAX_CANDIDATES))
+        frontier = sorted(
+            (
+                task for task in self.tasks.values()
+                if task.status in (TaskStatus.ACCEPTED, TaskStatus.ACTIVE)
+            ),
+            key=lambda task: (task.priority, task.created_at, task.id),
+        )[:limit * 4]
+        dependency_consumers: dict[str, list[str]] = {}
+        for dependent in frontier:
+            for dependency_id in list(dependent.depends_on or [])[:limit]:
+                dependency = self.tasks.get(str(dependency_id or ""))
+                if dependency is None or dependency.status not in {
+                    TaskStatus.FAILED,
+                    TaskStatus.BLOCKED,
+                }:
+                    continue
+                if dependency.id not in dependency_consumers and len(dependency_consumers) >= limit:
+                    continue
+                consumers = dependency_consumers.setdefault(dependency.id, [])
+                if dependent.id not in consumers:
+                    consumers.append(dependent.id)
+
+        resolved_observation_id, resolved_generation = self._machine_state_identity(
+            world_state,
+            observation_id=observation_id,
+            state_generation=state_generation,
+        )
+        try:
+            timestamp = time.time() if reconciled_at is None else float(reconciled_at)
+        except (TypeError, ValueError):
+            timestamp = time.time()
+        if not math.isfinite(timestamp):
+            timestamp = time.time()
+        reports = []
+        candidates = [
+            self.tasks[task_id]
+            for task_id in dependency_consumers
+            if task_id in self.tasks
+        ]
+        for task in sorted(candidates, key=lambda item: (item.created_at, item.id)):
+            requirement = self.machine_state_reconciliation_requirement(
+                task.id,
+                inventory_families=inventory_families,
+            )
+            if not requirement:
+                continue
+            proof = self._machine_state_inventory_proof(requirement, world_state)
+            if proof.get("satisfied") is not True:
+                continue
+            fingerprint = str(requirement["requirement_fingerprint"])
+            event_id = "m4fdmsr-" + hashlib.sha256(
+                f"{task.id}:{fingerprint}:{resolved_generation}".encode("utf-8")
+            ).hexdigest()[:24]
+            metadata = task.metadata if isinstance(task.metadata, dict) else {}
+            prior_audits = metadata.get("machine_state_reconciliations", [])
+            prior_audits = prior_audits if isinstance(prior_audits, list) else []
+            if any(
+                isinstance(audit, dict) and audit.get("event_id") == event_id
+                for audit in prior_audits
+            ):
+                continue
+
+            previous_status = task.status.value
+            original_result = copy.deepcopy(task.result)
+            original_attempts = task.attempts
+            original_blockers = copy.deepcopy(task.blockers)
+            original_failure_event = next(
+                (
+                    copy.deepcopy(event)
+                    for event in reversed(task.status_history)
+                    if isinstance(event, dict)
+                    and event.get("to_status") in {
+                        TaskStatus.FAILED.value,
+                        TaskStatus.BLOCKED.value,
+                    }
+                ),
+                {},
+            )
+            original_failure_reason = self._terminal_task_reason(
+                task,
+                original_result,
+                original_failure_event,
+            )
+            audit = {
+                "schema_version": 1,
+                "policy_id": FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+                "event_id": event_id,
+                "task_id": task.id,
+                "previous_status": previous_status,
+                "requirement_fingerprint": fingerprint,
+                "observation_id": resolved_observation_id,
+                "state_generation": resolved_generation,
+                "reconciled_at": timestamp,
+                "proof": copy.deepcopy(proof),
+            }
+            task.metadata = {
+                **metadata,
+                "machine_state_reconciliations": [*copy.deepcopy(prior_audits), audit],
+            }
+            task.observations.append({
+                "type": "m4_failed_dependency_machine_state_reconciliation",
+                "event_id": event_id,
+                "requirement_fingerprint": fingerprint,
+                "observation_id": resolved_observation_id,
+                "state_generation": resolved_generation,
+                "proof": copy.deepcopy(proof),
+            })
+            self._set_status(
+                task,
+                TaskStatus.COMPLETED,
+                "machine_state_reconciliation",
+            )
+            task.result = {
+                "completed_by": "machine_state_reconciliation",
+                "completion_source": "machine_state_reconciliation",
+                "previous_status": previous_status,
+                "original_failure_reason": original_failure_reason,
+                "original_attempts": original_attempts,
+                "original_blockers": original_blockers,
+                "original_failure_result": original_result,
+                "original_failure_event": original_failure_event,
+                "requirement": copy.deepcopy(requirement),
+                "requirement_fingerprint": fingerprint,
+                "proof": copy.deepcopy(proof),
+                "observation_id": resolved_observation_id,
+                "state_generation": resolved_generation,
+                "reconciled_at": timestamp,
+                "reconciliation_event_id": event_id,
+            }
+            reports.append({
+                "type": "m4_failed_dependency_machine_state_reconciliation",
+                "schema_version": 1,
+                "policy_id": FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+                "event_id": event_id,
+                "task_id": task.id,
+                "task_title": task.title,
+                "dependent_task_ids": sorted(dependency_consumers.get(task.id, [])),
+                "previous_status": previous_status,
+                "completion_source": "machine_state_reconciliation",
+                "original_failure_reason": original_failure_reason,
+                "original_attempts": original_attempts,
+                "requirement": copy.deepcopy(requirement),
+                "requirement_fingerprint": fingerprint,
+                "proof": copy.deepcopy(proof),
+                "observation_id": resolved_observation_id,
+                "state_generation": resolved_generation,
+                "reconciled_at": timestamp,
+            })
+        return reports
 
     def get_task_tree(self) -> dict:
         def build_tree(task_id):
@@ -552,6 +836,144 @@ class TaskSystem:
             for key, value in criteria.items()
             if key not in reserved and isinstance(value, (int, float))
         }
+
+    def _validated_inventory_family(
+        self,
+        family_id: str,
+        canonical_item: str,
+        inventory_families: dict,
+    ) -> dict:
+        if not family_id or not isinstance(inventory_families, dict):
+            return {}
+        family = inventory_families.get(family_id)
+        if not isinstance(family, dict) or family.get("canonical_item") != canonical_item:
+            return {}
+        members = family.get("members")
+        if not isinstance(members, (list, tuple)) or not members:
+            return {}
+        normalized_members = []
+        for member in members:
+            if (
+                not isinstance(member, str)
+                or not member
+                or member != member.strip().lower()
+                or any(
+                    not (character.isalnum() or character in {"_", ":"})
+                    for character in member
+                )
+            ):
+                return {}
+            if member not in normalized_members:
+                normalized_members.append(member)
+        if canonical_item not in normalized_members:
+            return {}
+        return {
+            "family_id": family_id,
+            "canonical_item": canonical_item,
+            "members": normalized_members,
+        }
+
+    def _machine_state_inventory_proof(self, requirement: dict, world_state: dict) -> dict:
+        inventory = world_state.get("inventory", {})
+        inventory = inventory if isinstance(inventory, dict) else {}
+        item = str(requirement.get("canonical_item") or "")
+        required_count = int(requirement.get("required_count") or 0)
+        semantics = str(requirement.get("inventory_semantics") or "exact")
+        exact_count = self._observed_inventory_count(inventory.get(item, 0))
+        family_member_counts = {}
+        if semantics == "family":
+            for member in requirement.get("family_members", []):
+                count = self._observed_inventory_count(inventory.get(member, 0))
+                if count:
+                    family_member_counts[str(member)] = count
+        family_total = sum(family_member_counts.values()) if semantics == "family" else exact_count
+        observed_count = family_total if semantics == "family" else exact_count
+        return {
+            "canonical_item": item,
+            "inventory_semantics": semantics,
+            "item_family": str(requirement.get("item_family") or f"exact:{item}"),
+            "required_count": required_count,
+            "exact_item_counts": {item: exact_count} if item else {},
+            "family_member_counts": family_member_counts,
+            "family_total": family_total,
+            "observed_count": observed_count,
+            "satisfied": bool(required_count > 0 and observed_count >= required_count),
+            "source": "world_state.inventory",
+        }
+
+    def _machine_state_identity(
+        self,
+        world_state: dict,
+        *,
+        observation_id: str = "",
+        state_generation: str = "",
+    ) -> tuple[str, str]:
+        inventory = world_state.get("inventory", {})
+        inventory = inventory if isinstance(inventory, dict) else {}
+        canonical_inventory = {}
+        for item, value in sorted(inventory.items(), key=lambda pair: str(pair[0])):
+            count = self._finite_count(value)
+            if count is not None and count >= 0 and count.is_integer():
+                canonical_inventory[str(item)] = int(count)
+            else:
+                canonical_inventory[str(item)] = repr(value)[:80]
+        state_hash = hashlib.sha256(
+            json.dumps(
+                {"inventory": canonical_inventory},
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        resolved_observation_id = str(observation_id or "")
+        if not resolved_observation_id:
+            for key in ("observation_id", "event_id", "event_sequence", "observed_at_ms"):
+                value = world_state.get(key)
+                if value not in (None, ""):
+                    resolved_observation_id = str(value)
+                    break
+        resolved_generation = str(state_generation or "")
+        if not resolved_generation:
+            for key in ("state_generation", "world_state_generation", "event_sequence"):
+                value = world_state.get(key)
+                if value not in (None, ""):
+                    resolved_generation = str(value)
+                    break
+        return (
+            resolved_observation_id or f"inventory-state:{state_hash[:16]}",
+            resolved_generation or f"sha256:{state_hash}",
+        )
+
+    def _terminal_task_reason(
+        self,
+        task: Task,
+        original_result,
+        original_failure_event: dict,
+    ) -> str:
+        if isinstance(original_result, dict):
+            for key in ("failed_by", "reason", "error"):
+                value = original_result.get(key)
+                if value:
+                    return str(value)
+            nested_result = original_result.get("result")
+            if isinstance(nested_result, dict):
+                for key in ("reason", "error"):
+                    value = nested_result.get(key)
+                    if value:
+                        return str(value)
+        if isinstance(original_failure_event, dict) and original_failure_event.get("reason"):
+            return str(original_failure_event["reason"])
+        if task.blockers:
+            return str(task.blockers[-1])
+        for observation in reversed(task.observations):
+            if isinstance(observation, str) and observation.startswith("FAILURE:"):
+                return observation.partition(":")[2].strip()
+        return "terminal_task_state"
+
+    def _observed_inventory_count(self, value) -> int:
+        count = self._finite_count(value)
+        if count is None or count < 0 or not count.is_integer():
+            return 0
+        return int(count)
 
     def _position_near(self, target: dict, world_state: dict, action: dict, result: dict) -> bool:
         if not isinstance(target, dict):

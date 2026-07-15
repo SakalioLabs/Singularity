@@ -10,7 +10,7 @@
 - M4 canonical status: `failing`
 - M1, M2, and M3 regression baseline: `repeat_verified`
 
-BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 22 remain ineligible at 0/3. Probe 22 ran once from frozen commit `fa7bb5c`; the inventory-family readiness-recovery branch was not exercised, so its child/root completion and stale-sibling behavior remain unmeasured. A failed named wooden-pickaxe dependency instead remained authoritative after the item was machine-created and equivalent tasks were reconciled, blocking coal progression for the final 21 goals. Probe 22 consumed its sole authorization, no Probe 23 or retry ran, and next authorization is false. BM-013/BM-014 remain sequentially locked.
+BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 22 remain ineligible at 0/3. Probe 22 ran once from frozen commit `fa7bb5c`; the inventory-family readiness-recovery branch was not exercised, so its child/root completion and stale-sibling behavior remain unmeasured. A failed named wooden-pickaxe dependency instead remained authoritative after the item was machine-created and equivalent tasks were reconciled, blocking coal progression for the final 21 goals. The bounded `m4-failed-dependency-machine-state-reconciliation-v1` repair now passes offline without changing capability evidence. Probe 22 consumed its sole authorization, no Probe 23 or retry ran, and next authorization is false. BM-013/BM-014 remain sequentially locked.
 
 ## Scope
 
@@ -29,7 +29,7 @@ The M4 baseline keeps learned executable skills off. Built-in primitive actions 
 | G4 | Hostile, health, hunger, dusk, and night interrupt continuity | passed_live_probe_18_safe_state |
 | G5 | First eligible survival-to-dawn episode | passed_probes_15_17_18 |
 | G6 | Three independent fresh eligible episodes | passed_probe_18_3_of_3 |
-| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | probe_22_ineligible_next_authorization_false |
+| BM012-G0 | Task-bound reset, autonomous goal chain, machine resource provenance, deadline, independent eligibility | failed_dependency_reconciliation_passed_offline_probe_23_unauthorized |
 
 G0 passes both sides of live validation. Probes 15, 17, and 18 exercised zero-transition acceptance and each reached an independently eligible terminal state. Probe 16 exercised rejection: six Mineflayer death/respawn transitions matched six Paper death messages, no terminal event was emitted after later health-20 respawns and a verified shelter, missing lifecycle evidence after bridge loss failed closed, and the independent gate also rejected a 0.031-second duration overrun plus the late Planner return without allowing a post-deadline action.
 
@@ -168,6 +168,24 @@ The new earliest failure layer is `m4_readiness_recovery_inventory_family_root_c
 The bounded offline fix passed as `m4-readiness-recovery-inventory-family-root-completion-v1` and Probe 22 consumed its one live authorization from frozen commit `fa7bb5c`. The episode emitted no completion-propagation, stale-sibling-sweep, or bounded planner-context event, and no inventory-family recovery child/root binding was created. Therefore root latency, idempotency, and stale-sibling before/after counts are not measurable; the old oak/root disconnect did not recur, but the intervention is neither live-validated nor live-rejected.
 
 The new earliest layer is `m4_readiness_recovery_failed_dependency_machine_state_disconnect`. Task `ac997fe4` (`Craft wooden pickaxe`) was created at event 230, activated at 287, and failed on task deadline at 548. Dependent task `4cbefa6a` (`Mine coal ore`) remained accepted. Event 855 later machine-crafted `wooden_pickaxe:1`, and events 863-872 plus reconciliation event 873 completed ten equivalent accepted pickaxe tasks, but the original dependency remained failed. Event 1326 began 21 repeated readiness selections of the already-satisfied dependency with empty child, root, fingerprint, and inventory-proof fields. The run ended inside the deadline after 326.329 seconds with no stone-pickaxe or iron progression and 68/74 checks passing. The required enum is recorded as `infrastructure_ineligible` because it lacks an intervention-not-exercised value; preflight infrastructure passed. No further live episode is authorized.
+
+The bounded offline repair now reconciles only failed or blocked direct dependencies on the active frontier whose structured inventory postconditions are satisfied by a fresh machine observation. Exact item matching is the default; family aggregation requires an explicit trusted internal contract. Completion records the previous terminal status, original failure result and transition, attempts, proof, observation identity, requirement fingerprint, state generation, timestamp, and deterministic event ID. The same task/fingerprint/state generation is idempotent, and the existing root binding handles propagation.
+
+If the state is not satisfied, the terminal task itself is never selected. At most one active recovery child is created per requirement fingerprint with a new ID, parent/root provenance, and a three-attempt budget. The exact Probe 22 wooden-pickaxe boundary, wrong-item rejection, explicitly authorized log-family aggregation, repeated observations, existing root propagation, and arbitrary post-action observation boundary pass offline. This is not live capability evidence: BM-012 remains 0/3, M4 remains `failing`, and Probe 23 authorization remains false.
+
+The original Probe 22 `infrastructure_ineligible` decision is retained byte-for-byte. `workspace/evals/m4_probe22_derived_audit.json` marks it as a decision-taxonomy limitation and adds the prospective value `intervention_not_exercised_new_blocker`; the annotation explicitly grants no capability upgrade.
+
+## BM-012 Failed-Dependency Machine-State Reconciliation Gate
+
+- Policy: `m4-failed-dependency-machine-state-reconciliation-v1`
+- Exact reproduction: failed task `ac997fe4` with `inventory.wooden_pickaxe >= 1` completes within the next scheduler selection boundary when the observation contains `wooden_pickaxe:1`
+- History retention: failure reason, failure transition, result, blockers, observations, and attempts remain auditable after reconciliation
+- Scheduler invariant: failed/blocked terminal tasks are never returned directly; an unmet requirement creates at most one bounded provenance-linked recovery child per fingerprint
+- Exact/family scope: exact requirements reject substitutes; family totals are accepted only through an explicit schema-v1 internal contract and trusted family catalog
+- Runtime boundary: full reconciliation runs after every M4 observation used for scheduling and after every post-action machine observation, independent of action type
+- Evidence discipline: Probe 21/22 raw artifacts remain immutable; the derived taxonomy audit does not alter the original Probe 22 decision or capability state
+- Validation: six exact Memory/TaskSystem cases plus one derived-audit schema case, 106 Memory/TaskSystem definitions, 47 M4 deadline definitions, all 751 definitions across 37 non-live Python files, and six Node suites with 52 internal PASS cases; Python compilation, Node syntax, 1065 JSON files, capability consistency, credential scan, and repository checks pass
+- Authorization: no live episode ran for this gate; Probe 23 remains unauthorized
 
 ## BM-012 Offline Preflight
 

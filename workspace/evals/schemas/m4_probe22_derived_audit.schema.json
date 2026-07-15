@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "m4_probe22_derived_audit.schema.json",
+  "title": "M4 Probe 22 Derived Audit Annotation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "type",
+    "schema_version",
+    "generated_at",
+    "policy_id",
+    "source_artifact",
+    "probe_number",
+    "task_id",
+    "original_decision",
+    "audit_annotation",
+    "taxonomy_patch",
+    "capability_effect"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "schemas/m4_probe22_derived_audit.schema.json"
+    },
+    "type": {
+      "const": "m4_probe22_derived_audit_annotation"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "policy_id": {
+      "const": "m4-probe22-decision-taxonomy-audit-v1"
+    },
+    "source_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "immutable", "rewritten"],
+      "properties": {
+        "path": {
+          "const": "workspace/evals/m4_probe22_report.json"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "immutable": {
+          "const": true
+        },
+        "rewritten": {
+          "const": false
+        }
+      }
+    },
+    "probe_number": {
+      "const": 22
+    },
+    "task_id": {
+      "const": "BM-012"
+    },
+    "original_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "reason",
+        "required_four_value_enum",
+        "infrastructure_preflight_passed"
+      ],
+      "properties": {
+        "value": {
+          "const": "infrastructure_ineligible"
+        },
+        "reason": {
+          "const": "intervention_branch_not_exercised"
+        },
+        "required_four_value_enum": {
+          "const": true
+        },
+        "infrastructure_preflight_passed": {
+          "const": true
+        }
+      }
+    },
+    "audit_annotation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "finding",
+        "prospective_decision",
+        "applies_prospectively",
+        "source_rewritten"
+      ],
+      "properties": {
+        "classification": {
+          "const": "taxonomy_limitation"
+        },
+        "finding": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prospective_decision": {
+          "enum": ["intervention_not_exercised_new_blocker"]
+        },
+        "applies_prospectively": {
+          "const": true
+        },
+        "source_rewritten": {
+          "const": false
+        }
+      }
+    },
+    "taxonomy_patch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "previous_enum_arity",
+        "added_value",
+        "definition",
+        "requires_infrastructure_preflight_passed",
+        "counts_as_capability_evidence"
+      ],
+      "properties": {
+        "previous_enum_arity": {
+          "const": 4
+        },
+        "added_value": {
+          "enum": ["intervention_not_exercised_new_blocker"]
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requires_infrastructure_preflight_passed": {
+          "const": true
+        },
+        "counts_as_capability_evidence": {
+          "const": false
+        }
+      }
+    },
+    "capability_effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "upgrades_capability",
+        "bm012_eligible_success_delta",
+        "bm012_eligible_success_count_after",
+        "m4_status_after",
+        "probe_23_authorized"
+      ],
+      "properties": {
+        "upgrades_capability": {
+          "const": false
+        },
+        "bm012_eligible_success_delta": {
+          "const": 0
+        },
+        "bm012_eligible_success_count_after": {
+          "const": 0
+        },
+        "m4_status_after": {
+          "const": "failing"
+        },
+        "probe_23_authorized": {
+          "const": false
+        }
+      }
+    }
+  }
+}

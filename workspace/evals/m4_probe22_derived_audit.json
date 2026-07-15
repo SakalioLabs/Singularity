@@ -1,0 +1,42 @@
+{
+  "$schema": "schemas/m4_probe22_derived_audit.schema.json",
+  "type": "m4_probe22_derived_audit_annotation",
+  "schema_version": 1,
+  "generated_at": "2026-07-15T00:56:54Z",
+  "policy_id": "m4-probe22-decision-taxonomy-audit-v1",
+  "source_artifact": {
+    "path": "workspace/evals/m4_probe22_report.json",
+    "sha256": "3db980c2c95efa9c505cd3da92d78883f5628006871210904e18cf8f782251f0",
+    "immutable": true,
+    "rewritten": false
+  },
+  "probe_number": 22,
+  "task_id": "BM-012",
+  "original_decision": {
+    "value": "infrastructure_ineligible",
+    "reason": "intervention_branch_not_exercised",
+    "required_four_value_enum": true,
+    "infrastructure_preflight_passed": true
+  },
+  "audit_annotation": {
+    "classification": "taxonomy_limitation",
+    "finding": "The required four-value decision taxonomy had no value for a passed infrastructure preflight where the intended intervention was not exercised and a different blocker appeared.",
+    "prospective_decision": "intervention_not_exercised_new_blocker",
+    "applies_prospectively": true,
+    "source_rewritten": false
+  },
+  "taxonomy_patch": {
+    "previous_enum_arity": 4,
+    "added_value": "intervention_not_exercised_new_blocker",
+    "definition": "Infrastructure preflight passed, the intended intervention branch was not exercised, and a distinct earlier unrecovered blocker was observed.",
+    "requires_infrastructure_preflight_passed": true,
+    "counts_as_capability_evidence": false
+  },
+  "capability_effect": {
+    "upgrades_capability": false,
+    "bm012_eligible_success_delta": 0,
+    "bm012_eligible_success_count_after": 0,
+    "m4_status_after": "failing",
+    "probe_23_authorized": false
+  }
+}

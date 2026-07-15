@@ -35,7 +35,11 @@ from singularity.core.memory import (
 )
 from singularity.core.memory_policy import MemoryLifecyclePolicy, MemoryPolicyDecision
 from singularity.core.skill_library import SkillLibrary
-from singularity.core.task_system import TaskSystem, TaskStatus
+from singularity.core.task_system import (
+    FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+    TaskSystem,
+    TaskStatus,
+)
 from singularity.core.goal_generator import GoalGenerator
 from singularity.core.coach import CoachPolicy
 from singularity.core.curriculum import CurriculumManager
@@ -94,6 +98,13 @@ M4_READINESS_RECOVERY_COMPLETION_POLICY_ID = (
 M4_READINESS_RECOVERY_LOG_FAMILY_ID = "minecraft:logs"
 M4_READINESS_RECOVERY_CONTEXT_MAX_REQUIREMENTS = 4
 M4_READINESS_RECOVERY_CONTEXT_MAX_CHARS = 640
+M4_FAILED_DEPENDENCY_RECOVERY_ATTEMPT_BUDGET = 3
+M4_MACHINE_STATE_INVENTORY_FAMILIES = {
+    M4_READINESS_RECOVERY_LOG_FAMILY_ID: {
+        "canonical_item": "oak_log",
+        "members": tuple(GoalVerifier.LOG_ITEMS),
+    },
+}
 M4_TYPED_SCHEMA_RECOVERY_POLICY_ID = "m4-typed-schema-recovery-v1"
 M4_TYPED_SCHEMA_RECOVERY_LIMIT = 1
 M4_TYPED_SCHEMA_ISSUE_PATTERN = re.compile(
@@ -4898,6 +4909,17 @@ class Agent:
         task_system = getattr(self, "task_system", None)
         if not task_system or not hasattr(task_system, "complete_state_satisfied_tasks"):
             return []
+        failed_dependency_reports = []
+        if hasattr(task_system, "reconcile_failed_dependencies"):
+            failed_dependency_reports = task_system.reconcile_failed_dependencies(
+                observation,
+                inventory_families=M4_MACHINE_STATE_INVENTORY_FAMILIES,
+            )
+        failed_dependency_completed = [
+            task_system.tasks[report["task_id"]]
+            for report in failed_dependency_reports
+            if report.get("task_id") in task_system.tasks
+        ]
         reconciliation_state, inventory_family_grounding = self._m4_task_inventory_family_state(
             observation
         )
@@ -4917,7 +4939,11 @@ class Agent:
         )
         completed_by_id = {
             task.id: task
-            for task in [*exact_completed, *family_completed]
+            for task in [
+                *failed_dependency_completed,
+                *exact_completed,
+                *family_completed,
+            ]
         }
         completed = list(completed_by_id.values())
         if completed:
@@ -4946,6 +4972,7 @@ class Agent:
                     if self._m4_task_uses_exact_inventory_semantics(task, "oak_log")
                 )[:20],
                 "completed_task_count": len(completed),
+                "failed_dependency_reconciliation_count": len(failed_dependency_reports),
                 "completed_tasks": [
                     {
                         "task_id": task.id,
@@ -4955,6 +4982,17 @@ class Agent:
                     for task in completed[:20]
                 ],
             })
+        if failed_dependency_reports and hasattr(getattr(self, "session_logger", None), "log"):
+            for report in failed_dependency_reports:
+                self.session_logger.log(
+                    "m4_failed_dependency_machine_state_reconciliation",
+                    {
+                        **copy.deepcopy(report),
+                        "goal": goal,
+                        "cycle": cycle,
+                        "source": str(source or "machine_observation"),
+                    },
+                )
         self._propagate_m4_readiness_recovery_completion(
             observation,
             completed,
@@ -5214,7 +5252,11 @@ class Agent:
         return bool(
             binding
             and binding.get("root_status") == "completed"
-            and binding.get("completion_source") in {"machine_state", "action_result"}
+            and binding.get("completion_source") in {
+                "machine_state",
+                "machine_state_reconciliation",
+                "action_result",
+            }
             and isinstance(binding.get("inventory_proof"), dict)
             and binding["inventory_proof"].get("satisfied") is True
         )
@@ -5371,7 +5413,11 @@ class Agent:
             completion_source = str(child_result.get("completed_by") or "")
             if child.status != TaskStatus.COMPLETED:
                 continue
-            if completion_source not in {"machine_state", "action_result"}:
+            if completion_source not in {
+                "machine_state",
+                "machine_state_reconciliation",
+                "action_result",
+            }:
                 continue
             requirement = binding.get("requirement", {})
             proof = self._m4_requirement_inventory_proof(requirement, observation)
@@ -7442,6 +7488,24 @@ class Agent:
             dep = next((item for item in dependencies if isinstance(item, dict)), {})
             dep_title = str(dep.get("title") or dep.get("id") or "").strip()
             if dep_title:
+                task_system = getattr(self, "task_system", None)
+                dependency_task = (
+                    task_system.tasks.get(str(dep.get("id") or ""))
+                    if task_system is not None
+                    else None
+                )
+                dependency_status = str(dep.get("status") or "")
+                if dependency_task is not None:
+                    dependency_status = dependency_task.status.value
+                if dependency_status in {
+                    TaskStatus.FAILED.value,
+                    TaskStatus.BLOCKED.value,
+                }:
+                    return self._failed_dependency_recovery_goal(
+                        dependency_task,
+                        task_report,
+                        observation,
+                    )
                 return {
                     "goal": dep_title,
                     "reason": "missing_dependency",
@@ -7469,6 +7533,73 @@ class Agent:
         if flags:
             return {}
         return {}
+
+    def _failed_dependency_recovery_goal(
+        self,
+        dependency_task,
+        blocked_task_report: dict,
+        observation: dict,
+    ) -> dict:
+        if (
+            str(getattr(getattr(self, "config", None), "planner_protocol", "") or "")
+            != "m4-fixed-v1"
+        ):
+            return {}
+        task_system = getattr(self, "task_system", None)
+        if (
+            task_system is None
+            or dependency_task is None
+            or not hasattr(task_system, "machine_state_reconciliation_requirement")
+        ):
+            return {}
+        requirement = task_system.machine_state_reconciliation_requirement(
+            dependency_task.id,
+            inventory_families=M4_MACHINE_STATE_INVENTORY_FAMILIES,
+        )
+        if not requirement:
+            return {}
+        proof = self._m4_requirement_inventory_proof(requirement, observation or {})
+        if proof.get("satisfied") is True:
+            return {}
+        required_count = int(requirement["required_count"])
+        observed_count = self._m4_inventory_count(proof.get("observed_count"))
+        missing_count = max(1, required_count - observed_count)
+        item = str(requirement["canonical_item"])
+        title = str(dependency_task.title or dependency_task.id)
+        goal = f"Recover {title}: acquire {missing_count} {item}"
+        kb = self._knowledge_base()
+        if kb is not None:
+            try:
+                if kb.get_recipe(item):
+                    goal = f"Recover {title}: craft {item}"
+            except Exception as e:
+                logger.warning(f"Knowledge-backed failed dependency recovery failed for {item}: {e}")
+        blocked_task = task_system.tasks.get(str(blocked_task_report.get("id") or ""))
+        root_plan_id = str(
+            dependency_task.root_plan_id
+            or getattr(blocked_task, "root_plan_id", "")
+            or ""
+        )
+        planner_call_id = str(
+            dependency_task.planner_call_id
+            or getattr(blocked_task, "planner_call_id", "")
+            or ""
+        )
+        return {
+            "goal": goal,
+            "reason": "failed_dependency_machine_state_unmet",
+            "missing": {"inventory": {item: missing_count}},
+            "success_criteria": copy.deepcopy(dependency_task.success_criteria),
+            "opportunity_triggers": list(requirement.get("family_members", [item]))[:8],
+            "m4_requirement": copy.deepcopy(requirement),
+            "failed_dependency_id": str(dependency_task.id),
+            "failed_dependency_title": title,
+            "failed_dependency_status": dependency_task.status.value,
+            "parent_task_id": str(getattr(blocked_task, "id", "") or ""),
+            "root_plan_id": root_plan_id,
+            "planner_call_id": planner_call_id,
+            "attempt_budget": M4_FAILED_DEPENDENCY_RECOVERY_ATTEMPT_BUDGET,
+        }
 
     def _inventory_recovery_goal(self, item: str, amount, task_report: dict, observation: dict) -> dict:
         amount_int = max(1, self._small_int(amount or 1))
@@ -7541,21 +7672,52 @@ class Agent:
                     and task.status in {TaskStatus.ACCEPTED, TaskStatus.ACTIVE}
                 ):
                     return task, False
-        existing = self._find_existing_plan_task(goal)
-        if existing:
-            return existing, False
+        if not fingerprint:
+            existing = self._find_existing_plan_task(goal)
+            if existing:
+                return existing, False
         priority = max(0, self._safe_plan_priority(blocked_task.get("priority", 3)) - 1)
         tags = ["readiness_recovery", str(recovery.get("reason") or "precondition")]
         if requirement.get("inventory_semantics") == "family":
             tags.append("m4_inventory_family:logs")
         elif requirement.get("canonical_item"):
             tags.append(f"m4_exact_item:{requirement['canonical_item']}")
+        failed_dependency_id = str(recovery.get("failed_dependency_id") or "")
+        attempt_budget = 0
+        if failed_dependency_id:
+            try:
+                attempt_budget = int(recovery.get("attempt_budget") or 0)
+            except (TypeError, ValueError):
+                attempt_budget = 0
+            attempt_budget = max(1, min(attempt_budget, M4_FAILED_DEPENDENCY_RECOVERY_ATTEMPT_BUDGET))
+        parent_task_id = str(recovery.get("parent_task_id") or "")
+        if parent_task_id not in self.task_system.tasks:
+            parent_task_id = ""
+        task_metadata = {
+            "m4_readiness_recovery_requirement": copy.deepcopy(requirement),
+            "blocked_task_id": str(blocked_task.get("id") or ""),
+        } if requirement else {}
+        if failed_dependency_id:
+            task_metadata["m4_failed_dependency_recovery"] = {
+                "schema_version": 1,
+                "policy_id": FAILED_DEPENDENCY_MACHINE_STATE_RECONCILIATION_POLICY_ID,
+                "failed_dependency_id": failed_dependency_id,
+                "failed_dependency_title": str(recovery.get("failed_dependency_title") or ""),
+                "failed_dependency_status": str(recovery.get("failed_dependency_status") or ""),
+                "parent_task_id": parent_task_id,
+                "root_plan_id": str(recovery.get("root_plan_id") or ""),
+                "planner_call_id": str(recovery.get("planner_call_id") or ""),
+                "requirement_fingerprint": fingerprint,
+                "attempt_budget": attempt_budget,
+            }
         task = self.task_system.create_task(
             title=goal,
             task_type="recovery",
+            parent_id=parent_task_id or None,
             status=TaskStatus.ACCEPTED,
             priority=priority,
             success_criteria=recovery.get("success_criteria", {}) if isinstance(recovery.get("success_criteria", {}), dict) else {},
+            failure_criteria={"max_failures": attempt_budget} if attempt_budget else {},
             tags=tags,
             opportunity_triggers=(
                 list(recovery.get("opportunity_triggers", []) or [])[:8]
@@ -7566,10 +7728,9 @@ class Agent:
                 f"Generated from readiness blockers for {blocked_task.get('title', 'blocked task')}: "
                 f"{json.dumps(recovery.get('missing', {}), default=str)[:180]}"
             ),
-            metadata={
-                "m4_readiness_recovery_requirement": copy.deepcopy(requirement),
-                "blocked_task_id": str(blocked_task.get("id") or ""),
-            } if requirement else {},
+            root_plan_id=str(recovery.get("root_plan_id") or ""),
+            planner_call_id=str(recovery.get("planner_call_id") or ""),
+            metadata=task_metadata,
         )
         return task, True
 
@@ -7758,15 +7919,15 @@ class Agent:
         """Let ready tasks and open-ended curriculum override generated goals."""
         self._m4_ready_task_goal_binding = {}
         self._m4_active_readiness_recovery_root_id = ""
-        if self._should_preserve_autonomous_fallback(observation, fallback_goal):
-            self._set_autonomous_goal_decision(fallback_goal, getattr(self, "_last_autonomous_goal_decision", {}))
-            return fallback_goal
         self._reconcile_m4_satisfied_tasks(
             observation,
             fallback_goal,
             0,
             source="pre_goal_machine_observation",
         )
+        if self._should_preserve_autonomous_fallback(observation, fallback_goal):
+            self._set_autonomous_goal_decision(fallback_goal, getattr(self, "_last_autonomous_goal_decision", {}))
+            return fallback_goal
         scheduling_state = self._state_with_causal_context(observation, fallback_goal)
         readiness_report = (
             self.task_system.task_readiness_report(scheduling_state)
@@ -8825,22 +8986,12 @@ class Agent:
                 cycle=(context or {}).get("cycle", 0),
                 source="action_result",
             )
-        post_place_grounding = (
-            observation.get("m4_post_place_machine_observation", {})
-            if isinstance(observation, dict)
-            else {}
-        )
-        if (
-            isinstance(post_place_grounding, dict)
-            and post_place_grounding.get("passed") is True
-            and post_place_grounding.get("policy_id")
-            == M4_POST_PLACE_MACHINE_OBSERVATION_POLICY_ID
-        ):
+        if protocol == "m4-fixed-v1":
             self._reconcile_m4_satisfied_tasks(
                 observation,
                 str((context or {}).get("goal") or getattr(self, "current_goal", "") or ""),
                 (context or {}).get("cycle", 0),
-                source="post_place_machine_observation",
+                source="post_action_machine_observation",
             )
         if task:
             self._write_memory_episode("task_state_update", {
