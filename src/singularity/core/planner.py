@@ -110,9 +110,11 @@ class Planner:
         }
 
     def plan_from_goal(self, goal: str, world_state: dict, memory_context: str = "") -> dict:
-        if self.strict_m2 and self._call_index == 0:
+        if (self.strict_m2 or self.strict_stone_pickaxe) and self._call_index == 0:
             plan_kind = "root"
-        elif (self.strict_m2 or self.strict_m4) and self._pending_replan_reason:
+        elif (
+            self.strict_m2 or self.strict_m4 or self.strict_stone_pickaxe
+        ) and self._pending_replan_reason:
             plan_kind = "replan"
             memory_context = "\n".join(
                 part for part in (
@@ -509,6 +511,8 @@ class Planner:
     def _planner_system_prompt(self) -> str:
         if self.strict_m2:
             return self._m2_system_prompt()
+        if self.strict_stone_pickaxe:
+            return self._stone_pickaxe_system_prompt()
         prompt = f"""You are a Minecraft survival planner. Given a goal and current world state, decompose it into subtasks and immediate actions.
 
 Available actions: move_to, look_at, dig, place, craft, build_shelter_cell, attack, equip, use_item, chat, wait.
@@ -572,6 +576,55 @@ M4 FIXED OUTPUT CONTRACT:
 - Example: {"type":"build_shelter_cell","parameters":{"origin":{"x":93,"y":136,"z":-36},"material":"oak_planks"}}.
 - A verified-shelter maintenance goal is continuous: before its named nightfall or dawn boundary, return a wait action and preserve the same root instead of reporting complete or expanding another goal."""
         return prompt
+
+    def _stone_pickaxe_system_prompt(self) -> str:
+        subtask_example = (
+            "[{\"id\":\"observe_state\",\"title\":\"Observe exact state\","
+            "\"type\":\"observe\",\"priority\":1,\"preconditions\":{},"
+            "\"success_criteria\":{\"observed\":true},\"depends_on\":[]},"
+            "{\"id\":\"advance_goal\",\"title\":\"Advance exact goal\","
+            "\"type\":\"gather\",\"priority\":1,\"preconditions\":{},"
+            "\"success_criteria\":{\"observed\":true},"
+            "\"depends_on\":[\"observe_state\"]}]"
+            if self._expected_plan_kind == "root"
+            else "[]"
+        )
+        return f"""You are the fixed-protocol stone-pickaxe Minecraft planner. Return one compact JSON object and no prose.
+
+This call is plan_kind={self._expected_plan_kind}. The machine observation, runtime_mode, exact goal, and action guard are authoritative.
+Never claim success from prose; the machine verifier alone decides completion.
+
+OUTPUT BOUNDS:
+- Use schema_version "stone-pickaxe-plan-v1", the exact supplied goal, and the exact supplied plan_kind.
+- Keep reasoning under 320 characters.
+- When status is planning, return exactly one immediate action. Never emit a future action script.
+- When status is complete or blocked, actions must be empty.
+- On a planning root call, return 2-6 concise machine-verifiable subtasks with unique lowercase ids and at least one dependency edge.
+- On continuation or replan calls, return subtasks=[] and preserve the existing root plan.
+
+CANONICAL ACTIONS:
+- move_to/look_at: {{"x":number,"y":number,"z":number}}
+- dig: {{"block":"exact_observed_block","x":number,"y":number,"z":number}}
+- craft: {{"item":"exact_item","count":positive_integer}}; count is requested output quantity.
+- place: {{"item":"exact_item","x":number,"y":number,"z":number}} using an observed solid reference block.
+- equip: {{"item":"exact_item"}}
+- wait: {{"ms":positive_integer_at_most_2000}}
+Never use recipe, block_name, target, position, or block_position aliases.
+
+RUNTIME RULES:
+- prepare_fixture: if no nearby blocks are observed, wait 500 ms. Otherwise use only observed coordinates. Dig only exact observed logs, leaves, or allowed terrain; never dig stone or cobblestone. Include block on every dig. With no existing crafting table, gather at least 3 logs, craft at least 12 matching planks, craft sticks and one table, place the table, then craft exactly one wooden_pickaxe. Move near observed stone without digging it.
+- sp001: do not craft or place. Equip the exact wooden_pickaxe when needed. Dig only block="stone" at the nearest reachable observed stone coordinates and never repeat a removed source.
+
+Required JSON shape:
+{{
+  "schema_version":"stone-pickaxe-plan-v1",
+  "plan_kind":"{self._expected_plan_kind}",
+  "goal":"exact supplied goal",
+  "status":"planning|complete|blocked",
+  "reasoning":"brief machine-state rationale",
+  "subtasks":{subtask_example},
+  "actions":[{{"type":"wait","parameters":{{"ms":500}}}}]
+}}"""
 
     def _m2_system_prompt(self) -> str:
         from singularity.evaluation.m2_protocol import PROTOCOL
@@ -660,6 +713,14 @@ Episode successful-action summary: {json.dumps(action_summary, sort_keys=True, d
 Current observed world state: {json.dumps(observed_state, sort_keys=True, default=str)[:5000]}
 Planner context: {memory_context[:1000] if memory_context else 'none'}
 Return strict JSON now."""
+        if self.strict_stone_pickaxe:
+            machine_state = self._compact_stone_pickaxe_state(world_state)
+            return f"""Exact goal: {goal}
+Expected plan_kind: {self._expected_plan_kind}
+Runtime mode: {machine_state.get('runtime_mode') or 'unknown'}
+Current compact machine state: {json.dumps(machine_state, sort_keys=True, separators=(',', ':'), default=str)}
+Planner context: {memory_context[:500] if memory_context else 'none'}
+Choose only the next grounded action and return contract-valid compact JSON now."""
         if self.strict_m4:
             shelter = world_state.get("shelter_verification", {}) if isinstance(world_state, dict) else {}
             shelter = shelter if isinstance(shelter, dict) else {}
@@ -697,23 +758,273 @@ World state:
 Plan the steps to achieve this goal."""
 
     @staticmethod
+    def _compact_stone_pickaxe_state(world_state: dict) -> dict:
+        state = world_state if isinstance(world_state, dict) else {}
+
+        def finite(value):
+            return (
+                isinstance(value, (int, float))
+                and not isinstance(value, bool)
+                and math.isfinite(float(value))
+            )
+
+        def compact_position(value):
+            if not isinstance(value, dict):
+                return {}
+            return {
+                axis: value[axis]
+                for axis in ("x", "y", "z")
+                if finite(value.get(axis))
+            }
+
+        raw_blocks = state.get("nearby_blocks")
+        raw_blocks = raw_blocks if isinstance(raw_blocks, list) else []
+        blocks = []
+        seen = set()
+        for block in raw_blocks:
+            if not isinstance(block, dict):
+                continue
+            name = str(block.get("name") or "")
+            position = compact_position(block.get("position"))
+            if not name or len(position) != 3:
+                continue
+            key = (name, position["x"], position["y"], position["z"])
+            if key in seen:
+                continue
+            seen.add(key)
+            row = {"name": name, **position}
+            if finite(block.get("distance")):
+                row["distance"] = round(float(block["distance"]), 3)
+            blocks.append(row)
+
+        def relevant(block):
+            name = block["name"]
+            return (
+                name in {"stone", "crafting_table"}
+                or name.endswith("_log")
+                or name.endswith("_stem")
+            )
+
+        prioritized = [block for block in blocks if relevant(block)]
+        prioritized.extend(block for block in blocks if not relevant(block))
+        inventory = state.get("inventory") if isinstance(state.get("inventory"), dict) else {}
+        compact_inventory = {}
+        for name, count in sorted(inventory.items()):
+            try:
+                numeric = int(count)
+            except (TypeError, ValueError):
+                continue
+            if numeric > 0:
+                compact_inventory[str(name)] = numeric
+
+        return {
+            "runtime_mode": str(state.get("stone_pickaxe_runtime_mode") or ""),
+            "position": compact_position(state.get("position")),
+            "inventory": compact_inventory,
+            "health": state.get("health"),
+            "hunger": state.get("hunger"),
+            "game_mode": str(state.get("game_mode") or ""),
+            "ground_block": str(state.get("ground_block") or ""),
+            "nearby_block_count": len(blocks),
+            "nearby_blocks": prioritized[:24],
+        }
+
+    @staticmethod
     def _validate_stone_pickaxe_plan_envelope(
         plan: dict,
         expected_goal: str,
         expected_kind: str,
     ) -> dict:
-        """Fail closed on a malformed stone-pickaxe Planner envelope."""
+        """Fail closed on malformed or unbounded stone-pickaxe plans."""
         issues: list[str] = []
+        allowed_plan_keys = {
+            "schema_version",
+            "plan_kind",
+            "goal",
+            "status",
+            "reasoning",
+            "subtasks",
+            "actions",
+        }
+        for unexpected in sorted(set(plan) - allowed_plan_keys):
+            issues.append(f"plan_field_unexpected:{unexpected}")
+        compact_plan_chars = len(
+            json.dumps(plan, sort_keys=True, separators=(",", ":"), default=str)
+        )
+        if compact_plan_chars > 6000:
+            issues.append("plan_compact_size_exceeded")
+        if plan.get("schema_version") != "stone-pickaxe-plan-v1":
+            issues.append("schema_version_invalid")
+        if plan.get("plan_kind") != expected_kind:
+            issues.append("plan_kind_mismatch")
+        if plan.get("goal") != expected_goal:
+            issues.append("goal_mismatch")
+
         status = str(plan.get("status") or "")
         if status not in {"planning", "complete", "blocked"}:
             issues.append("status_invalid")
+
+        reasoning = plan.get("reasoning")
+        if not isinstance(reasoning, str) or not reasoning.strip():
+            issues.append("reasoning_missing")
+        elif len(reasoning) > 320:
+            issues.append("reasoning_too_long")
+
+        subtasks = plan.get("subtasks")
+        if not isinstance(subtasks, list):
+            issues.append("subtasks_not_array")
+            subtasks = []
+        if expected_kind == "root" and status == "planning":
+            if not 2 <= len(subtasks) <= 6:
+                issues.append("root_subtask_count_out_of_bounds")
+            seen_ids: set[str] = set()
+            dependency_count = 0
+            for index, subtask in enumerate(subtasks):
+                if not isinstance(subtask, dict):
+                    issues.append(f"subtask[{index}]:not_object")
+                    continue
+                node_id = str(subtask.get("id") or "")
+                if not re.fullmatch(r"[a-z0-9_]{1,32}", node_id):
+                    issues.append(f"subtask[{index}]:id_invalid")
+                elif node_id in seen_ids:
+                    issues.append(f"subtask[{index}]:id_duplicate")
+                if not str(subtask.get("title") or "").strip():
+                    issues.append(f"subtask[{index}]:title_missing")
+                elif len(str(subtask["title"])) > 120:
+                    issues.append(f"subtask[{index}]:title_too_long")
+                allowed_subtask_keys = {
+                    "id",
+                    "title",
+                    "type",
+                    "priority",
+                    "preconditions",
+                    "success_criteria",
+                    "depends_on",
+                }
+                for unexpected in sorted(set(subtask) - allowed_subtask_keys):
+                    issues.append(f"subtask[{index}]:field_unexpected:{unexpected}")
+                if not isinstance(subtask.get("preconditions"), dict):
+                    issues.append(f"subtask[{index}]:preconditions_not_object")
+                if not isinstance(subtask.get("success_criteria"), dict):
+                    issues.append(f"subtask[{index}]:success_criteria_not_object")
+                elif not subtask["success_criteria"]:
+                    issues.append(f"subtask[{index}]:success_criteria_empty")
+                for field in ("preconditions", "success_criteria"):
+                    if len(json.dumps(subtask.get(field), default=str)) > 600:
+                        issues.append(f"subtask[{index}]:{field}_too_large")
+                priority = subtask.get("priority")
+                if (
+                    not isinstance(priority, int)
+                    or isinstance(priority, bool)
+                    or not 1 <= priority <= 5
+                ):
+                    issues.append(f"subtask[{index}]:priority_invalid")
+                dependencies = subtask.get("depends_on")
+                if not isinstance(dependencies, list):
+                    issues.append(f"subtask[{index}]:depends_on_not_array")
+                    dependencies = []
+                for dependency in dependencies:
+                    if not isinstance(dependency, str) or dependency not in seen_ids:
+                        issues.append(f"subtask[{index}]:dependency_not_earlier_id")
+                    else:
+                        dependency_count += 1
+                if node_id:
+                    seen_ids.add(node_id)
+            if dependency_count == 0:
+                issues.append("root_dependency_edge_missing")
+        elif subtasks:
+            issues.append("non_root_subtasks_forbidden")
 
         actions = plan.get("actions")
         if not isinstance(actions, list):
             issues.append("actions_not_array")
             actions = []
-        if status == "planning" and not actions:
-            issues.append("planning_actions_missing")
+        if status == "planning" and len(actions) != 1:
+            issues.append("planning_action_count_must_equal_one")
+        if status in {"complete", "blocked"} and actions:
+            issues.append("terminal_actions_forbidden")
+
+        if len(actions) == 1:
+            action = actions[0]
+            if not isinstance(action, dict):
+                issues.append("action_not_object")
+            else:
+                action_type = str(action.get("type") or "")
+                params = action.get("parameters")
+                if action_type not in {
+                    "move_to",
+                    "look_at",
+                    "dig",
+                    "craft",
+                    "place",
+                    "equip",
+                    "wait",
+                }:
+                    issues.append("action_type_forbidden")
+                if not isinstance(params, dict):
+                    issues.append("action_parameters_not_object")
+                    params = {}
+                alias_names = {
+                    "recipe",
+                    "block_name",
+                    "target",
+                    "position",
+                    "block_position",
+                }
+                for alias in sorted(alias_names.intersection(params)):
+                    issues.append(f"action_parameter_alias_forbidden:{alias}")
+
+                def require_xyz():
+                    for axis in ("x", "y", "z"):
+                        value = params.get(axis)
+                        if (
+                            not isinstance(value, (int, float))
+                            or isinstance(value, bool)
+                            or not math.isfinite(float(value))
+                        ):
+                            issues.append(f"action_parameter_{axis}_invalid")
+
+                if action_type in {"move_to", "look_at"}:
+                    require_xyz()
+                    allowed = {"x", "y", "z"}
+                elif action_type == "dig":
+                    require_xyz()
+                    if not str(params.get("block") or "").strip():
+                        issues.append("dig_block_missing")
+                    allowed = {"block", "x", "y", "z"}
+                elif action_type == "craft":
+                    if not str(params.get("item") or "").strip():
+                        issues.append("craft_item_missing")
+                    count = params.get("count", 1)
+                    if (
+                        not isinstance(count, int)
+                        or isinstance(count, bool)
+                        or not 1 <= count <= 64
+                    ):
+                        issues.append("craft_count_invalid")
+                    allowed = {"item", "count"}
+                elif action_type == "place":
+                    require_xyz()
+                    if not str(params.get("item") or "").strip():
+                        issues.append("place_item_missing")
+                    allowed = {"item", "x", "y", "z"}
+                elif action_type == "equip":
+                    if not str(params.get("item") or "").strip():
+                        issues.append("equip_item_missing")
+                    allowed = {"item", "destination"}
+                elif action_type == "wait":
+                    wait_ms = params.get("ms")
+                    if (
+                        not isinstance(wait_ms, int)
+                        or isinstance(wait_ms, bool)
+                        or not 1 <= wait_ms <= 2000
+                    ):
+                        issues.append("wait_ms_invalid")
+                    allowed = {"ms"}
+                else:
+                    allowed = set()
+                for unexpected in sorted(set(params) - allowed):
+                    issues.append(f"action_parameter_unexpected:{unexpected}")
 
         return {
             "type": "stone_pickaxe_plan_envelope_validation",
@@ -722,7 +1033,9 @@ Plan the steps to achieve this goal."""
             "expected_goal": str(expected_goal or ""),
             "expected_kind": str(expected_kind or ""),
             "status": status,
+            "subtask_count": len(subtasks),
             "action_count": len(actions),
+            "compact_plan_chars": compact_plan_chars,
             "completion_requires_machine_verifier": True,
             "issues": sorted(set(issues)),
         }
@@ -1753,7 +2066,11 @@ Plan the steps to achieve this goal."""
                 continue
             title = str(st.get("title") or "unnamed")
             plan_node_id = str(st.get("id") or "")
-            task = self._existing_plan_task(root_plan_id, plan_node_id) if self.strict_m2 else None
+            task = (
+                self._existing_plan_task(root_plan_id, plan_node_id)
+                if self.strict_m2 or self.strict_stone_pickaxe
+                else None
+            )
             if task is None:
                 task = self.task_system.create_task(
                     title=title,

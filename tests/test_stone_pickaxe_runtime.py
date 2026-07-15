@@ -156,6 +156,42 @@ def _planner_event():
     }
 
 
+def _stone_plan(goal, *, plan_kind="root", action=None, status="planning"):
+    if action is None and status == "planning":
+        action = {"type": "wait", "parameters": {"ms": 500}}
+    subtasks = []
+    if plan_kind == "root" and status == "planning":
+        subtasks = [
+            {
+                "id": "observe_state",
+                "title": "Observe the controlled machine state",
+                "type": "observe",
+                "priority": 1,
+                "preconditions": {},
+                "success_criteria": {"observed": True},
+                "depends_on": [],
+            },
+            {
+                "id": "advance_goal",
+                "title": "Advance the exact stone-pickaxe goal",
+                "type": "gather",
+                "priority": 1,
+                "preconditions": {},
+                "success_criteria": {"inventory": {"wooden_pickaxe": 1}},
+                "depends_on": ["observe_state"],
+            },
+        ]
+    return {
+        "schema_version": "stone-pickaxe-plan-v1",
+        "plan_kind": plan_kind,
+        "goal": goal,
+        "status": status,
+        "reasoning": "Take one bounded machine-grounded action.",
+        "subtasks": subtasks,
+        "actions": [action] if action is not None else [],
+    }
+
+
 def _sp001_events():
     events = [_planner_event()]
     for index, x in enumerate((1, 2, 3), start=1):
@@ -564,20 +600,21 @@ def test_planner_request_drift_prevents_sp001_evidence_eligibility():
 
 
 def test_stone_planner_propagates_fixed_request_controls():
-    response = json.dumps({
-        "status": "planning",
-        "reasoning": "take one bounded preparation action",
-        "subtasks": [],
-        "actions": [{"type": "wait", "parameters": {"ms": 1}}],
-    })
+    goal = "Prepare the fixed fixture"
+    response = json.dumps(_stone_plan(goal))
     llm = _PlannerEvidenceLLM(response)
     planner = Planner(llm, TaskSystem(), protocol=PROTOCOL["id"])
-    planner.start_episode("Prepare the fixed fixture", "offline-stone-request")
+    planner.start_episode(goal, "offline-stone-request")
     planner.set_deadline(time.monotonic() + 30.0, 0.0)
 
-    plan = planner.plan_from_goal("Prepare the fixed fixture", {"inventory": {}}, "")
+    plan = planner.plan_from_goal(
+        goal,
+        {"inventory": {}, "stone_pickaxe_runtime_mode": "prepare_fixture"},
+        "",
+    )
 
     assert plan["schema_validation"]["passed"]
+    assert plan["plan_kind"] == "root"
     assert len(llm.calls) == 1
     assert llm.calls[0]["extra_body"] == {"thinking": {"type": "disabled"}}
     assert 0.0 < llm.calls[0]["timeout_s"] <= 30.0
@@ -605,12 +642,7 @@ def test_stone_planner_rejects_empty_length_response_before_execution():
 
 
 def test_stone_planner_suppresses_post_deadline_call():
-    response = json.dumps({
-        "status": "planning",
-        "reasoning": "this response must never be requested",
-        "subtasks": [],
-        "actions": [{"type": "wait", "parameters": {"ms": 1}}],
-    })
+    response = json.dumps(_stone_plan("Prepare the fixed fixture"))
     llm = _PlannerEvidenceLLM(response)
     planner = Planner(llm, TaskSystem(), protocol=PROTOCOL["id"])
     planner.start_episode("Prepare the fixed fixture", "offline-stone-deadline")
@@ -621,6 +653,166 @@ def test_stone_planner_suppresses_post_deadline_call():
     assert llm.calls == []
     assert plan["status"] == "error"
     assert "stone_total_deadline_exhausted_before_planner_call" in plan["schema_validation"]["issues"]
+
+
+def test_stone_planner_contract_rejects_unbounded_and_alias_actions():
+    goal = "Prepare the fixed fixture"
+    valid = _stone_plan(
+        goal,
+        action={
+            "type": "dig",
+            "parameters": {"block": "dark_oak_log", "x": 1, "y": 64, "z": 2},
+        },
+    )
+    assert Planner._validate_stone_pickaxe_plan_envelope(valid, goal, "root")["passed"]
+
+    missing_block = json.loads(json.dumps(valid))
+    missing_block["actions"][0]["parameters"].pop("block")
+    report = Planner._validate_stone_pickaxe_plan_envelope(missing_block, goal, "root")
+    assert not report["passed"]
+    assert "dig_block_missing" in report["issues"]
+
+    recipe_alias = json.loads(json.dumps(valid))
+    recipe_alias["actions"] = [{
+        "type": "craft",
+        "parameters": {"recipe": "dark_oak_planks", "count": 4},
+    }]
+    report = Planner._validate_stone_pickaxe_plan_envelope(recipe_alias, goal, "root")
+    assert not report["passed"]
+    assert "action_parameter_alias_forbidden:recipe" in report["issues"]
+    assert "craft_item_missing" in report["issues"]
+
+    multiple = json.loads(json.dumps(valid))
+    multiple["actions"].append({"type": "wait", "parameters": {"ms": 500}})
+    report = Planner._validate_stone_pickaxe_plan_envelope(multiple, goal, "root")
+    assert not report["passed"]
+    assert "planning_action_count_must_equal_one" in report["issues"]
+
+    continuation = json.loads(json.dumps(valid))
+    continuation["plan_kind"] = "continuation"
+    report = Planner._validate_stone_pickaxe_plan_envelope(
+        continuation,
+        goal,
+        "continuation",
+    )
+    assert not report["passed"]
+    assert "non_root_subtasks_forbidden" in report["issues"]
+
+    extra_field = json.loads(json.dumps(valid))
+    extra_field["debug_trace"] = "unbounded planner detail"
+    report = Planner._validate_stone_pickaxe_plan_envelope(extra_field, goal, "root")
+    assert not report["passed"]
+    assert "plan_field_unexpected:debug_trace" in report["issues"]
+
+
+def test_stone_planner_prompt_is_mode_bound_compact_and_canonical():
+    goal = "Prepare the fixed fixture"
+    llm = _PlannerEvidenceLLM(json.dumps(_stone_plan(goal)))
+    planner = Planner(llm, TaskSystem(), protocol=PROTOCOL["id"])
+    planner.start_episode(goal, "offline-stone-prompt")
+    planner.set_deadline(time.monotonic() + 30.0, 0.0)
+    world_state = {
+        "stone_pickaxe_runtime_mode": "prepare_fixture",
+        "position": {"x": 93.5, "y": 143, "z": -31.5},
+        "inventory": {},
+        "nearby_blocks": [
+            {
+                "name": "dark_oak_leaves",
+                "position": {"x": index, "y": 142, "z": -32},
+                "distance": float(index + 1),
+            }
+            for index in range(60)
+        ] + [
+            {
+                "name": "dark_oak_log",
+                "position": {"x": 93, "y": 142, "z": -31},
+                "distance": 1.0,
+            },
+            {
+                "name": "stone",
+                "position": {"x": 124, "y": 139, "z": -37},
+                "distance": 31.5,
+            },
+        ],
+    }
+
+    planner.plan_from_goal(goal, world_state, "")
+
+    system_prompt = llm.calls[0]["messages"][0]["content"]
+    user_prompt = llm.calls[0]["messages"][1]["content"]
+    assert "exactly one immediate action" in system_prompt
+    assert "Never use recipe" in system_prompt
+    assert '"subtasks":[{"id":"observe_state"' in system_prompt
+    assert "Runtime mode: prepare_fixture" in user_prompt
+    assert "dark_oak_log" in user_prompt
+    assert "stone" in user_prompt
+    assert len(user_prompt) < 5000
+
+
+def test_stone_planner_replan_preserves_root_tasks_and_failure_reason():
+    goal = "Prepare the fixed fixture"
+
+    class SequenceLLM(_PlannerEvidenceLLM):
+        def __init__(self, responses):
+            super().__init__(responses[0])
+            self.responses = list(responses)
+
+        def chat(self, messages, **kwargs):
+            self.response = self.responses[len(self.calls)]
+            return super().chat(messages, **kwargs)
+
+    llm = SequenceLLM([
+        json.dumps(_stone_plan(goal)),
+        json.dumps(_stone_plan(goal, plan_kind="replan")),
+    ])
+    tasks = TaskSystem()
+    planner = Planner(llm, tasks, protocol=PROTOCOL["id"])
+    planner.start_episode(goal, "offline-stone-replan")
+    planner.set_deadline(time.monotonic() + 30.0, 0.0)
+
+    root = planner.plan_from_goal(
+        goal,
+        {"inventory": {}, "stone_pickaxe_runtime_mode": "prepare_fixture"},
+        "",
+    )
+    assert root["plan_kind"] == "root"
+    assert len(tasks.tasks) == 2
+
+    planner.request_replan("fixture_dig_block_forbidden:missing")
+    replanned = planner.plan_from_goal(
+        goal,
+        {"inventory": {}, "stone_pickaxe_runtime_mode": "prepare_fixture"},
+        "",
+    )
+    assert replanned["schema_validation"]["passed"]
+    assert replanned["plan_kind"] == "replan"
+    assert len(tasks.tasks) == 2
+    assert '"subtasks":[]' in llm.calls[1]["messages"][0]["content"]
+    assert "fixture_dig_block_forbidden:missing" in llm.calls[1]["messages"][1]["content"]
+
+
+def test_agent_requests_stone_replan_after_action_failure():
+    events = []
+
+    class ReplanPlanner:
+        def __init__(self):
+            self.reason = ""
+
+        def request_replan(self, reason):
+            self.reason = reason
+
+    agent = object.__new__(Agent)
+    agent.config = SimpleNamespace(planner_protocol=PROTOCOL["id"])
+    agent.planner = ReplanPlanner()
+    agent.current_goal = "Prepare the fixed fixture"
+    agent.session_logger = SimpleNamespace(
+        log=lambda event_type, payload: events.append((event_type, payload))
+    )
+
+    Agent._request_m2_replan(agent, "fixture_dig_block_forbidden:missing")
+
+    assert agent.planner.reason == "fixture_dig_block_forbidden:missing"
+    assert events[0][0] == "stone_pickaxe_replan_requested"
 
 
 def test_fixture_artifact_never_counts_as_skill_or_capability_evidence():

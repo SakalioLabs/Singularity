@@ -6402,13 +6402,19 @@ class Agent:
         return self.reflector.analyze_failure(goal, action, result, observation)
 
     def _request_m2_replan(self, reason: str):
-        if str(getattr(self.config, "planner_protocol", "") or "") != "m2-fixed-v1":
+        protocol = str(getattr(self.config, "planner_protocol", "") or "")
+        if protocol not in {"m2-fixed-v1", "stone-pickaxe-skill-fixed-v1"}:
             return
         planner = getattr(self, "planner", None)
         if not hasattr(planner, "request_replan"):
             return
         planner.request_replan(reason)
-        self.session_logger.log("m2_replan_requested", {
+        event_type = (
+            "m2_replan_requested"
+            if protocol == "m2-fixed-v1"
+            else "stone_pickaxe_replan_requested"
+        )
+        self.session_logger.log(event_type, {
             "goal": str(self.current_goal or ""),
             "reason": str(reason or "action_failure")[:500],
         })

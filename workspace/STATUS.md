@@ -21,7 +21,7 @@
 - SP-001 Acquire Cobblestone is 0/3, SP-002 Craft Stone Pickaxe is 0/3, and SP-003 Composite Stone Pickaxe Chain is 0/3 and locked.
 - `learned:acquire_cobblestone` and `learned:craft_stone_pickaxe` do not exist. No candidate, advisory, paired evaluation, executable promotion, SP-001 live episode, or SP run artifact has been created.
 - Offline verifier fixtures do not count toward a skill gate, capability evidence, or M4. The canonical capability report and existing `custom_skills.jsonl` are unchanged.
-- The single authorized non-counting fixture-preparation session failed machine audit after an empty Planner response and zero actions. The request-policy blocker is reproduced and fixed offline, but no fixture snapshot was created, the conditional SP-001 authorization never activated, and current live authorization is false.
+- Two separately authorized non-counting fixture-preparation sessions failed machine audit. The first exposed the fixed-request path; the second exposed an unbounded generic plan contract after two successful moves. Both blockers are reproduced and fixed offline, but no fixture snapshot was created, the conditional SP-001 authorization never activated, and current live authorization is false.
 
 ## M2 Convergence Result
 
@@ -139,9 +139,9 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 ## Stone-Pickaxe Workstream
 
 - Current gate: SP-001 0/3; SP-002 0/3; SP-003 locked.
-- Runtime state: the controlled fixture/snapshot/SP-001 harness passes 30/30 protocol and 15/15 runtime cases. The only authorized fixture-preparation session ran and stopped; its Planner exhausted the completion budget in reasoning, emitted an empty response, and produced zero gameplay actions.
-- Fixture state: machine audit failed exact wooden-pickaxe and three-reachable-stone checks. No snapshot was sealed and no SP-001 episode ran. Controlled ports are clear and Paper/Bridge are stopped.
-- Offline repair: the stone-pickaxe Planner now receives the protocol-pinned non-thinking payload, one zero-retry request bounded by remaining episode time, fail-closed empty-response validation, and post-deadline call suppression. Fixture sealing and SP-001 eligibility independently audit the same controls. All 39 non-live Python scripts and six Node suites pass; protocol identity is unchanged.
+- Runtime state: the controlled fixture/snapshot/SP-001 harness passes 30/30 protocol and 19/19 runtime cases. Both authorized fixture-preparation sessions ran once and stopped. The first emitted no usable plan; the second executed two moves, then rejected a missing-block dig before execution and ended on one truncated third Planner response.
+- Fixture state: both machine audits failed exact wooden-pickaxe and three-reachable-stone checks; the second additionally failed Planner request eligibility because its final response ended at `finish_reason=length`. No snapshot was sealed and no SP-001 episode ran. Controlled ports are clear and Paper/Bridge are stopped.
+- Offline repair: fixed non-thinking, deadline, retry, and empty-response controls remain enforced. The stone Planner now also uses one compact root, exactly one canonical immediate action, no continuation/replan subtasks, bounded reasoning and observations, same-root task identity, and typed failure context. Missing `dig.block`, `recipe`, multi-action output, duplicate roots, and malformed output fail closed. The repository-wide non-live gate is rerun before push; protocol identity is unchanged.
 - Learned skills: `learned:acquire_cobblestone` and `learned:craft_stone_pickaxe` are not created. Existing wooden-pickaxe history is unchanged.
 - Capability impact: none. M4 remains failing and BM-012 remains 0/3; this microbenchmark evidence never counts directly toward M4.
 - Current authorization: false. No retry, SP-001/SP-002/SP-003, Probe 24, full BM-012, or iron mining is authorized. After this offline fix is pushed, a new fixture session still requires new explicit authorization.

@@ -366,8 +366,9 @@ class StonePickaxeRuntimeAgent(Agent):
         scan = self.bot.get_nearby_blocks(
             radius=int(PROTOCOL["fixture_policy"]["cobblestone_sources"]["search_radius"])
         )
+        observation = dict(observation)
+        observation["stone_pickaxe_runtime_mode"] = self.stone_pickaxe_runtime_mode
         if isinstance(scan, list):
-            observation = dict(observation)
             observation["nearby_blocks"] = scan[:50]
         return observation
 
