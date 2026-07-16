@@ -688,6 +688,18 @@ def test_stone_planner_contract_rejects_unbounded_and_alias_actions():
     assert not report["passed"]
     assert "planning_action_count_must_equal_one" in report["issues"]
 
+    priority_zero = json.loads(json.dumps(valid))
+    priority_zero["subtasks"][-1]["priority"] = 0
+    report = Planner._validate_stone_pickaxe_plan_envelope(priority_zero, goal, "root")
+    assert not report["passed"]
+    assert "subtask[1]:priority_invalid" in report["issues"]
+
+    priority_string = json.loads(json.dumps(valid))
+    priority_string["subtasks"][-1]["priority"] = "1"
+    report = Planner._validate_stone_pickaxe_plan_envelope(priority_string, goal, "root")
+    assert not report["passed"]
+    assert "subtask[1]:priority_invalid" in report["issues"]
+
     continuation = json.loads(json.dumps(valid))
     continuation["plan_kind"] = "continuation"
     report = Planner._validate_stone_pickaxe_plan_envelope(
@@ -742,6 +754,7 @@ def test_stone_planner_prompt_is_mode_bound_compact_and_canonical():
     user_prompt = llm.calls[0]["messages"][1]["content"]
     assert "exactly one immediate action" in system_prompt
     assert "Never use recipe" in system_prompt
+    assert "priority must be a JSON integer from 1 through 5" in system_prompt
     assert '"subtasks":[{"id":"observe_state"' in system_prompt
     assert "Runtime mode: prepare_fixture" in user_prompt
     assert "dark_oak_log" in user_prompt

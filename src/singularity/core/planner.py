@@ -600,6 +600,7 @@ OUTPUT BOUNDS:
 - When status is planning, return exactly one immediate action. Never emit a future action script.
 - When status is complete or blocked, actions must be empty.
 - On a planning root call, return 2-6 concise machine-verifiable subtasks with unique lowercase ids and at least one dependency edge.
+- Every root subtask priority must be a JSON integer from 1 through 5; use 1 when no ordering distinction is needed.
 - On continuation or replan calls, return subtasks=[] and preserve the existing root plan.
 
 CANONICAL ACTIONS:

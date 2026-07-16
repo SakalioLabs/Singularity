@@ -1,24 +1,24 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-15T15:54:46+08:00",
+  "generated_at": "2026-07-17T00:43:05+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_2_sp001_bounded_planner_contract_offline_fixed",
+  "phase": "phase_2_sp001_priority_contract_offline_fixed",
   "status": "offline_fix_verified_new_live_authorization_required",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 0,
-  "authorization_scope": "closed_after_second_fixture_preparation_failed_machine_audit",
+  "authorization_scope": "closed_after_third_fixture_preparation_failed_machine_audit",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
-    "fixture_preparation_sessions_authorized": 2,
-    "fixture_preparation_sessions_consumed": 2,
+    "fixture_preparation_sessions_authorized": 3,
+    "fixture_preparation_sessions_consumed": 3,
     "fixture_audit_passed": false,
     "conditional_sp001_authorization_activated": false,
     "sp001_live_episodes_run": 0,
@@ -89,8 +89,8 @@
     {
       "phase": 2,
       "name": "controlled_sp001_runtime",
-      "status": "second_fixture_preparation_blocker_offline_fixed",
-      "fixture_preparation_session_count": 2,
+      "status": "third_fixture_preparation_blocker_offline_fixed",
+      "fixture_preparation_session_count": 3,
       "live_episode_count": 0,
       "automatic_retry_allowed": false,
       "stone_pickaxe_runtime_cases_passed": 19,
@@ -115,7 +115,8 @@
     "unsafe_navigation",
     "parameter_outside_transfer_scope",
     "fixture_preparation_planner_empty_plan",
-    "fixture_preparation_unbounded_planner_contract"
+    "fixture_preparation_unbounded_planner_contract",
+    "fixture_preparation_root_priority_contract"
   ],
   "failures": [
     {
@@ -413,6 +414,141 @@
         "counts_toward_capability": false,
         "counts_toward_m4": false
       }
+    },
+    {
+      "id": "sp-fixture-prep-003-priority-contract",
+      "phase": "fixture_preparation",
+      "classification": "fixture_preparation_root_priority_contract",
+      "status": "retained_failure_offline_fixed",
+      "attributable_to_learned_skill": false,
+      "episode_id": "sp_fixture_prep_20260717_001130_678ddb1e",
+      "session_id": "b39bb282-ecf",
+      "occurred_at_utc": "2026-07-16T16:12:16.017618+00:00",
+      "earliest_unrecovered_transition": "planner_call_0_root_schema_rejected_for_subtask_5_priority_invalid",
+      "first_failed_action_or_task_transition": "no_action_or_task_transition_plan_rejected_before_execution",
+      "goal_result": {
+        "completed": false,
+        "termination_reason": "empty_plan",
+        "cycles": 1,
+        "action_count": 0,
+        "successful_action_count": 0,
+        "elapsed_s": 6.938,
+        "deadline_eligible": true
+      },
+      "planner_decision": {
+        "call_count": 1,
+        "call_index": 0,
+        "plan_kind": "root",
+        "finish_reason": "stop",
+        "prompt_tokens": 1493,
+        "completion_tokens": 717,
+        "total_tokens": 2210,
+        "response_byte_count": 2397,
+        "reasoning_content_byte_count": 0,
+        "compact_plan_chars": 1869,
+        "subtask_count": 6,
+        "action_count": 1,
+        "schema_valid": false,
+        "schema_issues": [
+          "subtask[5]:priority_invalid"
+        ],
+        "request_timeout_s": 299.875,
+        "retry_count": 0,
+        "request_controls_except_schema_valid_passed": true
+      },
+      "task_graph_proof": {
+        "task_count": 0,
+        "sha256": "95f02e5a2b044d5404bc3937647139b6fae90a1258c108a7e5ae8f855a9f695c"
+      },
+      "world_state_proof": {
+        "position": {
+          "x": 103.5,
+          "y": 142.0,
+          "z": -29.5
+        },
+        "ground_block": "oak_leaves",
+        "inventory": {},
+        "game_mode": "survival",
+        "health": 20.0,
+        "hunger": 20.0,
+        "reachable_observed_stone_source_count": 0
+      },
+      "machine_audit": {
+        "passed": false,
+        "issues": [
+          "planner_request_controls",
+          "three_reachable_observed_stone_sources",
+          "wooden_pickaxe_exact"
+        ],
+        "wooden_pickaxe_exact": false,
+        "cobblestone_absent": true,
+        "stone_pickaxe_absent": true,
+        "survival_mode": true,
+        "safe": true,
+        "movable": true,
+        "three_reachable_observed_stone_sources": false,
+        "planner_request_controls": false
+      },
+      "evidence": [
+        {
+          "path": "logs/stone_pickaxe/fixture_preparations/sp_fixture_prep_20260717_001130_678ddb1e/preparation.json",
+          "sha256": "5d75925428e958628d756a081c6e7cab8c6caa747c0f226fabb8b50b857a6df7"
+        },
+        {
+          "path": "logs/stone_pickaxe/fixture_preparations/sp_fixture_prep_20260717_001130_678ddb1e/session.json",
+          "sha256": "45741d7cd82c6e800d4b75dfe8f6c5f7830066dfd804f40220303bb6e60ef530"
+        },
+        {
+          "path": "logs/stone_pickaxe/fixture_preparations/sp_fixture_prep_20260717_001130_678ddb1e/session_b39bb282-ecf.jsonl",
+          "sha256": "580506fe18c5d70906f19c8cadd7c7a9e6e1b25e9d4b28bedd246857d37d24e6"
+        },
+        {
+          "path": "logs/stone_pickaxe/fixture_preparations/sp_fixture_prep_20260717_001130_678ddb1e/session_b39bb282-ecf_summary.json",
+          "sha256": "06945f0547d123a52f5ccf86dec35dafb4056cfed3edeb108eeae415158270b1"
+        }
+      ],
+      "counts_toward_skill_gate": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_attempted": false,
+      "conditional_sp001_episode_run": false,
+      "single_next_offline_fix": "state_the_root_subtask_priority_integer_range_explicitly_in_the_stone_planner_contract",
+      "offline_resolution": {
+        "status": "reproduced_fixed_and_tested",
+        "root_cause": "stone_root_prompt_showed_priority_1_but_did_not_explicitly_state_the_validator_integer_range",
+        "observed_effects": [
+          "the_only_root_response_passed_transport_deadline_size_action_count_and_finish_reason_controls",
+          "subtask_5_priority_was_the_only_schema_issue",
+          "the_plan_failed_closed_before_task_creation_or_action_execution"
+        ],
+        "reproduction": {
+          "test": "test_stone_planner_contract_rejects_unbounded_and_alias_actions",
+          "rejected_priority_values": [
+            0,
+            "1"
+          ],
+          "expected_issue": "subtask[1]:priority_invalid"
+        },
+        "fix": {
+          "priority_type": "json_integer",
+          "priority_minimum": 1,
+          "priority_maximum": 5,
+          "default_when_no_ordering_distinction": 1,
+          "validator_relaxed": false,
+          "protocol_json_modified": false
+        },
+        "regressions": {
+          "stone_pickaxe_runtime_cases": "19/19",
+          "stone_pickaxe_protocol_cases": "30/30",
+          "repository_non_live_python_scripts": "39/39",
+          "fixed_node_suites": "6/6",
+          "python_compileall": "passed"
+        },
+        "protocol_sha256_unchanged": true,
+        "counts_toward_skill_gate": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      }
     }
   ],
   "validation": {
@@ -437,7 +573,7 @@
       "passed": 6,
       "total": 6
     },
-    "repository_json_files_parsed": 1116,
+    "repository_json_files_parsed": 1119,
     "python_compileall_passed": true,
     "capability_consistency_passed": true,
     "immutable_baseline_hashes_passed": true,
@@ -450,8 +586,8 @@
     "id": "new_explicit_fixture_preparation_authorization_after_offline_fix_push",
     "authorization": false,
     "prerequisites": [
-      "unbounded_planner_contract_root_cause_reproduced_offline",
-      "single_action_and_root_plan_fix_tested_offline",
+      "root_priority_contract_root_cause_reproduced_offline",
+      "priority_integer_range_fix_tested_offline",
       "all_non_live_regressions_passed",
       "fix_commit_pushed",
       "new_explicit_fixture_preparation_authorization"
@@ -461,7 +597,7 @@
   "artifact_state": {
     "fixture_manifest_created": false,
     "fixture_snapshot_created": false,
-    "fixture_preparation_artifacts_created": 8,
+    "fixture_preparation_artifacts_created": 12,
     "fixture_preparation_artifacts_retained_locally": true,
     "sp001_run_artifacts_created": 0,
     "sp002_run_artifacts_created": 0,
