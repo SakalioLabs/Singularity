@@ -712,6 +712,64 @@ function createProbe12FalsePickupCompletionFixture(options = {}) {
     };
 }
 
+function createSP001AdjacentPickupMarginFixture() {
+    const target = new Vec3(94, 131, -32);
+    const drop = {
+        id: 322,
+        name: 'item',
+        position: new Vec3(94.125, 131, -31.875),
+        getDroppedItem: () => ({ name: 'oak_log' }),
+    };
+    let removed = false;
+    let items = [{ name: 'dark_oak_log', count: 3 }];
+    let clockMs = 0;
+    const navigationGoals = [];
+    const bot = {
+        version: '1.20.4',
+        entity: {
+            position: new Vec3(95.57907285827427, 131, -31.494351547541445),
+        },
+        entities: { [drop.id]: drop },
+        inventory: { items: () => items },
+        blockAt(position) {
+            if (position.x === target.x && position.y === target.y && position.z === target.z) {
+                return removed
+                    ? { name: 'air', type: 0, boundingBox: 'empty', position: target }
+                    : { name: 'oak_log', type: 46, boundingBox: 'block', drops: [131], position: target };
+            }
+            if (position.x === 94 && position.y === 132 && position.z === -32) {
+                return { name: 'dirt', type: 9, boundingBox: 'block', position };
+            }
+            if (position.x === 95 && position.y === 130 && position.z === -32) {
+                return { name: 'stone', type: 1, boundingBox: 'block', position };
+            }
+            return { name: 'air', type: 0, boundingBox: 'empty', position };
+        },
+        async dig() {
+            removed = true;
+        },
+        pathfinder: {
+            async goto(goal) {
+                navigationGoals.push(goal);
+                if (navigationGoals.length === 1) {
+                    clockMs += 2000;
+                    return;
+                }
+                clockMs += 500;
+                bot.entity.position = new Vec3(95.5, 131, -31.5);
+                items = [...items, { name: 'oak_log', count: 1 }];
+            },
+            stop() {},
+        },
+    };
+    return {
+        bot,
+        target,
+        navigationGoals,
+        monotonicMs: () => clockMs,
+    };
+}
+
 async function testM4PickupCompletionUsesProbe12StandableFallback() {
     const fixture = createProbe12FalsePickupCompletionFixture();
     const handler = createDigHandler(
@@ -783,6 +841,41 @@ async function testM4PickupCompletionFallbackFailsClosedAndStopsAfterOneAttempt(
     console.log('PASS: M4 pickup fallback remains fail-closed and performs no third navigation');
 }
 
+async function testSP001PickupFallbackUsesBoundedAdjacentCandidateMargin() {
+    const fixture = createSP001AdjacentPickupMarginFixture();
+    const handler = createDigHandler(
+        () => ({ bot: fixture.bot, botReady: true }),
+        async () => {},
+        { monotonicMs: fixture.monotonicMs },
+    );
+    const result = await handler({
+        x: fixture.target.x,
+        y: fixture.target.y,
+        z: fixture.target.z,
+        require_pickup: true,
+    });
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.pickup_observed, true);
+    assert.deepStrictEqual(result.pickup_inventory_delta, { oak_log: 1 });
+    assert.strictEqual(result.pickup_collection.goal_range, 1);
+    assert.strictEqual(result.pickup_collection.fallback_candidate_margin, 0.5);
+    assert.strictEqual(result.pickup_collection.fallback_candidate_max_distance, 1.5);
+    assert.strictEqual(result.pickup_collection.direct_navigation.completion_grounded, false);
+    assert(result.pickup_collection.initial_distance > 1.5);
+    assert.deepStrictEqual(
+        result.pickup_collection.fallback_candidate.position,
+        { x: 95, y: 131, z: -32 },
+    );
+    assert(result.pickup_collection.fallback_candidate.expected_pickup_distance > 1);
+    assert(result.pickup_collection.fallback_candidate.expected_pickup_distance <= 1.5);
+    assert.strictEqual(result.pickup_collection.fallback_navigation.distance_grounded, false);
+    assert.strictEqual(result.pickup_collection.fallback_navigation.inventory_delta_observed, true);
+    assert.strictEqual(result.pickup_collection.completion_grounded_by, 'inventory_delta');
+    assert.strictEqual(fixture.navigationGoals.length, 2);
+    console.log('PASS: SP-001 pickup fallback uses a bounded adjacent candidate margin');
+}
+
 async function testM4PickupCompletionRejectsUnsupportedFallbackCell() {
     const fixture = createProbe12FalsePickupCompletionFixture({ standable: false });
     const handler = createDigHandler(
@@ -846,6 +939,7 @@ async function main() {
     await testM4DigHandlerWaitsForDropAndUsesReachablePickupGoal();
     await testM4PickupCompletionUsesProbe12StandableFallback();
     await testM4PickupCompletionFallbackFailsClosedAndStopsAfterOneAttempt();
+    await testSP001PickupFallbackUsesBoundedAdjacentCandidateMargin();
     await testM4PickupCompletionRejectsUnsupportedFallbackCell();
     await testPickupCompletionGroundingLeavesLegacyDigUnchanged();
     console.log('\nBot server benchmark reset tests PASSED');

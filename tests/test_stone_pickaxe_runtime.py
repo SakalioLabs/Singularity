@@ -359,6 +359,45 @@ def test_retained_sp001_failure_reproduces_machine_state_equip_disconnect():
     assert report["issues"] == ["sp001_redundant_wooden_pickaxe_equip"]
 
 
+def test_retained_sp001_pickup_failure_proves_delayed_recovery():
+    root = Path(__file__).resolve().parents[1]
+    session_path = (
+        root
+        / "workspace"
+        / "evals"
+        / "sp001_runs"
+        / "sp001_episode_20260717_230318_23d8bdf3"
+        / "session_404cf3b3-c52.jsonl"
+    )
+    events = [
+        json.loads(line)
+        for line in session_path.read_text(encoding="utf-8").splitlines()
+    ]
+    actions = [event["data"] for event in events if event.get("type") == "action"]
+    assert [entry["action"]["type"] for entry in actions] == [
+        "equip",
+        "dig",
+        "dig",
+        "dig",
+        "dig",
+    ]
+
+    failed = actions[2]["result"]
+    assert failed["success"] is False
+    assert failed["block_removed"] is True
+    assert failed["pickup_collection"]["entity_id"] == 322
+    assert failed["pickup_collection"]["direct_navigation"]["pathfinder_resolved"] is True
+    assert failed["pickup_collection"]["direct_navigation"]["completion_grounded"] is False
+    assert failed["pickup_collection"]["fallback_candidate"] is None
+
+    recovered = actions[4]["result"]
+    assert recovered["pickup_collection"]["entity_id"] == 322
+    assert recovered["pickup_collection"]["fallback_attempt_count"] == 1
+    assert recovered["pickup_collection"]["completion_grounded_by"] == "inventory_delta"
+    assert recovered["pickup_inventory_delta"] == {"cobblestone": 2}
+    assert actions[4]["post_observation"]["inventory"]["cobblestone"] == 4
+
+
 def test_retained_sp001_failure_evidence_hashes_match_ledger():
     root = Path(__file__).resolve().parents[1]
     attributes = (root / ".gitattributes").read_text(encoding="utf-8")
@@ -368,16 +407,21 @@ def test_retained_sp001_failure_evidence_hashes_match_ledger():
             encoding="utf-8"
         )
     )
-    failure = next(
+    failures = [
         item
         for item in ledger["failures"]
-        if item.get("id") == "sp001-001-redundant-equip"
-    )
-    assert len(failure["evidence"]) == 10
-    for record in failure["evidence"]:
-        path = root / record["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+        if str(item.get("id") or "").startswith("sp001-")
+    ]
+    assert [item["id"] for item in failures] == [
+        "sp001-001-redundant-equip",
+        "sp001-002-pickup-candidate-margin",
+    ]
+    for failure in failures:
+        assert len(failure["evidence"]) == 10
+        for record in failure["evidence"]:
+            path = root / record["path"]
+            assert path.is_file()
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
 def test_fixture_guard_blocks_target_result_mining_and_duplicate_pickaxe():

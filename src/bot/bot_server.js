@@ -961,6 +961,7 @@ function blockDropNames(activeBot, block) {
 }
 
 const M4_DIG_REQUIRED_TOOL_EQUIP_POLICY_ID = 'm4-dig-required-tool-equip-v1';
+const M4_PICKUP_FALLBACK_CANDIDATE_MARGIN = 0.5;
 
 function blockHarvestToolTypes(block) {
     const harvestTools = block?.harvestTools;
@@ -1045,7 +1046,7 @@ async function waitForDroppedItem(
     return { drop: null, waited_ms: maxWaitMs };
 }
 
-function pickupStandableCandidate(activeBot, dropPosition, goalRange) {
+function pickupStandableCandidate(activeBot, dropPosition, maximumDistance) {
     if (!activeBot?.blockAt || !dropPosition) return null;
     const base = {
         x: Math.floor(dropPosition.x),
@@ -1074,7 +1075,7 @@ function pickupStandableCandidate(activeBot, dropPosition, goalRange) {
         if (!support.solid || !feet.passable || !head.passable) continue;
         const expectedPlayerPosition = new Vec3(position.x + 0.5, position.y, position.z + 0.5);
         const pickupDistance = navigationDistance(expectedPlayerPosition, dropPosition, true);
-        if (pickupDistance === null || pickupDistance > goalRange) continue;
+        if (pickupDistance === null || pickupDistance > maximumDistance) continue;
         candidates.push({
             position: positionPayload(position),
             expected_player_position: positionPayload(expectedPlayerPosition),
@@ -1226,6 +1227,8 @@ async function approachDroppedItem(
     details.navigation_budget_ms = timeoutMs;
     details.fallback_attempt_limit = 1;
     details.fallback_attempt_count = 0;
+    details.fallback_candidate_margin = M4_PICKUP_FALLBACK_CANDIDATE_MARGIN;
+    details.fallback_candidate_max_distance = goalRange + details.fallback_candidate_margin;
     const directGoal = new goals.GoalNear(
         Math.floor(dropPosition.x),
         Math.floor(dropPosition.y),
@@ -1252,7 +1255,11 @@ async function approachDroppedItem(
     }
 
     const fallbackDropPosition = currentDropPosition();
-    const candidate = pickupStandableCandidate(activeBot, fallbackDropPosition, goalRange);
+    const candidate = pickupStandableCandidate(
+        activeBot,
+        fallbackDropPosition,
+        details.fallback_candidate_max_distance,
+    );
     details.fallback_candidate = candidate;
     if (!candidate) {
         details.success = false;
