@@ -424,6 +424,44 @@ def test_retained_sp001_failure_evidence_hashes_match_ledger():
             assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
+def test_eligible_sp001_success_evidence_hashes_match_ledger():
+    root = Path(__file__).resolve().parents[1]
+    ledger = json.loads(
+        (root / "workspace" / "evals" / "stone_pickaxe_failure_ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    successes = ledger["eligible_successes"]
+    assert [item["id"] for item in successes] == ["sp001-success-001"]
+    assert len({item["episode_id"] for item in successes}) == len(successes)
+    assert len({item["session_id"] for item in successes}) == len(successes)
+    assert len({item["session_sha256"] for item in successes}) == len(successes)
+
+    for success in successes:
+        assert success["task_id"] == "SP-001"
+        assert success["status"] == "eligible_live_success"
+        assert success["machine_verification"]["passed"] is True
+        assert success["machine_verification"]["evidence_eligible"] is True
+        assert success["counts_toward_skill_gate"] is True
+        assert success["counts_toward_capability"] is False
+        assert success["counts_toward_m4"] is False
+        assert len(success["evidence"]) == 10
+        for record in success["evidence"]:
+            path = root / record["path"]
+            assert path.is_file()
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+        verification_path = root / next(
+            record["path"]
+            for record in success["evidence"]
+            if record["path"].endswith("/verification.json")
+        )
+        verification = json.loads(verification_path.read_text(encoding="utf-8"))
+        assert verification["passed"] is True
+        assert verification["evidence_eligible"] is True
+        assert verification["counts_toward_skill_gate"] is True
+
+
 def test_fixture_guard_blocks_target_result_mining_and_duplicate_pickaxe():
     observation = _raw_observation()
     stone = guard_runtime_action(
