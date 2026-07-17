@@ -1,0 +1,383 @@
+{
+  "type": "stone_pickaxe_skill_baseline_index",
+  "schema_version": 1,
+  "policy_id": "stone-pickaxe-sp001-paired-evaluation-v1",
+  "policy_sha256": "61aebb8606c85b3df0872ccd1900d7e05fb962fba32fce50d00a741d5216a4db",
+  "task_id": "SP-001",
+  "record_count": 3,
+  "all_records_passed": true,
+  "records": [
+    {
+      "type": "stone_pickaxe_skill_evaluation_run",
+      "schema_version": 1,
+      "policy_id": "stone-pickaxe-sp001-paired-evaluation-v1",
+      "policy_sha256": "61aebb8606c85b3df0872ccd1900d7e05fb962fba32fce50d00a741d5216a4db",
+      "protocol_id": "stone-pickaxe-skill-fixed-v1",
+      "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+      "task_id": "SP-001",
+      "run_id": "baseline:sp001_episode_20260717_232454_5c05abf0",
+      "arm": "baseline",
+      "replicate_id": "r1",
+      "pair_id": "sp001-acquire-r1",
+      "episode_id": "sp001_episode_20260717_232454_5c05abf0",
+      "session_id": "b93a7777-207",
+      "skill_id": "learned:acquire_cobblestone",
+      "skill_version": "1.0.0",
+      "candidate_id": "e1534e57",
+      "status": "pass",
+      "checks": {
+        "retained_episode_hash": true,
+        "retained_verification_hash": true,
+        "retained_manifest_hash": true,
+        "retained_session_hash": true,
+        "machine_verification_passed": true,
+        "evidence_eligible": true,
+        "skill_mode_off": true,
+        "no_skill_selected": true,
+        "no_skill_executed": true
+      },
+      "metrics": {
+        "task_completion": 1,
+        "environment_steps": 4,
+        "successful_actions": 4,
+        "failed_actions": 0,
+        "verifier_rejects": 0,
+        "planner_calls": 4,
+        "no_progress_loops": 0,
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "candidate_steps_verified": false,
+        "candidate_steps_reobserved": false,
+        "exact_skill_context_only": false,
+        "attribution_confidence": 0.0
+      },
+      "fixed_controls": {
+        "protocol_id": "stone-pickaxe-skill-fixed-v1",
+        "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+        "task_id": "SP-001",
+        "goal": "Gather 3 cobblestone with the wooden pickaxe",
+        "fixture_id": "sp001-acquire-cobblestone-v1",
+        "fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+        "episode_timeout_s": 180,
+        "maximum_cycles": 12,
+        "maximum_actions": 8,
+        "per_action_timeout_s": 60,
+        "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+        "runtime_policy_id": "stone-pickaxe-controlled-runtime-v1",
+        "action_guard_policy_id": "stone-pickaxe-action-guard-v1",
+        "planner": {
+          "identity": "llm-autonomous-planner-v1",
+          "provider": "openai",
+          "base_url": "https://opencode.ai/zen/go/v1",
+          "model": "deepseek-v4-flash",
+          "temperature": 0.0,
+          "max_tokens": 4096,
+          "thinking": "disabled",
+          "provider_retries": 0
+        },
+        "environment": {
+          "minecraft_version": "1.20.4",
+          "server_type": "Paper",
+          "server_build": "paper-1.20.4-499",
+          "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+          "world_seed": "12345",
+          "game_mode": "survival",
+          "difficulty": "normal",
+          "runtime_versions": {
+            "python": "3.12.8",
+            "node": "22.16.0",
+            "mineflayer": "4.37.1",
+            "mineflayer_pathfinder": "2.4.5",
+            "minecraft_data": "3.111.0"
+          }
+        },
+        "action_verifier_enforced": true,
+        "action_controller_enforced": true,
+        "goal_verifier_enforced": true,
+        "automatic_retry_allowed": false
+      },
+      "fixed_controls_fingerprint": "50bf60d4dcb1721023661043bccc603c380a99e0fd071695b1a34fbe99f1319a",
+      "initial_state_fingerprint": "4e5f967e22b3aab92b153312c05f29a8e797064e4852f9f673362a22c70cfc02",
+      "source_evidence": [
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260717_232454_5c05abf0/episode.json",
+          "sha256": "efcd4b445c74b81956d47a67b350053c4757436f6970ab3de45af87cc8d13256"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260717_232454_5c05abf0/verification.json",
+          "sha256": "a21729ad04c87dfdd00112d0de39f29cba19edd163ff00a5a3b4f23616b3cb66"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260717_232454_5c05abf0/manifest.json",
+          "sha256": "53bdfe84280650c4683a6125d14b605480d10134fac2aad0c557e28fbdc80d7e"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260717_232454_5c05abf0/session.json",
+          "sha256": "7aa6b418c29ca0e055f01dd464f79c04ba2ed237ddf6139200bdf7df9851c302"
+        }
+      ],
+      "authorization_fingerprint": "",
+      "evidence_kind": "live_verified",
+      "live_minecraft": true,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false,
+      "record_payload_sha256": "86f07c63e9ca27b20cbf752433560cac70b9b6b730c20e1ab9619ee5dbc35ac7"
+    },
+    {
+      "type": "stone_pickaxe_skill_evaluation_run",
+      "schema_version": 1,
+      "policy_id": "stone-pickaxe-sp001-paired-evaluation-v1",
+      "policy_sha256": "61aebb8606c85b3df0872ccd1900d7e05fb962fba32fce50d00a741d5216a4db",
+      "protocol_id": "stone-pickaxe-skill-fixed-v1",
+      "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+      "task_id": "SP-001",
+      "run_id": "baseline:sp001_episode_20260718_012012_0349d399",
+      "arm": "baseline",
+      "replicate_id": "r2",
+      "pair_id": "sp001-acquire-r2",
+      "episode_id": "sp001_episode_20260718_012012_0349d399",
+      "session_id": "7e550b04-90e",
+      "skill_id": "learned:acquire_cobblestone",
+      "skill_version": "1.0.0",
+      "candidate_id": "e1534e57",
+      "status": "pass",
+      "checks": {
+        "retained_episode_hash": true,
+        "retained_verification_hash": true,
+        "retained_manifest_hash": true,
+        "retained_session_hash": true,
+        "machine_verification_passed": true,
+        "evidence_eligible": true,
+        "skill_mode_off": true,
+        "no_skill_selected": true,
+        "no_skill_executed": true
+      },
+      "metrics": {
+        "task_completion": 1,
+        "environment_steps": 4,
+        "successful_actions": 4,
+        "failed_actions": 0,
+        "verifier_rejects": 0,
+        "planner_calls": 4,
+        "no_progress_loops": 0,
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "candidate_steps_verified": false,
+        "candidate_steps_reobserved": false,
+        "exact_skill_context_only": false,
+        "attribution_confidence": 0.0
+      },
+      "fixed_controls": {
+        "protocol_id": "stone-pickaxe-skill-fixed-v1",
+        "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+        "task_id": "SP-001",
+        "goal": "Gather 3 cobblestone with the wooden pickaxe",
+        "fixture_id": "sp001-acquire-cobblestone-v1",
+        "fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+        "episode_timeout_s": 180,
+        "maximum_cycles": 12,
+        "maximum_actions": 8,
+        "per_action_timeout_s": 60,
+        "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+        "runtime_policy_id": "stone-pickaxe-controlled-runtime-v1",
+        "action_guard_policy_id": "stone-pickaxe-action-guard-v1",
+        "planner": {
+          "identity": "llm-autonomous-planner-v1",
+          "provider": "openai",
+          "base_url": "https://opencode.ai/zen/go/v1",
+          "model": "deepseek-v4-flash",
+          "temperature": 0.0,
+          "max_tokens": 4096,
+          "thinking": "disabled",
+          "provider_retries": 0
+        },
+        "environment": {
+          "minecraft_version": "1.20.4",
+          "server_type": "Paper",
+          "server_build": "paper-1.20.4-499",
+          "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+          "world_seed": "12345",
+          "game_mode": "survival",
+          "difficulty": "normal",
+          "runtime_versions": {
+            "python": "3.12.8",
+            "node": "22.16.0",
+            "mineflayer": "4.37.1",
+            "mineflayer_pathfinder": "2.4.5",
+            "minecraft_data": "3.111.0"
+          }
+        },
+        "action_verifier_enforced": true,
+        "action_controller_enforced": true,
+        "goal_verifier_enforced": true,
+        "automatic_retry_allowed": false
+      },
+      "fixed_controls_fingerprint": "50bf60d4dcb1721023661043bccc603c380a99e0fd071695b1a34fbe99f1319a",
+      "initial_state_fingerprint": "4e5f967e22b3aab92b153312c05f29a8e797064e4852f9f673362a22c70cfc02",
+      "source_evidence": [
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_012012_0349d399/episode.json",
+          "sha256": "d6d028062afae17730745e2ebd0ca3483fb0c822d776b163236f19a73a38a9c6"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_012012_0349d399/verification.json",
+          "sha256": "a21729ad04c87dfdd00112d0de39f29cba19edd163ff00a5a3b4f23616b3cb66"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_012012_0349d399/manifest.json",
+          "sha256": "e64405715d9fa163fcd38a53c8ea3c25a2ecc7cf808d8f519a6f93bdb7ac3c49"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_012012_0349d399/session.json",
+          "sha256": "5f7914d952fed3dca62f7b5a53c540d454681e0bcd9352284662d7cb9e79bc5a"
+        }
+      ],
+      "authorization_fingerprint": "",
+      "evidence_kind": "live_verified",
+      "live_minecraft": true,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false,
+      "record_payload_sha256": "d0c009882d8b2fb0fcb020998a423c8a2f34c3348f480ca459dbc05b8bfb4815"
+    },
+    {
+      "type": "stone_pickaxe_skill_evaluation_run",
+      "schema_version": 1,
+      "policy_id": "stone-pickaxe-sp001-paired-evaluation-v1",
+      "policy_sha256": "61aebb8606c85b3df0872ccd1900d7e05fb962fba32fce50d00a741d5216a4db",
+      "protocol_id": "stone-pickaxe-skill-fixed-v1",
+      "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+      "task_id": "SP-001",
+      "run_id": "baseline:sp001_episode_20260718_023754_912de280",
+      "arm": "baseline",
+      "replicate_id": "r3",
+      "pair_id": "sp001-acquire-r3",
+      "episode_id": "sp001_episode_20260718_023754_912de280",
+      "session_id": "cbbd4e7e-7d8",
+      "skill_id": "learned:acquire_cobblestone",
+      "skill_version": "1.0.0",
+      "candidate_id": "e1534e57",
+      "status": "pass",
+      "checks": {
+        "retained_episode_hash": true,
+        "retained_verification_hash": true,
+        "retained_manifest_hash": true,
+        "retained_session_hash": true,
+        "machine_verification_passed": true,
+        "evidence_eligible": true,
+        "skill_mode_off": true,
+        "no_skill_selected": true,
+        "no_skill_executed": true
+      },
+      "metrics": {
+        "task_completion": 1,
+        "environment_steps": 4,
+        "successful_actions": 4,
+        "failed_actions": 0,
+        "verifier_rejects": 0,
+        "planner_calls": 4,
+        "no_progress_loops": 0,
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "candidate_steps_verified": false,
+        "candidate_steps_reobserved": false,
+        "exact_skill_context_only": false,
+        "attribution_confidence": 0.0
+      },
+      "fixed_controls": {
+        "protocol_id": "stone-pickaxe-skill-fixed-v1",
+        "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+        "task_id": "SP-001",
+        "goal": "Gather 3 cobblestone with the wooden pickaxe",
+        "fixture_id": "sp001-acquire-cobblestone-v1",
+        "fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+        "episode_timeout_s": 180,
+        "maximum_cycles": 12,
+        "maximum_actions": 8,
+        "per_action_timeout_s": 60,
+        "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+        "runtime_policy_id": "stone-pickaxe-controlled-runtime-v1",
+        "action_guard_policy_id": "stone-pickaxe-action-guard-v1",
+        "planner": {
+          "identity": "llm-autonomous-planner-v1",
+          "provider": "openai",
+          "base_url": "https://opencode.ai/zen/go/v1",
+          "model": "deepseek-v4-flash",
+          "temperature": 0.0,
+          "max_tokens": 4096,
+          "thinking": "disabled",
+          "provider_retries": 0
+        },
+        "environment": {
+          "minecraft_version": "1.20.4",
+          "server_type": "Paper",
+          "server_build": "paper-1.20.4-499",
+          "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+          "world_seed": "12345",
+          "game_mode": "survival",
+          "difficulty": "normal",
+          "runtime_versions": {
+            "python": "3.12.8",
+            "node": "22.16.0",
+            "mineflayer": "4.37.1",
+            "mineflayer_pathfinder": "2.4.5",
+            "minecraft_data": "3.111.0"
+          }
+        },
+        "action_verifier_enforced": true,
+        "action_controller_enforced": true,
+        "goal_verifier_enforced": true,
+        "automatic_retry_allowed": false
+      },
+      "fixed_controls_fingerprint": "50bf60d4dcb1721023661043bccc603c380a99e0fd071695b1a34fbe99f1319a",
+      "initial_state_fingerprint": "4e5f967e22b3aab92b153312c05f29a8e797064e4852f9f673362a22c70cfc02",
+      "source_evidence": [
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_023754_912de280/episode.json",
+          "sha256": "4d00b3a5ea52bf1b5f362f11888e12a36f06723608f15646ee3102c069a53288"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_023754_912de280/verification.json",
+          "sha256": "a21729ad04c87dfdd00112d0de39f29cba19edd163ff00a5a3b4f23616b3cb66"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_023754_912de280/manifest.json",
+          "sha256": "d1155dc35892001dd1b57fce7131b8bd10c906907772399ba4cf9e32b677652c"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_023754_912de280/session.json",
+          "sha256": "c9fa0c7d41a148eb9141419915b60c5127091f3964383e62e7f60c84389a4761"
+        }
+      ],
+      "authorization_fingerprint": "",
+      "evidence_kind": "live_verified",
+      "live_minecraft": true,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false,
+      "record_payload_sha256": "853661a4b86815d32636daa8ea2537e5180e7a1c11de7b88cf66177a6ee84da8"
+    }
+  ],
+  "prior_evidence_mutated": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

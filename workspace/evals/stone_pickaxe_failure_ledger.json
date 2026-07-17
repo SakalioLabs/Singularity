@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T03:35:00+08:00",
+  "generated_at": "2026-07-18T04:03:49+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_4_sp001_advisory_created",
-  "status": "sp001_acquire_skill_advisory_non_executable_pending_artifact_push",
+  "phase": "phase_5_sp001_paired_evaluation_harness_ready",
+  "status": "sp001_paired_baselines_3_of_3_candidate_pairs_0_of_3_shadow_next_after_push",
   "capability_evidence": false,
   "m4_evidence": false,
-  "live_authorization": false,
+  "live_authorization": true,
   "fixture_preparation_authorization": false,
-  "authorized_live_episode_count": 0,
-  "authorization_scope": "no_live_episode_sp001_advisory_created_paired_evaluation_harness_requires_advisory_artifact_push",
+  "authorized_live_episode_count": 1,
+  "authorization_scope": "one_sp001_skill_evaluation_arm_shadow_shadow_1_after_harness_commit_push",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -22,7 +22,7 @@
     "fixture_audit_passed": true,
     "conditional_sp001_authorization_activated": true,
     "sp001_live_episodes_run": 8,
-    "next_live_authorization": false
+    "next_live_authorization": true
   },
   "fixture_preparation_success": {
     "episode_id": "sp_fixture_prep_20260717_221520_064dd337",
@@ -124,7 +124,13 @@
       "advisory_ready": true,
       "learned_skill_status": "advisory",
       "learned_skill_version": "1.0.0",
-      "executable": false
+      "executable": false,
+      "paired_baseline_count": 3,
+      "paired_candidate_count": 0,
+      "shadow_pass_count": 0,
+      "advisory_pass_count": 0,
+      "fallback_pass_count": 0,
+      "paired_evaluation_decision": "retain_advisory"
     },
     "SP-002": {
       "eligible_live_successes": 0,
@@ -214,7 +220,7 @@
     {
       "phase": 3,
       "name": "sp001_candidate_lifecycle",
-      "status": "advisory_created_non_executable_pending_artifact_push",
+      "status": "advisory_created_non_executable_and_pushed",
       "candidate_id": "e1534e57",
       "skill_id": "learned:acquire_cobblestone",
       "candidate_status": "advisory",
@@ -225,6 +231,26 @@
       "custom_skill_mutated": true,
       "custom_skill_status": "advisory",
       "executable": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false
+    },
+    {
+      "phase": 4,
+      "name": "sp001_paired_evaluation_harness",
+      "status": "offline_ready_pending_push_before_shadow_arm",
+      "policy_id": "stone-pickaxe-sp001-paired-evaluation-v1",
+      "policy_sha256": "61aebb8606c85b3df0872ccd1900d7e05fb962fba32fce50d00a741d5216a4db",
+      "baseline_count": 3,
+      "baseline_pass_count": 3,
+      "candidate_pair_count": 0,
+      "shadow_pass_count": 0,
+      "advisory_pass_count": 0,
+      "fallback_pass_count": 0,
+      "decision": "retain_advisory",
+      "skill_artifact_read_only": true,
+      "base_protocol_unchanged": true,
+      "prior_sp001_evidence_unchanged": true,
+      "normal_runtime_permission": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false
     }
@@ -2020,14 +2046,14 @@
       "m4_deadline_passed": true
     },
     "repository_non_live_python_scripts": {
-      "passed": 39,
-      "total": 39
+      "passed": 40,
+      "total": 40
     },
     "fixed_node_suites": {
       "passed": 6,
       "total": 6
     },
-    "repository_json_files_parsed": 1202,
+    "repository_json_files_parsed": 1205,
     "python_compileall_passed": true,
     "fixture_snapshot_audit_passed": true,
     "fixture_manifest_hash_passed": true,
@@ -2054,25 +2080,41 @@
     "sp001_candidate_lifecycle_state_separation_test_passed": true,
     "skill_extractor_source_path_regression_passed": true,
     "runtime_profile_required_label_boundary_regression_passed": true,
-    "ledger_declared_hashes_passed": 127,
+    "ledger_declared_hashes_passed": 131,
     "sp001_declared_hashes_passed": 80,
     "sp001_candidate_materialization_passed": true,
     "sp001_candidate_custom_skill_isolation_passed": true,
     "existing_skill_record_history_hashes_passed": 8,
     "sp001_real_advisory_artifact_consistency_passed": true,
-    "sp001_advisory_non_executable_gate_passed": true
+    "sp001_advisory_non_executable_gate_passed": true,
+    "sp001_paired_evaluation_policy_identity_passed": true,
+    "sp001_paired_evaluation_cases_passed": 15,
+    "sp001_paired_evaluation_cases_total": 15,
+    "sp001_paired_baseline_records_passed": 3,
+    "sp001_paired_baseline_fixed_controls_match": true,
+    "sp001_paired_baseline_initial_state_match": true,
+    "sp001_paired_source_metric_recomputation_passed": true,
+    "sp001_paired_duplicate_arm_rejection_passed": true,
+    "sp001_paired_skill_artifact_read_only_passed": true,
+    "sp001_paired_base_protocol_unchanged": true,
+    "sp001_paired_candidate_pair_count": 0,
+    "sp001_paired_decision": "retain_advisory"
   },
   "next_required_gate": {
-    "id": "sp001_paired_evaluation_harness_after_advisory_artifact_push",
+    "id": "sp001_shadow_shadow_1_after_paired_harness_push",
     "authorization": true,
     "prerequisites": [
-      "candidate_artifact_commit_a40425f_pushed",
-      "advisory_skill_matches_candidate_e1534e57",
-      "advisory_skill_has_no_executable_promotion_gate",
-      "existing_eight_skill_records_are_hash_unchanged",
-      "advisory_artifacts_pass_full_non_live_gate",
-      "advisory_artifact_commit_pushed"
+      "paired_policy_identity_passed",
+      "three_retained_baseline_records_passed",
+      "baseline_fixed_controls_and_initial_state_match",
+      "advisory_skill_record_is_hash_bound_and_read_only",
+      "paired_harness_passes_full_non_live_gate",
+      "paired_harness_commit_pushed"
     ],
+    "arm": "shadow",
+    "replicate_id": "shadow-1",
+    "live_episode_limit": 1,
+    "normal_runtime_permission": false,
     "automatic_retry_allowed": false
   },
   "artifact_state": {
@@ -2087,11 +2129,53 @@
     "sp002_run_artifacts_created": 0,
     "sp003_run_artifacts_created": 0,
     "promotion_artifacts_created": 1,
+    "paired_policy_artifacts_created": 1,
+    "paired_baseline_index_artifacts_created": 1,
+    "paired_evaluation_report_artifacts_created": 1,
+    "paired_baseline_records_created": 3,
+    "paired_candidate_run_artifacts_created": 0,
+    "paired_support_run_artifacts_created": 0,
     "candidate_queue_records_created": 1,
     "advisory_skill_records_created": 1,
     "acceptance_artifacts_created": 0,
     "custom_skills_modified": true,
-    "capability_report_modified": false
+    "capability_report_modified": false,
+    "base_protocol_modified": false,
+    "prior_sp001_evidence_modified": false
+  },
+  "paired_evaluation": {
+    "policy": {
+      "id": "stone-pickaxe-sp001-paired-evaluation-v1",
+      "path": "workspace/evals/stone_pickaxe_paired_evaluation_policy.json",
+      "sha256": "61aebb8606c85b3df0872ccd1900d7e05fb962fba32fce50d00a741d5216a4db"
+    },
+    "baseline_index": {
+      "path": "workspace/evals/acquire_cobblestone_baseline_index.json",
+      "sha256": "17fbeb6643037c40eb2e1e8e77d913284688d001178058f41af88c13c6e9f97c",
+      "record_count": 3,
+      "pass_count": 3,
+      "fixed_controls_match": true,
+      "initial_state_match": true
+    },
+    "report": {
+      "path": "workspace/evals/acquire_cobblestone_paired_evaluation.json",
+      "sha256": "53d7fa10e5d1902ad526552733eb344046742f0c8edfcef3c24154cad3e71567",
+      "valid_pair_count": 0,
+      "required_pair_count": 3,
+      "shadow_verified": false,
+      "advisory_verified": false,
+      "fallback_verified": false,
+      "decision": "retain_advisory",
+      "normal_runtime_permission": false
+    },
+    "next_arm": {
+      "arm": "shadow",
+      "replicate_id": "shadow-1",
+      "authorized_after_commit_push": true,
+      "automatic_retry_allowed": false
+    },
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
   },
   "immutable_baseline": {
     "commit": "e4e06980caebaa79528b7bc187db0c8422e4f5c8",

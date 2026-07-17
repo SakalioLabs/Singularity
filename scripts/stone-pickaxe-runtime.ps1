@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
-    [ValidateSet("PrepareFixture", "RunSP001", "AuditFixture")]
+    [ValidateSet("PrepareFixture", "RunSP001", "RunSP001SkillArm", "AuditFixture")]
     [string]$Mode = "AuditFixture",
+    [string]$SkillArm = "",
+    [string]$ReplicateId = "",
     [string]$ServerDirectory = "mc-server",
     [string]$ServerJar = "server.jar",
     [string]$MinecraftHost = "127.0.0.1",
@@ -21,6 +23,7 @@ $jarPath = Join-Path $serverRoot $ServerJar
 $eulaPath = Join-Path $serverRoot "eula.txt"
 $propertiesPath = Join-Path $serverRoot "server.properties"
 $protocolPath = Join-Path $repoRoot "workspace\evals\stone_pickaxe_protocol.json"
+$pairedPolicyPath = Join-Path $repoRoot "workspace\evals\stone_pickaxe_paired_evaluation_policy.json"
 $fixtureManifestPath = Join-Path $repoRoot "workspace\evals\stone_pickaxe_fixture.json"
 $runtimeLogRoot = Join-Path $repoRoot "logs\stone_pickaxe\runtime"
 $serverProcess = $null
@@ -344,20 +347,51 @@ try {
     }
 
     Assert-File $fixtureManifestPath "RunSP001 requires a sealed fixture manifest."
+    if ($Mode -eq "RunSP001SkillArm") {
+        Assert-File $pairedPolicyPath "SP-001 skill evaluation policy is missing."
+    }
     $fixture = Get-Content -LiteralPath $fixtureManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $snapshotRoot = Assert-PathWithin (Join-Path $repoRoot ([string]$fixture.snapshot.path)) (Join-Path $repoRoot "logs\stone_pickaxe\fixtures") "Fixture snapshot path escaped its controlled root."
     $snapshotRelative = Get-RepositoryRelativePath $snapshotRoot
     & python scripts/stone_pickaxe_episode_runner.py audit-fixture --fixture "workspace/evals/stone_pickaxe_fixture.json" --snapshot-root $snapshotRelative
     if ($LASTEXITCODE -ne 0) { throw "Fixture identity audit failed before live authorization consumption." }
 
-    $episodeId = "sp001_episode_${timestamp}_${suffix}"
+    $isSkillArm = $Mode -eq "RunSP001SkillArm"
+    if ($isSkillArm) {
+        $normalizedArm = $SkillArm.Trim().ToLowerInvariant()
+        $normalizedReplicate = $ReplicateId.Trim().ToLowerInvariant()
+        $allowedReplicates = [ordered]@{
+            "shadow" = @("shadow-1")
+            "advisory" = @("advisory-1")
+            "fallback" = @("fallback-1")
+            "candidate" = @("r1", "r2", "r3")
+        }
+        if (-not $allowedReplicates.Contains($normalizedArm)) {
+            throw "SkillArm must be shadow, advisory, fallback, or candidate."
+        }
+        if ($normalizedReplicate -notin $allowedReplicates[$normalizedArm]) {
+            throw "ReplicateId '$normalizedReplicate' is not allowed for arm '$normalizedArm'."
+        }
+        $episodeId = "sp001_skill_${normalizedArm}_${timestamp}_${suffix}"
+        $outputRelative = "workspace\evals\sp001_skill_evaluation_runs\$episodeId"
+    }
+    else {
+        $episodeId = "sp001_episode_${timestamp}_${suffix}"
+        $outputRelative = "workspace\evals\sp001_runs\$episodeId"
+    }
     $levelName = $episodeId
-    $outputRelative = "workspace\evals\sp001_runs\$episodeId"
     $outputRoot = Join-Path $repoRoot $outputRelative
     if (Test-Path -LiteralPath $outputRoot) { throw "SP-001 evidence directory already exists: $outputRoot" }
-    $hypothesisRelative = "$outputRelative\hypothesis.json"
-    & python scripts/stone_pickaxe_episode_runner.py write-hypothesis --fixture "workspace/evals/stone_pickaxe_fixture.json" --snapshot-root $snapshotRelative --episode-id $episodeId --git-head $gitHead --output $hypothesisRelative
-    if ($LASTEXITCODE -ne 0) { throw "Could not persist the pre-episode hypothesis." }
+    if ($isSkillArm) {
+        $authorizationRelative = "$outputRelative\authorization.json"
+        & python scripts/stone_pickaxe_skill_evaluation.py write-authorization --arm $normalizedArm --replicate-id $normalizedReplicate --episode-id $episodeId --git-head $gitHead --output $authorizationRelative
+        if ($LASTEXITCODE -ne 0) { throw "Could not persist the one-arm pre-live authorization." }
+    }
+    else {
+        $hypothesisRelative = "$outputRelative\hypothesis.json"
+        & python scripts/stone_pickaxe_episode_runner.py write-hypothesis --fixture "workspace/evals/stone_pickaxe_fixture.json" --snapshot-root $snapshotRelative --episode-id $episodeId --git-head $gitHead --output $hypothesisRelative
+        if ($LASTEXITCODE -ne 0) { throw "Could not persist the pre-episode hypothesis." }
+    }
 
     $sourceNames = @("world", "world_nether", "world_the_end")
     $targetNames = @($levelName, "${levelName}_nether", "${levelName}_the_end")
@@ -374,13 +408,25 @@ try {
 
     Set-EpisodeServerProperties $levelName ([string]$protocol.environment.world_seed)
     Start-ControlledRuntime $episodeId $levelName $serverJarSha256
-    & python scripts/stone_pickaxe_episode_runner.py run-sp001 --host $MinecraftHost --port $MinecraftPort --username $Username --bridge-host 127.0.0.1 --bridge-port $BridgePort --episode-id $episodeId --level-name $levelName --output-dir $outputRelative --fixture "workspace/evals/stone_pickaxe_fixture.json" --hypothesis $hypothesisRelative --restoration $restorationRelative --server-jar-sha256 $serverJarSha256
+    if ($isSkillArm) {
+        & python scripts/stone_pickaxe_skill_evaluation.py run-arm --host $MinecraftHost --port $MinecraftPort --username $Username --bridge-host 127.0.0.1 --bridge-port $BridgePort --arm $normalizedArm --replicate-id $normalizedReplicate --episode-id $episodeId --level-name $levelName --git-head $gitHead --output-dir $outputRelative --fixture "workspace/evals/stone_pickaxe_fixture.json" --authorization $authorizationRelative --restoration $restorationRelative --server-jar-sha256 $serverJarSha256
+    }
+    else {
+        & python scripts/stone_pickaxe_episode_runner.py run-sp001 --host $MinecraftHost --port $MinecraftPort --username $Username --bridge-host 127.0.0.1 --bridge-port $BridgePort --episode-id $episodeId --level-name $levelName --output-dir $outputRelative --fixture "workspace/evals/stone_pickaxe_fixture.json" --hypothesis $hypothesisRelative --restoration $restorationRelative --server-jar-sha256 $serverJarSha256
+    }
     $runnerExit = $LASTEXITCODE
     Stop-ControlledRuntime
     if ($runnerExit -ne 0) {
         throw "The single authorized SP-001 episode hit a runtime blocker; automatic retry is forbidden."
     }
-    Write-Host "Single SP-001 episode retained: $outputRelative"
+    if ($isSkillArm) {
+        & python scripts/stone_pickaxe_skill_evaluation.py refresh-report
+        if ($LASTEXITCODE -ne 0) { throw "Could not refresh the fail-closed paired evaluation report." }
+        Write-Host "Single SP-001 skill evaluation arm retained: $normalizedArm/$normalizedReplicate at $outputRelative"
+    }
+    else {
+        Write-Host "Single SP-001 episode retained: $outputRelative"
+    }
     Write-Host "No retry, SP-002, SP-003, BM-012, or iron-mining action was started."
 }
 finally {
