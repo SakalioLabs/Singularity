@@ -1,24 +1,24 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-17T00:43:05+08:00",
+  "generated_at": "2026-07-17T18:13:20+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_2_sp001_priority_contract_offline_fixed",
+  "phase": "phase_2_sp001_crafting_table_grounding_offline_fixed",
   "status": "offline_fix_verified_new_live_authorization_required",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 0,
-  "authorization_scope": "closed_after_third_fixture_preparation_failed_machine_audit",
+  "authorization_scope": "closed_after_fourth_fixture_preparation_failed_machine_audit",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
-    "fixture_preparation_sessions_authorized": 3,
-    "fixture_preparation_sessions_consumed": 3,
+    "fixture_preparation_sessions_authorized": 4,
+    "fixture_preparation_sessions_consumed": 4,
     "fixture_audit_passed": false,
     "conditional_sp001_authorization_activated": false,
     "sp001_live_episodes_run": 0,
@@ -89,12 +89,12 @@
     {
       "phase": 2,
       "name": "controlled_sp001_runtime",
-      "status": "third_fixture_preparation_blocker_offline_fixed",
-      "fixture_preparation_session_count": 3,
+      "status": "fourth_fixture_preparation_blocker_offline_fixed",
+      "fixture_preparation_session_count": 4,
       "live_episode_count": 0,
       "automatic_retry_allowed": false,
-      "stone_pickaxe_runtime_cases_passed": 19,
-      "stone_pickaxe_runtime_cases_total": 19,
+      "stone_pickaxe_runtime_cases_passed": 21,
+      "stone_pickaxe_runtime_cases_total": 21,
       "minecraft_process_started": true,
       "controlled_listener_count_after_stop": 0,
       "matching_runtime_process_count_after_stop": 0,
@@ -116,7 +116,8 @@
     "parameter_outside_transfer_scope",
     "fixture_preparation_planner_empty_plan",
     "fixture_preparation_unbounded_planner_contract",
-    "fixture_preparation_root_priority_contract"
+    "fixture_preparation_root_priority_contract",
+    "fixture_preparation_crafting_table_grounding"
   ],
   "failures": [
     {
@@ -549,6 +550,195 @@
         "counts_toward_capability": false,
         "counts_toward_m4": false
       }
+    },
+    {
+      "id": "sp-fixture-prep-004-crafting-table-grounding",
+      "phase": "fixture_preparation",
+      "classification": "fixture_preparation_crafting_table_grounding",
+      "status": "retained_failure_offline_fixed",
+      "attributable_to_learned_skill": false,
+      "episode_id": "sp_fixture_prep_20260717_154044_81052541",
+      "session_id": "d386c03c-e1a",
+      "occurred_at_utc": "2026-07-17T07:46:51.821714+00:00",
+      "earliest_unrecovered_transition": "cycle_7_planner_selected_wooden_pickaxe_craft_while_crafting_table_existed_only_in_inventory_and_no_nearby_table_was_observed",
+      "first_failed_action_or_task_transition": "cycle_7_wooden_pickaxe_craft_failed_no_recipe_with_crafting_table_found_false",
+      "goal_result": {
+        "completed": false,
+        "termination_reason": "max_duration",
+        "cycles": 13,
+        "action_count": 13,
+        "successful_action_count": 6,
+        "failed_action_count": 7,
+        "elapsed_s": 304.953,
+        "deadline_eligible": false
+      },
+      "planner_decision": {
+        "call_count": 13,
+        "successful_request_control_audit_count": 13,
+        "root_call_schema_valid_under_old_envelope": true,
+        "root_subtask_count": 6,
+        "root_action_count": 1,
+        "unsupported_root_success_criteria_admitted": {
+          "task": "Place crafting table on ground",
+          "success_criteria": {
+            "placed": true
+          }
+        },
+        "first_impossible_craft": {
+          "cycle": 7,
+          "elapsed_s": 55.29,
+          "action": {
+            "type": "craft",
+            "parameters": {
+              "item": "wooden_pickaxe",
+              "count": 1
+            }
+          },
+          "crafting_table_found": false,
+          "crafting_table_position": null,
+          "backend_error": "No recipe for wooden_pickaxe"
+        },
+        "repeated_impossible_wooden_pickaxe_craft_count": 7,
+        "planner_timeout_error_count": 1,
+        "terminal_timeout_was_downstream_of_repeated_impossible_craft": true,
+        "automatic_retry_count": 0
+      },
+      "task_graph_proof": {
+        "task_count": 6,
+        "completed_task_count": 3,
+        "active_task_count": 1,
+        "accepted_task_count": 2,
+        "terminal_active_task": "Craft 1 crafting table from planks",
+        "terminal_accepted_tasks": [
+          "Place crafting table on ground",
+          "Craft 1 wooden pickaxe using table"
+        ],
+        "unsupported_placed_criterion_prevented_machine_completion": true,
+        "sha256": "795ef63757dabd0b037ae6c73bf1d122fefd42a759a40af517840508f4f5b97f"
+      },
+      "world_state_proof": {
+        "position": {
+          "x": 93.56234969012155,
+          "y": 136.0,
+          "z": -29.55262863488112
+        },
+        "ground_block": "dark_oak_leaves",
+        "inventory": {
+          "crafting_table": 1,
+          "dark_oak_planks": 6,
+          "stick": 4
+        },
+        "game_mode": "survival",
+        "health": 20.0,
+        "hunger": 20.0,
+        "nearby_crafting_table_count": 0,
+        "observed_stone_source_count": 1,
+        "reachable_observed_stone_source_count": 0,
+        "nearest_observed_stone_distance": 20.024984
+      },
+      "machine_audit": {
+        "passed": false,
+        "issues": [
+          "three_reachable_observed_stone_sources",
+          "wooden_pickaxe_exact"
+        ],
+        "wooden_pickaxe_exact": false,
+        "cobblestone_absent": true,
+        "stone_pickaxe_absent": true,
+        "survival_mode": true,
+        "safe": true,
+        "movable": true,
+        "three_reachable_observed_stone_sources": false,
+        "planner_request_controls": true
+      },
+      "evidence": [
+        {
+          "path": "logs/stone_pickaxe/fixture_preparations/sp_fixture_prep_20260717_154044_81052541/preparation.json",
+          "sha256": "284fc1144f65b3fe20c7060a624eb1286be51b01dd4d014165d43250d157648a"
+        },
+        {
+          "path": "logs/stone_pickaxe/fixture_preparations/sp_fixture_prep_20260717_154044_81052541/session.json",
+          "sha256": "eef777e470ec1b6d49ceb20ffff0a6f3890dd653f84c8905bbf24e3a81dbdd05"
+        },
+        {
+          "path": "logs/stone_pickaxe/fixture_preparations/sp_fixture_prep_20260717_154044_81052541/session_d386c03c-e1a.jsonl",
+          "sha256": "28cdc62c406c94284e697d1d8cb1b158f64140657b84064523ea2cd806b42adf"
+        },
+        {
+          "path": "logs/stone_pickaxe/fixture_preparations/sp_fixture_prep_20260717_154044_81052541/session_d386c03c-e1a_summary.json",
+          "sha256": "d5c4b4677986a5e49fc54744a3241c0040376eb6791359ae8b48b1a40fde5f60"
+        }
+      ],
+      "counts_toward_skill_gate": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_attempted": false,
+      "conditional_sp001_episode_run": false,
+      "single_next_offline_fix": "distinguish_inventory_table_from_observed_nearby_table_reject_unsupported_task_state_and_reconcile_ready_machine_state_tasks_after_each_action",
+      "offline_resolution": {
+        "status": "reproduced_fixed_and_tested",
+        "root_cause": "the_fixed_planner_and_action_guard_did_not_distinguish_a_crafting_table_item_from_an_observed_interactive_table_and_the_root_schema_admitted_an_unsupported_placed_criterion",
+        "observed_effects": [
+          "the_first_six_actions_gathered_three_logs_and_crafted_planks_one_table_and_four_sticks",
+          "the_table_remained_in_inventory_and_no_nearby_crafting_table_was_observed",
+          "seven_wooden_pickaxe_craft_actions_reached_the_backend_and_failed_without_inventory_mutation",
+          "the_task_graph_retained_one_active_and_two_accepted_nodes_instead_of_advancing_through_table_placement",
+          "a_late_planner_timeout_consumed_the_remaining_episode_deadline"
+        ],
+        "reproduction": {
+          "tests": [
+            "test_fixture_guard_requires_observed_nearby_table_before_wooden_pickaxe_craft",
+            "test_stone_planner_contract_rejects_unbounded_and_alias_actions",
+            "test_stone_planner_prompt_is_mode_bound_compact_and_canonical",
+            "test_stone_task_reconciliation_completes_ready_inventory_state_only"
+          ],
+          "retained_live_precondition": {
+            "inventory_crafting_table": 1,
+            "nearby_crafting_table_count": 0,
+            "crafting_table_found": false
+          },
+          "expected_guard_issue": "fixture_wooden_pickaxe_requires_observed_crafting_table",
+          "expected_schema_issue": "subtask[1]:success_criteria_key_forbidden:placed"
+        },
+        "fix": {
+          "wooden_pickaxe_craft_requires_observed_table": true,
+          "maximum_table_distance": 4.5,
+          "inventory_table_counts_as_nearby_table": false,
+          "impossible_craft_reaches_action_backend": false,
+          "table_placement_success_criteria": {
+            "nearby_block_present": "crafting_table"
+          },
+          "unknown_root_success_criteria_allowed": false,
+          "post_action_task_reconciliation": {
+            "dependency_ready_only": true,
+            "allowed_criteria": [
+              "inventory",
+              "nearby_block_present"
+            ]
+          },
+          "protocol_json_modified": false
+        },
+        "regressions": {
+          "stone_pickaxe_runtime_cases": "21/21",
+          "stone_pickaxe_protocol_cases": "30/30",
+          "memory_task_system": "passed",
+          "m2_harness": "passed",
+          "m4_deadline": "passed",
+          "goal_verifier": "passed",
+          "action_controller": "passed",
+          "repository_non_live_python_scripts": "39/39",
+          "fixed_node_suites": "6/6",
+          "repository_json_files_parsed": 1122,
+          "python_compileall": "passed",
+          "capability_consistency": "passed",
+          "immutable_evidence_hashes": "passed",
+          "credential_scan": "passed"
+        },
+        "protocol_sha256_unchanged": true,
+        "counts_toward_skill_gate": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      }
     }
   ],
   "validation": {
@@ -557,8 +747,8 @@
       "total": 30
     },
     "stone_pickaxe_runtime_cases": {
-      "passed": 19,
-      "total": 19
+      "passed": 21,
+      "total": 21
     },
     "impacted_runtime_regressions": {
       "m2_harness_passed": true,
@@ -573,7 +763,7 @@
       "passed": 6,
       "total": 6
     },
-    "repository_json_files_parsed": 1119,
+    "repository_json_files_parsed": 1122,
     "python_compileall_passed": true,
     "capability_consistency_passed": true,
     "immutable_baseline_hashes_passed": true,
@@ -583,11 +773,12 @@
     "matching_runtime_process_count": 0
   },
   "next_required_gate": {
-    "id": "new_explicit_fixture_preparation_authorization_after_offline_fix_push",
+    "id": "new_explicit_fixture_preparation_authorization_after_crafting_table_grounding_fix_push",
     "authorization": false,
     "prerequisites": [
-      "root_priority_contract_root_cause_reproduced_offline",
-      "priority_integer_range_fix_tested_offline",
+      "crafting_table_grounding_root_cause_reproduced_offline",
+      "observed_table_guard_and_supported_task_schema_tested_offline",
+      "ready_machine_state_task_reconciliation_tested_offline",
       "all_non_live_regressions_passed",
       "fix_commit_pushed",
       "new_explicit_fixture_preparation_authorization"
@@ -597,7 +788,7 @@
   "artifact_state": {
     "fixture_manifest_created": false,
     "fixture_snapshot_created": false,
-    "fixture_preparation_artifacts_created": 12,
+    "fixture_preparation_artifacts_created": 16,
     "fixture_preparation_artifacts_retained_locally": true,
     "sp001_run_artifacts_created": 0,
     "sp002_run_artifacts_created": 0,

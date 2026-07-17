@@ -331,6 +331,11 @@ def guard_runtime_action(mode: str, action: Any, observation: Any) -> dict:
             inventory = observation.get("inventory", {}) if isinstance(observation, dict) else {}
             if item == "wooden_pickaxe" and _count(inventory.get("wooden_pickaxe")) >= 1:
                 issues.append("fixture_duplicate_wooden_pickaxe_forbidden")
+            if (
+                item == "wooden_pickaxe"
+                and not _nearby_crafting_table_observed(observation)
+            ):
+                issues.append("fixture_wooden_pickaxe_requires_observed_crafting_table")
         elif action_type == "place":
             if params.get("item") != "crafting_table":
                 issues.append("fixture_only_crafting_table_placement_allowed")
@@ -1118,6 +1123,25 @@ def _observed_stone_candidates(observation: Any, *, reachable_only: bool) -> lis
         })
     candidates.sort(key=lambda item: (item["distance"], item["source_id"]))
     return candidates
+
+
+def _nearby_crafting_table_observed(observation: Any) -> bool:
+    raw = observation if isinstance(observation, dict) else {}
+    maximum_distance = float(
+        PROTOCOL["fixture_policy"]["nearby_crafting_table"]["maximum_distance"]
+    )
+    blocks = (
+        raw.get("nearby_blocks")
+        if isinstance(raw.get("nearby_blocks"), list)
+        else []
+    )
+    for block in blocks:
+        if not isinstance(block, dict) or block.get("name") != "crafting_table":
+            continue
+        distance = _finite(block.get("distance"))
+        if distance is not None and distance <= maximum_distance:
+            return True
+    return False
 
 
 def _non_mutating_action_issues(

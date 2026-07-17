@@ -21,7 +21,7 @@
 - SP-001 Acquire Cobblestone is 0/3, SP-002 Craft Stone Pickaxe is 0/3, and SP-003 Composite Stone Pickaxe Chain is 0/3 and locked.
 - `learned:acquire_cobblestone` and `learned:craft_stone_pickaxe` do not exist. No candidate, advisory, paired evaluation, executable promotion, SP-001 live episode, or SP run artifact has been created.
 - Offline verifier fixtures do not count toward a skill gate, capability evidence, or M4. The canonical capability report and existing `custom_skills.jsonl` are unchanged.
-- Three separately authorized non-counting fixture-preparation sessions failed machine audit. The first exposed the fixed-request path, the second exposed an unbounded generic plan contract, and the third exposed an unstated root-priority range. All blockers are reproduced and fixed offline, but no fixture snapshot was created, the conditional SP-001 authorization never activated, and current live authorization is false.
+- Four separately authorized non-counting fixture-preparation sessions failed machine audit. The first exposed the fixed-request path, the second exposed an unbounded generic plan contract, the third exposed an unstated root-priority range, and the fourth exposed inventory-table versus observed-table grounding plus unsupported task-state semantics. All blockers are reproduced and fixed offline, but no fixture snapshot was created, the conditional SP-001 authorization never activated, and current live authorization is false.
 
 ## M2 Convergence Result
 
@@ -139,9 +139,9 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 ## Stone-Pickaxe Workstream
 
 - Current gate: SP-001 0/3; SP-002 0/3; SP-003 locked.
-- Runtime state: the controlled fixture/snapshot/SP-001 harness passes 30/30 protocol and 19/19 runtime cases. All three authorized fixture-preparation sessions ran once and stopped. The third returned a compact one-action root under compliant request controls but failed closed before execution on `subtask[5]:priority_invalid`.
-- Fixture state: all machine audits failed exact wooden-pickaxe and three-reachable-stone checks; Planner eligibility also rejected each retained blocker. No snapshot was sealed and no SP-001 episode ran. Controlled ports are clear and Paper/Bridge are stopped.
-- Offline repair: fixed request, deadline, retry, compact-root, canonical-action, and same-root controls remain enforced. The root contract now also states priority as a JSON integer in `1..5`, defaulting to `1` when no ordering distinction is needed; the validator is not relaxed. The repository-wide non-live gate is rerun before push, and protocol identity is unchanged.
+- Runtime state: the controlled fixture/snapshot/SP-001 harness passes 30/30 protocol and 21/21 runtime cases. All four authorized fixture-preparation sessions ran once and stopped. The fourth completed six actions before repeatedly attempting wooden-pickaxe craft while its table remained only in inventory; seven failures exhausted the deadline.
+- Fixture state: all machine audits failed exact wooden-pickaxe and three-reachable-stone checks. The first three had Planner eligibility failures; the fourth passed request controls but failed machine state. No snapshot was sealed and no SP-001 episode ran. Controlled ports are clear and Paper/Bridge are stopped.
+- Offline repair: fixed request, deadline, retry, compact-root, canonical-action, priority, and same-root controls remain enforced. Wooden-pickaxe craft now requires an observed table within 4.5 blocks, inventory-only tables trigger placement guidance, unknown task-state criteria fail closed, and dependency-ready machine-state tasks reconcile after each post-action observation. The repository-wide non-live gate is rerun before push, and protocol identity is unchanged.
 - Learned skills: `learned:acquire_cobblestone` and `learned:craft_stone_pickaxe` are not created. Existing wooden-pickaxe history is unchanged.
 - Capability impact: none. M4 remains failing and BM-012 remains 0/3; this microbenchmark evidence never counts directly toward M4.
 - Current authorization: false. No retry, SP-001/SP-002/SP-003, Probe 24, full BM-012, or iron mining is authorized. After this offline fix is pushed, a new fixture session still requires new explicit authorization.

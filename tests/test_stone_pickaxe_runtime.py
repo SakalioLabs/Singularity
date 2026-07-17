@@ -8,7 +8,7 @@ from singularity.action.controller import ActionController
 from singularity.core.agent import Agent
 from singularity.core.goal_verifier import GoalVerification
 from singularity.core.planner import Planner
-from singularity.core.task_system import TaskSystem
+from singularity.core.task_system import TaskStatus, TaskSystem
 from singularity.evaluation.stone_pickaxe_protocol import PROTOCOL, PROTOCOL_SHA256
 from singularity.evaluation.stone_pickaxe_runtime import (
     build_fixture_artifact,
@@ -310,6 +310,49 @@ def test_fixture_guard_blocks_target_result_mining_and_duplicate_pickaxe():
         {"type": "dig", "parameters": {"block": "oak_log", "x": 1, "y": 64, "z": 0}},
         observation,
     )["allowed"]
+
+
+def test_fixture_guard_requires_observed_nearby_table_before_wooden_pickaxe_craft():
+    action = {
+        "type": "craft",
+        "parameters": {"item": "wooden_pickaxe", "count": 1},
+    }
+    inventory_table_only = {
+        "position": {"x": 0.0, "y": 64.0, "z": 0.0},
+        "inventory": {
+            "crafting_table": 1,
+            "dark_oak_planks": 6,
+            "stick": 4,
+        },
+        "nearby_blocks": [],
+    }
+    rejected = guard_runtime_action("prepare_fixture", action, inventory_table_only)
+    assert not rejected["allowed"]
+    assert rejected["issues"] == [
+        "fixture_wooden_pickaxe_requires_observed_crafting_table"
+    ]
+
+    at_boundary = dict(inventory_table_only)
+    at_boundary["nearby_blocks"] = [
+        {
+            "name": "crafting_table",
+            "position": {"x": 4.5, "y": 64.0, "z": 0.0},
+            "distance": 4.5,
+        }
+    ]
+    assert guard_runtime_action("prepare_fixture", action, at_boundary)["allowed"]
+
+    outside_boundary = dict(inventory_table_only)
+    outside_boundary["nearby_blocks"] = [
+        {
+            "name": "crafting_table",
+            "position": {"x": 4.501, "y": 64.0, "z": 0.0},
+            "distance": 4.501,
+        }
+    ]
+    report = guard_runtime_action("prepare_fixture", action, outside_boundary)
+    assert not report["allowed"]
+    assert "fixture_wooden_pickaxe_requires_observed_crafting_table" in report["issues"]
 
 
 def test_runtime_config_keeps_skills_memory_and_external_control_off():
@@ -716,6 +759,16 @@ def test_stone_planner_contract_rejects_unbounded_and_alias_actions():
     assert not report["passed"]
     assert "plan_field_unexpected:debug_trace" in report["issues"]
 
+    unsupported_task_state = json.loads(json.dumps(valid))
+    unsupported_task_state["subtasks"][1]["success_criteria"] = {"placed": True}
+    report = Planner._validate_stone_pickaxe_plan_envelope(
+        unsupported_task_state,
+        goal,
+        "root",
+    )
+    assert not report["passed"]
+    assert "subtask[1]:success_criteria_key_forbidden:placed" in report["issues"]
+
 
 def test_stone_planner_prompt_is_mode_bound_compact_and_canonical():
     goal = "Prepare the fixed fixture"
@@ -755,6 +808,13 @@ def test_stone_planner_prompt_is_mode_bound_compact_and_canonical():
     assert "exactly one immediate action" in system_prompt
     assert "Never use recipe" in system_prompt
     assert "priority must be a JSON integer from 1 through 5" in system_prompt
+    assert 'success_criteria {"nearby_block_present":"crafting_table"}' in system_prompt
+    assert "never use placed" in system_prompt
+    assert (
+        "A crafting_table item in inventory is not a nearby crafting table"
+        in system_prompt
+    )
+    assert "Never retry wooden_pickaxe craft" in system_prompt
     assert '"subtasks":[{"id":"observe_state"' in system_prompt
     assert "Runtime mode: prepare_fixture" in user_prompt
     assert "dark_oak_log" in user_prompt
@@ -826,6 +886,50 @@ def test_agent_requests_stone_replan_after_action_failure():
 
     assert agent.planner.reason == "fixture_dig_block_forbidden:missing"
     assert events[0][0] == "stone_pickaxe_replan_requested"
+
+
+def test_stone_task_reconciliation_completes_ready_inventory_state_only():
+    tasks = TaskSystem()
+    planks = tasks.create_task(
+        "Craft planks",
+        status=TaskStatus.COMPLETED,
+        success_criteria={"inventory": {"dark_oak_planks": 12}},
+    )
+    sticks = tasks.create_task(
+        "Craft sticks",
+        status=TaskStatus.ACCEPTED,
+        success_criteria={"inventory": {"stick": 4}},
+        depends_on=[planks.id],
+    )
+    table = tasks.create_task(
+        "Craft table",
+        status=TaskStatus.ACCEPTED,
+        success_criteria={"inventory": {"crafting_table": 1}},
+        depends_on=[planks.id],
+    )
+    events = []
+    transitions = []
+    agent = object.__new__(Agent)
+    agent.config = SimpleNamespace(planner_protocol=PROTOCOL["id"])
+    agent.task_system = tasks
+    agent.session_logger = SimpleNamespace(
+        log=lambda event_type, payload: events.append((event_type, payload))
+    )
+    agent._flush_task_state_transitions = lambda context: transitions.append(context)
+
+    completed = Agent._reconcile_stone_pickaxe_satisfied_tasks(
+        agent,
+        {"inventory": {"crafting_table": 1}},
+        "Prepare fixture",
+        5,
+        source="post_action_machine_observation",
+    )
+
+    assert completed == [table]
+    assert table.status == TaskStatus.COMPLETED
+    assert sticks.status == TaskStatus.ACCEPTED
+    assert transitions[0]["source"] == "stone_pickaxe_task_state_reconciliation"
+    assert events[0][0] == "stone_pickaxe_task_state_reconciliation"
 
 
 def test_fixture_artifact_never_counts_as_skill_or_capability_evidence():

@@ -601,6 +601,8 @@ OUTPUT BOUNDS:
 - When status is complete or blocked, actions must be empty.
 - On a planning root call, return 2-6 concise machine-verifiable subtasks with unique lowercase ids and at least one dependency edge.
 - Every root subtask priority must be a JSON integer from 1 through 5; use 1 when no ordering distinction is needed.
+- Root preconditions may use only inventory, flags, or nearby_block_present. Root success_criteria may use only inventory, action, result, flags, health_at_least, position_near, observed, or nearby_block_present.
+- A table-placement subtask must use success_criteria {{"nearby_block_present":"crafting_table"}}; never use placed or other unsupported state keys.
 - On continuation or replan calls, return subtasks=[] and preserve the existing root plan.
 
 CANONICAL ACTIONS:
@@ -613,7 +615,7 @@ CANONICAL ACTIONS:
 Never use recipe, block_name, target, position, or block_position aliases.
 
 RUNTIME RULES:
-- prepare_fixture: if no nearby blocks are observed, wait 500 ms. Otherwise use only observed coordinates. Dig only exact observed logs, leaves, or allowed terrain; never dig stone or cobblestone. Include block on every dig. With no existing crafting table, gather at least 3 logs, craft at least 12 matching planks, craft sticks and one table, place the table, then craft exactly one wooden_pickaxe. Move near observed stone without digging it.
+- prepare_fixture: if no nearby blocks are observed, wait 500 ms. Otherwise use only observed coordinates. Dig only exact observed logs, leaves, or allowed terrain; never dig stone or cobblestone. Include block on every dig. Gather at least 3 logs, craft at least 12 matching planks, craft sticks and one table, place the table, then craft exactly one wooden_pickaxe. A crafting_table item in inventory is not a nearby crafting table. Craft wooden_pickaxe only when the current observation contains crafting_table within 4.5 blocks; when the table exists only in inventory, emit place first using an observed solid reference. Never retry wooden_pickaxe craft while no nearby crafting table is observed. Move near observed stone without digging it.
 - sp001: do not craft or place. Equip the exact wooden_pickaxe when needed. Dig only block="stone" at the nearest reachable observed stone coordinates and never repeat a removed source.
 
 Required JSON shape:
@@ -906,10 +908,37 @@ Plan the steps to achieve this goal."""
                     issues.append(f"subtask[{index}]:field_unexpected:{unexpected}")
                 if not isinstance(subtask.get("preconditions"), dict):
                     issues.append(f"subtask[{index}]:preconditions_not_object")
+                else:
+                    allowed_precondition_keys = {
+                        "inventory",
+                        "flags",
+                        "nearby_block_present",
+                    }
+                    for key in sorted(
+                        set(subtask["preconditions"]) - allowed_precondition_keys
+                    ):
+                        issues.append(f"subtask[{index}]:precondition_key_forbidden:{key}")
                 if not isinstance(subtask.get("success_criteria"), dict):
                     issues.append(f"subtask[{index}]:success_criteria_not_object")
                 elif not subtask["success_criteria"]:
                     issues.append(f"subtask[{index}]:success_criteria_empty")
+                else:
+                    allowed_success_criteria_keys = {
+                        "inventory",
+                        "action",
+                        "result",
+                        "flags",
+                        "health_at_least",
+                        "position_near",
+                        "observed",
+                        "nearby_block_present",
+                    }
+                    for key in sorted(
+                        set(subtask["success_criteria"]) - allowed_success_criteria_keys
+                    ):
+                        issues.append(
+                            f"subtask[{index}]:success_criteria_key_forbidden:{key}"
+                        )
                 for field in ("preconditions", "success_criteria"):
                     if len(json.dumps(subtask.get(field), default=str)) > 600:
                         issues.append(f"subtask[{index}]:{field}_too_large")

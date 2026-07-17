@@ -5095,6 +5095,51 @@ class Agent:
         )
         return completed
 
+    def _reconcile_stone_pickaxe_satisfied_tasks(
+        self,
+        observation: dict,
+        goal: str,
+        cycle: int,
+        *,
+        source: str = "machine_observation",
+    ) -> list:
+        protocol = str(
+            getattr(getattr(self, "config", None), "planner_protocol", "") or ""
+        )
+        if protocol != "stone-pickaxe-skill-fixed-v1":
+            return []
+        task_system = getattr(self, "task_system", None)
+        if not task_system or not hasattr(task_system, "complete_state_satisfied_tasks"):
+            return []
+        ready_ids = {
+            task.id
+            for task in task_system.get_ready_tasks(observation or {})
+        }
+        if not ready_ids:
+            return []
+        completed = task_system.complete_state_satisfied_tasks(
+            observation,
+            allowed_criteria={"inventory", "nearby_block_present"},
+            candidate_task_ids=ready_ids,
+        )
+        if completed:
+            self._flush_task_state_transitions({
+                "source": "stone_pickaxe_task_state_reconciliation",
+                "reconciliation_source": str(source or "machine_observation"),
+                "goal": str(goal or ""),
+                "cycle": int(cycle or 0),
+            })
+        if completed and hasattr(getattr(self, "session_logger", None), "log"):
+            self.session_logger.log("stone_pickaxe_task_state_reconciliation", {
+                "schema_version": 1,
+                "source": str(source or "machine_observation"),
+                "goal": str(goal or ""),
+                "cycle": int(cycle or 0),
+                "completed_task_ids": [task.id for task in completed],
+                "completion_source": "machine_state",
+            })
+        return completed
+
     @staticmethod
     def _m4_task_inventory_family_state(observation: dict) -> tuple[dict, dict]:
         """Project the GoalVerifier log family into M4 task inventory criteria."""
@@ -9077,6 +9122,17 @@ class Agent:
             "source": "action_feedback",
             **(context or {}),
         })
+        if protocol == "stone-pickaxe-skill-fixed-v1":
+            self._reconcile_stone_pickaxe_satisfied_tasks(
+                observation,
+                str(
+                    (context or {}).get("goal")
+                    or getattr(self, "current_goal", "")
+                    or ""
+                ),
+                (context or {}).get("cycle", 0),
+                source="post_action_machine_observation",
+            )
         if protocol == "m4-fixed-v1":
             self._propagate_m4_readiness_recovery_completion(
                 observation,
