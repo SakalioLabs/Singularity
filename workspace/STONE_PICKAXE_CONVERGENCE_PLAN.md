@@ -13,13 +13,13 @@ This project isolates two bounded Minecraft capabilities:
 
 | Microbenchmark | Eligible live successes | Extraction gate | Current learned skill |
 |---|---:|---:|---|
-| SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone` not created |
+| SP-001 Acquire Cobblestone | 3 | 3 | Candidate `e1534e57` pending; skill not created |
 | SP-002 Craft Stone Pickaxe | 0 | 3 | `learned:craft_stone_pickaxe` not created |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 2 with five retained SP-001 failures, including three behavioral failures and two zero-action provider transport failures, and three independent eligible successes, so the acquisition extraction gate is complete at 3/3**.
+Current phase: **Phase 3 with exact candidate `e1534e57` created at `candidate/pending` from three independent eligible SP-001 successes; no skill exists yet**.
 
-Current authorization: **no further SP-001 live episode; candidate extraction is permitted only after the exact-contract lifecycle fix is committed and pushed**. The third success evidence is already pushed. Each prior SP-001 authorization was consumed by one episode and no retry ran. Another fixture session, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain forbidden.
+Current authorization: **no further SP-001 live episode; advisory promotion is permitted only after the candidate-stage artifacts are committed and pushed**. Each prior SP-001 authorization was consumed by one episode and no retry ran. Another fixture session, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain forbidden.
 
 ## Fixed Protocol
 
@@ -159,9 +159,9 @@ The 30 numbered cases cover:
 |---|---|
 | 0. Freeze and audit | Complete |
 | 1. Protocol and offline harness | Complete; pushed at `8a5cd0c3` |
-| 2. SP-001 controlled live convergence | Complete at 3/3; third success evidence must be pushed before candidate extraction |
+| 2. SP-001 controlled live convergence | Complete at 3/3; evidence pushed at `6c8c995` |
 | 3. SP-001 3/3 gate | Complete; evidence pushed at `6c8c995` |
-| 4. Acquire candidate/advisory | Lifecycle command offline-verified; fix push pending |
+| 4. Acquire candidate/advisory | Candidate `e1534e57` created; artifact push pending before advisory |
 | 5. SP-002 controlled live convergence | Not started |
 | 6. Craft candidate/advisory | Not started |
 | 7. Paired promotion evaluations | Not started |
