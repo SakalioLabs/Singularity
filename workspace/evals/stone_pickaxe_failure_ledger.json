@@ -1,27 +1,27 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T01:30:00+08:00",
+  "generated_at": "2026-07-18T01:45:00+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_2_sp001_second_eligible_success_recorded",
-  "status": "sp001_eligible_success_2_of_3_recorded",
+  "phase": "phase_2_sp001_transport_failure_retained_2_of_3",
+  "status": "sp001_transport_failure_fail_closed_eligible_successes_remain_2_of_3",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": true,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 1,
-  "authorization_scope": "one_conditional_sp001_episode_after_second_success_evidence_is_committed_and_pushed",
+  "authorization_scope": "one_conditional_sp001_episode_after_transport_failure_evidence_is_committed_and_pushed",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
     "fixture_preparation_sessions_consumed": 5,
     "fixture_audit_passed": true,
     "conditional_sp001_authorization_activated": true,
-    "sp001_live_episodes_run": 4,
+    "sp001_live_episodes_run": 5,
     "next_live_authorization": true
   },
   "fixture_preparation_success": {
@@ -178,14 +178,15 @@
     {
       "phase": 2,
       "name": "controlled_sp001_runtime",
-      "status": "second_sp001_eligible_success_recorded",
+      "status": "planner_transport_failure_retained_after_two_eligible_successes",
       "fixture_preparation_session_count": 5,
-      "live_episode_count": 4,
+      "live_episode_count": 5,
       "eligible_live_success_count": 2,
       "latest_success_episode_id": "sp001_episode_20260718_012012_0349d399",
+      "latest_failure_episode_id": "sp001_episode_20260718_013304_7c162864",
       "automatic_retry_allowed": false,
-      "stone_pickaxe_runtime_cases_passed": 27,
-      "stone_pickaxe_runtime_cases_total": 27,
+      "stone_pickaxe_runtime_cases_passed": 28,
+      "stone_pickaxe_runtime_cases_total": 28,
       "minecraft_process_started": true,
       "controlled_listener_count_after_stop": 0,
       "matching_runtime_process_count_after_stop": 0,
@@ -194,7 +195,9 @@
         "live_rerun_performed": true,
         "fixture_sealed": true,
         "sp001_failure_retained": true,
-        "sp001_failure_count": 2,
+        "sp001_failure_count": 3,
+        "sp001_behavioral_failure_count": 2,
+        "sp001_external_transport_failure_count": 1,
         "new_live_authorization_required": false
       }
     }
@@ -213,7 +216,8 @@
     "fixture_preparation_root_priority_contract",
     "fixture_preparation_crafting_table_grounding",
     "sp001_redundant_equip_machine_state_disconnect",
-    "sp001_pickup_candidate_geometry_disconnect"
+    "sp001_pickup_candidate_geometry_disconnect",
+    "sp001_planner_transport_tls_eof"
   ],
   "failures": [
     {
@@ -1167,6 +1171,151 @@
         "counts_toward_capability": false,
         "counts_toward_m4": false
       }
+    },
+    {
+      "id": "sp001-003-planner-transport-tls-eof",
+      "phase": "controlled_sp001",
+      "classification": "sp001_planner_transport_tls_eof",
+      "status": "retained_failure_external_transport_fail_closed",
+      "attributable_to_learned_skill": false,
+      "episode_id": "sp001_episode_20260718_013304_7c162864",
+      "session_id": "eadf3fcb-0cc",
+      "occurred_at_utc": "2026-07-17T17:33:25.359431+00:00",
+      "git_head_before_episode": "49a9fe1091fd9fb1b5f97f042222b2d8c7182d5a",
+      "fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+      "earliest_unrecovered_transition": "root_planner_single_transport_attempt_failed_with_api_connection_error_connect_error_ssl_eof_before_any_response_plan_task_or_action",
+      "first_failed_action_or_task_transition": "none_no_world_action_was_attempted",
+      "goal_result": {
+        "completed": false,
+        "termination_reason": "empty_plan",
+        "cycles": 1,
+        "action_count": 0,
+        "successful_action_count": 0,
+        "failed_action_count": 0,
+        "elapsed_s": 5.812,
+        "deadline_eligible": true
+      },
+      "machine_verification": {
+        "passed": false,
+        "evidence_eligible": false,
+        "criteria_issues": [
+          "minimum_distinct_source_removals",
+          "minimum_pickup_count",
+          "terminal_cobblestone_delta"
+        ],
+        "eligibility_issues": [
+          "eligibility:passed",
+          "eligibility:planner_request_controls"
+        ],
+        "source_removal_count": 0,
+        "distinct_source_count": 0,
+        "pickup_count": 0,
+        "terminal_cobblestone_delta": 0,
+        "false_success_dig_count": 0
+      },
+      "planner_transport_proof": {
+        "planner_call_count": 1,
+        "real_llm_call": false,
+        "response_byte_count": 0,
+        "response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "transport_policy": "single-attempt",
+        "transport_attempt_count": 1,
+        "transport_retry_count": 0,
+        "sdk_max_retries": 0,
+        "transport_attempt_success": false,
+        "error_type": "APIConnectionError",
+        "error_chain": [
+          "APIConnectionError",
+          "ConnectError",
+          "ConnectError",
+          "SSLEOFError"
+        ],
+        "planner_schema_valid": false,
+        "planner_request_controls_passed": false
+      },
+      "fail_closed_proof": {
+        "task_count": 0,
+        "task_transition_count": 0,
+        "action_count": 0,
+        "world_mutating_non_target_action_count": 0,
+        "initial_inventory_equals_terminal_inventory": true,
+        "post_deadline_action_count": 0,
+        "forbidden_intervention_count": 0,
+        "automatic_retry_count": 0,
+        "task_graph_sha256": "95f02e5a2b044d5404bc3937647139b6fae90a1258c108a7e5ae8f855a9f695c"
+      },
+      "evidence": [
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_013304_7c162864/audit.json",
+          "sha256": "ecbd3308efc5bfc98c0f526facb078dc641ea2c47fd1ba21f6be5e21558d8b5c"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_013304_7c162864/episode.json",
+          "sha256": "0a6b5202880ac7ac827d526909a6fa6448950727a42e01d9b908b0cbe5b94d66"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_013304_7c162864/hypothesis.json",
+          "sha256": "6ff918a239623733b3c05cfe473fc04d814ca4adc0325e3321afc4e0f9137d1c"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_013304_7c162864/manifest.json",
+          "sha256": "d3b01b41e3123939809e89e5320273d18704dd7bd65ab8411edd9834b7cee5fd"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_013304_7c162864/preflight.json",
+          "sha256": "8df79fd8dd993b5a5aa10377c26201cf854e400ffd03d568f3f5add13ecef735"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_013304_7c162864/restoration.json",
+          "sha256": "fae6a4e1f2cf45cc4735d0c2fffacdb239859ad24d6553c714a0350aefe00c18"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_013304_7c162864/session.json",
+          "sha256": "e7e46e3078a67a06bb05043abd0369fad69c23cc7f6bc46c49a78d6fdcf26a36"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_013304_7c162864/session_eadf3fcb-0cc.jsonl",
+          "sha256": "b2a2d7aa5d6e1302501a5eee72b46f56210909641bb7172cbe85cebd2e41443b"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_013304_7c162864/session_eadf3fcb-0cc_summary.json",
+          "sha256": "530cebc9b7ac4e8d6e8da0d2e7fa01faec7997fe179f6ac7bb93f9b4a0a7dd29"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_013304_7c162864/verification.json",
+          "sha256": "bdc784821dc8dcdbe435f99345a686ad2b677dce0a8d2eff01495045ef1ce195"
+        }
+      ],
+      "counts_toward_skill_gate": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_attempted": false,
+      "machine_audit_generic_fix": "offline_dig_pickup_postcondition_binding",
+      "machine_audit_generic_fix_applicable": false,
+      "single_next_offline_fix": "none_external_transport_failure_already_failed_closed",
+      "offline_resolution": {
+        "status": "fail_closed_no_code_change",
+        "root_cause": "provider_transport_closed_tls_before_any_response_bytes",
+        "framework_behavior_correct": true,
+        "retained_evidence_replay_test": "test_retained_sp001_transport_failure_is_fail_closed",
+        "protocol_json_modified": false,
+        "runtime_logic_modified": false,
+        "automatic_retry_allowed": false,
+        "regressions": {
+          "stone_pickaxe_runtime_cases": "28/28",
+          "stone_pickaxe_protocol_cases": "30/30",
+          "repository_non_live_python_scripts": "39/39",
+          "fixed_node_suites": "6/6",
+          "repository_json_files_parsed": 1174,
+          "python_compileall": "passed",
+          "capability_consistency": "passed",
+          "immutable_evidence_hashes": "passed",
+          "credential_scan": "passed"
+        },
+        "counts_toward_skill_gate": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      }
     }
   ],
   "eligible_successes": [
@@ -1385,8 +1534,8 @@
       "total": 30
     },
     "stone_pickaxe_runtime_cases": {
-      "passed": 27,
-      "total": 27
+      "passed": 28,
+      "total": 28
     },
     "impacted_runtime_regressions": {
       "m2_harness_passed": true,
@@ -1401,13 +1550,14 @@
       "passed": 6,
       "total": 6
     },
-    "repository_json_files_parsed": 1165,
+    "repository_json_files_parsed": 1174,
     "python_compileall_passed": true,
     "fixture_snapshot_audit_passed": true,
     "fixture_manifest_hash_passed": true,
     "sp001_retained_failure_replay_passed": true,
     "sp001_pickup_delayed_recovery_replay_passed": true,
     "sp001_pickup_candidate_margin_node_test_passed": true,
+    "sp001_transport_failure_fail_closed_replay_passed": true,
     "sp001_failure_evidence_hashes_passed": true,
     "sp001_eligible_success_evidence_hashes_passed": true,
     "sp001_distinct_success_identity_checks_passed": true,
@@ -1422,16 +1572,16 @@
     "matching_runtime_process_count": 0
   },
   "next_required_gate": {
-    "id": "conditional_sp001_episode_after_second_eligible_success_evidence_push",
+    "id": "conditional_sp001_episode_after_transport_failure_evidence_push",
     "authorization": true,
     "prerequisites": [
-      "second_sp001_eligible_success_machine_verified",
-      "two_sp001_successes_have_distinct_episode_session_and_session_hash",
-      "second_sp001_success_counts_toward_skill_gate_only",
-      "second_sp001_success_all_ten_evidence_hashes_verified",
+      "transport_failure_evidence_all_ten_hashes_verified",
+      "transport_failure_replayed_as_zero_task_zero_action_fail_closed",
+      "single_attempt_and_zero_retry_protocol_preserved",
+      "two_prior_sp001_successes_remain_distinct_and_immutable",
       "fixture_snapshot_identity_reaudited_after_episode",
       "all_non_live_regressions_passed",
-      "second_sp001_success_evidence_commit_pushed"
+      "transport_failure_evidence_commit_pushed"
     ],
     "automatic_retry_allowed": false
   },
@@ -1442,7 +1592,7 @@
     "fixture_snapshot_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
     "fixture_preparation_artifacts_created": 20,
     "fixture_preparation_artifacts_retained_locally": true,
-    "sp001_run_artifacts_created": 40,
+    "sp001_run_artifacts_created": 50,
     "sp001_run_artifacts_retained_locally": true,
     "sp002_run_artifacts_created": 0,
     "sp003_run_artifacts_created": 0,

@@ -398,6 +398,42 @@ def test_retained_sp001_pickup_failure_proves_delayed_recovery():
     assert actions[4]["post_observation"]["inventory"]["cobblestone"] == 4
 
 
+def test_retained_sp001_transport_failure_is_fail_closed():
+    root = Path(__file__).resolve().parents[1]
+    run = (
+        root
+        / "workspace"
+        / "evals"
+        / "sp001_runs"
+        / "sp001_episode_20260718_013304_7c162864"
+    )
+    episode = json.loads((run / "episode.json").read_text(encoding="utf-8"))
+    audit = json.loads((run / "audit.json").read_text(encoding="utf-8"))
+
+    assert episode["goal_result"]["termination_reason"] == "empty_plan"
+    assert episode["action_count"] == 0
+    assert episode["transitions"] == []
+    assert episode["initial_observation"]["inventory"] == episode["terminal_observation"][
+        "inventory"
+    ]
+    assert episode["post_deadline_action_count"] == 0
+    assert episode["world_mutating_non_target_actions"] == []
+    assert episode["forbidden_interventions"] == []
+
+    planner = audit["planner_decision"]["planner_evidence"]
+    transport = planner["transport_evidence"]
+    attempt = transport["attempts"][0]
+    assert planner["real_llm_call"] is False
+    assert planner["response_byte_count"] == 0
+    assert transport["policy_id"] == "single-attempt"
+    assert transport["attempt_count"] == 1
+    assert transport["retry_count"] == 0
+    assert attempt["success"] is False
+    assert attempt["sdk_max_retries"] == 0
+    assert attempt["error_chain"][-1] == "SSLEOFError"
+    assert audit["task_graph_state"]["task_count"] == 0
+
+
 def test_retained_sp001_failure_evidence_hashes_match_ledger():
     root = Path(__file__).resolve().parents[1]
     attributes = (root / ".gitattributes").read_text(encoding="utf-8")
@@ -415,6 +451,7 @@ def test_retained_sp001_failure_evidence_hashes_match_ledger():
     assert [item["id"] for item in failures] == [
         "sp001-001-redundant-equip",
         "sp001-002-pickup-candidate-margin",
+        "sp001-003-planner-transport-tls-eof",
     ]
     for failure in failures:
         assert len(failure["evidence"]) == 10

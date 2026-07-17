@@ -17,9 +17,9 @@ This project isolates two bounded Minecraft capabilities:
 | SP-002 Craft Stone Pickaxe | 0 | 3 | `learned:craft_stone_pickaxe` not created |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 2 with two retained SP-001 failures and two independent eligible SP-001 successes, so the acquisition gate is 2/3**.
+Current phase: **Phase 2 with three retained SP-001 failures, including one zero-action provider transport failure, and two independent eligible successes, so the acquisition gate remains 2/3**.
 
-Current authorization: **one conditional SP-001 only, after the second successful evidence set and full audit are committed and pushed**. Each prior SP-001 authorization was consumed by one episode and no retry ran. The standing single-episode authorization permits one new experiment only after the latest evidence and full offline gate are committed and pushed. Automatic retry, concurrent or batch SP-001, another fixture session, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain forbidden.
+Current authorization: **one conditional SP-001 only, after the transport-failure evidence and fail-closed replay are committed and pushed**. Each prior SP-001 authorization was consumed by one episode and no retry ran. The standing single-episode authorization permits one new experiment only after the latest evidence and full offline gate are committed and pushed. Automatic retry, concurrent or batch SP-001, another fixture session, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain forbidden.
 
 ## Fixed Protocol
 
@@ -129,7 +129,7 @@ The 30 numbered cases cover:
 - Fixture preparation permits ordinary survival wood/table/wooden-pickaxe actions but rejects stone mining, duplicate wooden-pickaxe craft, and wooden-pickaxe craft without an observed table within 4.5 blocks. Its output is non-counting.
 - SP-001 keeps learned skills off and allows only bounded observation/navigation, exact wooden-pickaxe equip, and the nearest reachable observed `stone` dig. Every dig requires strict tool, block-removal, pickup, and pre/post-observation proof.
 - `Agent.run_goal` can now bind Planner and ActionController to one supplied absolute deadline and suppress every action beyond a supplied total budget. Existing callers retain their previous behavior when those optional bounds are absent.
-- Offline status: 30/30 protocol cases and 27/27 runtime cases pass. The repository-wide non-live regression gate is rerun before each evidence or offline-fix commit.
+- Offline status: 30/30 protocol cases and 28/28 runtime cases pass. The repository-wide non-live regression gate is rerun before each evidence or offline-fix commit.
 - Fixture session `sp_fixture_prep_20260715_143222_b0e58483` exposed the first blocker: Planner call 0 consumed the completion budget as hidden reasoning, returned zero response bytes, and caused `empty_plan` before any action. The fixed request path now sends thinking-disabled controls, uses one deadline-bounded zero-retry call, rejects empty output, and independently audits Planner controls before fixture sealing or SP-001 eligibility.
 - Fixture session `sp_fixture_prep_20260715_152529_b99f05dd` then proved those request controls on its first two calls and executed two successful moves. Its second plan nevertheless contained nine actions; the first dig suffix omitted the exact `block` field and was rejected before execution. The old generic envelope also admitted three `recipe` aliases and created ten tasks across two root IDs. Call 2 then reached `finish_reason=length` with truncated JSON, so the session stopped at `empty_plan` without retry.
 - The second repair gives the stone protocol a dedicated compact schema: one root plan, two to six root subtasks, no continuation/replan subtasks, exactly one immediate planning action, canonical exact parameters, bounded reasoning, mode-bound compact observations, and failure reason propagation into the same root. Missing `dig.block`, `recipe`, unbounded action lists, duplicate roots, and malformed terminal output all fail before action execution.
@@ -145,7 +145,8 @@ The 30 numbered cases cover:
 - The second repair permits one safe adjacent standable fallback candidate within a fixed 0.5-block selection margin. Direct range 1, the one-fallback limit, and completion by measured range or real inventory delta remain unchanged; no unsupported candidate can self-certify success.
 - SP-001 episode `sp001_episode_20260717_232454_5c05abf0` then passed in 4 actions and 19.297 seconds. It equipped once, removed three distinct observed stones, proved one corresponding pickup and `cobblestone:+1` delta for every dig, ended with `cobblestone:3`, and passed reset, request-control, deadline, intervention, task-graph, machine-verification, and eligibility checks.
 - SP-001 episode `sp001_episode_20260718_012012_0349d399` independently passed the same contract in 4 actions and 21.422 seconds, with distinct episode, session, session hash, and restored level identities. It recorded zero action failures, zero false-success digs, zero post-deadline actions, zero selected skills, and zero forbidden interventions.
-- All four failed machine audits remain non-counting and immutable; the fifth successful preparation is also non-capability evidence, and both failed SP-001 episodes grant no skill or capability credit. The first two eligible SP-001 successes count only toward the 3/3 extraction gate. Twenty preparation evidence files, forty SP-001 evidence files, and the tracked fixture manifest are hash-bound in `workspace/evals/stone_pickaxe_failure_ledger.json`; the protocol JSON and hash are unchanged.
+- SP-001 episode `sp001_episode_20260718_013304_7c162864` then encountered `APIConnectionError -> ConnectError -> SSLEOFError` on its sole root planning attempt. It emitted zero response bytes, created zero tasks, executed zero actions, preserved exact inventory, and stopped without retry. This is retained external transport evidence; the framework already failed closed, so no protocol or runtime change is justified.
+- All four failed machine audits remain non-counting and immutable; the fifth successful preparation is also non-capability evidence, and all three failed SP-001 episodes grant no skill or capability credit. The first two eligible SP-001 successes count only toward the 3/3 extraction gate. Twenty preparation evidence files, fifty SP-001 evidence files, and the tracked fixture manifest are hash-bound in `workspace/evals/stone_pickaxe_failure_ledger.json`; the protocol JSON and hash are unchanged.
 
 ## Phase Status
 
@@ -153,7 +154,7 @@ The 30 numbered cases cover:
 |---|---|
 | 0. Freeze and audit | Complete |
 | 1. Protocol and offline harness | Complete; pushed at `8a5cd0c3` |
-| 2. SP-001 controlled live convergence | Two retained failures; two eligible successes recorded; next episode requires evidence push |
+| 2. SP-001 controlled live convergence | Three retained failures; two eligible successes; transport evidence must be pushed before next episode |
 | 3. SP-001 3/3 gate | 2/3 |
 | 4. Acquire candidate/advisory | Not started |
 | 5. SP-002 controlled live convergence | Not started |
@@ -171,4 +172,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers plus `sp001_redundant_equip_machine_state_disconnect` and `sp001_pickup_candidate_geometry_disconnect` are reproduced and fixed offline; all source sessions remain immutable. The fixture snapshot still passes independent identity audit, and two eligible SP-001 successes establish 2/3. No automatic batch resume is allowed. After each success evidence set is committed and pushed, run at most one conditional SP-001 episode, then stop and audit. Do not create either learned skill before 3/3, run SP-002/SP-003 before their gates unlock, run full BM-012, run Probe 24, or begin iron mining.
+The retained fixture blockers plus `sp001_redundant_equip_machine_state_disconnect` and `sp001_pickup_candidate_geometry_disconnect` are reproduced and fixed offline; the separate provider TLS EOF trace is retained as a zero-action fail-closed failure. All source sessions remain immutable. The fixture snapshot still passes independent identity audit, and two eligible SP-001 successes establish 2/3. No automatic batch resume is allowed. After each evidence set is committed and pushed, run at most one conditional SP-001 episode, then stop and audit. Do not create either learned skill before 3/3, run SP-002/SP-003 before their gates unlock, run full BM-012, run Probe 24, or begin iron mining.

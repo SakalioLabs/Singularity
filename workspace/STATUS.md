@@ -19,9 +19,9 @@
 
 - Phase 0/1 and the controlled Phase 2 runtime are implemented under `stone-pickaxe-skill-fixed-v1`: the repository, existing skill lifecycle, authorization state, and Probe 21/22/23 evidence hashes are frozen; the fixed protocol and 30-case offline harness are present.
 - SP-001 Acquire Cobblestone is 2/3, SP-002 Craft Stone Pickaxe is 0/3, and SP-003 Composite Stone Pickaxe Chain is 0/3 and locked.
-- `learned:acquire_cobblestone` and `learned:craft_stone_pickaxe` do not exist. No candidate, advisory, paired evaluation, or executable promotion has been created. Two failed SP-001 episodes remain retained, and two independent eligible successes are hash-bound without granting capability or M4 credit.
+- `learned:acquire_cobblestone` and `learned:craft_stone_pickaxe` do not exist. No candidate, advisory, paired evaluation, or executable promotion has been created. Three failed SP-001 episodes remain retained, including one zero-action external transport failure, and two independent eligible successes are hash-bound without granting capability or M4 credit.
 - Offline verifier fixtures do not count toward a skill gate, capability evidence, or M4. The canonical capability report and existing `custom_skills.jsonl` are unchanged.
-- Four separately authorized non-counting fixture-preparation sessions failed machine audit and remain retained. The fifth passed and sealed the 45-file fixture tree `996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636`. The first SP-001 episode exposed repeated equip; the second exposed pickup-candidate geometry; the third and fourth independently passed in 4 actions with 3/3 distinct removals, pickups, and inventory deltas.
+- Four separately authorized non-counting fixture-preparation sessions failed machine audit and remain retained. The fifth passed and sealed the 45-file fixture tree `996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636`. The first SP-001 episode exposed repeated equip; the second exposed pickup-candidate geometry; the third and fourth independently passed; the fifth failed closed before any action when its sole provider call ended in `SSLEOFError`.
 
 ## M2 Convergence Result
 
@@ -139,9 +139,9 @@ Source is present and relevant offline suites pass for M1-M7, but those facts do
 ## Stone-Pickaxe Workstream
 
 - Current gate: SP-001 2/3; SP-002 0/3; SP-003 locked.
-- Runtime state: the controlled fixture/snapshot/SP-001 harness passes 30/30 protocol and 27/27 runtime cases. Four failed preparations, one successful preparation, two failed SP-001 episodes, and two eligible SP-001 successes each ran once and stopped. Forty SP-001 artifacts are retained and hash-bound.
+- Runtime state: the controlled fixture/snapshot/SP-001 harness passes 30/30 protocol and 28/28 runtime cases. Four failed preparations, one successful preparation, three failed SP-001 episodes, and two eligible SP-001 successes each ran once and stopped. Fifty SP-001 artifacts are retained and hash-bound.
 - Fixture state: `workspace/evals/stone_pickaxe_fixture.json` is sealed and independently verified. Its snapshot contains canonical overworld/nether/end components, 45 files, 14,684,703 bytes, exact protocol identity, and the pinned tree hash. Controlled ports are clear and Paper/Bridge are stopped.
 - Offline repair: held-tool state and redundant-equip guards remain enforced. The pickup backend now admits one safe adjacent standable candidate within a fixed 0.5-block selection margin when `GoalNear(1)` resolves outside the measured envelope. The one-fallback limit is unchanged, and completion still requires original one-block distance or observed inventory delta. Retained evidence replay and hash checks pass; protocol identity is unchanged.
 - Learned skills: `learned:acquire_cobblestone` and `learned:craft_stone_pickaxe` are not created. Existing wooden-pickaxe history is unchanged.
 - Capability impact: none. M4 remains failing and BM-012 remains 0/3; this microbenchmark evidence never counts directly toward M4.
-- Current authorization: one conditional SP-001 episode after the second successful evidence set and its full audit are committed and pushed. No automatic retry, concurrent or batch SP-001, SP-002/SP-003, Probe 24, full BM-012, or iron mining is authorized.
+- Current authorization: one conditional SP-001 episode after the transport-failure evidence and fail-closed replay are committed and pushed. No automatic retry, concurrent or batch SP-001, SP-002/SP-003, Probe 24, full BM-012, or iron mining is authorized.

@@ -1,0 +1,164 @@
+{
+  "type": "stone_pickaxe_run_audit",
+  "schema_version": 1,
+  "task_id": "SP-001",
+  "episode_id": "sp001_episode_20260718_013304_7c162864",
+  "machine_verification_passed": false,
+  "evidence_eligible": false,
+  "earliest_unrecovered_transition": {
+    "event_type": "machine_verification",
+    "issues": [
+      "minimum_distinct_source_removals",
+      "minimum_pickup_count",
+      "terminal_cobblestone_delta",
+      "eligibility:passed",
+      "eligibility:planner_request_controls"
+    ],
+    "recovered": false
+  },
+  "first_failed_action": {},
+  "planner_decision": {
+    "schema_version": "",
+    "plan_kind": "root",
+    "goal": "Gather 3 cobblestone with the wooden pickaxe",
+    "status": "error",
+    "reasoning": "Planner output rejected before execution: Connection error.",
+    "subtasks": [],
+    "actions": [],
+    "root_plan_id": "root-9843f90713004e0f",
+    "planner_call_id": "llm-712d4978ba384c8a",
+    "parent_planner_call_id": "",
+    "schema_validation": {
+      "type": "planner_schema_validation",
+      "passed": false,
+      "issues": [
+        "Connection error."
+      ]
+    },
+    "planner_evidence": {
+      "type": "llm_planner_call",
+      "schema_version": 1,
+      "planner_id": "llm-autonomous-planner-v1",
+      "protocol": "stone-pickaxe-skill-fixed-v1",
+      "episode_id": "eadf3fcb-0cc",
+      "call_id": "llm-712d4978ba384c8a",
+      "call_index": 0,
+      "plan_kind": "root",
+      "root_plan_id": "root-9843f90713004e0f",
+      "parent_call_id": "",
+      "goal": "Gather 3 cobblestone with the wooden pickaxe",
+      "real_llm_call": false,
+      "schema_valid": false,
+      "schema_validation": {
+        "type": "planner_schema_validation",
+        "passed": false,
+        "issues": [
+          "Connection error."
+        ]
+      },
+      "response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "response_byte_count": 0,
+      "successful_action_summary": {},
+      "deadline_policy": {
+        "policy_id": "stone-pickaxe-absolute-deadline-v1",
+        "remaining_before_call_s": 179.891,
+        "action_guard_s": 0.0,
+        "request_timeout_s": 179.891,
+        "max_retries": 0
+      },
+      "transport_evidence": {
+        "policy_id": "single-attempt",
+        "attempt_count": 1,
+        "retry_count": 0,
+        "attempts": [
+          {
+            "attempt_index": 0,
+            "success": false,
+            "timeout_s": 179.891,
+            "sdk_max_retries": 0,
+            "error_type": "APIConnectionError",
+            "error_chain": [
+              "APIConnectionError",
+              "ConnectError",
+              "ConnectError",
+              "SSLEOFError"
+            ]
+          }
+        ]
+      },
+      "provider_metadata": {
+        "provider": "openai",
+        "base_url": "https://opencode.ai/zen/go/v1",
+        "model": "deepseek-v4-flash",
+        "temperature": 0.0,
+        "max_tokens": 4096,
+        "response_format": {
+          "type": "json_object"
+        },
+        "extra_body": {
+          "thinking": {
+            "type": "disabled"
+          }
+        },
+        "request_message_count": 2,
+        "request_sha256": "d44fd6dd787dad16c02a044a545abd799040f8f34882716594112b08922c6de1",
+        "timeout_s": 179.891,
+        "max_retries": 0,
+        "error_type": "APIConnectionError",
+        "error_chain": [
+          "APIConnectionError",
+          "ConnectError",
+          "ConnectError",
+          "SSLEOFError"
+        ]
+      },
+      "error": "Connection error."
+    },
+    "planning_context_contract": {
+      "type": "planning_context_contract",
+      "schema_version": 2,
+      "planner": "llm",
+      "goal": "Gather 3 cobblestone with the wooden pickaxe",
+      "enabled": false,
+      "isolation_profile": "planning_memory_disabled_v1",
+      "read_limit_chars": 0,
+      "cycle_limit_chars": 0,
+      "memory_read_count": 0,
+      "typed_layer_count": 0,
+      "nonempty_read_count": 0,
+      "total_result_chars": 0,
+      "total_separator_chars": 0,
+      "total_context_chars": 0,
+      "bounded_ok": true,
+      "segments": []
+    }
+  },
+  "task_graph_state": {
+    "task_count": 0,
+    "tasks": [],
+    "transition_count": 0,
+    "transitions": [],
+    "sha256": "95f02e5a2b044d5404bc3937647139b6fae90a1258c108a7e5ae8f855a9f695c"
+  },
+  "deadline_state": {
+    "policy_id": "stone-pickaxe-absolute-deadline-v1",
+    "started_monotonic": 59790.031,
+    "deadline_monotonic": 59970.031,
+    "ended_monotonic": 59795.968,
+    "post_deadline_action_count": 0
+  },
+  "evidence_eligibility": {
+    "passed": false,
+    "criteria_issues": [
+      "minimum_distinct_source_removals",
+      "minimum_pickup_count",
+      "terminal_cobblestone_delta"
+    ],
+    "eligibility_issues": [
+      "eligibility:passed",
+      "eligibility:planner_request_controls"
+    ]
+  },
+  "single_next_offline_fix": "offline_dig_pickup_postcondition_binding",
+  "automatic_retry_allowed": false
+}
