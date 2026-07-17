@@ -605,10 +605,12 @@ def build_runtime_profile_suite_report(
         for error in profile_item["errors"]:
             report["errors"].append(f"{path}: {error}")
 
-    labels = {_runtime_profile_suite_label(path, item.get("name", "")) for path, item in zip(paths, report["profiles"])}
     missing_required = []
     for required_label in required:
-        if not any(required_label in label for label in labels):
+        if not any(
+            runtime_profile_matches_required_label(path, item.get("name", ""), required_label)
+            for path, item in zip(paths, report["profiles"])
+        ):
             missing_required.append(required_label)
     report["missing_required_profiles"] = missing_required
 
@@ -658,14 +660,30 @@ def _runtime_profile_suite_item_decision(profile_item: dict) -> str:
     return "hold_runtime_profile"
 
 
-def _runtime_profile_suite_label(path: str, name: str = "") -> str:
-    parts = [
-        str(path or "").replace("\\", "/").lower(),
-        os.path.basename(str(path or "")).lower(),
-        os.path.splitext(os.path.basename(str(path or "")))[0].lower(),
-        str(name or "").lower(),
-    ]
-    return " ".join(part for part in parts if part)
+def runtime_profile_matches_required_label(path: str, name: str, required_label: str) -> bool:
+    """Match an explicit profile marker without considering parent-directory text."""
+    required_tokens = _runtime_profile_label_tokens(required_label)
+    if not required_tokens:
+        return False
+    basename = os.path.basename(str(path or ""))
+    stem = os.path.splitext(basename)[0]
+    for candidate in (stem, name):
+        candidate_tokens = _runtime_profile_label_tokens(candidate)
+        width = len(required_tokens)
+        if any(
+            candidate_tokens[index:index + width] == required_tokens
+            for index in range(len(candidate_tokens) - width + 1)
+        ):
+            return True
+    return False
+
+
+def _runtime_profile_label_tokens(value: str) -> list[str]:
+    normalized = "".join(
+        character.lower() if character.isalnum() else " "
+        for character in str(value or "")
+    )
+    return normalized.split()
 
 
 def _scan_runtime_profile_reference(

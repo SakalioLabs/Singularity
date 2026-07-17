@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T02:40:00+08:00",
+  "generated_at": "2026-07-18T03:20:00+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_2_sp001_gate_complete_3_of_3",
-  "status": "sp001_three_eligible_successes_candidate_extraction_pending_success_evidence_push",
+  "phase": "phase_3_sp001_candidate_extraction_offline_ready",
+  "status": "sp001_candidate_lifecycle_full_non_live_gate_passed_pending_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 0,
-  "authorization_scope": "no_live_episode_sp001_gate_complete_candidate_extraction_requires_third_success_evidence_commit_push",
+  "authorization_scope": "no_live_episode_sp001_gate_complete_candidate_extraction_requires_lifecycle_fix_push",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -178,7 +178,7 @@
     {
       "phase": 2,
       "name": "controlled_sp001_runtime",
-      "status": "three_independent_eligible_successes_candidate_extraction_pending_push",
+      "status": "three_independent_eligible_successes_candidate_lifecycle_fix_pending_push",
       "fixture_preparation_session_count": 5,
       "live_episode_count": 8,
       "eligible_live_success_count": 3,
@@ -1984,8 +1984,8 @@
   ],
   "validation": {
     "stone_pickaxe_offline_cases": {
-      "passed": 30,
-      "total": 30
+      "passed": 33,
+      "total": 33
     },
     "stone_pickaxe_runtime_cases": {
       "passed": 30,
@@ -2026,17 +2026,27 @@
     "matching_runtime_process_count": 0,
     "sp001_same_cell_fallback_alias_replay_passed": true,
     "sp001_same_cell_nudge_node_tests_passed": true,
-    "sp001_second_transport_failure_fail_closed_replay_passed": true
+    "sp001_second_transport_failure_fail_closed_replay_passed": true,
+    "sp001_candidate_exact_contract_test_passed": true,
+    "sp001_candidate_lifecycle_state_separation_test_passed": true,
+    "skill_extractor_source_path_regression_passed": true,
+    "runtime_profile_required_label_boundary_regression_passed": true,
+    "ledger_declared_hashes_passed": 128,
+    "sp001_declared_hashes_passed": 80
   },
   "next_required_gate": {
-    "id": "sp001_candidate_extraction_after_third_success_evidence_push",
+    "id": "sp001_candidate_extraction_after_lifecycle_fix_push",
     "authorization": true,
     "prerequisites": [
       "three_sp001_successes_have_distinct_episode_session_level_and_session_hash_identities",
       "third_sp001_success_all_ten_evidence_hashes_verified",
       "sp001_machine_verification_passed_three_of_three",
+      "third_sp001_success_evidence_commit_pushed",
+      "exact_prospective_contract_builder_verified",
+      "candidate_and_advisory_commands_are_state_separated",
+      "retained_session_source_path_extraction_regression_passed",
       "all_non_live_regressions_passed",
-      "third_sp001_success_evidence_commit_pushed"
+      "candidate_lifecycle_fix_commit_pushed"
     ],
     "automatic_retry_allowed": false
   },

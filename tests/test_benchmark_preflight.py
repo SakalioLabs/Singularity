@@ -5684,7 +5684,7 @@ def test_skill_runtime_default_preflight_requires_approved_family_coverage():
 
 
 def test_runtime_profile_suite_preflight_requires_approved_suite_coverage():
-    tmpdir = tempfile.mkdtemp()
+    tmpdir = tempfile.mkdtemp(prefix="m7_parent_")
     profile_path = os.path.join(tmpdir, "m1_profile.json")
     approved_suite_path = os.path.join(tmpdir, "runtime_profile_suite_approved.json")
     review_suite_path = os.path.join(tmpdir, "runtime_profile_suite_review.json")

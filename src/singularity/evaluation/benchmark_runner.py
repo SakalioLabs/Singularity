@@ -25,6 +25,7 @@ from singularity.core.causal_index import (
 from singularity.core.coach import CoachPolicy
 from singularity.core.curriculum import CurriculumManager
 from singularity.core.task_system import TaskStatus, TaskSystem
+from singularity.core.runtime_profile import runtime_profile_matches_required_label
 from singularity.bot.bridge import BotBridge
 from singularity.action.mapping import ActionMapper
 from singularity.evaluation.m1_protocol import (
@@ -4787,7 +4788,7 @@ class BenchmarkRunner:
             report["missing"].append("runtime_profile_suite_report")
 
         approved_profile_keys = set()
-        approved_profile_labels = set()
+        approved_profile_identifiers = set()
         required_covered = set()
         report_readinesses = []
         for source, payload in suite_items:
@@ -4854,11 +4855,13 @@ class BenchmarkRunner:
                 name = str(profile.get("name") or "").strip()
                 if path:
                     approved_profile_keys.add(self._runtime_profile_suite_path_key(path))
-                label = self._runtime_profile_suite_label(path, name)
-                if label:
-                    approved_profile_labels.add(label)
+                if path or name:
+                    approved_profile_identifiers.add((path, name))
             for label in required_labels:
-                if label and any(label in profile_label for profile_label in approved_profile_labels):
+                if label and any(
+                    runtime_profile_matches_required_label(path, name, label)
+                    for path, name in approved_profile_identifiers
+                ):
                     required_covered.add(label)
 
         requested_profile_keys = {
@@ -10967,18 +10970,6 @@ class BenchmarkRunner:
 
     def _runtime_profile_suite_path_key(self, path: str) -> str:
         return os.path.normcase(os.path.abspath(os.path.normpath(str(path or ""))))
-
-    def _runtime_profile_suite_label(self, path: str, name: str = "") -> str:
-        path_text = str(path or "").replace("\\", "/").lower()
-        basename = os.path.basename(path_text)
-        stem = os.path.splitext(basename)[0]
-        parts = [
-            path_text,
-            basename,
-            stem,
-            str(name or "").lower(),
-        ]
-        return " ".join(part for part in parts if part)
 
     def _gate_int(self, value) -> int:
         try:

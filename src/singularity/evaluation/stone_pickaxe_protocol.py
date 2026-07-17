@@ -10,13 +10,16 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
 
+from singularity.core.skill_extractor import SkillCandidate
 from singularity.core.skill_runtime import (
     ALLOWED_OPERATIONS,
     DSL_VERSION,
     validate_bounded_action_template,
+    wilson_confidence_interval,
 )
 from singularity.core.task_system import Task, TaskStatus, TaskSystem
 from singularity.evaluation.m4_protocol import (
@@ -49,6 +52,293 @@ def task_spec(task_id: str) -> dict:
 def prospective_skill_contract(task_id: str) -> dict:
     contracts = PROTOCOL.get("prospective_skill_contracts", {})
     return contracts.get(str(task_id or "").upper().strip(), {}) if isinstance(contracts, dict) else {}
+
+
+def build_prospective_skill_candidate(
+    task_id: str,
+    eligible_successes: Iterable[dict],
+    repository_root: str | Path = REPOSITORY_ROOT,
+) -> SkillCandidate:
+    """Build one exact fixed-protocol candidate from hash-verified live successes."""
+    normalized_task_id = str(task_id or "").upper().strip()
+    contract = prospective_skill_contract(normalized_task_id)
+    contract_report = validate_prospective_skill_contract(normalized_task_id, contract)
+    if not contract_report["passed"]:
+        raise ValueError(f"prospective skill contract is invalid: {contract_report['issues']}")
+
+    root = Path(repository_root).resolve()
+    successes = sorted(
+        (
+            item for item in eligible_successes
+            if isinstance(item, dict) and str(item.get("task_id") or "").upper() == normalized_task_id
+        ),
+        key=lambda item: (str(item.get("occurred_at_utc") or ""), str(item.get("id") or "")),
+    )
+    issues: list[str] = []
+    if len(successes) < 3:
+        issues.append("three_eligible_live_successes_required")
+
+    episode_ids: list[str] = []
+    session_ids: list[str] = []
+    session_hashes: list[str] = []
+    sources: list[dict] = []
+    for index, success in enumerate(successes):
+        prefix = f"success[{index}]"
+        episode_id = str(success.get("episode_id") or "")
+        session_id = str(success.get("session_id") or "")
+        session_sha256 = str(success.get("session_sha256") or "").lower()
+        episode_ids.append(episode_id)
+        session_ids.append(session_id)
+        session_hashes.append(session_sha256)
+        if success.get("status") != "eligible_live_success":
+            issues.append(f"{prefix}:status")
+        if success.get("counts_toward_skill_gate") is not True:
+            issues.append(f"{prefix}:skill_gate")
+        if success.get("counts_toward_capability") is not False or success.get("counts_toward_m4") is not False:
+            issues.append(f"{prefix}:capability_isolation")
+        if success.get("protocol_sha256") != PROTOCOL_SHA256:
+            issues.append(f"{prefix}:protocol_sha256")
+        verification_summary = success.get("machine_verification", {})
+        if not isinstance(verification_summary, dict) or verification_summary.get("passed") is not True:
+            issues.append(f"{prefix}:machine_verification")
+        if verification_summary.get("evidence_eligible") is not True:
+            issues.append(f"{prefix}:evidence_eligible")
+        goal_result = success.get("goal_result", {})
+        if not isinstance(goal_result, dict) or goal_result.get("completed") is not True:
+            issues.append(f"{prefix}:goal_completed")
+        if int(goal_result.get("failed_action_count", 0) or 0) != 0:
+            issues.append(f"{prefix}:action_failure")
+
+        evidence = success.get("evidence", [])
+        if not isinstance(evidence, list) or len(evidence) != 10:
+            issues.append(f"{prefix}:ten_evidence_files")
+            evidence = []
+        evidence_by_path: dict[str, dict] = {}
+        for record in evidence:
+            if not isinstance(record, dict):
+                issues.append(f"{prefix}:evidence_record")
+                continue
+            relative = str(record.get("path") or "")
+            expected = str(record.get("sha256") or "").lower()
+            path = (root / relative).resolve()
+            try:
+                path.relative_to(root)
+            except ValueError:
+                issues.append(f"{prefix}:evidence_path_escape")
+                continue
+            if not path.is_file():
+                issues.append(f"{prefix}:evidence_missing:{relative}")
+                continue
+            if file_sha256(path) != expected:
+                issues.append(f"{prefix}:evidence_hash:{relative}")
+                continue
+            evidence_by_path[relative] = record
+
+        session_record = next(
+            (record for path, record in evidence_by_path.items() if path.endswith("/session.json")),
+            {},
+        )
+        session_log_record = next(
+            (record for path, record in evidence_by_path.items() if path.endswith(".jsonl")),
+            {},
+        )
+        verification_record = next(
+            (record for path, record in evidence_by_path.items() if path.endswith("/verification.json")),
+            {},
+        )
+        manifest_record = next(
+            (record for path, record in evidence_by_path.items() if path.endswith("/manifest.json")),
+            {},
+        )
+        if str(session_record.get("sha256") or "").lower() != session_sha256:
+            issues.append(f"{prefix}:session_sha256")
+        for label, record in (("verification", verification_record), ("manifest", manifest_record)):
+            relative = str(record.get("path") or "")
+            if not relative:
+                issues.append(f"{prefix}:{label}_evidence")
+                continue
+            payload = json.loads((root / relative).read_text(encoding="utf-8"))
+            if payload.get("passed") is not True or payload.get("evidence_eligible") is not True:
+                issues.append(f"{prefix}:{label}_eligibility")
+            if str(payload.get("task_id") or "") != normalized_task_id:
+                issues.append(f"{prefix}:{label}_task")
+
+        sources.append({
+            "source_log": str(session_log_record.get("path") or ""),
+            "source_trace_sha256": str(session_log_record.get("sha256") or ""),
+            "session_id": session_id,
+            "environment_id": episode_id,
+            "episode_id": episode_id,
+            "world_seed": str(PROTOCOL.get("environment", {}).get("world_seed") or ""),
+            "server_jar_sha256": str(PROTOCOL.get("environment", {}).get("server_jar_sha256") or ""),
+            "protocol_sha256": PROTOCOL_SHA256,
+            "verifier_version": "stone-pickaxe-machine-verification-v1",
+            "goal_verifier_achieved": True,
+            "goal_end_completed": True,
+            "transition_count": int(goal_result.get("action_count", 0) or 0),
+            "transition_proof_count": int(goal_result.get("action_count", 0) or 0),
+            "runtime_eligible": True,
+            "evidence_kind": "live_verified",
+        })
+
+    for label, values in (
+        ("episode", episode_ids),
+        ("session", session_ids),
+        ("session_sha256", session_hashes),
+    ):
+        if len(values) < 3 or len(values) != len(set(values)) or any(not value for value in values):
+            issues.append(f"three_distinct_{label}_identities_required")
+    if issues:
+        raise ValueError("candidate source gate failed: " + ", ".join(sorted(set(issues))))
+
+    template = contract["bounded_action_template"]
+    template_validation = validate_bounded_action_template(template)
+    if not template_validation.valid:
+        raise ValueError(f"bounded candidate template is invalid: {template_validation.issues}")
+    template = template_validation.normalized_template
+    parameters = template.get("parameters", {}) if isinstance(template.get("parameters", {}), dict) else {}
+    required_inventory = [
+        {"item": str(item), "count": int(count)}
+        for item, count in sorted(contract.get("preconditions", {}).get("inventory", {}).items())
+    ]
+    phases = [phase for phase in template.get("phases", []) if isinstance(phase, dict)]
+    source_blocks = sorted({str(block) for phase in phases for block in phase.get("source_blocks", []) if block})
+    dependencies: list[str] = []
+    expected_states: list[dict] = []
+    for phase in phases:
+        if phase.get("op") == "acquire_block_drop":
+            dependencies.extend(["move_to", "dig_block"])
+        elif phase.get("op") == "craft_item":
+            dependencies.append("craft_item")
+        expected_states.append({
+            "phase_id": phase.get("id"),
+            "target_inventory": {str(phase.get("target_item")): phase.get("target_count", 1)},
+            "reobserve_after_each_action": True,
+        })
+    skill_id = str(contract["skill_id"])
+    skill_name = skill_id.replace(":", "_")
+    verification_gate = {
+        "decision": "allow",
+        "status": "achieved",
+        "achieved": True,
+        "reason": "stone_pickaxe_three_live_success_gate",
+        "target_inventory": contract["postconditions"]["inventory"],
+        "inventory_delta": contract["postconditions"]["inventory"],
+        "evidence": [f"eligible live success {episode_id}" for episode_id in episode_ids],
+        "missing": [],
+        "matched_rules": ["stone_pickaxe_fixed_protocol", "three_distinct_live_successes"],
+    }
+    created_at = max(
+        datetime.fromisoformat(str(success["occurred_at_utc"])).timestamp()
+        for success in successes
+    )
+    candidate = SkillCandidate(
+        id=canonical_sha256({"skill_id": skill_id, "session_hashes": session_hashes})[:8],
+        created_at=created_at,
+        name=skill_name,
+        skill_id=skill_id,
+        goal=task_spec(normalized_task_id).get("name", normalized_task_id),
+        description=f"Fixed-protocol candidate for {task_spec(normalized_task_id).get('name', normalized_task_id)}",
+        implementation=json.dumps(template, sort_keys=True),
+        score=0.9,
+        version="1.0.0",
+        task_family=str(contract["task_family"]),
+        parameters_schema=parameters,
+        preconditions=contract["preconditions"],
+        required_observations=list(contract["required_observations"]),
+        required_inventory=required_inventory,
+        dependencies=list(dict.fromkeys(dependencies)),
+        bounded_action_template=template,
+        expected_intermediate_states=expected_states,
+        postconditions=contract["postconditions"],
+        failure_conditions=[
+            "action_verifier_reject",
+            "action_result_failure",
+            "postcondition_not_reached_within_max_actions",
+        ],
+        abort_conditions=[
+            "health_critical",
+            "runtime_interrupt",
+            "required_observation_missing",
+            "parameter_outside_transfer_scope",
+        ],
+        provenance={"sources": sources, "stone_pickaxe_protocol_sha256": PROTOCOL_SHA256},
+        source_session_ids=session_ids,
+        source_environment_ids=episode_ids,
+        verifier_version="stone-pickaxe-machine-verification-v1",
+        success_count=len(successes),
+        failure_count=0,
+        confidence_interval=wilson_confidence_interval(len(successes), 0),
+        transfer_scope={
+            "supported_task_families": [str(contract["task_family"])],
+            "unsupported_task_families": [],
+            "training_goals": [task_spec(normalized_task_id).get("name", normalized_task_id)],
+            "training_session_ids": session_ids,
+            "training_environment_ids": episode_ids,
+            "quantity_range": parameters.get("quantity", {"minimum": 1, "maximum": 1}),
+            "source_blocks": source_blocks,
+            "heldout_validated": False,
+        },
+        status="candidate",
+        runtime_eligible=True,
+        evidence_kind="live_verified",
+        validation_issues=[],
+        signals={
+            "action_success_rate": 1.0,
+            "completed": True,
+            "failure_count": 0,
+            "correction_signal": False,
+            "reusable_sequence": True,
+            "low_error_rate": 1.0,
+            "verification_gate": verification_gate,
+            "contract_validation": template_validation.to_dict(),
+            "runtime_eligible": True,
+            "evidence_kind": "live_verified",
+            "stone_pickaxe_gate": {
+                "task_id": normalized_task_id,
+                "eligible_success_count": len(successes),
+                "episode_ids": episode_ids,
+                "session_ids": session_ids,
+                "session_sha256s": session_hashes,
+            },
+        },
+        layer=str(contract["layer"]),
+        review_status="pending",
+        reason="fixed protocol three-of-three source gate passed",
+    )
+    match_report = validate_candidate_matches_prospective_contract(normalized_task_id, candidate)
+    if not match_report["passed"]:
+        raise ValueError(f"candidate does not match fixed contract: {match_report['issues']}")
+    return candidate
+
+
+def validate_candidate_matches_prospective_contract(task_id: str, candidate: SkillCandidate) -> dict:
+    normalized_task_id = str(task_id or "").upper().strip()
+    contract = prospective_skill_contract(normalized_task_id)
+    issues: list[str] = []
+    expected_name = str(contract.get("skill_id") or "").replace(":", "_")
+    checks = {
+        "skill_id": candidate.skill_id == contract.get("skill_id"),
+        "name": candidate.name == expected_name,
+        "task_family": candidate.task_family == contract.get("task_family"),
+        "layer": candidate.layer == contract.get("layer"),
+        "preconditions": candidate.preconditions == contract.get("preconditions"),
+        "required_observations": candidate.required_observations == contract.get("required_observations"),
+        "postconditions": candidate.postconditions == contract.get("postconditions"),
+        "bounded_action_template": candidate.bounded_action_template == contract.get("bounded_action_template"),
+        "runtime_eligible": candidate.runtime_eligible is True,
+        "evidence_kind": candidate.evidence_kind == "live_verified",
+        "candidate_status": candidate.status == "candidate",
+    }
+    issues.extend(name for name, passed in checks.items() if not passed)
+    source_records = candidate.provenance.get("sources", []) if isinstance(candidate.provenance, dict) else []
+    if len(candidate.source_session_ids) < 3 or len(candidate.source_session_ids) != len(set(candidate.source_session_ids)):
+        issues.append("three_distinct_source_sessions")
+    if len(candidate.source_environment_ids) < 3 or len(candidate.source_environment_ids) != len(set(candidate.source_environment_ids)):
+        issues.append("three_distinct_source_environments")
+    if len(source_records) < 3 or not all(source.get("runtime_eligible") is True for source in source_records):
+        issues.append("three_runtime_eligible_source_records")
+    return {"passed": not issues, "issues": sorted(set(issues))}
 
 
 def protocol_integrity_report() -> dict:

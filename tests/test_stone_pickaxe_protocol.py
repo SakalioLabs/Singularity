@@ -1,8 +1,12 @@
 import copy
 import json
+import os
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
+from singularity.core.skill_extractor import SkillExtractor
 from singularity.core.skill_library import SkillLibrary
 from singularity.core.task_system import TaskStatus
 from singularity.evaluation.stone_pickaxe_protocol import (
@@ -10,12 +14,14 @@ from singularity.evaluation.stone_pickaxe_protocol import (
     PROTOCOL_SHA256,
     REPOSITORY_ROOT,
     StonePickaxeCompositeHarness,
+    build_prospective_skill_candidate,
     file_sha256,
     plan_sp001_action,
     prospective_skill_contract,
     protocol_integrity_report,
     validate_acquire_template,
     validate_craft_template,
+    validate_candidate_matches_prospective_contract,
     validate_prospective_skill_contract,
     verify_sp001_episode,
     verify_sp002_episode,
@@ -559,6 +565,116 @@ def test_30_probe_21_22_23_evidence_hashes_are_unchanged():
         path = REPOSITORY_ROOT / Path(record["path"])
         assert path.is_file(), record["path"]
         assert file_sha256(path) == record["sha256"], record["path"]
+
+
+def test_31_sp001_candidate_uses_exact_contract_and_three_live_sources():
+    ledger = json.loads(
+        (REPOSITORY_ROOT / "workspace" / "evals" / "stone_pickaxe_failure_ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    candidate = build_prospective_skill_candidate("SP-001", ledger["eligible_successes"])
+    contract = prospective_skill_contract("SP-001")
+    assert candidate.skill_id == "learned:acquire_cobblestone"
+    assert candidate.name == "learned_acquire_cobblestone"
+    assert candidate.preconditions == contract["preconditions"]
+    assert candidate.required_observations == contract["required_observations"]
+    assert candidate.postconditions == contract["postconditions"]
+    assert candidate.bounded_action_template == contract["bounded_action_template"]
+    assert len(candidate.source_session_ids) == 3
+    assert len(candidate.source_environment_ids) == 3
+    assert candidate.success_count == 3
+    assert validate_candidate_matches_prospective_contract("SP-001", candidate)["passed"]
+    with tempfile.TemporaryDirectory() as directory:
+        extractor = SkillExtractor(SkillLibrary(directory, persist=False), auto_promote=False)
+        report = extractor.validate_candidate_for_promotion(candidate)
+    assert report.decision == "promote_advisory"
+    assert report.status == "advisory_ready"
+
+
+def test_32_retained_sp001_session_generic_extraction_preserves_source_path():
+    source = (
+        REPOSITORY_ROOT
+        / "workspace"
+        / "evals"
+        / "sp001_runs"
+        / "sp001_episode_20260718_023754_912de280"
+        / "session_cbbd4e7e-7d8.jsonl"
+    )
+    with tempfile.TemporaryDirectory() as directory:
+        extractor = SkillExtractor(SkillLibrary(directory, persist=False), auto_promote=False)
+        candidates = extractor.extract_skill_candidates(str(source))
+    assert len(candidates) == 1
+    assert candidates[0].provenance["sources"][0]["source_log"] == str(source)
+
+
+def test_33_stone_pickaxe_lifecycle_separates_candidate_and_advisory():
+    workspace = REPOSITORY_ROOT / "workspace"
+    script = REPOSITORY_ROOT / "scripts" / "stone_pickaxe_skill_lifecycle.py"
+    with tempfile.TemporaryDirectory(dir=workspace) as directory:
+        root = Path(directory)
+        storage = root / "skills"
+        storage.mkdir()
+        queue = root / "candidates.jsonl"
+        learning_ledger = root / "learning.json"
+        promotion = root / "promotion.json"
+        relative = lambda path: path.relative_to(REPOSITORY_ROOT).as_posix()
+        common = [
+            "--task-id",
+            "SP-001",
+            "--queue",
+            relative(queue),
+            "--learning-ledger",
+            relative(learning_ledger),
+            "--storage-path",
+            relative(storage),
+            "--output",
+            relative(promotion),
+        ]
+        environment = {**os.environ, "PYTHONPATH": str(REPOSITORY_ROOT / "src")}
+        subprocess.run(
+            [sys.executable, str(script), "extract-candidate", *common],
+            cwd=REPOSITORY_ROOT,
+            env=environment,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        candidate_report = json.loads(promotion.read_text(encoding="utf-8"))
+        assert candidate_report["stage"] == "candidate"
+        assert candidate_report["skill_id"] == "learned:acquire_cobblestone"
+        assert candidate_report["artifacts"]["custom_skill_mutated"] is False
+        assert not (storage / "custom_skills.jsonl").exists()
+
+        subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                "promote-advisory",
+                *common,
+                "--candidate-id",
+                candidate_report["candidate_id"],
+            ],
+            cwd=REPOSITORY_ROOT,
+            env=environment,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        advisory_report = json.loads(promotion.read_text(encoding="utf-8"))
+        assert advisory_report["stage"] == "advisory"
+        assert [item["stage"] for item in advisory_report["lifecycle_history"]] == [
+            "candidate",
+            "advisory",
+        ]
+        skills = [
+            json.loads(line)
+            for line in (storage / "custom_skills.jsonl").read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        matching = [item for item in skills if item.get("skill_id") == "learned:acquire_cobblestone"]
+        assert matching
+        assert matching[-1]["status"] == "advisory"
 
 
 if __name__ == "__main__":

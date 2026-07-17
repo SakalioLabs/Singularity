@@ -427,7 +427,7 @@ def test_runtime_profile_suite_approves_required_profile():
 
 
 def test_runtime_profile_suite_holds_missing_required_profile():
-    tmpdir = tempfile.mkdtemp()
+    tmpdir = tempfile.mkdtemp(prefix="m7_parent_")
     runtime_dir = os.path.join(tmpdir, "runtime")
     os.makedirs(runtime_dir)
     profile_path = os.path.join(runtime_dir, "m1_safe_profile.json")

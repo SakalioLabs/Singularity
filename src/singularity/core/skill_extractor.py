@@ -958,7 +958,7 @@ class SkillExtractor:
             signals["discovery_feedback"] = discovery_feedback
             signals["discovery_skill_gate"] = build_discovery_skill_gate(
                 feedback=discovery_feedback,
-                source=session_log_path,
+                source=source_path,
             )
         return [
             SkillCandidate(
