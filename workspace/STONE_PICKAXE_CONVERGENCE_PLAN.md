@@ -13,13 +13,13 @@ This project isolates two bounded Minecraft capabilities:
 
 | Microbenchmark | Eligible live successes | Extraction gate | Current learned skill |
 |---|---:|---:|---|
-| SP-001 Acquire Cobblestone | 1 | 3 | `learned:acquire_cobblestone` not created |
+| SP-001 Acquire Cobblestone | 2 | 3 | `learned:acquire_cobblestone` not created |
 | SP-002 Craft Stone Pickaxe | 0 | 3 | `learned:craft_stone_pickaxe` not created |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 2 with two retained SP-001 failures and the first independent eligible SP-001 success, so the acquisition gate is 1/3**.
+Current phase: **Phase 2 with two retained SP-001 failures and two independent eligible SP-001 successes, so the acquisition gate is 2/3**.
 
-Current authorization: **one conditional SP-001 only, after the first successful evidence set and full audit are committed and pushed**. Each prior SP-001 authorization was consumed by one episode and no retry ran. The standing single-episode authorization permits one new experiment only after the latest evidence and full offline gate are committed and pushed. Automatic retry, concurrent or batch SP-001, another fixture session, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain forbidden.
+Current authorization: **one conditional SP-001 only, after the second successful evidence set and full audit are committed and pushed**. Each prior SP-001 authorization was consumed by one episode and no retry ran. The standing single-episode authorization permits one new experiment only after the latest evidence and full offline gate are committed and pushed. Automatic retry, concurrent or batch SP-001, another fixture session, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain forbidden.
 
 ## Fixed Protocol
 
@@ -144,7 +144,8 @@ The 30 numbered cases cover:
 - SP-001 episode `sp001_episode_20260717_230318_23d8bdf3` then removed four distinct stones and ended with `cobblestone:4`, but one transition failed strict pickup provenance. Its drop entity `322` survived a `GoalNear(1)` false completion at distance `1.503` and was recovered only by a later fallback, whose delta 2 cannot retroactively repair the failed transition.
 - The second repair permits one safe adjacent standable fallback candidate within a fixed 0.5-block selection margin. Direct range 1, the one-fallback limit, and completion by measured range or real inventory delta remain unchanged; no unsupported candidate can self-certify success.
 - SP-001 episode `sp001_episode_20260717_232454_5c05abf0` then passed in 4 actions and 19.297 seconds. It equipped once, removed three distinct observed stones, proved one corresponding pickup and `cobblestone:+1` delta for every dig, ended with `cobblestone:3`, and passed reset, request-control, deadline, intervention, task-graph, machine-verification, and eligibility checks.
-- All four failed machine audits remain non-counting and immutable; the fifth successful preparation is also non-capability evidence, and both failed SP-001 episodes grant no skill or capability credit. The first eligible SP-001 success counts only toward its 3/3 extraction gate. Twenty preparation evidence files, thirty SP-001 evidence files, and the tracked fixture manifest are hash-bound in `workspace/evals/stone_pickaxe_failure_ledger.json`; the protocol JSON and hash are unchanged.
+- SP-001 episode `sp001_episode_20260718_012012_0349d399` independently passed the same contract in 4 actions and 21.422 seconds, with distinct episode, session, session hash, and restored level identities. It recorded zero action failures, zero false-success digs, zero post-deadline actions, zero selected skills, and zero forbidden interventions.
+- All four failed machine audits remain non-counting and immutable; the fifth successful preparation is also non-capability evidence, and both failed SP-001 episodes grant no skill or capability credit. The first two eligible SP-001 successes count only toward the 3/3 extraction gate. Twenty preparation evidence files, forty SP-001 evidence files, and the tracked fixture manifest are hash-bound in `workspace/evals/stone_pickaxe_failure_ledger.json`; the protocol JSON and hash are unchanged.
 
 ## Phase Status
 
@@ -152,8 +153,8 @@ The 30 numbered cases cover:
 |---|---|
 | 0. Freeze and audit | Complete |
 | 1. Protocol and offline harness | Complete; pushed at `8a5cd0c3` |
-| 2. SP-001 controlled live convergence | Two retained failures; first eligible success recorded; next episode requires evidence push |
-| 3. SP-001 3/3 gate | 1/3 |
+| 2. SP-001 controlled live convergence | Two retained failures; two eligible successes recorded; next episode requires evidence push |
+| 3. SP-001 3/3 gate | 2/3 |
 | 4. Acquire candidate/advisory | Not started |
 | 5. SP-002 controlled live convergence | Not started |
 | 6. Craft candidate/advisory | Not started |
@@ -170,4 +171,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers plus `sp001_redundant_equip_machine_state_disconnect` and `sp001_pickup_candidate_geometry_disconnect` are reproduced and fixed offline; all source sessions remain immutable. The fixture snapshot still passes independent identity audit, and the first eligible SP-001 success is 1/3. No automatic batch resume is allowed. After each success evidence set is committed and pushed, run at most one conditional SP-001 episode, then stop and audit. Do not create either learned skill before 3/3, run SP-002/SP-003 before their gates unlock, run full BM-012, run Probe 24, or begin iron mining.
+The retained fixture blockers plus `sp001_redundant_equip_machine_state_disconnect` and `sp001_pickup_candidate_geometry_disconnect` are reproduced and fixed offline; all source sessions remain immutable. The fixture snapshot still passes independent identity audit, and two eligible SP-001 successes establish 2/3. No automatic batch resume is allowed. After each success evidence set is committed and pushed, run at most one conditional SP-001 episode, then stop and audit. Do not create either learned skill before 3/3, run SP-002/SP-003 before their gates unlock, run full BM-012, run Probe 24, or begin iron mining.

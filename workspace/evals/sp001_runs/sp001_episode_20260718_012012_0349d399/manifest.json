@@ -1,0 +1,48 @@
+{
+  "type": "stone_pickaxe_live_manifest",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-17T17:20:59.227260+00:00",
+  "runtime_policy_id": "stone-pickaxe-controlled-runtime-v1",
+  "episode_id": "sp001_episode_20260718_012012_0349d399",
+  "session_id": "7e550b04-90e",
+  "task_id": "SP-001",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+  "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+  "evidence_eligible": true,
+  "passed": true,
+  "automatic_retry_allowed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "files": [
+    {
+      "path": "workspace/evals/sp001_runs/sp001_episode_20260718_012012_0349d399/hypothesis.json",
+      "sha256": "59fa0773b9248011a46c1382450b74101a7dca61a8369e44065104183fd1f0a8"
+    },
+    {
+      "path": "workspace/evals/sp001_runs/sp001_episode_20260718_012012_0349d399/restoration.json",
+      "sha256": "cd458747b3fd4239843c87020a6e1eb848ecbe0b52a9365bca6f5bc1a4d7ae73"
+    },
+    {
+      "path": "workspace/evals/sp001_runs/sp001_episode_20260718_012012_0349d399/preflight.json",
+      "sha256": "627bbaea82b581dd035f47ce6718491d6b0f67d32b817abe31330eb5374829dd"
+    },
+    {
+      "path": "workspace/evals/sp001_runs/sp001_episode_20260718_012012_0349d399/session.json",
+      "sha256": "5f7914d952fed3dca62f7b5a53c540d454681e0bcd9352284662d7cb9e79bc5a"
+    },
+    {
+      "path": "workspace/evals/sp001_runs/sp001_episode_20260718_012012_0349d399/episode.json",
+      "sha256": "d6d028062afae17730745e2ebd0ca3483fb0c822d776b163236f19a73a38a9c6"
+    },
+    {
+      "path": "workspace/evals/sp001_runs/sp001_episode_20260718_012012_0349d399/verification.json",
+      "sha256": "a21729ad04c87dfdd00112d0de39f29cba19edd163ff00a5a3b4f23616b3cb66"
+    },
+    {
+      "path": "workspace/evals/sp001_runs/sp001_episode_20260718_012012_0349d399/audit.json",
+      "sha256": "4707c05f10c0ef6b1d13837f4cfb0172140082fa67e474e485efaf61880ce194"
+    }
+  ]
+}
