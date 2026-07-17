@@ -1,0 +1,36 @@
+{
+  "type": "stone_pickaxe_restoration_preflight",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-17T20:30:49.970467+00:00",
+  "episode_id": "sp001_skill_shadow_20260718_043048_bee49f0b",
+  "level_name": "sp001_skill_shadow_20260718_043048_bee49f0b",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "fixture_path": "workspace/evals/stone_pickaxe_fixture.json",
+  "passed": true,
+  "checks": {
+    "fixture_protocol": true,
+    "fixture_identity": true,
+    "restored_tree": true,
+    "tree_sha256": true,
+    "file_count": true,
+    "total_bytes": true
+  },
+  "issues": [],
+  "tree": {
+    "type": "stone_pickaxe_snapshot_tree_report",
+    "schema_version": 1,
+    "policy_id": "stone-pickaxe-immutable-snapshot-v1",
+    "passed": true,
+    "issues": [],
+    "components": [
+      "world",
+      "world_nether",
+      "world_the_end"
+    ],
+    "file_count": 45,
+    "total_bytes": 14684703,
+    "tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636"
+  },
+  "active_episode_reset": false,
+  "target_result_injection": false
+}

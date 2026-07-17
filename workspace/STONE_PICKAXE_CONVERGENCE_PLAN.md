@@ -17,9 +17,9 @@ This project isolates two bounded Minecraft capabilities:
 | SP-002 Craft Stone Pickaxe | 0 | 3 | `learned:craft_stone_pickaxe` not created |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 7 paired-evaluation harness ready with three immutable baseline arms and zero candidate arms; `learned:acquire_cobblestone@1.0.0` remains advisory and non-executable**.
+Current phase: **Phase 7 paired evaluation in progress with three immutable baseline arms, one verified shadow support arm, and zero candidate arms; `learned:acquire_cobblestone@1.0.0` remains advisory and non-executable**.
 
-Current authorization: **after the paired-harness commit is pushed, exactly one `shadow/shadow-1` SP-001 skill-evaluation arm may run**. The launcher requires clean synchronized `main`, writes a single-use pre-live authorization, and rejects a repeated arm/replicate. Candidate arms, another fixture session, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain locked until their preceding evidence is committed and reviewed.
+Current authorization: **after the retained shadow evidence is committed and pushed, exactly one `advisory/advisory-1` SP-001 skill-evaluation arm may run**. The launcher requires clean synchronized `main`, writes a single-use pre-live authorization, and rejects a repeated arm/replicate. Candidate arms, another fixture session, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain locked until their preceding evidence is committed and reviewed.
 
 ## Fixed Protocol
 
@@ -155,7 +155,7 @@ The 30 numbered cases cover:
 - Supplemental policy `stone-pickaxe-sp001-paired-evaluation-v1` leaves the base protocol byte-identical and binds the exact advisory record, candidate queue record, promotion artifact, fixture tree, and three retained successful baseline bundles by SHA-256. All three baseline records independently pass and share one fixed-control fingerprint plus one contract-relevant initial-state fingerprint.
 - The paired runtime exposes only `shadow`, `advisory`, fail-closed `fallback`, and exact `candidate` arms. Every arm consumes one explicit replicate authorization; duplicate arm/replicate records reject the report. Shadow/advisory/fallback cannot directly execute the skill. Candidate mode is restricted to `learned:acquire_cobblestone@1.0.0`, and every skill action must retain ActionController, ActionVerifier, post-action re-observation, and the unchanged SP-001 machine verifier.
 - Evaluation loads the skill library read-only and disables its learning ledger, so a live trial cannot rewrite the advisory record in place. Source hashes alone are insufficient: each run record is recomputed from its bound authorization, episode, session events, verification, fixed controls, initial state, and skill metrics. Fifteen dedicated offline cases pass, including duplicate consumption, source/metric tampering, missing support arms, and the separate `1.1.0` executable-review boundary.
-- `workspace/evals/acquire_cobblestone_baseline_index.json` is 3/3. `workspace/evals/acquire_cobblestone_paired_evaluation.json` is intentionally `retain_advisory` at 0/3 candidate pairs with shadow, advisory, and fallback all unexercised. It grants no normal runtime, capability, or M4 authority.
+- `workspace/evals/acquire_cobblestone_baseline_index.json` is 3/3. `workspace/evals/acquire_cobblestone_paired_evaluation.json` is intentionally `retain_advisory` at 0/3 candidate pairs with shadow verified and advisory/fallback unexercised. Shadow episode `sp001_skill_shadow_20260718_043048_bee49f0b` completed in four verified actions with three shadow plans and no direct skill selection or execution. It grants no normal runtime, capability, or M4 authority.
 
 ## Phase Status
 
@@ -168,7 +168,7 @@ The 30 numbered cases cover:
 | 4. Acquire candidate/advisory | Complete; advisory pushed at `822057b` |
 | 5. SP-002 controlled live convergence | Not started |
 | 6. Craft candidate/advisory | Not started |
-| 7. Paired promotion evaluations | Offline harness ready; baselines 3/3, candidates 0/3, support arms 0/3 |
+| 7. Paired promotion evaluations | In progress; baselines 3/3, candidates 0/3, support arms 1/3 (shadow verified) |
 | 8. SP-003 composite acceptance | Locked |
 
 ## Frozen Baseline
@@ -181,4 +181,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers plus all three SP-001 behavioral failures are reproduced and fixed; the two provider TLS EOF traces are retained as zero-action fail-closed failures. All source sessions remain immutable. The fixture snapshot still passes independent identity audit, and three eligible SP-001 successes establish 3/3. The acquire skill is advisory only. Once this offline harness is committed and pushed, run only `shadow/shadow-1`, retain and review its evidence, then commit and push before authorizing another arm. Do not batch paired arms, retry a consumed replicate, run SP-002/SP-003 before their gates unlock, run full BM-012, run Probe 24, or begin iron mining.
+The retained fixture blockers plus all three SP-001 behavioral failures are reproduced and fixed; the two provider TLS EOF traces are retained as zero-action fail-closed failures. All source sessions remain immutable. The fixture snapshot still passes independent identity audit, and three eligible SP-001 successes establish 3/3. The acquire skill is advisory only. Shadow ran exactly once from pushed commit `7f98556`, passed machine verification, matched baseline controls/state, and retained eleven hash-bound artifacts. Commit and push that evidence before running only `advisory/advisory-1`. Do not batch paired arms, retry a consumed replicate, run SP-002/SP-003 before their gates unlock, run full BM-012, run Probe 24, or begin iron mining.
