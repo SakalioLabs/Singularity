@@ -437,14 +437,14 @@ def test_retained_sp001_same_cell_fallback_alias_is_reproduced():
     assert next_failed["pickup_collection"]["initial_distance"] > 1.5
 
 
-def test_retained_sp001_transport_failure_is_fail_closed():
+def _assert_retained_sp001_transport_failure_is_fail_closed(episode_id):
     root = Path(__file__).resolve().parents[1]
     run = (
         root
         / "workspace"
         / "evals"
         / "sp001_runs"
-        / "sp001_episode_20260718_013304_7c162864"
+        / episode_id
     )
     episode = json.loads((run / "episode.json").read_text(encoding="utf-8"))
     audit = json.loads((run / "audit.json").read_text(encoding="utf-8"))
@@ -473,6 +473,18 @@ def test_retained_sp001_transport_failure_is_fail_closed():
     assert audit["task_graph_state"]["task_count"] == 0
 
 
+def test_retained_sp001_transport_failure_is_fail_closed():
+    _assert_retained_sp001_transport_failure_is_fail_closed(
+        "sp001_episode_20260718_013304_7c162864"
+    )
+
+
+def test_retained_sp001_second_transport_failure_is_fail_closed():
+    _assert_retained_sp001_transport_failure_is_fail_closed(
+        "sp001_episode_20260718_022202_615c7b84"
+    )
+
+
 def test_retained_sp001_failure_evidence_hashes_match_ledger():
     root = Path(__file__).resolve().parents[1]
     attributes = (root / ".gitattributes").read_text(encoding="utf-8")
@@ -492,6 +504,7 @@ def test_retained_sp001_failure_evidence_hashes_match_ledger():
         "sp001-002-pickup-candidate-margin",
         "sp001-003-planner-transport-tls-eof",
         "sp001-004-pickup-same-cell-goal-alias",
+        "sp001-005-planner-transport-tls-eof-repeat",
     ]
     for failure in failures:
         assert len(failure["evidence"]) == 10

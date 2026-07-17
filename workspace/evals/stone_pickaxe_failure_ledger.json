@@ -1,27 +1,27 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T02:00:30+08:00",
+  "generated_at": "2026-07-18T02:25:00+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_2_sp001_same_cell_pickup_nudge_offline_fixed_2_of_3",
-  "status": "offline_fix_verified_conditional_single_sp001_pending_fix_push",
+  "phase": "phase_2_sp001_second_transport_failure_retained_2_of_3",
+  "status": "second_external_transport_failure_fail_closed_conditional_single_sp001_pending_evidence_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": true,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 1,
-  "authorization_scope": "one_conditional_sp001_episode_after_same_cell_pickup_fix_and_failure_evidence_are_committed_and_pushed",
+  "authorization_scope": "one_conditional_sp001_episode_after_second_transport_failure_evidence_is_committed_and_pushed",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
     "fixture_preparation_sessions_consumed": 5,
     "fixture_audit_passed": true,
     "conditional_sp001_authorization_activated": true,
-    "sp001_live_episodes_run": 6,
+    "sp001_live_episodes_run": 7,
     "next_live_authorization": true
   },
   "fixture_preparation_success": {
@@ -178,15 +178,15 @@
     {
       "phase": 2,
       "name": "controlled_sp001_runtime",
-      "status": "same_cell_pickup_alias_offline_fixed_after_two_eligible_successes",
+      "status": "second_external_transport_failure_retained_after_two_eligible_successes",
       "fixture_preparation_session_count": 5,
-      "live_episode_count": 6,
+      "live_episode_count": 7,
       "eligible_live_success_count": 2,
       "latest_success_episode_id": "sp001_episode_20260718_012012_0349d399",
-      "latest_failure_episode_id": "sp001_episode_20260718_014459_7a1a9b49",
+      "latest_failure_episode_id": "sp001_episode_20260718_022202_615c7b84",
       "automatic_retry_allowed": false,
-      "stone_pickaxe_runtime_cases_passed": 29,
-      "stone_pickaxe_runtime_cases_total": 29,
+      "stone_pickaxe_runtime_cases_passed": 30,
+      "stone_pickaxe_runtime_cases_total": 30,
       "minecraft_process_started": true,
       "controlled_listener_count_after_stop": 0,
       "matching_runtime_process_count_after_stop": 0,
@@ -195,11 +195,13 @@
         "live_rerun_performed": true,
         "fixture_sealed": true,
         "sp001_failure_retained": true,
-        "sp001_failure_count": 4,
+        "sp001_failure_count": 5,
         "sp001_behavioral_failure_count": 3,
-        "sp001_external_transport_failure_count": 1,
+        "sp001_external_transport_failure_count": 2,
         "new_live_authorization_required": false,
-        "latest_fix_live_rerun_performed": false
+        "latest_fix_live_rerun_performed": true,
+        "latest_fix_exercised": false,
+        "latest_fix_exercise_blocker": "external_provider_transport_failed_before_first_plan"
       }
     }
   ],
@@ -1517,6 +1519,152 @@
         "counts_toward_capability": false,
         "counts_toward_m4": false
       }
+    },
+    {
+      "id": "sp001-005-planner-transport-tls-eof-repeat",
+      "phase": "controlled_sp001",
+      "classification": "sp001_planner_transport_tls_eof",
+      "status": "retained_failure_external_transport_fail_closed",
+      "attributable_to_learned_skill": false,
+      "episode_id": "sp001_episode_20260718_022202_615c7b84",
+      "session_id": "77707bdf-476",
+      "occurred_at_utc": "2026-07-17T18:22:22.520060+00:00",
+      "git_head_before_episode": "9870a386c52a2ffbf371c25c8cd77300657d741b",
+      "fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+      "earliest_unrecovered_transition": "root_planner_single_transport_attempt_failed_with_api_connection_error_connect_error_ssl_eof_before_any_response_plan_task_or_action",
+      "first_failed_action_or_task_transition": "none_no_world_action_was_attempted",
+      "goal_result": {
+        "completed": false,
+        "termination_reason": "empty_plan",
+        "cycles": 1,
+        "action_count": 0,
+        "successful_action_count": 0,
+        "failed_action_count": 0,
+        "elapsed_s": 5.656,
+        "deadline_eligible": true
+      },
+      "machine_verification": {
+        "passed": false,
+        "evidence_eligible": false,
+        "criteria_issues": [
+          "minimum_distinct_source_removals",
+          "minimum_pickup_count",
+          "terminal_cobblestone_delta"
+        ],
+        "eligibility_issues": [
+          "eligibility:passed",
+          "eligibility:planner_request_controls"
+        ],
+        "source_removal_count": 0,
+        "distinct_source_count": 0,
+        "pickup_count": 0,
+        "terminal_cobblestone_delta": 0,
+        "false_success_dig_count": 0
+      },
+      "planner_transport_proof": {
+        "planner_call_count": 1,
+        "real_llm_call": false,
+        "response_byte_count": 0,
+        "response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "transport_policy": "single-attempt",
+        "transport_attempt_count": 1,
+        "transport_retry_count": 0,
+        "sdk_max_retries": 0,
+        "transport_attempt_success": false,
+        "error_type": "APIConnectionError",
+        "error_chain": [
+          "APIConnectionError",
+          "ConnectError",
+          "ConnectError",
+          "SSLEOFError"
+        ],
+        "planner_schema_valid": false,
+        "planner_request_controls_passed": false
+      },
+      "fail_closed_proof": {
+        "task_count": 0,
+        "task_transition_count": 0,
+        "action_count": 0,
+        "world_mutating_non_target_action_count": 0,
+        "initial_inventory_equals_terminal_inventory": true,
+        "post_deadline_action_count": 0,
+        "forbidden_intervention_count": 0,
+        "automatic_retry_count": 0,
+        "task_graph_sha256": "95f02e5a2b044d5404bc3937647139b6fae90a1258c108a7e5ae8f855a9f695c"
+      },
+      "evidence": [
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_022202_615c7b84/audit.json",
+          "sha256": "79fef85c5a2927b6c78e8afe2443b34f752ab24008a34b62e8ffb6ba834d6370"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_022202_615c7b84/episode.json",
+          "sha256": "35751a3e4696ed8e94e0030e260849330f59790e8b8e01eb49a5f8b1a1cf49b5"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_022202_615c7b84/hypothesis.json",
+          "sha256": "8ad6e4190b0d1377ced771f6e7562c8c1271af20e991371ff6f5711d8b1b61bd"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_022202_615c7b84/manifest.json",
+          "sha256": "54e81c76d0e1150b732c364670470e0761c437fd3531e7c72faa6c8aaef228cd"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_022202_615c7b84/preflight.json",
+          "sha256": "a1d16127667e29ec2fda73bbf738ff474ccddb9eeaad599addbc6fb243520bf3"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_022202_615c7b84/restoration.json",
+          "sha256": "52548c0931727caa6db580a6e504a10d9b51d70de3fa9175796675a413cac7bf"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_022202_615c7b84/session.json",
+          "sha256": "3cc030410efac9cb88ce24b97bf3aa6577e1c25a444c64732afd6cef46686485"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_022202_615c7b84/session_77707bdf-476.jsonl",
+          "sha256": "4886ce2b1f03b2459bce8cf76b18f8132e76053bf53e368df1b7343bb87cdac5"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_022202_615c7b84/session_77707bdf-476_summary.json",
+          "sha256": "0c3d02961538265691e3cf190e905b9aa3c226dbdfc71ffb1212680f03c3943c"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_022202_615c7b84/verification.json",
+          "sha256": "bdc784821dc8dcdbe435f99345a686ad2b677dce0a8d2eff01495045ef1ce195"
+        }
+      ],
+      "counts_toward_skill_gate": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_attempted": false,
+      "machine_audit_generic_fix": "offline_dig_pickup_postcondition_binding",
+      "machine_audit_generic_fix_applicable": false,
+      "single_next_offline_fix": "none_external_transport_failure_already_failed_closed",
+      "offline_resolution": {
+        "status": "fail_closed_no_code_change",
+        "root_cause": "provider_transport_closed_tls_before_any_response_bytes",
+        "framework_behavior_correct": true,
+        "same_cell_pickup_fix_exercised": false,
+        "retained_evidence_replay_test": "test_retained_sp001_second_transport_failure_is_fail_closed",
+        "protocol_json_modified": false,
+        "runtime_logic_modified": false,
+        "automatic_retry_allowed": false,
+        "regressions": {
+          "stone_pickaxe_runtime_cases": "30/30",
+          "stone_pickaxe_protocol_cases": "30/30",
+          "repository_non_live_python_scripts": "39/39",
+          "fixed_node_suites": "6/6",
+          "repository_json_files_parsed": 1192,
+          "python_compileall": "passed",
+          "capability_consistency": "passed",
+          "immutable_evidence_hashes": "passed",
+          "credential_scan": "passed"
+        },
+        "counts_toward_skill_gate": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      }
     }
   ],
   "eligible_successes": [
@@ -1735,8 +1883,8 @@
       "total": 30
     },
     "stone_pickaxe_runtime_cases": {
-      "passed": 29,
-      "total": 29
+      "passed": 30,
+      "total": 30
     },
     "impacted_runtime_regressions": {
       "m2_harness_passed": true,
@@ -1751,7 +1899,7 @@
       "passed": 6,
       "total": 6
     },
-    "repository_json_files_parsed": 1183,
+    "repository_json_files_parsed": 1192,
     "python_compileall_passed": true,
     "fixture_snapshot_audit_passed": true,
     "fixture_manifest_hash_passed": true,
@@ -1772,18 +1920,19 @@
     "controlled_listener_count": 0,
     "matching_runtime_process_count": 0,
     "sp001_same_cell_fallback_alias_replay_passed": true,
-    "sp001_same_cell_nudge_node_tests_passed": true
+    "sp001_same_cell_nudge_node_tests_passed": true,
+    "sp001_second_transport_failure_fail_closed_replay_passed": true
   },
   "next_required_gate": {
-    "id": "conditional_sp001_episode_after_same_cell_pickup_fix_push",
+    "id": "conditional_sp001_episode_after_second_transport_failure_evidence_push",
     "authorization": true,
     "prerequisites": [
-      "fourth_sp001_failure_all_ten_evidence_hashes_verified",
-      "same_cell_goalblock_alias_reproduced_from_retained_session",
-      "bounded_same_cell_nudge_positive_and_negative_cases_passed",
-      "one_fallback_limit_and_completion_grounding_preserved",
+      "fifth_sp001_failure_all_ten_evidence_hashes_verified",
+      "second_transport_failure_replayed_as_zero_task_zero_action_fail_closed",
+      "single_attempt_and_zero_retry_protocol_preserved",
+      "same_cell_pickup_fix_remains_offline_verified_but_live_unexercised",
       "all_non_live_regressions_passed",
-      "same_cell_pickup_fix_and_failure_evidence_commit_pushed"
+      "second_transport_failure_evidence_commit_pushed"
     ],
     "automatic_retry_allowed": false
   },
@@ -1794,7 +1943,7 @@
     "fixture_snapshot_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
     "fixture_preparation_artifacts_created": 20,
     "fixture_preparation_artifacts_retained_locally": true,
-    "sp001_run_artifacts_created": 60,
+    "sp001_run_artifacts_created": 70,
     "sp001_run_artifacts_retained_locally": true,
     "sp002_run_artifacts_created": 0,
     "sp003_run_artifacts_created": 0,
