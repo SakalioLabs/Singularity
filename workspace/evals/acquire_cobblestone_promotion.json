@@ -1,8 +1,25 @@
 {
   "advisory_ready": true,
+  "advisory_skill": {
+    "name": "learned_acquire_cobblestone",
+    "rollback_target": "",
+    "skill_id": "learned:acquire_cobblestone",
+    "source_environment_ids": [
+      "sp001_episode_20260717_232454_5c05abf0",
+      "sp001_episode_20260718_012012_0349d399",
+      "sp001_episode_20260718_023754_912de280"
+    ],
+    "source_session_ids": [
+      "b93a7777-207",
+      "7e550b04-90e",
+      "cbbd4e7e-7d8"
+    ],
+    "status": "advisory",
+    "version": "1.0.0"
+  },
   "artifacts": {
     "candidate_queue": "workspace/skills/skill_candidates.jsonl",
-    "custom_skill_mutated": false,
+    "custom_skill_mutated": true,
     "skill_learning_ledger": "workspace/evals/skill_learning_ledger.json"
   },
   "candidate_contract": {
@@ -57,13 +74,19 @@
   "candidate_id": "e1534e57",
   "counts_toward_capability": false,
   "counts_toward_m4": false,
-  "generated_at_utc": "2026-07-17T19:22:51.913866+00:00",
+  "generated_at_utc": "2026-07-17T19:28:22.085097+00:00",
   "lifecycle_history": [
     {
       "at_utc": "2026-07-17T19:22:51.913866+00:00",
       "decision": "candidate_created",
       "source_success_count": 3,
       "stage": "candidate"
+    },
+    {
+      "at_utc": "2026-07-17T19:28:22.085097+00:00",
+      "decision": "promote_advisory",
+      "reason": "three_verified_sources_support_advisory_promotion",
+      "stage": "advisory"
     }
   ],
   "promotion_review": {
@@ -87,7 +110,7 @@
       "error_report_count": 0,
       "errors": [],
       "evidence": [],
-      "generated_at": 1784316171.677,
+      "generated_at": 1784316501.594,
       "missing": [],
       "policy_hints": [],
       "readable_log_count": 0,
@@ -206,7 +229,7 @@
     ],
     "success_count": 3
   },
-  "stage": "candidate",
+  "stage": "advisory",
   "task_id": "SP-001",
   "type": "stone_pickaxe_skill_promotion"
 }

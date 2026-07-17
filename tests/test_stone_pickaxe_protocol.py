@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 import os
 import subprocess
@@ -538,11 +539,22 @@ def test_28_m1_m2_m3_regressions_remain_required_and_statuses_unchanged():
     assert gate["goal_verifier_relaxation_allowed"] is False
 
 
-def test_29_existing_wooden_pickaxe_skill_history_hash_is_unchanged():
+def test_29_existing_skill_history_records_are_unchanged():
     baseline = _load_ledger()["immutable_baseline"]
     path = REPOSITORY_ROOT / baseline["custom_skills"]["path"]
-    assert baseline["custom_skills"]["sha256"] == file_sha256(path)
     records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    protected = baseline["custom_skills"]["protected_records"]
+    assert len(protected) == baseline["custom_skills"]["record_count"] == 8
+    records_by_identity = {
+        (record.get("skill_id"), record.get("version")): record
+        for record in records
+    }
+    for expected in protected:
+        identity = (expected["skill_id"], expected["version"])
+        record = records_by_identity[identity]
+        canonical = json.dumps(record, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        assert hashlib.sha256(canonical.encode("utf-8")).hexdigest() == expected["sha256"]
+        assert record.get("status") == expected["status"]
     versions = {
         record["version"]: record["status"]
         for record in records
@@ -675,6 +687,54 @@ def test_33_stone_pickaxe_lifecycle_separates_candidate_and_advisory():
         matching = [item for item in skills if item.get("skill_id") == "learned:acquire_cobblestone"]
         assert matching
         assert matching[-1]["status"] == "advisory"
+
+
+def test_34_real_sp001_advisory_artifacts_are_consistent_and_non_executable():
+    report = json.loads(
+        (REPOSITORY_ROOT / "workspace" / "evals" / "acquire_cobblestone_promotion.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    queue = [
+        json.loads(line)
+        for line in (REPOSITORY_ROOT / "workspace" / "skills" / "skill_candidates.jsonl").read_text(
+            encoding="utf-8"
+        ).splitlines()
+        if line.strip()
+    ]
+    skills = [
+        json.loads(line)
+        for line in (REPOSITORY_ROOT / "workspace" / "skills" / "custom_skills.jsonl").read_text(
+            encoding="utf-8"
+        ).splitlines()
+        if line.strip()
+    ]
+    learning = json.loads(
+        (REPOSITORY_ROOT / "workspace" / "evals" / "skill_learning_ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    candidates = [item for item in queue if item.get("id") == "e1534e57"]
+    advisory = [item for item in skills if item.get("skill_id") == "learned:acquire_cobblestone"]
+    assert len(candidates) == len(advisory) == 1
+    assert candidates[0]["status"] == "advisory"
+    assert candidates[0]["review_status"] == "approved"
+    assert advisory[0]["version"] == "1.0.0"
+    assert advisory[0]["status"] == "advisory"
+    assert "executable_promotion" not in advisory[0].get("gate", {})
+    assert report["stage"] == "advisory"
+    assert [item["stage"] for item in report["lifecycle_history"]] == ["candidate", "advisory"]
+    assert report["counts_toward_capability"] is False
+    assert report["counts_toward_m4"] is False
+    assert "learned:acquire_cobblestone@1.0.0" in learning["skills"]
+    library = SkillLibrary(str(REPOSITORY_ROOT / "workspace" / "skills"), persist=False)
+    selected = library.select_runtime_skill(
+        "Acquire 3 cobblestone",
+        _sp001_observation(),
+        execution_mode="execute",
+        target_skill_id="learned:acquire_cobblestone",
+    )
+    assert selected is None
 
 
 if __name__ == "__main__":

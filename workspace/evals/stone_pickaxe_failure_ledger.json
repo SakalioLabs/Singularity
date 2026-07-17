@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T03:25:00+08:00",
+  "generated_at": "2026-07-18T03:35:00+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_3_sp001_candidate_created",
-  "status": "sp001_exact_candidate_created_advisory_ready_pending_artifact_push",
+  "phase": "phase_4_sp001_advisory_created",
+  "status": "sp001_acquire_skill_advisory_non_executable_pending_artifact_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 0,
-  "authorization_scope": "no_live_episode_sp001_gate_complete_advisory_promotion_requires_candidate_artifact_push",
+  "authorization_scope": "no_live_episode_sp001_advisory_created_paired_evaluation_harness_requires_advisory_artifact_push",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -119,10 +119,12 @@
       "required_before_candidate_extraction": 3,
       "candidate_created": true,
       "candidate_id": "e1534e57",
-      "candidate_status": "candidate",
-      "candidate_review_status": "pending",
+      "candidate_status": "advisory",
+      "candidate_review_status": "approved",
       "advisory_ready": true,
-      "learned_skill_status": "not_created"
+      "learned_skill_status": "advisory",
+      "learned_skill_version": "1.0.0",
+      "executable": false
     },
     "SP-002": {
       "eligible_live_successes": 0,
@@ -212,15 +214,17 @@
     {
       "phase": 3,
       "name": "sp001_candidate_lifecycle",
-      "status": "candidate_created_advisory_ready_pending_artifact_push",
+      "status": "advisory_created_non_executable_pending_artifact_push",
       "candidate_id": "e1534e57",
       "skill_id": "learned:acquire_cobblestone",
-      "candidate_status": "candidate",
-      "review_status": "pending",
+      "candidate_status": "advisory",
+      "review_status": "approved",
       "source_session_count": 3,
       "source_environment_count": 3,
       "promotion_decision": "promote_advisory",
-      "custom_skill_mutated": false,
+      "custom_skill_mutated": true,
+      "custom_skill_status": "advisory",
+      "executable": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false
     }
@@ -2003,8 +2007,8 @@
   ],
   "validation": {
     "stone_pickaxe_offline_cases": {
-      "passed": 33,
-      "total": 33
+      "passed": 34,
+      "total": 34
     },
     "stone_pickaxe_runtime_cases": {
       "passed": 30,
@@ -2050,21 +2054,24 @@
     "sp001_candidate_lifecycle_state_separation_test_passed": true,
     "skill_extractor_source_path_regression_passed": true,
     "runtime_profile_required_label_boundary_regression_passed": true,
-    "ledger_declared_hashes_passed": 128,
+    "ledger_declared_hashes_passed": 127,
     "sp001_declared_hashes_passed": 80,
     "sp001_candidate_materialization_passed": true,
-    "sp001_candidate_custom_skill_isolation_passed": true
+    "sp001_candidate_custom_skill_isolation_passed": true,
+    "existing_skill_record_history_hashes_passed": 8,
+    "sp001_real_advisory_artifact_consistency_passed": true,
+    "sp001_advisory_non_executable_gate_passed": true
   },
   "next_required_gate": {
-    "id": "sp001_advisory_promotion_after_candidate_artifact_push",
+    "id": "sp001_paired_evaluation_harness_after_advisory_artifact_push",
     "authorization": true,
     "prerequisites": [
-      "candidate_e1534e57_matches_exact_fixed_contract",
-      "candidate_has_three_distinct_hash_verified_live_sources",
-      "candidate_promotion_review_is_advisory_ready",
-      "candidate_queue_and_learning_ledger_are_consistent",
-      "custom_skill_library_is_unchanged",
-      "candidate_artifact_commit_pushed"
+      "candidate_artifact_commit_a40425f_pushed",
+      "advisory_skill_matches_candidate_e1534e57",
+      "advisory_skill_has_no_executable_promotion_gate",
+      "existing_eight_skill_records_are_hash_unchanged",
+      "advisory_artifacts_pass_full_non_live_gate",
+      "advisory_artifact_commit_pushed"
     ],
     "automatic_retry_allowed": false
   },
@@ -2081,15 +2088,67 @@
     "sp003_run_artifacts_created": 0,
     "promotion_artifacts_created": 1,
     "candidate_queue_records_created": 1,
+    "advisory_skill_records_created": 1,
     "acceptance_artifacts_created": 0,
-    "custom_skills_modified": false,
+    "custom_skills_modified": true,
     "capability_report_modified": false
   },
   "immutable_baseline": {
     "commit": "e4e06980caebaa79528b7bc187db0c8422e4f5c8",
     "custom_skills": {
       "path": "workspace/skills/custom_skills.jsonl",
-      "sha256": "1bb41d47b165229b19ee4f8c0e7c7f8a38411ad7f6829170d4dc1219b5ec102d"
+      "baseline_sha256": "1bb41d47b165229b19ee4f8c0e7c7f8a38411ad7f6829170d4dc1219b5ec102d",
+      "record_count": 8,
+      "protected_records": [
+        {
+          "skill_id": "learned:craft_crafting_table",
+          "version": "1.0.0",
+          "status": "advisory",
+          "sha256": "41574480565d38e21a016aabc8ca09fbd4843aad09381fe980879d8e64c72111"
+        },
+        {
+          "skill_id": "learned:craft_crafting_table",
+          "version": "1.0.1",
+          "status": "executable",
+          "sha256": "36cf567ecd802e21c971bb3bcd106abb9c70de9bdd6ae7e440144483f05d9efb"
+        },
+        {
+          "skill_id": "learned:craft_wooden_pickaxe",
+          "version": "1.0.0",
+          "status": "advisory",
+          "sha256": "03231e0cf5413d7f8bcd4a8918c95c55074e77846f4a03f311af831bde7bbdf2"
+        },
+        {
+          "skill_id": "learned:craft_wooden_pickaxe",
+          "version": "1.0.1",
+          "status": "quarantined",
+          "sha256": "f02638bbb08a3a4f28a67e559546f6dd162e01cab7a1d300fe03bf5a07415b97"
+        },
+        {
+          "skill_id": "learned:craft_wooden_pickaxe",
+          "version": "1.0.2-candidate",
+          "status": "advisory",
+          "sha256": "00d3599efb493f80ce07917e4748e53ed64b15772e8a5d877376b72e7b23df67"
+        },
+        {
+          "skill_id": "learned:craft_wooden_pickaxe",
+          "version": "1.0.2",
+          "status": "executable",
+          "sha256": "799b92673ef5f981a0a269f8d130607088bba5bace301de848be4751ba915032"
+        },
+        {
+          "skill_id": "learned:gather_wood",
+          "version": "1.0.0",
+          "status": "advisory",
+          "sha256": "862bd29f9277a7a6888a4fb30ca20bc6bafc8e49830b12e867baea3ebcf00f8e"
+        },
+        {
+          "skill_id": "learned:gather_wood",
+          "version": "1.0.1",
+          "status": "executable",
+          "sha256": "29aa4437dcd7edd07ebeda654076b179cd3b0d63874bef12e55cff9cc8b0f8c3"
+        }
+      ]
     },
     "probe_evidence": [
       {

@@ -674,7 +674,7 @@
           "error_report_count": 0,
           "errors": [],
           "evidence": [],
-          "generated_at": 1784316171.677,
+          "generated_at": 1784316501.594,
           "missing": [],
           "policy_hints": [],
           "readable_log_count": 0,
@@ -824,7 +824,7 @@
         ],
         "stone_pickaxe_protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
       },
-      "review_status": "pending",
+      "review_status": "approved",
       "runtime_eligible": true,
       "skill_id": "learned:acquire_cobblestone",
       "source_environment_ids": [
@@ -837,7 +837,7 @@
         "7e550b04-90e",
         "cbbd4e7e-7d8"
       ],
-      "status": "candidate",
+      "status": "advisory",
       "success_count": 3,
       "task_family": "mining",
       "transfer_scope": {
@@ -869,7 +869,7 @@
         ],
         "unsupported_task_families": []
       },
-      "updated_at": 1784316171.7303596,
+      "updated_at": 1784316501.7649355,
       "validation_issues": [],
       "version": "1.0.0"
     },
@@ -3151,6 +3151,127 @@
       "reason": "fixed_protocol_candidate_created_after_three_eligible_live_successes",
       "skill_id": "learned:acquire_cobblestone",
       "timestamp": 1784316171.8500283
+    },
+    {
+      "decision": "promote_advisory",
+      "evidence": {
+        "candidate_id": "e1534e57",
+        "candidate_name": "learned_acquire_cobblestone",
+        "causal_evidence_gate": {
+          "approved_report_count": 0,
+          "average_causal_evidence_score": 0.0,
+          "causal_claim_count": 0,
+          "causal_memory_write_count": 0,
+          "checks": [
+            {
+              "detail": "causal evidence gate not required",
+              "name": "causal_evidence_gate_required",
+              "status": "pass"
+            }
+          ],
+          "contrast_control_count": 0,
+          "counterexample_count": 0,
+          "decision": "allow",
+          "error_report_count": 0,
+          "errors": [],
+          "evidence": [],
+          "generated_at": 1784316501.594,
+          "missing": [],
+          "policy_hints": [],
+          "readable_log_count": 0,
+          "readiness": "not_required",
+          "readinesses": [],
+          "ready_log_count": 0,
+          "reason": "no_causal_evidence_gate_required",
+          "rejected_report_count": 0,
+          "report_count": 0,
+          "required": false,
+          "review_report_count": 0,
+          "sources": [],
+          "target": "causal_summary_skill_promotion",
+          "thresholds": {
+            "max_unmitigated_bias_risks": 0,
+            "max_unresolved_counterexamples": 0,
+            "min_approved_reports": 1,
+            "min_contrast_count": 1
+          },
+          "type": "causal_evidence_gate",
+          "unmitigated_bias_risk_count": 0,
+          "unresolved_counterexample_count": 0,
+          "warnings": []
+        },
+        "critic": {},
+        "decision": "promote_advisory",
+        "discovery_gate": {
+          "decision": "allow",
+          "errors": [],
+          "evidence": [],
+          "missing": [],
+          "readiness": "not_required",
+          "reason": "no_discovery_gate_required",
+          "required": false,
+          "sources": [],
+          "warnings": []
+        },
+        "evidence": [
+          "eligible live success sp001_episode_20260717_232454_5c05abf0",
+          "eligible live success sp001_episode_20260718_012012_0349d399",
+          "eligible live success sp001_episode_20260718_023754_912de280"
+        ],
+        "gate": {
+          "achieved": true,
+          "decision": "allow",
+          "evidence": [
+            "eligible live success sp001_episode_20260717_232454_5c05abf0",
+            "eligible live success sp001_episode_20260718_012012_0349d399",
+            "eligible live success sp001_episode_20260718_023754_912de280"
+          ],
+          "inventory_delta": {
+            "cobblestone": 3
+          },
+          "matched_rules": [
+            "stone_pickaxe_fixed_protocol",
+            "three_distinct_live_successes"
+          ],
+          "missing": [],
+          "reason": "stone_pickaxe_three_live_success_gate",
+          "status": "achieved",
+          "target_inventory": {
+            "cobblestone": 3
+          }
+        },
+        "matched_rules": [
+          "stone_pickaxe_fixed_protocol",
+          "three_distinct_live_successes",
+          "typed_bounded_skill_contract",
+          "three_state_skill_lifecycle",
+          "distinct_live_source_gate"
+        ],
+        "missing": [],
+        "postconditions": {
+          "inventory": {
+            "cobblestone": 3
+          }
+        },
+        "reason": "three_verified_sources_support_advisory_promotion",
+        "score": 0.9,
+        "status": "advisory_ready",
+        "transfer_gate": {
+          "decision": "allow",
+          "errors": [],
+          "evidence": [],
+          "missing": [],
+          "readiness": "not_required",
+          "reason": "no_task_stream_transfer_gate_required",
+          "required": false,
+          "sources": [],
+          "warnings": []
+        },
+        "warnings": []
+      },
+      "reason": "three_verified_sources_support_advisory_promotion",
+      "skill_id": "learned:acquire_cobblestone",
+      "timestamp": 1784316501.9681928
     }
   ],
   "experiments": [
@@ -20137,6 +20258,227 @@
   ],
   "schema_version": 1,
   "skills": {
+    "learned:acquire_cobblestone@1.0.0": {
+      "confidence_interval": {
+        "lower": 0.438494,
+        "method": "wilson_95",
+        "samples": 3,
+        "upper": 1.0
+      },
+      "failure_count": 0,
+      "failure_type_counts": {},
+      "gate": {
+        "causal_evidence": {
+          "approved_report_count": 0,
+          "average_causal_evidence_score": 0.0,
+          "causal_claim_count": 0,
+          "causal_memory_write_count": 0,
+          "checks": [
+            {
+              "detail": "causal evidence gate not required",
+              "name": "causal_evidence_gate_required",
+              "status": "pass"
+            }
+          ],
+          "contrast_control_count": 0,
+          "counterexample_count": 0,
+          "decision": "allow",
+          "error_report_count": 0,
+          "errors": [],
+          "evidence": [],
+          "generated_at": 1784316501.594,
+          "missing": [],
+          "policy_hints": [],
+          "readable_log_count": 0,
+          "readiness": "not_required",
+          "readinesses": [],
+          "ready_log_count": 0,
+          "reason": "no_causal_evidence_gate_required",
+          "rejected_report_count": 0,
+          "report_count": 0,
+          "required": false,
+          "review_report_count": 0,
+          "sources": [],
+          "target": "causal_summary_skill_promotion",
+          "thresholds": {
+            "max_unmitigated_bias_risks": 0,
+            "max_unresolved_counterexamples": 0,
+            "min_approved_reports": 1,
+            "min_contrast_count": 1
+          },
+          "type": "causal_evidence_gate",
+          "unmitigated_bias_risk_count": 0,
+          "unresolved_counterexample_count": 0,
+          "warnings": []
+        },
+        "decision": "promote_advisory",
+        "discovery": {
+          "decision": "allow",
+          "errors": [],
+          "evidence": [],
+          "missing": [],
+          "readiness": "not_required",
+          "reason": "no_discovery_gate_required",
+          "required": false,
+          "sources": [],
+          "warnings": []
+        },
+        "matched_rules": [
+          "stone_pickaxe_fixed_protocol",
+          "three_distinct_live_successes",
+          "typed_bounded_skill_contract",
+          "three_state_skill_lifecycle",
+          "distinct_live_source_gate"
+        ],
+        "reason": "three_verified_sources_support_advisory_promotion",
+        "status": "advisory_ready",
+        "transfer": {
+          "decision": "allow",
+          "errors": [],
+          "evidence": [],
+          "missing": [],
+          "readiness": "not_required",
+          "reason": "no_task_stream_transfer_gate_required",
+          "required": false,
+          "sources": [],
+          "warnings": []
+        },
+        "verification": {
+          "achieved": true,
+          "decision": "allow",
+          "evidence": [
+            "eligible live success sp001_episode_20260717_232454_5c05abf0",
+            "eligible live success sp001_episode_20260718_012012_0349d399",
+            "eligible live success sp001_episode_20260718_023754_912de280"
+          ],
+          "inventory_delta": {
+            "cobblestone": 3
+          },
+          "matched_rules": [
+            "stone_pickaxe_fixed_protocol",
+            "three_distinct_live_successes"
+          ],
+          "missing": [],
+          "reason": "stone_pickaxe_three_live_success_gate",
+          "status": "achieved",
+          "target_inventory": {
+            "cobblestone": 3
+          }
+        },
+        "warnings": []
+      },
+      "lifecycle_history": [],
+      "name": "learned_acquire_cobblestone",
+      "observed_failure_count": 0,
+      "parent_version": "",
+      "provenance": {
+        "candidate_id": "e1534e57",
+        "created_at": 1784313512.75821,
+        "goal": "Acquire Cobblestone",
+        "reason": "three_verified_sources_support_advisory_promotion",
+        "score": 0.9,
+        "sources": [
+          {
+            "environment_id": "sp001_episode_20260717_232454_5c05abf0",
+            "episode_id": "sp001_episode_20260717_232454_5c05abf0",
+            "evidence_kind": "live_verified",
+            "goal_end_completed": true,
+            "goal_verifier_achieved": true,
+            "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+            "runtime_eligible": true,
+            "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+            "session_id": "b93a7777-207",
+            "source_log": "workspace/evals/sp001_runs/sp001_episode_20260717_232454_5c05abf0/session_b93a7777-207.jsonl",
+            "source_trace_sha256": "c8fca9a47e671e480742af5147411d324d4daaea1b18eff5976569924d6a2ff3",
+            "transition_count": 4,
+            "transition_proof_count": 4,
+            "verifier_version": "stone-pickaxe-machine-verification-v1",
+            "world_seed": "12345"
+          },
+          {
+            "environment_id": "sp001_episode_20260718_012012_0349d399",
+            "episode_id": "sp001_episode_20260718_012012_0349d399",
+            "evidence_kind": "live_verified",
+            "goal_end_completed": true,
+            "goal_verifier_achieved": true,
+            "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+            "runtime_eligible": true,
+            "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+            "session_id": "7e550b04-90e",
+            "source_log": "workspace/evals/sp001_runs/sp001_episode_20260718_012012_0349d399/session_7e550b04-90e.jsonl",
+            "source_trace_sha256": "0502ee1cc415257b0683eb2f0054b0fdfedcc8a4cfc608e7749059a1d08499bb",
+            "transition_count": 4,
+            "transition_proof_count": 4,
+            "verifier_version": "stone-pickaxe-machine-verification-v1",
+            "world_seed": "12345"
+          },
+          {
+            "environment_id": "sp001_episode_20260718_023754_912de280",
+            "episode_id": "sp001_episode_20260718_023754_912de280",
+            "evidence_kind": "live_verified",
+            "goal_end_completed": true,
+            "goal_verifier_achieved": true,
+            "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+            "runtime_eligible": true,
+            "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+            "session_id": "cbbd4e7e-7d8",
+            "source_log": "workspace/evals/sp001_runs/sp001_episode_20260718_023754_912de280/session_cbbd4e7e-7d8.jsonl",
+            "source_trace_sha256": "8983b0a1390499a233c3c5aa4c3dedf536da7bcf46853b1d736619d2d665630b",
+            "transition_count": 4,
+            "transition_proof_count": 4,
+            "verifier_version": "stone-pickaxe-machine-verification-v1",
+            "world_seed": "12345"
+          }
+        ]
+      },
+      "rollback_target": "",
+      "skill_id": "learned:acquire_cobblestone",
+      "source_environment_ids": [
+        "sp001_episode_20260717_232454_5c05abf0",
+        "sp001_episode_20260718_012012_0349d399",
+        "sp001_episode_20260718_023754_912de280"
+      ],
+      "source_session_ids": [
+        "b93a7777-207",
+        "7e550b04-90e",
+        "cbbd4e7e-7d8"
+      ],
+      "status": "advisory",
+      "success_count": 3,
+      "task_family": "mining",
+      "transfer_scope": {
+        "heldout_validated": false,
+        "quantity_range": {
+          "default": 3,
+          "maximum": 8,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "source_blocks": [
+          "stone"
+        ],
+        "supported_task_families": [
+          "mining"
+        ],
+        "training_environment_ids": [
+          "sp001_episode_20260717_232454_5c05abf0",
+          "sp001_episode_20260718_012012_0349d399",
+          "sp001_episode_20260718_023754_912de280"
+        ],
+        "training_goals": [
+          "Acquire Cobblestone"
+        ],
+        "training_session_ids": [
+          "b93a7777-207",
+          "7e550b04-90e",
+          "cbbd4e7e-7d8"
+        ],
+        "unsupported_task_families": []
+      },
+      "updated_at": 1784316501.8525891,
+      "verifier_version": "stone-pickaxe-machine-verification-v1",
+      "version": "1.0.0"
+    },
     "learned:craft_crafting_table@1.0.0": {
       "confidence_interval": {
         "lower": 0.609657,
@@ -24199,5 +24541,5 @@
     }
   },
   "type": "skill_learning_ledger",
-  "updated_at": 1784316171.8500283
+  "updated_at": 1784316501.9681928
 }
