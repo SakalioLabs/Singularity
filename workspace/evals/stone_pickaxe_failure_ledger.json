@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T07:29:45+08:00",
+  "generated_at": "2026-07-18T07:44:04+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_15_sp001_candidate_recovery_window_v3",
-  "status": "sp001_candidate_recovery_window_v3_offline_verified_pending_commit_push",
+  "phase": "phase_16_sp001_recovery_candidate_r7_authorized",
+  "status": "sp001_recovery_candidate_r7_authorized_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
-  "live_authorization": false,
+  "live_authorization": true,
   "fixture_preparation_authorization": false,
-  "authorized_live_episode_count": 0,
-  "authorization_scope": "none_v3_window_pending_commit_push",
+  "authorized_live_episode_count": 1,
+  "authorization_scope": "single_sp001_recovery_candidate_r7_only",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -22,11 +22,11 @@
     "fixture_audit_passed": true,
     "conditional_sp001_authorization_activated": true,
     "sp001_live_episodes_run": 9,
-    "paired_evaluation_arms_authorized": 5,
+    "paired_evaluation_arms_authorized": 6,
     "paired_evaluation_arms_consumed": 5,
     "paired_evaluation_arm_passes": 3,
     "paired_evaluation_arm_failures": 2,
-    "next_live_authorization": false
+    "next_live_authorization": true
   },
   "fixture_preparation_success": {
     "episode_id": "sp_fixture_prep_20260717_221520_064dd337",
@@ -531,7 +531,8 @@
     {
       "phase": 14,
       "name": "sp001_candidate_recovery_window_v3",
-      "status": "offline_verified_pending_commit_push",
+      "status": "offline_verified_and_pushed",
+      "commit": "2fc4e04bc6fcf536ac20fcc718db6b21da54edf1",
       "runtime_fix_commit": "36f03ee71b2bae25df60f9d4a966fccb5e28e81f",
       "window_id": "sp001-acquire-skill-attribution-recovery-v3",
       "policy_id": "stone-pickaxe-sp001-paired-evaluation-v3",
@@ -557,6 +558,23 @@
       "retained_r4_mutated": false,
       "support_rerun_allowed": false,
       "live_episode_run": false,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 15,
+      "name": "sp001_recovery_candidate_r7_authorization",
+      "status": "authorized_pending_commit_push",
+      "authorization_predecessor": "2fc4e04bc6fcf536ac20fcc718db6b21da54edf1",
+      "window_id": "sp001-acquire-skill-attribution-recovery-v3",
+      "arm": "candidate",
+      "replicate_id": "r7",
+      "pair_id": "sp001-acquire-recovery-v3-r7",
+      "live_episode_limit": 1,
+      "r8_authorized": false,
+      "r9_authorized": false,
       "normal_runtime_permission": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
@@ -2770,7 +2788,7 @@
   },
   "next_required_gate": {
     "id": "sp001_recovery_candidate_r7_authorization",
-    "authorization": false,
+    "authorization": true,
     "prerequisites": [
       "candidate_recovery_window_v3_commit_pushed_before_authorization",
       "v3_policy_identity_and_initial_report_verified",
@@ -2778,7 +2796,9 @@
       "candidate_r7_is_fresh_and_unconsumed",
       "clean_synchronized_main_before_authorization"
     ],
-    "live_episode_limit": 0,
+    "arm": "candidate",
+    "replicate_id": "r7",
+    "live_episode_limit": 1,
     "normal_runtime_permission": false,
     "automatic_retry_allowed": false
   },
@@ -3197,10 +3217,10 @@
       }
     ],
     "next_arm": {
-      "arm": null,
-      "replicate_id": null,
-      "authorized_after_commit_push": false,
-      "reason": "v3_window_is_offline_verified_but_must_be_committed_and_pushed_before_a_separate_candidate_r7_authorization",
+      "arm": "candidate",
+      "replicate_id": "r7",
+      "authorized_after_commit_push": true,
+      "reason": "v3_window_is_pushed_and_exactly_one_r7_arm_is_authorized_after_this_commit_is_pushed",
       "automatic_retry_allowed": false
     },
     "counts_toward_capability": false,
