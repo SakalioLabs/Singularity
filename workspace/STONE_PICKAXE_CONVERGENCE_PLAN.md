@@ -17,9 +17,9 @@ This project isolates two bounded Minecraft capabilities:
 | SP-002 Craft Stone Pickaxe | 0 | 3 | `learned:craft_stone_pickaxe` not created |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 2 paused after four separately authorized fixture-preparation failures; all four blockers are reproduced, fixed, and tested offline, but no fixture was sealed and SP-001 did not run**.
+Current phase: **Phase 2 fixture sealed after four retained failures and one independently audited success; SP-001 remains 0/3 and has not run**.
 
-Current authorization: **false**. All four fixture-preparation authorizations were consumed by one session each; because all four audits failed, the conditional SP-001 authorization never activated. Automatic retry, another fixture session, Probe 24, full BM-012, SP-001/SP-002/SP-003, and iron mining remain forbidden.
+Current authorization: **conditional SP-001 only, pending fixture/audit-fix commit push**. The fifth fixture-preparation authorization was consumed by one successful session and activated one SP-001 episode after the sealed manifest and compatibility fix are committed and pushed. Automatic retry, another fixture session, a second SP-001 episode, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain forbidden.
 
 ## Fixed Protocol
 
@@ -129,7 +129,7 @@ The 30 numbered cases cover:
 - Fixture preparation permits ordinary survival wood/table/wooden-pickaxe actions but rejects stone mining, duplicate wooden-pickaxe craft, and wooden-pickaxe craft without an observed table within 4.5 blocks. Its output is non-counting.
 - SP-001 keeps learned skills off and allows only bounded observation/navigation, exact wooden-pickaxe equip, and the nearest reachable observed `stone` dig. Every dig requires strict tool, block-removal, pickup, and pre/post-observation proof.
 - `Agent.run_goal` can now bind Planner and ActionController to one supplied absolute deadline and suppress every action beyond a supplied total budget. Existing callers retain their previous behavior when those optional bounds are absent.
-- Offline status: 30/30 protocol cases and 21/21 runtime cases pass. The repository-wide non-live regression gate is rerun before each offline-fix commit.
+- Offline status: 30/30 protocol cases and 22/22 runtime cases pass. The repository-wide non-live regression gate is rerun before each offline-fix commit.
 - Fixture session `sp_fixture_prep_20260715_143222_b0e58483` exposed the first blocker: Planner call 0 consumed the completion budget as hidden reasoning, returned zero response bytes, and caused `empty_plan` before any action. The fixed request path now sends thinking-disabled controls, uses one deadline-bounded zero-retry call, rejects empty output, and independently audits Planner controls before fixture sealing or SP-001 eligibility.
 - Fixture session `sp_fixture_prep_20260715_152529_b99f05dd` then proved those request controls on its first two calls and executed two successful moves. Its second plan nevertheless contained nine actions; the first dig suffix omitted the exact `block` field and was rejected before execution. The old generic envelope also admitted three `recipe` aliases and created ten tasks across two root IDs. Call 2 then reached `finish_reason=length` with truncated JSON, so the session stopped at `empty_plan` without retry.
 - The second repair gives the stone protocol a dedicated compact schema: one root plan, two to six root subtasks, no continuation/replan subtasks, exactly one immediate planning action, canonical exact parameters, bounded reasoning, mode-bound compact observations, and failure reason propagation into the same root. Missing `dig.block`, `recipe`, unbounded action lists, duplicate roots, and malformed terminal output all fail before action execution.
@@ -137,7 +137,9 @@ The 30 numbered cases cover:
 - The third repair explicitly states that every root priority is a JSON integer from 1 through 5 and directs the Planner to use 1 when no ordering distinction is needed. The validator remains strict and offline tests reject both zero and string priorities.
 - Fixture session `sp_fixture_prep_20260717_154044_81052541` then completed six valid survival actions: three log digs, plank craft, table craft, and stick craft. At cycle 7 the table existed only in inventory, no nearby table was observed, and the Planner emitted wooden-pickaxe craft. The backend reported `crafting_table_found=false` and no recipe; seven identical failed crafts consumed the remaining deadline. The old root schema also admitted unsupported `{"placed":true}`, leaving one task active and two accepted. The terminal timeout was downstream, not the earliest blocker.
 - The fourth repair distinguishes inventory table items from observed tables. The action guard rejects wooden-pickaxe craft unless a table is observed within 4.5 blocks, the fixed prompt requires placement first, unsupported task-state keys fail schema validation, and each post-action observation reconciles only dependency-ready `inventory` or `nearby_block_present` tasks.
-- All four machine audits remained non-counting. No forbidden intervention, stone mining, target-result injection, automatic retry, fixture snapshot, or SP-001 episode occurred. All sixteen local evidence files and their SHA-256 values are retained in `workspace/evals/stone_pickaxe_failure_ledger.json`; the protocol JSON and hash are unchanged.
+- Fixture session `sp_fixture_prep_20260717_221520_064dd337` passed in 18 actions and 157.313 seconds. It ended with exact `wooden_pickaxe:1`, zero cobblestone/stone-pickaxe, 13 reachable observed stone sources, compliant request controls across 18 Planner calls, and no forbidden intervention. The sealed 45-file snapshot is 14,684,703 bytes with tree SHA-256 `996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636`.
+- Independent `AuditFixture` initially exposed a local Windows PowerShell compatibility gap because the host .NET lacks `Path.GetRelativePath`. A repository-bounded substring helper now serves both audit and SP-001 paths; 22/22 runtime cases and a real audit rerun pass. Post-action task reconciliation also closes machine-satisfied tasks after consumptive preconditions disappear.
+- All four failed machine audits remain non-counting and immutable; the fifth successful preparation is also non-capability evidence. No forbidden intervention, stone mining, target-result injection, automatic retry, or SP-001 episode occurred. Twenty local preparation evidence files plus the tracked manifest are hash-bound in `workspace/evals/stone_pickaxe_failure_ledger.json`; the protocol JSON and hash are unchanged.
 
 ## Phase Status
 
@@ -145,7 +147,7 @@ The 30 numbered cases cover:
 |---|---|
 | 0. Freeze and audit | Complete |
 | 1. Protocol and offline harness | Complete; pushed at `8a5cd0c3` |
-| 2. SP-001 controlled live convergence | Paused: four fixture failures retained; all blockers fixed offline; new authorization required |
+| 2. SP-001 controlled live convergence | Fixture sealed; one conditional SP-001 episode after this commit is pushed |
 | 3. SP-001 3/3 gate | 0/3 |
 | 4. Acquire candidate/advisory | Not started |
 | 5. SP-002 controlled live convergence | Not started |
@@ -163,4 +165,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained blockers `fixture_preparation_planner_empty_plan`, `fixture_preparation_unbounded_planner_contract`, `fixture_preparation_root_priority_contract`, and `fixture_preparation_crafting_table_grounding` are reproduced and fixed offline; all four failed live sessions remain immutable and non-counting. No automatic resume is allowed. After this fix is pushed, a new fixture-preparation session still requires new explicit authorization. Until then, do not retry, create either learned skill, promote a candidate, run SP-001/SP-002/SP-003, run full BM-012, run Probe 24, or begin iron mining.
+The retained blockers `fixture_preparation_planner_empty_plan`, `fixture_preparation_unbounded_planner_contract`, `fixture_preparation_root_priority_contract`, and `fixture_preparation_crafting_table_grounding` are reproduced and fixed offline; all four failed sessions remain immutable and non-counting. The fifth preparation passed and its snapshot is independently audited. No automatic batch resume is allowed. After the manifest and audit compatibility fix are pushed, run at most one conditional SP-001 episode, then stop and audit. Do not create either learned skill, promote a candidate, run SP-002/SP-003, run full BM-012, run Probe 24, or begin iron mining.

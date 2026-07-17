@@ -5111,16 +5111,18 @@ class Agent:
         task_system = getattr(self, "task_system", None)
         if not task_system or not hasattr(task_system, "complete_state_satisfied_tasks"):
             return []
-        ready_ids = {
+        dependency_ready_ids = {
             task.id
-            for task in task_system.get_ready_tasks(observation or {})
+            for task in task_system.tasks.values()
+            if task.status in (TaskStatus.ACCEPTED, TaskStatus.ACTIVE)
+            and task_system._dependencies_satisfied(task)
         }
-        if not ready_ids:
+        if not dependency_ready_ids:
             return []
         completed = task_system.complete_state_satisfied_tasks(
             observation,
             allowed_criteria={"inventory", "nearby_block_present"},
-            candidate_task_ids=ready_ids,
+            candidate_task_ids=dependency_ready_ids,
         )
         if completed:
             self._flush_task_state_transitions({

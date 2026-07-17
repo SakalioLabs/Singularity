@@ -155,6 +155,16 @@ function Assert-PathWithin {
     return $resolvedPath
 }
 
+function Get-RepositoryRelativePath {
+    param([string]$Path)
+    $resolvedPath = [System.IO.Path]::GetFullPath($Path)
+    $resolvedRoot = [System.IO.Path]::GetFullPath($repoRoot).TrimEnd('\') + '\'
+    if (-not $resolvedPath.StartsWith($resolvedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Path escaped the repository root: $resolvedPath"
+    }
+    return $resolvedPath.Substring($resolvedRoot.Length)
+}
+
 function Set-EpisodeServerProperties {
     param([string]$LevelName, [string]$Seed)
     $script:originalServerPropertiesBytes = [System.IO.File]::ReadAllBytes($propertiesPath)
@@ -274,7 +284,7 @@ try {
         Assert-File $fixtureManifestPath "Fixture manifest does not exist."
         $fixture = Get-Content -LiteralPath $fixtureManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
         $snapshotRoot = Assert-PathWithin (Join-Path $repoRoot ([string]$fixture.snapshot.path)) (Join-Path $repoRoot "logs\stone_pickaxe\fixtures") "Fixture snapshot path escaped its controlled root."
-        & python scripts/stone_pickaxe_episode_runner.py audit-fixture --fixture "workspace/evals/stone_pickaxe_fixture.json" --snapshot-root ([System.IO.Path]::GetRelativePath($repoRoot, $snapshotRoot))
+        & python scripts/stone_pickaxe_episode_runner.py audit-fixture --fixture "workspace/evals/stone_pickaxe_fixture.json" --snapshot-root (Get-RepositoryRelativePath $snapshotRoot)
         if ($LASTEXITCODE -ne 0) { throw "Fixture audit failed." }
         return
     }
@@ -336,7 +346,7 @@ try {
     Assert-File $fixtureManifestPath "RunSP001 requires a sealed fixture manifest."
     $fixture = Get-Content -LiteralPath $fixtureManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $snapshotRoot = Assert-PathWithin (Join-Path $repoRoot ([string]$fixture.snapshot.path)) (Join-Path $repoRoot "logs\stone_pickaxe\fixtures") "Fixture snapshot path escaped its controlled root."
-    $snapshotRelative = [System.IO.Path]::GetRelativePath($repoRoot, $snapshotRoot)
+    $snapshotRelative = Get-RepositoryRelativePath $snapshotRoot
     & python scripts/stone_pickaxe_episode_runner.py audit-fixture --fixture "workspace/evals/stone_pickaxe_fixture.json" --snapshot-root $snapshotRelative
     if ($LASTEXITCODE -ne 0) { throw "Fixture identity audit failed before live authorization consumption." }
 

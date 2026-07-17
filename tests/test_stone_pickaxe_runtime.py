@@ -373,6 +373,17 @@ def test_runtime_config_keeps_skills_memory_and_external_control_off():
     assert config.enforce_action_verification is True
 
 
+def test_powershell_runtime_uses_legacy_compatible_relative_path_helper():
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "stone-pickaxe-runtime.ps1"
+    ).read_text(encoding="utf-8")
+    assert "function Get-RepositoryRelativePath" in script
+    assert "[System.IO.Path]::GetRelativePath" not in script
+    assert script.count("Get-RepositoryRelativePath $snapshotRoot") == 2
+
+
 def test_stone_protocol_controller_requires_pickup_and_tool_proof():
     calls = []
 
@@ -930,6 +941,25 @@ def test_stone_task_reconciliation_completes_ready_inventory_state_only():
     assert sticks.status == TaskStatus.ACCEPTED
     assert transitions[0]["source"] == "stone_pickaxe_task_state_reconciliation"
     assert events[0][0] == "stone_pickaxe_task_state_reconciliation"
+
+    pickaxe = tasks.create_task(
+        "Craft wooden pickaxe",
+        status=TaskStatus.ACCEPTED,
+        preconditions={
+            "inventory": {"dark_oak_planks": 3, "stick": 2},
+        },
+        success_criteria={"inventory": {"wooden_pickaxe": 1}},
+        depends_on=[table.id],
+    )
+    completed = Agent._reconcile_stone_pickaxe_satisfied_tasks(
+        agent,
+        {"inventory": {"wooden_pickaxe": 1}},
+        "Prepare fixture",
+        6,
+        source="post_action_machine_observation",
+    )
+    assert completed == [pickaxe]
+    assert pickaxe.status == TaskStatus.COMPLETED
 
 
 def test_fixture_artifact_never_counts_as_skill_or_capability_evidence():
