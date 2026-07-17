@@ -9,6 +9,7 @@ from singularity.action.controller import ActionController
 from singularity.core.agent import Agent
 from singularity.core.goal_verifier import GoalVerification
 from singularity.core.planner import Planner
+from singularity.core.skill_runtime import DSL_VERSION, build_bounded_skill_plan
 from singularity.core.task_system import TaskStatus, TaskSystem
 from singularity.evaluation.stone_pickaxe_protocol import PROTOCOL, PROTOCOL_SHA256
 from singularity.evaluation.stone_pickaxe_runtime import (
@@ -292,6 +293,49 @@ def test_sp001_guard_accepts_only_nearest_reachable_observed_stone():
     assert "sp001_dig_target_must_be_nearest_observed" in rejected["issues"]
 
 
+def test_candidate_r1_nearest_observed_tie_replay_is_guard_compatible():
+    observation = {
+        "position": {"x": 95.57907285827427, "y": 132, "z": -31.494351547541445},
+        "inventory": {"wooden_pickaxe": 1},
+        "nearby_blocks": [
+            {"name": "stone", "position": {"x": 95, "y": 131, "z": -32}, "distance": 1},
+            {"name": "stone", "position": {"x": 96, "y": 132, "z": -32}, "distance": 1},
+            {"name": "stone", "position": {"x": 94, "y": 131, "z": -32}, "distance": 1.4142135623730951},
+        ],
+    }
+    skill = {
+        "skill_id": "learned:acquire_cobblestone",
+        "name": "learned_acquire_cobblestone",
+        "version": "1.0.0",
+        "status": "advisory",
+        "postconditions": {"inventory": {"cobblestone": 3}},
+        "bounded_action_template": {
+            "dsl_version": DSL_VERSION,
+            "max_actions": 6,
+            "parameters": {
+                "quantity": {"type": "integer", "default": 3, "minimum": 1, "maximum": 8},
+            },
+            "phases": [{
+                "id": "acquire_target",
+                "op": "acquire_block_drop",
+                "source_blocks": ["stone"],
+                "target_item": "cobblestone",
+                "target_count": {"parameter": "quantity", "default": 3},
+                "selector": "nearest_observed",
+                "search_radius": 32,
+                "interaction_range": 4.5,
+                "navigation_tolerance": 1.75,
+            }],
+        },
+    }
+
+    plan = build_bounded_skill_plan(skill, "Gather 3 cobblestone", observation)
+    assert len(plan["actions"]) == 1
+    decision = guard_runtime_action("sp001", plan["actions"][0], observation)
+    assert decision["allowed"], decision["issues"]
+    assert decision["selected_source"]["source_id"] == "stone:95:131:-32"
+
+
 def test_sp001_machine_held_item_advances_past_equip_without_repeating_it():
     before = _raw_observation()
     before["equipment"] = [
@@ -489,6 +533,7 @@ def test_retained_sp001_failure_evidence_hashes_match_ledger():
     root = Path(__file__).resolve().parents[1]
     attributes = (root / ".gitattributes").read_text(encoding="utf-8")
     assert "workspace/evals/sp001_runs/** binary" in attributes
+    assert "workspace/evals/sp001_skill_evaluation_runs/** binary" in attributes
     ledger = json.loads(
         (root / "workspace" / "evals" / "stone_pickaxe_failure_ledger.json").read_text(
             encoding="utf-8"
@@ -497,7 +542,7 @@ def test_retained_sp001_failure_evidence_hashes_match_ledger():
     failures = [
         item
         for item in ledger["failures"]
-        if str(item.get("id") or "").startswith("sp001-")
+        if item.get("phase") == "controlled_sp001"
     ]
     assert [item["id"] for item in failures] == [
         "sp001-001-redundant-equip",
@@ -512,6 +557,24 @@ def test_retained_sp001_failure_evidence_hashes_match_ledger():
             path = root / record["path"]
             assert path.is_file()
             assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+    candidate_failures = [
+        item
+        for item in ledger["failures"]
+        if item.get("phase") == "sp001_paired_evaluation"
+    ]
+    assert [item["id"] for item in candidate_failures] == [
+        "sp001-skill-candidate-r1-nearest-observed-ordering"
+    ]
+    candidate = candidate_failures[0]
+    assert candidate["replicate_id"] == "r1"
+    assert candidate["automatic_retry_attempted"] is False
+    assert candidate["automatic_retry_allowed"] is False
+    assert len(candidate["evidence"]) == 11
+    for record in candidate["evidence"]:
+        path = root / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
 def test_eligible_sp001_success_evidence_hashes_match_ledger():

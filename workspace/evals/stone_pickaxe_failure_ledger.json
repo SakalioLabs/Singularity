@@ -1,14 +1,14 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T05:24:02+08:00",
+  "generated_at": "2026-07-18T05:46:39+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_9_sp001_candidate_r1_failed",
-  "status": "sp001_candidate_r1_retained_failed_offline_grounding_fix_required_no_live_authorization",
+  "phase": "phase_10_sp001_candidate_r1_offline_fix_verified",
+  "status": "sp001_candidate_r1_offline_grounding_fix_verified_pending_commit_push_new_window_required",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
@@ -351,7 +351,8 @@
     {
       "phase": 8,
       "name": "sp001_paired_candidate_r1_evaluation",
-      "status": "candidate_failed_pending_evidence_push",
+      "status": "candidate_failed_evidence_pushed",
+      "commit": "b4230594a201cf05dd176fff8d810eda842cfc8f",
       "arm": "candidate",
       "replicate_id": "r1",
       "pair_id": "sp001-acquire-r1",
@@ -379,6 +380,30 @@
       "skill_artifact_read_only": true,
       "controlled_listener_count_after_stop": 0,
       "matching_runtime_process_count_after_stop": 0,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 9,
+      "name": "sp001_candidate_r1_offline_grounding_fix",
+      "status": "offline_fix_verified_pending_commit_push",
+      "root_cause": "skill_runtime_recomputed_euclidean_distance_while_sp001_guard_used_observed_distance_and_source_id",
+      "implementation": [
+        "bounded_skill_source_order_uses_observed_distance_then_stable_identity",
+        "bounded_acquire_skill_emits_one_dig_per_observation"
+      ],
+      "retained_r1_mutated": false,
+      "base_protocol_modified": false,
+      "paired_policy_modified": false,
+      "advisory_skill_record_modified": false,
+      "capability_report_modified": false,
+      "stone_pickaxe_protocol_cases": "34/34",
+      "stone_pickaxe_runtime_cases": "31/31",
+      "stone_pickaxe_skill_evaluation_cases": "15/15",
+      "repository_non_live_python_scripts": "40/40",
+      "fixed_node_suites": "6/6",
       "normal_runtime_permission": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
@@ -1970,7 +1995,29 @@
       "counts_toward_m4": false,
       "automatic_retry_attempted": false,
       "automatic_retry_allowed": false,
-      "single_next_offline_fix": "align_bounded_skill_nearest_observed_order_and_reobserve_each_acquire_action"
+      "single_next_offline_fix": "none_grounding_fix_verified_define_non_overlapping_evaluation_window",
+      "offline_resolution": {
+        "status": "reproduced_fixed_and_tested",
+        "root_cause": "nearest_observed_ordering_contract_disconnect_plus_multi_dig_plan_suffix_staleness",
+        "fix": "use_observed_distance_with_stable_identity_and_replan_after_each_dig",
+        "r1_replay_test": "test_candidate_r1_nearest_observed_tie_replay_is_guard_compatible",
+        "generic_reobservation_test": "test_acquire_skill_uses_observed_distance_and_replans_after_each_dig",
+        "retained_evidence_hash_test": "test_retained_sp001_failure_evidence_hashes_match_ledger",
+        "regressions": {
+          "stone_pickaxe_runtime_cases": "31/31",
+          "stone_pickaxe_protocol_cases": "34/34",
+          "stone_pickaxe_skill_evaluation_cases": "15/15",
+          "repository_non_live_python_scripts": "40/40",
+          "fixed_node_suites": "6/6"
+        },
+        "protocol_json_modified": false,
+        "paired_policy_modified": false,
+        "r1_evidence_modified": false,
+        "normal_runtime_permission": false,
+        "counts_toward_skill_gate": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      }
     }
   ],
   "eligible_successes": [
@@ -2293,8 +2340,8 @@
       "total": 34
     },
     "stone_pickaxe_runtime_cases": {
-      "passed": 30,
-      "total": 30
+      "passed": 31,
+      "total": 31
     },
     "impacted_runtime_regressions": {
       "m2_harness_passed": true,
@@ -2336,7 +2383,7 @@
     "sp001_candidate_lifecycle_state_separation_test_passed": true,
     "skill_extractor_source_path_regression_passed": true,
     "runtime_profile_required_label_boundary_regression_passed": true,
-    "ledger_declared_hashes_passed": 176,
+    "ledger_declared_hashes_passed": 175,
     "sp001_declared_hashes_passed": 80,
     "sp001_candidate_materialization_passed": true,
     "sp001_candidate_custom_skill_isolation_passed": true,
@@ -2375,20 +2422,23 @@
     "sp001_paired_candidate_r1_fixed_controls_match": true,
     "sp001_paired_candidate_r1_initial_state_match": true,
     "sp001_paired_candidate_r1_automatic_retry_count": 0,
-    "sp001_paired_candidate_r1_skill_regression_hash_passed": true,
+    "sp001_candidate_r1_grounding_replay_passed": true,
+    "bounded_acquire_one_action_per_observation_passed": true,
+    "sp001_candidate_r1_retained_evidence_hashes_passed": 11,
     "sp001_paired_candidate_pair_count": 0,
     "sp001_paired_decision": "retain_advisory"
   },
   "next_required_gate": {
-    "id": "sp001_candidate_r1_offline_grounding_fix",
+    "id": "sp001_candidate_non_overlapping_evaluation_window",
     "authorization": false,
     "prerequisites": [
       "candidate_r1_failure_artifacts_hash_bound",
-      "candidate_r1_evidence_commit_pushed",
-      "nearest_observed_ordering_disconnect_reproduced_offline",
-      "skill_acquire_actions_reobserved_before_each_execution",
-      "targeted_and_full_regressions_passed",
-      "new_non_overlapping_evaluation_window_defined_and_pushed"
+      "candidate_r1_evidence_commit_b423059_pushed",
+      "nearest_observed_ordering_disconnect_reproduced_and_fixed_offline",
+      "one_acquire_action_per_observation_regression_passed",
+      "offline_fix_commit_pushed",
+      "current_policy_and_consumed_r1_remain_immutable",
+      "new_non_overlapping_evaluation_window_defined_with_unique_replicates_and_pushed"
     ],
     "arm": "",
     "replicate_id": "",
@@ -2446,11 +2496,6 @@
       "fallback_verified": true,
       "decision": "retain_advisory",
       "normal_runtime_permission": false
-    },
-    "skill_regressions": {
-      "path": "workspace/evals/skill_regressions.json",
-      "sha256": "efd2288e5032f153a18256e289e39b8dfc157d1d19f2cfce5d3d30f5104908c5",
-      "candidate_r1_failure_recorded": true
     },
     "support_runs": [
       {

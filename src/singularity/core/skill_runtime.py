@@ -430,22 +430,22 @@ def _plan_phase(phase: dict, parameters: dict, world_state: dict, max_actions: i
         and _distance(position, item["position"]) <= phase["interaction_range"]
     ]
     if reachable:
-        actions = []
-        for item in reachable[: min(remaining, max_actions)]:
-            pos = item["position"]
-            actions.append({
-                "type": "dig",
-                "parameters": {
-                    "block": item["name"],
-                    "x": round(float(pos["x"])),
-                    "y": round(float(pos["y"])),
-                    "z": round(float(pos["z"])),
-                },
-            })
+        # A dig changes source visibility and ordering, so every next dig needs a fresh observation.
+        item = reachable[0]
+        pos = item["position"]
+        action = {
+            "type": "dig",
+            "parameters": {
+                "block": item["name"],
+                "x": round(float(pos["x"])),
+                "y": round(float(pos["y"])),
+                "z": round(float(pos["z"])),
+            },
+        }
         return {
             "status": "in_progress",
             "reasoning": f"bounded skill acquires {target_item} from observed blocks",
-            "actions": actions,
+            "actions": [action],
             "phase_id": phase["id"],
         }
     target = candidates[0]["position"]
@@ -480,12 +480,30 @@ def _observed_blocks(world_state: dict, names: set[str], radius: float) -> list[
             block_position = item.get("position", {}) if isinstance(item.get("position"), dict) else {}
             if name not in names or not all(axis in block_position for axis in ("x", "y", "z")):
                 continue
-            distance = _distance(position, block_position)
+            observed_distance = item.get("distance")
+            try:
+                distance = float(observed_distance)
+            except (TypeError, ValueError):
+                distance = _distance(position, block_position)
+            if not math.isfinite(distance) or distance < 0:
+                distance = _distance(position, block_position)
             if distance > radius:
                 continue
             identity = (name, round(float(block_position["x"])), round(float(block_position["y"])), round(float(block_position["z"])))
-            found[identity] = {"name": name, "position": block_position, "distance": distance}
-    return sorted(found.values(), key=lambda item: item["distance"])
+            candidate = {"name": name, "position": block_position, "distance": distance}
+            existing = found.get(identity)
+            if existing is None or distance < existing["distance"]:
+                found[identity] = candidate
+    return sorted(
+        found.values(),
+        key=lambda item: (
+            item["distance"],
+            item["name"],
+            round(float(item["position"]["x"])),
+            round(float(item["position"]["y"])),
+            round(float(item["position"]["z"])),
+        ),
+    )
 
 
 def _skill_template(skill: Any) -> dict:

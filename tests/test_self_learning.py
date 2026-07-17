@@ -321,6 +321,66 @@ def test_typed_schema_preconditions_postconditions_and_fallback():
     print("PASS: typed schema blocks executable code and enforces pre/postconditions plus safe fallback")
 
 
+def test_acquire_skill_uses_observed_distance_and_replans_after_each_dig():
+    skill = {
+        "skill_id": "learned:acquire_cobblestone",
+        "name": "learned_acquire_cobblestone",
+        "version": "1.0.0",
+        "status": "advisory",
+        "task_family": "mining",
+        "postconditions": {"inventory": {"cobblestone": 3}},
+        "bounded_action_template": {
+            "dsl_version": DSL_VERSION,
+            "max_actions": 6,
+            "parameters": {
+                "quantity": {"type": "integer", "default": 3, "minimum": 1, "maximum": 8},
+            },
+            "phases": [{
+                "id": "acquire_target",
+                "op": "acquire_block_drop",
+                "source_blocks": ["stone"],
+                "target_item": "cobblestone",
+                "target_count": {"parameter": "quantity", "default": 3},
+                "selector": "nearest_observed",
+                "search_radius": 32,
+                "interaction_range": 4.5,
+                "navigation_tolerance": 1.75,
+            }],
+        },
+    }
+    observation = {
+        "position": {"x": 95.57907285827427, "y": 132, "z": -31.494351547541445},
+        "inventory": {"wooden_pickaxe": 1},
+        "nearby_blocks": [
+            {"name": "stone", "position": {"x": 96, "y": 132, "z": -32}, "distance": 1},
+            {"name": "stone", "position": {"x": 95, "y": 131, "z": -32}, "distance": 1},
+            {"name": "stone", "position": {"x": 94, "y": 131, "z": -32}, "distance": 1.4142135623730951},
+        ],
+    }
+
+    first = build_bounded_skill_plan(skill, "Gather 3 cobblestone", observation)
+    assert first["actions"] == [{
+        "type": "dig",
+        "parameters": {"block": "stone", "x": 95, "y": 131, "z": -32},
+    }]
+
+    next_observation = {
+        **observation,
+        "inventory": {"wooden_pickaxe": 1, "cobblestone": 1},
+        "nearby_blocks": [{
+            "name": "stone",
+            "position": {"x": 94, "y": 131, "z": -32},
+            "distance": 1,
+        }],
+    }
+    second = build_bounded_skill_plan(skill, "Gather 3 cobblestone", next_observation)
+    assert second["actions"] == [{
+        "type": "dig",
+        "parameters": {"block": "stone", "x": 94, "y": 131, "z": -32},
+    }]
+    print("PASS: acquire skills honor observed-distance ties and replan one dig per observation")
+
+
 def test_skill_plank_preconditions_use_pinned_ingredient_family():
     library = SkillLibrary(tempfile.mkdtemp(), persist=False)
     template = {
@@ -1108,6 +1168,7 @@ def test_heldout_fixture_validation_distinguishes_minimum_step_equivalence_from_
 def main():
     test_candidate_extraction_dedup_and_provenance()
     test_typed_schema_preconditions_postconditions_and_fallback()
+    test_acquire_skill_uses_observed_distance_and_replans_after_each_dig()
     test_skill_plank_preconditions_use_pinned_ingredient_family()
     test_prerelease_skill_version_promotes_without_rewriting_quarantine_history()
     test_research_runtime_preserves_only_explicit_runtime_gate()

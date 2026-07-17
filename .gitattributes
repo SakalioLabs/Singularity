@@ -2,4 +2,3 @@ workspace/evals/sp001_runs/** binary
 workspace/evals/sp001_skill_evaluation_runs/** binary
 workspace/evals/acquire_cobblestone_baseline_index.json binary
 workspace/evals/acquire_cobblestone_paired_evaluation.json binary
-workspace/evals/skill_regressions.json binary
