@@ -1,14 +1,14 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T06:41:37+08:00",
+  "generated_at": "2026-07-18T07:01:31+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_13_sp001_recovery_candidate_r4_failed",
-  "status": "sp001_recovery_candidate_r4_failed_evidence_pending_commit_push",
+  "phase": "phase_14_sp001_runtime_guard_skill_context_fix",
+  "status": "sp001_runtime_guard_skill_context_fix_offline_verified_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
@@ -490,6 +490,38 @@
       "root_cause": "stone_pickaxe_runtime_guard_replaced_the_action_in_place_and_stripped_skill_context_before_attribution",
       "r5_authorized": false,
       "r6_authorized": false,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 13,
+      "name": "sp001_runtime_guard_skill_context_provenance_fix",
+      "status": "offline_verified_pending_commit_push",
+      "evidence_commit": "31b9cc3e920af1ee2854771f0891393cfea3c1d2",
+      "root_cause": "stone_pickaxe_runtime_guard_replaced_the_shared_action_in_place_and_dropped_internal_skill_context",
+      "implementation": [
+        "retain_only_structured_skill_context_with_a_skill_id_across_guard_normalization",
+        "continue_to_replace_executable_type_and_parameters_with_the_guard_normalized_action"
+      ],
+      "r4_reproduction_test": "test_runtime_guard_preserves_skill_context_for_action_attribution",
+      "stone_pickaxe_protocol_cases": "34/34",
+      "stone_pickaxe_runtime_cases": "32/32",
+      "stone_pickaxe_skill_evaluation_v1_cases": "15/15",
+      "stone_pickaxe_skill_evaluation_v2_cases": "10/10",
+      "repository_non_live_python_scripts": "41/41",
+      "fixed_node_suites": "6/6",
+      "fixed_node_internal_pass_cases": 55,
+      "python_compileall_passed": true,
+      "base_protocol_modified": false,
+      "v1_policy_or_report_modified": false,
+      "v2_policy_modified": false,
+      "r1_evidence_modified": false,
+      "r4_evidence_modified": false,
+      "advisory_skill_record_modified": false,
+      "capability_report_modified": false,
+      "live_episode_run": false,
       "normal_runtime_permission": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
@@ -1963,7 +1995,7 @@
       "id": "sp001-skill-candidate-r1-nearest-observed-ordering",
       "phase": "sp001_paired_evaluation",
       "classification": "sp001_skill_nearest_observed_ordering_disconnect",
-      "status": "retained_candidate_failure_offline_fix_required",
+      "status": "retained_candidate_failure_offline_fixed",
       "attributable_to_learned_skill": true,
       "arm": "candidate",
       "replicate_id": "r1",
@@ -2228,7 +2260,38 @@
       "automatic_retry_allowed": false,
       "r5_authorized": false,
       "r6_authorized": false,
-      "single_next_offline_fix": "preserve_exact_skill_context_across_nonsemantic_runtime_guard_normalization_then_define_a_new_non_overlapping_evaluation_window"
+      "single_next_offline_fix": "none_provenance_fix_verified_define_a_new_non_overlapping_evaluation_window",
+      "offline_resolution": {
+        "status": "reproduced_fixed_and_tested",
+        "fix": "preserve_valid_internal_skill_context_while_replacing_only_guard_controlled_execution_semantics",
+        "r4_reproduction_test": "test_runtime_guard_preserves_skill_context_for_action_attribution",
+        "guard_source_id_normalization_preserved": true,
+        "shared_plan_action_context_preserved": true,
+        "successful_skill_action_attribution_restored": true,
+        "malformed_or_missing_skill_identity_preserved": false,
+        "regressions": {
+          "stone_pickaxe_protocol_cases": "34/34",
+          "stone_pickaxe_runtime_cases": "32/32",
+          "stone_pickaxe_skill_evaluation_v1_cases": "15/15",
+          "stone_pickaxe_skill_evaluation_v2_cases": "10/10",
+          "repository_non_live_python_scripts": "41/41",
+          "fixed_node_suites": "6/6",
+          "fixed_node_internal_pass_cases": 55,
+          "python_compileall": "passed"
+        },
+        "protocol_json_modified": false,
+        "v1_evaluation_artifacts_modified": false,
+        "v2_policy_modified": false,
+        "r1_evidence_modified": false,
+        "r4_evidence_modified": false,
+        "advisory_skill_record_modified": false,
+        "capability_report_modified": false,
+        "live_episode_run": false,
+        "normal_runtime_permission": false,
+        "counts_toward_skill_gate": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      }
     }
   ],
   "eligible_successes": [
@@ -2551,8 +2614,8 @@
       "total": 34
     },
     "stone_pickaxe_runtime_cases": {
-      "passed": 31,
-      "total": 31
+      "passed": 32,
+      "total": 32
     },
     "impacted_runtime_regressions": {
       "m2_harness_passed": true,
@@ -2652,27 +2715,26 @@
     "sp001_recovery_candidate_r4_automatic_retry_count": 0,
     "sp001_recovery_candidate_r4_skill_context_preserved": false,
     "sp001_recovery_candidate_r4_live_authorization_consumed": true,
+    "sp001_runtime_guard_skill_context_fix_passed": true,
+    "sp001_runtime_guard_skill_context_regression_test": "test_runtime_guard_preserves_skill_context_for_action_attribution",
+    "sp001_runtime_guard_source_normalization_preserved": true,
+    "sp001_runtime_guard_successful_action_attribution_restored": true,
+    "sp001_runtime_guard_fix_live_episode_run": false,
     "sp001_v1_policy_identity_after_v2_passed": true,
     "sp001_paired_candidate_pair_count": 0,
     "sp001_paired_decision": "retain_advisory"
   },
   "next_required_gate": {
-    "id": "sp001_runtime_guard_skill_context_provenance_offline_fix",
+    "id": "sp001_candidate_recovery_window_v3_offline_definition",
     "authorization": false,
     "prerequisites": [
-      "candidate_r1_failure_artifacts_hash_bound",
-      "candidate_r1_evidence_commit_b423059_pushed",
-      "nearest_observed_ordering_disconnect_reproduced_and_fixed_offline",
-      "one_acquire_action_per_observation_regression_passed",
-      "offline_fix_commit_pushed",
-      "current_policy_and_consumed_r1_remain_immutable",
-      "new_non_overlapping_evaluation_window_defined_with_unique_replicates",
-      "recovery_window_v2_offline_tests_pass",
-      "recovery_window_v2_commit_pushed_before_authorization",
       "candidate_r4_failed_artifacts_hash_bound",
-      "candidate_r4_evidence_commit_pushed_before_code_fix",
+      "candidate_r4_evidence_commit_31b9cc3_pushed_before_code_fix",
       "runtime_guard_skill_context_mutation_reproduced_offline",
-      "new_non_overlapping_evaluation_window_required_after_fix"
+      "runtime_guard_skill_context_fix_regression_passed",
+      "runtime_guard_skill_context_fix_commit_pushed_before_window_definition",
+      "v1_and_v2_policies_reports_and_consumed_candidates_remain_immutable",
+      "new_candidate_replicate_ids_do_not_overlap_r1_through_r6"
     ],
     "live_episode_limit": 0,
     "normal_runtime_permission": false,

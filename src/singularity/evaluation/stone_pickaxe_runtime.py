@@ -415,8 +415,16 @@ class StonePickaxeRuntimeAgent(Agent):
             }
         normalized = guard.get("action", {})
         if isinstance(normalized, dict):
+            skill_context = action.get("skill_context")
+            skill_context = (
+                dict(skill_context)
+                if isinstance(skill_context, dict) and skill_context.get("skill_id")
+                else None
+            )
             action.clear()
             action.update(normalized)
+            if skill_context is not None:
+                action["skill_context"] = skill_context
         return super()._verify_action_for_execution(action, observation, goal, context)
 
     def _goal_is_verified(

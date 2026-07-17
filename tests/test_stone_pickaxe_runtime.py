@@ -13,6 +13,7 @@ from singularity.core.skill_runtime import DSL_VERSION, build_bounded_skill_plan
 from singularity.core.task_system import TaskStatus, TaskSystem
 from singularity.evaluation.stone_pickaxe_protocol import PROTOCOL, PROTOCOL_SHA256
 from singularity.evaluation.stone_pickaxe_runtime import (
+    StonePickaxeRuntimeAgent,
     build_fixture_artifact,
     build_runtime_config,
     build_sp001_episode,
@@ -77,6 +78,61 @@ def _raw_observation(cobblestone=0, remaining=(1, 2, 3)):
             for x in remaining
         ],
     }
+
+
+def test_runtime_guard_preserves_skill_context_for_action_attribution():
+    observation = _raw_observation()
+    skill_context = {
+        "skill_id": "learned:acquire_cobblestone",
+        "skill_name": "learned_acquire_cobblestone",
+        "version": "1.0.0",
+        "status": "advisory",
+        "mode": "evaluation",
+        "goal": "Dig stone for cobblestone",
+        "goal_fingerprint": "r4-replay",
+        "phase_id": "acquire_target",
+        "template_action_index": 0,
+    }
+    action = {
+        "type": "dig",
+        "parameters": {"block": "stone", "x": 1, "y": 64, "z": 0},
+        "skill_context": dict(skill_context),
+    }
+    plan = {"actions": [action]}
+    events = []
+    agent = object.__new__(StonePickaxeRuntimeAgent)
+    agent.stone_pickaxe_runtime_mode = "sp001"
+    agent.config = SimpleNamespace(
+        enable_action_verification=False,
+        planner_protocol=PROTOCOL["id"],
+    )
+    agent.session_logger = SimpleNamespace(
+        log=lambda event_type, payload, **kwargs: events.append((event_type, payload))
+    )
+    agent._active_skill_execution = {"executed_count": 0}
+    agent._skill_fallback_goals = set()
+    agent.skill_library = SimpleNamespace(record_use=lambda *args, **kwargs: None)
+
+    verification, rejected = StonePickaxeRuntimeAgent._verify_action_for_execution(
+        agent,
+        action,
+        observation,
+        "Dig stone for cobblestone",
+        {"cycle": 2},
+    )
+
+    assert verification is None
+    assert rejected is None
+    assert action["parameters"]["source_id"] == "stone:1:64:0"
+    assert plan["actions"][0]["skill_context"] == skill_context
+    assert plan["actions"][0]["skill_context"] is not skill_context
+
+    Agent._record_skill_usage(agent, action, True, {"success": True})
+    assert agent._active_skill_execution["executed_count"] == 1
+    skill_results = [payload for event, payload in events if event == "skill_action_result"]
+    assert len(skill_results) == 1
+    assert skill_results[0]["skill_id"] == "learned:acquire_cobblestone"
+    assert skill_results[0]["success"] is True
 
 
 def _snapshot(tmp_path: Path, names=None):
