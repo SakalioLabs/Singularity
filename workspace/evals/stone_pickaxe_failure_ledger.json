@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T04:42:05+08:00",
+  "generated_at": "2026-07-18T04:49:45+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_7_sp001_paired_advisory_verified",
-  "status": "sp001_support_arms_2_of_3_passed_candidate_pairs_0_of_3_fallback_next_after_push",
+  "phase": "phase_8_sp001_paired_support_arms_verified",
+  "status": "sp001_support_arms_3_of_3_passed_candidate_pairs_0_of_3_candidate_r1_next_after_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": true,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 1,
-  "authorization_scope": "one_sp001_skill_evaluation_arm_fallback_fallback_1_after_advisory_evidence_commit_push",
+  "authorization_scope": "one_sp001_skill_evaluation_arm_candidate_r1_after_fallback_evidence_commit_push",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -22,9 +22,9 @@
     "fixture_audit_passed": true,
     "conditional_sp001_authorization_activated": true,
     "sp001_live_episodes_run": 8,
-    "paired_evaluation_arms_authorized": 2,
-    "paired_evaluation_arms_consumed": 2,
-    "paired_evaluation_arm_passes": 2,
+    "paired_evaluation_arms_authorized": 3,
+    "paired_evaluation_arms_consumed": 3,
+    "paired_evaluation_arm_passes": 3,
     "next_live_authorization": true
   },
   "fixture_preparation_success": {
@@ -132,7 +132,7 @@
       "paired_candidate_count": 0,
       "shadow_pass_count": 1,
       "advisory_pass_count": 1,
-      "fallback_pass_count": 0,
+      "fallback_pass_count": 1,
       "paired_evaluation_decision": "retain_advisory"
     },
     "SP-002": {
@@ -290,7 +290,8 @@
     {
       "phase": 6,
       "name": "sp001_paired_advisory_evaluation",
-      "status": "advisory_verified_pending_evidence_push",
+      "status": "advisory_verified_evidence_pushed",
+      "commit": "4fc99ea0be5df260bce3d6f0187e9efcf6307ce3",
       "arm": "advisory",
       "replicate_id": "advisory-1",
       "episode_id": "sp001_skill_advisory_20260718_044057_bbcc998a",
@@ -305,6 +306,34 @@
       "failed_actions": 0,
       "verifier_rejects": 0,
       "skill_advisory_hint_count": 3,
+      "skill_selected_count": 0,
+      "skill_executed_count": 0,
+      "skill_artifact_read_only": true,
+      "controlled_listener_count_after_stop": 0,
+      "matching_runtime_process_count_after_stop": 0,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 7,
+      "name": "sp001_paired_fallback_evaluation",
+      "status": "fallback_verified_pending_evidence_push",
+      "arm": "fallback",
+      "replicate_id": "fallback-1",
+      "episode_id": "sp001_skill_fallback_20260718_044849_0893a248",
+      "session_id": "840b1c42-d86",
+      "machine_verification_passed": true,
+      "evaluation_status": "pass",
+      "fixed_controls_match_baseline": true,
+      "initial_state_match_baseline": true,
+      "task_completion": 1,
+      "environment_steps": 4,
+      "planner_calls": 4,
+      "failed_actions": 0,
+      "verifier_rejects": 0,
+      "skill_fallback_count": 1,
       "skill_selected_count": 0,
       "skill_executed_count": 0,
       "skill_artifact_read_only": true,
@@ -2114,7 +2143,7 @@
       "passed": 6,
       "total": 6
     },
-    "repository_json_files_parsed": 1225,
+    "repository_json_files_parsed": 1235,
     "python_compileall_passed": true,
     "fixture_snapshot_audit_passed": true,
     "fixture_manifest_hash_passed": true,
@@ -2141,7 +2170,7 @@
     "sp001_candidate_lifecycle_state_separation_test_passed": true,
     "skill_extractor_source_path_regression_passed": true,
     "runtime_profile_required_label_boundary_regression_passed": true,
-    "ledger_declared_hashes_passed": 153,
+    "ledger_declared_hashes_passed": 164,
     "sp001_declared_hashes_passed": 80,
     "sp001_candidate_materialization_passed": true,
     "sp001_candidate_custom_skill_isolation_passed": true,
@@ -2168,23 +2197,29 @@
     "sp001_paired_advisory_fixed_controls_match": true,
     "sp001_paired_advisory_initial_state_match": true,
     "sp001_paired_advisory_manifest_hashes_passed": 8,
-    "sp001_paired_support_run_count": 2,
+    "sp001_paired_fallback_pass_count": 1,
+    "sp001_paired_fallback_machine_verification_passed": true,
+    "sp001_paired_fallback_fixed_controls_match": true,
+    "sp001_paired_fallback_initial_state_match": true,
+    "sp001_paired_fallback_manifest_hashes_passed": 8,
+    "sp001_paired_support_run_count": 3,
     "sp001_paired_candidate_pair_count": 0,
     "sp001_paired_decision": "retain_advisory"
   },
   "next_required_gate": {
-    "id": "sp001_fallback_fallback_1_after_advisory_evidence_push",
+    "id": "sp001_candidate_r1_after_support_evidence_push",
     "authorization": true,
     "prerequisites": [
-      "advisory_machine_verification_passed",
-      "advisory_evaluation_status_pass",
-      "advisory_fixed_controls_and_initial_state_match_baseline",
-      "advisory_hint_observed_without_direct_selection_or_execution",
-      "advisory_run_artifacts_hash_bound",
-      "advisory_evidence_commit_pushed"
+      "fallback_machine_verification_passed",
+      "fallback_evaluation_status_pass",
+      "fallback_fixed_controls_and_initial_state_match_baseline",
+      "exactly_one_fail_closed_fallback_without_direct_selection_or_execution",
+      "all_three_support_arms_verified",
+      "fallback_run_artifacts_hash_bound",
+      "fallback_evidence_commit_pushed"
     ],
-    "arm": "fallback",
-    "replicate_id": "fallback-1",
+    "arm": "candidate",
+    "replicate_id": "r1",
     "live_episode_limit": 1,
     "normal_runtime_permission": false,
     "automatic_retry_allowed": false
@@ -2206,7 +2241,7 @@
     "paired_evaluation_report_artifacts_created": 1,
     "paired_baseline_records_created": 3,
     "paired_candidate_run_artifacts_created": 0,
-    "paired_support_run_artifacts_created": 22,
+    "paired_support_run_artifacts_created": 33,
     "candidate_queue_records_created": 1,
     "advisory_skill_records_created": 1,
     "acceptance_artifacts_created": 0,
@@ -2231,12 +2266,12 @@
     },
     "report": {
       "path": "workspace/evals/acquire_cobblestone_paired_evaluation.json",
-      "sha256": "90aca9ee052f46ec9f33e8ccaff8231bc9f95ac56bd4d77c2aad805ba3166e70",
+      "sha256": "8e2464f11cc2bc9e517f9abd759855d813f2cf058a9b938d2fb870f53105d738",
       "valid_pair_count": 0,
       "required_pair_count": 3,
       "shadow_verified": true,
       "advisory_verified": true,
-      "fallback_verified": false,
+      "fallback_verified": true,
       "decision": "retain_advisory",
       "normal_runtime_permission": false
     },
@@ -2378,11 +2413,80 @@
         "counts_toward_capability": false,
         "counts_toward_m4": false,
         "automatic_retry_allowed": false
+      },
+      {
+        "arm": "fallback",
+        "replicate_id": "fallback-1",
+        "episode_id": "sp001_skill_fallback_20260718_044849_0893a248",
+        "session_id": "840b1c42-d86",
+        "status": "pass",
+        "machine_verification_passed": true,
+        "fixed_controls_fingerprint": "50bf60d4dcb1721023661043bccc603c380a99e0fd071695b1a34fbe99f1319a",
+        "initial_state_fingerprint": "4e5f967e22b3aab92b153312c05f29a8e797064e4852f9f673362a22c70cfc02",
+        "task_completion": 1,
+        "environment_steps": 4,
+        "planner_calls": 4,
+        "failed_actions": 0,
+        "verifier_rejects": 0,
+        "no_progress_loops": 0,
+        "skill_fallback_count": 1,
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "run_record": {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/evaluation_run.json",
+          "sha256": "1dc603071ccc35918f911f78ab83569039cccc319ea9229f9b0ef71b8b23645b"
+        },
+        "manifest": {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/manifest.json",
+          "sha256": "f0751fbff90a3d73ea85935a65f002fdba479ca647a1fd07ca1cac776cb5052a"
+        },
+        "artifacts": [
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/audit.json",
+            "sha256": "80e30b06160885bd798c76774f35b95607e25cc22987dcc1d9e5f39b8c04fee1"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/authorization.json",
+            "sha256": "a772af77eb2476fc31f7ceba2413bf5720b077ef36225ef4a70adbb1e3f7a3a1"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/episode.json",
+            "sha256": "6f7ff24d674dd3779ac8e297f4bb2079d96150bab275e003fc8705bedb7bcac0"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/preflight.json",
+            "sha256": "7e2a145dde4ba82b7f0c865152f014318f11302969424e829ae42079330771a3"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/restoration.json",
+            "sha256": "1abb5adbfd7ab7b718b25340228d8309084baf4b31efa7ecbb9f56f761013821"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/session.json",
+            "sha256": "d77e104144a30ff831e29b5d18a34bc20520109198c02bd0f6b7ed95c12098bd"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/session_840b1c42-d86.jsonl",
+            "sha256": "0226a2dcfb7d9a8093b58acb723233458d95152b1fd78097c4d589ae33011521"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/session_840b1c42-d86_summary.json",
+            "sha256": "7401382c64f83c8d549b6e8a7bf5da43190bb2cb6e5f26171aaeab8516ca3403"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/verification.json",
+            "sha256": "a21729ad04c87dfdd00112d0de39f29cba19edd163ff00a5a3b4f23616b3cb66"
+          }
+        ],
+        "normal_runtime_permission": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false,
+        "automatic_retry_allowed": false
       }
     ],
     "next_arm": {
-      "arm": "fallback",
-      "replicate_id": "fallback-1",
+      "arm": "candidate",
+      "replicate_id": "r1",
       "authorized_after_commit_push": true,
       "automatic_retry_allowed": false
     },

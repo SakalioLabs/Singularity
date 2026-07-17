@@ -15,7 +15,7 @@
   "candidate_session_ids": [],
   "shadow_verified": true,
   "advisory_verified": true,
-  "fallback_verified": false,
+  "fallback_verified": true,
   "fixed_controls_match": false,
   "live_minecraft_only": false,
   "candidate_steps_verified": false,
@@ -166,8 +166,8 @@
     {
       "arm": "fallback",
       "replicate_id": "fallback-1",
-      "run_id": "",
-      "status": "missing"
+      "run_id": "fallback:sp001_skill_fallback_20260718_044849_0893a248",
+      "status": "pass"
     }
   ],
   "errors": [],
@@ -198,7 +198,7 @@
     "action_controller_enforced": true,
     "candidate_steps_reobserved": false,
     "candidate_steps_verified": false,
-    "fallback_verified": false,
+    "fallback_verified": true,
     "no_completion_rate_regression": true,
     "no_action_failure_regression": true,
     "no_verifier_reject_regression": true,
@@ -232,7 +232,6 @@
       "insufficient_paired_live_sessions",
       "promotion_gate_check_failed:candidate_steps_reobserved",
       "promotion_gate_check_failed:candidate_steps_verified",
-      "promotion_gate_check_failed:fallback_verified",
       "promotion_gate_check_failed:fixed_controls_match",
       "promotion_gate_check_failed:live_minecraft_only"
     ]

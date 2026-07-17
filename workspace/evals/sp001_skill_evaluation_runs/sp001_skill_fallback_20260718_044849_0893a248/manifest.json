@@ -1,0 +1,59 @@
+{
+  "type": "stone_pickaxe_skill_evaluation_manifest",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-17T20:49:21.759471+00:00",
+  "runtime_policy_id": "stone-pickaxe-controlled-runtime-v1",
+  "policy_id": "stone-pickaxe-sp001-paired-evaluation-v1",
+  "policy_sha256": "61aebb8606c85b3df0872ccd1900d7e05fb962fba32fce50d00a741d5216a4db",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "episode_id": "sp001_skill_fallback_20260718_044849_0893a248",
+  "session_id": "840b1c42-d86",
+  "task_id": "SP-001",
+  "arm": "fallback",
+  "replicate_id": "fallback-1",
+  "pair_id": "",
+  "fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+  "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+  "machine_verification_passed": true,
+  "evaluation_passed": true,
+  "authorization_consumed": true,
+  "normal_runtime_permission": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "files": [
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/authorization.json",
+      "sha256": "a772af77eb2476fc31f7ceba2413bf5720b077ef36225ef4a70adbb1e3f7a3a1"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/restoration.json",
+      "sha256": "1abb5adbfd7ab7b718b25340228d8309084baf4b31efa7ecbb9f56f761013821"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/preflight.json",
+      "sha256": "7e2a145dde4ba82b7f0c865152f014318f11302969424e829ae42079330771a3"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/session.json",
+      "sha256": "d77e104144a30ff831e29b5d18a34bc20520109198c02bd0f6b7ed95c12098bd"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/episode.json",
+      "sha256": "6f7ff24d674dd3779ac8e297f4bb2079d96150bab275e003fc8705bedb7bcac0"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/verification.json",
+      "sha256": "a21729ad04c87dfdd00112d0de39f29cba19edd163ff00a5a3b4f23616b3cb66"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/audit.json",
+      "sha256": "80e30b06160885bd798c76774f35b95607e25cc22987dcc1d9e5f39b8c04fee1"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_fallback_20260718_044849_0893a248/evaluation_run.json",
+      "sha256": "1dc603071ccc35918f911f78ab83569039cccc319ea9229f9b0ef71b8b23645b"
+    }
+  ]
+}
