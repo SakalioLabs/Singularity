@@ -712,7 +712,7 @@ function createProbe12FalsePickupCompletionFixture(options = {}) {
     };
 }
 
-function createSP001AdjacentPickupMarginFixture() {
+function createSP001AdjacentPickupMarginFixture(options = {}) {
     const target = new Vec3(94, 131, -32);
     const drop = {
         id: 322,
@@ -723,7 +723,10 @@ function createSP001AdjacentPickupMarginFixture() {
     let removed = false;
     let items = [{ name: 'dark_oak_log', count: 3 }];
     let clockMs = 0;
+    let forward = false;
+    let nudgeAcquired = false;
     const navigationGoals = [];
+    const controlStates = [];
     const bot = {
         version: '1.20.4',
         entity: {
@@ -748,6 +751,11 @@ function createSP001AdjacentPickupMarginFixture() {
         async dig() {
             removed = true;
         },
+        async lookAt() {},
+        setControlState(name, value) {
+            if (name === 'forward') forward = value === true;
+            controlStates.push({ name, value });
+        },
         pathfinder: {
             async goto(goal) {
                 navigationGoals.push(goal);
@@ -756,6 +764,7 @@ function createSP001AdjacentPickupMarginFixture() {
                     return;
                 }
                 clockMs += 500;
+                if (options.sameCellGoalResolvesWithoutMovement === true) return;
                 bot.entity.position = new Vec3(95.5, 131, -31.5);
                 items = [...items, { name: 'oak_log', count: 1 }];
             },
@@ -766,7 +775,16 @@ function createSP001AdjacentPickupMarginFixture() {
         bot,
         target,
         navigationGoals,
+        controlStates,
         monotonicMs: () => clockMs,
+        async wait(ms) {
+            clockMs += Number(ms) || 0;
+            if (forward && options.acquireOnNudge === true && !nudgeAcquired) {
+                bot.entity.position = new Vec3(95.35, 131, -31.5);
+                items = [...items, { name: 'oak_log', count: 1 }];
+                nudgeAcquired = true;
+            }
+        },
     };
 }
 
@@ -869,11 +887,90 @@ async function testSP001PickupFallbackUsesBoundedAdjacentCandidateMargin() {
     );
     assert(result.pickup_collection.fallback_candidate.expected_pickup_distance > 1);
     assert(result.pickup_collection.fallback_candidate.expected_pickup_distance <= 1.5);
+    assert.strictEqual(result.pickup_collection.fallback_same_cell_nudge.required, true);
+    assert.strictEqual(result.pickup_collection.fallback_same_cell_nudge.attempted, true);
+    assert.strictEqual(result.pickup_collection.fallback_same_cell_nudge.completion_grounded, false);
     assert.strictEqual(result.pickup_collection.fallback_navigation.distance_grounded, false);
     assert.strictEqual(result.pickup_collection.fallback_navigation.inventory_delta_observed, true);
     assert.strictEqual(result.pickup_collection.completion_grounded_by, 'inventory_delta');
     assert.strictEqual(fixture.navigationGoals.length, 2);
     console.log('PASS: SP-001 pickup fallback uses a bounded adjacent candidate margin');
+}
+
+async function testSP001PickupFallbackNudgesSameCellAlias() {
+    const fixture = createSP001AdjacentPickupMarginFixture({
+        sameCellGoalResolvesWithoutMovement: true,
+        acquireOnNudge: true,
+    });
+    const handler = createDigHandler(
+        () => ({ bot: fixture.bot, botReady: true }),
+        fixture.wait,
+        { monotonicMs: fixture.monotonicMs },
+    );
+    const result = await handler({
+        x: fixture.target.x,
+        y: fixture.target.y,
+        z: fixture.target.z,
+        require_pickup: true,
+    });
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.pickup_observed, true);
+    assert.deepStrictEqual(result.pickup_inventory_delta, { oak_log: 1 });
+    assert.strictEqual(result.pickup_collection.fallback_attempt_count, 1);
+    assert.strictEqual(result.pickup_collection.fallback_same_cell_nudge_attempt_limit, 1);
+    assert.strictEqual(result.pickup_collection.fallback_same_cell_nudge_attempt_count, 1);
+    assert.strictEqual(result.pickup_collection.fallback_same_cell_nudge.required, true);
+    assert.strictEqual(result.pickup_collection.fallback_same_cell_nudge.attempted, true);
+    assert.strictEqual(result.pickup_collection.fallback_same_cell_nudge.duration_ms, 100);
+    assert.strictEqual(
+        result.pickup_collection.fallback_same_cell_nudge.inventory_delta_observed,
+        true,
+    );
+    assert.strictEqual(result.pickup_collection.fallback_same_cell_nudge.completion_grounded, true);
+    assert.strictEqual(result.pickup_collection.completion_grounded_by, 'inventory_delta');
+    assert.strictEqual(result.pickup_collection.fallback_navigation, undefined);
+    assert.strictEqual(fixture.navigationGoals.length, 1);
+    assert.deepStrictEqual(fixture.controlStates, [
+        { name: 'forward', value: true },
+        { name: 'forward', value: false },
+    ]);
+    console.log('PASS: SP-001 same-cell fallback performs one bounded grounded center nudge');
+}
+
+async function testSP001SameCellNudgeStillRequiresGrounding() {
+    const fixture = createSP001AdjacentPickupMarginFixture({
+        sameCellGoalResolvesWithoutMovement: true,
+        acquireOnNudge: false,
+    });
+    const handler = createDigHandler(
+        () => ({ bot: fixture.bot, botReady: true }),
+        fixture.wait,
+        { monotonicMs: fixture.monotonicMs },
+    );
+    const result = await handler({
+        x: fixture.target.x,
+        y: fixture.target.y,
+        z: fixture.target.z,
+        require_pickup: true,
+    });
+
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.pickup_observed, false);
+    assert.strictEqual(result.pickup_collection.fallback_attempt_count, 1);
+    assert.strictEqual(result.pickup_collection.fallback_same_cell_nudge.attempted, true);
+    assert.strictEqual(
+        result.pickup_collection.fallback_same_cell_nudge.completion_grounded,
+        false,
+    );
+    assert.strictEqual(result.pickup_collection.fallback_navigation.pathfinder_resolved, true);
+    assert.strictEqual(result.pickup_collection.fallback_navigation.completion_grounded, false);
+    assert.strictEqual(fixture.navigationGoals.length, 2);
+    assert.deepStrictEqual(fixture.controlStates, [
+        { name: 'forward', value: true },
+        { name: 'forward', value: false },
+    ]);
+    console.log('PASS: SP-001 same-cell nudge cannot self-certify without grounded pickup');
 }
 
 async function testM4PickupCompletionRejectsUnsupportedFallbackCell() {
@@ -940,6 +1037,8 @@ async function main() {
     await testM4PickupCompletionUsesProbe12StandableFallback();
     await testM4PickupCompletionFallbackFailsClosedAndStopsAfterOneAttempt();
     await testSP001PickupFallbackUsesBoundedAdjacentCandidateMargin();
+    await testSP001PickupFallbackNudgesSameCellAlias();
+    await testSP001SameCellNudgeStillRequiresGrounding();
     await testM4PickupCompletionRejectsUnsupportedFallbackCell();
     await testPickupCompletionGroundingLeavesLegacyDigUnchanged();
     console.log('\nBot server benchmark reset tests PASSED');

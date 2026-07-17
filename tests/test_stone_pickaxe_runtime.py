@@ -398,6 +398,45 @@ def test_retained_sp001_pickup_failure_proves_delayed_recovery():
     assert actions[4]["post_observation"]["inventory"]["cobblestone"] == 4
 
 
+def test_retained_sp001_same_cell_fallback_alias_is_reproduced():
+    root = Path(__file__).resolve().parents[1]
+    session_path = (
+        root
+        / "workspace"
+        / "evals"
+        / "sp001_runs"
+        / "sp001_episode_20260718_014459_7a1a9b49"
+        / "session_cebd6eaa-904.jsonl"
+    )
+    events = [
+        json.loads(line)
+        for line in session_path.read_text(encoding="utf-8").splitlines()
+    ]
+    actions = [event["data"] for event in events if event.get("type") == "action"]
+    assert len(actions) == 8
+
+    failed = actions[2]["result"]
+    collection = failed["pickup_collection"]
+    assert failed["success"] is False
+    assert failed["block_removed"] is True
+    assert collection["entity_id"] == 321
+    assert collection["direct_navigation"]["pathfinder_resolved"] is True
+    assert collection["direct_navigation"]["completion_grounded"] is False
+    assert collection["fallback_candidate"]["position"] == {"x": 95, "y": 131, "z": -32}
+    assert collection["fallback_candidate"]["expected_pickup_distance"] < 1.5
+    assert collection["fallback_candidate"]["current_distance"] < 0.1
+    assert collection["fallback_navigation"]["pathfinder_resolved"] is True
+    assert collection["fallback_navigation"]["position"] == collection["direct_navigation"][
+        "position"
+    ]
+    assert collection["fallback_navigation"]["final_distance"] > 1.5
+    assert collection["fallback_navigation"]["completion_grounded"] is False
+
+    next_failed = actions[3]["result"]
+    assert next_failed["pickup_collection"]["entity_id"] == 321
+    assert next_failed["pickup_collection"]["initial_distance"] > 1.5
+
+
 def test_retained_sp001_transport_failure_is_fail_closed():
     root = Path(__file__).resolve().parents[1]
     run = (
@@ -452,6 +491,7 @@ def test_retained_sp001_failure_evidence_hashes_match_ledger():
         "sp001-001-redundant-equip",
         "sp001-002-pickup-candidate-margin",
         "sp001-003-planner-transport-tls-eof",
+        "sp001-004-pickup-same-cell-goal-alias",
     ]
     for failure in failures:
         assert len(failure["evidence"]) == 10

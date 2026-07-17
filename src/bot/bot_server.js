@@ -962,6 +962,7 @@ function blockDropNames(activeBot, block) {
 
 const M4_DIG_REQUIRED_TOOL_EQUIP_POLICY_ID = 'm4-dig-required-tool-equip-v1';
 const M4_PICKUP_FALLBACK_CANDIDATE_MARGIN = 0.5;
+const M4_PICKUP_SAME_CELL_NUDGE_MS = 100;
 
 function blockHarvestToolTypes(block) {
     const harvestTools = block?.harvestTools;
@@ -1229,6 +1230,8 @@ async function approachDroppedItem(
     details.fallback_attempt_count = 0;
     details.fallback_candidate_margin = M4_PICKUP_FALLBACK_CANDIDATE_MARGIN;
     details.fallback_candidate_max_distance = goalRange + details.fallback_candidate_margin;
+    details.fallback_same_cell_nudge_attempt_limit = 1;
+    details.fallback_same_cell_nudge_attempt_count = 0;
     const directGoal = new goals.GoalNear(
         Math.floor(dropPosition.x),
         Math.floor(dropPosition.y),
@@ -1269,6 +1272,85 @@ async function approachDroppedItem(
     }
 
     details.fallback_attempt_count = 1;
+    const currentPosition = activeBot.entity?.position;
+    const candidateAliasesCurrentCell = Boolean(currentPosition) && (
+        Math.floor(Number(currentPosition.x)) === Number(candidate.position.x)
+        && Math.floor(Number(currentPosition.y)) === Number(candidate.position.y)
+        && Math.floor(Number(currentPosition.z)) === Number(candidate.position.z)
+    );
+    if (candidateAliasesCurrentCell) {
+        const nudge = {
+            policy_id: 'm4-pickup-same-cell-center-nudge-v1',
+            required: true,
+            attempted: false,
+            duration_ms: 0,
+            initial_position: positionPayload(currentPosition),
+            target_position: candidate.expected_player_position,
+            initial_center_distance: navigationDistance(
+                currentPosition,
+                candidate.expected_player_position,
+                false,
+            ),
+            inventory_delta_observed: false,
+            inventory_delta: {},
+            completion_grounded: false,
+        };
+        details.fallback_same_cell_nudge_attempt_count = 1;
+        details.fallback_same_cell_nudge = nudge;
+        const remainingMs = Math.max(0, Math.floor(navigationDeadlineMs - monotonicMs()));
+        const durationMs = Math.min(M4_PICKUP_SAME_CELL_NUDGE_MS, remainingMs);
+        if (
+            durationMs > 0
+            && typeof activeBot.lookAt === 'function'
+            && typeof activeBot.setControlState === 'function'
+        ) {
+            const center = candidate.expected_player_position;
+            const lookTarget = new Vec3(
+                Number(center.x),
+                Number(activeBot.entity.position.y) + 1.62,
+                Number(center.z),
+            );
+            try {
+                nudge.attempted = true;
+                nudge.duration_ms = durationMs;
+                await activeBot.lookAt(lookTarget);
+                activeBot.setControlState('forward', true);
+                await wait(durationMs);
+            } catch (error) {
+                nudge.error = error.message;
+            } finally {
+                activeBot.setControlState('forward', false);
+            }
+            const observedDropPosition = currentDropPosition();
+            const inventoryState = inventoryIncreaseState(activeBot, beforeInventory, expectedItems);
+            nudge.position = positionPayload(activeBot.entity?.position);
+            nudge.drop_position = positionPayload(observedDropPosition);
+            nudge.final_distance = navigationDistance(
+                activeBot.entity?.position,
+                observedDropPosition,
+                true,
+            );
+            nudge.distance_grounded = nudge.final_distance !== null && nudge.final_distance <= goalRange;
+            nudge.inventory_delta_observed = inventoryState.observed;
+            nudge.inventory_delta = inventoryState.delta;
+            nudge.completion_grounded = nudge.distance_grounded || nudge.inventory_delta_observed;
+            if (nudge.completion_grounded) {
+                details.final_distance = nudge.final_distance;
+                details.inventory_delta_observed = nudge.inventory_delta_observed;
+                details.inventory_delta = nudge.inventory_delta;
+                details.success = true;
+                details.completion_grounded = true;
+                details.completion_grounded_by = nudge.inventory_delta_observed
+                    ? 'inventory_delta'
+                    : 'measured_distance';
+                return details;
+            }
+        } else {
+            nudge.error = durationMs <= 0
+                ? 'pickup navigation budget exhausted before same-cell nudge'
+                : 'same-cell pickup nudge controls are unavailable';
+        }
+    }
     const fallback = await runGroundedNavigation(
         new goals.GoalBlock(candidate.position.x, candidate.position.y, candidate.position.z),
         'GoalBlock',

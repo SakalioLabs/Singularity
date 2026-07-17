@@ -1,0 +1,2085 @@
+{
+  "type": "stone_pickaxe_microbenchmark_episode",
+  "schema_version": 1,
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "task_id": "SP-001",
+  "session_id": "cebd6eaa-904",
+  "episode_id": "sp001_episode_20260718_014459_7a1a9b49",
+  "session_sha256": "63fd6c011d574c5ec175f41417b41d7612aba330212add3ceed8c5d257333209",
+  "level_name": "sp001_episode_20260718_014459_7a1a9b49",
+  "evidence_kind": "live_verified",
+  "hypothesis_path": "workspace/evals/sp001_runs/sp001_episode_20260718_014459_7a1a9b49/hypothesis.json",
+  "fixture": {
+    "fixture_id": "sp001-acquire-cobblestone-v1",
+    "manifest_protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+    "snapshot_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+    "snapshot_identity_verified": true
+  },
+  "episode_started_monotonic": 60508.125,
+  "episode_deadline_monotonic": 60688.125,
+  "episode_ended_monotonic": 60687.125,
+  "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+  "action_count": 8,
+  "action_failure_count": 5,
+  "action_failures": [
+    {
+      "index": 3,
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "stone",
+          "x": 94,
+          "y": 131,
+          "z": -32,
+          "source_id": "stone:94:131:-32"
+        }
+      },
+      "error": "expected block drop was not acquired"
+    },
+    {
+      "index": 4,
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "stone",
+          "x": 95,
+          "y": 130,
+          "z": -32,
+          "source_id": "stone:95:130:-32"
+        }
+      },
+      "error": "expected block drop was not acquired"
+    },
+    {
+      "index": 6,
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "stone",
+          "x": 95,
+          "y": 131,
+          "z": -33
+        }
+      },
+      "error": "Stone-pickaxe action guard rejected: sp001_dig_target_must_be_nearest_observed"
+    },
+    {
+      "index": 7,
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "stone",
+          "x": 95,
+          "y": 131,
+          "z": -33
+        }
+      },
+      "error": "Stone-pickaxe action guard rejected: sp001_dig_target_must_be_nearest_observed"
+    },
+    {
+      "index": 8,
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "stone",
+          "x": 95,
+          "y": 131,
+          "z": -33
+        }
+      },
+      "error": "Stone-pickaxe action guard rejected: sp001_dig_target_must_be_nearest_observed"
+    }
+  ],
+  "false_success_dig_count": 0,
+  "false_success_dig_action_indexes": [],
+  "world_mutating_non_target_actions": [],
+  "initial_observation": {
+    "role": "initial",
+    "monotonic_s": 60508.125,
+    "position": {
+      "x": 95.579073,
+      "y": 132.0,
+      "z": -31.494352
+    },
+    "inventory": {
+      "dark_oak_log": 3,
+      "dark_oak_planks": 11,
+      "dirt": 3,
+      "stick": 2,
+      "wooden_pickaxe": 1
+    },
+    "health": 20.0,
+    "hunger": 20.0,
+    "game_mode": "survival",
+    "dimension": "overworld",
+    "ground_block": "stone",
+    "safe": true,
+    "movable": true,
+    "observed_blocks": [
+      {
+        "source_id": "stone:95:131:-32",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:132:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 132.0,
+          "z": -32.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:131:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-31",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -31.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:132:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 132.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-31",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -31.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:97:132:-32",
+        "name": "stone",
+        "position": {
+          "x": 97.0,
+          "y": 132.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      }
+    ],
+    "nearby_hostile_count": 0,
+    "player_lifecycle": {},
+    "observation_id": "9a7e67f16f08feef7641ec0d751f499ff4b611c05d8e2bb7bd0473dd62ce6669"
+  },
+  "transitions": [
+    {
+      "source_id": "stone:95:131:-32",
+      "source_block": "stone",
+      "tool": "wooden_pickaxe",
+      "action_verified": true,
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "stone",
+          "source_id": "stone:95:131:-32",
+          "x": 95.0,
+          "y": 131.0,
+          "z": -32.0
+        }
+      },
+      "pre_observation": {
+        "role": "pre_dig",
+        "monotonic_s": 60522.484,
+        "position": {
+          "x": 95.579073,
+          "y": 132.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "dark_oak_log": 3,
+          "dark_oak_planks": 11,
+          "dirt": 3,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:95:131:-32",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "source": {
+          "id": "stone:95:131:-32",
+          "name": "stone",
+          "present": true,
+          "position": {
+            "x": 95.0,
+            "y": 131.0,
+            "z": -32.0
+          }
+        },
+        "observation_id": "85f16e17d2dfdfc92dfd0a6aeda2aaddaf97993ca0381c344c198fc38f87b66c"
+      },
+      "post_observation": {
+        "role": "post_dig",
+        "monotonic_s": 60524.187,
+        "position": {
+          "x": 95.579073,
+          "y": 131.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "cobblestone": 1,
+          "dark_oak_log": 3,
+          "dark_oak_planks": 11,
+          "dirt": 3,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:94:131:-32",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 131.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "source": {
+          "id": "stone:95:131:-32",
+          "name": "stone",
+          "present": false,
+          "position": {
+            "x": 95.0,
+            "y": 131.0,
+            "z": -32.0
+          }
+        },
+        "observation_id": "d52243c668b1efde5fa574721e5d371118f450e2a0ea7f2712d83fcb7ebf2c84"
+      },
+      "pickup": {
+        "observed": true,
+        "source_id": "stone:95:131:-32",
+        "item": "cobblestone",
+        "count": 1,
+        "inventory_delta": {
+          "cobblestone": 1
+        }
+      },
+      "action_started_monotonic": 60522.484,
+      "action_finished_monotonic": 60524.187,
+      "backend_result": {
+        "success": true,
+        "block_removed": true,
+        "expected_drops": [
+          "cobblestone"
+        ],
+        "dig_postcondition": {
+          "schema_version": 1,
+          "policy": "m4-expected-drop-pickup-postcondition-v1",
+          "required": true,
+          "block_removed": true,
+          "expected_drop_required": true,
+          "expected_drop_observed": true,
+          "passed": true
+        },
+        "dig_tool_equip": {
+          "schema_version": 1,
+          "policy": "m4-dig-required-tool-equip-v1",
+          "required": true,
+          "block": "stone",
+          "metadata_valid": true,
+          "harvest_tool_item_types": [
+            816,
+            821,
+            826,
+            831,
+            836,
+            841
+          ],
+          "compatible_inventory_tools": [
+            {
+              "name": "wooden_pickaxe",
+              "type": 816,
+              "count": 1
+            }
+          ],
+          "selected_tool": "wooden_pickaxe",
+          "selected_tool_type": 816,
+          "equipped_tool": "wooden_pickaxe",
+          "equipped_tool_type": 816,
+          "equip_attempted": true,
+          "equip_confirmed": true,
+          "mutation_allowed": true,
+          "passed": true
+        }
+      }
+    },
+    {
+      "source_id": "stone:94:131:-32",
+      "source_block": "stone",
+      "tool": "wooden_pickaxe",
+      "action_verified": false,
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "stone",
+          "source_id": "stone:94:131:-32",
+          "x": 94.0,
+          "y": 131.0,
+          "z": -32.0
+        }
+      },
+      "pre_observation": {
+        "role": "pre_dig",
+        "monotonic_s": 60528.468,
+        "position": {
+          "x": 95.579073,
+          "y": 131.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "cobblestone": 1,
+          "dark_oak_log": 3,
+          "dark_oak_planks": 11,
+          "dirt": 3,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:94:131:-32",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 131.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "source": {
+          "id": "stone:94:131:-32",
+          "name": "stone",
+          "present": true,
+          "position": {
+            "x": 94.0,
+            "y": 131.0,
+            "z": -32.0
+          }
+        },
+        "observation_id": "9fa5f190064272d3936c27557a655c738014e9478b0a2347cf2d23278a03ba92"
+      },
+      "post_observation": {
+        "role": "post_dig",
+        "monotonic_s": 60532.468,
+        "position": {
+          "x": 95.579073,
+          "y": 131.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "cobblestone": 1,
+          "dark_oak_log": 3,
+          "dark_oak_planks": 11,
+          "dirt": 3,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:95:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "source": {
+          "id": "stone:94:131:-32",
+          "name": "stone",
+          "present": false,
+          "position": {
+            "x": 94.0,
+            "y": 131.0,
+            "z": -32.0
+          }
+        },
+        "observation_id": "3fbf7b261fd27b50afa15dabdf41762bca12c723afe717c39419255e0b3982e4"
+      },
+      "pickup": {
+        "observed": false,
+        "source_id": "stone:94:131:-32",
+        "item": "cobblestone",
+        "count": 0,
+        "inventory_delta": {}
+      },
+      "action_started_monotonic": 60528.468,
+      "action_finished_monotonic": 60532.468,
+      "backend_result": {
+        "success": false,
+        "block_removed": true,
+        "expected_drops": [
+          "cobblestone"
+        ],
+        "dig_postcondition": {
+          "schema_version": 1,
+          "policy": "m4-expected-drop-pickup-postcondition-v1",
+          "required": true,
+          "block_removed": true,
+          "expected_drop_required": true,
+          "expected_drop_observed": false,
+          "passed": false
+        },
+        "dig_tool_equip": {
+          "schema_version": 1,
+          "policy": "m4-dig-required-tool-equip-v1",
+          "required": true,
+          "block": "stone",
+          "metadata_valid": true,
+          "harvest_tool_item_types": [
+            816,
+            821,
+            826,
+            831,
+            836,
+            841
+          ],
+          "compatible_inventory_tools": [
+            {
+              "name": "wooden_pickaxe",
+              "type": 816,
+              "count": 1
+            }
+          ],
+          "selected_tool": "wooden_pickaxe",
+          "selected_tool_type": 816,
+          "equipped_tool": "wooden_pickaxe",
+          "equipped_tool_type": 816,
+          "equip_attempted": true,
+          "equip_confirmed": true,
+          "mutation_allowed": true,
+          "passed": true
+        }
+      }
+    },
+    {
+      "source_id": "stone:95:130:-32",
+      "source_block": "stone",
+      "tool": "wooden_pickaxe",
+      "action_verified": false,
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "stone",
+          "source_id": "stone:95:130:-32",
+          "x": 95.0,
+          "y": 130.0,
+          "z": -32.0
+        }
+      },
+      "pre_observation": {
+        "role": "pre_dig",
+        "monotonic_s": 60556.125,
+        "position": {
+          "x": 95.579073,
+          "y": 131.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "cobblestone": 1,
+          "dark_oak_log": 3,
+          "dark_oak_planks": 11,
+          "dirt": 3,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:95:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "source": {
+          "id": "stone:95:130:-32",
+          "name": "stone",
+          "present": true,
+          "position": {
+            "x": 95.0,
+            "y": 130.0,
+            "z": -32.0
+          }
+        },
+        "observation_id": "4cf04e307f6e52607cc3b30ca59c676b1f76419b9ef01c59090b54e0ccff04d1"
+      },
+      "post_observation": {
+        "role": "post_dig",
+        "monotonic_s": 60560.265,
+        "position": {
+          "x": 95.579073,
+          "y": 131.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "cobblestone": 1,
+          "dark_oak_log": 3,
+          "dark_oak_planks": 11,
+          "dirt": 2,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:95:131:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -33.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "source": {
+          "id": "stone:95:130:-32",
+          "name": "stone",
+          "present": false,
+          "position": {
+            "x": 95.0,
+            "y": 130.0,
+            "z": -32.0
+          }
+        },
+        "observation_id": "82e8660df9fb2a887883a2f34708487369d6d1580eb750ce0a3253aeb869db4c"
+      },
+      "pickup": {
+        "observed": false,
+        "source_id": "stone:95:130:-32",
+        "item": "cobblestone",
+        "count": 0,
+        "inventory_delta": {}
+      },
+      "action_started_monotonic": 60556.125,
+      "action_finished_monotonic": 60560.265,
+      "backend_result": {
+        "success": false,
+        "block_removed": true,
+        "expected_drops": [
+          "cobblestone"
+        ],
+        "dig_postcondition": {
+          "schema_version": 1,
+          "policy": "m4-expected-drop-pickup-postcondition-v1",
+          "required": true,
+          "block_removed": true,
+          "expected_drop_required": true,
+          "expected_drop_observed": false,
+          "passed": false
+        },
+        "dig_tool_equip": {
+          "schema_version": 1,
+          "policy": "m4-dig-required-tool-equip-v1",
+          "required": true,
+          "block": "stone",
+          "metadata_valid": true,
+          "harvest_tool_item_types": [
+            816,
+            821,
+            826,
+            831,
+            836,
+            841
+          ],
+          "compatible_inventory_tools": [
+            {
+              "name": "wooden_pickaxe",
+              "type": 816,
+              "count": 1
+            }
+          ],
+          "selected_tool": "wooden_pickaxe",
+          "selected_tool_type": 816,
+          "equipped_tool": "wooden_pickaxe",
+          "equipped_tool_type": 816,
+          "equip_attempted": true,
+          "equip_confirmed": true,
+          "mutation_allowed": true,
+          "passed": true
+        }
+      }
+    },
+    {
+      "source_id": "stone:95:131:-33",
+      "source_block": "stone",
+      "tool": "",
+      "action_verified": false,
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "stone",
+          "source_id": "stone:95:131:-33",
+          "x": 95.0,
+          "y": 131.0,
+          "z": -33.0
+        }
+      },
+      "pre_observation": {
+        "role": "pre_dig",
+        "monotonic_s": 60578.015,
+        "position": {
+          "x": 95.579073,
+          "y": 131.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "cobblestone": 1,
+          "dark_oak_log": 3,
+          "dark_oak_planks": 11,
+          "dirt": 2,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:95:131:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -33.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "source": {
+          "id": "stone:95:131:-33",
+          "name": "stone",
+          "present": false,
+          "position": {
+            "x": 95.0,
+            "y": 131.0,
+            "z": -33.0
+          }
+        },
+        "observation_id": "a396d9d08f1005f254c86fab892140304b6e03e75d0773ff6a3a3e89e166c37f"
+      },
+      "post_observation": {
+        "role": "post_dig",
+        "monotonic_s": 60578.015,
+        "position": {
+          "x": 95.579073,
+          "y": 131.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "cobblestone": 1,
+          "dark_oak_log": 3,
+          "dark_oak_planks": 11,
+          "dirt": 2,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:95:131:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -33.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "source": {
+          "id": "stone:95:131:-33",
+          "name": "stone",
+          "present": false,
+          "position": {
+            "x": 95.0,
+            "y": 131.0,
+            "z": -33.0
+          }
+        },
+        "observation_id": "df36c2aac990ef3717944df5bff5eab51ae5dc3cfa99add30cb0bf1355630323"
+      },
+      "pickup": {
+        "observed": false,
+        "source_id": "stone:95:131:-33",
+        "item": "cobblestone",
+        "count": 0,
+        "inventory_delta": {}
+      },
+      "action_started_monotonic": 60578.015,
+      "action_finished_monotonic": 60578.015,
+      "backend_result": {
+        "success": false,
+        "block_removed": false,
+        "expected_drops": [],
+        "dig_postcondition": {},
+        "dig_tool_equip": {}
+      }
+    },
+    {
+      "source_id": "stone:95:131:-33",
+      "source_block": "stone",
+      "tool": "",
+      "action_verified": false,
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "stone",
+          "source_id": "stone:95:131:-33",
+          "x": 95.0,
+          "y": 131.0,
+          "z": -33.0
+        }
+      },
+      "pre_observation": {
+        "role": "pre_dig",
+        "monotonic_s": 60629.025,
+        "position": {
+          "x": 95.579073,
+          "y": 131.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "cobblestone": 1,
+          "dark_oak_log": 3,
+          "dark_oak_planks": 11,
+          "dirt": 2,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:95:131:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -33.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "source": {
+          "id": "stone:95:131:-33",
+          "name": "stone",
+          "present": false,
+          "position": {
+            "x": 95.0,
+            "y": 131.0,
+            "z": -33.0
+          }
+        },
+        "observation_id": "bed696f187472548d0b1e0d7d59f14b4cfc48a15f665eb0b0d1dce70502f054d"
+      },
+      "post_observation": {
+        "role": "post_dig",
+        "monotonic_s": 60629.025,
+        "position": {
+          "x": 95.579073,
+          "y": 131.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "cobblestone": 1,
+          "dark_oak_log": 3,
+          "dark_oak_planks": 11,
+          "dirt": 2,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:95:131:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -33.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "source": {
+          "id": "stone:95:131:-33",
+          "name": "stone",
+          "present": false,
+          "position": {
+            "x": 95.0,
+            "y": 131.0,
+            "z": -33.0
+          }
+        },
+        "observation_id": "ec5925f927432f9036c8cc017633ba4eb96f1c1353e0e96a40a9395baaef4ed7"
+      },
+      "pickup": {
+        "observed": false,
+        "source_id": "stone:95:131:-33",
+        "item": "cobblestone",
+        "count": 0,
+        "inventory_delta": {}
+      },
+      "action_started_monotonic": 60629.025,
+      "action_finished_monotonic": 60629.025,
+      "backend_result": {
+        "success": false,
+        "block_removed": false,
+        "expected_drops": [],
+        "dig_postcondition": {},
+        "dig_tool_equip": {}
+      }
+    },
+    {
+      "source_id": "stone:95:131:-33",
+      "source_block": "stone",
+      "tool": "",
+      "action_verified": false,
+      "action": {
+        "type": "dig",
+        "parameters": {
+          "block": "stone",
+          "source_id": "stone:95:131:-33",
+          "x": 95.0,
+          "y": 131.0,
+          "z": -33.0
+        }
+      },
+      "pre_observation": {
+        "role": "pre_dig",
+        "monotonic_s": 60661.115,
+        "position": {
+          "x": 95.579073,
+          "y": 131.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "cobblestone": 1,
+          "dark_oak_log": 3,
+          "dark_oak_planks": 11,
+          "dirt": 2,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:95:131:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -33.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "source": {
+          "id": "stone:95:131:-33",
+          "name": "stone",
+          "present": false,
+          "position": {
+            "x": 95.0,
+            "y": 131.0,
+            "z": -33.0
+          }
+        },
+        "observation_id": "956e50c702cf52caa502750a36273830ab7c44524824613ae572ee564613623d"
+      },
+      "post_observation": {
+        "role": "post_dig",
+        "monotonic_s": 60661.115,
+        "position": {
+          "x": 95.579073,
+          "y": 131.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "cobblestone": 1,
+          "dark_oak_log": 3,
+          "dark_oak_planks": 11,
+          "dirt": 2,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:95:131:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -33.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "source": {
+          "id": "stone:95:131:-33",
+          "name": "stone",
+          "present": false,
+          "position": {
+            "x": 95.0,
+            "y": 131.0,
+            "z": -33.0
+          }
+        },
+        "observation_id": "59c0512dd643652b5d3278d87c1fc8872e1438d5d02e106b1bfa03e89a7c7a71"
+      },
+      "pickup": {
+        "observed": false,
+        "source_id": "stone:95:131:-33",
+        "item": "cobblestone",
+        "count": 0,
+        "inventory_delta": {}
+      },
+      "action_started_monotonic": 60661.115,
+      "action_finished_monotonic": 60661.115,
+      "backend_result": {
+        "success": false,
+        "block_removed": false,
+        "expected_drops": [],
+        "dig_postcondition": {},
+        "dig_tool_equip": {}
+      }
+    }
+  ],
+  "terminal_observation": {
+    "role": "terminal",
+    "monotonic_s": 60687.125,
+    "position": {
+      "x": 95.579073,
+      "y": 131.0,
+      "z": -31.494352
+    },
+    "inventory": {
+      "cobblestone": 1,
+      "dark_oak_log": 3,
+      "dark_oak_planks": 11,
+      "dirt": 2,
+      "stick": 2,
+      "wooden_pickaxe": 1
+    },
+    "health": 20.0,
+    "hunger": 20.0,
+    "game_mode": "survival",
+    "dimension": "overworld",
+    "ground_block": "dirt",
+    "safe": true,
+    "movable": true,
+    "observed_blocks": [
+      {
+        "source_id": "stone:95:131:-31",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -31.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:130:-31",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 130.0,
+          "z": -31.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:130:-33",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 130.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-31",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -31.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:132:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 132.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:130:-31",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -31.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:130:-33",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:130:-31",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 130.0,
+          "z": -31.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:130:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 130.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:132:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 132.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:129:-32",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 129.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-30",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -30.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-34",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -34.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:97:131:-32",
+        "name": "stone",
+        "position": {
+          "x": 97.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:93:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 93.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:93:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 93.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:129:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 129.0,
+          "z": -32.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      }
+    ],
+    "nearby_hostile_count": 0,
+    "player_lifecycle": {},
+    "observation_id": "59a41357264eed209ad1da3bcf9db4e1effa3f8c7151fd4534687b9e34cfb3f8"
+  },
+  "goal_result": {
+    "goal": "Gather 3 cobblestone with the wooden pickaxe",
+    "cycles": 9,
+    "completed": false,
+    "termination_reason": "max_actions",
+    "max_cycles": 12,
+    "max_duration_s": 180.0,
+    "max_actions": 8,
+    "action_count": 8,
+    "elapsed_s": 178.437,
+    "episode_started_monotonic": 60508.125,
+    "episode_ended_monotonic": 60686.562,
+    "episode_deadline_monotonic": 60688.125,
+    "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+    "deadline_eligible": true,
+    "summary": {
+      "session_id": "cebd6eaa-904",
+      "duration_s": 180.27,
+      "total_events": 150,
+      "action_count": 8,
+      "error_count": 0,
+      "intervention_metrics": {
+        "policy_hint_count": 0,
+        "policy_intervention_count": 0,
+        "policy_intervention_actions": 0,
+        "policy_intervention_successes": 0,
+        "policy_intervention_failures": 0,
+        "policy_intervention_success_rate": 0.0,
+        "policy_intervention_skills": [],
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": [],
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {},
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": [],
+        "action_verification_event_count": 5,
+        "action_verification_status_counts": {
+          "accept": 5
+        },
+        "action_verification_action_types": {
+          "equip": 2,
+          "dig": 3
+        },
+        "action_verification_blocked_count": 0,
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "visual_action_metrics": {
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": []
+      },
+      "skill_memory_metrics": {
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {}
+      },
+      "skill_learning_metrics": {
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": []
+      },
+      "action_verification_metrics": {
+        "action_verification_event_count": 5,
+        "action_verification_status_counts": {
+          "accept": 5
+        },
+        "action_verification_action_types": {
+          "equip": 2,
+          "dig": 3
+        },
+        "action_verification_blocked_count": 0
+      },
+      "action_candidate_selection_metrics": {
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "goal_verification_metrics": {
+        "count": 0,
+        "achieved": 0,
+        "failed": 0,
+        "unknown": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "acceptance_reasons": {}
+      },
+      "plan_cache_metrics": {
+        "plan_cache_hit_count": 0,
+        "plan_cache_hybrid_hint_count": 0,
+        "plan_cache_workflow_intervention_count": 0,
+        "plan_cache_miss_count": 0,
+        "plan_cache_signature_count": 0,
+        "plan_cache_hit_rate": 0.0,
+        "plan_cache_hit_entries": {},
+        "plan_cache_hit_goals": [],
+        "plan_cache_execution_stage_counts": {
+          "hybrid": 0,
+          "deterministic": 0
+        }
+      },
+      "episode_abort_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "gate_readiness": "not_configured",
+        "viability_probe_count": 0,
+        "early_abort_trigger_count": 0,
+        "active_early_abort_count": 0,
+        "shadow_would_abort_count": 0,
+        "probe_round_counts": {},
+        "average_viability_risk_score": 0.0
+      },
+      "frontier_budget_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "policy": "information",
+        "allocation_event_count": 0,
+        "planner_context_event_count": 0,
+        "outcome_event_count": 0,
+        "completed_outcome_count": 0,
+        "recovery_credit_event_count": 0,
+        "recovered_rounds": 0,
+        "reallocated_rounds_consumed": 0,
+        "allocation_pool_rounds": 0,
+        "allocated_rounds": 0,
+        "budget_conservation_failure_count": 0,
+        "policy_counts": {}
+      },
+      "memory_policy_metrics": {
+        "memory_write_count": 54,
+        "memory_read_count": 9,
+        "memory_manage_count": 0,
+        "memory_write_layers": {
+          "episodic": 28,
+          "context": 26
+        },
+        "memory_write_types": {
+          "goal_start": 1,
+          "context": 26,
+          "action_verification": 5,
+          "task_state_update": 8,
+          "action": 8,
+          "failure": 5,
+          "goal_end": 1
+        },
+        "memory_read_types": {
+          "opportunity_context": 9
+        },
+        "memory_manage_operations": {},
+        "memory_policy_decisions": {
+          "write_blocked": 54,
+          "read_allowed": 9
+        },
+        "memory_read_filter_event_count": 0,
+        "memory_read_filtered_entries": 0,
+        "memory_read_filter_reasons": {},
+        "memory_retrieval_trace_event_count": 0,
+        "weighted_memory_read_count": 0,
+        "weighted_memory_match_count": 0,
+        "weighted_transfer_match_count": 0,
+        "memory_attribution_policy_counts": {}
+      },
+      "log_path": "workspace/evals/sp001_runs/sp001_episode_20260718_014459_7a1a9b49\\session_cebd6eaa-904.jsonl"
+    }
+  },
+  "eligibility": {
+    "passed": true,
+    "protocol_match": true,
+    "planner_request_controls": true,
+    "reset_clean": true,
+    "no_forbidden_intervention": true,
+    "no_post_deadline_action": true,
+    "fixture_snapshot_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636"
+  },
+  "reset_contamination": false,
+  "post_deadline_action_count": 0,
+  "post_deadline_action_indexes": [],
+  "forbidden_interventions": [],
+  "selected_skills": [],
+  "planner_request_controls": {
+    "type": "stone_pickaxe_planner_request_controls_audit",
+    "schema_version": 1,
+    "passed": true,
+    "protocol_id": "stone-pickaxe-skill-fixed-v1",
+    "call_count": 9,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 0,
+    "calls": [
+      {
+        "call_id": "llm-21bf555d9b3348fa",
+        "call_index": 0,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "c8d3ceb769589833faaafed0dd17f51d7a405f7b16f9346feced30e499883191",
+        "request_sha256": "d44fd6dd787dad16c02a044a545abd799040f8f34882716594112b08922c6de1"
+      },
+      {
+        "call_id": "llm-410e09ae9cc94b77",
+        "call_index": 1,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "8e06745a67db245396db08d9a86e86326af30eb09fbb5ca69a6561e28bf57f2f",
+        "request_sha256": "58606a3135ba8d86ef0b42e9b4375ac1e49f211c22edae8d52cc0c441da1e597"
+      },
+      {
+        "call_id": "llm-969e12d0e92348ea",
+        "call_index": 2,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "d67c69e604d3be26c48e35e4fa28f36f30d22733cf7e0d95313fdfe409179e06",
+        "request_sha256": "d9397ed40ede25a435de8d10bdfac605c4d584863931b0377b6282f44e2ca1fb"
+      },
+      {
+        "call_id": "llm-4abb76a192db43c5",
+        "call_index": 3,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "416919acd6808cbbf1ec34bcf2372e171658be2bf10dd78d1c0e6a6e738f66e4",
+        "request_sha256": "16bdea288158f091b63365f19daf54aab218fdaf8b8768fc50ffa68bdf90404d"
+      },
+      {
+        "call_id": "llm-c5da5a9a19534693",
+        "call_index": 4,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "017ec0e71c8981d429474277fa5e6c4ecdb1f87922c78c766b1d03640836b0c7",
+        "request_sha256": "332389c60d6fde3c63996d2899a28c5ec7a224acae4258a68d3d39dbc994b2be"
+      },
+      {
+        "call_id": "llm-84ab7ddff3dc43f2",
+        "call_index": 5,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "0ad8a3e96ec6fbd0a92846ba531f9f66dcd5e43ed86c10ab72ff66cb4716884b",
+        "request_sha256": "e0b2d010795563d2e0070de6d56974f70199540ae09666326c4a9d1f628ba1a3"
+      },
+      {
+        "call_id": "llm-62ed86c7a8e947e3",
+        "call_index": 6,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "2ad9789f4cbb63879b6bdd5a2e82aa979e35308b8787e0e01ef5f08f1d3ad6dd",
+        "request_sha256": "7f062e611c09ea5012e09940fb04f385e21e37296c2ff751078658b36b6a218c"
+      },
+      {
+        "call_id": "llm-d478422993644839",
+        "call_index": 7,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "3c7efbbe8668183e71bc8a9b8f209e96e841720594d34157b8b5e94915ac3d68",
+        "request_sha256": "9004d164d4b5bad0f39e0eae1a1a60bc53210cb33554496352783027784bd958"
+      },
+      {
+        "call_id": "llm-0e5e215ed6b5458e",
+        "call_index": 8,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "3c7efbbe8668183e71bc8a9b8f209e96e841720594d34157b8b5e94915ac3d68",
+        "request_sha256": "6009e513815791833ed8370e0916693110ee819c76ab25811d1900e9dd594160"
+      }
+    ],
+    "issues": []
+  },
+  "external_step_script": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

@@ -1,27 +1,27 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T01:45:00+08:00",
+  "generated_at": "2026-07-18T02:00:30+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_2_sp001_transport_failure_retained_2_of_3",
-  "status": "sp001_transport_failure_fail_closed_eligible_successes_remain_2_of_3",
+  "phase": "phase_2_sp001_same_cell_pickup_nudge_offline_fixed_2_of_3",
+  "status": "offline_fix_verified_conditional_single_sp001_pending_fix_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": true,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 1,
-  "authorization_scope": "one_conditional_sp001_episode_after_transport_failure_evidence_is_committed_and_pushed",
+  "authorization_scope": "one_conditional_sp001_episode_after_same_cell_pickup_fix_and_failure_evidence_are_committed_and_pushed",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
     "fixture_preparation_sessions_consumed": 5,
     "fixture_audit_passed": true,
     "conditional_sp001_authorization_activated": true,
-    "sp001_live_episodes_run": 5,
+    "sp001_live_episodes_run": 6,
     "next_live_authorization": true
   },
   "fixture_preparation_success": {
@@ -178,15 +178,15 @@
     {
       "phase": 2,
       "name": "controlled_sp001_runtime",
-      "status": "planner_transport_failure_retained_after_two_eligible_successes",
+      "status": "same_cell_pickup_alias_offline_fixed_after_two_eligible_successes",
       "fixture_preparation_session_count": 5,
-      "live_episode_count": 5,
+      "live_episode_count": 6,
       "eligible_live_success_count": 2,
       "latest_success_episode_id": "sp001_episode_20260718_012012_0349d399",
-      "latest_failure_episode_id": "sp001_episode_20260718_013304_7c162864",
+      "latest_failure_episode_id": "sp001_episode_20260718_014459_7a1a9b49",
       "automatic_retry_allowed": false,
-      "stone_pickaxe_runtime_cases_passed": 28,
-      "stone_pickaxe_runtime_cases_total": 28,
+      "stone_pickaxe_runtime_cases_passed": 29,
+      "stone_pickaxe_runtime_cases_total": 29,
       "minecraft_process_started": true,
       "controlled_listener_count_after_stop": 0,
       "matching_runtime_process_count_after_stop": 0,
@@ -195,10 +195,11 @@
         "live_rerun_performed": true,
         "fixture_sealed": true,
         "sp001_failure_retained": true,
-        "sp001_failure_count": 3,
-        "sp001_behavioral_failure_count": 2,
+        "sp001_failure_count": 4,
+        "sp001_behavioral_failure_count": 3,
         "sp001_external_transport_failure_count": 1,
-        "new_live_authorization_required": false
+        "new_live_authorization_required": false,
+        "latest_fix_live_rerun_performed": false
       }
     }
   ],
@@ -217,7 +218,8 @@
     "fixture_preparation_crafting_table_grounding",
     "sp001_redundant_equip_machine_state_disconnect",
     "sp001_pickup_candidate_geometry_disconnect",
-    "sp001_planner_transport_tls_eof"
+    "sp001_planner_transport_tls_eof",
+    "sp001_pickup_same_cell_goal_alias"
   ],
   "failures": [
     {
@@ -1316,6 +1318,205 @@
         "counts_toward_capability": false,
         "counts_toward_m4": false
       }
+    },
+    {
+      "id": "sp001-004-pickup-same-cell-goal-alias",
+      "phase": "controlled_sp001",
+      "classification": "sp001_pickup_same_cell_goal_alias",
+      "status": "retained_failure_offline_fixed",
+      "attributable_to_learned_skill": false,
+      "episode_id": "sp001_episode_20260718_014459_7a1a9b49",
+      "session_id": "cebd6eaa-904",
+      "occurred_at_utc": "2026-07-17T17:48:16.574171+00:00",
+      "git_head_before_episode": "73e30022b3736d040433b5fd5e7046283a78e8cc",
+      "fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+      "earliest_unrecovered_transition": "executed_action_3_removed_stone_94_131_minus32_but_goalblock_fallback_aliased_the_current_player_cell_and_resolved_without_movement_at_measured_drop_distance_1_503",
+      "first_failed_action_or_task_transition": "executed_action_3_dig_failed_expected_block_drop_was_not_acquired",
+      "goal_result": {
+        "completed": false,
+        "termination_reason": "max_actions",
+        "cycles": 9,
+        "action_count": 8,
+        "successful_action_count": 3,
+        "failed_action_count": 5,
+        "elapsed_s": 178.437,
+        "deadline_eligible": true
+      },
+      "machine_verification": {
+        "passed": false,
+        "evidence_eligible": false,
+        "criteria_issues": [
+          "minimum_pickup_count",
+          "terminal_cobblestone_delta",
+          "transition_2:action_verified",
+          "transition_2:inventory_delta",
+          "transition_2:pickup_provenance",
+          "transition_3:action_verified",
+          "transition_3:inventory_delta",
+          "transition_3:pickup_provenance",
+          "transition_4:action_verified",
+          "transition_4:approved_tool",
+          "transition_4:inventory_delta",
+          "transition_4:pickup_provenance",
+          "transition_4:source_removed",
+          "transition_5:action_verified",
+          "transition_5:approved_tool",
+          "transition_5:distinct_source",
+          "transition_5:inventory_delta",
+          "transition_5:nearest_observed_source",
+          "transition_5:pickup_provenance",
+          "transition_5:source_removed",
+          "transition_6:action_verified",
+          "transition_6:approved_tool",
+          "transition_6:distinct_source",
+          "transition_6:inventory_delta",
+          "transition_6:nearest_observed_source",
+          "transition_6:pickup_provenance",
+          "transition_6:source_removed",
+          "zero_action_failures"
+        ],
+        "eligibility_issues": [],
+        "source_removal_count": 3,
+        "distinct_source_count": 4,
+        "pickup_count": 1,
+        "terminal_cobblestone_delta": 1,
+        "false_success_dig_count": 0
+      },
+      "planner_decision": {
+        "planner_call_count": 9,
+        "planner_request_controls_passed": true,
+        "executed_action_types": [
+          "equip",
+          "dig",
+          "dig",
+          "dig",
+          "equip",
+          "dig",
+          "dig",
+          "dig"
+        ],
+        "selected_skill_count": 0,
+        "forbidden_intervention_count": 0,
+        "automatic_retry_count": 0
+      },
+      "pickup_same_cell_alias_proof": {
+        "failed_source_id": "stone:94:131:-32",
+        "block_removed": true,
+        "drop_entity_id": 321,
+        "drop_position": {
+          "x": 94.125,
+          "y": 131.0,
+          "z": -31.875
+        },
+        "direct_goal_range": 1,
+        "direct_pathfinder_resolved": true,
+        "direct_final_distance": 1.5030705643877824,
+        "direct_completion_grounded": false,
+        "fallback_candidate_position": {
+          "x": 95,
+          "y": 131,
+          "z": -32
+        },
+        "fallback_candidate_expected_pickup_distance": 1.4252192813739224,
+        "fallback_candidate_current_center_distance": 0.07927434598178545,
+        "fallback_goal_type": "GoalBlock",
+        "fallback_pathfinder_resolved": true,
+        "fallback_position_unchanged": true,
+        "fallback_final_distance": 1.5030705643877824,
+        "fallback_completion_grounded": false,
+        "same_drop_entity_selected_by_next_dig": true,
+        "next_dig_initial_distance": 1.8053313051983024,
+        "downstream_nearest_source_guard_rejection_count": 3
+      },
+      "task_graph_proof": {
+        "task_count": 2,
+        "transition_count": 0,
+        "sha256": "9ee2993ef547276cb1242ac05f10e01d265727e38ac28d2a1c87d80e5dfbfb81"
+      },
+      "evidence": [
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_014459_7a1a9b49/audit.json",
+          "sha256": "c850ea6146b3d2f25984754d9725f16d60d9fcecc95b4b516977ef97f402cee8"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_014459_7a1a9b49/episode.json",
+          "sha256": "bc97f66df3a694668e4a2752fa23a9c2bb5d8e1e71fb8867e33066c5a81fd614"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_014459_7a1a9b49/hypothesis.json",
+          "sha256": "2f7d5f19d33f4bb7cdc68a62dff53c5b0399ef41c61b434d85cfd4640428376b"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_014459_7a1a9b49/manifest.json",
+          "sha256": "b96d8a691e902cc333679bef25e565c54b736394a163bfa052ee40eb7e801f96"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_014459_7a1a9b49/preflight.json",
+          "sha256": "fecba2fff20e6644dcd44f7bbf83126ca9640b9ce734d8f4bfd973224384fddf"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_014459_7a1a9b49/restoration.json",
+          "sha256": "7c409fe1d64faf4988e6d9b6d88125c70692c3e3577b98a7cf91d3c4a57b6139"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_014459_7a1a9b49/session.json",
+          "sha256": "63fd6c011d574c5ec175f41417b41d7612aba330212add3ceed8c5d257333209"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_014459_7a1a9b49/session_cebd6eaa-904.jsonl",
+          "sha256": "159732aa4d1abb039b1924ad56b7f456cc8a924dca19cb894f29231a8ba7f14c"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_014459_7a1a9b49/session_cebd6eaa-904_summary.json",
+          "sha256": "781539d4ac31b9f1a4a7a6b8130d8cba481d1f341f395ead0a3b0b0ce5e9a51c"
+        },
+        {
+          "path": "workspace/evals/sp001_runs/sp001_episode_20260718_014459_7a1a9b49/verification.json",
+          "sha256": "b43b66e6d5009a055059b8d3d899b6915585751aae91e0c3ea9418e2879d7ca1"
+        }
+      ],
+      "counts_toward_skill_gate": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_attempted": false,
+      "single_next_offline_fix": "perform_one_bounded_safe_same_cell_center_nudge_before_accepting_a_goalblock_fallback_that_resolved_without_measured_progress",
+      "offline_resolution": {
+        "status": "reproduced_fixed_and_tested",
+        "root_cause": "the_bounded_fallback_candidate_was_the_players_current_block_cell_so_goalblock_resolved_without_moving_from_the_cell_edge_or_entering_the_pickup_envelope",
+        "reproduction": {
+          "retained_evidence_replay_test": "test_retained_sp001_same_cell_fallback_alias_is_reproduced",
+          "node_positive_test": "testSP001PickupFallbackNudgesSameCellAlias",
+          "node_negative_test": "testSP001SameCellNudgeStillRequiresGrounding",
+          "same_entity_persisted_into_next_dig": true
+        },
+        "fix": {
+          "same_cell_detection_uses_player_and_candidate_block_coordinates": true,
+          "same_cell_nudge_duration_ms": 100,
+          "same_cell_nudge_attempt_limit": 1,
+          "nudge_remains_within_selected_safe_candidate_cell": true,
+          "forward_control_cleared_in_finally": true,
+          "fallback_attempt_limit_unchanged": 1,
+          "completion_still_requires_measured_distance_or_inventory_delta": true,
+          "no_inventory_delta_negative_case_fails_closed": true,
+          "protocol_json_modified": false
+        },
+        "regressions": {
+          "stone_pickaxe_runtime_cases": "29/29",
+          "stone_pickaxe_protocol_cases": "30/30",
+          "benchmark_reset_node_suite": "passed",
+          "repository_non_live_python_scripts": "39/39",
+          "fixed_node_suites": "6/6",
+          "repository_json_files_parsed": 1183,
+          "python_compileall": "passed",
+          "capability_consistency": "passed",
+          "immutable_evidence_hashes": "passed",
+          "credential_scan": "passed"
+        },
+        "protocol_sha256_unchanged": true,
+        "counts_toward_skill_gate": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      }
     }
   ],
   "eligible_successes": [
@@ -1534,8 +1735,8 @@
       "total": 30
     },
     "stone_pickaxe_runtime_cases": {
-      "passed": 28,
-      "total": 28
+      "passed": 29,
+      "total": 29
     },
     "impacted_runtime_regressions": {
       "m2_harness_passed": true,
@@ -1550,7 +1751,7 @@
       "passed": 6,
       "total": 6
     },
-    "repository_json_files_parsed": 1174,
+    "repository_json_files_parsed": 1183,
     "python_compileall_passed": true,
     "fixture_snapshot_audit_passed": true,
     "fixture_manifest_hash_passed": true,
@@ -1569,19 +1770,20 @@
     "credential_scan_passed": true,
     "git_diff_check_passed": true,
     "controlled_listener_count": 0,
-    "matching_runtime_process_count": 0
+    "matching_runtime_process_count": 0,
+    "sp001_same_cell_fallback_alias_replay_passed": true,
+    "sp001_same_cell_nudge_node_tests_passed": true
   },
   "next_required_gate": {
-    "id": "conditional_sp001_episode_after_transport_failure_evidence_push",
+    "id": "conditional_sp001_episode_after_same_cell_pickup_fix_push",
     "authorization": true,
     "prerequisites": [
-      "transport_failure_evidence_all_ten_hashes_verified",
-      "transport_failure_replayed_as_zero_task_zero_action_fail_closed",
-      "single_attempt_and_zero_retry_protocol_preserved",
-      "two_prior_sp001_successes_remain_distinct_and_immutable",
-      "fixture_snapshot_identity_reaudited_after_episode",
+      "fourth_sp001_failure_all_ten_evidence_hashes_verified",
+      "same_cell_goalblock_alias_reproduced_from_retained_session",
+      "bounded_same_cell_nudge_positive_and_negative_cases_passed",
+      "one_fallback_limit_and_completion_grounding_preserved",
       "all_non_live_regressions_passed",
-      "transport_failure_evidence_commit_pushed"
+      "same_cell_pickup_fix_and_failure_evidence_commit_pushed"
     ],
     "automatic_retry_allowed": false
   },
@@ -1592,7 +1794,7 @@
     "fixture_snapshot_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
     "fixture_preparation_artifacts_created": 20,
     "fixture_preparation_artifacts_retained_locally": true,
-    "sp001_run_artifacts_created": 50,
+    "sp001_run_artifacts_created": 60,
     "sp001_run_artifacts_retained_locally": true,
     "sp002_run_artifacts_created": 0,
     "sp003_run_artifacts_created": 0,
