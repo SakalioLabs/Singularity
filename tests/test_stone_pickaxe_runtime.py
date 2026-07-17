@@ -1,3 +1,4 @@
+import hashlib
 import json
 import tempfile
 import time
@@ -289,6 +290,94 @@ def test_sp001_guard_accepts_only_nearest_reachable_observed_stone():
     assert allowed["action"]["parameters"]["source_id"] == "stone:1:64:0"
     assert not rejected["allowed"]
     assert "sp001_dig_target_must_be_nearest_observed" in rejected["issues"]
+
+
+def test_sp001_machine_held_item_advances_past_equip_without_repeating_it():
+    before = _raw_observation()
+    before["equipment"] = [
+        {"slot": 0, "name": "dark_oak_log", "count": 3},
+        None,
+        None,
+        None,
+        None,
+        None,
+    ]
+    equip = {
+        "type": "equip",
+        "parameters": {"item": "wooden_pickaxe"},
+    }
+    assert guard_runtime_action("sp001", equip, before)["allowed"]
+
+    after = dict(before)
+    after["equipment"] = [
+        {"slot": 0, "name": "wooden_pickaxe", "count": 1},
+        None,
+        None,
+        None,
+        None,
+        None,
+    ]
+    compact = Planner._compact_stone_pickaxe_state(after)
+    assert compact["held_item"] == "wooden_pickaxe"
+
+    repeated = guard_runtime_action("sp001", equip, after)
+    assert not repeated["allowed"]
+    assert repeated["issues"] == ["sp001_redundant_wooden_pickaxe_equip"]
+
+    planner = object.__new__(Planner)
+    planner._expected_plan_kind = "continuation"
+    prompt = Planner._stone_pickaxe_system_prompt(planner)
+    assert "Treat held_item as the authoritative current main-hand item" in prompt
+    assert "when held_item is wooden_pickaxe, never equip it again" in prompt
+
+
+def test_retained_sp001_failure_reproduces_machine_state_equip_disconnect():
+    root = Path(__file__).resolve().parents[1]
+    session_path = (
+        root
+        / "workspace"
+        / "evals"
+        / "sp001_runs"
+        / "sp001_episode_20260717_223525_23696e33"
+        / "session_2c04a7f7-6e5.jsonl"
+    )
+    events = [
+        json.loads(line)
+        for line in session_path.read_text(encoding="utf-8").splitlines()
+    ]
+    actions = [event["data"] for event in events if event.get("type") == "action"]
+    assert len(actions) == 8
+    assert {entry["action"]["type"] for entry in actions} == {"equip"}
+
+    first = actions[0]
+    assert first["pre_observation"]["equipment"][0]["name"] == "dark_oak_log"
+    assert first["post_observation"]["equipment"][0]["name"] == "wooden_pickaxe"
+    compact = Planner._compact_stone_pickaxe_state(first["post_observation"])
+    assert compact["held_item"] == "wooden_pickaxe"
+    report = guard_runtime_action("sp001", first["action"], first["post_observation"])
+    assert not report["allowed"]
+    assert report["issues"] == ["sp001_redundant_wooden_pickaxe_equip"]
+
+
+def test_retained_sp001_failure_evidence_hashes_match_ledger():
+    root = Path(__file__).resolve().parents[1]
+    attributes = (root / ".gitattributes").read_text(encoding="utf-8")
+    assert "workspace/evals/sp001_runs/** binary" in attributes
+    ledger = json.loads(
+        (root / "workspace" / "evals" / "stone_pickaxe_failure_ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    failure = next(
+        item
+        for item in ledger["failures"]
+        if item.get("id") == "sp001-001-redundant-equip"
+    )
+    assert len(failure["evidence"]) == 10
+    for record in failure["evidence"]:
+        path = root / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
 def test_fixture_guard_blocks_target_result_mining_and_duplicate_pickaxe():

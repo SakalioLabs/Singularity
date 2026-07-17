@@ -1,0 +1,647 @@
+{
+  "type": "stone_pickaxe_run_audit",
+  "schema_version": 1,
+  "task_id": "SP-001",
+  "episode_id": "sp001_episode_20260717_223525_23696e33",
+  "machine_verification_passed": false,
+  "evidence_eligible": false,
+  "earliest_unrecovered_transition": {
+    "event_type": "machine_verification",
+    "issues": [
+      "minimum_distinct_source_removals",
+      "minimum_pickup_count",
+      "terminal_cobblestone_delta"
+    ],
+    "recovered": false
+  },
+  "first_failed_action": {},
+  "planner_decision": {
+    "schema_version": "stone-pickaxe-plan-v1",
+    "plan_kind": "continuation",
+    "goal": "Gather 3 cobblestone with the wooden pickaxe",
+    "status": "planning",
+    "reasoning": "Have wooden pickaxe, need to dig stone. Nearest stone at (95,131,-32). Equip pickaxe then dig.",
+    "subtasks": [],
+    "actions": [
+      {
+        "type": "equip",
+        "parameters": {
+          "item": "wooden_pickaxe"
+        }
+      }
+    ],
+    "root_plan_id": "root-c21b2a12b5994150",
+    "planner_call_id": "llm-a11d98637dc34e77",
+    "parent_planner_call_id": "llm-3d16d42554e440e1",
+    "schema_validation": {
+      "type": "stone_pickaxe_plan_envelope_validation",
+      "schema_version": 1,
+      "passed": true,
+      "expected_goal": "Gather 3 cobblestone with the wooden pickaxe",
+      "expected_kind": "continuation",
+      "status": "planning",
+      "subtask_count": 0,
+      "action_count": 1,
+      "compact_plan_chars": 334,
+      "completion_requires_machine_verifier": true,
+      "issues": []
+    },
+    "planner_evidence": {
+      "type": "llm_planner_call",
+      "schema_version": 1,
+      "planner_id": "llm-autonomous-planner-v1",
+      "protocol": "stone-pickaxe-skill-fixed-v1",
+      "episode_id": "2c04a7f7-6e5",
+      "call_id": "llm-a11d98637dc34e77",
+      "call_index": 8,
+      "plan_kind": "continuation",
+      "root_plan_id": "root-c21b2a12b5994150",
+      "parent_call_id": "llm-3d16d42554e440e1",
+      "goal": "Gather 3 cobblestone with the wooden pickaxe",
+      "real_llm_call": true,
+      "schema_valid": true,
+      "schema_validation": {
+        "type": "stone_pickaxe_plan_envelope_validation",
+        "schema_version": 1,
+        "passed": true,
+        "expected_goal": "Gather 3 cobblestone with the wooden pickaxe",
+        "expected_kind": "continuation",
+        "status": "planning",
+        "subtask_count": 0,
+        "action_count": 1,
+        "compact_plan_chars": 334,
+        "completion_requires_machine_verifier": true,
+        "issues": []
+      },
+      "response_sha256": "91994c3babf1997b5cf8ae6df6b8f78f97b66b6d79f230fbee88761f9fac7ad7",
+      "response_byte_count": 409,
+      "successful_action_summary": {},
+      "deadline_policy": {
+        "policy_id": "stone-pickaxe-absolute-deadline-v1",
+        "remaining_before_call_s": 147.078,
+        "action_guard_s": 0.0,
+        "request_timeout_s": 147.078,
+        "max_retries": 0
+      },
+      "transport_evidence": {
+        "policy_id": "single-attempt",
+        "attempt_count": 1,
+        "retry_count": 0,
+        "attempts": [
+          {
+            "attempt_index": 0,
+            "success": true,
+            "timeout_s": 147.078,
+            "sdk_max_retries": 0,
+            "finish_reason": "stop"
+          }
+        ]
+      },
+      "provider_metadata": {
+        "provider": "openai",
+        "base_url": "https://opencode.ai/zen/go/v1",
+        "model": "deepseek-v4-flash",
+        "temperature": 0.0,
+        "max_tokens": 4096,
+        "response_format": {
+          "type": "json_object"
+        },
+        "extra_body": {
+          "thinking": {
+            "type": "disabled"
+          }
+        },
+        "request_message_count": 2,
+        "request_sha256": "f6a919f2a58b37c097fe630c1c910b962c4386c65a3f098b6b242c389542bd50",
+        "timeout_s": 147.078,
+        "max_retries": 0,
+        "response_sha256": "91994c3babf1997b5cf8ae6df6b8f78f97b66b6d79f230fbee88761f9fac7ad7",
+        "response_id": "aa6cc035-99ea-4f4e-9096-11cf633b8be6",
+        "prompt_tokens": 1523,
+        "completion_tokens": 128,
+        "total_tokens": 1651,
+        "finish_reason": "stop",
+        "reasoning_content_byte_count": 0,
+        "duration_ms": 2000
+      },
+      "error": ""
+    },
+    "planning_context_contract": {
+      "type": "planning_context_contract",
+      "schema_version": 2,
+      "planner": "llm",
+      "goal": "Gather 3 cobblestone with the wooden pickaxe",
+      "enabled": false,
+      "isolation_profile": "planning_memory_disabled_v1",
+      "read_limit_chars": 0,
+      "cycle_limit_chars": 0,
+      "memory_read_count": 0,
+      "typed_layer_count": 0,
+      "nonempty_read_count": 0,
+      "total_result_chars": 0,
+      "total_separator_chars": 0,
+      "total_context_chars": 0,
+      "bounded_ok": true,
+      "segments": []
+    }
+  },
+  "task_graph_state": {
+    "task_count": 4,
+    "tasks": [
+      {
+        "id": "40fc2870",
+        "title": "Dig stone at (94,131,-32)",
+        "type": "gather",
+        "parent_id": null,
+        "status": "accepted",
+        "priority": 2,
+        "preconditions": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "success_criteria": {
+          "inventory": {
+            "cobblestone": 3
+          }
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784298952.3984952,
+        "updated_at": 1784298952.4005485,
+        "attempts": 0,
+        "observations": [],
+        "blockers": [],
+        "result": null,
+        "children": [],
+        "depends_on": [
+          "9ace9657"
+        ],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "dig_stone_3",
+        "root_plan_id": "root-c21b2a12b5994150",
+        "planner_call_id": "llm-6e3f0d9aebaf4118",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "40fc2870",
+            "task_title": "Dig stone at (94,131,-32)",
+            "plan_node_id": "dig_stone_3",
+            "root_plan_id": "root-c21b2a12b5994150",
+            "planner_call_id": "llm-6e3f0d9aebaf4118",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784298952.3984952
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "40fc2870",
+            "task_title": "Dig stone at (94,131,-32)",
+            "plan_node_id": "dig_stone_3",
+            "root_plan_id": "root-c21b2a12b5994150",
+            "planner_call_id": "llm-6e3f0d9aebaf4118",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784298952.4005485
+          }
+        ],
+        "metadata": {}
+      },
+      {
+        "id": "61798d81",
+        "title": "Equip wooden pickaxe",
+        "type": "gather",
+        "parent_id": null,
+        "status": "completed",
+        "priority": 1,
+        "preconditions": {},
+        "success_criteria": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784298952.3984952,
+        "updated_at": 1784298952.7176273,
+        "attempts": 0,
+        "observations": [
+          {
+            "action": {
+              "type": "equip",
+              "parameters": {
+                "item": "wooden_pickaxe"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "equip"
+          }
+        ],
+        "blockers": [],
+        "result": {
+          "completed_by": "action_result",
+          "action": {
+            "type": "equip",
+            "parameters": {
+              "item": "wooden_pickaxe"
+            }
+          },
+          "result": {
+            "success": true,
+            "action_started_monotonic": 49143.265,
+            "action_finished_monotonic": 49143.265,
+            "duration_ms": 0,
+            "action_type": "equip",
+            "backend": "mineflayer",
+            "backend_command": "equip",
+            "backend_params": {
+              "item": "wooden_pickaxe",
+              "timeout_ms": 60000
+            },
+            "control_policy": {
+              "action_type": "equip",
+              "backend": "mineflayer",
+              "preferred_backend": "mineflayer",
+              "preferred_control": "mineflayer_api_ok",
+              "reason": "default_backend"
+            },
+            "action_budget_s": 60.0,
+            "action_deadline_monotonic": 49203.265,
+            "accepted_within_episode_deadline": true,
+            "accepted_within_action_deadline": true,
+            "action_verification": {
+              "action_type": "equip",
+              "status": "accept",
+              "score": 0.9,
+              "reason": "wooden_pickaxe available in inventory",
+              "evidence": [
+                "wooden_pickaxe"
+              ]
+            }
+          },
+          "world_state": {
+            "inventory": {
+              "stick": 2,
+              "dirt": 3,
+              "dark_oak_planks": 11,
+              "dark_oak_log": 3,
+              "wooden_pickaxe": 1
+            },
+            "health": 20,
+            "position": {
+              "x": 95.57907285827427,
+              "y": 132,
+              "z": -31.494351547541445
+            },
+            "time_of_day": 3733
+          }
+        },
+        "children": [],
+        "depends_on": [],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "equip_pickaxe",
+        "root_plan_id": "root-c21b2a12b5994150",
+        "planner_call_id": "llm-6e3f0d9aebaf4118",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "61798d81",
+            "task_title": "Equip wooden pickaxe",
+            "plan_node_id": "equip_pickaxe",
+            "root_plan_id": "root-c21b2a12b5994150",
+            "planner_call_id": "llm-6e3f0d9aebaf4118",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784298952.3984952
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "61798d81",
+            "task_title": "Equip wooden pickaxe",
+            "plan_node_id": "equip_pickaxe",
+            "root_plan_id": "root-c21b2a12b5994150",
+            "planner_call_id": "llm-6e3f0d9aebaf4118",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784298952.4005485
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "61798d81",
+            "task_title": "Equip wooden pickaxe",
+            "plan_node_id": "equip_pickaxe",
+            "root_plan_id": "root-c21b2a12b5994150",
+            "planner_call_id": "llm-6e3f0d9aebaf4118",
+            "from_status": "accepted",
+            "to_status": "active",
+            "reason": "action_started",
+            "timestamp": 1784298952.7176273
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "61798d81",
+            "task_title": "Equip wooden pickaxe",
+            "plan_node_id": "equip_pickaxe",
+            "root_plan_id": "root-c21b2a12b5994150",
+            "planner_call_id": "llm-6e3f0d9aebaf4118",
+            "from_status": "active",
+            "to_status": "completed",
+            "reason": "success_criteria_satisfied",
+            "timestamp": 1784298952.7176273
+          }
+        ],
+        "metadata": {}
+      },
+      {
+        "id": "9ace9657",
+        "title": "Dig stone at (96,132,-32)",
+        "type": "gather",
+        "parent_id": null,
+        "status": "accepted",
+        "priority": 2,
+        "preconditions": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "success_criteria": {
+          "inventory": {
+            "cobblestone": 2
+          }
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784298952.3984952,
+        "updated_at": 1784298952.4005485,
+        "attempts": 0,
+        "observations": [],
+        "blockers": [],
+        "result": null,
+        "children": [],
+        "depends_on": [
+          "9fc37d31"
+        ],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "dig_stone_2",
+        "root_plan_id": "root-c21b2a12b5994150",
+        "planner_call_id": "llm-6e3f0d9aebaf4118",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "9ace9657",
+            "task_title": "Dig stone at (96,132,-32)",
+            "plan_node_id": "dig_stone_2",
+            "root_plan_id": "root-c21b2a12b5994150",
+            "planner_call_id": "llm-6e3f0d9aebaf4118",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784298952.3984952
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "9ace9657",
+            "task_title": "Dig stone at (96,132,-32)",
+            "plan_node_id": "dig_stone_2",
+            "root_plan_id": "root-c21b2a12b5994150",
+            "planner_call_id": "llm-6e3f0d9aebaf4118",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784298952.4005485
+          }
+        ],
+        "metadata": {}
+      },
+      {
+        "id": "9fc37d31",
+        "title": "Dig stone at (95,131,-32)",
+        "type": "gather",
+        "parent_id": null,
+        "status": "active",
+        "priority": 2,
+        "preconditions": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "success_criteria": {
+          "inventory": {
+            "cobblestone": 1
+          }
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784298952.3984952,
+        "updated_at": 1784298975.860329,
+        "attempts": 0,
+        "observations": [
+          {
+            "action": {
+              "type": "equip",
+              "parameters": {
+                "item": "wooden_pickaxe"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "equip"
+          },
+          {
+            "action": {
+              "type": "equip",
+              "parameters": {
+                "item": "wooden_pickaxe"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "equip"
+          },
+          {
+            "action": {
+              "type": "equip",
+              "parameters": {
+                "item": "wooden_pickaxe"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "equip"
+          },
+          {
+            "action": {
+              "type": "equip",
+              "parameters": {
+                "item": "wooden_pickaxe"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "equip"
+          },
+          {
+            "action": {
+              "type": "equip",
+              "parameters": {
+                "item": "wooden_pickaxe"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "equip"
+          },
+          {
+            "action": {
+              "type": "equip",
+              "parameters": {
+                "item": "wooden_pickaxe"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "equip"
+          },
+          {
+            "action": {
+              "type": "equip",
+              "parameters": {
+                "item": "wooden_pickaxe"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "equip"
+          }
+        ],
+        "blockers": [],
+        "result": {
+          "last_action": {
+            "type": "equip",
+            "parameters": {
+              "item": "wooden_pickaxe"
+            }
+          },
+          "last_result": {
+            "success": true,
+            "action_started_monotonic": 49166.39,
+            "action_finished_monotonic": 49166.39,
+            "duration_ms": 0,
+            "action_type": "equip",
+            "backend": "mineflayer",
+            "backend_command": "equip",
+            "backend_params": {
+              "item": "wooden_pickaxe",
+              "timeout_ms": 60000
+            },
+            "control_policy": {
+              "action_type": "equip",
+              "backend": "mineflayer",
+              "preferred_backend": "mineflayer",
+              "preferred_control": "mineflayer_api_ok",
+              "reason": "default_backend"
+            },
+            "action_budget_s": 60.0,
+            "action_deadline_monotonic": 49226.39,
+            "accepted_within_episode_deadline": true,
+            "accepted_within_action_deadline": true,
+            "action_verification": {
+              "action_type": "equip",
+              "status": "accept",
+              "score": 0.9,
+              "reason": "wooden_pickaxe available in inventory",
+              "evidence": [
+                "wooden_pickaxe"
+              ]
+            }
+          }
+        },
+        "children": [],
+        "depends_on": [
+          "61798d81"
+        ],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "dig_stone_1",
+        "root_plan_id": "root-c21b2a12b5994150",
+        "planner_call_id": "llm-6e3f0d9aebaf4118",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "9fc37d31",
+            "task_title": "Dig stone at (95,131,-32)",
+            "plan_node_id": "dig_stone_1",
+            "root_plan_id": "root-c21b2a12b5994150",
+            "planner_call_id": "llm-6e3f0d9aebaf4118",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784298952.3984952
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "9fc37d31",
+            "task_title": "Dig stone at (95,131,-32)",
+            "plan_node_id": "dig_stone_1",
+            "root_plan_id": "root-c21b2a12b5994150",
+            "planner_call_id": "llm-6e3f0d9aebaf4118",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784298952.4005485
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "9fc37d31",
+            "task_title": "Dig stone at (95,131,-32)",
+            "plan_node_id": "dig_stone_1",
+            "root_plan_id": "root-c21b2a12b5994150",
+            "planner_call_id": "llm-6e3f0d9aebaf4118",
+            "from_status": "accepted",
+            "to_status": "active",
+            "reason": "action_started",
+            "timestamp": 1784298956.8455296
+          }
+        ],
+        "metadata": {}
+      }
+    ],
+    "transition_count": 0,
+    "transitions": [],
+    "sha256": "e25b4aa805e00196fd9d8b27e202a0187e863c6a54a1f44d91def71f612697ea"
+  },
+  "deadline_state": {
+    "policy_id": "stone-pickaxe-absolute-deadline-v1",
+    "started_monotonic": 49134.14,
+    "deadline_monotonic": 49314.14,
+    "ended_monotonic": 49169.406,
+    "post_deadline_action_count": 0
+  },
+  "evidence_eligibility": {
+    "passed": false,
+    "criteria_issues": [
+      "minimum_distinct_source_removals",
+      "minimum_pickup_count",
+      "terminal_cobblestone_delta"
+    ],
+    "eligibility_issues": []
+  },
+  "single_next_offline_fix": "offline_dig_pickup_postcondition_binding",
+  "automatic_retry_allowed": false
+}

@@ -315,6 +315,8 @@ def guard_runtime_action(mode: str, action: Any, observation: Any) -> dict:
         elif action_type == "equip":
             if params.get("item") != "wooden_pickaxe":
                 issues.append("sp001_only_wooden_pickaxe_may_be_equipped")
+            elif _main_hand_item(observation) == "wooden_pickaxe":
+                issues.append("sp001_redundant_wooden_pickaxe_equip")
         elif action_type in {"move_to", "walk_to", "look_at", "wait"}:
             issues.extend(_non_mutating_action_issues(action_type, params, observation, 32.0))
         else:
@@ -1142,6 +1144,17 @@ def _nearby_crafting_table_observed(observation: Any) -> bool:
         if distance is not None and distance <= maximum_distance:
             return True
     return False
+
+
+def _main_hand_item(observation: Any) -> str:
+    raw = observation if isinstance(observation, dict) else {}
+    equipment = raw.get("equipment") if isinstance(raw.get("equipment"), list) else []
+    main_hand = (
+        equipment[0]
+        if equipment and isinstance(equipment[0], dict)
+        else {}
+    )
+    return str(main_hand.get("name") or "")
 
 
 def _non_mutating_action_issues(

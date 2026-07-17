@@ -1,0 +1,970 @@
+{
+  "type": "stone_pickaxe_microbenchmark_episode",
+  "schema_version": 1,
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "task_id": "SP-001",
+  "session_id": "2c04a7f7-6e5",
+  "episode_id": "sp001_episode_20260717_223525_23696e33",
+  "session_sha256": "32b47282274fbcfd26298ed380e1a940f04a3eeb92d024d11d1a3b1b23838e2b",
+  "level_name": "sp001_episode_20260717_223525_23696e33",
+  "evidence_kind": "live_verified",
+  "hypothesis_path": "workspace/evals/sp001_runs/sp001_episode_20260717_223525_23696e33/hypothesis.json",
+  "fixture": {
+    "fixture_id": "sp001-acquire-cobblestone-v1",
+    "manifest_protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+    "snapshot_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+    "snapshot_identity_verified": true
+  },
+  "episode_started_monotonic": 49134.14,
+  "episode_deadline_monotonic": 49314.14,
+  "episode_ended_monotonic": 49169.406,
+  "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+  "action_count": 8,
+  "action_failure_count": 0,
+  "action_failures": [],
+  "false_success_dig_count": 0,
+  "false_success_dig_action_indexes": [],
+  "world_mutating_non_target_actions": [],
+  "initial_observation": {
+    "role": "initial",
+    "monotonic_s": 49134.14,
+    "position": {
+      "x": 95.579073,
+      "y": 132.0,
+      "z": -31.494352
+    },
+    "inventory": {
+      "dark_oak_log": 3,
+      "dark_oak_planks": 11,
+      "dirt": 3,
+      "stick": 2,
+      "wooden_pickaxe": 1
+    },
+    "health": 20.0,
+    "hunger": 20.0,
+    "game_mode": "survival",
+    "dimension": "overworld",
+    "ground_block": "stone",
+    "safe": true,
+    "movable": true,
+    "observed_blocks": [
+      {
+        "source_id": "stone:95:131:-32",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:132:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 132.0,
+          "z": -32.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:131:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-31",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -31.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:132:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 132.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-31",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -31.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:97:132:-32",
+        "name": "stone",
+        "position": {
+          "x": 97.0,
+          "y": 132.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      }
+    ],
+    "nearby_hostile_count": 0,
+    "player_lifecycle": {},
+    "observation_id": "25f68fe1eca024d16b15b0e212dacd8810b15751750c1ff3fff22662dd18da25"
+  },
+  "transitions": [],
+  "terminal_observation": {
+    "role": "terminal",
+    "monotonic_s": 49169.406,
+    "position": {
+      "x": 95.579073,
+      "y": 132.0,
+      "z": -31.494352
+    },
+    "inventory": {
+      "dark_oak_log": 3,
+      "dark_oak_planks": 11,
+      "dirt": 3,
+      "stick": 2,
+      "wooden_pickaxe": 1
+    },
+    "health": 20.0,
+    "hunger": 20.0,
+    "game_mode": "survival",
+    "dimension": "overworld",
+    "ground_block": "stone",
+    "safe": true,
+    "movable": true,
+    "observed_blocks": [
+      {
+        "source_id": "stone:95:131:-32",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:132:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 132.0,
+          "z": -32.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:131:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-31",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -31.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:132:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 132.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-31",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -31.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:97:132:-32",
+        "name": "stone",
+        "position": {
+          "x": 97.0,
+          "y": 132.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      }
+    ],
+    "nearby_hostile_count": 0,
+    "player_lifecycle": {},
+    "observation_id": "556e075cef030d0ca4eabbc2858d31188d071c0ece56ddb572f0c3323ff53dcc"
+  },
+  "goal_result": {
+    "goal": "Gather 3 cobblestone with the wooden pickaxe",
+    "cycles": 9,
+    "completed": false,
+    "termination_reason": "max_actions",
+    "max_cycles": 12,
+    "max_duration_s": 180.0,
+    "max_actions": 8,
+    "action_count": 8,
+    "elapsed_s": 35.188,
+    "episode_started_monotonic": 49134.14,
+    "episode_ended_monotonic": 49169.328,
+    "episode_deadline_monotonic": 49314.14,
+    "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+    "deadline_eligible": true,
+    "summary": {
+      "session_id": "2c04a7f7-6e5",
+      "duration_s": 38.95,
+      "total_events": 145,
+      "action_count": 8,
+      "error_count": 0,
+      "intervention_metrics": {
+        "policy_hint_count": 0,
+        "policy_intervention_count": 0,
+        "policy_intervention_actions": 0,
+        "policy_intervention_successes": 0,
+        "policy_intervention_failures": 0,
+        "policy_intervention_success_rate": 0.0,
+        "policy_intervention_skills": [],
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": [],
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {},
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": [],
+        "action_verification_event_count": 8,
+        "action_verification_status_counts": {
+          "accept": 8
+        },
+        "action_verification_action_types": {
+          "equip": 8
+        },
+        "action_verification_blocked_count": 0,
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "visual_action_metrics": {
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": []
+      },
+      "skill_memory_metrics": {
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {}
+      },
+      "skill_learning_metrics": {
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": []
+      },
+      "action_verification_metrics": {
+        "action_verification_event_count": 8,
+        "action_verification_status_counts": {
+          "accept": 8
+        },
+        "action_verification_action_types": {
+          "equip": 8
+        },
+        "action_verification_blocked_count": 0
+      },
+      "action_candidate_selection_metrics": {
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "goal_verification_metrics": {
+        "count": 0,
+        "achieved": 0,
+        "failed": 0,
+        "unknown": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "acceptance_reasons": {}
+      },
+      "plan_cache_metrics": {
+        "plan_cache_hit_count": 0,
+        "plan_cache_hybrid_hint_count": 0,
+        "plan_cache_workflow_intervention_count": 0,
+        "plan_cache_miss_count": 0,
+        "plan_cache_signature_count": 0,
+        "plan_cache_hit_rate": 0.0,
+        "plan_cache_hit_entries": {},
+        "plan_cache_hit_goals": [],
+        "plan_cache_execution_stage_counts": {
+          "hybrid": 0,
+          "deterministic": 0
+        }
+      },
+      "episode_abort_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "gate_readiness": "not_configured",
+        "viability_probe_count": 0,
+        "early_abort_trigger_count": 0,
+        "active_early_abort_count": 0,
+        "shadow_would_abort_count": 0,
+        "probe_round_counts": {},
+        "average_viability_risk_score": 0.0
+      },
+      "frontier_budget_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "policy": "information",
+        "allocation_event_count": 0,
+        "planner_context_event_count": 0,
+        "outcome_event_count": 0,
+        "completed_outcome_count": 0,
+        "recovery_credit_event_count": 0,
+        "recovered_rounds": 0,
+        "reallocated_rounds_consumed": 0,
+        "allocation_pool_rounds": 0,
+        "allocated_rounds": 0,
+        "budget_conservation_failure_count": 0,
+        "policy_counts": {}
+      },
+      "memory_policy_metrics": {
+        "memory_write_count": 52,
+        "memory_read_count": 9,
+        "memory_manage_count": 0,
+        "memory_write_layers": {
+          "episodic": 26,
+          "context": 26
+        },
+        "memory_write_types": {
+          "goal_start": 1,
+          "context": 26,
+          "action_verification": 8,
+          "task_state_update": 8,
+          "action": 8,
+          "goal_end": 1
+        },
+        "memory_read_types": {
+          "opportunity_context": 9
+        },
+        "memory_manage_operations": {},
+        "memory_policy_decisions": {
+          "write_blocked": 52,
+          "read_allowed": 9
+        },
+        "memory_read_filter_event_count": 0,
+        "memory_read_filtered_entries": 0,
+        "memory_read_filter_reasons": {},
+        "memory_retrieval_trace_event_count": 0,
+        "weighted_memory_read_count": 0,
+        "weighted_memory_match_count": 0,
+        "weighted_transfer_match_count": 0,
+        "memory_attribution_policy_counts": {}
+      },
+      "log_path": "workspace/evals/sp001_runs/sp001_episode_20260717_223525_23696e33\\session_2c04a7f7-6e5.jsonl"
+    }
+  },
+  "eligibility": {
+    "passed": true,
+    "protocol_match": true,
+    "planner_request_controls": true,
+    "reset_clean": true,
+    "no_forbidden_intervention": true,
+    "no_post_deadline_action": true,
+    "fixture_snapshot_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636"
+  },
+  "reset_contamination": false,
+  "post_deadline_action_count": 0,
+  "post_deadline_action_indexes": [],
+  "forbidden_interventions": [],
+  "selected_skills": [],
+  "planner_request_controls": {
+    "type": "stone_pickaxe_planner_request_controls_audit",
+    "schema_version": 1,
+    "passed": true,
+    "protocol_id": "stone-pickaxe-skill-fixed-v1",
+    "call_count": 9,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 0,
+    "calls": [
+      {
+        "call_id": "llm-6e3f0d9aebaf4118",
+        "call_index": 0,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "e990f15afa2b4ae314cb55d330faa0cdaff7e2ed58e962b4f7f2cad7e2d7a75d",
+        "request_sha256": "99fb2ad809bb939002c78eb9e6533019749a35ed7021b4114b146dfc7f243baa"
+      },
+      {
+        "call_id": "llm-68748c58a01b4005",
+        "call_index": 1,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "adb9906ab94b349db2e839e9429f7438e70c4fe0fcb990f2defbb5eee2d23f46",
+        "request_sha256": "f6a919f2a58b37c097fe630c1c910b962c4386c65a3f098b6b242c389542bd50"
+      },
+      {
+        "call_id": "llm-8dc8d0eb94884516",
+        "call_index": 2,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "4edd0ffe1a1bee9c374630d9c01cb718684ddea3eb2858d8f7b8424b94fba48c",
+        "request_sha256": "f6a919f2a58b37c097fe630c1c910b962c4386c65a3f098b6b242c389542bd50"
+      },
+      {
+        "call_id": "llm-c3200c7479d84bbd",
+        "call_index": 3,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "91994c3babf1997b5cf8ae6df6b8f78f97b66b6d79f230fbee88761f9fac7ad7",
+        "request_sha256": "f6a919f2a58b37c097fe630c1c910b962c4386c65a3f098b6b242c389542bd50"
+      },
+      {
+        "call_id": "llm-712b301216ca4eeb",
+        "call_index": 4,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "91994c3babf1997b5cf8ae6df6b8f78f97b66b6d79f230fbee88761f9fac7ad7",
+        "request_sha256": "f6a919f2a58b37c097fe630c1c910b962c4386c65a3f098b6b242c389542bd50"
+      },
+      {
+        "call_id": "llm-3e220d64d49d46df",
+        "call_index": 5,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "7bc53c5caee7a37e39550905f2cd80c5f55f93ec92c0067a9cd295aeb3730848",
+        "request_sha256": "f6a919f2a58b37c097fe630c1c910b962c4386c65a3f098b6b242c389542bd50"
+      },
+      {
+        "call_id": "llm-53514266bb364775",
+        "call_index": 6,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "8095da94aaadca1d67901c7bf61c797cff1b853e7458f6ab0f9e7e3c86a091d8",
+        "request_sha256": "f6a919f2a58b37c097fe630c1c910b962c4386c65a3f098b6b242c389542bd50"
+      },
+      {
+        "call_id": "llm-3d16d42554e440e1",
+        "call_index": 7,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "91994c3babf1997b5cf8ae6df6b8f78f97b66b6d79f230fbee88761f9fac7ad7",
+        "request_sha256": "f6a919f2a58b37c097fe630c1c910b962c4386c65a3f098b6b242c389542bd50"
+      },
+      {
+        "call_id": "llm-a11d98637dc34e77",
+        "call_index": 8,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "91994c3babf1997b5cf8ae6df6b8f78f97b66b6d79f230fbee88761f9fac7ad7",
+        "request_sha256": "f6a919f2a58b37c097fe630c1c910b962c4386c65a3f098b6b242c389542bd50"
+      }
+    ],
+    "issues": []
+  },
+  "external_step_script": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

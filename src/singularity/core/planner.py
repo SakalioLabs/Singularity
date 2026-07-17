@@ -616,7 +616,7 @@ Never use recipe, block_name, target, position, or block_position aliases.
 
 RUNTIME RULES:
 - prepare_fixture: if no nearby blocks are observed, wait 500 ms. Otherwise use only observed coordinates. Dig only exact observed logs, leaves, or allowed terrain; never dig stone or cobblestone. Include block on every dig. Gather at least 3 logs, craft at least 12 matching planks, craft sticks and one table, place the table, then craft exactly one wooden_pickaxe. A crafting_table item in inventory is not a nearby crafting table. Craft wooden_pickaxe only when the current observation contains crafting_table within 4.5 blocks; when the table exists only in inventory, emit place first using an observed solid reference. Never retry wooden_pickaxe craft while no nearby crafting table is observed. Move near observed stone without digging it.
-- sp001: do not craft or place. Equip the exact wooden_pickaxe when needed. Dig only block="stone" at the nearest reachable observed stone coordinates and never repeat a removed source.
+- sp001: do not craft or place. Treat held_item as the authoritative current main-hand item. Equip the exact wooden_pickaxe only when held_item differs; when held_item is wooden_pickaxe, never equip it again and dig block="stone" at the nearest reachable observed stone coordinates. Never repeat a removed source.
 
 Required JSON shape:
 {{
@@ -820,10 +820,19 @@ Plan the steps to achieve this goal."""
             if numeric > 0:
                 compact_inventory[str(name)] = numeric
 
+        equipment = state.get("equipment")
+        equipment = equipment if isinstance(equipment, list) else []
+        main_hand = (
+            equipment[0]
+            if equipment and isinstance(equipment[0], dict)
+            else {}
+        )
+
         return {
             "runtime_mode": str(state.get("stone_pickaxe_runtime_mode") or ""),
             "position": compact_position(state.get("position")),
             "inventory": compact_inventory,
+            "held_item": str(main_hand.get("name") or ""),
             "health": state.get("health"),
             "hunger": state.get("hunger"),
             "game_mode": str(state.get("game_mode") or ""),
