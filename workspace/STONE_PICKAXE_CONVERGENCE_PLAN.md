@@ -17,9 +17,9 @@ This project isolates two bounded Minecraft capabilities:
 | SP-002 Craft Stone Pickaxe | 0 | 3 | `learned:craft_stone_pickaxe` not created |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 7 paired evaluation in progress with three immutable baseline arms, all three support arms verified, and zero candidate arms; `learned:acquire_cobblestone@1.0.0` remains advisory and non-executable**.
+Current phase: **Phase 7 paired evaluation in progress with three immutable baseline arms, all three support arms verified, and candidate `r1` retained failed; `learned:acquire_cobblestone@1.0.0` remains advisory and non-executable**.
 
-Current authorization: **after the retained fallback evidence is committed and pushed, exactly one `candidate/r1` SP-001 skill-evaluation arm may run**. The launcher requires clean synchronized `main`, writes a single-use pre-live authorization, and rejects a repeated arm/replicate. Candidate `r2/r3`, another fixture session, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain locked until their preceding evidence is committed and reviewed.
+Current authorization: **no live episode is authorized**. Candidate `r1` is consumed and cannot be retried. Its retained failure must be committed and pushed, the nearest-observed grounding disconnect must be fixed and regression-tested offline, and a new non-overlapping evaluation window must be committed and pushed before any further candidate arm. Candidate `r2/r3` under the current window, another fixture session, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -155,7 +155,7 @@ The 30 numbered cases cover:
 - Supplemental policy `stone-pickaxe-sp001-paired-evaluation-v1` leaves the base protocol byte-identical and binds the exact advisory record, candidate queue record, promotion artifact, fixture tree, and three retained successful baseline bundles by SHA-256. All three baseline records independently pass and share one fixed-control fingerprint plus one contract-relevant initial-state fingerprint.
 - The paired runtime exposes only `shadow`, `advisory`, fail-closed `fallback`, and exact `candidate` arms. Every arm consumes one explicit replicate authorization; duplicate arm/replicate records reject the report. Shadow/advisory/fallback cannot directly execute the skill. Candidate mode is restricted to `learned:acquire_cobblestone@1.0.0`, and every skill action must retain ActionController, ActionVerifier, post-action re-observation, and the unchanged SP-001 machine verifier.
 - Evaluation loads the skill library read-only and disables its learning ledger, so a live trial cannot rewrite the advisory record in place. Source hashes alone are insufficient: each run record is recomputed from its bound authorization, episode, session events, verification, fixed controls, initial state, and skill metrics. Fifteen dedicated offline cases pass, including duplicate consumption, source/metric tampering, missing support arms, and the separate `1.1.0` executable-review boundary.
-- `workspace/evals/acquire_cobblestone_baseline_index.json` is 3/3. `workspace/evals/acquire_cobblestone_paired_evaluation.json` is intentionally `retain_advisory` at 0/3 candidate pairs with shadow, advisory, and fallback all verified. Every support run completed in four verified actions with no direct skill selection or execution; fallback recorded exactly one fail-closed event before ordinary planning recovered. It grants no normal runtime, capability, or M4 authority.
+- `workspace/evals/acquire_cobblestone_baseline_index.json` is 3/3. `workspace/evals/acquire_cobblestone_paired_evaluation.json` is intentionally `retain_advisory` at 0/3 candidate pairs with shadow, advisory, and fallback all verified. Candidate `r1` matched fixed controls and initial state but failed on its first skill action because tied nearest-observed sources were ordered differently by the skill runtime and SP-001 guard; ordinary planning recovered, but the pair is ineligible. It grants no normal runtime, capability, or M4 authority.
 
 ## Phase Status
 
@@ -168,7 +168,7 @@ The 30 numbered cases cover:
 | 4. Acquire candidate/advisory | Complete; advisory pushed at `822057b` |
 | 5. SP-002 controlled live convergence | Not started |
 | 6. Craft candidate/advisory | Not started |
-| 7. Paired promotion evaluations | In progress; baselines 3/3, candidates 0/3, support arms 3/3 verified |
+| 7. Paired promotion evaluations | In progress; baselines 3/3, eligible candidates 0/3, candidate `r1` failed and consumed, support arms 3/3 verified |
 | 8. SP-003 composite acceptance | Locked |
 
 ## Frozen Baseline
@@ -181,4 +181,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers plus all three SP-001 behavioral failures are reproduced and fixed; the two provider TLS EOF traces are retained as zero-action fail-closed failures. All source sessions remain immutable. The fixture snapshot still passes independent identity audit, and three eligible SP-001 successes establish 3/3. The acquire skill is advisory only. Shadow, advisory, and fallback each ran exactly once from pushed predecessors, passed machine verification, matched baseline controls/state, and retained eleven hash-bound artifacts. Commit and push fallback evidence before running only `candidate/r1`. Do not batch paired arms, retry a consumed replicate, run SP-002/SP-003 before their gates unlock, run full BM-012, run Probe 24, or begin iron mining.
+The retained fixture blockers plus all three controlled SP-001 behavioral failures are reproduced and fixed; the two provider TLS EOF traces are retained as zero-action fail-closed failures. All source sessions remain immutable. The fixture snapshot still passes independent identity audit, and three eligible SP-001 successes establish 3/3. The acquire skill is advisory only. Shadow, advisory, and fallback each ran exactly once from pushed predecessors and passed. Candidate `r1` then ran exactly once, matched baseline controls/state, and failed closed on a nearest-observed ordering disconnect before its first world command; ordinary planning recovered, but the run remains ineligible. Commit and push its eleven hash-bound artifacts, then complete and push the offline fix plus a new evaluation window before authorizing another live arm. Do not retry `r1`, silently reuse its pair, batch paired arms, run SP-002/SP-003 before their gates unlock, run full BM-012, run Probe 24, or begin iron mining.

@@ -1,0 +1,35 @@
+{
+  "type": "stone_pickaxe_machine_verification",
+  "schema_version": 1,
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "task_id": "SP-001",
+  "criteria_passed": false,
+  "evidence_eligible": false,
+  "passed": false,
+  "criteria_issues": [
+    "transition_1:action_verified",
+    "transition_1:approved_tool",
+    "transition_1:inventory_delta",
+    "transition_1:nearest_observed_source",
+    "transition_1:pickup_provenance",
+    "transition_1:source_removed",
+    "zero_action_failures"
+  ],
+  "eligibility_issues": [],
+  "metrics": {
+    "action_count": 5,
+    "action_failure_count": 1,
+    "false_success_dig_count": 0,
+    "source_removal_count": 3,
+    "distinct_source_count": 4,
+    "pickup_count": 3,
+    "inventory_delta": {
+      "cobblestone": 3
+    }
+  },
+  "evidence_kind": "live_verified",
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

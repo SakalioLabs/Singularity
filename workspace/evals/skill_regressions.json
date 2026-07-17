@@ -520,9 +520,48 @@
       "status": "executable",
       "timestamp": 1783747934.4874237,
       "version": "1.0.2"
+    },
+    {
+      "automatic_delete_allowed": false,
+      "context": {
+        "attribution_confidence": 1.0,
+        "bound_parameters": {
+          "quantity": 3
+        },
+        "controlled_failure_only": false,
+        "controlled_fault_profile": "",
+        "counts_toward_skill_lifecycle": true,
+        "effective_postconditions": {
+          "inventory": {
+            "cobblestone": 3
+          }
+        },
+        "executed_action_count": 1,
+        "experiment_id": "sp001_skill_candidate_20260718_051533_40094230",
+        "failed_action_count": 1,
+        "failure_type": "routing_error",
+        "fallback_reason": "learned_skill_action_failed",
+        "first_failed_transition": "acquire_target:0:dig",
+        "goal": "Gather 3 cobblestone with the wooden pickaxe",
+        "goal_success": true,
+        "goal_task_family": "gathering",
+        "goal_termination_reason": "goal_verified",
+        "missing_postconditions": [],
+        "postconditions_met": true,
+        "route_scope_valid": false
+      },
+      "failure_type": "routing_error",
+      "first_failed_transition": "acquire_target:0:dig",
+      "name": "learned_acquire_cobblestone",
+      "outcome": "failure",
+      "previous_status": "advisory",
+      "skill_id": "learned:acquire_cobblestone",
+      "status": "advisory",
+      "timestamp": 1784322980.4547,
+      "version": "1.0.0"
     }
   ],
   "schema_version": 1,
   "type": "skill_regressions",
-  "updated_at": 1783747934.543909
+  "updated_at": 1784322980.455702
 }
