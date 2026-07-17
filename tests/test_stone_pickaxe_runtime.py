@@ -525,6 +525,7 @@ def test_eligible_sp001_success_evidence_hashes_match_ledger():
     assert [item["id"] for item in successes] == [
         "sp001-success-001",
         "sp001-success-002",
+        "sp001-success-003",
     ]
     assert len({item["episode_id"] for item in successes}) == len(successes)
     assert len({item["session_id"] for item in successes}) == len(successes)
