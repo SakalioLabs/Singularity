@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T05:46:39+08:00",
+  "generated_at": "2026-07-18T06:14:21+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_10_sp001_candidate_r1_offline_fix_verified",
-  "status": "sp001_candidate_r1_offline_grounding_fix_verified_pending_commit_push_new_window_required",
+  "phase": "phase_11_sp001_recovery_window_v2_defined",
+  "status": "sp001_recovery_window_v2_offline_verified_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 0,
-  "authorization_scope": "none_candidate_r1_consumed_and_offline_fix_required",
+  "authorization_scope": "none_recovery_window_v2_must_be_pushed_before_r4",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -133,10 +133,14 @@
       "paired_candidate_count": 0,
       "paired_candidate_attempt_count": 1,
       "paired_candidate_failure_count": 1,
+      "recovery_window_id": "sp001-acquire-runtime-fix-recovery-v2",
+      "recovery_candidate_count": 0,
+      "recovery_candidate_required": 3,
       "shadow_pass_count": 1,
       "advisory_pass_count": 1,
       "fallback_pass_count": 1,
-      "paired_evaluation_decision": "retain_advisory"
+      "paired_evaluation_decision": "retain_advisory",
+      "recovery_evaluation_decision": "retain_advisory"
     },
     "SP-002": {
       "eligible_live_successes": 0,
@@ -388,7 +392,8 @@
     {
       "phase": 9,
       "name": "sp001_candidate_r1_offline_grounding_fix",
-      "status": "offline_fix_verified_pending_commit_push",
+      "status": "offline_fix_verified_and_pushed",
+      "commit": "473b05a93440293c1e06fbfeaed98d44002e2e95",
       "root_cause": "skill_runtime_recomputed_euclidean_distance_while_sp001_guard_used_observed_distance_and_source_id",
       "implementation": [
         "bounded_skill_source_order_uses_observed_distance_then_stable_identity",
@@ -404,6 +409,31 @@
       "stone_pickaxe_skill_evaluation_cases": "15/15",
       "repository_non_live_python_scripts": "40/40",
       "fixed_node_suites": "6/6",
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 10,
+      "name": "sp001_candidate_recovery_window_v2",
+      "status": "offline_verified_pending_commit_push",
+      "window_id": "sp001-acquire-runtime-fix-recovery-v2",
+      "policy_id": "stone-pickaxe-sp001-paired-evaluation-v2",
+      "policy_sha256": "18c4f5d812eae758018c3326e362679ea4061c642e4e10eaa40d95e52d7369d6",
+      "candidate_replicate_ids": ["r4", "r5", "r6"],
+      "excluded_prior_replicate_ids": ["r1", "r2", "r3"],
+      "inherited_support_pass_count": 3,
+      "fresh_candidate_pass_count": 0,
+      "required_fresh_candidate_pass_count": 3,
+      "recovery_window_cases": "10/10",
+      "v1_evaluation_cases": "15/15",
+      "repository_non_live_python_scripts": "41/41",
+      "fixed_node_suites": "6/6",
+      "fixed_node_internal_pass_cases": 55,
+      "v1_policy_identity_preserved": true,
+      "retained_r1_mutated": false,
+      "support_rerun_allowed": false,
       "normal_runtime_permission": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
@@ -2349,14 +2379,14 @@
       "m4_deadline_passed": true
     },
     "repository_non_live_python_scripts": {
-      "passed": 40,
-      "total": 40
+      "passed": 41,
+      "total": 41
     },
     "fixed_node_suites": {
       "passed": 6,
       "total": 6
     },
-    "repository_json_files_parsed": 1245,
+    "repository_json_files_parsed": 1248,
     "python_compileall_passed": true,
     "fixture_snapshot_audit_passed": true,
     "fixture_manifest_hash_passed": true,
@@ -2383,7 +2413,7 @@
     "sp001_candidate_lifecycle_state_separation_test_passed": true,
     "skill_extractor_source_path_regression_passed": true,
     "runtime_profile_required_label_boundary_regression_passed": true,
-    "ledger_declared_hashes_passed": 175,
+    "ledger_declared_hashes_passed": 178,
     "sp001_declared_hashes_passed": 80,
     "sp001_candidate_materialization_passed": true,
     "sp001_candidate_custom_skill_isolation_passed": true,
@@ -2425,11 +2455,18 @@
     "sp001_candidate_r1_grounding_replay_passed": true,
     "bounded_acquire_one_action_per_observation_passed": true,
     "sp001_candidate_r1_retained_evidence_hashes_passed": 11,
+    "sp001_recovery_policy_identity_passed": true,
+    "sp001_recovery_window_cases_passed": 10,
+    "sp001_recovery_window_cases_total": 10,
+    "sp001_recovery_inherited_support_pass_count": 3,
+    "sp001_recovery_excluded_r1_verified": true,
+    "sp001_recovery_fresh_candidate_pair_count": 0,
+    "sp001_v1_policy_identity_after_v2_passed": true,
     "sp001_paired_candidate_pair_count": 0,
     "sp001_paired_decision": "retain_advisory"
   },
   "next_required_gate": {
-    "id": "sp001_candidate_non_overlapping_evaluation_window",
+    "id": "sp001_candidate_recovery_r4_after_window_push",
     "authorization": false,
     "prerequisites": [
       "candidate_r1_failure_artifacts_hash_bound",
@@ -2438,10 +2475,12 @@
       "one_acquire_action_per_observation_regression_passed",
       "offline_fix_commit_pushed",
       "current_policy_and_consumed_r1_remain_immutable",
-      "new_non_overlapping_evaluation_window_defined_with_unique_replicates_and_pushed"
+      "new_non_overlapping_evaluation_window_defined_with_unique_replicates",
+      "recovery_window_v2_offline_tests_pass",
+      "recovery_window_v2_commit_pushed_before_authorization"
     ],
-    "arm": "",
-    "replicate_id": "",
+    "arm": "candidate",
+    "replicate_id": "r4",
     "live_episode_limit": 0,
     "normal_runtime_permission": false,
     "automatic_retry_allowed": false
@@ -2458,9 +2497,9 @@
     "sp002_run_artifacts_created": 0,
     "sp003_run_artifacts_created": 0,
     "promotion_artifacts_created": 1,
-    "paired_policy_artifacts_created": 1,
-    "paired_baseline_index_artifacts_created": 1,
-    "paired_evaluation_report_artifacts_created": 1,
+    "paired_policy_artifacts_created": 2,
+    "paired_baseline_index_artifacts_created": 2,
+    "paired_evaluation_report_artifacts_created": 2,
     "paired_baseline_records_created": 3,
     "paired_candidate_run_artifacts_created": 11,
     "paired_support_run_artifacts_created": 33,
@@ -2496,6 +2535,39 @@
       "fallback_verified": true,
       "decision": "retain_advisory",
       "normal_runtime_permission": false
+    },
+    "recovery_window": {
+      "id": "sp001-acquire-runtime-fix-recovery-v2",
+      "policy": {
+        "id": "stone-pickaxe-sp001-paired-evaluation-v2",
+        "path": "workspace/evals/stone_pickaxe_paired_evaluation_policy_v2.json",
+        "sha256": "18c4f5d812eae758018c3326e362679ea4061c642e4e10eaa40d95e52d7369d6"
+      },
+      "baseline_index": {
+        "path": "workspace/evals/acquire_cobblestone_baseline_index_v2.json",
+        "sha256": "15ee77a894ba66549bcc90965014779e5df27558c9f7db6ead398b1659eb788a",
+        "record_count": 3,
+        "pass_count": 3
+      },
+      "report": {
+        "path": "workspace/evals/acquire_cobblestone_paired_evaluation_v2.json",
+        "sha256": "2250462ce875297a582b1e8557cc878f9630e268955272bb6bc76dd6c77b7575",
+        "valid_pair_count": 0,
+        "required_pair_count": 3,
+        "inherited_support_pass_count": 3,
+        "decision": "retain_advisory",
+        "normal_runtime_permission": false
+      },
+      "candidate_replicate_ids": ["r4", "r5", "r6"],
+      "excluded_prior_replicate_ids": ["r1", "r2", "r3"],
+      "retained_failed_replicate_id": "r1",
+      "retained_failed_run_sha256": "0a118036afa5583fd5a55026e3450c8b594039acd0e90ba952329bca7e07d992",
+      "support_rerun_allowed": false,
+      "prior_candidate_reuse_allowed": false,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
     },
     "support_runs": [
       {
@@ -2747,10 +2819,10 @@
       }
     ],
     "next_arm": {
-      "arm": "",
-      "replicate_id": "",
+      "arm": "candidate",
+      "replicate_id": "r4",
       "authorized_after_commit_push": false,
-      "reason": "candidate_r1_consumed_and_offline_fix_required",
+      "reason": "recovery_window_v2_must_be_committed_and_pushed_before_single_r4_authorization",
       "automatic_retry_allowed": false
     },
     "counts_toward_capability": false,
