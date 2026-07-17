@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T04:33:30+08:00",
+  "generated_at": "2026-07-18T04:42:05+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_6_sp001_paired_shadow_verified",
-  "status": "sp001_shadow_1_of_1_passed_candidate_pairs_0_of_3_advisory_next_after_push",
+  "phase": "phase_7_sp001_paired_advisory_verified",
+  "status": "sp001_support_arms_2_of_3_passed_candidate_pairs_0_of_3_fallback_next_after_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": true,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 1,
-  "authorization_scope": "one_sp001_skill_evaluation_arm_advisory_advisory_1_after_shadow_evidence_commit_push",
+  "authorization_scope": "one_sp001_skill_evaluation_arm_fallback_fallback_1_after_advisory_evidence_commit_push",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -22,9 +22,9 @@
     "fixture_audit_passed": true,
     "conditional_sp001_authorization_activated": true,
     "sp001_live_episodes_run": 8,
-    "paired_evaluation_arms_authorized": 1,
-    "paired_evaluation_arms_consumed": 1,
-    "paired_evaluation_arm_passes": 1,
+    "paired_evaluation_arms_authorized": 2,
+    "paired_evaluation_arms_consumed": 2,
+    "paired_evaluation_arm_passes": 2,
     "next_live_authorization": true
   },
   "fixture_preparation_success": {
@@ -131,7 +131,7 @@
       "paired_baseline_count": 3,
       "paired_candidate_count": 0,
       "shadow_pass_count": 1,
-      "advisory_pass_count": 0,
+      "advisory_pass_count": 1,
       "fallback_pass_count": 0,
       "paired_evaluation_decision": "retain_advisory"
     },
@@ -261,7 +261,8 @@
     {
       "phase": 5,
       "name": "sp001_paired_shadow_evaluation",
-      "status": "shadow_verified_pending_evidence_push",
+      "status": "shadow_verified_evidence_pushed",
+      "commit": "58b96aabe3863e148730895d9e951f68aa704caf",
       "arm": "shadow",
       "replicate_id": "shadow-1",
       "episode_id": "sp001_skill_shadow_20260718_043048_bee49f0b",
@@ -276,6 +277,34 @@
       "failed_actions": 0,
       "verifier_rejects": 0,
       "skill_shadow_plan_count": 3,
+      "skill_selected_count": 0,
+      "skill_executed_count": 0,
+      "skill_artifact_read_only": true,
+      "controlled_listener_count_after_stop": 0,
+      "matching_runtime_process_count_after_stop": 0,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 6,
+      "name": "sp001_paired_advisory_evaluation",
+      "status": "advisory_verified_pending_evidence_push",
+      "arm": "advisory",
+      "replicate_id": "advisory-1",
+      "episode_id": "sp001_skill_advisory_20260718_044057_bbcc998a",
+      "session_id": "0905b04c-439",
+      "machine_verification_passed": true,
+      "evaluation_status": "pass",
+      "fixed_controls_match_baseline": true,
+      "initial_state_match_baseline": true,
+      "task_completion": 1,
+      "environment_steps": 4,
+      "planner_calls": 4,
+      "failed_actions": 0,
+      "verifier_rejects": 0,
+      "skill_advisory_hint_count": 3,
       "skill_selected_count": 0,
       "skill_executed_count": 0,
       "skill_artifact_read_only": true,
@@ -2085,7 +2114,7 @@
       "passed": 6,
       "total": 6
     },
-    "repository_json_files_parsed": 1215,
+    "repository_json_files_parsed": 1225,
     "python_compileall_passed": true,
     "fixture_snapshot_audit_passed": true,
     "fixture_manifest_hash_passed": true,
@@ -2112,7 +2141,7 @@
     "sp001_candidate_lifecycle_state_separation_test_passed": true,
     "skill_extractor_source_path_regression_passed": true,
     "runtime_profile_required_label_boundary_regression_passed": true,
-    "ledger_declared_hashes_passed": 142,
+    "ledger_declared_hashes_passed": 153,
     "sp001_declared_hashes_passed": 80,
     "sp001_candidate_materialization_passed": true,
     "sp001_candidate_custom_skill_isolation_passed": true,
@@ -2134,23 +2163,28 @@
     "sp001_paired_shadow_fixed_controls_match": true,
     "sp001_paired_shadow_initial_state_match": true,
     "sp001_paired_shadow_manifest_hashes_passed": 8,
-    "sp001_paired_support_run_count": 1,
+    "sp001_paired_advisory_pass_count": 1,
+    "sp001_paired_advisory_machine_verification_passed": true,
+    "sp001_paired_advisory_fixed_controls_match": true,
+    "sp001_paired_advisory_initial_state_match": true,
+    "sp001_paired_advisory_manifest_hashes_passed": 8,
+    "sp001_paired_support_run_count": 2,
     "sp001_paired_candidate_pair_count": 0,
     "sp001_paired_decision": "retain_advisory"
   },
   "next_required_gate": {
-    "id": "sp001_advisory_advisory_1_after_shadow_evidence_push",
+    "id": "sp001_fallback_fallback_1_after_advisory_evidence_push",
     "authorization": true,
     "prerequisites": [
-      "shadow_machine_verification_passed",
-      "shadow_evaluation_status_pass",
-      "shadow_fixed_controls_and_initial_state_match_baseline",
-      "shadow_skill_plan_observed_without_direct_selection_or_execution",
-      "shadow_run_artifacts_hash_bound",
-      "shadow_evidence_commit_pushed"
+      "advisory_machine_verification_passed",
+      "advisory_evaluation_status_pass",
+      "advisory_fixed_controls_and_initial_state_match_baseline",
+      "advisory_hint_observed_without_direct_selection_or_execution",
+      "advisory_run_artifacts_hash_bound",
+      "advisory_evidence_commit_pushed"
     ],
-    "arm": "advisory",
-    "replicate_id": "advisory-1",
+    "arm": "fallback",
+    "replicate_id": "fallback-1",
     "live_episode_limit": 1,
     "normal_runtime_permission": false,
     "automatic_retry_allowed": false
@@ -2172,7 +2206,7 @@
     "paired_evaluation_report_artifacts_created": 1,
     "paired_baseline_records_created": 3,
     "paired_candidate_run_artifacts_created": 0,
-    "paired_support_run_artifacts_created": 11,
+    "paired_support_run_artifacts_created": 22,
     "candidate_queue_records_created": 1,
     "advisory_skill_records_created": 1,
     "acceptance_artifacts_created": 0,
@@ -2197,11 +2231,11 @@
     },
     "report": {
       "path": "workspace/evals/acquire_cobblestone_paired_evaluation.json",
-      "sha256": "bcf46e75e8143c0b21f96721578ec166fcd80ca880160933087bfc8db563f9f9",
+      "sha256": "90aca9ee052f46ec9f33e8ccaff8231bc9f95ac56bd4d77c2aad805ba3166e70",
       "valid_pair_count": 0,
       "required_pair_count": 3,
       "shadow_verified": true,
-      "advisory_verified": false,
+      "advisory_verified": true,
       "fallback_verified": false,
       "decision": "retain_advisory",
       "normal_runtime_permission": false
@@ -2275,11 +2309,80 @@
         "counts_toward_capability": false,
         "counts_toward_m4": false,
         "automatic_retry_allowed": false
+      },
+      {
+        "arm": "advisory",
+        "replicate_id": "advisory-1",
+        "episode_id": "sp001_skill_advisory_20260718_044057_bbcc998a",
+        "session_id": "0905b04c-439",
+        "status": "pass",
+        "machine_verification_passed": true,
+        "fixed_controls_fingerprint": "50bf60d4dcb1721023661043bccc603c380a99e0fd071695b1a34fbe99f1319a",
+        "initial_state_fingerprint": "4e5f967e22b3aab92b153312c05f29a8e797064e4852f9f673362a22c70cfc02",
+        "task_completion": 1,
+        "environment_steps": 4,
+        "planner_calls": 4,
+        "failed_actions": 0,
+        "verifier_rejects": 0,
+        "no_progress_loops": 0,
+        "skill_advisory_hint_count": 3,
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "run_record": {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_advisory_20260718_044057_bbcc998a/evaluation_run.json",
+          "sha256": "fec99711f5df62bffd1a491dea6b766154eb0a9e59e3b417d29cac6a1a386fb3"
+        },
+        "manifest": {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_advisory_20260718_044057_bbcc998a/manifest.json",
+          "sha256": "a90194cfa7377e1f2e5ecd05a77ee5406c86bf6166971216073936355d736f4f"
+        },
+        "artifacts": [
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_advisory_20260718_044057_bbcc998a/audit.json",
+            "sha256": "4882f1513cf39c21311a78fd5e91e4d7433c678715f1ad5fc87147712da8b9a6"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_advisory_20260718_044057_bbcc998a/authorization.json",
+            "sha256": "28a4d6e4305275eeea6570352505ae234718c67ef54ae2fadef0cf2616eb3ced"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_advisory_20260718_044057_bbcc998a/episode.json",
+            "sha256": "7ebd5b3ce7fa59016f77d032436f8c7f40449a4a6c832980d5904405b6d89082"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_advisory_20260718_044057_bbcc998a/preflight.json",
+            "sha256": "8b37b14b875f9507a0bd52a6cac823ede270f9f9aaf2467e3cef1d85370941f4"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_advisory_20260718_044057_bbcc998a/restoration.json",
+            "sha256": "c34169d9cb6d2f7612e684a995586c252c9fd442c7089002e3f9222ed51fcf4e"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_advisory_20260718_044057_bbcc998a/session.json",
+            "sha256": "a64d81298bd9dddc70adf717cf0a3acf774ca201105d6d0b6cd358e623183543"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_advisory_20260718_044057_bbcc998a/session_0905b04c-439.jsonl",
+            "sha256": "e4c7eb724dd38ead699d06dd50eda022be6e4f99f5c7ff74796265858ff55e0d"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_advisory_20260718_044057_bbcc998a/session_0905b04c-439_summary.json",
+            "sha256": "0c91f715d2661d239b554df4b84cfe1d7c50c7c83611cd702f87fbc2ebb29c7f"
+          },
+          {
+            "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_advisory_20260718_044057_bbcc998a/verification.json",
+            "sha256": "a21729ad04c87dfdd00112d0de39f29cba19edd163ff00a5a3b4f23616b3cb66"
+          }
+        ],
+        "normal_runtime_permission": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false,
+        "automatic_retry_allowed": false
       }
     ],
     "next_arm": {
-      "arm": "advisory",
-      "replicate_id": "advisory-1",
+      "arm": "fallback",
+      "replicate_id": "fallback-1",
       "authorized_after_commit_push": true,
       "automatic_retry_allowed": false
     },
