@@ -1,0 +1,148 @@
+{
+  "type": "stone_pickaxe_skill_evaluation_run",
+  "schema_version": 1,
+  "policy_id": "stone-pickaxe-sp001-paired-evaluation-v2",
+  "policy_sha256": "18c4f5d812eae758018c3326e362679ea4061c642e4e10eaa40d95e52d7369d6",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "task_id": "SP-001",
+  "run_id": "candidate:sp001_skill_candidate_20260718_063149_7f573331",
+  "arm": "candidate",
+  "replicate_id": "r4",
+  "pair_id": "sp001-acquire-recovery-r4",
+  "episode_id": "sp001_skill_candidate_20260718_063149_7f573331",
+  "session_id": "f84e2f7b-9ed",
+  "skill_id": "learned:acquire_cobblestone",
+  "skill_version": "1.0.0",
+  "candidate_id": "e1534e57",
+  "status": "fail",
+  "checks": {
+    "preflight_passed": true,
+    "authorization_passed": true,
+    "policy_identity_passed": true,
+    "source_evidence_integrity": true,
+    "base_machine_verification_passed": true,
+    "base_evidence_eligible": true,
+    "episode_skill_arm_eligible": true,
+    "no_quarantined_skill": true,
+    "normal_runtime_permission_false": true,
+    "automatic_retry_forbidden": true,
+    "skill_artifact_read_only": true,
+    "single_exact_skill_selected": true,
+    "skill_executed": false,
+    "skill_completed": false,
+    "candidate_steps_verified": false,
+    "candidate_steps_reobserved": false,
+    "exact_skill_context_only": false,
+    "zero_skill_fallback": true,
+    "zero_action_failures": true,
+    "zero_verifier_rejects": true,
+    "high_confidence_attribution": false
+  },
+  "metrics": {
+    "task_completion": 1,
+    "environment_steps": 4,
+    "successful_actions": 4,
+    "failed_actions": 0,
+    "verifier_rejects": 0,
+    "planner_calls": 1,
+    "no_progress_loops": 0,
+    "skill_selected_count": 1,
+    "skill_executed_count": 0,
+    "skill_completion_count": 0,
+    "skill_outcome_count": 1,
+    "skill_fallback_count": 0,
+    "skill_shadow_plan_count": 0,
+    "skill_advisory_hint_count": 0,
+    "candidate_steps_verified": false,
+    "candidate_steps_reobserved": false,
+    "exact_skill_context_only": false,
+    "attribution_confidence": 0.0
+  },
+  "fixed_controls": {
+    "protocol_id": "stone-pickaxe-skill-fixed-v1",
+    "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+    "task_id": "SP-001",
+    "goal": "Gather 3 cobblestone with the wooden pickaxe",
+    "fixture_id": "sp001-acquire-cobblestone-v1",
+    "fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+    "episode_timeout_s": 180,
+    "maximum_cycles": 12,
+    "maximum_actions": 8,
+    "per_action_timeout_s": 60,
+    "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+    "runtime_policy_id": "stone-pickaxe-controlled-runtime-v1",
+    "action_guard_policy_id": "stone-pickaxe-action-guard-v1",
+    "planner": {
+      "identity": "llm-autonomous-planner-v1",
+      "provider": "openai",
+      "base_url": "https://opencode.ai/zen/go/v1",
+      "model": "deepseek-v4-flash",
+      "temperature": 0.0,
+      "max_tokens": 4096,
+      "thinking": "disabled",
+      "provider_retries": 0
+    },
+    "environment": {
+      "minecraft_version": "1.20.4",
+      "server_type": "Paper",
+      "server_build": "paper-1.20.4-499",
+      "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+      "world_seed": "12345",
+      "game_mode": "survival",
+      "difficulty": "normal",
+      "runtime_versions": {
+        "python": "3.12.8",
+        "node": "22.16.0",
+        "mineflayer": "4.37.1",
+        "mineflayer_pathfinder": "2.4.5",
+        "minecraft_data": "3.111.0"
+      }
+    },
+    "action_verifier_enforced": true,
+    "action_controller_enforced": true,
+    "goal_verifier_enforced": true,
+    "automatic_retry_allowed": false
+  },
+  "fixed_controls_fingerprint": "50bf60d4dcb1721023661043bccc603c380a99e0fd071695b1a34fbe99f1319a",
+  "initial_state_fingerprint": "4e5f967e22b3aab92b153312c05f29a8e797064e4852f9f673362a22c70cfc02",
+  "source_evidence": [
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/authorization.json",
+      "sha256": "16b8398ce66eae68745f01d69062b32188c2d8cd60a9462be9a8d90b6d1fdf25"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/restoration.json",
+      "sha256": "17042bfdc64cd566a69a4551314615f46c9d4ca468ae0f2116fcbd8c594a4768"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/preflight.json",
+      "sha256": "4c86c8de6310f7a306434c456a3bee732fe7bc02436a6a048d3c8c508d50f4f7"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/session.json",
+      "sha256": "d555631d1a962040abf4e507d832b01bda65dd9dbb16abe49504ddc6cf7637bb"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/episode.json",
+      "sha256": "e639144a78a18a11e2f4ce7f2e7ed973b062a5473d4e4e0da43122a02e582e60"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/verification.json",
+      "sha256": "a21729ad04c87dfdd00112d0de39f29cba19edd163ff00a5a3b4f23616b3cb66"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/audit.json",
+      "sha256": "feedd81f051b2cddc7e76877affd7d176492717f7795ac56a381b1c2c02d4887"
+    }
+  ],
+  "authorization_fingerprint": "7b3f35146b5843e91c740696f290816830dd404dbf282650ae47e1a52009f83b",
+  "evidence_kind": "live_verified",
+  "live_minecraft": true,
+  "normal_runtime_permission": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "automatic_retry_allowed": false,
+  "record_payload_sha256": "9ee5df53c3ce92c4ae395bdace2f8b52d012832a772b52643272d3aec01876d4",
+  "evaluation_window_id": "sp001-acquire-runtime-fix-recovery-v2"
+}

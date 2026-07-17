@@ -1,32 +1,32 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T06:28:32+08:00",
+  "generated_at": "2026-07-18T06:41:37+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_12_sp001_recovery_candidate_r4_authorized",
-  "status": "sp001_recovery_candidate_r4_authorized_pending_commit_push",
+  "phase": "phase_13_sp001_recovery_candidate_r4_failed",
+  "status": "sp001_recovery_candidate_r4_failed_evidence_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
-  "live_authorization": true,
+  "live_authorization": false,
   "fixture_preparation_authorization": false,
-  "authorized_live_episode_count": 1,
-  "authorization_scope": "single_sp001_recovery_candidate_r4_only",
+  "authorized_live_episode_count": 0,
+  "authorization_scope": "none_offline_fix_and_new_window_required",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
     "fixture_preparation_sessions_consumed": 5,
     "fixture_audit_passed": true,
     "conditional_sp001_authorization_activated": true,
-    "sp001_live_episodes_run": 8,
+    "sp001_live_episodes_run": 9,
     "paired_evaluation_arms_authorized": 5,
-    "paired_evaluation_arms_consumed": 4,
+    "paired_evaluation_arms_consumed": 5,
     "paired_evaluation_arm_passes": 3,
-    "paired_evaluation_arm_failures": 1,
-    "next_live_authorization": true
+    "paired_evaluation_arm_failures": 2,
+    "next_live_authorization": false
   },
   "fixture_preparation_success": {
     "episode_id": "sp_fixture_prep_20260717_221520_064dd337",
@@ -135,6 +135,8 @@
       "paired_candidate_failure_count": 1,
       "recovery_window_id": "sp001-acquire-runtime-fix-recovery-v2",
       "recovery_candidate_count": 0,
+      "recovery_candidate_attempt_count": 1,
+      "recovery_candidate_failure_count": 1,
       "recovery_candidate_required": 3,
       "shadow_pass_count": 1,
       "advisory_pass_count": 1,
@@ -455,6 +457,43 @@
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "automatic_retry_allowed": false
+    },
+    {
+      "phase": 12,
+      "name": "sp001_recovery_candidate_r4_evaluation",
+      "status": "candidate_failed_evidence_pending_commit_push",
+      "authorization_predecessor": "e8d0808a0ae098ad16e09ab425f7678fe5ca89fb",
+      "window_id": "sp001-acquire-runtime-fix-recovery-v2",
+      "arm": "candidate",
+      "replicate_id": "r4",
+      "pair_id": "sp001-acquire-recovery-r4",
+      "episode_id": "sp001_skill_candidate_20260718_063149_7f573331",
+      "session_id": "f84e2f7b-9ed",
+      "machine_verification_passed": true,
+      "base_evidence_eligible": true,
+      "evaluation_status": "fail",
+      "fixed_controls_match_baseline": true,
+      "initial_state_match_baseline": true,
+      "task_completion": 1,
+      "environment_steps": 4,
+      "planner_calls": 1,
+      "successful_actions": 4,
+      "failed_actions": 0,
+      "verifier_rejects": 0,
+      "skill_selected_count": 1,
+      "skill_executed_count": 0,
+      "skill_completion_count": 0,
+      "skill_fallback_count": 0,
+      "candidate_steps_verified": false,
+      "candidate_steps_reobserved": false,
+      "exact_skill_context_only": false,
+      "root_cause": "stone_pickaxe_runtime_guard_replaced_the_action_in_place_and_stripped_skill_context_before_attribution",
+      "r5_authorized": false,
+      "r6_authorized": false,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
     }
   ],
   "failure_taxonomy": [
@@ -474,7 +513,8 @@
     "sp001_pickup_candidate_geometry_disconnect",
     "sp001_planner_transport_tls_eof",
     "sp001_pickup_same_cell_goal_alias",
-    "sp001_skill_nearest_observed_ordering_disconnect"
+    "sp001_skill_nearest_observed_ordering_disconnect",
+    "sp001_skill_context_provenance_stripped_by_runtime_guard"
   ],
   "failures": [
     {
@@ -2065,6 +2105,130 @@
         "counts_toward_capability": false,
         "counts_toward_m4": false
       }
+    },
+    {
+      "id": "sp001-skill-recovery-candidate-r4-context-provenance",
+      "phase": "sp001_recovery_paired_evaluation_v2",
+      "classification": "sp001_skill_context_provenance_stripped_by_runtime_guard",
+      "status": "retained_candidate_failure_offline_fix_required",
+      "attributable_to_learned_skill": false,
+      "arm": "candidate",
+      "replicate_id": "r4",
+      "pair_id": "sp001-acquire-recovery-r4",
+      "evaluation_window_id": "sp001-acquire-runtime-fix-recovery-v2",
+      "episode_id": "sp001_skill_candidate_20260718_063149_7f573331",
+      "session_id": "f84e2f7b-9ed",
+      "occurred_at_utc": "2026-07-17T22:31:50.303901+00:00",
+      "git_head_before_episode": "e8d0808a0ae098ad16e09ab425f7678fe5ca89fb",
+      "fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+      "earliest_unrecovered_transition": "runtime_guard_normalized_the_first_skill_dig_in_place_and_removed_skill_context_before_action_attribution",
+      "first_failed_action_or_task_transition": "none_all_four_environment_actions_succeeded_evaluation_attribution_failed",
+      "root_cause": {
+        "producer": "Agent._learned_skill_plan",
+        "producer_attached_exact_skill_context": true,
+        "first_plan_event_index": 29,
+        "mutating_consumer": "StonePickaxeRuntimeAgent._verify_action_for_execution",
+        "mutation": "action.clear_then_action.update_guard_normalized_action",
+        "guard_preserved_execution_semantics": true,
+        "guard_preserved_skill_context": false,
+        "first_action_event_index": 39,
+        "skill_plan_dig_count": 3,
+        "successful_skill_coordinate_match_count": 3,
+        "world_command_failure_count": 0,
+        "attribution_confidence": 0.0
+      },
+      "goal_result": {
+        "completed": true,
+        "termination_reason": "goal_verified",
+        "cycles": 4,
+        "action_count": 4,
+        "successful_action_count": 4,
+        "failed_action_count": 0,
+        "elapsed_s": 11.656,
+        "deadline_eligible": true
+      },
+      "machine_verification": {
+        "passed": true,
+        "evidence_eligible": true,
+        "source_removal_count": 3,
+        "distinct_source_count": 3,
+        "pickup_count": 3,
+        "terminal_cobblestone_delta": 3,
+        "false_success_dig_count": 0
+      },
+      "evaluation": {
+        "status": "fail",
+        "fixed_controls_match_baseline": true,
+        "initial_state_match_baseline": true,
+        "task_completion": 1,
+        "environment_steps": 4,
+        "planner_calls": 1,
+        "successful_actions": 4,
+        "failed_actions": 0,
+        "verifier_rejects": 0,
+        "skill_selected_count": 1,
+        "skill_executed_count": 0,
+        "skill_completion_count": 0,
+        "skill_fallback_count": 0,
+        "candidate_steps_verified": false,
+        "candidate_steps_reobserved": false,
+        "exact_skill_context_only": false,
+        "ordinary_goal_completed": true
+      },
+      "evidence": [
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/audit.json",
+          "sha256": "feedd81f051b2cddc7e76877affd7d176492717f7795ac56a381b1c2c02d4887"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/authorization.json",
+          "sha256": "16b8398ce66eae68745f01d69062b32188c2d8cd60a9462be9a8d90b6d1fdf25"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/episode.json",
+          "sha256": "e639144a78a18a11e2f4ce7f2e7ed973b062a5473d4e4e0da43122a02e582e60"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/evaluation_run.json",
+          "sha256": "a9b60894b517bacb70eca4754e1b410c6f8e98227c267f56e88fc3aca619da86"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/manifest.json",
+          "sha256": "764b575629c74f68cfd7076129e505c16c0a0d7cb42f42d2ac42a6dd6991d063"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/preflight.json",
+          "sha256": "4c86c8de6310f7a306434c456a3bee732fe7bc02436a6a048d3c8c508d50f4f7"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/restoration.json",
+          "sha256": "17042bfdc64cd566a69a4551314615f46c9d4ca468ae0f2116fcbd8c594a4768"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/session.json",
+          "sha256": "d555631d1a962040abf4e507d832b01bda65dd9dbb16abe49504ddc6cf7637bb"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/session_f84e2f7b-9ed.jsonl",
+          "sha256": "87297c611cccaed73e7f0ed3e128a2271655bd42a3229aea7ac335a2fee82d3a"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/session_f84e2f7b-9ed_summary.json",
+          "sha256": "1c3d3fb5dadcbb16d9b73564c245ee87df6e1fd421653e95c4499a0cd59fa5f8"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/verification.json",
+          "sha256": "a21729ad04c87dfdd00112d0de39f29cba19edd163ff00a5a3b4f23616b3cb66"
+        }
+      ],
+      "counts_toward_skill_gate": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_attempted": false,
+      "automatic_retry_allowed": false,
+      "r5_authorized": false,
+      "r6_authorized": false,
+      "single_next_offline_fix": "preserve_exact_skill_context_across_nonsemantic_runtime_guard_normalization_then_define_a_new_non_overlapping_evaluation_window"
     }
   ],
   "eligible_successes": [
@@ -2403,7 +2567,7 @@
       "passed": 6,
       "total": 6
     },
-    "repository_json_files_parsed": 1248,
+    "repository_json_files_parsed": 1259,
     "python_compileall_passed": true,
     "fixture_snapshot_audit_passed": true,
     "fixture_manifest_hash_passed": true,
@@ -2430,7 +2594,7 @@
     "sp001_candidate_lifecycle_state_separation_test_passed": true,
     "skill_extractor_source_path_regression_passed": true,
     "runtime_profile_required_label_boundary_regression_passed": true,
-    "ledger_declared_hashes_passed": 178,
+    "ledger_declared_hashes_passed": 189,
     "sp001_declared_hashes_passed": 80,
     "sp001_candidate_materialization_passed": true,
     "sp001_candidate_custom_skill_isolation_passed": true,
@@ -2478,13 +2642,23 @@
     "sp001_recovery_inherited_support_pass_count": 3,
     "sp001_recovery_excluded_r1_verified": true,
     "sp001_recovery_fresh_candidate_pair_count": 0,
+    "sp001_recovery_candidate_attempt_count": 1,
+    "sp001_recovery_candidate_failure_count": 1,
+    "sp001_recovery_candidate_r4_manifest_hashes_passed": 8,
+    "sp001_recovery_candidate_r4_retained_evidence_hashes_passed": 11,
+    "sp001_recovery_candidate_r4_fixed_controls_match": true,
+    "sp001_recovery_candidate_r4_initial_state_match": true,
+    "sp001_recovery_candidate_r4_machine_verification_passed": true,
+    "sp001_recovery_candidate_r4_automatic_retry_count": 0,
+    "sp001_recovery_candidate_r4_skill_context_preserved": false,
+    "sp001_recovery_candidate_r4_live_authorization_consumed": true,
     "sp001_v1_policy_identity_after_v2_passed": true,
     "sp001_paired_candidate_pair_count": 0,
     "sp001_paired_decision": "retain_advisory"
   },
   "next_required_gate": {
-    "id": "sp001_candidate_recovery_r4_after_window_push",
-    "authorization": true,
+    "id": "sp001_runtime_guard_skill_context_provenance_offline_fix",
+    "authorization": false,
     "prerequisites": [
       "candidate_r1_failure_artifacts_hash_bound",
       "candidate_r1_evidence_commit_b423059_pushed",
@@ -2494,11 +2668,13 @@
       "current_policy_and_consumed_r1_remain_immutable",
       "new_non_overlapping_evaluation_window_defined_with_unique_replicates",
       "recovery_window_v2_offline_tests_pass",
-      "recovery_window_v2_commit_pushed_before_authorization"
+      "recovery_window_v2_commit_pushed_before_authorization",
+      "candidate_r4_failed_artifacts_hash_bound",
+      "candidate_r4_evidence_commit_pushed_before_code_fix",
+      "runtime_guard_skill_context_mutation_reproduced_offline",
+      "new_non_overlapping_evaluation_window_required_after_fix"
     ],
-    "arm": "candidate",
-    "replicate_id": "r4",
-    "live_episode_limit": 1,
+    "live_episode_limit": 0,
     "normal_runtime_permission": false,
     "automatic_retry_allowed": false
   },
@@ -2518,7 +2694,7 @@
     "paired_baseline_index_artifacts_created": 2,
     "paired_evaluation_report_artifacts_created": 2,
     "paired_baseline_records_created": 3,
-    "paired_candidate_run_artifacts_created": 11,
+    "paired_candidate_run_artifacts_created": 22,
     "paired_support_run_artifacts_created": 33,
     "candidate_queue_records_created": 1,
     "advisory_skill_records_created": 1,
@@ -2568,7 +2744,7 @@
       },
       "report": {
         "path": "workspace/evals/acquire_cobblestone_paired_evaluation_v2.json",
-        "sha256": "2250462ce875297a582b1e8557cc878f9630e268955272bb6bc76dd6c77b7575",
+        "sha256": "c3e0631992e2ba1a4193247d748b5822414019cb704e9db784dac3302bcba2f0",
         "valid_pair_count": 0,
         "required_pair_count": 3,
         "inherited_support_pass_count": 3,
@@ -2579,6 +2755,10 @@
       "excluded_prior_replicate_ids": ["r1", "r2", "r3"],
       "retained_failed_replicate_id": "r1",
       "retained_failed_run_sha256": "0a118036afa5583fd5a55026e3450c8b594039acd0e90ba952329bca7e07d992",
+      "recovery_candidate_attempt_count": 1,
+      "recovery_candidate_failure_count": 1,
+      "retained_failed_recovery_replicate_id": "r4",
+      "retained_failed_recovery_run_sha256": "a9b60894b517bacb70eca4754e1b410c6f8e98227c267f56e88fc3aca619da86",
       "support_rerun_allowed": false,
       "prior_candidate_reuse_allowed": false,
       "normal_runtime_permission": false,
@@ -2833,13 +3013,53 @@
         "counts_toward_capability": false,
         "counts_toward_m4": false,
         "automatic_retry_allowed": false
+      },
+      {
+        "arm": "candidate",
+        "replicate_id": "r4",
+        "pair_id": "sp001-acquire-recovery-r4",
+        "evaluation_window_id": "sp001-acquire-runtime-fix-recovery-v2",
+        "episode_id": "sp001_skill_candidate_20260718_063149_7f573331",
+        "session_id": "f84e2f7b-9ed",
+        "status": "fail",
+        "machine_verification_passed": true,
+        "base_evidence_eligible": true,
+        "fixed_controls_fingerprint": "50bf60d4dcb1721023661043bccc603c380a99e0fd071695b1a34fbe99f1319a",
+        "initial_state_fingerprint": "4e5f967e22b3aab92b153312c05f29a8e797064e4852f9f673362a22c70cfc02",
+        "task_completion": 1,
+        "environment_steps": 4,
+        "planner_calls": 1,
+        "successful_actions": 4,
+        "failed_actions": 0,
+        "verifier_rejects": 0,
+        "no_progress_loops": 0,
+        "skill_selected_count": 1,
+        "skill_executed_count": 0,
+        "skill_completion_count": 0,
+        "skill_fallback_count": 0,
+        "candidate_steps_verified": false,
+        "candidate_steps_reobserved": false,
+        "exact_skill_context_only": false,
+        "run_record": {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/evaluation_run.json",
+          "sha256": "a9b60894b517bacb70eca4754e1b410c6f8e98227c267f56e88fc3aca619da86"
+        },
+        "manifest": {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_063149_7f573331/manifest.json",
+          "sha256": "764b575629c74f68cfd7076129e505c16c0a0d7cb42f42d2ac42a6dd6991d063"
+        },
+        "failure_reason": "runtime_guard_stripped_skill_context_before_attribution",
+        "normal_runtime_permission": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false,
+        "automatic_retry_allowed": false
       }
     ],
     "next_arm": {
-      "arm": "candidate",
-      "replicate_id": "r4",
-      "authorized_after_commit_push": true,
-      "reason": "recovery_window_v2_is_pushed_and_exactly_one_r4_arm_is_authorized_after_this_commit_is_pushed",
+      "arm": null,
+      "replicate_id": null,
+      "authorized_after_commit_push": false,
+      "reason": "r4_failed_and_v2_cannot_reach_three_valid_pairs; preserve evidence, fix provenance offline, and define a new non-overlapping window",
       "automatic_retry_allowed": false
     },
     "counts_toward_capability": false,
