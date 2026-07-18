@@ -485,6 +485,11 @@ def test_runtime_config_uses_no_skills_for_baseline_and_both_approved_gates_for_
     assert controls["skill_library_persistence"] is False
     assert controls["skill_learning_ledger_write"] is False
     agent = StonePickaxeSP003RuntimeAgent(candidate, arm="candidate")
+    profile = agent.skill_library.skill_runtime_default_profile()
+    assert set(profile["approved_skills"]) == {
+        "learned_acquire_cobblestone",
+        "learned_craft_stone_pickaxe",
+    }
     mining_observation = observation(
         {"wooden_pickaxe": 1, "stick": 2},
         [block("stone", 1, 63, 0, 1.4)],
@@ -962,6 +967,8 @@ def test_sp003_runner_and_launcher_enforce_fresh_single_episode_contract():
     assert "SP-003 evidence must use workspace/evals/sp003_runs/<episode_id>" in runner
     assert 'expected_level_name = f"{args.episode_id}_world"' in runner
     assert '"automatic_retry_allowed": False' in runner
+    assert "skill_runtime_default_profile()" in runner
+    assert ".runtime_default_gate_profile()" not in runner
     assert '"--craft-max-attempts", "1"' in launcher
     assert "Assert-FreshRuntimePaths" in launcher
     assert "Assert-CleanSynchronizedMain" in launcher

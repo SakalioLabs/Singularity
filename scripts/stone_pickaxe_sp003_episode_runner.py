@@ -292,7 +292,7 @@ def run_episode(args: argparse.Namespace) -> int:
             else {}
         )
         gate_report = dict(getattr(agent, "skill_runtime_default_gate_report", {}) or {})
-        runtime_gate_profile = agent.skill_library.runtime_default_gate_profile()
+        runtime_gate_profile = agent.skill_library.skill_runtime_default_profile()
         approved_skill_names = set(runtime_gate_profile.get("approved_skills", []))
         candidate_gate_ready = bool(
             args.arm == "baseline"

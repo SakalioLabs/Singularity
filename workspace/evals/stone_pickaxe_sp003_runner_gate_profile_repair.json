@@ -1,0 +1,76 @@
+{
+  "type": "stone_pickaxe_sp003_runner_gate_profile_repair",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T21:10:13.4955931Z",
+  "phase": 76,
+  "status": "offline_fix_verified_pending_commit_push",
+  "base_commit": "d18ae10c823523300f1e4d1c23787f2ea3a4b92d",
+  "task_id": "SP-003",
+  "runtime_policy": {
+    "id": "stone-pickaxe-sp003-empty-hand-runtime-v1",
+    "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+    "sha256": "a1aad016b58bad4d0def89f782f67d2cb02ea9c1b846d7c9d9c4e32cfdc2a438",
+    "modified": false
+  },
+  "retained_failure": {
+    "episode_id": "sp003_baseline_20260719_045836_da326336",
+    "session_id": "2e34110a-808",
+    "authorization_commit": "363ef9ff922490843e39e0fa097ffe7c79ab590a",
+    "evidence_commit": "d18ae10c823523300f1e4d1c23787f2ea3a4b92d",
+    "manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_045836_da326336/failure_manifest.json",
+    "manifest_sha256": "eab94dff5aa14f29f45fa75558d3e1b2fa1f525cb77d19803f82f0dfc25e5c64",
+    "failed_stage": "initial_agent_preflight",
+    "reset_audit_passed": true,
+    "agent_connected": true,
+    "llm_call_count": 0,
+    "agent_action_count": 0,
+    "automatic_retry_performed": false
+  },
+  "root_cause": {
+    "classification": "sp003_runner_runtime_gate_profile_api_mismatch",
+    "called_method": "runtime_default_gate_profile",
+    "called_method_exists": false,
+    "public_method": "skill_runtime_default_profile",
+    "public_method_exists": true,
+    "failure_was_before_planner_or_action": true
+  },
+  "change": {
+    "runner_path": "scripts/stone_pickaxe_sp003_episode_runner.py",
+    "runner_sha256": "52dc80687496848d7157d70d8ed72fd5e08d68366eccb822f98bda60ff769591",
+    "tests_path": "tests/test_stone_pickaxe_sp003_runtime.py",
+    "tests_sha256": "6fa41d63473cba1c1200130357ca30c4f87e53f1503d1df020edf9af223d024c",
+    "replacement": "Call SkillLibrary.skill_runtime_default_profile().",
+    "candidate_profile_approved_skills": [
+      "learned_acquire_cobblestone",
+      "learned_craft_stone_pickaxe"
+    ],
+    "baseline_skill_execution_mode": "off"
+  },
+  "validation": {
+    "sp003_dedicated": "20/20",
+    "stone_pickaxe_protocol_and_runtime": "106/106",
+    "repository_non_live_python": "956/956",
+    "historical_r12_ledger_assertion": "1/1",
+    "old_method_absent_from_runner": true,
+    "public_method_called_by_runner": true
+  },
+  "immutability": {
+    "retained_failure_modified": false,
+    "first_retained_failure_modified": false,
+    "frozen_protocol_modified": false,
+    "prior_sp001_sp002_evidence_modified": false,
+    "custom_skill_store_modified": false,
+    "capability_report_modified": false,
+    "shared_agent_modified": false
+  },
+  "live_state": {
+    "baseline_authorizations_consumed": 2,
+    "baseline_failures": 2,
+    "baseline_successes": 0,
+    "candidate_successes": 0,
+    "live_authorization": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "next_gate": "push_phase_76_then_commit_a_fresh_parent_bound_baseline_authorization_without_reusing_either_failed_episode"
+}
