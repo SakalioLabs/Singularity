@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T10:51:28+08:00",
+  "generated_at": "2026-07-18T11:11:35+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_27_sp001_recovery_window_v5_offline_definition",
-  "status": "sp001_recovery_window_v5_offline_verified_pending_commit_push",
+  "phase": "phase_28_sp001_recovery_candidate_r13_authorized",
+  "status": "sp001_recovery_candidate_r13_authorized_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
-  "live_authorization": false,
+  "live_authorization": true,
   "fixture_preparation_authorization": false,
-  "authorized_live_episode_count": 0,
-  "authorization_scope": "none",
+  "authorized_live_episode_count": 1,
+  "authorization_scope": "single_sp001_recovery_candidate_r13_only",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -22,12 +22,12 @@
     "fixture_audit_passed": true,
     "conditional_sp001_authorization_activated": true,
     "sp001_live_episodes_run": 12,
-    "paired_evaluation_arms_authorized": 9,
+    "paired_evaluation_arms_authorized": 10,
     "paired_evaluation_arms_consumed": 9,
     "paired_evaluation_arm_passes": 5,
     "paired_evaluation_arm_failures": 3,
     "paired_evaluation_arm_infrastructure_failures": 1,
-    "next_live_authorization": false
+    "next_live_authorization": true
   },
   "fixture_preparation_success": {
     "episode_id": "sp_fixture_prep_20260717_221520_064dd337",
@@ -916,7 +916,8 @@
     {
       "phase": 26,
       "name": "sp001_recovery_window_v5_offline_definition",
-      "status": "offline_verified_pending_commit_push",
+      "status": "offline_verified_and_pushed",
+      "commit": "1e734f41f3a972ef8c6b7721a1a71a08ae47abb2",
       "evidence_predecessor": "9b979ddd5231737413995ddec3594c809d516306",
       "window_id": "sp001-acquire-infrastructure-recovery-v5",
       "policy_id": "stone-pickaxe-sp001-paired-evaluation-v5",
@@ -932,6 +933,24 @@
       "recovery_window_cases": "12/12",
       "live_episode_run": false,
       "live_authorization": false,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 27,
+      "name": "sp001_recovery_candidate_r13_authorization",
+      "status": "authorized_pending_commit_push",
+      "authorization_predecessor": "1e734f41f3a972ef8c6b7721a1a71a08ae47abb2",
+      "window_id": "sp001-acquire-infrastructure-recovery-v5",
+      "arm": "candidate",
+      "replicate_id": "r13",
+      "pair_id": "sp001-acquire-recovery-v5-r13",
+      "live_episode_limit": 1,
+      "r1_through_r12_excluded_or_consumed": true,
+      "r14_authorized": false,
+      "r15_authorized": false,
       "normal_runtime_permission": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
@@ -3498,7 +3517,7 @@
   },
   "next_required_gate": {
     "id": "sp001_recovery_candidate_r13_authorization",
-    "authorization": false,
+    "authorization": true,
     "prerequisites": [
       "v5_offline_window_commit_pushed",
       "head_equals_origin_main_and_worktree_clean",
@@ -3507,7 +3526,9 @@
       "r12_infrastructure_failure_remains_hash_bound_and_ineligible",
       "r13_single_use_authorization_is_committed_and_pushed_separately"
     ],
-    "live_episode_limit": 0,
+    "arm": "candidate",
+    "replicate_id": "r13",
+    "live_episode_limit": 1,
     "normal_runtime_permission": false,
     "automatic_retry_allowed": false
   },
@@ -4244,10 +4265,16 @@
         "automatic_retry_allowed": false
       }
     ],
-    "next_arm": null,
-    "window_closed": true,
-    "window_closure_reason": "r12_authorization_consumed_before_bot_ready_by_infrastructure_failure",
-    "fresh_window_required": true,
+    "next_arm": {
+      "arm": "candidate",
+      "replicate_id": "r13",
+      "authorized_after_commit_push": true,
+      "reason": "v5_window_is_pushed_and_exactly_one_r13_arm_is_authorized_after_this_commit_is_pushed",
+      "automatic_retry_allowed": false
+    },
+    "window_closed": false,
+    "window_closure_reason": "",
+    "fresh_window_required": false,
     "counts_toward_capability": false,
     "counts_toward_m4": false
   },

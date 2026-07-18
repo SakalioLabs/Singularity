@@ -17,9 +17,9 @@ This project isolates two bounded Minecraft capabilities:
 | SP-002 Craft Stone Pickaxe | 0 | 3 | `learned:craft_stone_pickaxe` not created |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 7 paired evaluation recovery with three immutable baseline arms, all three support arms verified, candidates `r1`, `r4`, and `r7` retained failed, and isolated v4 at 2/3 after `r10` and `r11` passed; `learned:acquire_cobblestone@1.0.0` remains advisory and non-executable**.
+Current phase: **Phase 7 paired evaluation recovery with three immutable baseline arms, all three support arms verified, candidates `r1`, `r4`, and `r7` retained failed, v4 closed at 2/3 after `r10` and `r11` passed and r12 failed before bot readiness, and isolated v5 at 0/3; `learned:acquire_cobblestone@1.0.0` remains advisory and non-executable**.
 
-Current authorization: **exactly one `candidate/r12` live episode becomes authorized only after this ledger commit is pushed**. Candidates `r1`, `r4`, `r7`, `r10`, and `r11` are consumed and cannot be retried; `r2/r3/r5/r6/r8/r9` remain excluded. R11 passed from authorization commit `41ce0d14`, its evidence is pushed at `ef40eec7`, and v4 is now 2/3. Another fixture session, support reruns, retries, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain locked.
+Current authorization: **exactly one `candidate/r13` live episode becomes authorized only after this ledger commit is pushed**. Replicates `r1..r12` are excluded or consumed and cannot enter v5; r12 is infrastructure-ineligible and cannot be retried. The v5 definition is pushed at `1e734f41`, while r14/r15 remain unauthorized. Another fixture session, support reruns, retries, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain locked.
 
 ## Fixed Protocol
 
