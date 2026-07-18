@@ -20805,7 +20805,8 @@ class BenchmarkRunner:
             output = (result.stdout or result.stderr).strip().splitlines()
             detail = output[0] if output else "available"
             status = "pass" if result.returncode == 0 else ("fail" if required else "warn")
-            return PreflightCheck(name, status, detail)
+            remedy = "" if status == "pass" else f"Verify {command[0]} exits successfully from this shell"
+            return PreflightCheck(name, status, detail, remedy)
         except Exception as e:
             return PreflightCheck(name, "fail" if required else "warn", str(e), f"Verify {command[0]} works from this shell")
 

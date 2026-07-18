@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T08:55:42+08:00",
+  "generated_at": "2026-07-18T09:19:56+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_21_sp001_recovery_candidate_r10_pass_evidence",
-  "status": "sp001_recovery_candidate_r10_pass_evidence_pending_commit_push",
+  "phase": "phase_22_benchmark_preflight_failed_command_remedy_fix",
+  "status": "offline_fix_verified_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 0,
-  "authorization_scope": "none_r10_consumed_evidence_review_required",
+  "authorization_scope": "none_r10_evidence_pushed_preflight_fix_review",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -698,7 +698,8 @@
     {
       "phase": 19,
       "name": "sp001_recovery_candidate_r10_authorization",
-      "status": "authorized_pending_commit_push",
+      "status": "authorized_and_pushed",
+      "commit": "5ad854d1a5c8ccff48887409237b10a0ee56a43a",
       "authorization_predecessor": "8eaa6800a0c6f8c4027ead84803fb9a3ca1a5898",
       "window_id": "sp001-acquire-route-scope-recovery-v4",
       "arm": "candidate",
@@ -715,7 +716,8 @@
     {
       "phase": 20,
       "name": "sp001_recovery_candidate_r10_evaluation",
-      "status": "candidate_pass_evidence_pending_commit_push",
+      "status": "candidate_pass_evidence_pushed",
+      "evidence_commit": "90e4e23055c3f19789476f24c05b6db21d1e76f5",
       "authorization_predecessor": "5ad854d1a5c8ccff48887409237b10a0ee56a43a",
       "window_id": "sp001-acquire-route-scope-recovery-v4",
       "arm": "candidate",
@@ -750,6 +752,35 @@
       "test_sha256": "8ea27b82c514b518bea9ab2b5a3c80a59313a5ab3a55bbbfc1a0a256202734d8",
       "r11_authorized": false,
       "r12_authorized": false,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 21,
+      "name": "benchmark_preflight_failed_command_remedy_fix",
+      "status": "offline_verified_pending_commit_push",
+      "evidence_predecessor": "90e4e23055c3f19789476f24c05b6db21d1e76f5",
+      "root_cause": "nonzero_local_command_checks_returned_fail_or_warn_without_the_required_operator_remedy",
+      "implementation": "attach_a_deterministic_shell_verification_remedy_to_every_nonpassing_local_command_check",
+      "source_path": "src/singularity/evaluation/benchmark_runner.py",
+      "source_sha256": "a47d8bcb3d56dd21e104f2b32a9970c4a914ca370c8ec5dafe57b6c4a6e51d31",
+      "test_path": "tests/test_benchmark_preflight.py",
+      "test_sha256": "f50c67206000f9114364928e73130c3fc64bf72cfab79b10879d1abdf1d0a65a",
+      "deterministic_nonzero_exit_regression_passed": true,
+      "benchmark_preflight_cases": "93/93",
+      "repository_non_live_python_scripts": "43/43",
+      "fixed_node_suites": "6/6",
+      "fixed_node_internal_pass_cases": 55,
+      "python_compileall_passed": true,
+      "repository_json_files_parsed": 1284,
+      "ledger_declared_hashes_passed": 224,
+      "capability_consistency_passed": true,
+      "credential_scan_passed": true,
+      "git_diff_check_passed": true,
+      "live_episode_run": false,
+      "live_authorization": false,
       "normal_runtime_permission": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
@@ -3027,6 +3058,11 @@
       "passed": 43,
       "total": 43
     },
+    "benchmark_preflight_cases": {
+      "passed": 93,
+      "total": 93
+    },
+    "benchmark_preflight_failed_command_remedy_regression_passed": true,
     "fixed_node_suites": {
       "passed": 6,
       "total": 6
@@ -3184,6 +3220,7 @@
       "r10_pass_evidence_commit_pushed",
       "r10_manifest_and_all_eleven_artifact_hashes_verified",
       "v4_report_retains_one_independent_eligible_pair",
+      "benchmark_preflight_failed_command_remedy_fix_pushed",
       "candidate_r11_is_fresh_and_unconsumed",
       "clean_synchronized_main_before_separate_authorization"
     ],

@@ -192,6 +192,19 @@ def test_preflight_report_without_network():
     print("PASS: Benchmark preflight report includes local readiness checks")
 
 
+def test_failed_local_command_check_always_has_a_remedy():
+    runner = BenchmarkRunner(Config())
+    check = runner._check_command(
+        "intentional_failure",
+        [sys.executable, "-c", "import sys; sys.exit(7)"],
+        required=True,
+    )
+    assert check.status == "fail"
+    assert check.remedy
+    assert "exits successfully" in check.remedy
+    print("PASS: Failed local command preflight checks always include a remedy")
+
+
 def test_bot_session_preflight_check():
     ready_runner = BenchmarkRunner(Config(), bridge_factory=ReadyBridge)
     ready_bridge, ready_session = ready_runner._check_bot_bridge_and_session()
