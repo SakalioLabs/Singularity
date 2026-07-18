@@ -14,12 +14,12 @@ This project isolates two bounded Minecraft capabilities:
 | Microbenchmark | Eligible live successes | Extraction gate | Current learned skill |
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
-| SP-002 Craft Stone Pickaxe | 3 | 3 | Advisory `1.0.0`; paired evaluation not yet defined |
+| SP-002 Craft Stone Pickaxe | 3 | 3 | Advisory `1.0.0`; paired policy defined, candidate pairs 0/3 |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 60 SP-002 advisory promotion is complete pending its separate commit. Executable `learned:acquire_cobblestone@1.1.0` remains frozen, candidate `a488cd61` is `advisory/approved`, and append-only `learned:craft_stone_pickaxe@1.0.0` is present but excluded from normal runtime. The next gate is to define and validate three fixed baseline/candidate pairs before any live arm is authorized**.
+Current phase: **Phase 61 defines the fail-closed SP-002 paired evaluation. Executable `learned:acquire_cobblestone@1.1.0` remains frozen, candidate `a488cd61` and append-only `learned:craft_stone_pickaxe@1.0.0` remain advisory, and the three immutable SP-002 successes are bound as equivalent skill-off baselines. Candidate pairs are 0/3 and normal runtime remains disabled**.
 
-Current authorization: **none**. Replicates `r1..r15` and all nine SP-002 fixture/live authorizations are excluded or consumed and cannot be reused. The next transaction is an offline SP-002 paired-evaluation definition after the Phase 60 advisory commit is pushed and synchronized. No live evaluation arm is authorized yet. Executable craft promotion, automatic retry, SP-003, Probe 24, full BM-012, and iron mining remain locked.
+Current authorization: **none**. Replicates `r1..r15` from SP-001 and all nine SP-002 fixture/live authorizations are excluded or consumed and cannot be reused. The new SP-002 evaluation IDs are `shadow-1`, `advisory-1`, `fallback-1`, and candidate `r1..r3`; none is authorized until this policy commit is pushed and synchronized. The next transaction is a separate parent-bound `shadow/shadow-1` authorization. Executable craft promotion, automatic retry, SP-003, Probe 24, full BM-012, and iron mining remain locked.
 
 ## Fixed Protocol
 

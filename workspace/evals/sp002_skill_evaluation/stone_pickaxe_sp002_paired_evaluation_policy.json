@@ -1,0 +1,203 @@
+{
+  "type": "stone_pickaxe_sp002_paired_evaluation_policy",
+  "schema_version": 1,
+  "id": "stone-pickaxe-sp002-paired-evaluation-v1",
+  "task_id": "SP-002",
+  "base_protocol": {
+    "id": "stone-pickaxe-skill-fixed-v1",
+    "path": "workspace/evals/stone_pickaxe_protocol.json",
+    "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+  },
+  "fixture": {
+    "id": "sp002-craft-stone-pickaxe-v1",
+    "path": "workspace/evals/stone_pickaxe_sp002_fixture.json",
+    "manifest_sha256": "2c24a363a1d92370c88bd5797570c6069673af37d014130f29f1cf2bab456e91",
+    "tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c"
+  },
+  "target_skill": {
+    "candidate_id": "a488cd61",
+    "skill_id": "learned:craft_stone_pickaxe",
+    "name": "learned_craft_stone_pickaxe",
+    "version": "1.0.0",
+    "required_status": "advisory",
+    "task_family": "crafting",
+    "record_path": "workspace/skills/custom_skills.jsonl",
+    "record_canonical_sha256": "7c9a596e5765bf7fddf6a0a49a1b4b96cf2f1a808f4e9a542ea9c3af436bcc28",
+    "queue_path": "workspace/skills/skill_candidates.jsonl",
+    "queue_record_canonical_sha256": "a93513998a700a11e07e7fcd5cd37d989e2ea0c5cae5654c919548ddbc5aa8fd",
+    "promotion_path": "workspace/evals/craft_stone_pickaxe_promotion.json",
+    "promotion_sha256": "b8b3adf1fc5f15d00d3ee71cea17258f6eb4265184e3da7b867e1e4845d79108",
+    "executable_promotion_gate_must_be_absent": true
+  },
+  "implementation": {
+    "evaluation_adapter": {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp002_skill_evaluation.py",
+      "sha256": "80c64f1dadc800f02badbd6e9d567cda9ffd8fa5bdf71dda3d5c7031e23858a9"
+    },
+    "evaluation_runner": {
+      "path": "scripts/stone_pickaxe_sp002_skill_evaluation.py",
+      "sha256": "e8ec51a1e08e78019502a117adf22c9ede5f247b6491816820b70ed6eb6f463c"
+    },
+    "controlled_runtime": {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp002_runtime.py",
+      "sha256": "93a2a22fbc221d6c8e1a68809ce9e70d81ce7895195eb85ce4ebc849e2255253"
+    },
+    "bridge_backend": {
+      "path": "src/bot/bot_server.js",
+      "sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
+    },
+    "evidence_attributes": {
+      "path": "workspace/evals/sp002_skill_evaluation/.gitattributes",
+      "sha256": "b710b35536a18774c6025498a4c622850d1d0085bbda4f21318f063587fdd22f"
+    },
+    "run_evidence_attributes": {
+      "path": "workspace/evals/sp002_skill_evaluation_runs/.gitattributes",
+      "sha256": "1ab03955667c7fe500ef934b26f8e8abf256fb0d980c097adc3ea0e2787f752f"
+    }
+  },
+  "fixed_controls": {
+    "goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+    "episode_timeout_s": 90,
+    "maximum_cycles": 6,
+    "maximum_actions": 1,
+    "per_action_timeout_s": 60,
+    "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+    "runtime_policy_id": "stone-pickaxe-sp002-controlled-runtime-v1",
+    "action_guard_policy_id": "stone-pickaxe-action-guard-v1",
+    "planner_identity": "llm-autonomous-planner-v1",
+    "action_backend": "mineflayer-bridge-v1",
+    "goal_verifier": "stone-pickaxe-sp002-post-action-machine-verifier-v1",
+    "skill_runtime": "bounded_action_template_v1",
+    "backend_craft_max_attempts": 1,
+    "action_verifier_enforced": true,
+    "action_controller_enforced": true,
+    "goal_verifier_enforced": true,
+    "stable_reobservation_required": true,
+    "automatic_retry_allowed": false,
+    "one_live_arm_at_a_time": true
+  },
+  "arms": {
+    "shadow": {
+      "replicate_ids": [
+        "shadow-1"
+      ],
+      "skill_execution_mode": "shadow",
+      "direct_skill_execution_allowed": false,
+      "minimum_passes": 1,
+      "authorization_allowed": true
+    },
+    "advisory": {
+      "replicate_ids": [
+        "advisory-1"
+      ],
+      "skill_execution_mode": "advisory",
+      "direct_skill_execution_allowed": false,
+      "minimum_passes": 1,
+      "authorization_allowed": true
+    },
+    "fallback": {
+      "replicate_ids": [
+        "fallback-1"
+      ],
+      "skill_execution_mode": "runtime",
+      "direct_skill_execution_allowed": false,
+      "expected_gate": "advisory_skill_is_not_runtime_executable",
+      "minimum_passes": 1,
+      "authorization_allowed": true
+    },
+    "candidate": {
+      "replicate_ids": [
+        "r1",
+        "r2",
+        "r3"
+      ],
+      "skill_execution_mode": "evaluation",
+      "direct_skill_execution_allowed": true,
+      "minimum_passes": 3,
+      "authorization_allowed": true
+    }
+  },
+  "pair_bindings": [
+    {
+      "pair_id": "sp002-craft-r1",
+      "replicate_id": "r1",
+      "baseline_episode_id": "sp002_live_20260718_193656_a6ce837e",
+      "baseline_session_id": "e6cebfbe-dfe",
+      "episode_path": "workspace/evals/sp002_runs/sp002_live_20260718_193656_a6ce837e/episode.json",
+      "episode_sha256": "1eb1e6e2ca8fc3ec4cea7c4a561f76c21ea77083b4dd613a30784c94e2a62a3b",
+      "verification_path": "workspace/evals/sp002_runs/sp002_live_20260718_193656_a6ce837e/verification.json",
+      "verification_sha256": "956fd3667a83c070ca98d83c3d97cd1facbddb0b1d2584c9eaab18ea03e3b37f",
+      "manifest_path": "workspace/evals/sp002_runs/sp002_live_20260718_193656_a6ce837e/manifest.json",
+      "manifest_sha256": "eed67891f5ae2926d4d612d131c72d43fc8a1deb58c0e554e69dc021baef63a4",
+      "session_path": "workspace/evals/sp002_runs/sp002_live_20260718_193656_a6ce837e/session.json",
+      "session_sha256": "e3d27ff0e4ccf5fcff5b33f32d7a01bfe5dc2c4a3fddee0949e4f9dd63ae7a90"
+    },
+    {
+      "pair_id": "sp002-craft-r2",
+      "replicate_id": "r2",
+      "baseline_episode_id": "sp002_live_20260718_201122_e277e1cb",
+      "baseline_session_id": "009dafd7-659",
+      "episode_path": "workspace/evals/sp002_runs/sp002_live_20260718_201122_e277e1cb/episode.json",
+      "episode_sha256": "c689646e4575904d317279294023019b16f014b9028c6c3e8a36f9488af5a6cd",
+      "verification_path": "workspace/evals/sp002_runs/sp002_live_20260718_201122_e277e1cb/verification.json",
+      "verification_sha256": "858ce1a45529584e6c2df0660705db02ba0379c213ae08a263d7312750d77198",
+      "manifest_path": "workspace/evals/sp002_runs/sp002_live_20260718_201122_e277e1cb/manifest.json",
+      "manifest_sha256": "834c6bf4ef18ff2263340038a52d320c71a6669411634f56e14ba58681d94457",
+      "session_path": "workspace/evals/sp002_runs/sp002_live_20260718_201122_e277e1cb/session.json",
+      "session_sha256": "386157c5ca53ab3a448ce70fa680d28df352ea3d44549ebcb463a9ebd944745d"
+    },
+    {
+      "pair_id": "sp002-craft-r3",
+      "replicate_id": "r3",
+      "baseline_episode_id": "sp002_live_20260718_203340_c9749b39",
+      "baseline_session_id": "102aa710-b41",
+      "episode_path": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/episode.json",
+      "episode_sha256": "9393e6ae2b3cb9846327f6eb39252207f59714ead9cb005be291cb6493652b8e",
+      "verification_path": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/verification.json",
+      "verification_sha256": "3207a35c5fa0c6ac189c4d0585f0661a4685bcf4ebddf4b135b4530bc26ae38e",
+      "manifest_path": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/manifest.json",
+      "manifest_sha256": "0ea1c93f99d679c1717c33a009f987ac0937fedb60fb8f84d275efd5715fae72",
+      "session_path": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/session.json",
+      "session_sha256": "d7b7bc490c9fb0032c951c490c43cfeac4f1fe08132d8478078b9be9040a4977"
+    }
+  ],
+  "authorization_contract": {
+    "authorization_predecessor_must_equal_parent": true,
+    "authorization_commit_must_be_pushed": true,
+    "clean_synchronized_main_required": true,
+    "single_episode": true,
+    "one_live_arm_at_a_time": true,
+    "automatic_retry_allowed": false,
+    "authorization_reuse_allowed": false
+  },
+  "promotion_gate": {
+    "minimum_independent_eligible_pairs": 3,
+    "baseline_and_candidate_must_pass": true,
+    "candidate_must_be_selected_exactly_once": true,
+    "candidate_must_execute_exactly_once": true,
+    "candidate_steps_must_be_verified": true,
+    "candidate_steps_must_be_reobserved": true,
+    "shadow_plan_required": true,
+    "advisory_hint_required": true,
+    "fallback_required": true,
+    "fixed_controls_must_match": true,
+    "no_completion_rate_regression": true,
+    "no_action_failure_regression": true,
+    "no_verifier_reject_regression": true,
+    "no_no_progress_regression": true,
+    "failed_runs_retained": true,
+    "in_place_version_rewrite_allowed": false,
+    "promoted_version": "1.0.1",
+    "rollback_target": "learned:craft_stone_pickaxe@1.0.0"
+  },
+  "evidence_policy": {
+    "live_minecraft_only": true,
+    "synthetic_evidence_count": 0,
+    "normal_runtime_permission": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false,
+    "base_protocol_mutation_allowed": false,
+    "prior_episode_mutation_allowed": false,
+    "skill_record_mutation_during_evaluation_allowed": false
+  }
+}
