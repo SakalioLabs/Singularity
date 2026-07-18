@@ -824,6 +824,187 @@ def test_skill_local_success_does_not_depend_on_broader_goal_success():
     print("PASS: learned-skill attribution uses its local verified postconditions, not unrelated goal suffixes")
 
 
+def test_r7_routed_subtask_family_survives_root_goal_finalization():
+    class RecordingLogger:
+        def __init__(self):
+            self.events = []
+
+        def log(self, event_type, data, level="INFO"):
+            self.events.append({"type": event_type, "data": data, "level": level})
+
+    tmpdir = tempfile.mkdtemp()
+    library = SkillLibrary(os.path.join(tmpdir, "skills"), persist=False)
+    template = {
+        "dsl_version": DSL_VERSION,
+        "max_actions": 6,
+        "parameters": {
+            "quantity": {"type": "integer", "default": 3, "minimum": 1, "maximum": 8},
+        },
+        "phases": [{
+            "id": "acquire_target",
+            "op": "acquire_block_drop",
+            "source_blocks": ["stone"],
+            "target_item": "cobblestone",
+            "target_count": {"parameter": "quantity", "default": 3},
+            "selector": "nearest_observed",
+            "search_radius": 32,
+            "interaction_range": 4.5,
+            "navigation_tolerance": 1.75,
+        }],
+    }
+    skill = library.create_skill(
+        "learned_acquire_cobblestone",
+        "Acquire three cobblestone from observed stone",
+        json.dumps(template),
+        persist=False,
+        skill_id="learned:acquire_cobblestone",
+        status="advisory",
+        task_family="mining",
+        postconditions={"inventory": {"cobblestone": 3}},
+        bounded_action_template=template,
+        transfer_scope={"task_family": "mining"},
+    )
+    authorization = {
+        "type": EVALUATION_AUTHORIZATION_TYPE,
+        "schema_version": 1,
+        "allowed": True,
+        "skill_id": skill.skill_id,
+        "experiment_id": "sp001_skill_candidate_r7_replay",
+        "single_target_skill": True,
+        "action_verifier_enforced": True,
+        "action_controller_enforced": True,
+        "goal_verifier_enforced": True,
+        "reobserve_each_cycle": True,
+        "fallback_to_agentic_planning": True,
+        "world_protocol_sha256": M1_PROTOCOL_SHA256,
+    }
+    agent = object.__new__(Agent)
+    agent.config = Config(
+        skill_execution_mode="evaluation",
+        target_skill_id=skill.skill_id,
+        skill_experiment_id="sp001_skill_candidate_r7_replay",
+        skill_evaluation_authorization=authorization,
+        skill_regressions_path=os.path.join(tmpdir, "regressions.json"),
+    )
+    agent.skill_library = library
+    agent.skill_learning_ledger = None
+    agent.session_logger = RecordingLogger()
+    agent._active_skill_execution = {}
+    agent._skill_fallback_goals = set()
+    routed_goal = "Dig stone for cobblestone"
+    plan = agent._learned_skill_plan(routed_goal, {
+        "position": {"x": 0.0, "y": 64.0, "z": 0.0},
+        "inventory": {"wooden_pickaxe": 1},
+        "nearby_blocks": [{
+            "name": "stone",
+            "position": {"x": 1, "y": 64, "z": 0},
+            "distance": 1.0,
+        }],
+    })
+
+    assert plan is not None and len(plan["actions"]) == 1
+    route_fingerprint = agent._goal_fingerprint(routed_goal)
+    assert agent._active_skill_execution["route_goal"] == routed_goal
+    assert agent._active_skill_execution["route_goal_fingerprint"] == route_fingerprint
+    assert agent._active_skill_execution["route_task_family"] == "mining"
+    assert plan["actions"][0]["skill_context"]["route_task_family"] == "mining"
+    agent._active_skill_execution["executed_count"] = 3
+    agent._finalize_active_skill_outcome(
+        "Gather 3 cobblestone with the wooden pickaxe",
+        True,
+        {"inventory": {"wooden_pickaxe": 1, "cobblestone": 3}},
+        {"termination_reason": "goal_verified"},
+    )
+
+    restored = library.get_skill_by_id(skill.skill_id)
+    assert restored.success_count == 1
+    assert restored.failure_count == 0
+    outcome = next(item for item in agent.session_logger.events if item["type"] == "skill_execution_outcome")
+    assert outcome["data"]["success"] is True
+    assert outcome["data"]["root_goal_task_family"] == "gathering"
+    assert outcome["data"]["route_task_family"] == "mining"
+    assert outcome["data"]["route_provenance_valid"] is True
+    assert outcome["data"]["route_scope_valid"] is True
+    assert outcome["data"]["lifecycle_outcome"]["context"]["goal_task_family"] == "mining"
+    print("PASS: r7 replay preserves the legally routed mining subtask through root-goal finalization")
+
+
+def test_skill_route_provenance_rejects_wrong_family_and_tampering():
+    class RecordingLogger:
+        def __init__(self):
+            self.events = []
+
+        def log(self, event_type, data, level="INFO"):
+            self.events.append({"type": event_type, "data": data, "level": level})
+
+    for route_goal, declared_family, declared_fingerprint, provenance_valid in (
+        ("Gather three oak logs", "gathering", "", True),
+        ("Dig stone for cobblestone", "gathering", "tampered", False),
+    ):
+        tmpdir = tempfile.mkdtemp()
+        library = SkillLibrary(os.path.join(tmpdir, "skills"), persist=False)
+        template = {
+            "dsl_version": DSL_VERSION,
+            "max_actions": 1,
+            "phases": [{
+                "id": "acquire_target",
+                "op": "acquire_block_drop",
+                "source_blocks": ["stone"],
+                "target_item": "cobblestone",
+                "target_count": 3,
+                "selector": "nearest_observed",
+            }],
+        }
+        skill = library.create_skill(
+            "learned_acquire_cobblestone",
+            "Acquire three cobblestone from observed stone",
+            json.dumps(template),
+            persist=False,
+            skill_id="learned:acquire_cobblestone",
+            status="advisory",
+            task_family="mining",
+            postconditions={"inventory": {"cobblestone": 3}},
+            bounded_action_template=template,
+            transfer_scope={"task_family": "mining"},
+        )
+        agent = object.__new__(Agent)
+        agent.config = Config(
+            skill_experiment_id="route-scope-negative",
+            skill_regressions_path=os.path.join(tmpdir, "regressions.json"),
+        )
+        agent.skill_library = library
+        agent.skill_learning_ledger = None
+        agent.session_logger = RecordingLogger()
+        agent._active_skill_execution = {
+            "skill_id": skill.skill_id,
+            "mode": "evaluation",
+            "executed_count": 1,
+            "failed_action_count": 0,
+            "effective_postconditions": {"inventory": {"cobblestone": 3}},
+            "route_goal": route_goal,
+            "route_goal_fingerprint": declared_fingerprint or agent._goal_fingerprint(route_goal),
+            "route_task_family": declared_family,
+        }
+        agent._finalize_active_skill_outcome(
+            "Gather 3 cobblestone with the wooden pickaxe",
+            True,
+            {"inventory": {"cobblestone": 3}},
+            {"termination_reason": "goal_verified"},
+        )
+
+        outcome = next(item for item in agent.session_logger.events if item["type"] == "skill_execution_outcome")
+        assert outcome["data"]["success"] is False
+        assert outcome["data"]["failure_type"] == "routing_error"
+        assert outcome["data"]["route_scope_valid"] is False
+        assert outcome["data"]["route_provenance_valid"] is provenance_valid
+        restored = library.get_skill_by_id(skill.skill_id)
+        assert restored.success_count == 0
+        assert restored.failure_count == 0
+        assert restored.observed_failure_count == 1
+        assert restored.failure_type_counts == {"routing_error": 1}
+    print("PASS: wrong-family and tampered learned-skill routes remain fail-closed")
+
+
 def test_runtime_gate_paired_promotion_and_version_rollback():
     tmpdir = tempfile.mkdtemp()
     skill_id = "learned:gather_wood"
@@ -1175,6 +1356,8 @@ def main():
     test_wooden_pickaxe_heldout_fixture_is_allowlisted_and_position_verified()
     test_controlled_fault_profiles_are_allowlisted_and_verifier_visible()
     test_skill_local_success_does_not_depend_on_broader_goal_success()
+    test_r7_routed_subtask_family_survives_root_goal_finalization()
+    test_skill_route_provenance_rejects_wrong_family_and_tampering()
     test_runtime_gate_paired_promotion_and_version_rollback()
     test_failure_attribution_demotes_and_quarantines_without_backend_penalty()
     test_heldout_transfer_and_m3_adapter()

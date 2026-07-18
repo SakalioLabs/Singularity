@@ -1,14 +1,14 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T07:56:32+08:00",
+  "generated_at": "2026-07-18T08:19:31+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_17_sp001_recovery_candidate_r7_failed",
-  "status": "sp001_recovery_candidate_r7_failed_evidence_pending_commit_push",
+  "phase": "phase_18_sp001_route_scope_provenance_fix",
+  "status": "sp001_route_scope_provenance_fix_offline_verified_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
@@ -613,6 +613,40 @@
       "root_cause": "skill_lifecycle_finalization_recomputed_route_scope_from_the_outer_gathering_goal_instead_of_the_legally_routed_mining_subtask_goal",
       "r8_authorized": false,
       "r9_authorized": false,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 17,
+      "name": "sp001_route_scope_provenance_fix",
+      "status": "offline_verified_pending_commit_push",
+      "evidence_commit": "2089ff8943ed7a465c843040b4372c16b9ec9f1c",
+      "root_cause": "skill_lifecycle_finalization_recomputed_route_scope_from_the_outer_root_goal_instead_of_the_legally_routed_subtask_goal",
+      "implementation": [
+        "freeze_route_goal_fingerprint_and_task_family_when_the_skill_is_selected",
+        "recompute_and_validate_frozen_route_provenance_during_lifecycle_finalization",
+        "retain_the_outer_root_goal_family_as_separate_evidence",
+        "reject_wrong_family_and_tampered_route_provenance_before_success_attribution"
+      ],
+      "agent_sha256": "c7425d93078ace3dfd2e5038a1eea4dad36c1e14ee300dcd219eb024ce1d5a95",
+      "test_sha256": "9516b4b454cefe4649f3b56aa65ea2f5fdedf7b8061df4347b91738273efca0d",
+      "r7_reproduction_test": "test_r7_routed_subtask_family_survives_root_goal_finalization",
+      "wrong_family_regression_test": "test_skill_route_provenance_rejects_wrong_family_and_tampering",
+      "repository_non_live_python_scripts": "42/42",
+      "fixed_node_suites": "6/6",
+      "python_compileall_passed": true,
+      "base_protocol_modified": false,
+      "v1_policy_or_report_modified": false,
+      "v2_policy_or_report_modified": false,
+      "v3_policy_or_report_modified": false,
+      "r1_evidence_modified": false,
+      "r4_evidence_modified": false,
+      "r7_evidence_modified": false,
+      "advisory_skill_record_modified": false,
+      "capability_report_modified": false,
+      "live_episode_run": false,
       "normal_runtime_permission": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
@@ -2389,7 +2423,7 @@
       "id": "sp001-skill-recovery-candidate-r7-route-scope-provenance",
       "phase": "sp001_recovery_paired_evaluation_v3",
       "classification": "sp001_skill_route_scope_root_goal_overwrite",
-      "status": "retained_candidate_failure_offline_fix_required",
+      "status": "retained_candidate_failure_offline_fixed",
       "attributable_to_learned_skill": false,
       "arm": "candidate",
       "replicate_id": "r7",
@@ -2523,7 +2557,39 @@
       "automatic_retry_allowed": false,
       "r8_authorized": false,
       "r9_authorized": false,
-      "single_next_offline_fix": "preserve_the_legally_routed_subtask_goal_family_for_lifecycle_route_scope_validation_while_retaining_root_goal_success_and_postcondition_evidence"
+      "single_next_offline_fix": "none_route_scope_provenance_fix_verified_define_a_new_non_overlapping_evaluation_window",
+      "offline_resolution": {
+        "status": "reproduced_fixed_and_tested",
+        "evidence_commit": "2089ff8943ed7a465c843040b4372c16b9ec9f1c",
+        "fix": "freeze_and_validate_the_legally_routed_subtask_goal_family_while_retaining_separate_root_goal_evidence",
+        "r7_reproduction_test": "test_r7_routed_subtask_family_survives_root_goal_finalization",
+        "wrong_family_regression_test": "test_skill_route_provenance_rejects_wrong_family_and_tampering",
+        "route_goal_fingerprint_recomputed": true,
+        "route_task_family_recomputed": true,
+        "root_goal_task_family_preserved_separately": true,
+        "wrong_family_route_rejected": true,
+        "tampered_route_provenance_rejected": true,
+        "routing_error_remains_non_attributable_to_skill_quality": true,
+        "regressions": {
+          "repository_non_live_python_scripts": "42/42",
+          "fixed_node_suites": "6/6",
+          "python_compileall": "passed"
+        },
+        "base_protocol_modified": false,
+        "v1_evaluation_artifacts_modified": false,
+        "v2_evaluation_artifacts_modified": false,
+        "v3_evaluation_artifacts_modified": false,
+        "r1_evidence_modified": false,
+        "r4_evidence_modified": false,
+        "r7_evidence_modified": false,
+        "advisory_skill_record_modified": false,
+        "capability_report_modified": false,
+        "live_episode_run": false,
+        "normal_runtime_permission": false,
+        "counts_toward_skill_gate": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      }
     }
   ],
   "eligible_successes": [
@@ -2855,8 +2921,8 @@
       "m4_deadline_passed": true
     },
     "repository_non_live_python_scripts": {
-      "passed": 41,
-      "total": 41
+      "passed": 42,
+      "total": 42
     },
     "fixed_node_suites": {
       "passed": 6,
@@ -2973,20 +3039,26 @@
     "sp001_skill_regressions_sha256": "3b777e72ccc49720bf6cfc6747f6050049c39e453bdd28872717a65b894e1562",
     "sp001_v3_v1_policy_identity_preserved": true,
     "sp001_v3_v2_policy_identity_preserved": true,
-    "sp001_v3_live_episode_run": false,
+    "sp001_v3_live_episode_run": true,
+    "sp001_route_scope_provenance_fix_passed": true,
+    "sp001_route_scope_r7_reproduction_test": "test_r7_routed_subtask_family_survives_root_goal_finalization",
+    "sp001_route_scope_wrong_family_regression_test": "test_skill_route_provenance_rejects_wrong_family_and_tampering",
+    "sp001_route_scope_root_goal_family_preserved": true,
+    "sp001_route_scope_tamper_rejection_passed": true,
+    "sp001_route_scope_fix_live_episode_run": false,
     "sp001_paired_candidate_pair_count": 0,
     "sp001_paired_decision": "retain_advisory"
   },
   "next_required_gate": {
-    "id": "sp001_candidate_r7_route_scope_provenance_fix",
+    "id": "sp001_candidate_recovery_window_v4",
     "authorization": false,
     "prerequisites": [
-      "r7_failure_evidence_commit_pushed",
-      "r7_root_goal_route_scope_overwrite_reproduced_offline",
-      "routed_subtask_goal_family_preserved_for_lifecycle_finalization",
-      "real_wrong_family_routes_still_fail_closed",
+      "route_scope_provenance_fix_commit_pushed",
+      "r7_failure_reproduced_and_fixed_offline",
+      "wrong_family_and_tampered_routes_fail_closed",
       "v1_v2_v3_and_r1_r4_r7_evidence_remain_immutable",
-      "new_non_overlapping_evaluation_window_defined_after_fix"
+      "fresh_candidate_and_pair_ids_do_not_overlap_r1_through_r9",
+      "new_window_passes_all_offline_policy_and_evidence_checks"
     ],
     "arm": null,
     "replicate_id": null,

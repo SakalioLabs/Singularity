@@ -3688,6 +3688,32 @@ class Agent:
                 "runtime_influence": bool(self._active_skill_execution),
             })
             return None
+
+        route_goal = str(goal or "").strip()
+        route_goal_fingerprint = goal_key
+        route_task_family = self.skill_library.infer_task_family(route_goal)
+        route_scope_valid = self.skill_library.skill_transfer_scope_allows(
+            skill,
+            route_task_family,
+        )
+        if not route_scope_valid:
+            self._skill_fallback_goals.add(goal_key)
+            if self._active_skill_execution:
+                self._active_skill_execution["fallback_reason"] = "skill_route_scope_rejected"
+                self._active_skill_execution["failure_type"] = "routing_error"
+            self.session_logger.log("skill_fallback", {
+                "goal": route_goal,
+                "skill": identity,
+                "mode": mode,
+                "reason": "skill_route_scope_rejected",
+                "failure_type": "routing_error",
+                "route_goal_fingerprint": route_goal_fingerprint,
+                "route_task_family": route_task_family,
+                "route_scope_valid": False,
+                "before_execution": True,
+            })
+            return None
+
         if plan.get("status") == "fallback":
             fallback_reason = str(plan.get("fallback_reason") or "skill_plan_fallback")
             fallback_failure_type = (
@@ -3706,6 +3732,9 @@ class Agent:
                 "failed_action_count": 0,
                 "fallback_reason": fallback_reason,
                 "failure_type": fallback_failure_type,
+                "route_goal": route_goal,
+                "route_goal_fingerprint": route_goal_fingerprint,
+                "route_task_family": route_task_family,
             }
             self.session_logger.log("skill_fallback", {
                 "goal": goal,
@@ -3774,11 +3803,17 @@ class Agent:
                 "fallback_reason": "",
                 "bound_parameters": dict(plan.get("bound_parameters", {}) or {}),
                 "effective_postconditions": dict(plan.get("effective_postconditions", {}) or {}),
+                "route_goal": route_goal,
+                "route_goal_fingerprint": route_goal_fingerprint,
+                "route_task_family": route_task_family,
             }
             self.session_logger.log("skill_selected", {
                 "goal": goal,
                 "skill": identity,
                 "mode": mode,
+                "route_goal_fingerprint": route_goal_fingerprint,
+                "route_task_family": route_task_family,
+                "route_scope_valid": True,
                 "experiment_id": str(getattr(self.config, "skill_experiment_id", "") or ""),
                 "runtime_influence": True,
                 "evaluation_only": mode == "evaluation",
@@ -3800,6 +3835,9 @@ class Agent:
                 "experiment_id": str(getattr(self.config, "skill_experiment_id", "") or ""),
                 "goal": goal,
                 "goal_fingerprint": goal_key,
+                "route_goal": route_goal,
+                "route_goal_fingerprint": route_goal_fingerprint,
+                "route_task_family": route_task_family,
             }
             actions.append(action)
         bounded_plan = {
@@ -3925,8 +3963,20 @@ class Agent:
             terminal_observation or {},
             effective_postconditions=active.get("effective_postconditions", {}),
         )
-        goal_family = self.skill_library.infer_task_family(goal)
-        route_scope_valid = self.skill_library.skill_transfer_scope_allows(skill, goal_family)
+        root_goal_family = self.skill_library.infer_task_family(goal)
+        route_goal = str(active.get("route_goal") or goal or "").strip()
+        route_goal_fingerprint = self._goal_fingerprint(route_goal)
+        route_task_family = self.skill_library.infer_task_family(route_goal)
+        declared_route_fingerprint = str(active.get("route_goal_fingerprint") or "").strip()
+        declared_route_family = str(active.get("route_task_family") or "").strip().lower()
+        route_provenance_valid = bool(
+            (not declared_route_fingerprint or declared_route_fingerprint == route_goal_fingerprint)
+            and (not declared_route_family or declared_route_family == route_task_family)
+        )
+        route_scope_valid = bool(
+            route_provenance_valid
+            and self.skill_library.skill_transfer_scope_allows(skill, route_task_family)
+        )
         executed = int(active.get("executed_count", 0) or 0)
         failed_actions = int(active.get("failed_action_count", 0) or 0)
         controlled_fault = bool(active.get("controlled_failure_only"))
@@ -3964,7 +4014,12 @@ class Agent:
             "postconditions_met": postconditions_met,
             "bound_parameters": dict(active.get("bound_parameters", {}) or {}),
             "effective_postconditions": dict(active.get("effective_postconditions", {}) or {}),
-            "goal_task_family": goal_family,
+            "goal_task_family": route_task_family,
+            "root_goal_task_family": root_goal_family,
+            "route_goal": route_goal,
+            "route_goal_fingerprint": route_goal_fingerprint,
+            "route_task_family": route_task_family,
+            "route_provenance_valid": route_provenance_valid,
             "route_scope_valid": route_scope_valid,
             "missing_postconditions": missing,
             "executed_action_count": executed,
@@ -4003,6 +4058,12 @@ class Agent:
             "first_failed_transition": active.get("first_failed_transition", ""),
             "failure_type": failure_type,
             "attribution_confidence": confidence,
+            "root_goal_task_family": root_goal_family,
+            "route_goal": route_goal,
+            "route_goal_fingerprint": route_goal_fingerprint,
+            "route_task_family": route_task_family,
+            "route_provenance_valid": route_provenance_valid,
+            "route_scope_valid": route_scope_valid,
             "controlled_failure_only": controlled_fault,
             "counts_toward_skill_lifecycle": not controlled_fault,
             "lifecycle_outcome": outcome,
