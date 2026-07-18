@@ -17,9 +17,9 @@ This project isolates two bounded Minecraft capabilities:
 | SP-002 Craft Stone Pickaxe | 3 | 3 | Extraction ready; `learned:craft_stone_pickaxe` not created |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 57 SP-002 controlled live convergence complete at 3/3. Isolated v5 remains frozen at 3/3, executable `learned:acquire_cobblestone@1.1.0` and its runtime gate remain pushed, and advisory `1.0.0` remains immutable. SP-002 has three distinct eligible single-action, single-attempt, stable-reobservation successes; its candidate extraction gate is met, but no craft skill record exists yet**.
+Current phase: **Phase 58 SP-002 candidate-source tooling passes offline. Isolated v5 remains frozen at 3/3, executable `learned:acquire_cobblestone@1.1.0` and its runtime gate remain pushed, and advisory `1.0.0` remains immutable. SP-002 has three distinct eligible single-action, single-attempt, stable-reobservation successes; preview candidate `a488cd61` matches the exact craft contract, but no real craft skill record exists yet**.
 
-Current authorization: **none**. Replicates `r1..r15` and all nine SP-002 fixture/live authorizations are excluded or consumed and cannot be reused. The next permitted transaction is offline candidate extraction after the Phase 57 evidence commit is pushed and synchronized. Additional SP-002 evidence episodes, automatic retry, support reruns, SP-003, Probe 24, full BM-012, and iron mining remain locked.
+Current authorization: **none**. Replicates `r1..r15` and all nine SP-002 fixture/live authorizations are excluded or consumed and cannot be reused. The next permitted transaction is offline candidate extraction after the Phase 58 tooling commit is pushed and synchronized. Additional SP-002 evidence episodes, automatic retry, support reruns, SP-003, Probe 24, full BM-012, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -129,7 +129,7 @@ The 30 numbered cases cover:
 - Fixture preparation permits ordinary survival wood/table/wooden-pickaxe actions but rejects stone mining, duplicate wooden-pickaxe craft, and wooden-pickaxe craft without an observed table within 4.5 blocks. Its output is non-counting.
 - SP-001 keeps learned skills off and allows only bounded observation/navigation, exact wooden-pickaxe equip, and the nearest reachable observed `stone` dig. Every dig requires strict tool, block-removal, pickup, and pre/post-observation proof.
 - `Agent.run_goal` can now bind Planner and ActionController to one supplied absolute deadline and suppress every action beyond a supplied total budget. Existing callers retain their previous behavior when those optional bounds are absent.
-- Offline status: 34/34 protocol cases and 32/32 runtime cases pass. The repository-wide non-live regression gate is rerun before each evidence or offline-fix commit.
+- Offline status: 36/36 protocol cases and 32/32 runtime cases pass. The repository-wide non-live regression gate is rerun before each evidence or offline-fix commit.
 - Fixture session `sp_fixture_prep_20260715_143222_b0e58483` exposed the first blocker: Planner call 0 consumed the completion budget as hidden reasoning, returned zero response bytes, and caused `empty_plan` before any action. The fixed request path now sends thinking-disabled controls, uses one deadline-bounded zero-retry call, rejects empty output, and independently audits Planner controls before fixture sealing or SP-001 eligibility.
 - Fixture session `sp_fixture_prep_20260715_152529_b99f05dd` then proved those request controls on its first two calls and executed two successful moves. Its second plan nevertheless contained nine actions; the first dig suffix omitted the exact `block` field and was rejected before execution. The old generic envelope also admitted three `recipe` aliases and created ten tasks across two root IDs. Call 2 then reached `finish_reason=length` with truncated JSON, so the session stopped at `empty_plan` without retry.
 - The second repair gives the stone protocol a dedicated compact schema: one root plan, two to six root subtasks, no continuation/replan subtasks, exactly one immediate planning action, canonical exact parameters, bounded reasoning, mode-bound compact observations, and failure reason propagation into the same root. Missing `dig.block`, `recipe`, unbounded action lists, duplicate roots, and malformed terminal output all fail before action execution.
@@ -184,8 +184,8 @@ The 30 numbered cases cover:
 | 2. SP-001 controlled live convergence | Complete at 3/3; evidence pushed at `6c8c995` |
 | 3. SP-001 3/3 gate | Complete; evidence pushed at `6c8c995` |
 | 4. Acquire candidate/advisory | Complete; advisory pushed at `822057b` |
-| 5. SP-002 controlled live convergence | Complete at 3/3; Phase 57 evidence pending push |
-| 6. Craft candidate/advisory | Extraction unlocked after Phase 57 evidence push; not started |
+| 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
+| 6. Craft candidate/advisory | Source tooling passes offline; extraction unlocked after Phase 58 push |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
 | 8. SP-003 composite acceptance | Locked |
 

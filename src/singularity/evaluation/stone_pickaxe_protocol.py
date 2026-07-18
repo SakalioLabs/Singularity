@@ -77,6 +77,10 @@ def build_prospective_skill_candidate(
     issues: list[str] = []
     if len(successes) < 3:
         issues.append("three_eligible_live_successes_required")
+    expected_evidence_count = {
+        "SP-001": 10,
+        "SP-002": 17,
+    }.get(normalized_task_id, 0)
 
     episode_ids: list[str] = []
     session_ids: list[str] = []
@@ -108,10 +112,50 @@ def build_prospective_skill_candidate(
             issues.append(f"{prefix}:goal_completed")
         if int(goal_result.get("failed_action_count", 0) or 0) != 0:
             issues.append(f"{prefix}:action_failure")
+        if normalized_task_id == "SP-002":
+            exact_machine_values = {
+                "craft_action_count": 1,
+                "backend_craft_attempt_count": 1,
+                "backend_craft_retry_count": 0,
+                "cobblestone_delta": -3,
+                "stick_delta": -2,
+                "stone_pickaxe_delta": 1,
+                "terminal_cobblestone": 0,
+                "terminal_stick": 0,
+                "terminal_stone_pickaxe": 1,
+                "authoritative_inventory_refresh": True,
+                "action_failure_count": 0,
+            }
+            for field, expected in exact_machine_values.items():
+                if verification_summary.get(field) != expected:
+                    issues.append(f"{prefix}:sp002_machine:{field}")
+            planner_summary = success.get("planner_decision", {})
+            if not isinstance(planner_summary, dict):
+                planner_summary = {}
+            exact_planner_values = {
+                "planner_call_count": 1,
+                "schema_valid_planner_call_count": 1,
+                "planner_request_controls_passed": True,
+                "root_subtask_count": 2,
+                "root_dependency_edge_passed": True,
+                "selected_skill_count": 0,
+                "forbidden_intervention_count": 0,
+                "automatic_retry_count": 0,
+            }
+            for field, expected in exact_planner_values.items():
+                if planner_summary.get(field) != expected:
+                    issues.append(f"{prefix}:sp002_planner:{field}")
+            task_graph = success.get("task_graph_proof", {})
+            if not isinstance(task_graph, dict):
+                task_graph = {}
+            if task_graph.get("task_count") != 2 or task_graph.get("completed_task_count") != 2:
+                issues.append(f"{prefix}:sp002_task_graph")
+            if goal_result.get("action_count") != 1:
+                issues.append(f"{prefix}:sp002_action_count")
 
         evidence = success.get("evidence", [])
-        if not isinstance(evidence, list) or len(evidence) != 10:
-            issues.append(f"{prefix}:ten_evidence_files")
+        if not isinstance(evidence, list) or len(evidence) != expected_evidence_count:
+            issues.append(f"{prefix}:evidence_file_count_{expected_evidence_count}")
             evidence = []
         evidence_by_path: dict[str, dict] = {}
         for record in evidence:

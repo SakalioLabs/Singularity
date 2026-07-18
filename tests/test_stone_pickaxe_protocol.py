@@ -780,6 +780,129 @@ def test_34_real_sp001_executable_promotion_is_append_only_and_runtime_gated():
     assert selected.version == "1.1.0"
 
 
+def test_35_sp002_candidate_uses_exact_contract_and_three_craft_sources():
+    ledger = _load_ledger()
+    candidate = build_prospective_skill_candidate("SP-002", ledger["eligible_successes"])
+    contract = prospective_skill_contract("SP-002")
+    assert candidate.skill_id == "learned:craft_stone_pickaxe"
+    assert candidate.name == "learned_craft_stone_pickaxe"
+    assert candidate.preconditions == contract["preconditions"]
+    assert candidate.required_observations == contract["required_observations"]
+    assert candidate.postconditions == contract["postconditions"]
+    assert candidate.bounded_action_template == contract["bounded_action_template"]
+    assert len(candidate.source_session_ids) == 3
+    assert len(candidate.source_environment_ids) == 3
+    assert candidate.success_count == 3
+    assert all(
+        source["transition_count"] == 1
+        for source in candidate.provenance["sources"]
+    )
+    assert validate_candidate_matches_prospective_contract("SP-002", candidate)["passed"]
+    with tempfile.TemporaryDirectory() as directory:
+        extractor = SkillExtractor(SkillLibrary(directory, persist=False), auto_promote=False)
+        report = extractor.validate_candidate_for_promotion(candidate)
+    assert report.decision == "promote_advisory"
+    assert report.status == "advisory_ready"
+
+    tampered = json.loads(json.dumps(ledger["eligible_successes"]))
+    sp002 = [item for item in tampered if item.get("task_id") == "SP-002"]
+    sp002[0]["evidence"].pop()
+    try:
+        build_prospective_skill_candidate("SP-002", tampered)
+    except ValueError as exc:
+        assert "evidence_file_count_17" in str(exc)
+    else:
+        raise AssertionError("SP-002 candidate accepted an incomplete evidence bundle")
+
+
+def test_36_sp002_lifecycle_separates_candidate_and_advisory():
+    workspace = REPOSITORY_ROOT / "workspace"
+    script = REPOSITORY_ROOT / "scripts" / "stone_pickaxe_skill_lifecycle.py"
+    with tempfile.TemporaryDirectory(dir=workspace) as directory:
+        root = Path(directory)
+        storage = root / "skills"
+        storage.mkdir()
+        queue = root / "candidates.jsonl"
+        learning_ledger = root / "learning.json"
+        promotion = root / "promotion.json"
+        relative = lambda path: path.relative_to(REPOSITORY_ROOT).as_posix()
+        common = [
+            "--task-id",
+            "SP-002",
+            "--queue",
+            relative(queue),
+            "--learning-ledger",
+            relative(learning_ledger),
+            "--storage-path",
+            relative(storage),
+            "--output",
+            relative(promotion),
+        ]
+        environment = {**os.environ, "PYTHONPATH": str(REPOSITORY_ROOT / "src")}
+        subprocess.run(
+            [sys.executable, str(script), "extract-candidate", *common],
+            cwd=REPOSITORY_ROOT,
+            env=environment,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        candidate_report = json.loads(promotion.read_text(encoding="utf-8"))
+        assert candidate_report["stage"] == "candidate"
+        assert candidate_report["skill_id"] == "learned:craft_stone_pickaxe"
+        assert candidate_report["artifacts"]["custom_skill_mutated"] is False
+        assert not (storage / "custom_skills.jsonl").exists()
+
+        subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                "promote-advisory",
+                *common,
+                "--candidate-id",
+                candidate_report["candidate_id"],
+            ],
+            cwd=REPOSITORY_ROOT,
+            env=environment,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        advisory_report = json.loads(promotion.read_text(encoding="utf-8"))
+        assert advisory_report["stage"] == "advisory"
+        assert [item["stage"] for item in advisory_report["lifecycle_history"]] == [
+            "candidate",
+            "advisory",
+        ]
+        skills = [
+            json.loads(line)
+            for line in (storage / "custom_skills.jsonl").read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        matching = [
+            item for item in skills
+            if item.get("skill_id") == "learned:craft_stone_pickaxe"
+        ]
+        assert len(matching) == 1
+        assert matching[0]["status"] == "advisory"
+
+        executable = subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                "promote-executable",
+                "--task-id",
+                "SP-002",
+            ],
+            cwd=REPOSITORY_ROOT,
+            env=environment,
+            capture_output=True,
+            text=True,
+        )
+        assert executable.returncode != 0
+        assert "invalid choice: 'SP-002'" in executable.stderr
+
+
 if __name__ == "__main__":
     tests = [
         value

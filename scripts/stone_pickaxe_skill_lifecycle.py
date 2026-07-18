@@ -42,6 +42,10 @@ DEFAULT_QUEUE = "workspace/skills/skill_candidates.jsonl"
 DEFAULT_LEARNING_LEDGER = "workspace/evals/skill_learning_ledger.json"
 DEFAULT_STORAGE = "workspace/skills"
 DEFAULT_PROMOTION = "workspace/evals/acquire_cobblestone_promotion.json"
+DEFAULT_PROMOTIONS = {
+    "SP-001": DEFAULT_PROMOTION,
+    "SP-002": "workspace/evals/craft_stone_pickaxe_promotion.json",
+}
 DEFAULT_PAIRED_REPORT = (
     "workspace/evals/sp001_skill_evaluation_v5/"
     "acquire_cobblestone_paired_evaluation_v5.json"
@@ -61,12 +65,13 @@ def parse_args() -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command", required=True)
     for command in ("extract-candidate", "promote-advisory", "promote-executable"):
         subparser = subparsers.add_parser(command)
-        subparser.add_argument("--task-id", choices=["SP-001"], default="SP-001")
+        task_choices = ("SP-001",) if command == "promote-executable" else ("SP-001", "SP-002")
+        subparser.add_argument("--task-id", choices=task_choices, default="SP-001")
         subparser.add_argument("--failure-ledger", default=DEFAULT_FAILURE_LEDGER)
         subparser.add_argument("--queue", default=DEFAULT_QUEUE)
         subparser.add_argument("--learning-ledger", default=DEFAULT_LEARNING_LEDGER)
         subparser.add_argument("--storage-path", default=DEFAULT_STORAGE)
-        subparser.add_argument("--output", default=DEFAULT_PROMOTION)
+        subparser.add_argument("--output", default="")
     subparsers.choices["promote-advisory"].add_argument("--candidate-id", default="")
     executable = subparsers.choices["promote-executable"]
     executable.set_defaults(output=DEFAULT_EXECUTABLE_PROMOTION)
@@ -285,7 +290,7 @@ def run_extract_candidate(args: argparse.Namespace) -> int:
     queue_path = repository_path(args.queue)
     learning_ledger_path = repository_path(args.learning_ledger)
     storage_path = repository_path(args.storage_path, must_exist=True)
-    output_path = repository_path(args.output)
+    output_path = repository_path(args.output or DEFAULT_PROMOTIONS[args.task_id])
     if output_path.exists():
         raise FileExistsError(f"candidate promotion artifact already exists: {relative_path(output_path)}")
 
@@ -350,7 +355,10 @@ def run_promote_advisory(args: argparse.Namespace) -> int:
     queue_path = repository_path(args.queue, must_exist=True)
     learning_ledger_path = repository_path(args.learning_ledger)
     storage_path = repository_path(args.storage_path, must_exist=True)
-    output_path = repository_path(args.output, must_exist=True)
+    output_path = repository_path(
+        args.output or DEFAULT_PROMOTIONS[args.task_id],
+        must_exist=True,
+    )
     queue = SkillCandidateQueue(str(queue_path))
     candidate = exact_candidate(queue, args.task_id, args.candidate_id)
     match = validate_candidate_matches_prospective_contract(args.task_id, candidate)
