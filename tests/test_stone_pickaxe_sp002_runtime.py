@@ -2,13 +2,16 @@ import hashlib
 import json
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 from singularity.core.planner import Planner
-from singularity.core.task_system import TaskSystem
+from singularity.core.task_system import TaskStatus, TaskSystem
 from singularity.evaluation.stone_pickaxe_protocol import PROTOCOL, PROTOCOL_SHA256
 from singularity.evaluation.stone_pickaxe_sp002_runtime import (
+    CRAFT_INVENTORY_REFRESH_POLICY_ID,
     SP002_GOAL,
     SP002_RUNTIME_POLICY_ID,
+    StonePickaxeRuntimeAgent,
     audit_sp002_bridge_protocol_status,
     audit_sp002_fixture,
     build_runtime_config,
@@ -124,14 +127,35 @@ def _craft_event(*, attempts=1, retry_count=0, post_pickaxe=1):
                 "success": True,
                 "item": "stone_pickaxe",
                 "requested_output_count": 1,
+                "craft_calls": 1,
                 "inventory_before": {"cobblestone": 3, "stick": 2},
                 "inventory_after": {"stone_pickaxe": post_pickaxe},
                 "inventory_delta": {"stone_pickaxe": post_pickaxe},
+                "inventory_signed_delta": {
+                    "cobblestone": -3,
+                    "stick": -2,
+                    **({"stone_pickaxe": post_pickaxe} if post_pickaxe else {}),
+                },
                 "craft_attempts": attempts,
                 "craft_retry_count": retry_count,
+                "attempts": [
+                    {"attempt": index + 1, "success": True}
+                    for index in range(attempts)
+                ],
                 "stable_ms": 800,
                 "crafting_table_found": True,
                 "crafting_table_position": {"x": 1, "y": 64, "z": 0},
+                "authoritative_inventory_refresh": {
+                    "policy_id": CRAFT_INVENTORY_REFRESH_POLICY_ID,
+                    "attempted": True,
+                    "success": True,
+                    "authoritative": True,
+                    "source": "crafting_table_window_items",
+                    "window_items_observed": True,
+                    "inventory_before": {"stick": 2, "stone_pickaxe": post_pickaxe},
+                    "inventory_after": {"stone_pickaxe": post_pickaxe},
+                    "inventory_signed_delta": {"stick": -2},
+                },
                 "action_verification": {"status": "accept"},
                 "action_started_monotonic": 10.5,
                 "action_finished_monotonic": 11.0,
@@ -402,6 +426,14 @@ def test_07_synthetic_sp002_episode_passes_full_machine_verifier():
     transition = episode["transitions"][0]
     assert transition["crafting_table_interaction"]["observed"] is True
     assert transition["backend_result"]["single_attempt"] is True
+    assert transition["backend_result"]["inventory_signed_delta"] == {
+        "cobblestone": -3,
+        "stick": -2,
+        "stone_pickaxe": 1,
+    }
+    assert transition["backend_result"]["authoritative_inventory_refresh"][
+        "window_items_observed"
+    ] is True
 
 
 def test_08_transient_stable_observation_fails_closed():
@@ -670,6 +702,17 @@ def test_16_live_root_graph_contract_replays_retained_failure():
     assert "Never return subtasks=[] on this root planning call" in user_prompt
     assert "only craft stone_pickaxe count=1" in user_prompt
 
+    missing_table = _raw_observation(table=False)
+    missing_table["stone_pickaxe_runtime_mode"] = "sp002"
+    blocked_root_prompt = planner._build_planning_prompt(
+        SP002_GOAL,
+        missing_table,
+        "",
+    )
+    assert "fixture_ready=false" in blocked_root_prompt
+    assert "Return status=blocked with actions=[]" in blocked_root_prompt
+    assert "root_graph_required=false" in blocked_root_prompt
+
     retained_root_shape = {
         "schema_version": "stone-pickaxe-plan-v1",
         "plan_kind": "root",
@@ -735,6 +778,192 @@ def test_16_live_root_graph_contract_replays_retained_failure():
     )
     assert "SP-002 live root graph gate: root_graph_required=false" in continuation_prompt
     assert "This call must return subtasks=[]" in continuation_prompt
+    assert "target_achieved=false" in continuation_prompt
+    assert "return status=blocked with actions=[]" in continuation_prompt
+    assert "Status=planning is forbidden" in continuation_prompt
+
+    retained_continuation_shape = {
+        "schema_version": "stone-pickaxe-plan-v1",
+        "plan_kind": "continuation",
+        "goal": SP002_GOAL,
+        "status": "planning",
+        "reasoning": "The target already exists, so no action is needed.",
+        "subtasks": [],
+        "actions": [],
+    }
+    retained_report = Planner._validate_stone_pickaxe_plan_envelope(
+        retained_continuation_shape,
+        SP002_GOAL,
+        "continuation",
+    )
+    assert not retained_report["passed"]
+    assert retained_report["issues"] == ["planning_action_count_must_equal_one"]
+
+    achieved_observation = _raw_observation(
+        cobblestone=0,
+        stick=0,
+        stone_pickaxe=1,
+        table=True,
+    )
+    achieved_observation["stone_pickaxe_runtime_mode"] = "sp002"
+    achieved_prompt = planner._build_planning_prompt(
+        SP002_GOAL,
+        achieved_observation,
+        "",
+    )
+    assert "target_achieved=true" in achieved_prompt
+    assert "return status=complete with actions=[]" in achieved_prompt
+    complete_shape = dict(retained_continuation_shape)
+    complete_shape["status"] = "complete"
+    complete_shape["reasoning"] = "Exact target inventory is machine-observed."
+    assert Planner._validate_stone_pickaxe_plan_envelope(
+        complete_shape,
+        SP002_GOAL,
+        "continuation",
+    )["passed"]
+
+
+def test_17_sp002_post_action_goal_verifier_requires_authoritative_exact_delta():
+    agent = object.__new__(StonePickaxeRuntimeAgent)
+    agent.stone_pickaxe_runtime_mode = "sp002"
+    agent._episode_deadline_reached = lambda: False
+    logged = []
+    agent._log_goal_verification = lambda verification, context: logged.append(
+        (verification, context)
+    )
+
+    event_data = _craft_event()["data"]
+    recent_action = {
+        "action": event_data["action"],
+        "result": event_data["result"],
+        "before_observation": event_data["pre_observation"],
+        "after_observation": event_data["post_observation"],
+    }
+    verified, verification = StonePickaxeRuntimeAgent._goal_is_verified(
+        agent,
+        SP002_GOAL,
+        event_data["post_observation"],
+        {"phase": "post_action"},
+        [recent_action],
+    )
+    assert verified
+    assert verification.achieved
+    assert verification.inventory_delta == {
+        "cobblestone": -3,
+        "stick": -2,
+        "stone_pickaxe": 1,
+    }
+    assert logged[-1][1]["accepted"] is True
+
+    ghost_event = json.loads(json.dumps(recent_action))
+    ghost_inventory = {"stick": 2, "stone_pickaxe": 1}
+    ghost_event["result"]["inventory_after"] = dict(ghost_inventory)
+    ghost_event["result"]["inventory_signed_delta"] = {
+        "cobblestone": -3,
+        "stone_pickaxe": 1,
+    }
+    ghost_event["result"]["authoritative_inventory_refresh"][
+        "inventory_after"
+    ] = dict(ghost_inventory)
+    ghost_event["after_observation"]["inventory"] = dict(ghost_inventory)
+    verified, ghost_verification = StonePickaxeRuntimeAgent._goal_is_verified(
+        agent,
+        SP002_GOAL,
+        ghost_event["after_observation"],
+        {"phase": "post_action"},
+        [ghost_event],
+    )
+    assert not verified
+    assert "exact_authoritative_inventory_after" in ghost_verification.missing
+    assert "exact_signed_inventory_delta" in ghost_verification.missing
+    assert "exact_current_observation" in ghost_verification.missing
+
+    verified, pre_plan_verification = StonePickaxeRuntimeAgent._goal_is_verified(
+        agent,
+        SP002_GOAL,
+        event_data["pre_observation"],
+        {"phase": "pre_plan"},
+        None,
+    )
+    assert not verified
+    assert "one_recent_action" in pre_plan_verification.missing
+
+
+def test_18_sp002_pre_action_reconciliation_binds_craft_node():
+    tasks = TaskSystem()
+    verify_inputs = tasks.create_task(
+        "Verify exact materials and crafting table",
+        status=TaskStatus.ACCEPTED,
+        success_criteria={
+            "inventory": {"cobblestone": 3, "stick": 2},
+            "nearby_block_present": "crafting_table",
+        },
+    )
+    craft_pickaxe = tasks.create_task(
+        "Craft exactly one stone pickaxe",
+        status=TaskStatus.ACCEPTED,
+        preconditions={
+            "inventory": {"cobblestone": 3, "stick": 2},
+            "nearby_block_present": "crafting_table",
+        },
+        success_criteria={"inventory": {"stone_pickaxe": 1}},
+        depends_on=[verify_inputs.id],
+    )
+    transitions = []
+    events = []
+    agent = object.__new__(StonePickaxeRuntimeAgent)
+    agent.stone_pickaxe_runtime_mode = "sp002"
+    agent.config = SimpleNamespace(planner_protocol=PROTOCOL["id"])
+    agent.task_system = tasks
+    agent.current_goal = SP002_GOAL
+    agent._flush_task_state_transitions = lambda context: transitions.append(context)
+    agent.session_logger = SimpleNamespace(
+        log=lambda event_type, payload: events.append((event_type, payload)),
+        log_observation=lambda observation: None,
+    )
+    post_observation = _raw_observation(
+        cobblestone=0,
+        stick=0,
+        stone_pickaxe=1,
+    )
+    agent._observe = lambda: post_observation
+    agent._update_m4_shelter_relocation = lambda action, result: None
+    agent._record_m4_episode_block_delta = lambda action, result: None
+    agent._record_m4_post_place_machine_observation = lambda action, result: None
+    agent._write_memory_context = lambda *args, **kwargs: None
+    agent._obs_summary = lambda observation: {}
+    agent.explorer = SimpleNamespace(record_position=lambda position: None)
+    agent._write_memory_episode = lambda *args, **kwargs: None
+    agent._record_task_continuity = lambda *args, **kwargs: None
+    agent.memory = SimpleNamespace()
+
+    returned_observation = StonePickaxeRuntimeAgent._apply_action_feedback(
+        agent,
+        {"type": "craft", "parameters": {"item": "stone_pickaxe", "count": 1}},
+        {"success": True},
+        _raw_observation(),
+        {"goal": SP002_GOAL, "cycle": 1},
+    )
+
+    assert returned_observation == post_observation
+    assert verify_inputs.status == TaskStatus.COMPLETED
+    assert craft_pickaxe.status == TaskStatus.COMPLETED
+    assert any(
+        transition.get("reconciliation_source") == "pre_action_machine_observation"
+        for transition in transitions
+    )
+    binding_events = [
+        payload
+        for event_type, payload in events
+        if event_type == "stone_pickaxe_pre_action_task_binding"
+    ]
+    assert binding_events == [{
+        "schema_version": 1,
+        "task_id": craft_pickaxe.id,
+        "goal": SP002_GOAL,
+        "cycle": 1,
+        "source": "pre_action_machine_observation",
+    }]
 
 
 if __name__ == "__main__":

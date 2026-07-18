@@ -3,6 +3,7 @@
 const assert = require('assert');
 const { Vec3 } = require('vec3');
 const {
+    CRAFT_INVENTORY_REFRESH_POLICY_ID,
     M2_PROTOCOL,
     M2_PROTOCOL_SHA256,
     benchmarkProtocolStatus,
@@ -180,6 +181,76 @@ async function testCraftHandlerRejectsTransientInventoryAndRetries() {
     console.log('PASS: craft handler ignores rolled-back inventory ghosts and records a bounded retry');
 }
 
+async function testCraftHandlerRefreshesAuthoritativeTableInventory() {
+    let items = [
+        { name: 'cobblestone', count: 3 },
+        { name: 'stick', count: 2 },
+    ];
+    let craftAttempts = 0;
+    let openCount = 0;
+    let closeCount = 0;
+    const bot = {
+        version: '1.20.4',
+        entity: { position: new Vec3(0, 64, 0) },
+        inventory: { items: () => items },
+        findBlock: () => ({ position: new Vec3(1, 64, 0) }),
+        recipesFor: () => [{ result: { count: 1 } }],
+        async craft() {
+            craftAttempts += 1;
+            items = [
+                { name: 'stick', count: 2 },
+                { name: 'stone_pickaxe', count: 1 },
+            ];
+        },
+        async openBlock() {
+            openCount += 1;
+            return { id: 7, type: 'minecraft:crafting' };
+        },
+        closeWindow() {
+            closeCount += 1;
+            items = [{ name: 'stone_pickaxe', count: 1 }];
+        },
+    };
+    const handler = createCraftHandler(
+        () => ({ bot, botReady: true }),
+        async () => {},
+        { maxAttempts: 1 },
+    );
+
+    const result = await handler({ item: 'stone_pickaxe', count: 1 });
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(craftAttempts, 1);
+    assert.strictEqual(openCount, 1);
+    assert.strictEqual(closeCount, 1);
+    assert.strictEqual(result.craft_attempts, 1);
+    assert.strictEqual(result.craft_retry_count, 0);
+    assert.deepStrictEqual(result.inventory_after, { stone_pickaxe: 1 });
+    assert.deepStrictEqual(result.inventory_signed_delta, {
+        cobblestone: -3,
+        stick: -2,
+        stone_pickaxe: 1,
+    });
+    assert.deepStrictEqual(result.attempts[0].inventory_signed_delta, {
+        cobblestone: -3,
+        stick: -2,
+        stone_pickaxe: 1,
+    });
+    const refresh = result.authoritative_inventory_refresh;
+    assert.strictEqual(refresh.policy_id, CRAFT_INVENTORY_REFRESH_POLICY_ID);
+    assert.strictEqual(refresh.attempted, true);
+    assert.strictEqual(refresh.success, true);
+    assert.strictEqual(refresh.authoritative, true);
+    assert.strictEqual(refresh.window_items_observed, true);
+    assert.deepStrictEqual(refresh.inventory_before, {
+        stick: 2,
+        stone_pickaxe: 1,
+    });
+    assert.deepStrictEqual(refresh.inventory_after, { stone_pickaxe: 1 });
+    assert.deepStrictEqual(refresh.inventory_signed_delta, { stick: -2 });
+    console.log('PASS: craft handler replaces a stale client inventory with authoritative table slots');
+}
+
 async function testCraftHandlerSingleAttemptPolicyNeverRetries() {
     let items = [
         { name: 'cobblestone', count: 3 },
@@ -349,6 +420,7 @@ async function main() {
     await testM2ProtocolStatusIsIndependentFromM1();
     await testNearbyBlockSelectionPreservesRareGroundedTargets();
     await testCraftHandlerRejectsTransientInventoryAndRetries();
+    await testCraftHandlerRefreshesAuthoritativeTableInventory();
     await testCraftHandlerSingleAttemptPolicyNeverRetries();
     await testM2ResetBuildsFixturesAndRecordsEmptyShelterBaseline();
     await testM2VerificationReturnsObservedStateWithoutDeclaringGoalSuccess();

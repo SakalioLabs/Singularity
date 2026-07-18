@@ -18,6 +18,7 @@ from typing import Any
 from singularity.core.agent import Agent
 from singularity.core.config import BotConfig, Config, LLMConfig
 from singularity.core.goal_verifier import GoalVerification
+from singularity.core.task_system import TaskStatus
 from singularity.evaluation.m4_protocol import PROTOCOL as M4_PROTOCOL
 from singularity.evaluation.stone_pickaxe_protocol import (
     PROTOCOL,
@@ -34,6 +35,9 @@ SP002_RUNTIME_POLICY_ID = "stone-pickaxe-sp002-controlled-runtime-v1"
 FIXTURE_POLICY_ID = "stone-pickaxe-survival-fixture-preparation-v1"
 ACTION_GUARD_POLICY_ID = "stone-pickaxe-action-guard-v1"
 SNAPSHOT_POLICY_ID = "stone-pickaxe-immutable-snapshot-v1"
+CRAFT_INVENTORY_REFRESH_POLICY_ID = (
+    "crafting-table-window-items-inventory-refresh-v1"
+)
 WORLD_COMPONENTS = ("world", "world_nether", "world_the_end")
 SP001_GOAL = "Gather 3 cobblestone with the wooden pickaxe"
 SP002_GOAL = (
@@ -761,6 +765,249 @@ class StonePickaxeRuntimeAgent(Agent):
                 action["skill_context"] = skill_context
         return super()._verify_action_for_execution(action, observation, goal, context)
 
+    def _sp002_pre_action_task_id(
+        self,
+        observation: dict,
+        goal: str,
+        cycle: int,
+    ) -> str | None:
+        self._reconcile_stone_pickaxe_satisfied_tasks(
+            observation,
+            goal,
+            cycle,
+            source="pre_action_machine_observation",
+        )
+        task_system = getattr(self, "task_system", None)
+        if not task_system:
+            return None
+        task = task_system.get_next_task(observation or {})
+        if task and task.status in (TaskStatus.ACCEPTED, TaskStatus.ACTIVE):
+            return task.id
+        return None
+
+    def _apply_action_feedback(
+        self,
+        action: dict,
+        result: dict,
+        fallback_observation: dict,
+        context: dict = None,
+    ) -> dict:
+        if self.stone_pickaxe_runtime_mode != "sp002":
+            return super()._apply_action_feedback(
+                action,
+                result,
+                fallback_observation,
+                context,
+            )
+        context = context or {}
+        task_id = self._sp002_pre_action_task_id(
+            fallback_observation or {},
+            str(context.get("goal") or getattr(self, "current_goal", "") or ""),
+            context.get("cycle", 0),
+        )
+        task_system = getattr(self, "task_system", None)
+        if not task_id or not task_system:
+            return super()._apply_action_feedback(
+                action,
+                result,
+                fallback_observation,
+                context,
+            )
+
+        original_apply = task_system.apply_action_result
+        had_instance_override = "apply_action_result" in task_system.__dict__
+        prior_instance_override = task_system.__dict__.get("apply_action_result")
+
+        def apply_bound_task(
+            bound_action: dict,
+            bound_result: dict,
+            world_state: dict = None,
+            task_id: str = None,
+        ):
+            return original_apply(
+                bound_action,
+                bound_result,
+                world_state,
+                task_id=task_id or task_id_before_action,
+            )
+
+        task_id_before_action = task_id
+        task_system.apply_action_result = apply_bound_task
+        if hasattr(getattr(self, "session_logger", None), "log"):
+            self.session_logger.log("stone_pickaxe_pre_action_task_binding", {
+                "schema_version": 1,
+                "task_id": task_id,
+                "goal": str(context.get("goal") or ""),
+                "cycle": int(context.get("cycle", 0) or 0),
+                "source": "pre_action_machine_observation",
+            })
+        try:
+            return super()._apply_action_feedback(
+                action,
+                result,
+                fallback_observation,
+                context,
+            )
+        finally:
+            if had_instance_override:
+                task_system.apply_action_result = prior_instance_override
+            else:
+                del task_system.apply_action_result
+
+    def _sp002_post_action_machine_verification(
+        self,
+        goal: str,
+        observation: dict,
+        recent_actions: list[dict] | None,
+    ) -> GoalVerification:
+        events = recent_actions if isinstance(recent_actions, list) else []
+        event = events[0] if len(events) == 1 and isinstance(events[0], dict) else {}
+        action = event.get("action") if isinstance(event.get("action"), dict) else {}
+        result = event.get("result") if isinstance(event.get("result"), dict) else {}
+        before = (
+            event.get("before_observation")
+            if isinstance(event.get("before_observation"), dict)
+            else {}
+        )
+        after = (
+            event.get("after_observation")
+            if isinstance(event.get("after_observation"), dict)
+            else {}
+        )
+        before_inventory = (
+            result.get("inventory_before")
+            if isinstance(result.get("inventory_before"), dict)
+            else {}
+        )
+        after_inventory = (
+            result.get("inventory_after")
+            if isinstance(result.get("inventory_after"), dict)
+            else {}
+        )
+        signed_delta = (
+            result.get("inventory_signed_delta")
+            if isinstance(result.get("inventory_signed_delta"), dict)
+            else {}
+        )
+        observed_inventory = (
+            observation.get("inventory")
+            if isinstance(observation, dict)
+            and isinstance(observation.get("inventory"), dict)
+            else {}
+        )
+        event_after_inventory = (
+            after.get("inventory")
+            if isinstance(after.get("inventory"), dict)
+            else {}
+        )
+        refresh = (
+            result.get("authoritative_inventory_refresh")
+            if isinstance(result.get("authoritative_inventory_refresh"), dict)
+            else {}
+        )
+        refresh_inventory = (
+            refresh.get("inventory_after")
+            if isinstance(refresh.get("inventory_after"), dict)
+            else {}
+        )
+        expected_before = {"cobblestone": 3, "stick": 2, "stone_pickaxe": 0}
+        expected_after = {"cobblestone": 0, "stick": 0, "stone_pickaxe": 1}
+        expected_delta = {"cobblestone": -3, "stick": -2, "stone_pickaxe": 1}
+
+        def inventory_matches(inventory: dict, expected: dict) -> bool:
+            return all(_count(inventory.get(item)) == count for item, count in expected.items())
+
+        attempts = result.get("attempts") if isinstance(result.get("attempts"), list) else []
+        action_verification = (
+            result.get("action_verification")
+            if isinstance(result.get("action_verification"), dict)
+            else {}
+        )
+        guard = guard_runtime_action("sp002", action, before)
+        checks = {
+            "one_recent_action": len(events) == 1 and bool(event),
+            "exact_guarded_craft_action": guard.get("allowed") is True,
+            "action_verifier_accepted": action_verification.get("status") == "accept",
+            "backend_success": result.get("success") is True,
+            "backend_exact_target": (
+                result.get("item") == "stone_pickaxe"
+                and result.get("requested_output_count") == 1
+                and result.get("craft_calls") == 1
+            ),
+            "backend_single_attempt": (
+                result.get("craft_attempts") == 1
+                and result.get("craft_retry_count") == 0
+                and len(attempts) == 1
+                and isinstance(attempts[0], dict)
+                and attempts[0].get("success") is True
+            ),
+            "observed_crafting_table": (
+                result.get("crafting_table_found") is True
+                and bool(result.get("crafting_table_position"))
+                and _nearby_crafting_table_observed(before)
+            ),
+            "exact_backend_inventory_before": inventory_matches(
+                before_inventory,
+                expected_before,
+            ),
+            "authoritative_window_items_refresh": (
+                refresh.get("policy_id") == CRAFT_INVENTORY_REFRESH_POLICY_ID
+                and refresh.get("attempted") is True
+                and refresh.get("success") is True
+                and refresh.get("authoritative") is True
+                and refresh.get("window_items_observed") is True
+                and refresh.get("source") == "crafting_table_window_items"
+            ),
+            "exact_authoritative_inventory_after": inventory_matches(
+                refresh_inventory,
+                expected_after,
+            ),
+            "exact_backend_inventory_after": inventory_matches(
+                after_inventory,
+                expected_after,
+            ),
+            "exact_signed_inventory_delta": signed_delta == expected_delta,
+            "stable_backend_output": _count(result.get("stable_ms")) >= 750,
+            "exact_post_action_observation": inventory_matches(
+                event_after_inventory,
+                expected_after,
+            ),
+            "exact_current_observation": inventory_matches(
+                observed_inventory,
+                expected_after,
+            ),
+        }
+        issues = sorted(name for name, passed in checks.items() if not passed)
+        achieved = not issues
+        return GoalVerification(
+            goal=goal,
+            achieved=achieved,
+            status="achieved" if achieved else "failed",
+            confidence=1.0,
+            evidence=(
+                [
+                    "one verified craft action produced exactly one stone_pickaxe",
+                    "authoritative crafting-table window_items removed 3 cobblestone and 2 sticks",
+                    "post-action machine observation retained stone_pickaxe=1",
+                ]
+                if achieved
+                else []
+            ),
+            missing=issues,
+            matched_rules=["stone_pickaxe:sp002_post_action_machine_transition"],
+            target_inventory=expected_after,
+            inventory_delta=expected_delta,
+            critic={
+                "policy_id": "stone-pickaxe-sp002-post-action-machine-verifier-v1",
+                "checks": checks,
+                "guard": guard,
+                "inventory_before": before_inventory,
+                "inventory_after": after_inventory,
+                "inventory_signed_delta": signed_delta,
+                "authoritative_inventory_refresh": refresh,
+            },
+        )
+
     def _goal_is_verified(
         self,
         goal: str,
@@ -768,6 +1015,23 @@ class StonePickaxeRuntimeAgent(Agent):
         context: dict = None,
         recent_actions: list[dict] = None,
     ):
+        if self.stone_pickaxe_runtime_mode == "sp002":
+            if self._episode_deadline_reached():
+                return False, self._deadline_goal_verification(
+                    goal,
+                    context,
+                    "sp002_goal_verifier",
+                )
+            verification = self._sp002_post_action_machine_verification(
+                goal,
+                observation,
+                recent_actions,
+            )
+            self._log_goal_verification(
+                verification,
+                {**(context or {}), "accepted": verification.achieved},
+            )
+            return verification.achieved, verification
         preparation_modes = {"prepare_fixture", "prepare_sp002_fixture"}
         if self.stone_pickaxe_runtime_mode not in preparation_modes:
             return super()._goal_is_verified(goal, observation, context, recent_actions)
@@ -1556,6 +1820,12 @@ def build_sp002_episode(
                 "inventory_before": dict(result.get("inventory_before") or {}),
                 "inventory_after": dict(result.get("inventory_after") or {}),
                 "inventory_delta": dict(result.get("inventory_delta") or {}),
+                "inventory_signed_delta": dict(
+                    result.get("inventory_signed_delta") or {}
+                ),
+                "authoritative_inventory_refresh": dict(
+                    result.get("authoritative_inventory_refresh") or {}
+                ),
                 "craft_attempts": result.get("craft_attempts"),
                 "craft_retry_count": result.get("craft_retry_count"),
                 "single_attempt": single_attempt,

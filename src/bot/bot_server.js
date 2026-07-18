@@ -62,6 +62,7 @@ const M4_BM012_PROTOCOL_BYTES = fs.readFileSync(M4_BM012_PROTOCOL_PATH);
 const M4_BM012_PROTOCOL = JSON.parse(M4_BM012_PROTOCOL_BYTES.toString('utf8'));
 const M4_BM012_PROTOCOL_SHA256 = crypto.createHash('sha256').update(M4_BM012_PROTOCOL_BYTES).digest('hex');
 const M4_PATHFINDER_RECOVERY_POLICY_ID = 'm4-deadline-bound-pathfinder-readiness-v1';
+const CRAFT_INVENTORY_REFRESH_POLICY_ID = 'crafting-table-window-items-inventory-refresh-v1';
 const HOSTILE_ENTITY_NAMES = new Set([
     'blaze', 'bogged', 'breeze', 'cave_spider', 'creeper', 'drowned', 'elder_guardian',
     'endermite', 'evoker', 'ghast', 'guardian', 'hoglin', 'husk', 'magma_cube',
@@ -916,6 +917,15 @@ function positiveInventoryDelta(before, after) {
     for (const name of new Set([...Object.keys(before || {}), ...Object.keys(after || {})])) {
         const change = Number(after?.[name] || 0) - Number(before?.[name] || 0);
         if (change > 0) delta[name] = change;
+    }
+    return delta;
+}
+
+function signedInventoryDelta(before, after) {
+    const delta = {};
+    for (const name of new Set([...Object.keys(before || {}), ...Object.keys(after || {})])) {
+        const change = Number(after?.[name] || 0) - Number(before?.[name] || 0);
+        if (change !== 0) delta[name] = change;
     }
     return delta;
 }
@@ -2810,6 +2820,87 @@ async function waitForStableCraftOutput(
     };
 }
 
+async function refreshCraftingTableInventory(
+    activeBot,
+    craftingTable,
+    wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    timeoutMs = 1500,
+    postCloseWaitMs = 100,
+) {
+    const inventoryBefore = inventoryCounts(activeBot);
+    const base = {
+        policy_id: CRAFT_INVENTORY_REFRESH_POLICY_ID,
+        attempted: false,
+        success: false,
+        authoritative: false,
+        source: 'crafting_table_window_items',
+        timeout_ms: timeoutMs,
+        post_close_wait_ms: postCloseWaitMs,
+        crafting_table_position: compactPosition(craftingTable?.position),
+        inventory_before: inventoryBefore,
+    };
+    if (!craftingTable) {
+        return { ...base, error: 'crafting_table_unavailable' };
+    }
+    if (typeof activeBot?.openBlock !== 'function' || typeof activeBot?.closeWindow !== 'function') {
+        return { ...base, error: 'window_refresh_api_unavailable' };
+    }
+
+    let timeoutHandle = null;
+    let timedOut = false;
+    const openPromise = Promise.resolve().then(() => activeBot.openBlock(craftingTable));
+    const timeoutPromise = new Promise((resolve) => {
+        timeoutHandle = setTimeout(() => {
+            timedOut = true;
+            resolve({ timeout: true });
+        }, timeoutMs);
+    });
+    try {
+        const outcome = await Promise.race([
+            openPromise.then((window) => ({ window })),
+            timeoutPromise,
+        ]);
+        if (outcome?.timeout) {
+            openPromise.then((window) => {
+                try {
+                    if (window) activeBot.closeWindow(window);
+                } catch (_) {
+                    // A late authoritative window is closed best-effort after the bounded timeout.
+                }
+            }).catch(() => {});
+            return { ...base, attempted: true, error: 'window_items_timeout' };
+        }
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+        const window = outcome?.window;
+        if (!window) {
+            return { ...base, attempted: true, error: 'window_open_missing' };
+        }
+        activeBot.closeWindow(window);
+        if (postCloseWaitMs > 0) await wait(postCloseWaitMs);
+        const inventoryAfter = inventoryCounts(activeBot);
+        return {
+            ...base,
+            attempted: true,
+            success: true,
+            authoritative: true,
+            window_items_observed: true,
+            window_id: Number.isFinite(Number(window.id)) ? Number(window.id) : null,
+            window_type: String(window.type || ''),
+            inventory_after: inventoryAfter,
+            inventory_signed_delta: signedInventoryDelta(inventoryBefore, inventoryAfter),
+        };
+    } catch (error) {
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+        return {
+            ...base,
+            attempted: true,
+            error: String(error?.message || error || 'window_refresh_failed'),
+        };
+    } finally {
+        if (!timedOut && timeoutHandle) clearTimeout(timeoutHandle);
+    }
+}
+
 function createCraftHandler(
     getState = () => ({ bot, botReady }),
     wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
@@ -2854,6 +2945,11 @@ function createCraftHandler(
                 const outputPerCraft = Math.max(1, Number(recipe?.result?.count || 1));
                 const craftCalls = Math.max(1, Math.ceil(count / outputPerCraft));
                 await activeBot.craft(recipe, craftCalls, craftingTable);
+                const authoritativeInventoryRefresh = await refreshCraftingTableInventory(
+                    activeBot,
+                    craftingTable,
+                    wait,
+                );
                 const settlement = await waitForStableCraftOutput(
                     activeBot,
                     inventoryBefore,
@@ -2870,6 +2966,11 @@ function createCraftHandler(
                     stable_ms: settlement.stable_ms,
                     inventory: settlement.inventory,
                     inventory_delta: settlement.delta,
+                    inventory_signed_delta: signedInventoryDelta(
+                        inventoryBefore,
+                        settlement.inventory,
+                    ),
+                    authoritative_inventory_refresh: authoritativeInventoryRefresh,
                 });
                 if (settlement.observed) {
                     return {
@@ -2886,6 +2987,11 @@ function createCraftHandler(
                         inventory_before: inventoryBefore,
                         inventory_after: settlement.inventory,
                         inventory_delta: settlement.delta,
+                        inventory_signed_delta: signedInventoryDelta(
+                            inventoryBefore,
+                            settlement.inventory,
+                        ),
+                        authoritative_inventory_refresh: authoritativeInventoryRefresh,
                         attempts,
                         crafting_table_found: Boolean(craftingTable),
                         crafting_table_position: compactPosition(craftingTable?.position),
@@ -2896,6 +3002,7 @@ function createCraftHandler(
                     await wait(retryCooldownMs);
                 }
             }
+            const finalInventory = inventoryCounts(activeBot);
             return {
                 success: false,
                 error: `Crafted ${itemName} output did not remain stable after ${maxAttempts} attempts`,
@@ -2904,7 +3011,11 @@ function createCraftHandler(
                 craft_attempts: attempts.length,
                 craft_retry_count: Math.max(0, attempts.length - 1),
                 inventory_before: inventoryBefore,
-                inventory_after: inventoryCounts(activeBot),
+                inventory_after: finalInventory,
+                inventory_signed_delta: signedInventoryDelta(
+                    inventoryBefore,
+                    finalInventory,
+                ),
                 attempts,
                 crafting_table_found: Boolean(craftingTable),
                 crafting_table_position: compactPosition(craftingTable?.position),
@@ -3439,6 +3550,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+    CRAFT_INVENTORY_REFRESH_POLICY_ID,
     M1_PROTOCOL,
     M1_PROTOCOL_SHA256,
     M2_PROTOCOL,
