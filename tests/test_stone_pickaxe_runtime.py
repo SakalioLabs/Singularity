@@ -681,10 +681,11 @@ def test_eligible_stone_pickaxe_success_evidence_hashes_match_ledger():
     assert [item["id"] for item in sp002_successes] == [
         "sp002-success-001",
         "sp002-success-002",
+        "sp002-success-003",
     ]
-    assert len({item["episode_id"] for item in sp002_successes}) == 2
-    assert len({item["session_id"] for item in sp002_successes}) == 2
-    assert len({item["session_sha256"] for item in sp002_successes}) == 2
+    assert len({item["episode_id"] for item in sp002_successes}) == 3
+    assert len({item["session_id"] for item in sp002_successes}) == 3
+    assert len({item["session_sha256"] for item in sp002_successes}) == 3
 
     for success in sp002_successes:
         assert success["status"] == "eligible_live_success"

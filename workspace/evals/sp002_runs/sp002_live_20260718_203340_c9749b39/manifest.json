@@ -1,0 +1,58 @@
+{
+  "type": "stone_pickaxe_live_manifest",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T12:38:58.814099+00:00",
+  "runtime_policy_id": "stone-pickaxe-sp002-controlled-runtime-v1",
+  "episode_id": "sp002_live_20260718_203340_c9749b39",
+  "session_id": "102aa710-b41",
+  "task_id": "SP-002",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "authorization_id": "721a9105ab12c1dfcc510fe6beef724ef6dcbbfa4f6ce8f8063dc6285cef36d6",
+  "fixture_tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c",
+  "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+  "evidence_eligible": true,
+  "passed": true,
+  "automatic_retry_allowed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "sp003_allowed": false,
+  "files": [
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/authorization.json",
+      "sha256": "01ec8e52b8822b51a76cb06884e616600d46230096795239949d398084771fd7"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/authorization_consumption.json",
+      "sha256": "dfc89fbcf92b2ac31ab1f3f03bee8af986d8f38eaa03d0fa4098545b2e3c2011"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/hypothesis.json",
+      "sha256": "9129de34deb46850c81f59ea4db7b4ee79634c14eb1ed4882220388e88729419"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/restoration.json",
+      "sha256": "c176752314feaca439f316bf604bcf7d038a063bcfdbd169faa8de23c4ee5ffe"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/preflight.json",
+      "sha256": "7ccb308ab7a74a9ffcfe78fa5a38f17348556ef71c83d6ac552968b727d99d79"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/session.json",
+      "sha256": "d7b7bc490c9fb0032c951c490c43cfeac4f1fe08132d8478078b9be9040a4977"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/episode.json",
+      "sha256": "9393e6ae2b3cb9846327f6eb39252207f59714ead9cb005be291cb6493652b8e"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/verification.json",
+      "sha256": "3207a35c5fa0c6ac189c4d0585f0661a4685bcf4ebddf4b135b4530bc26ae38e"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/audit.json",
+      "sha256": "b41fa5760ad1117181203c26ff18cd4f74937d2eceedbaabbff57bf59a51e61e"
+    }
+  ]
+}
