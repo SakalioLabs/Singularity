@@ -10,12 +10,14 @@
   "evaluated_skill_version": "1.0.0",
   "candidate_id": "a488cd61",
   "pair_count": 3,
-  "valid_pair_count": 1,
+  "valid_pair_count": 2,
   "baseline_session_ids": [
+    "009dafd7-659",
     "e6cebfbe-dfe"
   ],
   "candidate_session_ids": [
-    "45f20f79-0ac"
+    "45f20f79-0ac",
+    "6acf4503-737"
   ],
   "shadow_verified": true,
   "advisory_verified": true,
@@ -35,10 +37,10 @@
     "candidate_verifier_rejects": 0,
     "baseline_no_progress_loops": 0,
     "candidate_no_progress_loops": 0,
-    "baseline_environment_steps": 1,
-    "candidate_environment_steps": 1,
-    "baseline_planner_calls": 1,
-    "candidate_planner_calls": 1,
+    "baseline_environment_steps": 2,
+    "candidate_environment_steps": 2,
+    "baseline_planner_calls": 2,
+    "candidate_planner_calls": 2,
     "environment_step_gain": 0,
     "planner_call_gain": 0
   },
@@ -104,15 +106,15 @@
       "pair_id": "sp002-craft-v2-r5",
       "replicate_id": "r5",
       "baseline_run_id": "baseline:sp002_live_20260718_201122_e277e1cb",
-      "candidate_run_id": "",
+      "candidate_run_id": "candidate:sp002_skill_candidate_v2_20260719_020805_7e04aab8",
       "baseline_session_id": "009dafd7-659",
-      "candidate_session_id": "",
+      "candidate_session_id": "6acf4503-737",
       "baseline_passed": true,
-      "candidate_passed": false,
-      "fixed_controls_match": false,
-      "initial_state_match": false,
+      "candidate_passed": true,
+      "fixed_controls_match": true,
+      "initial_state_match": true,
       "baseline_integrity": true,
-      "candidate_integrity": false,
+      "candidate_integrity": true,
       "baseline_metrics": {
         "task_completion": 1,
         "environment_steps": 1,
@@ -133,8 +135,27 @@
         "exact_skill_context_only": false,
         "attribution_confidence": 0.0
       },
-      "candidate_metrics": {},
-      "eligible": false
+      "candidate_metrics": {
+        "task_completion": 1,
+        "environment_steps": 1,
+        "successful_actions": 1,
+        "failed_actions": 0,
+        "verifier_rejects": 0,
+        "planner_calls": 1,
+        "no_progress_loops": 0,
+        "skill_selected_count": 1,
+        "skill_executed_count": 1,
+        "skill_completion_count": 1,
+        "skill_outcome_count": 1,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "candidate_steps_verified": true,
+        "candidate_steps_reobserved": true,
+        "exact_skill_context_only": true,
+        "attribution_confidence": 1.0
+      },
+      "eligible": true
     },
     {
       "pair_id": "sp002-craft-v2-r6",
@@ -209,12 +230,14 @@
     "readiness": "review",
     "decision": "retain_advisory",
     "single_target_skill": true,
-    "paired_live_session_count": 1,
+    "paired_live_session_count": 2,
     "baseline_session_ids": [
+      "009dafd7-659",
       "e6cebfbe-dfe"
     ],
     "candidate_session_ids": [
-      "45f20f79-0ac"
+      "45f20f79-0ac",
+      "6acf4503-737"
     ],
     "shadow_plan_verified": true,
     "advisory_hint_verified": true,

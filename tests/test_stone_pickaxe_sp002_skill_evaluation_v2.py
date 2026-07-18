@@ -197,11 +197,15 @@ def test_report_uses_fresh_support_ids_and_excludes_retained_v1_failure():
         ("fallback", "fallback-2", "pass"),
     ]
     assert [item["replicate_id"] for item in report["excluded_prior_runs"]] == ["shadow-1"]
-    assert report["valid_pair_count"] == 1
+    assert report["valid_pair_count"] == 2
     r4 = next(item for item in report["pairs"] if item["replicate_id"] == "r4")
     assert r4["eligible"] is True
     assert r4["fixed_controls_match"] is True
     assert r4["initial_state_match"] is True
+    r5 = next(item for item in report["pairs"] if item["replicate_id"] == "r5")
+    assert r5["eligible"] is True
+    assert r5["fixed_controls_match"] is True
+    assert r5["initial_state_match"] is True
     assert report["shadow_verified"] is True
     assert report["advisory_verified"] is True
     assert report["fallback_verified"] is True
@@ -250,7 +254,7 @@ def test_generated_current_report_is_non_promoting_and_uses_v2_ids():
     )
     report = recovery.read_json(path)
     assert report["policy_sha256"] == recovery.POLICY_SHA256
-    assert report["valid_pair_count"] == 1
+    assert report["valid_pair_count"] == 2
     assert report["decision"] == "retain_advisory"
     assert [item["replicate_id"] for item in report["support_runs"]] == [
         "shadow-2",

@@ -1,0 +1,149 @@
+{
+  "type": "stone_pickaxe_sp002_skill_evaluation_run",
+  "schema_version": 1,
+  "policy_id": "stone-pickaxe-sp002-paired-evaluation-v2",
+  "policy_sha256": "6222ba05a63fee2104df35d1630d7ae1834c60e994586ab58aadd4637812457f",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "task_id": "SP-002",
+  "run_id": "candidate:sp002_skill_candidate_v2_20260719_020805_7e04aab8",
+  "arm": "candidate",
+  "replicate_id": "r5",
+  "pair_id": "sp002-craft-v2-r5",
+  "episode_id": "sp002_skill_candidate_v2_20260719_020805_7e04aab8",
+  "session_id": "6acf4503-737",
+  "skill_id": "learned:craft_stone_pickaxe",
+  "skill_version": "1.0.0",
+  "candidate_id": "a488cd61",
+  "status": "pass",
+  "checks": {
+    "preflight_passed": true,
+    "authorization_passed": true,
+    "policy_identity_passed": true,
+    "source_evidence_integrity": true,
+    "base_machine_verification_passed": true,
+    "base_evidence_eligible": true,
+    "episode_skill_arm_eligible": true,
+    "no_quarantined_skill": true,
+    "normal_runtime_permission_false": true,
+    "automatic_retry_forbidden": true,
+    "skill_artifact_read_only": true,
+    "single_exact_skill_selected": true,
+    "single_skill_action_executed": true,
+    "single_skill_completion": true,
+    "candidate_steps_verified": true,
+    "candidate_steps_reobserved": true,
+    "exact_skill_context_only": true,
+    "zero_skill_fallback": true,
+    "zero_action_failures": true,
+    "zero_verifier_rejects": true,
+    "high_confidence_attribution": true
+  },
+  "metrics": {
+    "task_completion": 1,
+    "environment_steps": 1,
+    "successful_actions": 1,
+    "failed_actions": 0,
+    "verifier_rejects": 0,
+    "planner_calls": 1,
+    "no_progress_loops": 0,
+    "skill_selected_count": 1,
+    "skill_executed_count": 1,
+    "skill_completion_count": 1,
+    "skill_outcome_count": 1,
+    "skill_fallback_count": 0,
+    "skill_shadow_plan_count": 0,
+    "skill_advisory_hint_count": 0,
+    "candidate_steps_verified": true,
+    "candidate_steps_reobserved": true,
+    "exact_skill_context_only": true,
+    "attribution_confidence": 1.0
+  },
+  "fixed_controls": {
+    "protocol_id": "stone-pickaxe-skill-fixed-v1",
+    "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+    "task_id": "SP-002",
+    "goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+    "fixture_id": "sp002-craft-stone-pickaxe-v1",
+    "fixture_tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c",
+    "episode_timeout_s": 90,
+    "maximum_cycles": 6,
+    "maximum_actions": 1,
+    "per_action_timeout_s": 60,
+    "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+    "runtime_policy_id": "stone-pickaxe-sp002-controlled-runtime-v1",
+    "action_guard_policy_id": "stone-pickaxe-action-guard-v1",
+    "planner": {
+      "identity": "llm-autonomous-planner-v1",
+      "provider": "openai",
+      "base_url": "https://opencode.ai/zen/go/v1",
+      "model": "deepseek-v4-flash",
+      "temperature": 0.0,
+      "max_tokens": 4096,
+      "thinking": "disabled",
+      "provider_retries": 0
+    },
+    "environment": {
+      "minecraft_version": "1.20.4",
+      "server_type": "Paper",
+      "server_build": "paper-1.20.4-499",
+      "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+      "world_seed": "12345",
+      "game_mode": "survival",
+      "difficulty": "normal",
+      "runtime_versions": {
+        "python": "3.12.8",
+        "node": "22.16.0",
+        "mineflayer": "4.37.1",
+        "mineflayer_pathfinder": "2.4.5",
+        "minecraft_data": "3.111.0"
+      }
+    },
+    "action_verifier_enforced": true,
+    "action_controller_enforced": true,
+    "goal_verifier_enforced": true,
+    "backend_craft_max_attempts": 1,
+    "automatic_retry_allowed": false
+  },
+  "fixed_controls_fingerprint": "de9ae8dd1b6c2f1856e6b42e96201062fb103873d09274a0ebb9168535d942af",
+  "initial_state_fingerprint": "f335046ef85c89f83ace1880116429d4a5f2bf8503de8e8d558a17c0930e959c",
+  "source_evidence": [
+    {
+      "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_candidate_v2_20260719_020805_7e04aab8/authorization.json",
+      "sha256": "d3c151df4af869e3a8f79f7c973839b04d1bb7ac2af54f979eea8db765af63cf"
+    },
+    {
+      "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_candidate_v2_20260719_020805_7e04aab8/restoration.json",
+      "sha256": "9881b0a16f0842290720ad75e2b8d887946becf7eeafb529468e81027ea39cf4"
+    },
+    {
+      "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_candidate_v2_20260719_020805_7e04aab8/preflight.json",
+      "sha256": "bb52a91e5d3b708795b3d19d86bbabdbf2b6b8904e8705e798e29e71e84c8fc3"
+    },
+    {
+      "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_candidate_v2_20260719_020805_7e04aab8/session.json",
+      "sha256": "7ab9ab5262e1fcd1b3510d44ea6fa7a717b31ff36098b79daaee7efdc837fafb"
+    },
+    {
+      "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_candidate_v2_20260719_020805_7e04aab8/episode.json",
+      "sha256": "b83fce581cb39bdf15ed8e3b383cf02a22b12d1f7cbdae26d11aa5b8cab280fa"
+    },
+    {
+      "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_candidate_v2_20260719_020805_7e04aab8/verification.json",
+      "sha256": "3e70725b1f37b0d56161a4c90ea97c9efffbef6bc0d0a1f2511643c9ffc0ae79"
+    },
+    {
+      "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_candidate_v2_20260719_020805_7e04aab8/audit.json",
+      "sha256": "b2a678d12b06653680dec7522dd358c0463a12f9b92011257ee8b5e17731c035"
+    }
+  ],
+  "authorization_fingerprint": "41e952014fcf00b32126c1b86eae66e344a253f734a46d8531e32a423e26ac92",
+  "evidence_kind": "live_verified",
+  "live_minecraft": true,
+  "normal_runtime_permission": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "automatic_retry_allowed": false,
+  "record_payload_sha256": "eb984b892cd488525e39edbd1319b3c4bafa08293c394fadc91140c23384fc72",
+  "evaluation_window_id": "sp002-first-cycle-skill-routing-v2"
+}
