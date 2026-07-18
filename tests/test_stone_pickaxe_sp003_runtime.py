@@ -1192,7 +1192,7 @@ def test_sp003_runner_and_launcher_enforce_fresh_single_episode_contract():
     assert "skill_runtime_default_profile()" in runner
     assert ".runtime_default_gate_profile()" not in runner
     assert '"--craft-max-attempts", "1"' in launcher
-    assert '"--require", "src/bot/sp003_inventory_preserving_navigation.js"' in launcher
+    assert '"--require", "./src/bot/sp003_inventory_preserving_navigation.js"' in launcher
     assert "Assert-FreshRuntimePaths" in launcher
     assert "Assert-CleanSynchronizedMain" in launcher
     assert "automatic retry is forbidden" in launcher

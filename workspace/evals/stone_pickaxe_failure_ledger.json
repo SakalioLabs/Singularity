@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-19T07:07:42+08:00",
+  "generated_at": "2026-07-19T07:19:50+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_82_sp003_navigation_preload_module_resolution_failure",
-  "status": "sp003_navigation_preload_module_resolution_failure_retained_pending_commit_push",
+  "phase": "phase_83_sp003_preload_module_specifier_repair",
+  "status": "sp003_preload_module_specifier_repair_verified_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 0,
-  "authorization_scope": "none_five_baseline_authorizations_consumed_four_episode_failures_plus_one_infrastructure_failure",
+  "authorization_scope": "none_five_baseline_authorizations_consumed_phase_83_repair_must_be_pushed_before_fresh_authorization",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -409,6 +409,8 @@
       "craft_progress_reconciliation_repair_sha256": "0ae7fff17ad714c27100dbba0a68cdda6fc4979717550543bec1171d71cd3ea0",
       "inventory_preserving_navigation_repair_path": "workspace/evals/stone_pickaxe_sp003_inventory_preserving_navigation_repair.json",
       "inventory_preserving_navigation_repair_sha256": "6e1c9809dec122d084bcb04abbadce5618ac346f9511fcbcfc8b2c17e372a132",
+      "preload_module_specifier_repair_path": "workspace/evals/stone_pickaxe_sp003_preload_module_specifier_repair.json",
+      "preload_module_specifier_repair_sha256": "a65e804afccb17e5672ae590b48696de377f37efd8b0f87ef043079ed5a40199",
       "live_authorization": false
     }
   },
@@ -3323,6 +3325,28 @@
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "next_gate": "push_failure_then_fix_only_the_preload_module_specifier"
+    },
+    {
+      "phase": 83,
+      "name": "sp003_preload_module_specifier_repair",
+      "status": "offline_fix_verified_pending_commit_push",
+      "task_id": "SP-003",
+      "base_commit": "f686c51bdb737ebeaf268c3421198d14868b9695",
+      "repair_audit_path": "workspace/evals/stone_pickaxe_sp003_preload_module_specifier_repair.json",
+      "repair_audit_sha256": "a65e804afccb17e5672ae590b48696de377f37efd8b0f87ef043079ed5a40199",
+      "changed_runtime_file_count": 1,
+      "node_preload_resolution_passed": true,
+      "patched_movements_instance_passed": true,
+      "shared_bridge_identity_preserved": true,
+      "sp003_dedicated_cases": "25/25",
+      "stone_pickaxe_protocol_and_runtime_cases": "111/111",
+      "repository_non_live_python_cases": "961/961",
+      "node_suites": "7/7",
+      "failed_authorization_reused": false,
+      "live_authorization": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "next_gate": "push_phase_83_then_commit_a_fresh_parent_bound_baseline_authorization"
     }
   ],
   "failure_taxonomy": [
@@ -8180,25 +8204,28 @@
     "sp003_runner_gate_profile_repair_sha256": "95a9e6da4cece54acecfb6a402ec7f4cfaea153c8f0a6c880b119e6754a44e7f",
     "sp003_craft_progress_reconciliation_repair_sha256": "0ae7fff17ad714c27100dbba0a68cdda6fc4979717550543bec1171d71cd3ea0",
     "sp003_inventory_preserving_navigation_repair_sha256": "6e1c9809dec122d084bcb04abbadce5618ac346f9511fcbcfc8b2c17e372a132",
+    "sp003_preload_module_specifier_repair_sha256": "a65e804afccb17e5672ae590b48696de377f37efd8b0f87ef043079ed5a40199",
+    "sp003_preload_module_resolution_smoke_passed": true,
     "sp003_shared_bridge_identity_preserved": true
   },
   "next_required_gate": {
-    "id": "sp003_navigation_preload_module_specifier_repair",
+    "id": "sp003_parent_bound_baseline_authorization",
     "authorization": false,
     "prerequisites": [
-      "phase_82_infrastructure_failure_commit_pushed_and_main_synchronized",
+      "phase_83_sp003_preload_module_specifier_repair_commit_pushed_and_main_synchronized",
       "clean_worktree_and_exact_remote_tree_identity",
       "sp003_policy_identity_reaudits_exactly",
-      "replace_only_the_bare_preload_specifier_with_a_repository_relative_specifier",
-      "node_preload_smoke_instantiates_inventory_preserving_movements",
-      "failed_authorization_and_world_are_not_reused",
-      "no_live_process_before_the_offline_fix_is_pushed"
+      "failed_episode_and_infrastructure_ids_are_not_reused",
+      "fresh_unique_seed_12345_world_and_empty_inventory",
+      "one_authorization_commit_contains_only_the_baseline_authorization",
+      "baseline_runs_with_skill_execution_off",
+      "no_retry_and_no_bm012_terminal_execution"
     ],
     "arm": "baseline",
     "replicate_id": "baseline",
     "live_episode_limit": 0,
     "normal_runtime_permission": true,
-    "normal_runtime_permission_scope": "sp003_live_execution_forbidden_until_the_offline_fix_and_a_separate_authorization_commit_are_pushed",
+    "normal_runtime_permission_scope": "sp003_live_execution_forbidden_until_separate_authorization_commit_is_pushed",
     "automatic_retry_allowed": false
   },
   "artifact_state": {
@@ -8231,6 +8258,8 @@
     "sp003_craft_progress_reconciliation_repair_sha256": "0ae7fff17ad714c27100dbba0a68cdda6fc4979717550543bec1171d71cd3ea0",
     "sp003_inventory_preserving_navigation_repair_artifacts_created": 1,
     "sp003_inventory_preserving_navigation_repair_sha256": "6e1c9809dec122d084bcb04abbadce5618ac346f9511fcbcfc8b2c17e372a132",
+    "sp003_preload_module_specifier_repair_artifacts_created": 1,
+    "sp003_preload_module_specifier_repair_sha256": "a65e804afccb17e5672ae590b48696de377f37efd8b0f87ef043079ed5a40199",
     "sp003_runtime_modules_created": 2,
     "sp003_runner_artifacts_created": 1,
     "sp003_launcher_artifacts_created": 1,

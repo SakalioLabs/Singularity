@@ -1,0 +1,81 @@
+{
+  "type": "stone_pickaxe_sp003_preload_module_specifier_repair",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T23:19:50Z",
+  "phase": 83,
+  "status": "offline_fix_verified_pending_commit_push",
+  "base_commit": "f686c51bdb737ebeaf268c3421198d14868b9695",
+  "task_id": "SP-003",
+  "retained_infrastructure_failure": {
+    "episode_id": "sp003_baseline_20260719_070034_8d6e8eef",
+    "authorization_commit": "c693c07b9f3771c3db0a0fd198a8c6dcd2964f48",
+    "evidence_commit": "f686c51bdb737ebeaf268c3421198d14868b9695",
+    "manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/manifest.json",
+    "manifest_sha256": "8a4a7f517648eed7b1574b6a674e901bef441d990c363edb9fa0953aed0a7116",
+    "classification": "sp003_navigation_preload_module_specifier_resolution_failure",
+    "paper_ready": true,
+    "bridge_ready": false,
+    "episode_created": false,
+    "llm_call_count": 0,
+    "action_count": 0,
+    "automatic_retry_performed": false
+  },
+  "root_cause": {
+    "node_version": "22.16.0",
+    "error_code": "MODULE_NOT_FOUND",
+    "prior_argument": "src/bot/sp003_inventory_preserving_navigation.js",
+    "prior_argument_kind": "bare_module_specifier",
+    "module_file_existed": true,
+    "controlled_working_directory": "repository_root",
+    "required_argument": "./src/bot/sp003_inventory_preserving_navigation.js"
+  },
+  "change": {
+    "launcher_path": "scripts/stone-pickaxe-sp003-runtime.ps1",
+    "launcher_sha256": "b7132069cebbb82fb7d8f3d6583b72ef5c792c856dc762d468d27ac3521dffe2",
+    "tests_path": "tests/test_stone_pickaxe_sp003_runtime.py",
+    "tests_sha256": "abb1e0d4980a4104e4437fe43b27b4180d6b7b8b979bbc0d0b690bf9ed8e55d8",
+    "prior_argument": "src/bot/sp003_inventory_preserving_navigation.js",
+    "new_argument": "./src/bot/sp003_inventory_preserving_navigation.js",
+    "changed_runtime_file_count": 1,
+    "preload_implementation_modified": false,
+    "shared_bridge_modified": false,
+    "planner_modified": false,
+    "sp003_agent_modified": false
+  },
+  "identity": {
+    "preload_path": "src/bot/sp003_inventory_preserving_navigation.js",
+    "preload_sha256": "b318e60c69d202cf0f48d2cf5c564b7a7658afad5815e3552f23ce73928bdcfd",
+    "shared_bridge_path": "src/bot/bot_server.js",
+    "shared_bridge_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+    "runtime_policy_sha256": "a1aad016b58bad4d0def89f782f67d2cb02ea9c1b846d7c9d9c4e32cfdc2a438",
+    "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+  },
+  "validation": {
+    "node_preload_resolution": true,
+    "patched_movements_instantiated": true,
+    "patched_movements_can_dig": false,
+    "patched_movements_allow_1_by_1_towers": false,
+    "patched_movements_scaffolding_count": 0,
+    "powershell_parse": true,
+    "sp003_dedicated": "25/25",
+    "stone_pickaxe_protocol_and_runtime": "111/111",
+    "repository_non_live_python": "961/961",
+    "node_suites": "7/7",
+    "node_internal_cases": "58/58",
+    "retained_manifest_sha256_preserved": true,
+    "frozen_policy_sha256_preserved": true,
+    "frozen_protocol_sha256_preserved": true,
+    "frozen_shared_bridge_sha256_preserved": true
+  },
+  "live_state": {
+    "baseline_authorizations_consumed": 5,
+    "baseline_episode_failures": 4,
+    "infrastructure_failures": 1,
+    "baseline_successes": 0,
+    "candidate_successes": 0,
+    "live_authorization": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "next_gate": "push_phase_83_then_commit_a_fresh_parent_bound_baseline_authorization_without_reusing_any_prior_episode_or_world"
+}

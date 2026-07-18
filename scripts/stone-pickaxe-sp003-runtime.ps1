@@ -235,7 +235,7 @@ function Start-ControlledRuntime {
     $bridgeStdout = Join-Path $runtimeLogRoot "bridge_${EpisodeId}.stdout.log"
     $bridgeStderr = Join-Path $runtimeLogRoot "bridge_${EpisodeId}.stderr.log"
     $bridgeArgs = @(
-        "--require", "src/bot/sp003_inventory_preserving_navigation.js",
+        "--require", "./src/bot/sp003_inventory_preserving_navigation.js",
         "src/bot/bot_server.js",
         "--host", $MinecraftHost,
         "--port", $MinecraftPort,
