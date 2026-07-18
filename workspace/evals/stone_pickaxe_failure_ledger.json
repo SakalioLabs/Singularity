@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T11:35:49+08:00",
+  "generated_at": "2026-07-18T11:56:06+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_29_sp001_recovery_candidate_r13_pass_evidence",
-  "status": "sp001_recovery_candidate_r13_pass_evidence_pending_commit_push",
+  "phase": "phase_30_sp001_recovery_candidate_r14_authorized",
+  "status": "sp001_recovery_candidate_r14_authorized_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
-  "live_authorization": false,
+  "live_authorization": true,
   "fixture_preparation_authorization": false,
-  "authorized_live_episode_count": 0,
-  "authorization_scope": "none_r13_consumed_evidence_review_required",
+  "authorized_live_episode_count": 1,
+  "authorization_scope": "single_sp001_recovery_candidate_r14_only",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -27,12 +27,12 @@
     "paired_evaluation_arm_passes": 5,
     "paired_evaluation_arm_failures": 3,
     "paired_evaluation_arm_infrastructure_failures": 1,
-    "v5_candidate_arms_authorized": 1,
+    "v5_candidate_arms_authorized": 2,
     "v5_candidate_arms_consumed": 1,
     "v5_candidate_arm_passes": 1,
     "v5_candidate_arm_failures": 0,
     "v5_candidate_arm_infrastructure_failures": 0,
-    "next_live_authorization": false
+    "next_live_authorization": true
   },
   "fixture_preparation_success": {
     "episode_id": "sp_fixture_prep_20260717_221520_064dd337",
@@ -965,7 +965,8 @@
     {
       "phase": 28,
       "name": "sp001_recovery_candidate_r13_evaluation",
-      "status": "candidate_pass_evidence_pending_commit_push",
+      "status": "candidate_pass_evidence_pushed",
+      "evidence_commit": "24f289115ff68d1fcb241ceb280495bb9d542ee2",
       "authorization_predecessor": "022691139520502d7a2e30cb2f686e0176178247",
       "window_id": "sp001-acquire-infrastructure-recovery-v5",
       "arm": "candidate",
@@ -1001,6 +1002,23 @@
       "recovery_window_cases": "13/13",
       "test_sha256": "d53d166910dd6f85ebba795df509f87f3ed96b71f87c9e4a882afb5b693c9a5c",
       "r14_authorized": false,
+      "r15_authorized": false,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 29,
+      "name": "sp001_recovery_candidate_r14_authorization",
+      "status": "authorized_pending_commit_push",
+      "authorization_predecessor": "24f289115ff68d1fcb241ceb280495bb9d542ee2",
+      "window_id": "sp001-acquire-infrastructure-recovery-v5",
+      "arm": "candidate",
+      "replicate_id": "r14",
+      "pair_id": "sp001-acquire-recovery-v5-r14",
+      "live_episode_limit": 1,
+      "r1_through_r13_excluded_or_consumed": true,
       "r15_authorized": false,
       "normal_runtime_permission": false,
       "counts_toward_capability": false,
@@ -3575,7 +3593,7 @@
   },
   "next_required_gate": {
     "id": "sp001_recovery_candidate_r14_authorization",
-    "authorization": false,
+    "authorization": true,
     "prerequisites": [
       "r13_pass_evidence_commit_pushed",
       "r13_manifest_and_all_eleven_artifact_hashes_verified",
@@ -3584,9 +3602,9 @@
       "r14_is_fresh_and_unconsumed",
       "clean_synchronized_main_before_separate_authorization"
     ],
-    "arm": null,
-    "replicate_id": null,
-    "live_episode_limit": 0,
+    "arm": "candidate",
+    "replicate_id": "r14",
+    "live_episode_limit": 1,
     "normal_runtime_permission": false,
     "automatic_retry_allowed": false
   },
@@ -4404,7 +4422,13 @@
         "automatic_retry_allowed": false
       }
     ],
-    "next_arm": null,
+    "next_arm": {
+      "arm": "candidate",
+      "replicate_id": "r14",
+      "authorized_after_commit_push": true,
+      "reason": "r13_evidence_is_pushed_and_exactly_one_r14_arm_is_authorized_after_this_commit_is_pushed",
+      "automatic_retry_allowed": false
+    },
     "window_closed": false,
     "window_closure_reason": "",
     "fresh_window_required": false,
