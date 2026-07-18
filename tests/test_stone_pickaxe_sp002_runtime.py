@@ -580,6 +580,79 @@ def test_14_fixture_terminal_action_contract_is_prompted_and_fails_closed():
     assert "return status=complete with actions=[]" in ready_prompt
 
 
+def test_15_fixture_root_graph_contract_is_prompted_and_fails_closed():
+    planner = Planner(object(), TaskSystem(), protocol=PROTOCOL["id"])
+    planner._expected_plan_kind = "root"
+    observation = _raw_observation(table=False)
+    observation["stone_pickaxe_runtime_mode"] = "prepare_sp002_fixture"
+
+    system_prompt = planner._stone_pickaxe_system_prompt()
+    user_prompt = planner._build_planning_prompt(SP002_GOAL, observation, "")
+    assert "copy the exact two-node subtask graph" in system_prompt
+    assert "root_graph_required=true" in user_prompt
+    assert '"id":"acquire_cobblestone"' in user_prompt
+    assert '"id":"observe_crafting_table"' in user_prompt
+    assert '"depends_on":["acquire_cobblestone"]' in user_prompt
+    assert "Never return subtasks=[] on this root planning call" in user_prompt
+    assert "only the one next grounded action" in user_prompt
+
+    retained_root_shape = {
+        "schema_version": "stone-pickaxe-plan-v1",
+        "plan_kind": "root",
+        "goal": SP002_GOAL,
+        "status": "planning",
+        "reasoning": "Equip the observed wooden pickaxe first.",
+        "subtasks": [],
+        "actions": [{
+            "type": "equip",
+            "parameters": {"item": "wooden_pickaxe"},
+        }],
+    }
+    report = Planner._validate_stone_pickaxe_plan_envelope(
+        retained_root_shape,
+        SP002_GOAL,
+        "root",
+    )
+    assert not report["passed"]
+    assert report["issues"] == [
+        "root_dependency_edge_missing",
+        "root_subtask_count_out_of_bounds",
+    ]
+
+    contract_valid_shape = dict(retained_root_shape)
+    contract_valid_shape["subtasks"] = [
+        {
+            "id": "acquire_cobblestone",
+            "title": "Acquire exactly three cobblestone",
+            "type": "gather",
+            "priority": 1,
+            "preconditions": {"inventory": {"wooden_pickaxe": 1}},
+            "success_criteria": {"inventory": {"cobblestone": 3}},
+            "depends_on": [],
+        },
+        {
+            "id": "observe_crafting_table",
+            "title": "Observe an interactive crafting table",
+            "type": "verify",
+            "priority": 1,
+            "preconditions": {"inventory": {"cobblestone": 3}},
+            "success_criteria": {"nearby_block_present": "crafting_table"},
+            "depends_on": ["acquire_cobblestone"],
+        },
+    ]
+    valid_report = Planner._validate_stone_pickaxe_plan_envelope(
+        contract_valid_shape,
+        SP002_GOAL,
+        "root",
+    )
+    assert valid_report["passed"]
+
+    planner._expected_plan_kind = "continuation"
+    continuation_prompt = planner._build_planning_prompt(SP002_GOAL, observation, "")
+    assert "root_graph_required=false" in continuation_prompt
+    assert "This call must return subtasks=[]" in continuation_prompt
+
+
 if __name__ == "__main__":
     tests = [
         value

@@ -1,14 +1,14 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T16:34:00+08:00",
+  "generated_at": "2026-07-18T16:52:00+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_43_sp002_fixture_root_plan_contract_offline_fix_gate",
-  "status": "sp002_fixture_root_plan_contract_failure_retained_pending_commit_push",
+  "phase": "phase_44_sp002_fixture_preparation_reauthorization_gate",
+  "status": "sp002_fixture_root_plan_contract_offline_fixed_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
@@ -1457,6 +1457,36 @@
       "matching_runtime_process_count_after_stop": 0,
       "authorization_reuse_allowed": false,
       "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 43,
+      "name": "sp002_fixture_root_plan_contract_offline_fix",
+      "status": "offline_fix_complete_pending_commit_push",
+      "failure_evidence_commit": "0d25cfe166464c67685b891bc0a04a03402ec181",
+      "root_cause": "prepare_sp002_fixture_did_not_repeat_the_required_root_subtask_graph_at_the_mode_specific_immediate_decision_boundary",
+      "fix": "supply_an_exact_two_node_machine_verifiable_root_graph_for_unsatisfied_root_calls_while_preserving_one_action_and_empty_continuation_subtasks",
+      "required_root_subtask_count": 2,
+      "required_root_dependency_edge": "observe_crafting_table_depends_on_acquire_cobblestone",
+      "planner_sha256": "dcfbd7fa1804442c419970965ca48c1915af5192cbba42e5980a4d09e6b7c769",
+      "regression_test_sha256": "0ed2f5f93aacfbc7f3bdace3837c65d08448ba5d7bbbed682e8c3f39d2b1e5a2",
+      "sp002_runtime_harness_cases": "15/15",
+      "stone_pickaxe_runtime_cases": "32/32",
+      "stone_pickaxe_protocol_cases": "34/34",
+      "repository_non_live_python_scripts": "46/46",
+      "fixed_node_suites": "6/6",
+      "m2_real_provider_integration": "skipped_without_openai_api_key",
+      "python_compileall": "passed",
+      "tracked_json_files_parsed": 1287,
+      "ledger_path_hash_bindings": "321/321",
+      "protocol_sha256_unchanged": true,
+      "sp002_policy_sha256_unchanged": true,
+      "frozen_sp001_runtime_unchanged": true,
+      "frozen_sp001_launcher_unchanged": true,
+      "validator_relaxed": false,
+      "live_episode_run": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "automatic_retry_allowed": false
@@ -3825,7 +3855,7 @@
       "id": "sp002-fixture-prep-003-root-plan-contract",
       "phase": "sp002_fixture_preparation",
       "classification": "sp002_fixture_preparation_root_plan_contract",
-      "status": "retained_failure_pending_offline_fix",
+      "status": "retained_failure_offline_fixed",
       "attributable_to_learned_skill": false,
       "task_id": "SP-002",
       "scope": "fixture_preparation",
@@ -3986,7 +4016,48 @@
       "counts_toward_m4": false,
       "automatic_retry_attempted": false,
       "automatic_retry_allowed": false,
-      "single_next_offline_fix": "reproduce_the_retained_zero_subtask_root_shape_then_repeat_the_root_graph_contract_at_the_mode_specific_decision_boundary_without_relaxing_validation"
+      "single_next_offline_fix": "none_root_plan_contract_reproduced_fixed_and_tested_new_authorization_requires_a_separate_parent_bound_commit",
+      "offline_resolution": {
+        "status": "reproduced_fixed_and_tested",
+        "root_cause": "the_global_root_contract_was_correct_but_prepare_sp002_fixture_did_not_repeat_the_exact_required_graph_at_the_immediate_user_prompt_boundary",
+        "fix": {
+          "unsatisfied_root_graph_required": true,
+          "root_subtask_count": 2,
+          "root_subtask_ids": [
+            "acquire_cobblestone",
+            "observe_crafting_table"
+          ],
+          "root_dependency_edge": "observe_crafting_table_depends_on_acquire_cobblestone",
+          "root_action_count": 1,
+          "continuation_subtasks": [],
+          "completion_ready_root_subtasks": [],
+          "validator_relaxed": false
+        },
+        "retained_root_shape_replay_test": "test_15_fixture_root_graph_contract_is_prompted_and_fails_closed",
+        "retained_root_shape_issues": [
+          "root_dependency_edge_missing",
+          "root_subtask_count_out_of_bounds"
+        ],
+        "valid_root_graph_replay_passed": true,
+        "continuation_prompt_gate": "root_graph_required=false",
+        "regressions": {
+          "sp002_runtime_harness_cases": "15/15",
+          "stone_pickaxe_runtime_cases": "32/32",
+          "stone_pickaxe_protocol_cases": "34/34",
+          "repository_non_live_python_scripts": "46/46",
+          "fixed_node_suites": "6/6",
+          "m2_real_provider_integration": "skipped_without_openai_api_key"
+        },
+        "planner_sha256": "dcfbd7fa1804442c419970965ca48c1915af5192cbba42e5980a4d09e6b7c769",
+        "test_sha256": "0ed2f5f93aacfbc7f3bdace3837c65d08448ba5d7bbbed682e8c3f39d2b1e5a2",
+        "protocol_json_modified": false,
+        "sp002_policy_modified": false,
+        "frozen_sp001_runtime_modified": false,
+        "frozen_sp001_launcher_modified": false,
+        "counts_toward_skill_gate": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      }
     }
   ],
   "eligible_successes": [
@@ -4313,8 +4384,8 @@
       "total": 32
     },
     "sp002_runtime_harness_cases": {
-      "passed": 14,
-      "total": 14
+      "passed": 15,
+      "total": 15
     },
     "sp002_harness_policy_sha256": "d3ccb78a4851fa9e7e41786638b4946247660cac3f848ba0648c1d8f75442fef",
     "sp002_fixture_audit_offline_passed": true,
@@ -4366,6 +4437,22 @@
     "sp002_fixture_preparation_attempt_3_tracked_json_files_parsed": 1287,
     "sp002_fixture_preparation_attempt_3_authorization_reuse_allowed": false,
     "sp002_fixture_preparation_attempt_3_authorization_archive_sha256": "13cd88717bd9fbfdbbf083e888568cc6c23244a68b85c4750caf5cbb90361f0c",
+    "sp002_fixture_root_plan_contract_offline_fix_passed": true,
+    "sp002_fixture_root_plan_contract_retained_shape_replay_passed": true,
+    "sp002_fixture_root_plan_contract_exact_issues_preserved": true,
+    "sp002_fixture_root_graph_required_true_prompt_gate_passed": true,
+    "sp002_fixture_root_graph_required_false_continuation_gate_passed": true,
+    "sp002_fixture_root_graph_valid_shape_replay_passed": true,
+    "sp002_fixture_root_plan_validator_unchanged": true,
+    "sp002_fixture_root_plan_fix_planner_sha256": "dcfbd7fa1804442c419970965ca48c1915af5192cbba42e5980a4d09e6b7c769",
+    "sp002_fixture_root_plan_fix_test_sha256": "0ed2f5f93aacfbc7f3bdace3837c65d08448ba5d7bbbed682e8c3f39d2b1e5a2",
+    "sp002_fixture_root_plan_fix_repository_non_live_python_scripts": "46/46",
+    "sp002_fixture_root_plan_fix_fixed_node_suites": "6/6",
+    "sp002_fixture_root_plan_fix_tracked_json_files_parsed": 1287,
+    "sp002_fixture_root_plan_fix_ledger_bindings_passed": 321,
+    "sp002_fixture_root_plan_fix_compileall_passed": true,
+    "sp002_fixture_root_plan_fix_credential_scan_passed": true,
+    "sp002_fixture_root_plan_fix_git_diff_check_passed": true,
     "sp002_fixture_terminal_action_contract_offline_fix_passed": true,
     "sp002_fixture_terminal_action_contract_retained_shape_replay_passed": true,
     "sp002_fixture_completion_ready_false_prompt_gate_passed": true,
@@ -4629,17 +4716,21 @@
     "sp001_paired_decision": "review_executable_new_version"
   },
   "next_required_gate": {
-    "id": "sp002_fixture_root_plan_contract_offline_fix",
+    "id": "sp002_fixture_preparation_reauthorization_after_root_graph_fix",
     "authorization": false,
     "prerequisites": [
       "sp002_fixture_preparation_attempt_3_failure_evidence_commit_pushed",
       "retained_zero_subtask_root_response_replay_rejects_exact_schema_issues",
-      "fixture_root_prompt_requires_two_to_eight_subtasks",
+      "fixture_root_prompt_requires_two_to_six_subtasks",
       "fixture_root_prompt_requires_at_least_one_dependency_edge",
       "fixture_root_prompt_still_emits_only_one_next_grounded_action",
       "root_plan_validator_remains_unchanged",
       "sp002_and_frozen_sp001_regressions_pass",
-      "offline_fix_commit_pushed_before_any_new_authorization"
+      "offline_fix_commit_pushed_before_any_new_authorization",
+      "sp001_source_fixture_tree_reaudited",
+      "new_sp002_fixture_preparation_authorization_committed_and_pushed",
+      "authorization_predecessor_equals_authorization_commit_parent",
+      "clean_synchronized_main_before_runtime_start"
     ],
     "arm": null,
     "replicate_id": null,

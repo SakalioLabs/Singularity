@@ -617,7 +617,7 @@ Never use recipe, block_name, target, position, or block_position aliases.
 RUNTIME RULES:
 - prepare_fixture: if no nearby blocks are observed, wait 500 ms. Otherwise use only observed coordinates. Dig only exact observed logs, leaves, or allowed terrain; never dig stone or cobblestone. Include block on every dig. Gather at least 3 logs, craft at least 12 matching planks, craft sticks and one table, place the table, then craft exactly one wooden_pickaxe. A crafting_table item in inventory is not a nearby crafting table. Craft wooden_pickaxe only when the current observation contains crafting_table within 4.5 blocks; when the table exists only in inventory, emit place first using an observed solid reference. Never retry wooden_pickaxe craft while no nearby crafting table is observed. Move near observed stone without digging it.
 - sp001: do not craft or place. Treat held_item as the authoritative current main-hand item. Equip the exact wooden_pickaxe only when held_item differs; when held_item is wooden_pickaxe, never equip it again and dig block="stone" at the nearest reachable observed stone coordinates. Never repeat a removed source.
-- prepare_sp002_fixture: preserve exactly two sticks and never craft stone_pickaxe. If no interactive crafting_table is observed, craft at most one table only when needed, then place or move to it. Equip wooden_pickaxe only when held_item differs. Mine only the nearest reachable observed stone and stop at exactly three cobblestone. Every response containing an action must use status planning. Never declare complete in the same response as placing, approaching, or moving to the table; the action counts only after the next machine observation. Report complete with actions=[] only when the current observation already has cobblestone=3, stick=2, stone_pickaxe=0, and crafting_table within 4.5 blocks.
+- prepare_sp002_fixture: preserve exactly two sticks and never craft stone_pickaxe. If no interactive crafting_table is observed, craft at most one table only when needed, then place or move to it. Equip wooden_pickaxe only when held_item differs. Mine only the nearest reachable observed stone and stop at exactly three cobblestone. On a root planning call, copy the exact two-node subtask graph supplied in the user prompt; never return subtasks=[]. Every response containing an action must use status planning. Never declare complete in the same response as placing, approaching, or moving to the table; the action counts only after the next machine observation. Report complete with actions=[] only when the current observation already has cobblestone=3, stick=2, stone_pickaxe=0, and crafting_table within 4.5 blocks.
 - sp002: emit exactly one action: craft item="stone_pickaxe" count=1. Require current cobblestone=3, stick=2, stone_pickaxe=0, and an observed crafting_table within 4.5 blocks. Never move, wait, equip, retry, use a recipe alias, craft another item, or report textual success before the machine state changes.
 
 Required JSON shape:
@@ -721,6 +721,7 @@ Return strict JSON now."""
         if self.strict_stone_pickaxe:
             machine_state = self._compact_stone_pickaxe_state(world_state)
             completion_gate = ""
+            root_graph_gate = ""
             if machine_state.get("runtime_mode") == "prepare_sp002_fixture":
                 inventory = machine_state.get("inventory", {})
                 table_observed = any(
@@ -742,11 +743,48 @@ If completion_ready=false, status=complete is forbidden; return status=planning 
 Every action-bearing response must use status=planning. Never combine complete or blocked with an action.
 An action's predicted result does not satisfy this gate; wait for the next machine observation.
 If completion_ready=true and no action is needed, return status=complete with actions=[]."""
+                root_graph_required = (
+                    self._expected_plan_kind == "root" and not completion_ready
+                )
+                if root_graph_required:
+                    required_root_graph = [
+                        {
+                            "id": "acquire_cobblestone",
+                            "title": "Acquire exactly three cobblestone",
+                            "type": "gather",
+                            "priority": 1,
+                            "preconditions": {"inventory": {"wooden_pickaxe": 1}},
+                            "success_criteria": {"inventory": {"cobblestone": 3}},
+                            "depends_on": [],
+                        },
+                        {
+                            "id": "observe_crafting_table",
+                            "title": "Observe an interactive crafting table",
+                            "type": "verify",
+                            "priority": 1,
+                            "preconditions": {"inventory": {"cobblestone": 3}},
+                            "success_criteria": {
+                                "nearby_block_present": "crafting_table"
+                            },
+                            "depends_on": ["acquire_cobblestone"],
+                        },
+                    ]
+                    root_graph_gate = f"""
+SP-002 fixture root graph gate: root_graph_required=true.
+Copy this exact JSON array into subtasks without omitting, adding, renaming, or reordering nodes:
+{json.dumps(required_root_graph, sort_keys=True, separators=(',', ':'))}
+The second node must keep depends_on=[\"acquire_cobblestone\"]. Never return subtasks=[] on this root planning call.
+This graph does not authorize extra actions; actions must still contain only the one next grounded action."""
+                else:
+                    root_graph_gate = """
+SP-002 fixture root graph gate: root_graph_required=false.
+This call must return subtasks=[]; do not create a new root graph."""
             return f"""Exact goal: {goal}
 Expected plan_kind: {self._expected_plan_kind}
 Runtime mode: {machine_state.get('runtime_mode') or 'unknown'}
 Current compact machine state: {json.dumps(machine_state, sort_keys=True, separators=(',', ':'), default=str)}
 {completion_gate}
+{root_graph_gate}
 Planner context: {memory_context[:500] if memory_context else 'none'}
 Choose only the next grounded action and return contract-valid compact JSON now."""
         if self.strict_m4:
