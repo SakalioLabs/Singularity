@@ -14,7 +14,7 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 
 ## Stone Pickaxe Research Gate
 
-The separate stone-pickaxe skill project remains non-capability research and does not authorize another M4 probe. V4 candidate runs r10 and r11 passed, while the single-use r12 authorization ended before bot readiness when Paper exhausted host virtual memory. The incident created no session, episode, Planner call, action, or skill-quality evidence; r12 is permanently consumed and infrastructure-ineligible. The v4 report remains byte-identical at 2/3. Host memory pressure was removed by stopping only the unrelated Nuxt process tree, and the next stone-pickaxe gate is offline definition of a fresh non-overlapping v5 window. M4 status and all capability counts are unchanged.
+The separate stone-pickaxe skill project remains non-capability research and does not authorize another M4 probe. V4 candidate runs r10 and r11 passed, while the single-use r12 authorization ended before bot readiness when Paper exhausted host virtual memory. The incident created no session, episode, Planner call, action, or skill-quality evidence; r12 is permanently consumed and infrastructure-ineligible. The v4 report remains byte-identical at 2/3. Host memory pressure was removed by stopping only the unrelated Nuxt process tree. Fresh v5 is now defined offline at 0/3 with candidates r13/r14/r15, explicit exclusion of r1..r12, immutable v4/r12 bindings, and 12/12 dedicated tests. No live arm is authorized until this window definition is pushed and a separate single-use r13 authorization is committed. M4 status and all capability counts are unchanged.
 
 ## Scope
 
