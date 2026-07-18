@@ -1,0 +1,164 @@
+{
+  "type": "stone_pickaxe_sp003_inventory_preserving_navigation_repair",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T22:42:37Z",
+  "phase": 80,
+  "status": "offline_fix_verified_pending_commit_push",
+  "base_commit": "3bd58c38d26f1b197a61a4859af946148a9b5d8b",
+  "task_id": "SP-003",
+  "runtime_policy": {
+    "id": "stone-pickaxe-sp003-empty-hand-runtime-v1",
+    "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+    "sha256": "a1aad016b58bad4d0def89f782f67d2cb02ea9c1b846d7c9d9c4e32cfdc2a438",
+    "modified": false
+  },
+  "retained_failure": {
+    "episode_id": "sp003_baseline_20260719_055541_f863c62c",
+    "session_id": "608f66a1-625",
+    "authorization_commit": "dddbdb53e2705bf27c5df65158c2cbd262114598",
+    "evidence_commit": "3bd58c38d26f1b197a61a4859af946148a9b5d8b",
+    "manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_055541_f863c62c/manifest.json",
+    "manifest_sha256": "430c77e3659dc3b2366b43c4fc201d951d408930fdbaa2dd00b9b96a932c1fd6",
+    "session_sha256": "385f776ff9b93e91787499bacdb47af812d8ed6867a2784a65bc1803d604a2bf",
+    "authorization_sha256": "3b35e97b885e9d82aca3dd802bd4baf5180acafb924859f9a1c27b48443099d8",
+    "evidence_file_count": 13,
+    "llm_planner_call_count": 24,
+    "cycle_count": 24,
+    "action_count": 23,
+    "successful_action_count": 13,
+    "failed_action_count": 10,
+    "elapsed_s": 279.812,
+    "termination_reason": "empty_plan",
+    "automatic_retry_performed": false
+  },
+  "proven_chain_progress": {
+    "exact_log_removals": 3,
+    "crafting_table_crafted": true,
+    "crafting_table_placed": true,
+    "wooden_pickaxe_crafted": true,
+    "wooden_pickaxe_equipped": true,
+    "exact_stone_removals": 3,
+    "cobblestone_observed_before_return": 3,
+    "stone_pickaxe_crafted": false,
+    "full_chain_completed": false
+  },
+  "earliest_unrecovered_transition": {
+    "action_index": 22,
+    "action": {
+      "type": "move_to",
+      "parameters": {
+        "x": 93,
+        "y": 142,
+        "z": -31
+      }
+    },
+    "backend_reported_success": true,
+    "inventory_before": {
+      "wooden_pickaxe": 1,
+      "stick": 2,
+      "dark_oak_planks": 3,
+      "dirt": 3,
+      "cobblestone": 3
+    },
+    "inventory_after": {
+      "wooden_pickaxe": 1,
+      "stick": 2,
+      "dark_oak_planks": 3
+    },
+    "inventory_losses": {
+      "dirt": -3,
+      "cobblestone": -3
+    },
+    "machine_observed_scaffold": {
+      "name": "cobblestone",
+      "position": {
+        "x": 94,
+        "y": 141,
+        "z": -31
+      }
+    },
+    "downstream_failure": "The agent returned to the machine-proven table without the three cobblestone required for the final craft."
+  },
+  "root_cause": {
+    "classification": "sp003_pathfinder_hidden_world_mutation_resource_loss",
+    "installed_mineflayer_pathfinder_version": "2.4.5",
+    "installed_movements_module_sha256": "12f27c0b93543e5b260e017e1eace053641e8bb3f71f57000a3f027a60a5c8f2",
+    "default_can_dig": true,
+    "default_allow_1_by_1_towers": true,
+    "default_scaffolding_items": [
+      "dirt",
+      "cobblestone"
+    ],
+    "navigation_to_stone_inventory_delta": {
+      "dirt": 2
+    },
+    "navigation_return_inventory_delta": {
+      "dirt": -3,
+      "cobblestone": -3
+    },
+    "planner_selected_world_mutation": false,
+    "pathfinder_performed_hidden_world_mutation": true,
+    "server_inventory_loss_machine_observed": true
+  },
+  "change": {
+    "navigation_policy_id": "sp003-inventory-preserving-navigation-v1",
+    "preload_path": "src/bot/sp003_inventory_preserving_navigation.js",
+    "preload_sha256": "b318e60c69d202cf0f48d2cf5c564b7a7658afad5815e3552f23ce73928bdcfd",
+    "launcher_path": "scripts/stone-pickaxe-sp003-runtime.ps1",
+    "launcher_sha256": "f9beda4805a10aed40eb462cd0e5e532df6264f372dffe3a5fd14d2bc6a6660f",
+    "runtime_path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+    "runtime_sha256": "a752fcccb87df820a46a94ae598252ed7505d436e12b745c471dfce4630e15d2",
+    "planner_path": "src/singularity/core/planner.py",
+    "planner_sha256": "40abf6e3a3377506744b5d37954c5209594a5027961b759bdbc6550c1c475144",
+    "python_tests_path": "tests/test_stone_pickaxe_sp003_runtime.py",
+    "python_tests_sha256": "ea3d60c16676a98aa63f5c3c21185e29df0f8a166745e68c1cfca5cbdf5cb944",
+    "node_tests_path": "tests/test_sp003_inventory_preserving_navigation.js",
+    "node_tests_sha256": "b01c00cfde6e4e1c1cf94b8bd987b03158dcca0aa334e6fc5df93b05b70c2c1a",
+    "movement_contract": {
+      "can_dig": false,
+      "allow_1_by_1_towers": false,
+      "scaffolding_items": [],
+      "horizontal_move_targets_only": true,
+      "post_move_inventory_loss_fails_closed": true
+    },
+    "additional_bounded_repairs": [
+      "normalize table target-cell coordinates back to the observed solid reference",
+      "navigate before attempting a stone dig farther than 4.5 blocks",
+      "exclude stone directly below the player",
+      "retain multiple local stone sources in the compact observation"
+    ],
+    "shared_bridge_path": "src/bot/bot_server.js",
+    "shared_bridge_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+    "shared_bridge_modified": false
+  },
+  "validation": {
+    "sp003_dedicated": "25/25",
+    "stone_pickaxe_protocol_and_runtime": "111/111",
+    "repository_non_live_python": "961/961",
+    "node_suites": "7/7",
+    "node_internal_cases": "58/58",
+    "node_syntax": true,
+    "powershell_parse": true,
+    "frozen_policy_sha256_preserved": true,
+    "frozen_protocol_sha256_preserved": true,
+    "frozen_shared_bridge_sha256_preserved": true,
+    "retained_manifest_sha256_preserved": true
+  },
+  "immutability": {
+    "retained_failure_modified": false,
+    "prior_sp003_failures_modified": false,
+    "prior_sp001_sp002_evidence_modified": false,
+    "custom_skill_store_modified": false,
+    "capability_report_modified": false
+  },
+  "live_state": {
+    "baseline_authorizations_consumed": 4,
+    "baseline_failures": 4,
+    "baseline_successes": 0,
+    "candidate_successes": 0,
+    "live_authorization": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "next_gate": "push_phase_80_then_commit_a_fresh_parent_bound_baseline_authorization_without_reusing_any_failed_episode"
+}

@@ -30,6 +30,7 @@ $propertiesPath = Join-Path $serverRoot "server.properties"
 $opsPath = Join-Path $serverRoot "ops.json"
 $protocolPath = Join-Path $repoRoot "workspace\evals\stone_pickaxe_protocol.json"
 $policyPath = Join-Path $repoRoot "workspace\evals\stone_pickaxe_sp003_harness_policy.json"
+$navigationPreloadPath = Join-Path $repoRoot "src\bot\sp003_inventory_preserving_navigation.js"
 $authorizationPath = Join-Path $repoRoot "workspace\evals\stone_pickaxe_sp003_next_authorization.json"
 $authorizationRelative = "workspace/evals/stone_pickaxe_sp003_next_authorization.json"
 $runtimeLogRoot = Join-Path $repoRoot "logs\stone_pickaxe\sp003_runtime"
@@ -234,6 +235,7 @@ function Start-ControlledRuntime {
     $bridgeStdout = Join-Path $runtimeLogRoot "bridge_${EpisodeId}.stdout.log"
     $bridgeStderr = Join-Path $runtimeLogRoot "bridge_${EpisodeId}.stderr.log"
     $bridgeArgs = @(
+        "--require", "src/bot/sp003_inventory_preserving_navigation.js",
         "src/bot/bot_server.js",
         "--host", $MinecraftHost,
         "--port", $MinecraftPort,
@@ -278,6 +280,7 @@ try {
     Assert-File $opsPath "ops.json is missing."
     Assert-File $protocolPath "Frozen stone-pickaxe protocol is missing."
     Assert-File $policyPath "SP-003 harness policy is missing."
+    Assert-File $navigationPreloadPath "SP-003 inventory-preserving navigation preload is missing."
     Assert-File $authorizationPath "The one-time SP-003 authorization is missing."
     if (-not (Select-String -LiteralPath $eulaPath -Pattern '^\s*eula\s*=\s*true\s*$' -Quiet)) {
         throw "SP-003 runtime requires eula=true."

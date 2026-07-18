@@ -17,9 +17,9 @@ This project isolates two bounded Minecraft capabilities:
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
 | SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Offline harness ready; live baseline not yet authorized |
 
-Current phase: **Phase 78 verifies successful-craft progress reconciliation after the third consumed SP-003 baseline reached the real Planner, removed three exact logs, and crafted 12 exact planks, but stale progress caused eleven rejected stick actions. The full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 80 verifies SP-003-only inventory-preserving navigation after the fourth consumed baseline reached a placed table, wooden pickaxe, and exactly three removed stone blocks, but default Pathfinder scaffolding consumed all three cobblestone before the final craft. The full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and failed SP-003 episodes `sp003_baseline_20260719_044130_998a5bbd`, `sp003_baseline_20260719_045836_da326336`, and `sp003_baseline_20260719_051736_a27843f7` cannot be reused. After the Phase 78 repair commit is pushed and `main` is synchronized, the next transaction is one fresh parent-bound SP-003 baseline authorization. Automatic retry, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and failed SP-003 episodes `sp003_baseline_20260719_044130_998a5bbd`, `sp003_baseline_20260719_045836_da326336`, `sp003_baseline_20260719_051736_a27843f7`, and `sp003_baseline_20260719_055541_f863c62c` cannot be reused. After the Phase 80 repair commit is pushed and `main` is synchronized, the next transaction is one fresh parent-bound SP-003 baseline authorization. Automatic retry, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -88,7 +88,7 @@ Machine success requires exact material consumption, positive stone-pickaxe inve
 
 The supplemental `stone-pickaxe-sp003-empty-hand-runtime-v1` policy is bound to the unchanged v1 protocol and existing executable skill records. Every episode uses a fresh seed-12345 survival world and exact empty inventory, then follows the fixed five-node graph: three same-family logs, one placed crafting table, one wooden pickaxe, three verified stone removals, and one stone pickaxe.
 
-The action guard permits exactly one grounded action per Planner cycle. It binds navigation and digging to the nearest observed same-family source, retains the machine-proven table position for bounded return navigation, permits exactly five single-attempt craft actions, and rejects extra resources, duplicate mutation, iron mining, family substitution, target injection, or retry. Wooden- and stone-pickaxe crafts must use the same placed table.
+The action guard permits exactly one grounded action per Planner cycle. It binds navigation and digging to the nearest observed same-family source, retains the machine-proven table position for bounded return navigation, permits exactly five single-attempt craft actions, and rejects extra resources, duplicate mutation, support-column stone, iron mining, family substitution, target injection, or retry. SP-003 movement uses horizontal goals under a process-local Pathfinder policy that forbids digging and scaffolding; any machine-observed inventory loss during a guarded move fails closed. Wooden- and stone-pickaxe crafts must use the same placed table.
 
 Success requires the full five-node TaskSystem graph, both frozen component machine verifiers, stable terminal re-observation, and no skill-store mutation. The baseline keeps learned skills off. Each candidate must separately attribute the cobblestone stage to `learned:acquire_cobblestone@1.1.0` and the final craft to `learned:craft_stone_pickaxe@1.0.1`. Reset reuses BM-012 only as an empty natural-state substrate; BM-012 terminal execution and M4 credit are forbidden.
 
@@ -116,7 +116,11 @@ Base implementation: `src/singularity/evaluation/stone_pickaxe_protocol.py`
 
 SP-003 implementation: `src/singularity/evaluation/stone_pickaxe_sp003_runtime.py`
 
+SP-003 navigation preload: `src/bot/sp003_inventory_preserving_navigation.js`
+
 SP-003 tests: `tests/test_stone_pickaxe_sp003_runtime.py`
+
+SP-003 navigation tests: `tests/test_sp003_inventory_preserving_navigation.js`
 
 The 30 numbered cases cover:
 
@@ -132,7 +136,7 @@ The 30 numbered cases cover:
 - `src/singularity/evaluation/stone_pickaxe_runtime.py` seals canonical `world`, `world_nether`, and `world_the_end` trees under one content identity; restoration is hash-checked before Paper starts.
 - Fixture preparation permits ordinary survival wood/table/wooden-pickaxe actions but rejects stone mining, duplicate wooden-pickaxe craft, and wooden-pickaxe craft without an observed table within 4.5 blocks. Its output is non-counting.
 - SP-001 keeps learned skills off and allows only bounded observation/navigation, exact wooden-pickaxe equip, and the nearest reachable observed `stone` dig. Every dig requires strict tool, block-removal, pickup, and pre/post-observation proof.
-- `scripts/stone-pickaxe-sp003-runtime.ps1` requires clean synchronized `main`, a pushed one-file authorization commit, a fresh unique world and evidence directory, the pinned Paper/protocol identities, free owned ports, and bridge craft attempts fixed to one. It starts exactly one episode and has no retry loop.
+- `scripts/stone-pickaxe-sp003-runtime.ps1` requires clean synchronized `main`, a pushed one-file authorization commit, a fresh unique world and evidence directory, the pinned Paper/protocol identities, free owned ports, and bridge craft attempts fixed to one. It preloads the SP-003-only inventory-preserving `Movements` constructor before the unchanged bridge, starts exactly one episode, and has no retry loop.
 - `scripts/stone_pickaxe_sp003_episode_runner.py` retains the authorization, reset, preflight, raw session, episode, component verification, audit, and manifest in one append-only run directory. It never starts BM-012 terminal evaluation or grants capability/M4 credit.
 - `Agent.run_goal` can now bind Planner and ActionController to one supplied absolute deadline and suppress every action beyond a supplied total budget. Existing callers retain their previous behavior when those optional bounds are absent.
 - Offline status: 36/36 protocol cases and 32/32 runtime cases pass. The repository-wide non-live regression gate is rerun before each evidence or offline-fix commit.
@@ -193,7 +197,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 78 craft-progress repair verified; three baseline failures retained; baseline 0/1 and candidates 0/3 |
+| 8. SP-003 composite acceptance | Phase 80 inventory-preserving navigation repair verified; four baseline failures retained; baseline 0/1 and candidates 0/3 |
 
 ## Frozen Baseline
 

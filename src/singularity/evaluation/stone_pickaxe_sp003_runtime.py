@@ -47,6 +47,7 @@ from singularity.evaluation.stone_pickaxe_sp002_runtime import (
 SP003_RUNTIME_POLICY_ID = "stone-pickaxe-sp003-empty-hand-runtime-v1"
 SP003_ACTION_GUARD_POLICY_ID = "stone-pickaxe-sp003-action-guard-v1"
 SP003_MACHINE_VERIFIER_ID = "stone-pickaxe-sp003-empty-hand-machine-verifier-v1"
+SP003_NAVIGATION_INVENTORY_POLICY_ID = "sp003-inventory-preserving-navigation-v1"
 SP003_AUTHORIZATION_TYPE = "stone_pickaxe_sp003_one_time_authorization"
 SP003_POLICY_PATH = REPOSITORY_ROOT / "workspace/evals/stone_pickaxe_sp003_harness_policy.json"
 SP003_AUTHORIZATION_PATH = REPOSITORY_ROOT / "workspace/evals/stone_pickaxe_sp003_next_authorization.json"
@@ -98,6 +99,32 @@ def _safe_inventory(observation: Any) -> dict[str, int]:
         str(item): _count(count)
         for item, count in inventory.items()
         if str(item) and _count(count) > 0
+    }
+
+
+def _navigation_inventory_proof(before: Any, after: Any, *, observed: bool = True) -> dict:
+    inventory_before = _safe_inventory({"inventory": before})
+    inventory_after = _safe_inventory({"inventory": after})
+    signed_delta = {}
+    for item in sorted(set(inventory_before) | set(inventory_after)):
+        change = inventory_after.get(item, 0) - inventory_before.get(item, 0)
+        if change:
+            signed_delta[item] = change
+    losses = {item: count for item, count in signed_delta.items() if count < 0}
+    passed = bool(observed) and not losses
+    return {
+        "policy_id": SP003_NAVIGATION_INVENTORY_POLICY_ID,
+        "preload_module": "src/bot/sp003_inventory_preserving_navigation.js",
+        "requested": True,
+        "post_observation_complete": bool(observed),
+        "world_mutation_allowed": False,
+        "can_dig": False,
+        "can_place_scaffolding": False,
+        "inventory_before": inventory_before,
+        "inventory_after": inventory_after,
+        "inventory_signed_delta": signed_delta,
+        "inventory_losses": losses,
+        "passed": passed,
     }
 
 
@@ -714,6 +741,63 @@ def _remembered_table_candidate(observation: Any, progress: Any) -> dict:
     }
 
 
+def _safe_stone_candidates(
+    observation: Any,
+    progress: Any,
+    *,
+    reachable_only: bool = False,
+) -> list[dict]:
+    state = _progress_snapshot(progress)
+    candidates = _observed_candidates(
+        observation,
+        {"stone"},
+        reachable_only=reachable_only,
+        excluded=set(state["stone_source_ids"]),
+    )
+    raw = observation if isinstance(observation, dict) else {}
+    player = raw.get("position") if isinstance(raw.get("position"), dict) else {}
+    player_x = _finite(player.get("x"))
+    player_y = _finite(player.get("y"))
+    player_z = _finite(player.get("z"))
+    if player_x is None or player_y is None or player_z is None:
+        return candidates
+    player_column = (math.floor(player_x), math.floor(player_z))
+    safe = []
+    for candidate in candidates:
+        position = candidate.get("position") if isinstance(candidate.get("position"), dict) else {}
+        x = _finite(position.get("x"))
+        y = _finite(position.get("y"))
+        z = _finite(position.get("z"))
+        directly_below = (
+            x is not None
+            and y is not None
+            and z is not None
+            and (round(x), round(z)) == player_column
+            and y < player_y
+        )
+        if not directly_below:
+            safe.append(candidate)
+    return safe
+
+
+def _merge_local_sp003_blocks(observation: Any, local_scan: Any) -> list[dict]:
+    raw = observation if isinstance(observation, dict) else {}
+    observed = raw.get("nearby_blocks") if isinstance(raw.get("nearby_blocks"), list) else []
+    local = local_scan if isinstance(local_scan, list) else []
+    merged = []
+    seen = set()
+    for block in [*local, *observed]:
+        if not isinstance(block, dict):
+            continue
+        position = block.get("position") if isinstance(block.get("position"), dict) else {}
+        identifier = source_id(str(block.get("name") or ""), position)
+        if not identifier or identifier in seen:
+            continue
+        seen.add(identifier)
+        merged.append(block)
+    return merged[:100]
+
+
 def _sp003_observation_targets(observation: Any, progress: Any) -> list[dict]:
     state = _progress_snapshot(progress)
     stage = _stage(observation, progress)
@@ -726,11 +810,7 @@ def _sp003_observation_targets(observation: Any, progress: Any) -> list[dict]:
             excluded=set(state["log_source_ids"]),
         )[:8]
     if stage == "acquire_cobblestone" and inventory.get("cobblestone", 0) < 3:
-        return _observed_candidates(
-            observation,
-            {"stone"},
-            excluded=set(state["stone_source_ids"]),
-        )[:8]
+        return _safe_stone_candidates(observation, progress)[:8]
     if stage == "prepare_wooden_pickaxe" and state["crafting_table_craft_count"] == 1:
         return _place_reference_candidates(observation)[:8]
     tables = _observed_candidates(observation, {"crafting_table"})
@@ -769,11 +849,7 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
                     excluded=set(state["log_source_ids"]),
                 )
             elif stage == "acquire_cobblestone" and inventory.get("cobblestone", 0) < 3:
-                candidates = _observed_candidates(
-                    observation,
-                    {"stone"},
-                    excluded=set(state["stone_source_ids"]),
-                )
+                candidates = _safe_stone_candidates(observation, progress)
             else:
                 candidates = _observed_candidates(observation, {"crafting_table"})
                 if not candidates:
@@ -790,6 +866,9 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
                 issues.append(f"{stage}_navigation_target_must_be_nearest_observed")
             else:
                 selected_source = matching[0]
+                if action_type == "move_to":
+                    normalized["parameters"].pop("y", None)
+                    normalized["parameters"]["preserve_inventory"] = True
     elif action_type == "dig" and stage == "acquire_wood":
         block = str(params.get("block") or "")
         if block not in LOG_ITEMS:
@@ -853,6 +932,17 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
             issues.append("sp003_duplicate_table_placement_forbidden")
         candidates = _place_reference_candidates(observation)
         matching = [item for item in candidates if _coordinates_match(params, item)]
+        target_matching = [
+            item
+            for item in candidates
+            if _coordinates_match(
+                params,
+                {"position": item.get("target_position", {})},
+            )
+        ]
+        if not matching and target_matching:
+            matching = target_matching
+            normalized["parameters"].update(target_matching[0]["position"])
         if not matching:
             issues.append("sp003_table_reference_must_be_observed_solid_with_clear_target")
         else:
@@ -870,11 +960,10 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
             issues.append("sp003_stone_dig_requires_exact_stone")
         if _main_hand_item(observation) != "wooden_pickaxe":
             issues.append("sp003_stone_dig_requires_held_wooden_pickaxe")
-        candidates = _observed_candidates(
+        candidates = _safe_stone_candidates(
             observation,
-            {"stone"},
+            progress,
             reachable_only=True,
-            excluded=set(state["stone_source_ids"]),
         )
         target_id = source_id("stone", params)
         matching = [item for item in candidates if item["source_id"] == target_id]
@@ -1065,7 +1154,16 @@ class StonePickaxeSP003RuntimeAgent(StonePickaxeSP002RuntimeAgent):
         self.skill_learning_ledger = None
 
     def _observe(self) -> dict:
+        cached = getattr(self, "_sp003_feedback_observation_override", None)
+        if isinstance(cached, dict):
+            self._sp003_feedback_observation_override = None
+            return copy.deepcopy(cached)
         observation = dict(super()._observe())
+        local_scan = self.bot.get_nearby_blocks(radius=5)
+        observation["nearby_blocks"] = _merge_local_sp003_blocks(
+            observation,
+            local_scan,
+        )
         existing_flags = observation.get("flags") if isinstance(observation.get("flags"), list) else []
         observation["flags"] = sorted(set(str(flag) for flag in existing_flags) | set(_sp003_flags(self.sp003_progress)))
         observation["sp003_progress"] = _progress_snapshot(self.sp003_progress)
@@ -1168,6 +1266,45 @@ class StonePickaxeSP003RuntimeAgent(StonePickaxeSP002RuntimeAgent):
         fallback_observation: dict,
         context: dict = None,
     ) -> dict:
+        params = action.get("parameters") if isinstance(action.get("parameters"), dict) else {}
+        if action.get("type") == "move_to" and params.get("preserve_inventory") is True:
+            observed = False
+            post_observation = fallback_observation
+            try:
+                post_observation = self._observe()
+                observed = True
+                self._sp003_feedback_observation_override = copy.deepcopy(post_observation)
+            except Exception:
+                self._sp003_feedback_observation_override = None
+            proof = _navigation_inventory_proof(
+                _safe_inventory(fallback_observation),
+                _safe_inventory(post_observation),
+                observed=observed,
+            )
+            result["inventory_preservation"] = proof
+            if not proof["passed"]:
+                result["success"] = False
+                result["error"] = (
+                    "SP-003 inventory-preserving navigation lost inventory"
+                    if proof["inventory_losses"]
+                    else "SP-003 inventory-preserving navigation lacks a post observation"
+                )
+            if hasattr(getattr(self, "session_logger", None), "log"):
+                self.session_logger.log(
+                    "stone_pickaxe_sp003_navigation_inventory_preservation",
+                    {
+                        "schema_version": 1,
+                        "action": copy.deepcopy(action),
+                        **proof,
+                    },
+                    level="INFO" if proof["passed"] else "ERROR",
+                )
+            return super()._apply_action_feedback(
+                action,
+                result,
+                fallback_observation,
+                context,
+            )
         before = _progress_snapshot(self.sp003_progress)
         after = record_sp003_success(self.sp003_progress, action, result)
         if after != before:

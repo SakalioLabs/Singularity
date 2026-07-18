@@ -11,7 +11,10 @@ from singularity.core.agent import Agent
 from singularity.core.planner import Planner
 from singularity.core.task_system import TaskStatus, TaskSystem
 from singularity.evaluation.stone_pickaxe_protocol import PROTOCOL_SHA256
-from singularity.evaluation.stone_pickaxe_sp002_runtime import build_runtime_config
+from singularity.evaluation.stone_pickaxe_sp002_runtime import (
+    StonePickaxeRuntimeAgent as StonePickaxeSP002RuntimeAgent,
+    build_runtime_config,
+)
 from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     EXPECTED_SKILLS,
     SP003_GOAL,
@@ -19,6 +22,8 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     SP003_RUNTIME_POLICY_ID,
     StonePickaxeSP003RuntimeAgent,
     _empty_progress,
+    _merge_local_sp003_blocks,
+    _navigation_inventory_proof,
     _progress_snapshot,
     _sp003_observation_targets,
     audit_sp003_initial_state,
@@ -245,6 +250,22 @@ def test_preparation_guard_enforces_exact_recipe_sequence_and_single_table():
         progress,
     )
     assert place["allowed"], place
+    target_cell = guard_sp003_action(
+        {
+            "type": "place",
+            "parameters": {"item": "crafting_table", "x": 2, "y": 64, "z": 0},
+        },
+        observation({"crafting_table": 1}, references),
+        progress,
+    )
+    assert target_cell["allowed"], target_cell
+    assert target_cell["action"]["parameters"] == {
+        "item": "crafting_table",
+        "x": 2,
+        "y": 63,
+        "z": 0,
+        "reference_source_id": "grass_block:2:63:0",
+    }
     progress["crafting_table_place_count"] = 1
     table_block = [block("crafting_table", 2, 64, 0, 2.0)]
     wooden = guard_sp003_action(
@@ -290,6 +311,23 @@ def test_stone_guard_requires_held_wooden_pickaxe_nearest_source_and_exact_limit
         progress,
     )
     assert nearest["allowed"], nearest
+    support_safe_world = observation(
+        {"wooden_pickaxe": 1},
+        [
+            block("stone", 0, 63, 0, 1.0),
+            block("stone", 1, 63, 0, 1.4),
+        ],
+        held="wooden_pickaxe",
+    )
+    safe_targets = _sp003_observation_targets(support_safe_world, progress)
+    assert [item["source_id"] for item in safe_targets] == ["stone:1:63:0"]
+    below = guard_sp003_action(
+        {"type": "dig", "parameters": {"block": "stone", "x": 0, "y": 63, "z": 0}},
+        support_safe_world,
+        progress,
+    )
+    assert not below["allowed"]
+    assert "sp003_stone_target_must_be_reachable_and_observed" in below["issues"]
     progress["stone_source_ids"] = {"stone:1:63:0", "stone:2:63:0", "stone:3:63:0"}
     fourth = guard_sp003_action(
         {"type": "dig", "parameters": {"block": "stone", "x": 4, "y": 63, "z": 0}},
@@ -470,6 +508,29 @@ def test_machine_proven_table_position_can_be_used_for_bounded_return_navigation
         progress,
     )
     assert guarded["allowed"], guarded
+    assert guarded["action"]["parameters"]["preserve_inventory"] is True
+    assert "y" not in guarded["action"]["parameters"]
+
+
+def test_local_sp003_scan_keeps_multiple_stone_sources_ahead_of_global_diversity():
+    world = observation(
+        {},
+        [block("stone", 20, 61, 0, 20.2), block("iron_ore", 4, 63, 0, 4.2)],
+    )
+    local = [
+        block("stone", 1, 63, 0, 1.4),
+        block("stone", 2, 63, 0, 2.2),
+        block("stone", 1, 62, 0, 2.4),
+    ]
+
+    merged = _merge_local_sp003_blocks(world, local)
+
+    assert [source_id(item["name"], item["position"]) for item in merged[:3]] == [
+        "stone:1:63:0",
+        "stone:2:63:0",
+        "stone:1:62:0",
+    ]
+    assert len([item for item in merged if item["name"] == "stone"]) == 4
 
 
 def test_planner_compacts_sp003_state_and_requires_exact_five_node_graph():
@@ -502,6 +563,104 @@ def test_planner_compacts_sp003_state_and_requires_exact_five_node_graph():
     report = Planner._validate_stone_pickaxe_plan_envelope(drifted, SP003_GOAL, "root", "sp003")
     assert not report["passed"]
     assert "sp003_exact_root_graph_required" in report["issues"]
+    planner = object.__new__(Planner)
+    planner._expected_plan_kind = "continuation"
+    prompt = Planner._stone_pickaxe_system_prompt(planner)
+    assert "never add 1 to y or emit target_position" in prompt
+    assert "when it exceeds 4.5, emit move_to with only that target's x and z" in prompt
+    assert "Never dig a block directly below the player" in prompt
+
+
+def test_fourth_baseline_return_move_replays_as_horizontal_inventory_preserving_navigation():
+    session_path = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_055541_f863c62c/session.json"
+    )
+    events = json.loads(session_path.read_text(encoding="utf-8"))
+    action_events = [event for event in events if event.get("type") == "action"]
+    returned = action_events[21]
+    before = returned["data"]["pre_observation"]
+    after = returned["data"]["post_observation"]
+    assert before["inventory"]["dirt"] == 3
+    assert before["inventory"]["cobblestone"] == 3
+    assert "dirt" not in after["inventory"]
+    assert "cobblestone" not in after["inventory"]
+    assert any(
+        item.get("name") == "cobblestone"
+        and item.get("position") == {"x": 94, "y": 141, "z": -31}
+        for item in after["nearby_blocks"]
+    )
+    retained_proof = _navigation_inventory_proof(
+        before["inventory"],
+        after["inventory"],
+    )
+    assert not retained_proof["passed"]
+    assert retained_proof["inventory_losses"] == {
+        "cobblestone": -3,
+        "dirt": -3,
+    }
+    progress_event = next(
+        event
+        for event in reversed(events[: events.index(returned)])
+        if event.get("type") == "stone_pickaxe_sp003_progress"
+    )
+    guarded = guard_sp003_action(
+        returned["data"]["action"],
+        before,
+        progress_event["data"]["after"],
+    )
+    assert guarded["allowed"], guarded
+    assert guarded["action"]["parameters"] == {
+        "x": 93,
+        "z": -31,
+        "preserve_inventory": True,
+    }
+
+
+def test_navigation_feedback_fails_closed_on_loss_and_reuses_one_post_observation(monkeypatch):
+    agent = StonePickaxeSP003RuntimeAgent.__new__(StonePickaxeSP003RuntimeAgent)
+    agent.session_logger = LogStub()
+    agent._sp003_feedback_observation_override = None
+    post = observation({"wooden_pickaxe": 1, "stick": 2})
+    observations = []
+
+    def observe_once():
+        observations.append(True)
+        return copy.deepcopy(post)
+
+    agent._observe = observe_once
+
+    def consume_cached_observation(self, _action, _result, _fallback, _context=None):
+        cached = copy.deepcopy(self._sp003_feedback_observation_override)
+        self._sp003_feedback_observation_override = None
+        return cached
+
+    monkeypatch.setattr(
+        StonePickaxeSP002RuntimeAgent,
+        "_apply_action_feedback",
+        consume_cached_observation,
+    )
+    action = {
+        "type": "move_to",
+        "parameters": {"x": 2, "z": 0, "preserve_inventory": True},
+    }
+    result = {"success": True, "reached": True}
+    before = observation({"wooden_pickaxe": 1, "stick": 2, "cobblestone": 3})
+
+    observed = StonePickaxeSP003RuntimeAgent._apply_action_feedback(
+        agent,
+        action,
+        result,
+        before,
+    )
+
+    assert observed == post
+    assert len(observations) == 1
+    assert result["success"] is False
+    assert result["inventory_preservation"]["inventory_losses"] == {"cobblestone": -3}
+    assert agent.session_logger.events[-1]["type"] == (
+        "stone_pickaxe_sp003_navigation_inventory_preservation"
+    )
 
 
 def test_stone_pickaxe_reconciliation_accepts_flags_only_for_sp003():
@@ -1033,6 +1192,7 @@ def test_sp003_runner_and_launcher_enforce_fresh_single_episode_contract():
     assert "skill_runtime_default_profile()" in runner
     assert ".runtime_default_gate_profile()" not in runner
     assert '"--craft-max-attempts", "1"' in launcher
+    assert '"--require", "src/bot/sp003_inventory_preserving_navigation.js"' in launcher
     assert "Assert-FreshRuntimePaths" in launcher
     assert "Assert-CleanSynchronizedMain" in launcher
     assert "automatic retry is forbidden" in launcher
