@@ -14,12 +14,12 @@ This project isolates two bounded Minecraft capabilities:
 | Microbenchmark | Eligible live successes | Extraction gate | Current learned skill |
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
-| SP-002 Craft Stone Pickaxe | 3 | 3 | Advisory `1.0.0`; v1 shadow failed 0/1, candidate pairs 0/3 |
+| SP-002 Craft Stone Pickaxe | 3 | 3 | Advisory `1.0.0`; v1 shadow failure retained, v2 recovery pairs 0/3 |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 62 retains the consumed SP-002 v1 shadow failure. Minecraft and the machine verifier passed the exact one-action craft, but no `skill_shadow_plan` event was emitted because root-plan-first routing deferred the skill hook past the only cycle. Executable `learned:acquire_cobblestone@1.1.0` remains frozen, candidate `a488cd61` and `learned:craft_stone_pickaxe@1.0.0` remain advisory, candidate pairs are 0/3, and normal runtime remains disabled**.
+Current phase: **Phase 63 defines isolated SP-002 recovery policy v2. It retains the consumed v1 shadow failure, repairs first-cycle skill routing without changing v1, and reserves fresh support IDs `shadow-2/advisory-2/fallback-2` plus candidate IDs `r4..r6`. Executable `learned:acquire_cobblestone@1.1.0` remains frozen, candidate `a488cd61` and `learned:craft_stone_pickaxe@1.0.0` remain advisory, candidate pairs are 0/3, and normal runtime remains disabled**.
 
-Current authorization: **none**. Replicates `r1..r15` from SP-001, all nine SP-002 fixture/live authorizations, and v1 `shadow/shadow-1` are consumed and cannot be reused. V1 `advisory-1`, `fallback-1`, and candidate `r1..r3` remain unrun but are not authorized while the ordering defect is open. The next transaction is an offline v2 recovery policy with new arm IDs and no live process. Executable craft promotion, automatic retry, SP-003, Probe 24, full BM-012, and iron mining remain locked.
+Current authorization: **none**. Replicates `r1..r15` from SP-001, all nine SP-002 fixture/live authorizations, and v1 `shadow/shadow-1` are consumed and cannot be reused. V1 `advisory-1`, `fallback-1`, and candidate `r1..r3` are excluded from recovery. After the v2 definition commit is pushed and `main` is synchronized, the next transaction is one separate parent-bound `shadow/shadow-2` authorization. Executable craft promotion, automatic retry, SP-003, Probe 24, full BM-012, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -187,7 +187,7 @@ The 30 numbered cases cover:
 | 3. SP-001 3/3 gate | Complete; evidence pushed at `6c8c995` |
 | 4. Acquire candidate/advisory | Complete; advisory pushed at `822057b` |
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
-| 6. Craft candidate/advisory | Advisory `learned:craft_stone_pickaxe@1.0.0` created; paired evaluation next |
+| 6. Craft candidate/advisory | Advisory `learned:craft_stone_pickaxe@1.0.0` created; v2 recovery evaluation pending |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
 | 8. SP-003 composite acceptance | Locked |
 
@@ -201,4 +201,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, and first two SP-002 failures remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 executable promotion remains complete. Do not retry consumed candidates, run excluded IDs `r1..r15`, reuse prior pair IDs, rerun support arms, issue another SP-002 evidence authorization, skip the craft candidate/advisory lifecycle, run SP-003 before both skills are executable, run full BM-012, run Probe 24, or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 executable promotion remains complete. Do not retry consumed candidates, run excluded v1 IDs, reuse prior pair IDs, run more than the separately authorized next v2 arm, skip the craft candidate/advisory lifecycle, run SP-003 before both skills are executable, run full BM-012, run Probe 24, or begin iron mining.
