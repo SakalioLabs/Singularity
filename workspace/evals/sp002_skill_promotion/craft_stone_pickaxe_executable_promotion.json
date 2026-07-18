@@ -1,0 +1,212 @@
+{
+  "artifacts": {
+    "custom_skills": "workspace/skills/custom_skills.jsonl",
+    "paired_report_mutated": false,
+    "skill_learning_ledger": "workspace/evals/skill_learning_ledger.json",
+    "source_skill_mutated": false
+  },
+  "automatic_live_resume_allowed": false,
+  "candidate_id": "a488cd61",
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "executable_promotion_gate": {
+    "action_controller_enforced": true,
+    "action_verifier_enforced": true,
+    "advisory_hint_verified": true,
+    "baseline_session_ids": [
+      "009dafd7-659",
+      "102aa710-b41",
+      "e6cebfbe-dfe"
+    ],
+    "candidate_session_ids": [
+      "2b6baf3a-e3e",
+      "45f20f79-0ac",
+      "6acf4503-737"
+    ],
+    "candidate_steps_reobserved": true,
+    "candidate_steps_verified": true,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false,
+    "decision": "promote_executable",
+    "evaluated_skill_version": "1.0.0",
+    "fallback_verified": true,
+    "fixed_controls_match": true,
+    "goal_verifier_enforced": true,
+    "live_minecraft_only": true,
+    "no_action_failure_regression": true,
+    "no_completion_rate_regression": true,
+    "no_no_progress_regression": true,
+    "no_verifier_reject_regression": true,
+    "normal_runtime_permission": false,
+    "paired_live_session_count": 3,
+    "promoted_skill_version": "1.0.1",
+    "readiness": "approved",
+    "rollback_path_present": true,
+    "rollback_target": "learned:craft_stone_pickaxe@1.0.0",
+    "schema_version": 1,
+    "shadow_plan_verified": true,
+    "single_target_skill": true,
+    "skill_id": "learned:craft_stone_pickaxe",
+    "skill_version": "1.0.1",
+    "synthetic_evidence_count": 0,
+    "thresholds": {
+      "min_paired_live_sessions": 3
+    },
+    "transfer_scope": {
+      "nearby_block_required": "crafting_table",
+      "quantity_range": {
+        "default": 1,
+        "maximum": 1,
+        "minimum": 1
+      },
+      "recipe_inputs": {
+        "cobblestone": 3,
+        "stick": 2
+      },
+      "target_item": "stone_pickaxe",
+      "task_family": "crafting"
+    },
+    "type": "skill_executable_promotion_gate",
+    "validation_issues": []
+  },
+  "executable_promotion_gate_fingerprint": "47840e035ecbfe6552b2b2bfb939553d824a045204dd5263557c553460db926d",
+  "generated_at_utc": "2026-07-18T18:51:45.950464+00:00",
+  "lifecycle_transition": {
+    "automatic_delete_allowed": false,
+    "changed": true,
+    "evidence": {
+      "executable_promotion_gate": {
+        "action_controller_enforced": true,
+        "action_verifier_enforced": true,
+        "advisory_hint_verified": true,
+        "baseline_session_ids": [
+          "009dafd7-659",
+          "102aa710-b41",
+          "e6cebfbe-dfe"
+        ],
+        "candidate_session_ids": [
+          "2b6baf3a-e3e",
+          "45f20f79-0ac",
+          "6acf4503-737"
+        ],
+        "candidate_steps_reobserved": true,
+        "candidate_steps_verified": true,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false,
+        "decision": "promote_executable",
+        "evaluated_skill_version": "1.0.0",
+        "fallback_verified": true,
+        "fixed_controls_match": true,
+        "goal_verifier_enforced": true,
+        "live_minecraft_only": true,
+        "no_action_failure_regression": true,
+        "no_completion_rate_regression": true,
+        "no_no_progress_regression": true,
+        "no_verifier_reject_regression": true,
+        "normal_runtime_permission": false,
+        "paired_live_session_count": 3,
+        "promoted_skill_version": "1.0.1",
+        "readiness": "approved",
+        "rollback_path_present": true,
+        "rollback_target": "learned:craft_stone_pickaxe@1.0.0",
+        "schema_version": 1,
+        "shadow_plan_verified": true,
+        "single_target_skill": true,
+        "skill_id": "learned:craft_stone_pickaxe",
+        "skill_version": "1.0.1",
+        "synthetic_evidence_count": 0,
+        "thresholds": {
+          "min_paired_live_sessions": 3
+        },
+        "transfer_scope": {
+          "nearby_block_required": "crafting_table",
+          "quantity_range": {
+            "default": 1,
+            "maximum": 1,
+            "minimum": 1
+          },
+          "recipe_inputs": {
+            "cobblestone": 3,
+            "stick": 2
+          },
+          "target_item": "stone_pickaxe",
+          "task_family": "crafting"
+        },
+        "type": "skill_executable_promotion_gate",
+        "validation_issues": []
+      },
+      "paired_evaluation": {
+        "candidate_replicate_ids": [
+          "r4",
+          "r5",
+          "r6"
+        ],
+        "canonical_sha256": "d12801292189f2762280c1b191e1b7b45a389b7e71081ca25422707fcce2b8b9",
+        "evaluation_window_id": "sp002-first-cycle-skill-routing-v2",
+        "path": "workspace/evals/sp002_skill_evaluation_v2/craft_stone_pickaxe_paired_evaluation_v2.json",
+        "policy_id": "stone-pickaxe-sp002-paired-evaluation-v2",
+        "policy_sha256": "6222ba05a63fee2104df35d1630d7ae1834c60e994586ab58aadd4637812457f",
+        "sha256": "334e73e36055ef757d81903ff409f706a0437847d7534135a109e58f80b9364b",
+        "valid_pair_count": 3
+      }
+    },
+    "previous_status": "advisory",
+    "previous_version": "1.0.0",
+    "reason": "three fresh SP-002 v2 paired live trials passed the fixed craft promotion gate",
+    "rollback_target": "1.0.0",
+    "skill_id": "learned:craft_stone_pickaxe",
+    "status": "executable",
+    "timestamp": 1784400705.891343,
+    "version": "1.0.1"
+  },
+  "next_gate": "sp003_composite_protocol_definition_and_offline_verification",
+  "normal_runtime_permission": true,
+  "paired_evaluation": {
+    "candidate_replicate_ids": [
+      "r4",
+      "r5",
+      "r6"
+    ],
+    "canonical_sha256": "d12801292189f2762280c1b191e1b7b45a389b7e71081ca25422707fcce2b8b9",
+    "evaluation_window_id": "sp002-first-cycle-skill-routing-v2",
+    "path": "workspace/evals/sp002_skill_evaluation_v2/craft_stone_pickaxe_paired_evaluation_v2.json",
+    "policy_id": "stone-pickaxe-sp002-paired-evaluation-v2",
+    "policy_sha256": "6222ba05a63fee2104df35d1630d7ae1834c60e994586ab58aadd4637812457f",
+    "sha256": "334e73e36055ef757d81903ff409f706a0437847d7534135a109e58f80b9364b",
+    "valid_pair_count": 3
+  },
+  "policy_identity": {
+    "passed": true,
+    "policy_sha256": "6222ba05a63fee2104df35d1630d7ae1834c60e994586ab58aadd4637812457f",
+    "source_skill_record_canonical_sha256": "7c9a596e5765bf7fddf6a0a49a1b4b96cf2f1a808f4e9a542ea9c3af436bcc28"
+  },
+  "promoted_skill": {
+    "name": "learned_craft_stone_pickaxe",
+    "parent_version": "1.0.0",
+    "record_canonical_sha256": "c7f4e53602f8397cc913cc4a98e01d56324f83af4430fe8283c3b293abcb5fa4",
+    "rollback_target": "1.0.0",
+    "status": "executable",
+    "version": "1.0.1"
+  },
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "report_id": "sp-002-executable-promotion:47840e035ecbfe65",
+  "runtime_default_gate": {
+    "decision": "allow_task_family_runtime_default",
+    "path": "workspace/evals/sp002_skill_promotion/craft_stone_pickaxe_runtime_default_gate.json",
+    "promotion_gate_fingerprint": "47840e035ecbfe6552b2b2bfb939553d824a045204dd5263557c553460db926d",
+    "readiness": "approved",
+    "sha256": "3c8606bea20b6455a06be240e8af6998488fb8cf0eb747a6eb260d019c4ff64d"
+  },
+  "schema_version": 1,
+  "skill_id": "learned:craft_stone_pickaxe",
+  "source_skill": {
+    "preserved": true,
+    "record_canonical_sha256": "7c9a596e5765bf7fddf6a0a49a1b4b96cf2f1a808f4e9a542ea9c3af436bcc28",
+    "status": "advisory",
+    "version": "1.0.0"
+  },
+  "stage": "executable",
+  "task_id": "SP-002",
+  "type": "stone_pickaxe_skill_executable_promotion"
+}

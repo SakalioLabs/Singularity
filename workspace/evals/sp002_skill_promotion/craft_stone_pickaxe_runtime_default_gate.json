@@ -1,0 +1,30 @@
+{
+  "approved_candidate_count": 1,
+  "candidates": [
+    {
+      "candidate_readiness": "approved",
+      "decision": "allow_task_family_runtime_default",
+      "promotion_gate_fingerprint": "47840e035ecbfe6552b2b2bfb939553d824a045204dd5263557c553460db926d",
+      "skill": "learned_craft_stone_pickaxe",
+      "skill_id": "learned:craft_stone_pickaxe",
+      "task_family": "crafting"
+    }
+  ],
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "decision": "allow_task_family_runtime_default",
+  "executable_promotion_gate_fingerprint": "47840e035ecbfe6552b2b2bfb939553d824a045204dd5263557c553460db926d",
+  "normal_runtime_permission": true,
+  "promoted_skill_version": "1.0.1",
+  "readiness": "approved",
+  "reason": "paired live executable evidence approved",
+  "required": true,
+  "review_candidate_count": 0,
+  "schema_version": 1,
+  "source_report_canonical_sha256": "d12801292189f2762280c1b191e1b7b45a389b7e71081ca25422707fcce2b8b9",
+  "source_report_id": "stone-pickaxe-sp002-paired-evaluation-v2:d12801292189f2762280c1b191e1b7b45a389b7e71081ca25422707fcce2b8b9",
+  "source_report_path": "workspace/evals/sp002_skill_evaluation_v2/craft_stone_pickaxe_paired_evaluation_v2.json",
+  "source_report_sha256": "334e73e36055ef757d81903ff409f706a0437847d7534135a109e58f80b9364b",
+  "target_task_family": "crafting",
+  "type": "skill_runtime_default_gate"
+}

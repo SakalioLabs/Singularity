@@ -163,6 +163,23 @@ def test_exact_sp002_v2_gate_promotes_new_executable_version_and_is_idempotent()
         assert runtime_gate["promoted_skill_version"] == "1.0.1"
         assert runtime_gate["executable_promotion_gate_fingerprint"] == evidence_fingerprint(expected_gate)
 
+        library = SkillLibrary(str(paths["storage"]), persist=True)
+        assert library.select_runtime_skill(
+            "Craft a stone pickaxe",
+            _sp002_observation(),
+            "runtime",
+            SP002_POLICY["target_skill"]["skill_id"],
+        ) is None
+        assert library.record_skill_runtime_default_gate(runtime_gate) == 1
+        selected = library.select_runtime_skill(
+            "Craft a stone pickaxe",
+            _sp002_observation(),
+            "runtime",
+            SP002_POLICY["target_skill"]["skill_id"],
+        )
+        assert selected is not None
+        assert selected.version == "1.0.1"
+
         retained_hashes = {
             name: _sha256(path)
             for name, path in paths.items()
@@ -341,6 +358,23 @@ def _observation() -> dict:
                 "name": "stone",
                 "observed": True,
                 "reachable": True,
+                "position": {"x": 1, "y": 64, "z": 0},
+            }
+        ],
+    }
+
+
+def _sp002_observation() -> dict:
+    return {
+        "observation_id": "sp002-promotion-test",
+        "inventory": {"cobblestone": 3, "stick": 2},
+        "safe": True,
+        "movable": True,
+        "position": {"x": 0, "y": 64, "z": 0},
+        "nearby_blocks": [
+            {
+                "name": "crafting_table",
+                "distance": 1.0,
                 "position": {"x": 1, "y": 64, "z": 0},
             }
         ],

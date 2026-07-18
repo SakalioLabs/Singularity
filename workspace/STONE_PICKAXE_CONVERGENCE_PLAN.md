@@ -187,9 +187,9 @@ The 30 numbered cases cover:
 | 3. SP-001 3/3 gate | Complete; evidence pushed at `6c8c995` |
 | 4. Acquire candidate/advisory | Complete; advisory pushed at `822057b` |
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
-| 6. Craft candidate/advisory | V2 support and candidate pairs 3/3; executable 1.0.1 review approved; task-specific promotion tooling 43/43, separate promotion pending |
+| 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Locked |
+| 8. SP-003 composite acceptance | Unlocked for protocol definition and offline verification; live execution not authorized |
 
 ## Frozen Baseline
 
@@ -201,4 +201,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 executable promotion remains complete. Do not retry consumed v2 arms or candidates; run excluded v1 IDs; reuse prior pair IDs; create another live evaluation window; skip the separate craft promotion review; run SP-003 before both skills are executable; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed v2 arms or candidates; run excluded v1 IDs; reuse prior pair IDs; create another SP-002 live evaluation window; run SP-003 live before its protocol, offline verifier, and separate authorization are committed; run full BM-012; run Probe 24; or begin iron mining.
