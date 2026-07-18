@@ -1,0 +1,36 @@
+{
+  "type": "stone_pickaxe_sp003_infrastructure_failure_manifest",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T23:07:42.184852Z",
+  "task_id": "SP-003",
+  "arm": "baseline",
+  "replicate_id": "baseline",
+  "episode_id": "sp003_baseline_20260719_070034_8d6e8eef",
+  "authorization_id": "22fc3195aed197dffe747a588036cfb73b3a530cfb0a954f53e594224e8acad9",
+  "authorization_commit": "c693c07b9f3771c3db0a0fd198a8c6dcd2964f48",
+  "classification": "sp003_navigation_preload_module_specifier_resolution_failure",
+  "runtime_start_attempted": true,
+  "episode_created": false,
+  "evidence_eligible": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "files": [
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/authorization.json",
+      "sha256": "1c1cfc0dda6e8a149049ea50c392b7129e02c80e8c1f26c502415370e16dff0d"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/runtime_bridge_stderr.log",
+      "sha256": "c147ab5945f51daddd79bb79a74aed2aad5afe66292af69ddfa8c100e542c360"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/runtime_server_stdout.log",
+      "sha256": "4425eeb65db0835d71ca2bd84b3c31f3f5aca5a07610a919234ff48c4ecbc26d"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/infrastructure_failure.json",
+      "sha256": "5d29c95a1bc7640c7f50ccfdfbc73ca1d7b9d2ccbce14e64983740f1c52f72aa"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "type": "stone_pickaxe_sp003_infrastructure_failure",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T23:07:42.184852Z",
+  "status": "retained_infrastructure_failure_pending_commit_push",
+  "task_id": "SP-003",
+  "arm": "baseline",
+  "replicate_id": "baseline",
+  "episode_id": "sp003_baseline_20260719_070034_8d6e8eef",
+  "authorization": {
+    "authorization_id": "22fc3195aed197dffe747a588036cfb73b3a530cfb0a954f53e594224e8acad9",
+    "authorization_commit": "c693c07b9f3771c3db0a0fd198a8c6dcd2964f48",
+    "authorization_predecessor": "8d6e8eeff658cd6c2dc4736a20a750605fd6dcbb",
+    "authorization_sha256": "1ae5e0861060e37a90c13293bb4175310e0fe77b88d2be471af73c7ef77aa9bf",
+    "audit_passed": true,
+    "consumed": true,
+    "reuse_allowed": false
+  },
+  "runtime_policy": {
+    "id": "stone-pickaxe-sp003-empty-hand-runtime-v1",
+    "sha256": "a1aad016b58bad4d0def89f782f67d2cb02ea9c1b846d7c9d9c4e32cfdc2a438"
+  },
+  "protocol": {
+    "id": "stone-pickaxe-skill-fixed-v1",
+    "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+  },
+  "classification": "sp003_navigation_preload_module_specifier_resolution_failure",
+  "earliest_blocker": "bridge_process_preload_before_bot_connection",
+  "runtime_start": {
+    "live_process_start_attempted": true,
+    "fresh_world_created": true,
+    "paper_ready": true,
+    "bridge_process_start_attempted": true,
+    "bridge_ready": false,
+    "agent_runner_started": false,
+    "episode_created": false,
+    "session_id": "",
+    "llm_call_count": 0,
+    "action_count": 0,
+    "skill_selection_count": 0,
+    "goal_verification_count": 0
+  },
+  "root_cause": {
+    "node_version": "22.16.0",
+    "error_code": "MODULE_NOT_FOUND",
+    "requested_preload": "src/bot/sp003_inventory_preserving_navigation.js",
+    "launcher_argument_was_bare_module_specifier": true,
+    "repository_relative_module_prefix_present": false,
+    "module_file_exists": true,
+    "module_executed": false,
+    "gameplay_repair_exercised": false,
+    "required_change": "Prefix the repository-relative preload with ./ so Node resolves it from the controlled working directory."
+  },
+  "retained_evidence": [
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/authorization.json",
+      "sha256": "1c1cfc0dda6e8a149049ea50c392b7129e02c80e8c1f26c502415370e16dff0d",
+      "line_endings": "lf_normalized"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/runtime_bridge_stderr.log",
+      "sha256": "c147ab5945f51daddd79bb79a74aed2aad5afe66292af69ddfa8c100e542c360",
+      "line_endings": "lf_normalized",
+      "source_sha256": "047bd32a3a8fec664f7c136a752ae82afb662f97e1e7f8d90be826e11398e3e1"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/runtime_server_stdout.log",
+      "sha256": "4425eeb65db0835d71ca2bd84b3c31f3f5aca5a07610a919234ff48c4ecbc26d",
+      "line_endings": "lf_normalized",
+      "source_sha256": "98aa91760e22400a89cfdcca1dc830b65e823d65d24a1f9373e14c0ac687dc86"
+    }
+  ],
+  "cleanup": {
+    "minecraft_port_listening": false,
+    "bridge_port_listening": false,
+    "matching_external_process_count": 0,
+    "server_properties_restored": true
+  },
+  "automatic_retry_attempted": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_candidate_success": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "next_gate": "retain_and_push_this_failure_then_fix_only_the_preload_module_specifier"
+}

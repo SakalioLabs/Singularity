@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-19T06:42:37+08:00",
+  "generated_at": "2026-07-19T07:07:42+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_80_sp003_inventory_preserving_navigation_repair",
-  "status": "sp003_inventory_preserving_navigation_repair_verified_pending_commit_push",
+  "phase": "phase_82_sp003_navigation_preload_module_resolution_failure",
+  "status": "sp003_navigation_preload_module_resolution_failure_retained_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 0,
-  "authorization_scope": "none_four_failed_baseline_authorizations_consumed_phase_80_repair_must_be_pushed_before_fresh_authorization",
+  "authorization_scope": "none_five_baseline_authorizations_consumed_four_episode_failures_plus_one_infrastructure_failure",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -44,10 +44,11 @@
     "sp002_evaluation_arms_consumed": 7,
     "sp002_evaluation_arm_passes": 6,
     "sp002_evaluation_arm_failures": 1,
-    "sp003_live_sessions_authorized": 4,
-    "sp003_live_sessions_consumed": 4,
+    "sp003_live_sessions_authorized": 5,
+    "sp003_live_sessions_consumed": 5,
     "sp003_baseline_passes": 0,
     "sp003_baseline_failures": 4,
+    "sp003_infrastructure_failures": 1,
     "sp003_candidate_passes": 0,
     "next_live_authorization": false
   },
@@ -393,9 +394,13 @@
       "harness_policy_sha256": "a1aad016b58bad4d0def89f782f67d2cb02ea9c1b846d7c9d9c4e32cfdc2a438",
       "offline_definition_audit_path": "workspace/evals/stone_pickaxe_sp003_offline_definition_audit.json",
       "offline_definition_audit_sha256": "a0d692cc7699e6bb675b774881c21f85c8c11d917c4206994fa797447abfbafe",
-      "baseline_authorizations_consumed": 4,
+      "baseline_authorizations_consumed": 5,
       "baseline_failures": 4,
+      "infrastructure_failures": 1,
       "last_failed_episode_id": "sp003_baseline_20260719_055541_f863c62c",
+      "last_infrastructure_failure_episode_id": "sp003_baseline_20260719_070034_8d6e8eef",
+      "last_infrastructure_failure_manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/manifest.json",
+      "last_infrastructure_failure_manifest_sha256": "8a4a7f517648eed7b1574b6a674e901bef441d990c363edb9fa0953aed0a7116",
       "reset_audit_repair_path": "workspace/evals/stone_pickaxe_sp003_reset_audit_repair.json",
       "reset_audit_repair_sha256": "25e64fb3ae10aa0f34ecfde08b7f0e96df0cdcb2e62b67bca50affdf99964870",
       "runner_gate_profile_repair_path": "workspace/evals/stone_pickaxe_sp003_runner_gate_profile_repair.json",
@@ -3279,6 +3284,45 @@
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "next_gate": "push_phase_80_then_commit_a_fresh_parent_bound_baseline_authorization"
+    },
+    {
+      "phase": 81,
+      "name": "sp003_inventory_preserving_navigation_baseline_authorization",
+      "status": "authorization_pushed_and_consumed",
+      "task_id": "SP-003",
+      "episode_id": "sp003_baseline_20260719_070034_8d6e8eef",
+      "authorization_id": "22fc3195aed197dffe747a588036cfb73b3a530cfb0a954f53e594224e8acad9",
+      "authorization_commit": "c693c07b9f3771c3db0a0fd198a8c6dcd2964f48",
+      "authorization_predecessor": "8d6e8eeff658cd6c2dc4736a20a750605fd6dcbb",
+      "authorization_sha256": "1ae5e0861060e37a90c13293bb4175310e0fe77b88d2be471af73c7ef77aa9bf",
+      "authorization_audit_passed": true,
+      "authorization_consumed": true,
+      "automatic_retry_allowed": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "next_gate": "start_exactly_one_fresh_baseline_runtime"
+    },
+    {
+      "phase": 82,
+      "name": "sp003_navigation_preload_module_resolution_failure",
+      "status": "retained_infrastructure_failure_pending_commit_push",
+      "task_id": "SP-003",
+      "episode_id": "sp003_baseline_20260719_070034_8d6e8eef",
+      "authorization_commit": "c693c07b9f3771c3db0a0fd198a8c6dcd2964f48",
+      "authorization_consumed": true,
+      "failure_taxonomy": "sp003_navigation_preload_module_specifier_resolution_failure",
+      "failed_stage": "bridge_process_preload_before_bot_connection",
+      "paper_ready": true,
+      "bridge_ready": false,
+      "episode_created": false,
+      "llm_call_count": 0,
+      "action_count": 0,
+      "manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/manifest.json",
+      "manifest_sha256": "8a4a7f517648eed7b1574b6a674e901bef441d990c363edb9fa0953aed0a7116",
+      "automatic_retry_attempted": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "next_gate": "push_failure_then_fix_only_the_preload_module_specifier"
     }
   ],
   "failure_taxonomy": [
@@ -3315,7 +3359,8 @@
     "sp003_reset_audit_contract_mismatch",
     "sp003_runner_runtime_gate_profile_api_mismatch",
     "sp003_successful_craft_progress_reconciliation_disconnect",
-    "sp003_pathfinder_hidden_world_mutation_resource_loss"
+    "sp003_pathfinder_hidden_world_mutation_resource_loss",
+    "sp003_navigation_preload_module_specifier_resolution_failure"
   ],
   "failures": [
     {
@@ -6576,6 +6621,53 @@
       "counts_toward_skill_gate": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false
+    },
+    {
+      "id": "sp003-baseline-005-navigation-preload-module-resolution",
+      "phase": "sp003_baseline_infrastructure",
+      "task_id": "SP-003",
+      "classification": "sp003_navigation_preload_module_specifier_resolution_failure",
+      "status": "retained_infrastructure_failure_pending_offline_fix",
+      "attributable_to_learned_skill": false,
+      "episode_id": "sp003_baseline_20260719_070034_8d6e8eef",
+      "session_id": "",
+      "occurred_at_utc": "2026-07-18T23:04:39+00:00",
+      "authorization_commit": "c693c07b9f3771c3db0a0fd198a8c6dcd2964f48",
+      "authorization_id": "22fc3195aed197dffe747a588036cfb73b3a530cfb0a954f53e594224e8acad9",
+      "authorization_consumed": true,
+      "authorization_reuse_allowed": false,
+      "earliest_unrecovered_transition": "node_preload_rejected_bare_repository_relative_module_specifier_before_bridge_ready",
+      "root_cause": {
+        "node_version": "22.16.0",
+        "error_code": "MODULE_NOT_FOUND",
+        "requested_preload": "src/bot/sp003_inventory_preserving_navigation.js",
+        "module_file_exists": true,
+        "repository_relative_prefix_missing": true,
+        "required_preload": "./src/bot/sp003_inventory_preserving_navigation.js"
+      },
+      "runtime_result": {
+        "live_process_start_attempted": true,
+        "fresh_world_created": true,
+        "paper_ready": true,
+        "bridge_ready": false,
+        "agent_runner_started": false,
+        "episode_created": false,
+        "llm_call_count": 0,
+        "action_count": 0,
+        "skill_selection_count": 0
+      },
+      "evidence": [
+        { "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/manifest.json", "sha256": "8a4a7f517648eed7b1574b6a674e901bef441d990c363edb9fa0953aed0a7116" },
+        { "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/authorization.json", "sha256": "1c1cfc0dda6e8a149049ea50c392b7129e02c80e8c1f26c502415370e16dff0d" },
+        { "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/runtime_bridge_stderr.log", "sha256": "c147ab5945f51daddd79bb79a74aed2aad5afe66292af69ddfa8c100e542c360" },
+        { "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/runtime_server_stdout.log", "sha256": "4425eeb65db0835d71ca2bd84b3c31f3f5aca5a07610a919234ff48c4ecbc26d" },
+        { "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_070034_8d6e8eef/infrastructure_failure.json", "sha256": "5d29c95a1bc7640c7f50ccfdfbc73ca1d7b9d2ccbce14e64983740f1c52f72aa" }
+      ],
+      "automatic_retry_attempted": false,
+      "counts_toward_baseline_success": false,
+      "counts_toward_skill_gate": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false
     }
   ],
   "eligible_successes": [
@@ -8079,8 +8171,11 @@
     "sp003_repository_non_live_python_cases": "961/961",
     "sp003_node_suites": "7/7",
     "sp003_node_internal_cases": "58/58",
+    "sp003_runtime_start_attempt_count": 5,
     "sp003_live_episode_count": 4,
     "sp003_baseline_failure_count": 4,
+    "sp003_infrastructure_failure_count": 1,
+    "sp003_last_infrastructure_failure_manifest_sha256": "8a4a7f517648eed7b1574b6a674e901bef441d990c363edb9fa0953aed0a7116",
     "sp003_reset_audit_repair_sha256": "25e64fb3ae10aa0f34ecfde08b7f0e96df0cdcb2e62b67bca50affdf99964870",
     "sp003_runner_gate_profile_repair_sha256": "95a9e6da4cece54acecfb6a402ec7f4cfaea153c8f0a6c880b119e6754a44e7f",
     "sp003_craft_progress_reconciliation_repair_sha256": "0ae7fff17ad714c27100dbba0a68cdda6fc4979717550543bec1171d71cd3ea0",
@@ -8088,23 +8183,22 @@
     "sp003_shared_bridge_identity_preserved": true
   },
   "next_required_gate": {
-    "id": "sp003_parent_bound_baseline_authorization",
+    "id": "sp003_navigation_preload_module_specifier_repair",
     "authorization": false,
     "prerequisites": [
-      "phase_80_sp003_inventory_preserving_navigation_repair_commit_pushed_and_main_synchronized",
+      "phase_82_infrastructure_failure_commit_pushed_and_main_synchronized",
       "clean_worktree_and_exact_remote_tree_identity",
       "sp003_policy_identity_reaudits_exactly",
-      "failed_episode_id_is_not_reused",
-      "fresh_unique_seed_12345_world_and_empty_inventory",
-      "one_authorization_commit_contains_only_the_baseline_authorization",
-      "baseline_runs_with_skill_execution_off",
-      "no_retry_and_no_bm012_terminal_execution"
+      "replace_only_the_bare_preload_specifier_with_a_repository_relative_specifier",
+      "node_preload_smoke_instantiates_inventory_preserving_movements",
+      "failed_authorization_and_world_are_not_reused",
+      "no_live_process_before_the_offline_fix_is_pushed"
     ],
     "arm": "baseline",
     "replicate_id": "baseline",
     "live_episode_limit": 0,
     "normal_runtime_permission": true,
-    "normal_runtime_permission_scope": "sp003_live_execution_forbidden_until_separate_authorization_commit_is_pushed",
+    "normal_runtime_permission_scope": "sp003_live_execution_forbidden_until_the_offline_fix_and_a_separate_authorization_commit_are_pushed",
     "automatic_retry_allowed": false
   },
   "artifact_state": {
@@ -8125,7 +8219,9 @@
     "sp002_fixture_preparation_artifacts_created": 47,
     "sp002_fixture_preparation_artifacts_retained_locally": true,
     "sp002_run_artifacts_created": 85,
-    "sp003_run_artifacts_created": 40,
+    "sp003_run_artifacts_created": 45,
+    "sp003_infrastructure_failure_artifacts_created": 5,
+    "sp003_last_infrastructure_failure_manifest_sha256": "8a4a7f517648eed7b1574b6a674e901bef441d990c363edb9fa0953aed0a7116",
     "sp003_harness_policy_artifacts_created": 1,
     "sp003_offline_definition_audit_artifacts_created": 1,
     "sp003_reset_audit_repair_artifacts_created": 1,
