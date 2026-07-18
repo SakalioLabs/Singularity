@@ -14,12 +14,12 @@ This project isolates two bounded Minecraft capabilities:
 | Microbenchmark | Eligible live successes | Extraction gate | Current learned skill |
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
-| SP-002 Craft Stone Pickaxe | 3 | 3 | Extraction ready; `learned:craft_stone_pickaxe` not created |
+| SP-002 Craft Stone Pickaxe | 3 | 3 | Candidate `a488cd61` pending; no advisory/executable record |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 58 SP-002 candidate-source tooling passes offline. Isolated v5 remains frozen at 3/3, executable `learned:acquire_cobblestone@1.1.0` and its runtime gate remain pushed, and advisory `1.0.0` remains immutable. SP-002 has three distinct eligible single-action, single-attempt, stable-reobservation successes; preview candidate `a488cd61` matches the exact craft contract, but no real craft skill record exists yet**.
+Current phase: **Phase 59 SP-002 candidate extraction is complete pending its separate commit. Isolated v5 remains frozen at 3/3, executable `learned:acquire_cobblestone@1.1.0` and its runtime gate remain pushed, and advisory `1.0.0` remains immutable. Candidate `a488cd61` is bound to three distinct eligible SP-002 sources, remains `candidate/pending`, and is not present in the runtime skill library**.
 
-Current authorization: **none**. Replicates `r1..r15` and all nine SP-002 fixture/live authorizations are excluded or consumed and cannot be reused. The next permitted transaction is offline candidate extraction after the Phase 58 tooling commit is pushed and synchronized. Additional SP-002 evidence episodes, automatic retry, support reruns, SP-003, Probe 24, full BM-012, and iron mining remain locked.
+Current authorization: **none**. Replicates `r1..r15` and all nine SP-002 fixture/live authorizations are excluded or consumed and cannot be reused. The next possible transaction is a separately reviewed offline advisory transition after the Phase 59 candidate commit is pushed and synchronized. Additional SP-002 evidence episodes, executable craft promotion, automatic retry, support reruns, SP-003, Probe 24, full BM-012, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -185,7 +185,7 @@ The 30 numbered cases cover:
 | 3. SP-001 3/3 gate | Complete; evidence pushed at `6c8c995` |
 | 4. Acquire candidate/advisory | Complete; advisory pushed at `822057b` |
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
-| 6. Craft candidate/advisory | Source tooling passes offline; extraction unlocked after Phase 58 push |
+| 6. Craft candidate/advisory | Candidate `a488cd61` created; advisory review pending a separate transition |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
 | 8. SP-003 composite acceptance | Locked |
 

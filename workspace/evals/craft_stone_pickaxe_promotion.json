@@ -1,0 +1,203 @@
+{
+  "advisory_ready": true,
+  "artifacts": {
+    "candidate_queue": "workspace/skills/skill_candidates.jsonl",
+    "custom_skill_mutated": false,
+    "skill_learning_ledger": "workspace/evals/skill_learning_ledger.json"
+  },
+  "candidate_contract": {
+    "bounded_action_template": {
+      "dsl_version": "bounded_action_template_v1",
+      "max_actions": 1,
+      "phases": [
+        {
+          "count": 1,
+          "id": "craft_target",
+          "item": "stone_pickaxe",
+          "op": "craft_item",
+          "target_count": 1,
+          "target_item": "stone_pickaxe"
+        }
+      ]
+    },
+    "layer": "composite",
+    "name": "learned_craft_stone_pickaxe",
+    "postconditions": {
+      "inventory": {
+        "stone_pickaxe": 1
+      }
+    },
+    "preconditions": {
+      "inventory": {
+        "cobblestone": 3,
+        "stick": 2
+      },
+      "nearby_block_max_distance": {
+        "crafting_table": 4.5
+      },
+      "nearby_block_present": [
+        "crafting_table"
+      ]
+    },
+    "required_observations": [
+      "inventory",
+      "nearby_block:crafting_table"
+    ],
+    "task_family": "crafting"
+  },
+  "candidate_id": "a488cd61",
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "generated_at_utc": "2026-07-18T13:21:57.208588+00:00",
+  "lifecycle_history": [
+    {
+      "at_utc": "2026-07-18T13:21:57.209587+00:00",
+      "decision": "candidate_created",
+      "source_success_count": 3,
+      "stage": "candidate"
+    }
+  ],
+  "promotion_review": {
+    "candidate_id": "a488cd61",
+    "candidate_name": "learned_craft_stone_pickaxe",
+    "causal_evidence_gate": {
+      "approved_report_count": 0,
+      "average_causal_evidence_score": 0.0,
+      "causal_claim_count": 0,
+      "causal_memory_write_count": 0,
+      "checks": [
+        {
+          "detail": "causal evidence gate not required",
+          "name": "causal_evidence_gate_required",
+          "status": "pass"
+        }
+      ],
+      "contrast_control_count": 0,
+      "counterexample_count": 0,
+      "decision": "allow",
+      "error_report_count": 0,
+      "errors": [],
+      "evidence": [],
+      "generated_at": 1784380917.008,
+      "missing": [],
+      "policy_hints": [],
+      "readable_log_count": 0,
+      "readiness": "not_required",
+      "readinesses": [],
+      "ready_log_count": 0,
+      "reason": "no_causal_evidence_gate_required",
+      "rejected_report_count": 0,
+      "report_count": 0,
+      "required": false,
+      "review_report_count": 0,
+      "sources": [],
+      "target": "causal_summary_skill_promotion",
+      "thresholds": {
+        "max_unmitigated_bias_risks": 0,
+        "max_unresolved_counterexamples": 0,
+        "min_approved_reports": 1,
+        "min_contrast_count": 1
+      },
+      "type": "causal_evidence_gate",
+      "unmitigated_bias_risk_count": 0,
+      "unresolved_counterexample_count": 0,
+      "warnings": []
+    },
+    "critic": {},
+    "decision": "promote_advisory",
+    "discovery_gate": {
+      "decision": "allow",
+      "errors": [],
+      "evidence": [],
+      "missing": [],
+      "readiness": "not_required",
+      "reason": "no_discovery_gate_required",
+      "required": false,
+      "sources": [],
+      "warnings": []
+    },
+    "evidence": [
+      "eligible live success sp002_live_20260718_193656_a6ce837e",
+      "eligible live success sp002_live_20260718_201122_e277e1cb",
+      "eligible live success sp002_live_20260718_203340_c9749b39"
+    ],
+    "gate": {
+      "achieved": true,
+      "decision": "allow",
+      "evidence": [
+        "eligible live success sp002_live_20260718_193656_a6ce837e",
+        "eligible live success sp002_live_20260718_201122_e277e1cb",
+        "eligible live success sp002_live_20260718_203340_c9749b39"
+      ],
+      "inventory_delta": {
+        "stone_pickaxe": 1
+      },
+      "matched_rules": [
+        "stone_pickaxe_fixed_protocol",
+        "three_distinct_live_successes"
+      ],
+      "missing": [],
+      "reason": "stone_pickaxe_three_live_success_gate",
+      "status": "achieved",
+      "target_inventory": {
+        "stone_pickaxe": 1
+      }
+    },
+    "matched_rules": [
+      "stone_pickaxe_fixed_protocol",
+      "three_distinct_live_successes",
+      "typed_bounded_skill_contract",
+      "three_state_skill_lifecycle",
+      "distinct_live_source_gate"
+    ],
+    "missing": [],
+    "postconditions": {
+      "inventory": {
+        "stone_pickaxe": 1
+      }
+    },
+    "reason": "three_verified_sources_support_advisory_promotion",
+    "score": 0.9,
+    "status": "advisory_ready",
+    "transfer_gate": {
+      "decision": "allow",
+      "errors": [],
+      "evidence": [],
+      "missing": [],
+      "readiness": "not_required",
+      "reason": "no_task_stream_transfer_gate_required",
+      "required": false,
+      "sources": [],
+      "warnings": []
+    },
+    "warnings": []
+  },
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "schema_version": 1,
+  "skill_id": "learned:craft_stone_pickaxe",
+  "skill_version": "1.0.0",
+  "source_gate": {
+    "evidence_kind": "live_verified",
+    "runtime_eligible": true,
+    "source_environment_ids": [
+      "sp002_live_20260718_193656_a6ce837e",
+      "sp002_live_20260718_201122_e277e1cb",
+      "sp002_live_20260718_203340_c9749b39"
+    ],
+    "source_session_ids": [
+      "e6cebfbe-dfe",
+      "009dafd7-659",
+      "102aa710-b41"
+    ],
+    "source_session_sha256s": [
+      "e3d27ff0e4ccf5fcff5b33f32d7a01bfe5dc2c4a3fddee0949e4f9dd63ae7a90",
+      "386157c5ca53ab3a448ce70fa680d28df352ea3d44549ebcb463a9ebd944745d",
+      "d7b7bc490c9fb0032c951c490c43cfeac4f1fe08132d8478078b9be9040a4977"
+    ],
+    "success_count": 3
+  },
+  "stage": "candidate",
+  "task_id": "SP-002",
+  "type": "stone_pickaxe_skill_promotion"
+}
