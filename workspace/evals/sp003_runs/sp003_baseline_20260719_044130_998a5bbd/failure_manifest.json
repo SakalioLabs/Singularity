@@ -1,0 +1,72 @@
+{
+  "type": "stone_pickaxe_sp003_retained_failure_manifest",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T20:44:38.4593338Z",
+  "phase": 73,
+  "task_id": "SP-003",
+  "arm": "baseline",
+  "replicate_id": "baseline",
+  "sequence_position": 0,
+  "episode_id": "sp003_baseline_20260719_044130_998a5bbd",
+  "level_name": "sp003_baseline_20260719_044130_998a5bbd_world",
+  "authorization_id": "70cf3b2a550085d99b0b4ca52f12c22b81eef9c14019d75c446db98b07b0e301",
+  "authorization_commit": "e5b8050bd44e4637fbf13790fed0f772c279e8f0",
+  "implementation_commit": "998a5bbd125f52750cff804686c0564b6ad0ae7f",
+  "runtime_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v1",
+  "runtime_policy_sha256": "a1aad016b58bad4d0def89f782f67d2cb02ea9c1b846d7c9d9c4e32cfdc2a438",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "result": {
+    "passed": false,
+    "evidence_eligible": false,
+    "failed_stage": "reset_audit",
+    "failure_taxonomy": "sp003_reset_audit_contract_mismatch",
+    "issues": [
+      "daylight_start",
+      "no_fixture_blocks"
+    ]
+  },
+  "machine_facts": {
+    "reset_success": true,
+    "inventory_exact_empty": true,
+    "fixture_blocks": [],
+    "expected_time_of_day": 0,
+    "observed_time_of_day": 67,
+    "daylight_cycle_enabled": true,
+    "player_lifecycle_baseline": true
+  },
+  "execution": {
+    "authorization_consumed": true,
+    "minecraft_process_started": true,
+    "llm_call_count": 0,
+    "agent_action_count": 0,
+    "automatic_retry_allowed": false,
+    "automatic_retry_performed": false,
+    "bm012_terminal_started": false
+  },
+  "files": [
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_044130_998a5bbd/authorization.json",
+      "sha256": "512cf9dae82f3b78239bd7ffe7e12e5e560fda2919301bf014ba9f1c74f2e096"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_044130_998a5bbd/authorization_consumption.json",
+      "sha256": "5d411db091034179377627c452d39bf404b29a7153f1e929c0dbb29a6be8dcfd"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_044130_998a5bbd/protocol_status.json",
+      "sha256": "c312acbcec27d3e4504f20e1510281895f5099f2431960710520bb1468828c45"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_044130_998a5bbd/reset.json",
+      "sha256": "09d2e46528ad176032f488cc6744aaef8ee9e3eb9a465f99cad464e391ce74b1"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_044130_998a5bbd/reset_audit.json",
+      "sha256": "d1140ee4ebc2494612a05b5e123447af31c313a7421fd8b4925bf0a4c99cdb2f"
+    }
+  ],
+  "raw_evidence_immutable": true,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "next_gate": "push_retained_failure_then_repair_reset_audit_contract_without_retrying_this_episode"
+}
