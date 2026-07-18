@@ -1,0 +1,650 @@
+{
+  "type": "stone_pickaxe_run_audit",
+  "schema_version": 1,
+  "task_id": "SP-002",
+  "episode_id": "sp002_skill_candidate_v2_20260719_015614_60dfbbb7",
+  "machine_verification_passed": true,
+  "evidence_eligible": true,
+  "earliest_unrecovered_transition": {},
+  "first_failed_action": {},
+  "planner_decision": {
+    "schema_version": "stone-pickaxe-plan-v1",
+    "plan_kind": "root",
+    "goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+    "status": "planning",
+    "reasoning": "Inventory has 3 cobblestone, 2 sticks, and crafting_table is nearby. Craft stone_pickaxe.",
+    "subtasks": [
+      {
+        "depends_on": [],
+        "id": "verify_inputs",
+        "preconditions": {},
+        "priority": 1,
+        "success_criteria": {
+          "inventory": {
+            "cobblestone": 3,
+            "stick": 2
+          },
+          "nearby_block_present": "crafting_table"
+        },
+        "title": "Verify exact materials and crafting table",
+        "type": "verify"
+      },
+      {
+        "depends_on": [
+          "verify_inputs"
+        ],
+        "id": "craft_stone_pickaxe",
+        "preconditions": {
+          "inventory": {
+            "cobblestone": 3,
+            "stick": 2
+          },
+          "nearby_block_present": "crafting_table"
+        },
+        "priority": 1,
+        "success_criteria": {
+          "inventory": {
+            "stone_pickaxe": 1
+          }
+        },
+        "title": "Craft exactly one stone pickaxe",
+        "type": "craft"
+      }
+    ],
+    "actions": [
+      {
+        "type": "craft",
+        "parameters": {
+          "item": "stone_pickaxe",
+          "count": 1
+        },
+        "skill_context": {
+          "skill_id": "learned:craft_stone_pickaxe",
+          "skill_name": "learned_craft_stone_pickaxe",
+          "version": "1.0.0",
+          "status": "advisory",
+          "mode": "evaluation",
+          "phase_id": "craft_target",
+          "template_action_index": 0,
+          "experiment_id": "sp002_skill_candidate_v2_20260719_015614_60dfbbb7",
+          "goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+          "goal_fingerprint": "a4f650f9f5653738",
+          "route_goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+          "route_goal_fingerprint": "a4f650f9f5653738",
+          "route_task_family": "crafting"
+        }
+      }
+    ],
+    "root_plan_id": "root-ed7b233d10064f8c",
+    "planner_call_id": "llm-f939a5bd435b4523",
+    "parent_planner_call_id": "",
+    "schema_validation": {
+      "type": "stone_pickaxe_plan_envelope_validation",
+      "schema_version": 1,
+      "passed": true,
+      "expected_goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+      "expected_kind": "root",
+      "status": "planning",
+      "subtask_count": 2,
+      "action_count": 1,
+      "compact_plan_chars": 898,
+      "completion_requires_machine_verifier": true,
+      "issues": []
+    },
+    "planner_evidence": {
+      "type": "llm_planner_call",
+      "schema_version": 1,
+      "planner_id": "llm-autonomous-planner-v1",
+      "protocol": "stone-pickaxe-skill-fixed-v1",
+      "episode_id": "45f20f79-0ac",
+      "call_id": "llm-f939a5bd435b4523",
+      "call_index": 0,
+      "plan_kind": "root",
+      "root_plan_id": "root-ed7b233d10064f8c",
+      "parent_call_id": "",
+      "goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+      "real_llm_call": true,
+      "schema_valid": true,
+      "schema_validation": {
+        "type": "stone_pickaxe_plan_envelope_validation",
+        "schema_version": 1,
+        "passed": true,
+        "expected_goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+        "expected_kind": "root",
+        "status": "planning",
+        "subtask_count": 2,
+        "action_count": 1,
+        "compact_plan_chars": 898,
+        "completion_requires_machine_verifier": true,
+        "issues": []
+      },
+      "response_sha256": "768695f9c096192360d65ed8fc25b5134aa7d5a5951b790d1078bc301940183f",
+      "response_byte_count": 1276,
+      "successful_action_summary": {},
+      "deadline_policy": {
+        "policy_id": "stone-pickaxe-absolute-deadline-v1",
+        "remaining_before_call_s": 89.875,
+        "action_guard_s": 0.0,
+        "request_timeout_s": 89.875,
+        "max_retries": 0
+      },
+      "transport_evidence": {
+        "policy_id": "single-attempt",
+        "attempt_count": 1,
+        "retry_count": 0,
+        "attempts": [
+          {
+            "attempt_index": 0,
+            "success": true,
+            "timeout_s": 89.875,
+            "sdk_max_retries": 0,
+            "finish_reason": "stop"
+          }
+        ]
+      },
+      "provider_metadata": {
+        "provider": "openai",
+        "base_url": "https://opencode.ai/zen/go/v1",
+        "model": "deepseek-v4-flash",
+        "temperature": 0.0,
+        "max_tokens": 4096,
+        "response_format": {
+          "type": "json_object"
+        },
+        "extra_body": {
+          "thinking": {
+            "type": "disabled"
+          }
+        },
+        "request_message_count": 2,
+        "request_sha256": "c11e91ef9299b65944efc617ce75e0eee5b3499862bbfb9223cecf06dd627667",
+        "timeout_s": 89.875,
+        "max_retries": 0,
+        "response_sha256": "768695f9c096192360d65ed8fc25b5134aa7d5a5951b790d1078bc301940183f",
+        "response_id": "9737535f-1ab0-4064-8d28-0a1e85f755d5",
+        "prompt_tokens": 2248,
+        "completion_tokens": 369,
+        "total_tokens": 2617,
+        "finish_reason": "stop",
+        "reasoning_content_byte_count": 0,
+        "duration_ms": 4094
+      },
+      "error": ""
+    },
+    "planning_context_contract": {
+      "type": "planning_context_contract",
+      "schema_version": 2,
+      "planner": "llm",
+      "goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+      "enabled": false,
+      "isolation_profile": "planning_memory_disabled_v1",
+      "read_limit_chars": 0,
+      "cycle_limit_chars": 0,
+      "memory_read_count": 0,
+      "typed_layer_count": 0,
+      "nonempty_read_count": 0,
+      "total_result_chars": 0,
+      "total_separator_chars": 0,
+      "total_context_chars": 0,
+      "bounded_ok": true,
+      "segments": []
+    },
+    "sp002_skill_first_cycle_overlay": {
+      "schema_version": 1,
+      "policy_id": "sp002-first-cycle-skill-routing-v2",
+      "root_planner_call_preserved": true,
+      "root_subtasks_preserved": true,
+      "skill_action_count": 1
+    }
+  },
+  "task_graph_state": {
+    "task_count": 2,
+    "tasks": [
+      {
+        "id": "393d73a9",
+        "title": "Craft exactly one stone pickaxe",
+        "type": "craft",
+        "parent_id": null,
+        "status": "completed",
+        "priority": 1,
+        "preconditions": {
+          "inventory": {
+            "cobblestone": 3,
+            "stick": 2
+          },
+          "nearby_block_present": "crafting_table"
+        },
+        "success_criteria": {
+          "inventory": {
+            "stone_pickaxe": 1
+          }
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784397473.5200262,
+        "updated_at": 1784397474.920169,
+        "attempts": 0,
+        "observations": [
+          {
+            "action": {
+              "type": "craft",
+              "parameters": {
+                "item": "stone_pickaxe",
+                "count": 1
+              },
+              "skill_context": {
+                "skill_id": "learned:craft_stone_pickaxe",
+                "skill_name": "learned_craft_stone_pickaxe",
+                "version": "1.0.0",
+                "status": "advisory",
+                "mode": "evaluation",
+                "phase_id": "craft_target",
+                "template_action_index": 0,
+                "experiment_id": "sp002_skill_candidate_v2_20260719_015614_60dfbbb7",
+                "goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+                "goal_fingerprint": "a4f650f9f5653738",
+                "route_goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+                "route_goal_fingerprint": "a4f650f9f5653738",
+                "route_task_family": "crafting"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "craft"
+          }
+        ],
+        "blockers": [],
+        "result": {
+          "completed_by": "action_result",
+          "action": {
+            "type": "craft",
+            "parameters": {
+              "item": "stone_pickaxe",
+              "count": 1
+            },
+            "skill_context": {
+              "skill_id": "learned:craft_stone_pickaxe",
+              "skill_name": "learned_craft_stone_pickaxe",
+              "version": "1.0.0",
+              "status": "advisory",
+              "mode": "evaluation",
+              "phase_id": "craft_target",
+              "template_action_index": 0,
+              "experiment_id": "sp002_skill_candidate_v2_20260719_015614_60dfbbb7",
+              "goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+              "goal_fingerprint": "a4f650f9f5653738",
+              "route_goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+              "route_goal_fingerprint": "a4f650f9f5653738",
+              "route_task_family": "crafting"
+            }
+          },
+          "result": {
+            "success": true,
+            "item": "stone_pickaxe",
+            "count": 1,
+            "requested_output_count": 1,
+            "output_per_craft": 1,
+            "craft_calls": 1,
+            "craft_attempts": 1,
+            "craft_retry_count": 0,
+            "settlement_waited_ms": 800,
+            "stable_ms": 800,
+            "inventory_before": {
+              "dark_oak_planks": 7,
+              "stick": 2,
+              "dirt": 3,
+              "dark_oak_log": 3,
+              "wooden_pickaxe": 1,
+              "cobblestone": 3
+            },
+            "inventory_after": {
+              "dark_oak_planks": 7,
+              "stone_pickaxe": 1,
+              "dirt": 3,
+              "dark_oak_log": 3,
+              "wooden_pickaxe": 1
+            },
+            "inventory_delta": {
+              "stone_pickaxe": 1
+            },
+            "inventory_signed_delta": {
+              "stick": -2,
+              "cobblestone": -3,
+              "stone_pickaxe": 1
+            },
+            "authoritative_inventory_refresh": {
+              "policy_id": "crafting-table-window-items-inventory-refresh-v1",
+              "attempted": true,
+              "success": true,
+              "authoritative": true,
+              "source": "crafting_table_window_items",
+              "timeout_ms": 1500,
+              "post_close_wait_ms": 100,
+              "crafting_table_position": {
+                "x": 94,
+                "y": 131,
+                "z": -32
+              },
+              "inventory_before": {
+                "dark_oak_planks": 7,
+                "stone_pickaxe": 1,
+                "stick": 2,
+                "dirt": 3,
+                "dark_oak_log": 3,
+                "wooden_pickaxe": 1
+              },
+              "window_items_observed": true,
+              "window_id": 2,
+              "window_type": "minecraft:crafting",
+              "inventory_after": {
+                "dark_oak_planks": 7,
+                "stone_pickaxe": 1,
+                "dirt": 3,
+                "dark_oak_log": 3,
+                "wooden_pickaxe": 1
+              },
+              "inventory_signed_delta": {
+                "stick": -2
+              }
+            },
+            "attempts": [
+              {
+                "attempt": 1,
+                "success": true,
+                "output_per_craft": 1,
+                "craft_calls": 1,
+                "settlement_waited_ms": 800,
+                "stable_ms": 800,
+                "inventory": {
+                  "dark_oak_planks": 7,
+                  "stone_pickaxe": 1,
+                  "dirt": 3,
+                  "dark_oak_log": 3,
+                  "wooden_pickaxe": 1
+                },
+                "inventory_delta": {
+                  "stone_pickaxe": 1
+                },
+                "inventory_signed_delta": {
+                  "stick": -2,
+                  "cobblestone": -3,
+                  "stone_pickaxe": 1
+                },
+                "authoritative_inventory_refresh": {
+                  "policy_id": "crafting-table-window-items-inventory-refresh-v1",
+                  "attempted": true,
+                  "success": true,
+                  "authoritative": true,
+                  "source": "crafting_table_window_items",
+                  "timeout_ms": 1500,
+                  "post_close_wait_ms": 100,
+                  "crafting_table_position": {
+                    "x": 94,
+                    "y": 131,
+                    "z": -32
+                  },
+                  "inventory_before": {
+                    "dark_oak_planks": 7,
+                    "stone_pickaxe": 1,
+                    "stick": 2,
+                    "dirt": 3,
+                    "dark_oak_log": 3,
+                    "wooden_pickaxe": 1
+                  },
+                  "window_items_observed": true,
+                  "window_id": 2,
+                  "window_type": "minecraft:crafting",
+                  "inventory_after": {
+                    "dark_oak_planks": 7,
+                    "stone_pickaxe": 1,
+                    "dirt": 3,
+                    "dark_oak_log": 3,
+                    "wooden_pickaxe": 1
+                  },
+                  "inventory_signed_delta": {
+                    "stick": -2
+                  }
+                }
+              }
+            ],
+            "crafting_table_found": true,
+            "crafting_table_position": {
+              "x": 94,
+              "y": 131,
+              "z": -32
+            },
+            "action_started_monotonic": 147664.375,
+            "action_finished_monotonic": 147665.421,
+            "duration_ms": 1046,
+            "action_type": "craft",
+            "backend": "mineflayer",
+            "backend_command": "craft",
+            "backend_params": {
+              "item": "stone_pickaxe",
+              "count": 1,
+              "timeout_ms": 60000
+            },
+            "control_policy": {
+              "action_type": "craft",
+              "backend": "mineflayer",
+              "preferred_backend": "mineflayer",
+              "preferred_control": "mineflayer_api_ok",
+              "reason": "default_backend"
+            },
+            "action_budget_s": 60.0,
+            "action_deadline_monotonic": 147724.375,
+            "accepted_within_episode_deadline": true,
+            "accepted_within_action_deadline": true,
+            "action_verification": {
+              "action_type": "craft",
+              "status": "accept",
+              "score": 0.95,
+              "reason": "ingredients available for stone_pickaxe",
+              "evidence": [
+                "cobblestone<=cobblestone:3",
+                "stick<=stick:2"
+              ],
+              "required": {
+                "cobblestone": 3,
+                "stick": 2
+              }
+            }
+          },
+          "world_state": {
+            "inventory": {
+              "dark_oak_planks": 7,
+              "stone_pickaxe": 1,
+              "dirt": 3,
+              "dark_oak_log": 3,
+              "wooden_pickaxe": 1
+            },
+            "health": 20,
+            "position": {
+              "x": 95.57907285827427,
+              "y": 130,
+              "z": -31.494351547541445
+            },
+            "time_of_day": 4187
+          }
+        },
+        "children": [],
+        "depends_on": [
+          "472a4443"
+        ],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "craft_stone_pickaxe",
+        "root_plan_id": "root-ed7b233d10064f8c",
+        "planner_call_id": "llm-f939a5bd435b4523",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "393d73a9",
+            "task_title": "Craft exactly one stone pickaxe",
+            "plan_node_id": "craft_stone_pickaxe",
+            "root_plan_id": "root-ed7b233d10064f8c",
+            "planner_call_id": "llm-f939a5bd435b4523",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784397473.5200262
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "393d73a9",
+            "task_title": "Craft exactly one stone pickaxe",
+            "plan_node_id": "craft_stone_pickaxe",
+            "root_plan_id": "root-ed7b233d10064f8c",
+            "planner_call_id": "llm-f939a5bd435b4523",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784397473.5220304
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "393d73a9",
+            "task_title": "Craft exactly one stone pickaxe",
+            "plan_node_id": "craft_stone_pickaxe",
+            "root_plan_id": "root-ed7b233d10064f8c",
+            "planner_call_id": "llm-f939a5bd435b4523",
+            "from_status": "accepted",
+            "to_status": "active",
+            "reason": "action_started",
+            "timestamp": 1784397474.920169
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "393d73a9",
+            "task_title": "Craft exactly one stone pickaxe",
+            "plan_node_id": "craft_stone_pickaxe",
+            "root_plan_id": "root-ed7b233d10064f8c",
+            "planner_call_id": "llm-f939a5bd435b4523",
+            "from_status": "active",
+            "to_status": "completed",
+            "reason": "success_criteria_satisfied",
+            "timestamp": 1784397474.920169
+          }
+        ],
+        "metadata": {}
+      },
+      {
+        "id": "472a4443",
+        "title": "Verify exact materials and crafting table",
+        "type": "verify",
+        "parent_id": null,
+        "status": "completed",
+        "priority": 1,
+        "preconditions": {},
+        "success_criteria": {
+          "inventory": {
+            "cobblestone": 3,
+            "stick": 2
+          },
+          "nearby_block_present": "crafting_table"
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784397473.5200262,
+        "updated_at": 1784397474.7998986,
+        "attempts": 0,
+        "observations": [],
+        "blockers": [],
+        "result": {
+          "completed_by": "machine_state",
+          "world_state": {
+            "inventory": {
+              "dark_oak_planks": 7,
+              "stick": 2,
+              "dirt": 3,
+              "dark_oak_log": 3,
+              "wooden_pickaxe": 1,
+              "cobblestone": 3
+            },
+            "health": 20,
+            "position": {
+              "x": 95.57907285827427,
+              "y": 130,
+              "z": -31.494351547541445
+            },
+            "time_of_day": 4067
+          }
+        },
+        "children": [],
+        "depends_on": [],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "verify_inputs",
+        "root_plan_id": "root-ed7b233d10064f8c",
+        "planner_call_id": "llm-f939a5bd435b4523",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "472a4443",
+            "task_title": "Verify exact materials and crafting table",
+            "plan_node_id": "verify_inputs",
+            "root_plan_id": "root-ed7b233d10064f8c",
+            "planner_call_id": "llm-f939a5bd435b4523",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784397473.5200262
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "472a4443",
+            "task_title": "Verify exact materials and crafting table",
+            "plan_node_id": "verify_inputs",
+            "root_plan_id": "root-ed7b233d10064f8c",
+            "planner_call_id": "llm-f939a5bd435b4523",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784397473.5220304
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "472a4443",
+            "task_title": "Verify exact materials and crafting table",
+            "plan_node_id": "verify_inputs",
+            "root_plan_id": "root-ed7b233d10064f8c",
+            "planner_call_id": "llm-f939a5bd435b4523",
+            "from_status": "accepted",
+            "to_status": "completed",
+            "reason": "machine_state_success_criteria_satisfied",
+            "timestamp": 1784397474.7998986
+          }
+        ],
+        "metadata": {}
+      }
+    ],
+    "transition_count": 0,
+    "transitions": [],
+    "sha256": "954007058b92dc1a2d3c9633937994303b8fcbf1b0a7957c439070c1e251cd24"
+  },
+  "deadline_state": {
+    "policy_id": "stone-pickaxe-absolute-deadline-v1",
+    "started_monotonic": 147659.968,
+    "deadline_monotonic": 147749.921,
+    "ended_monotonic": 147665.921,
+    "post_deadline_action_count": 0
+  },
+  "evidence_eligibility": {
+    "passed": true,
+    "criteria_issues": [],
+    "eligibility_issues": []
+  },
+  "single_next_offline_fix": "none_episode_passed",
+  "automatic_retry_allowed": false,
+  "evaluation_arm": "candidate",
+  "replicate_id": "r4",
+  "policy_id": "stone-pickaxe-sp002-paired-evaluation-v2",
+  "policy_sha256": "6222ba05a63fee2104df35d1630d7ae1834c60e994586ab58aadd4637812457f",
+  "normal_runtime_permission": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}
