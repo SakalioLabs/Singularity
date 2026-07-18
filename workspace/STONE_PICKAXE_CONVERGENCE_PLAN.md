@@ -14,12 +14,12 @@ This project isolates two bounded Minecraft capabilities:
 | Microbenchmark | Eligible live successes | Extraction gate | Current learned skill |
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
-| SP-002 Craft Stone Pickaxe | 3 | 3 | Candidate `a488cd61` pending; no advisory/executable record |
+| SP-002 Craft Stone Pickaxe | 3 | 3 | Advisory `1.0.0`; paired evaluation not yet defined |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 59 SP-002 candidate extraction is complete pending its separate commit. Isolated v5 remains frozen at 3/3, executable `learned:acquire_cobblestone@1.1.0` and its runtime gate remain pushed, and advisory `1.0.0` remains immutable. Candidate `a488cd61` is bound to three distinct eligible SP-002 sources, remains `candidate/pending`, and is not present in the runtime skill library**.
+Current phase: **Phase 60 SP-002 advisory promotion is complete pending its separate commit. Executable `learned:acquire_cobblestone@1.1.0` remains frozen, candidate `a488cd61` is `advisory/approved`, and append-only `learned:craft_stone_pickaxe@1.0.0` is present but excluded from normal runtime. The next gate is to define and validate three fixed baseline/candidate pairs before any live arm is authorized**.
 
-Current authorization: **none**. Replicates `r1..r15` and all nine SP-002 fixture/live authorizations are excluded or consumed and cannot be reused. The next possible transaction is a separately reviewed offline advisory transition after the Phase 59 candidate commit is pushed and synchronized. Additional SP-002 evidence episodes, executable craft promotion, automatic retry, support reruns, SP-003, Probe 24, full BM-012, and iron mining remain locked.
+Current authorization: **none**. Replicates `r1..r15` and all nine SP-002 fixture/live authorizations are excluded or consumed and cannot be reused. The next transaction is an offline SP-002 paired-evaluation definition after the Phase 60 advisory commit is pushed and synchronized. No live evaluation arm is authorized yet. Executable craft promotion, automatic retry, SP-003, Probe 24, full BM-012, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -86,7 +86,9 @@ Machine success requires exact material consumption, positive stone-pickaxe inve
 
 ## SP-003 Contract
 
-The composite task starts with `wooden_pickaxe:1`, `stick:2`, a nearby table, no cobblestone, and no stone pickaxe. The TaskSystem path is fixed as `SP-001 -> SP-002`.
+The frozen v1 composite task starts with `wooden_pickaxe:1`, `stick:2`, a nearby table, no cobblestone, and no stone pickaxe. The TaskSystem path is fixed as `SP-001 -> SP-002`.
+
+The requested acceptance target is stronger: empty inventory must progress through wood acquisition, crafting-table creation, wooden-pickaxe creation, three verified stone removals, and exact stone-pickaxe craft in one fresh survival episode. That target will use a supplemental `stone-pickaxe-sp003-empty-hand-runtime-v1` policy bound to the unchanged v1 protocol and existing skill records; the prior protocol bytes and SP-001/SP-002 evidence remain immutable.
 
 Success requires both component machine verifiers, acquisition completion releasing the craft dependency, exactly three source removals, no repeated wooden-pickaxe or crafting-table craft, no iron-mining action, and separate local attribution for each learned skill. Full BM-012 terminal criteria are forbidden.
 
@@ -185,7 +187,7 @@ The 30 numbered cases cover:
 | 3. SP-001 3/3 gate | Complete; evidence pushed at `6c8c995` |
 | 4. Acquire candidate/advisory | Complete; advisory pushed at `822057b` |
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
-| 6. Craft candidate/advisory | Candidate `a488cd61` created; advisory review pending a separate transition |
+| 6. Craft candidate/advisory | Advisory `learned:craft_stone_pickaxe@1.0.0` created; paired evaluation next |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
 | 8. SP-003 composite acceptance | Locked |
 

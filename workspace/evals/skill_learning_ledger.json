@@ -674,7 +674,7 @@
           "error_report_count": 0,
           "errors": [],
           "evidence": [],
-          "generated_at": 1784380917.008,
+          "generated_at": 1784386356.319,
           "missing": [],
           "policy_hints": [],
           "readable_log_count": 0,
@@ -824,7 +824,7 @@
         ],
         "stone_pickaxe_protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
       },
-      "review_status": "pending",
+      "review_status": "approved",
       "runtime_eligible": true,
       "skill_id": "learned:craft_stone_pickaxe",
       "source_environment_ids": [
@@ -837,7 +837,7 @@
         "009dafd7-659",
         "102aa710-b41"
       ],
-      "status": "candidate",
+      "status": "advisory",
       "success_count": 3,
       "task_family": "crafting",
       "transfer_scope": {
@@ -865,7 +865,7 @@
         ],
         "unsupported_task_families": []
       },
-      "updated_at": 1784380917.0515752,
+      "updated_at": 1784386356.4526653,
       "validation_issues": [],
       "version": "1.0.0"
     },
@@ -3704,6 +3704,127 @@
       "reason": "fixed_protocol_candidate_created_after_three_eligible_live_successes",
       "skill_id": "learned:craft_stone_pickaxe",
       "timestamp": 1784380917.1240711
+    },
+    {
+      "decision": "promote_advisory",
+      "evidence": {
+        "candidate_id": "a488cd61",
+        "candidate_name": "learned_craft_stone_pickaxe",
+        "causal_evidence_gate": {
+          "approved_report_count": 0,
+          "average_causal_evidence_score": 0.0,
+          "causal_claim_count": 0,
+          "causal_memory_write_count": 0,
+          "checks": [
+            {
+              "detail": "causal evidence gate not required",
+              "name": "causal_evidence_gate_required",
+              "status": "pass"
+            }
+          ],
+          "contrast_control_count": 0,
+          "counterexample_count": 0,
+          "decision": "allow",
+          "error_report_count": 0,
+          "errors": [],
+          "evidence": [],
+          "generated_at": 1784386356.319,
+          "missing": [],
+          "policy_hints": [],
+          "readable_log_count": 0,
+          "readiness": "not_required",
+          "readinesses": [],
+          "ready_log_count": 0,
+          "reason": "no_causal_evidence_gate_required",
+          "rejected_report_count": 0,
+          "report_count": 0,
+          "required": false,
+          "review_report_count": 0,
+          "sources": [],
+          "target": "causal_summary_skill_promotion",
+          "thresholds": {
+            "max_unmitigated_bias_risks": 0,
+            "max_unresolved_counterexamples": 0,
+            "min_approved_reports": 1,
+            "min_contrast_count": 1
+          },
+          "type": "causal_evidence_gate",
+          "unmitigated_bias_risk_count": 0,
+          "unresolved_counterexample_count": 0,
+          "warnings": []
+        },
+        "critic": {},
+        "decision": "promote_advisory",
+        "discovery_gate": {
+          "decision": "allow",
+          "errors": [],
+          "evidence": [],
+          "missing": [],
+          "readiness": "not_required",
+          "reason": "no_discovery_gate_required",
+          "required": false,
+          "sources": [],
+          "warnings": []
+        },
+        "evidence": [
+          "eligible live success sp002_live_20260718_193656_a6ce837e",
+          "eligible live success sp002_live_20260718_201122_e277e1cb",
+          "eligible live success sp002_live_20260718_203340_c9749b39"
+        ],
+        "gate": {
+          "achieved": true,
+          "decision": "allow",
+          "evidence": [
+            "eligible live success sp002_live_20260718_193656_a6ce837e",
+            "eligible live success sp002_live_20260718_201122_e277e1cb",
+            "eligible live success sp002_live_20260718_203340_c9749b39"
+          ],
+          "inventory_delta": {
+            "stone_pickaxe": 1
+          },
+          "matched_rules": [
+            "stone_pickaxe_fixed_protocol",
+            "three_distinct_live_successes"
+          ],
+          "missing": [],
+          "reason": "stone_pickaxe_three_live_success_gate",
+          "status": "achieved",
+          "target_inventory": {
+            "stone_pickaxe": 1
+          }
+        },
+        "matched_rules": [
+          "stone_pickaxe_fixed_protocol",
+          "three_distinct_live_successes",
+          "typed_bounded_skill_contract",
+          "three_state_skill_lifecycle",
+          "distinct_live_source_gate"
+        ],
+        "missing": [],
+        "postconditions": {
+          "inventory": {
+            "stone_pickaxe": 1
+          }
+        },
+        "reason": "three_verified_sources_support_advisory_promotion",
+        "score": 0.9,
+        "status": "advisory_ready",
+        "transfer_gate": {
+          "decision": "allow",
+          "errors": [],
+          "evidence": [],
+          "missing": [],
+          "readiness": "not_required",
+          "reason": "no_task_stream_transfer_gate_required",
+          "required": false,
+          "sources": [],
+          "warnings": []
+        },
+        "warnings": []
+      },
+      "reason": "three_verified_sources_support_advisory_promotion",
+      "skill_id": "learned:craft_stone_pickaxe",
+      "timestamp": 1784386356.5933654
     }
   ],
   "experiments": [
@@ -22391,6 +22512,223 @@
       "verifier_version": "goal-action-verifier-v1",
       "version": "1.0.1"
     },
+    "learned:craft_stone_pickaxe@1.0.0": {
+      "confidence_interval": {
+        "lower": 0.438494,
+        "method": "wilson_95",
+        "samples": 3,
+        "upper": 1.0
+      },
+      "failure_count": 0,
+      "failure_type_counts": {},
+      "gate": {
+        "causal_evidence": {
+          "approved_report_count": 0,
+          "average_causal_evidence_score": 0.0,
+          "causal_claim_count": 0,
+          "causal_memory_write_count": 0,
+          "checks": [
+            {
+              "detail": "causal evidence gate not required",
+              "name": "causal_evidence_gate_required",
+              "status": "pass"
+            }
+          ],
+          "contrast_control_count": 0,
+          "counterexample_count": 0,
+          "decision": "allow",
+          "error_report_count": 0,
+          "errors": [],
+          "evidence": [],
+          "generated_at": 1784386356.319,
+          "missing": [],
+          "policy_hints": [],
+          "readable_log_count": 0,
+          "readiness": "not_required",
+          "readinesses": [],
+          "ready_log_count": 0,
+          "reason": "no_causal_evidence_gate_required",
+          "rejected_report_count": 0,
+          "report_count": 0,
+          "required": false,
+          "review_report_count": 0,
+          "sources": [],
+          "target": "causal_summary_skill_promotion",
+          "thresholds": {
+            "max_unmitigated_bias_risks": 0,
+            "max_unresolved_counterexamples": 0,
+            "min_approved_reports": 1,
+            "min_contrast_count": 1
+          },
+          "type": "causal_evidence_gate",
+          "unmitigated_bias_risk_count": 0,
+          "unresolved_counterexample_count": 0,
+          "warnings": []
+        },
+        "decision": "promote_advisory",
+        "discovery": {
+          "decision": "allow",
+          "errors": [],
+          "evidence": [],
+          "missing": [],
+          "readiness": "not_required",
+          "reason": "no_discovery_gate_required",
+          "required": false,
+          "sources": [],
+          "warnings": []
+        },
+        "matched_rules": [
+          "stone_pickaxe_fixed_protocol",
+          "three_distinct_live_successes",
+          "typed_bounded_skill_contract",
+          "three_state_skill_lifecycle",
+          "distinct_live_source_gate"
+        ],
+        "reason": "three_verified_sources_support_advisory_promotion",
+        "status": "advisory_ready",
+        "transfer": {
+          "decision": "allow",
+          "errors": [],
+          "evidence": [],
+          "missing": [],
+          "readiness": "not_required",
+          "reason": "no_task_stream_transfer_gate_required",
+          "required": false,
+          "sources": [],
+          "warnings": []
+        },
+        "verification": {
+          "achieved": true,
+          "decision": "allow",
+          "evidence": [
+            "eligible live success sp002_live_20260718_193656_a6ce837e",
+            "eligible live success sp002_live_20260718_201122_e277e1cb",
+            "eligible live success sp002_live_20260718_203340_c9749b39"
+          ],
+          "inventory_delta": {
+            "stone_pickaxe": 1
+          },
+          "matched_rules": [
+            "stone_pickaxe_fixed_protocol",
+            "three_distinct_live_successes"
+          ],
+          "missing": [],
+          "reason": "stone_pickaxe_three_live_success_gate",
+          "status": "achieved",
+          "target_inventory": {
+            "stone_pickaxe": 1
+          }
+        },
+        "warnings": []
+      },
+      "lifecycle_history": [],
+      "name": "learned_craft_stone_pickaxe",
+      "observed_failure_count": 0,
+      "parent_version": "",
+      "provenance": {
+        "candidate_id": "a488cd61",
+        "created_at": 1784378338.814099,
+        "goal": "Craft Stone Pickaxe",
+        "reason": "three_verified_sources_support_advisory_promotion",
+        "score": 0.9,
+        "sources": [
+          {
+            "environment_id": "sp002_live_20260718_193656_a6ce837e",
+            "episode_id": "sp002_live_20260718_193656_a6ce837e",
+            "evidence_kind": "live_verified",
+            "goal_end_completed": true,
+            "goal_verifier_achieved": true,
+            "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+            "runtime_eligible": true,
+            "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+            "session_id": "e6cebfbe-dfe",
+            "source_log": "workspace/evals/sp002_runs/sp002_live_20260718_193656_a6ce837e/session_e6cebfbe-dfe.jsonl",
+            "source_trace_sha256": "51abd12625bd1a58ff79680948a366b5bd69a8e97cc5caf33ec6d488e7b5f7bc",
+            "transition_count": 1,
+            "transition_proof_count": 1,
+            "verifier_version": "stone-pickaxe-machine-verification-v1",
+            "world_seed": "12345"
+          },
+          {
+            "environment_id": "sp002_live_20260718_201122_e277e1cb",
+            "episode_id": "sp002_live_20260718_201122_e277e1cb",
+            "evidence_kind": "live_verified",
+            "goal_end_completed": true,
+            "goal_verifier_achieved": true,
+            "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+            "runtime_eligible": true,
+            "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+            "session_id": "009dafd7-659",
+            "source_log": "workspace/evals/sp002_runs/sp002_live_20260718_201122_e277e1cb/session_009dafd7-659.jsonl",
+            "source_trace_sha256": "0954858a89531cd477a0a84126664855a28d8dbd5fba688d158a637a15c451a2",
+            "transition_count": 1,
+            "transition_proof_count": 1,
+            "verifier_version": "stone-pickaxe-machine-verification-v1",
+            "world_seed": "12345"
+          },
+          {
+            "environment_id": "sp002_live_20260718_203340_c9749b39",
+            "episode_id": "sp002_live_20260718_203340_c9749b39",
+            "evidence_kind": "live_verified",
+            "goal_end_completed": true,
+            "goal_verifier_achieved": true,
+            "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+            "runtime_eligible": true,
+            "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+            "session_id": "102aa710-b41",
+            "source_log": "workspace/evals/sp002_runs/sp002_live_20260718_203340_c9749b39/session_102aa710-b41.jsonl",
+            "source_trace_sha256": "0b3a6e94b5cfa62d10c78ba0e37dd4bfad1cde7156fb2947a2079628fdb536d4",
+            "transition_count": 1,
+            "transition_proof_count": 1,
+            "verifier_version": "stone-pickaxe-machine-verification-v1",
+            "world_seed": "12345"
+          }
+        ]
+      },
+      "rollback_target": "",
+      "skill_id": "learned:craft_stone_pickaxe",
+      "source_environment_ids": [
+        "sp002_live_20260718_193656_a6ce837e",
+        "sp002_live_20260718_201122_e277e1cb",
+        "sp002_live_20260718_203340_c9749b39"
+      ],
+      "source_session_ids": [
+        "e6cebfbe-dfe",
+        "009dafd7-659",
+        "102aa710-b41"
+      ],
+      "status": "advisory",
+      "success_count": 3,
+      "task_family": "crafting",
+      "transfer_scope": {
+        "heldout_validated": false,
+        "quantity_range": {
+          "maximum": 1,
+          "minimum": 1
+        },
+        "source_blocks": [],
+        "supported_task_families": [
+          "crafting"
+        ],
+        "training_environment_ids": [
+          "sp002_live_20260718_193656_a6ce837e",
+          "sp002_live_20260718_201122_e277e1cb",
+          "sp002_live_20260718_203340_c9749b39"
+        ],
+        "training_goals": [
+          "Craft Stone Pickaxe"
+        ],
+        "training_session_ids": [
+          "e6cebfbe-dfe",
+          "009dafd7-659",
+          "102aa710-b41"
+        ],
+        "unsupported_task_families": []
+      },
+      "updated_at": 1784386356.525951,
+      "verifier_version": "stone-pickaxe-machine-verification-v1",
+      "version": "1.0.0"
+    },
     "learned:craft_wooden_pickaxe@1.0.0": {
       "confidence_interval": {
         "lower": 0.609657,
@@ -25548,5 +25886,5 @@
     }
   },
   "type": "skill_learning_ledger",
-  "updated_at": 1784380917.1240711
+  "updated_at": 1784386356.5933654
 }
