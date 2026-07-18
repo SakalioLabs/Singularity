@@ -166,31 +166,39 @@ def test_initial_v5_report_inherits_support_and_excludes_every_prior_candidate()
     }]
 
 
-def test_current_v5_report_retains_r13_as_one_eligible_pair():
+def test_current_v5_report_retains_r13_and_r14_as_two_eligible_pairs():
     report = read_json(
         REPOSITORY_ROOT
         / "workspace/evals/sp001_skill_evaluation_v5/acquire_cobblestone_paired_evaluation_v5.json"
     )
-    assert report["valid_pair_count"] == 1
+    assert report["valid_pair_count"] == 2
     assert report["decision"] == "retain_advisory"
     assert report["normal_runtime_permission"] is False
-    pair = next(item for item in report["pairs"] if item["replicate_id"] == "r13")
-    assert pair["eligible"] is True
-    assert pair["candidate_passed"] is True
-    assert pair["fixed_controls_match"] is True
-    assert pair["initial_state_match"] is True
+    assert report["errors"] == []
 
-    run = read_json(
-        REPOSITORY_ROOT
-        / "workspace/evals/sp001_skill_evaluation_runs"
-        / "sp001_skill_candidate_20260718_112102_6a99724e"
-        / "evaluation_run.json"
-    )
-    audit = verify_run_record(run)
-    assert audit["passed"], audit["issues"]
-    assert run["status"] == "pass"
-    assert run["metrics"]["skill_completion_count"] == 1
-    assert run["metrics"]["failed_actions"] == 0
+    episodes = {
+        "r13": "sp001_skill_candidate_20260718_112102_6a99724e",
+        "r14": "sp001_skill_candidate_20260718_120904_1785ae0b",
+    }
+    for replicate_id, episode_id in episodes.items():
+        pair = next(item for item in report["pairs"] if item["replicate_id"] == replicate_id)
+        assert pair["eligible"] is True
+        assert pair["candidate_passed"] is True
+        assert pair["fixed_controls_match"] is True
+        assert pair["initial_state_match"] is True
+
+        run = read_json(
+            REPOSITORY_ROOT
+            / "workspace/evals/sp001_skill_evaluation_runs"
+            / episode_id
+            / "evaluation_run.json"
+        )
+        audit = verify_run_record(run)
+        assert audit["passed"], audit["issues"]
+        assert run["replicate_id"] == replicate_id
+        assert run["status"] == "pass"
+        assert run["metrics"]["skill_completion_count"] == 1
+        assert run["metrics"]["failed_actions"] == 0
 
 
 def test_v5_binds_schema_valid_r12_infrastructure_failure_without_counting_it():
