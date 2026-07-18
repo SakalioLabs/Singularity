@@ -10,11 +10,13 @@
   "evaluated_skill_version": "1.0.0",
   "candidate_id": "e1534e57",
   "pair_count": 3,
-  "valid_pair_count": 1,
+  "valid_pair_count": 2,
   "baseline_session_ids": [
+    "7e550b04-90e",
     "b93a7777-207"
   ],
   "candidate_session_ids": [
+    "b0c64ce3-d50",
     "ffdefabd-e30"
   ],
   "shadow_verified": true,
@@ -35,12 +37,12 @@
     "candidate_verifier_rejects": 0,
     "baseline_no_progress_loops": 0,
     "candidate_no_progress_loops": 0,
-    "baseline_environment_steps": 4,
-    "candidate_environment_steps": 4,
-    "baseline_planner_calls": 4,
-    "candidate_planner_calls": 1,
+    "baseline_environment_steps": 8,
+    "candidate_environment_steps": 8,
+    "baseline_planner_calls": 8,
+    "candidate_planner_calls": 2,
     "environment_step_gain": 0,
-    "planner_call_gain": 3
+    "planner_call_gain": 6
   },
   "decision": "retain_advisory",
   "readiness": "review",
@@ -104,15 +106,15 @@
       "pair_id": "sp001-acquire-recovery-v4-r11",
       "replicate_id": "r11",
       "baseline_run_id": "baseline:sp001_episode_20260718_012012_0349d399",
-      "candidate_run_id": "",
+      "candidate_run_id": "candidate:sp001_skill_candidate_20260718_093639_8f6f185f",
       "baseline_session_id": "7e550b04-90e",
-      "candidate_session_id": "",
+      "candidate_session_id": "b0c64ce3-d50",
       "baseline_passed": true,
-      "candidate_passed": false,
-      "fixed_controls_match": false,
-      "initial_state_match": false,
+      "candidate_passed": true,
+      "fixed_controls_match": true,
+      "initial_state_match": true,
       "baseline_integrity": true,
-      "candidate_integrity": false,
+      "candidate_integrity": true,
       "baseline_metrics": {
         "task_completion": 1,
         "environment_steps": 4,
@@ -133,8 +135,27 @@
         "exact_skill_context_only": false,
         "attribution_confidence": 0.0
       },
-      "candidate_metrics": {},
-      "eligible": false
+      "candidate_metrics": {
+        "task_completion": 1,
+        "environment_steps": 4,
+        "successful_actions": 4,
+        "failed_actions": 0,
+        "verifier_rejects": 0,
+        "planner_calls": 1,
+        "no_progress_loops": 0,
+        "skill_selected_count": 1,
+        "skill_executed_count": 3,
+        "skill_completion_count": 1,
+        "skill_outcome_count": 1,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "candidate_steps_verified": true,
+        "candidate_steps_reobserved": true,
+        "exact_skill_context_only": true,
+        "attribution_confidence": 1.0
+      },
+      "eligible": true
     },
     {
       "pair_id": "sp001-acquire-recovery-v4-r12",
@@ -209,11 +230,13 @@
     "readiness": "review",
     "decision": "retain_advisory",
     "single_target_skill": true,
-    "paired_live_session_count": 1,
+    "paired_live_session_count": 2,
     "baseline_session_ids": [
+      "7e550b04-90e",
       "b93a7777-207"
     ],
     "candidate_session_ids": [
+      "b0c64ce3-d50",
       "ffdefabd-e30"
     ],
     "shadow_plan_verified": true,

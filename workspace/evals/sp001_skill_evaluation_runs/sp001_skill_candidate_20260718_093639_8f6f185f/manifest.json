@@ -1,0 +1,59 @@
+{
+  "type": "stone_pickaxe_skill_evaluation_manifest",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T01:37:27.821233+00:00",
+  "runtime_policy_id": "stone-pickaxe-controlled-runtime-v1",
+  "policy_id": "stone-pickaxe-sp001-paired-evaluation-v4",
+  "policy_sha256": "dd9c40e876cc6e82f2219305da30fec2e5876998905a0332db929d0cbb16708a",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "episode_id": "sp001_skill_candidate_20260718_093639_8f6f185f",
+  "session_id": "b0c64ce3-d50",
+  "task_id": "SP-001",
+  "arm": "candidate",
+  "replicate_id": "r11",
+  "pair_id": "sp001-acquire-recovery-v4-r11",
+  "fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+  "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+  "machine_verification_passed": true,
+  "evaluation_passed": true,
+  "authorization_consumed": true,
+  "normal_runtime_permission": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "files": [
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_093639_8f6f185f/authorization.json",
+      "sha256": "890c8e9c6b1eee69313b7fe1d42df69aee684bc933a61dd3a22461476c6d39f1"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_093639_8f6f185f/restoration.json",
+      "sha256": "0a2c291e8d0a08d72789a8364c4c9fb2c718e0ce3279ba4dd1cdeb9e32cac879"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_093639_8f6f185f/preflight.json",
+      "sha256": "dd3462dc297d59b7e64c9a9745649574ca3e40a8509649ddaa91e9031c59e70b"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_093639_8f6f185f/session.json",
+      "sha256": "3e4b229e255396bb94676c23851f16231d5df6e3afd3c074d8ecb6aac30f16af"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_093639_8f6f185f/episode.json",
+      "sha256": "b7d9f7e0c447a3d58130b020a5a1d0b1fca8c182664305db08b94d97bc19aff5"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_093639_8f6f185f/verification.json",
+      "sha256": "a21729ad04c87dfdd00112d0de39f29cba19edd163ff00a5a3b4f23616b3cb66"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_093639_8f6f185f/audit.json",
+      "sha256": "bb9d869cd6ad6c1943ce277541bf4df24f32429026f925ccef7be1f732c57ec3"
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_093639_8f6f185f/evaluation_run.json",
+      "sha256": "75d0927a196602f48e7ca982e5bc462769e773b87c67274be384f357ccd3052f"
+    }
+  ]
+}
