@@ -13,13 +13,13 @@ This project isolates two bounded Minecraft capabilities:
 
 | Microbenchmark | Eligible live successes | Extraction gate | Current learned skill |
 |---|---:|---:|---|
-| SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.0.0` advisory only |
+| SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 0 | 3 | `learned:craft_stone_pickaxe` not created |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 7 paired evaluation recovery complete with three immutable baseline arms, all three support arms verified, candidates `r1`, `r4`, and `r7` retained failed, v4 closed at 2/3 after `r10` and `r11` passed and r12 failed before bot readiness, and isolated v5 complete at 3/3 after `r13`, `r14`, and `r15` passed; `learned:acquire_cobblestone@1.0.0` remains advisory pending a separate new-version promotion review**.
+Current phase: **Phase 35 SP-002 offline harness complete. Isolated v5 is frozen at 3/3, executable `learned:acquire_cobblestone@1.1.0` and its runtime gate are pushed, and advisory `1.0.0` remains immutable. SP-002 has an exact fixture, authorization, single-action, single-attempt, stable-reobservation evidence contract but no prepared fixture or live success**.
 
-Current authorization: **none**. Replicates `r1..r15` are excluded or consumed and cannot re-enter v5; r12 is infrastructure-ineligible, while r13/r14/r15 passed exactly once. The v5 report is 3/3 with `readiness=approved`, `decision=review_executable_new_version`, and a `promote_executable` gate for version `1.1.0`. Normal runtime, another fixture session, support reruns, retries, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain locked until r15 evidence and promotion review are pushed separately.
+Current authorization: **none**. Replicates `r1..r15` are excluded or consumed and cannot re-enter any acquire window. The next permitted transaction is a separate committed and pushed authorization for one SP-002 fixture-preparation session. SP-002 evidence episodes, automatic retry, support reruns, SP-003, Probe 24, full BM-012, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -163,6 +163,14 @@ The 30 numbered cases cover:
 - Recovery policy `stone-pickaxe-sp001-paired-evaluation-v4` is isolated under `workspace/evals/sp001_skill_evaluation_v4`. It binds route-scope fix commit `18525025`, exact `agent.py` hash `c7425d93...`, immutable v1-v3 policy/report identities, retained failed records `r1/r4/r7`, and unchanged v1 support arms. Only `r10/r11/r12` were eligible for one-arm authorizations; `r1..r9`, support reruns, retries, and normal runtime fail closed. Candidates `r10` and `r11` each passed exactly once and are frozen at evidence commits `90e4e230` and `ef40eec7`; r12 is a consumed infrastructure-ineligible startup failure. V4 is closed at 2/3 with inherited support 3/3 and 13/13 cases passing.
 - Recovery policy `stone-pickaxe-sp001-paired-evaluation-v5` is isolated under `workspace/evals/sp001_skill_evaluation_v5`. It inherits the three immutable v1 support arms, binds the frozen v4 policy/report and r12 infrastructure evidence, excludes `r1..r12`, and permits only fresh candidates `r13/r14/r15`. Candidates/r13 and r14 are frozen at evidence commits `24f28911` and `fe15719a`; candidate/r15 passed exactly once from authorization commit `fb6e434a`. V5 is 3/3 with an approved `promote_executable` gate for new version `1.1.0`; r15 evidence and the later promotion review remain separate commits.
 
+## SP-002 Offline Harness
+
+- Supplemental policy `stone-pickaxe-sp002-controlled-runtime-v1` binds protocol hash `e0722422...`, acquire promotion artifact `d03a4e97...`, runtime-default gate `6a918872...`, and executable version `1.1.0` without changing any source evidence.
+- Fixture preparation starts from the immutable SP-001 snapshot and uses normal survival actions only. The sealed target must prove exact `cobblestone:3`, `stick:2`, `stone_pickaxe:0`, survival safety/mobility, and one observed interactive crafting table within 4.5 blocks. Target-result injection and active-episode reset are forbidden.
+- The SP-002 episode keeps learned skills off and admits exactly one `craft` action with `item=stone_pickaxe,count=1`. The Bridge starts with `craft-max-attempts=1`, so a transient output fails rather than retrying. Evidence must prove exact material consumption, action verification, table interaction tied to the pre-observation, and a distinct stable observation at least 0.25 seconds later.
+- Fixture preparation and live episodes use separate one-time authorizations bound to the fixture bytes, policy bytes, episode ID, and authorization commit parent. Runtime requires clean synchronized `main`; a consumed or reused output path cannot run again.
+- Offline validation is 13/13 for the isolated SP-002 harness, 32/32 for the retained stone runtime, 34/34 for the unchanged protocol, 46/46 for repository non-live Python files, and 6/6 for Node suites. The frozen SP-001 runtime/launcher and all v1-v5 policy identities remain exact. No Minecraft process ran and no fixture, authorization, live success, candidate, capability, M4, or SP-003 state changed.
+
 ## Phase Status
 
 | Phase | Status |
@@ -172,9 +180,9 @@ The 30 numbered cases cover:
 | 2. SP-001 controlled live convergence | Complete at 3/3; evidence pushed at `6c8c995` |
 | 3. SP-001 3/3 gate | Complete; evidence pushed at `6c8c995` |
 | 4. Acquire candidate/advisory | Complete; advisory pushed at `822057b` |
-| 5. SP-002 controlled live convergence | Not started |
+| 5. SP-002 controlled live convergence | Offline harness complete; fixture preparation is the next separately authorized gate |
 | 6. Craft candidate/advisory | Not started |
-| 7. Paired promotion evaluations | Complete at v5 3/3; new-version promotion review pending after r15 evidence push |
+| 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
 | 8. SP-003 composite acceptance | Locked |
 
 ## Frozen Baseline
@@ -187,4 +195,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers plus all three controlled SP-001 behavioral failures are reproduced and fixed; the two provider TLS EOF traces are retained as zero-action fail-closed failures. All source sessions remain immutable. The fixture snapshot still passes independent identity audit, and three eligible SP-001 successes establish 3/3. Shadow, advisory, and fallback each ran exactly once from pushed predecessors and passed. Candidates `r1`, `r4`, and `r7` each ran exactly once and remain immutable ineligible failures; candidates `r10` and `r11` passed all checks, while r12 is a consumed infrastructure-ineligible startup failure. Candidates/r13, r14, and r15 passed exactly once, closing v5 at 3/3 with approved promotion readiness. Freeze and push r15 evidence, then perform the separate offline new-version promotion review before granting any normal-runtime or SP-002 authority. Do not retry consumed candidates, run excluded IDs `r1..r15`, reuse prior pair IDs, rerun support arms, batch candidates, run SP-002/SP-003 before their gates unlock, run full BM-012, run Probe 24, or begin iron mining.
+The retained fixture blockers plus all controlled SP-001 failures remain immutable. Three eligible SP-001 successes establish 3/3, v5 is frozen at 3/3, and the append-only 1.1.0 executable promotion is complete. The SP-002 offline harness must be committed and pushed before one separate fixture-preparation authorization is created. Do not retry consumed candidates, run excluded IDs `r1..r15`, reuse prior pair IDs, rerun support arms, start an SP-002 evidence episode before its fixture is sealed and separately authorized, run SP-003 before both skill gates pass, run full BM-012, run Probe 24, or begin iron mining.

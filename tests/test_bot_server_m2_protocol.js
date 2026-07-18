@@ -180,6 +180,64 @@ async function testCraftHandlerRejectsTransientInventoryAndRetries() {
     console.log('PASS: craft handler ignores rolled-back inventory ghosts and records a bounded retry');
 }
 
+async function testCraftHandlerSingleAttemptPolicyNeverRetries() {
+    let items = [
+        { name: 'cobblestone', count: 3 },
+        { name: 'stick', count: 2 },
+    ];
+    let craftAttempts = 0;
+    let waitsInAttempt = 0;
+    const waitDurations = [];
+    const bot = {
+        version: '1.20.4',
+        entity: { position: new Vec3(0, 64, 0) },
+        inventory: { items: () => items },
+        findBlock: () => ({ position: new Vec3(1, 64, 0) }),
+        recipesFor: () => [{ result: { count: 1 } }],
+        async craft() {
+            craftAttempts += 1;
+            waitsInAttempt = 0;
+            items = [{ name: 'stone_pickaxe', count: 1 }];
+        },
+    };
+    const wait = async (duration) => {
+        waitDurations.push(duration);
+        waitsInAttempt += 1;
+        if (waitsInAttempt === 3) {
+            items = [
+                { name: 'cobblestone', count: 3 },
+                { name: 'stick', count: 2 },
+            ];
+        }
+    };
+    const handler = createCraftHandler(
+        () => ({ bot, botReady: true }),
+        wait,
+        { maxAttempts: 1 },
+    );
+    const result = await handler({ item: 'stone_pickaxe', count: 1 });
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(craftAttempts, 1);
+    assert.strictEqual(result.craft_attempts, 1);
+    assert.strictEqual(result.craft_retry_count, 0);
+    assert.strictEqual(result.attempts.length, 1);
+    assert(!waitDurations.includes(3000));
+    const zeroConfiguredHandler = createCraftHandler(
+        () => ({ bot, botReady: true }),
+        wait,
+        { maxAttempts: 0 },
+    );
+    const zeroConfiguredResult = await zeroConfiguredHandler({
+        item: 'stone_pickaxe',
+        count: 1,
+    });
+    assert.strictEqual(zeroConfiguredResult.success, false);
+    assert.strictEqual(craftAttempts, 2);
+    assert.strictEqual(zeroConfiguredResult.craft_attempts, 1);
+    assert.strictEqual(zeroConfiguredResult.craft_retry_count, 0);
+    console.log('PASS: SP-002 craft policy fails closed after one transient attempt');
+}
+
 async function testM2ResetBuildsFixturesAndRecordsEmptyShelterBaseline() {
     const { bot, commands } = createM2Bot();
     const reset = createBenchmarkResetHandler(
@@ -291,6 +349,7 @@ async function main() {
     await testM2ProtocolStatusIsIndependentFromM1();
     await testNearbyBlockSelectionPreservesRareGroundedTargets();
     await testCraftHandlerRejectsTransientInventoryAndRetries();
+    await testCraftHandlerSingleAttemptPolicyNeverRetries();
     await testM2ResetBuildsFixturesAndRecordsEmptyShelterBaseline();
     await testM2VerificationReturnsObservedStateWithoutDeclaringGoalSuccess();
     await testBoundedShelterHandlerPlacesTheFixedTemplate();

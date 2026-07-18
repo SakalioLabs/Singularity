@@ -33,6 +33,10 @@ const BENCHMARK_SEED = getArg('benchmark-seed', '');
 const BENCHMARK_EPISODE = getArg('benchmark-episode', '');
 const BENCHMARK_LEVEL_NAME = getArg('benchmark-level-name', '');
 const BENCHMARK_SERVER_JAR_SHA256 = getArg('benchmark-server-jar-sha256', '');
+const requestedCraftMaxAttempts = parseInt(getArg('craft-max-attempts', '3'), 10);
+const CRAFT_MAX_ATTEMPTS = Number.isFinite(requestedCraftMaxAttempts)
+    ? Math.max(1, Math.min(3, requestedCraftMaxAttempts))
+    : 3;
 const SCREENSHOT_PLUGIN = getArg('screenshot-plugin', '');
 const SCREENSHOT_OPTIONS = {
     width: parseInt(getArg('screenshot-width', '512')),
@@ -2809,7 +2813,13 @@ async function waitForStableCraftOutput(
 function createCraftHandler(
     getState = () => ({ bot, botReady }),
     wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    options = {},
 ) {
+    const requestedMaxAttempts = Number(options.maxAttempts ?? 3);
+    const maxAttempts = Number.isFinite(requestedMaxAttempts)
+        ? Math.max(1, Math.min(3, requestedMaxAttempts))
+        : 3;
+    const retryCooldownMs = Math.max(0, Number(options.retryCooldownMs ?? 3000) || 0);
     return async (params = {}) => {
         const state = getState() || {};
         const activeBot = state.bot;
@@ -2829,8 +2839,6 @@ function createCraftHandler(
             });
             const inventoryBefore = inventoryCounts(activeBot);
             const attempts = [];
-            const maxAttempts = 3;
-            const retryCooldownMs = 3000;
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
                 const recipes = activeBot.recipesFor(item.id, null, count, craftingTable);
                 if (!recipes || recipes.length === 0) {
@@ -3185,6 +3193,10 @@ const handlers = {
             episode_id: BENCHMARK_EPISODE,
             seed: BENCHMARK_SEED,
         },
+        craft_policy: {
+            max_attempts: CRAFT_MAX_ATTEMPTS,
+            automatic_retry: CRAFT_MAX_ATTEMPTS > 1,
+        },
         screenshot_capture_supported: Boolean(findScreenshotCapture(bot)),
         screenshot_plugin: publicScreenshotPluginStatus(screenshotPluginStatus),
     }),
@@ -3337,7 +3349,11 @@ const handlers = {
 
     place: createPlaceHandler(),
 
-    craft: createCraftHandler(),
+    craft: createCraftHandler(
+        () => ({ bot, botReady }),
+        (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+        { maxAttempts: CRAFT_MAX_ATTEMPTS },
+    ),
 
     attack: (params) => {
         try {

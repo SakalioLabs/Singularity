@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T13:02:02+08:00",
+  "generated_at": "2026-07-18T14:44:00+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_34_sp001_acquire_executable_promotion",
-  "status": "sp001_acquire_executable_promotion_pending_commit_push",
+  "phase": "phase_35_sp002_offline_harness",
+  "status": "sp002_offline_harness_ready_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 0,
-  "authorization_scope": "none_sp001_promotion_complete_sp002_offline_harness_required",
+  "authorization_scope": "none_sp002_fixture_preparation_authorization_required",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -163,7 +163,10 @@
       "candidate_created": false,
       "learned_skill_status": "not_created",
       "unlocked": true,
-      "offline_harness_ready": false,
+      "offline_harness_ready": true,
+      "fixture_ready": false,
+      "harness_policy_id": "stone-pickaxe-sp002-controlled-runtime-v1",
+      "harness_policy_sha256": "d3ccb78a4851fa9e7e41786638b4946247660cac3f848ba0648c1d8f75442fef",
       "live_authorization": false
     },
     "SP-003": {
@@ -1189,6 +1192,64 @@
       "normal_runtime_permission": true,
       "sp002_unlocked_for_offline_harness": true,
       "live_authorization": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 34,
+      "name": "sp002_offline_harness",
+      "status": "offline_harness_ready_pending_commit_push",
+      "harness_predecessor": "f1926e7fb03d8e4931dbf9609e7e799bbede10c3",
+      "task_id": "SP-002",
+      "policy": {
+        "id": "stone-pickaxe-sp002-controlled-runtime-v1",
+        "path": "workspace/evals/stone_pickaxe_sp002_harness_policy.json",
+        "sha256": "d3ccb78a4851fa9e7e41786638b4946247660cac3f848ba0648c1d8f75442fef"
+      },
+      "fixture_contract": {
+        "fixture_id": "sp002-craft-stone-pickaxe-v1",
+        "source_fixture_id": "sp001-acquire-cobblestone-v1",
+        "exact_cobblestone": 3,
+        "exact_stick": 2,
+        "stone_pickaxe_absent": true,
+        "interactive_crafting_table_within": 4.5,
+        "fixture_ready": false
+      },
+      "runtime_contract": {
+        "skill_execution_mode": "off",
+        "maximum_actions": 1,
+        "bridge_craft_max_attempts": 1,
+        "bridge_protocol_configured_required": true,
+        "stable_reobservation_delay_s": 0.25,
+        "exact_material_consumption": true,
+        "one_time_parent_bound_authorization": true,
+        "clean_synchronized_main_required": true
+      },
+      "prerequisite_acquire_skill": {
+        "skill_id": "learned:acquire_cobblestone",
+        "version": "1.1.0",
+        "status": "executable",
+        "promotion_artifact_sha256": "d03a4e9790d714504719f522b0e4ac1a0c0f80a02a9dbc1168caedbdb3aeec62",
+        "runtime_default_gate_sha256": "6a91887265adc3a8979a59636d3235da5cd0d13b487869308d029752a63800d7"
+      },
+      "offline_tests": {
+        "sp002_runtime_harness_cases": "13/13",
+        "stone_pickaxe_runtime_regression_cases": "32/32",
+        "stone_pickaxe_protocol_cases": "34/34",
+        "node_single_attempt_policy": "passed"
+      },
+      "protected_evidence": {
+        "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+        "v5_report_sha256": "e1d064c3b93eb92a3eef9c495fb8411b99632eadd183738c99682e36e6c2586d",
+        "promotion_artifact_sha256": "d03a4e9790d714504719f522b0e4ac1a0c0f80a02a9dbc1168caedbdb3aeec62",
+        "runtime_default_gate_sha256": "6a91887265adc3a8979a59636d3235da5cd0d13b487869308d029752a63800d7"
+      },
+      "fixture_preparation_authorization": false,
+      "live_authorization": false,
+      "eligible_live_successes": 0,
+      "candidate_created": false,
+      "sp003_unlocked": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "automatic_retry_allowed": false
@@ -3544,14 +3605,29 @@
       "passed": 32,
       "total": 32
     },
+    "sp002_runtime_harness_cases": {
+      "passed": 13,
+      "total": 13
+    },
+    "sp002_harness_policy_sha256": "d3ccb78a4851fa9e7e41786638b4946247660cac3f848ba0648c1d8f75442fef",
+    "sp002_fixture_audit_offline_passed": true,
+    "sp002_exact_action_guard_passed": true,
+    "sp002_single_attempt_bridge_policy_passed": true,
+    "sp002_bridge_protocol_configured_gate_passed": true,
+    "sp002_stable_reobservation_gate_passed": true,
+    "sp002_parent_bound_authorization_gate_passed": true,
+    "sp002_prior_evidence_hashes_passed": true,
+    "sp002_isolated_runtime_module_passed": true,
+    "sp001_frozen_runtime_identity_preserved": true,
+    "sp001_frozen_launcher_identity_preserved": true,
     "impacted_runtime_regressions": {
       "m2_harness_passed": true,
       "action_controller_passed": true,
       "m4_deadline_passed": true
     },
     "repository_non_live_python_scripts": {
-      "passed": 45,
-      "total": 45
+      "passed": 46,
+      "total": 46
     },
     "benchmark_preflight_cases": {
       "passed": 93,
@@ -3562,8 +3638,8 @@
       "passed": 6,
       "total": 6
     },
-    "repository_json_files_parsed": 1333,
-    "stone_pickaxe_ledger_path_hash_bindings_verified": 287,
+    "repository_json_files_parsed": 1334,
+    "stone_pickaxe_ledger_path_hash_bindings_verified": 288,
     "system_node_version": "v22.16.0",
     "python_compileall_passed": true,
     "fixture_snapshot_audit_passed": true,
@@ -3791,21 +3867,20 @@
     "sp001_paired_decision": "review_executable_new_version"
   },
   "next_required_gate": {
-    "id": "sp002_offline_harness",
+    "id": "sp002_fixture_preparation_authorization",
     "authorization": false,
     "prerequisites": [
-      "sp001_executable_promotion_commit_pushed",
-      "source_advisory_record_remains_hash_identical",
-      "promoted_1_1_0_record_and_runtime_gate_are_hash_bound",
-      "sp002_fixed_protocol_contract_is_validated_offline",
-      "sp002_fixture_reset_and_machine_verifier_are_implemented",
-      "clean_synchronized_main_before_any_sp002_live_authorization"
+      "sp002_offline_harness_commit_pushed",
+      "sp001_source_fixture_tree_reaudited",
+      "sp002_fixture_preparation_authorization_committed_and_pushed",
+      "authorization_predecessor_equals_authorization_commit_parent",
+      "clean_synchronized_main_before_runtime_start"
     ],
     "arm": null,
     "replicate_id": null,
-    "live_episode_limit": 0,
-    "normal_runtime_permission": true,
-    "normal_runtime_permission_scope": "learned:acquire_cobblestone@1.1.0",
+    "live_episode_limit": 1,
+    "normal_runtime_permission": false,
+    "normal_runtime_permission_scope": "none_fixture_preparation_only",
     "automatic_retry_allowed": false
   },
   "artifact_state": {
@@ -3817,6 +3892,10 @@
     "fixture_preparation_artifacts_retained_locally": true,
     "sp001_run_artifacts_created": 80,
     "sp001_run_artifacts_retained_locally": true,
+    "sp002_harness_policy_artifacts_created": 1,
+    "sp002_fixture_manifest_created": false,
+    "sp002_fixture_snapshot_created": false,
+    "sp002_authorization_artifacts_created": 0,
     "sp002_run_artifacts_created": 0,
     "sp003_run_artifacts_created": 0,
     "promotion_artifacts_created": 3,
