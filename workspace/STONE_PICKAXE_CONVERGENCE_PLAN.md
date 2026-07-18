@@ -14,12 +14,12 @@ This project isolates two bounded Minecraft capabilities:
 | Microbenchmark | Eligible live successes | Extraction gate | Current learned skill |
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
-| SP-002 Craft Stone Pickaxe | 3 | 3 | Advisory `1.0.0`; v2 support 1/3, candidate pairs 0/3 |
+| SP-002 Craft Stone Pickaxe | 3 | 3 | Advisory `1.0.0`; v2 support 2/3, candidate pairs 0/3 |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 64 retains the passing SP-002 v2 `shadow-2` evidence. The learned skill produced one shadow plan before the real root Planner call, directly executed zero actions, and the ordinary Planner/Mineflayer path machine-verified the exact craft. Support is 1/3, candidate pairs are 0/3, `learned:craft_stone_pickaxe@1.0.0` remains advisory, and normal runtime remains disabled**.
+Current phase: **Phase 65 retains the passing SP-002 v2 `advisory-2` evidence. The learned skill produced one bounded advisory hint before the real root Planner call, directly executed zero actions, and the ordinary Planner/Mineflayer path machine-verified the exact craft. Support is 2/3, candidate pairs are 0/3, `learned:craft_stone_pickaxe@1.0.0` remains advisory, and normal runtime remains disabled**.
 
-Current authorization: **none**. Replicates `r1..r15` from SP-001, all nine SP-002 fixture/live authorizations, v1 `shadow/shadow-1`, and v2 `shadow/shadow-2` are consumed and cannot be reused. V1 `advisory-1`, `fallback-1`, and candidate `r1..r3` are excluded from recovery. After the Phase 64 evidence commit is pushed and `main` is synchronized, the next transaction is one separate parent-bound `advisory/advisory-2` authorization. Executable craft promotion, automatic retry, SP-003, Probe 24, full BM-012, and iron mining remain locked.
+Current authorization: **none**. Replicates `r1..r15` from SP-001, all nine SP-002 fixture/live authorizations, v1 `shadow/shadow-1`, and v2 `shadow-2/advisory-2` are consumed and cannot be reused. V1 `advisory-1`, `fallback-1`, and candidate `r1..r3` are excluded from recovery. After the Phase 65 evidence commit is pushed and `main` is synchronized, the next transaction is one separate parent-bound `fallback/fallback-2` authorization. Executable craft promotion, automatic retry, SP-003, Probe 24, full BM-012, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -201,4 +201,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 executable promotion remains complete. Do not retry consumed candidates or `shadow-2`, run excluded v1 IDs, reuse prior pair IDs, run more than the separately authorized next v2 arm, skip the craft candidate/advisory lifecycle, run SP-003 before both skills are executable, run full BM-012, run Probe 24, or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 executable promotion remains complete. Do not retry consumed candidates, `shadow-2`, or `advisory-2`; run excluded v1 IDs; reuse prior pair IDs; run more than the separately authorized next v2 arm; skip the craft candidate/advisory lifecycle; run SP-003 before both skills are executable; run full BM-012; run Probe 24; or begin iron mining.

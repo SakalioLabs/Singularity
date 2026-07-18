@@ -193,12 +193,13 @@ def test_report_uses_fresh_support_ids_and_excludes_retained_v1_failure():
     )
     assert [(item["arm"], item["replicate_id"], item["status"]) for item in report["support_runs"]] == [
         ("shadow", "shadow-2", "pass"),
-        ("advisory", "advisory-2", "missing"),
+        ("advisory", "advisory-2", "pass"),
         ("fallback", "fallback-2", "missing"),
     ]
     assert [item["replicate_id"] for item in report["excluded_prior_runs"]] == ["shadow-1"]
     assert report["valid_pair_count"] == 0
     assert report["shadow_verified"] is True
+    assert report["advisory_verified"] is True
     assert report["decision"] == "retain_advisory"
 
 
