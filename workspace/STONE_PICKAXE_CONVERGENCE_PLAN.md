@@ -17,9 +17,9 @@ This project isolates two bounded Minecraft capabilities:
 | SP-002 Craft Stone Pickaxe | 0 | 3 | `learned:craft_stone_pickaxe` not created |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 7 paired evaluation in progress with three immutable baseline arms, all three support arms verified, candidates `r1` and `r4` retained failed, and isolated v3 candidates `r7/r8/r9` defined at 0/3; `learned:acquire_cobblestone@1.0.0` remains advisory and non-executable**.
+Current phase: **Phase 7 paired evaluation recovery with three immutable baseline arms, all three support arms verified, and candidates `r1`, `r4`, and `r7` retained failed; v3 is 0/3 and cannot converge, while `learned:acquire_cobblestone@1.0.0` remains advisory and non-executable**.
 
-Current authorization: **exactly one `candidate/r7` live episode becomes authorized only after this ledger commit is pushed**. Candidates `r1` and `r4` are consumed and cannot be retried; `r2/r3/r5/r6` remain outside all future authorization, while `r8/r9` remain locked pending separate evidence review. Their retained failures are immutable, both root causes pass offline regression, the provenance fix is pushed at `36f03ee7`, and recovery window v3 is pushed at `2fc4e04b`. Another fixture session, support reruns, retries, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain locked.
+Current authorization: **no live episode is authorized**. Candidates `r1`, `r4`, and `r7` are consumed and cannot be retried; `r2/r3/r5/r6/r8/r9` remain outside all future authorization. R7 completed every world action and machine verification but lifecycle finalization replaced its legally routed `mining` subtask family with the outer root's inferred `gathering` family, producing a false `routing_error`. Its evidence must be pushed, the defect fixed and reproduced offline, and a fresh non-overlapping window defined before any later arm can be separately authorized. Another fixture session, support reruns, retries, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -172,7 +172,7 @@ The 30 numbered cases cover:
 | 4. Acquire candidate/advisory | Complete; advisory pushed at `822057b` |
 | 5. SP-002 controlled live convergence | Not started |
 | 6. Craft candidate/advisory | Not started |
-| 7. Paired promotion evaluations | In progress; v1 `r1` and v2 `r4` are consumed, v3 `r7/r8/r9` is offline-verified at 0/3 and pending push before one-arm authorization |
+| 7. Paired promotion evaluations | In progress; v1 `r1`, v2 `r4`, and v3 `r7` are consumed, v3 is 0/3, and an offline route-scope fix plus a new window are required |
 | 8. SP-003 composite acceptance | Locked |
 
 ## Frozen Baseline
@@ -185,4 +185,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers plus all three controlled SP-001 behavioral failures are reproduced and fixed; the two provider TLS EOF traces are retained as zero-action fail-closed failures. All source sessions remain immutable. The fixture snapshot still passes independent identity audit, and three eligible SP-001 successes establish 3/3. The acquire skill is advisory only. Shadow, advisory, and fallback each ran exactly once from pushed predecessors and passed. Candidates `r1` and `r4` each ran exactly once and remain immutable ineligible failures; their nearest-ordering and guard-provenance defects now pass bounded offline regressions. V3 is pushed at 0/3. Push this single-arm authorization, run exactly one `candidate/r7` experiment, then stop for immutable evidence review. Do not retry `r1` or `r4`, run `r2/r3/r5/r6/r8/r9`, reuse prior pair IDs, rerun support arms, batch candidates, run SP-002/SP-003 before their gates unlock, run full BM-012, run Probe 24, or begin iron mining.
+The retained fixture blockers plus all three controlled SP-001 behavioral failures are reproduced and fixed; the two provider TLS EOF traces are retained as zero-action fail-closed failures. All source sessions remain immutable. The fixture snapshot still passes independent identity audit, and three eligible SP-001 successes establish 3/3. The acquire skill is advisory only. Shadow, advisory, and fallback each ran exactly once from pushed predecessors and passed. Candidates `r1`, `r4`, and `r7` each ran exactly once and remain immutable ineligible failures. R7 proves action attribution and machine completion but exposes a root/subtask route-scope finalization defect. Push its evidence, repair and regress that defect offline while preserving real wrong-family rejection, then define a fresh non-overlapping window. Do not retry consumed candidates, run `r2/r3/r5/r6/r8/r9`, reuse prior pair IDs, rerun support arms, batch candidates, run SP-002/SP-003 before their gates unlock, run full BM-012, run Probe 24, or begin iron mining.
