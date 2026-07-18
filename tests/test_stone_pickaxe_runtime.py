@@ -633,14 +633,15 @@ def test_retained_sp001_failure_evidence_hashes_match_ledger():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
-def test_eligible_sp001_success_evidence_hashes_match_ledger():
+def test_eligible_stone_pickaxe_success_evidence_hashes_match_ledger():
     root = Path(__file__).resolve().parents[1]
     ledger = json.loads(
         (root / "workspace" / "evals" / "stone_pickaxe_failure_ledger.json").read_text(
             encoding="utf-8"
         )
     )
-    successes = ledger["eligible_successes"]
+    all_successes = ledger["eligible_successes"]
+    successes = [item for item in all_successes if item["task_id"] == "SP-001"]
     assert [item["id"] for item in successes] == [
         "sp001-success-001",
         "sp001-success-002",
@@ -673,6 +674,44 @@ def test_eligible_sp001_success_evidence_hashes_match_ledger():
         assert verification["passed"] is True
         assert verification["evidence_eligible"] is True
         assert verification["counts_toward_skill_gate"] is True
+
+    sp002_successes = [
+        item for item in all_successes if item["task_id"] == "SP-002"
+    ]
+    assert [item["id"] for item in sp002_successes] == ["sp002-success-001"]
+    success = sp002_successes[0]
+    assert success["status"] == "eligible_live_success"
+    assert success["machine_verification"]["passed"] is True
+    assert success["machine_verification"]["evidence_eligible"] is True
+    assert success["machine_verification"]["cobblestone_delta"] == -3
+    assert success["machine_verification"]["stick_delta"] == -2
+    assert success["machine_verification"]["stone_pickaxe_delta"] == 1
+    assert success["machine_verification"]["authoritative_inventory_refresh"] is True
+    assert success["planner_decision"]["planner_call_count"] == 1
+    assert success["planner_decision"]["planner_request_controls_passed"] is True
+    assert success["task_graph_proof"]["completed_task_count"] == 2
+    assert success["counts_toward_skill_gate"] is True
+    assert success["counts_toward_capability"] is False
+    assert success["counts_toward_m4"] is False
+    assert len(success["evidence"]) == 17
+    for record in success["evidence"]:
+        path = root / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+    verification_path = root / next(
+        record["path"]
+        for record in success["evidence"]
+        if record["path"].endswith("/verification.json")
+    )
+    verification = json.loads(verification_path.read_text(encoding="utf-8"))
+    assert verification["passed"] is True
+    assert verification["evidence_eligible"] is True
+    assert verification["metrics"]["material_delta"] == {
+        "cobblestone": -3,
+        "stick": -2,
+    }
+    assert verification["metrics"]["inventory_delta"] == {"stone_pickaxe": 1}
 
 
 def test_fixture_guard_blocks_target_result_mining_and_duplicate_pickaxe():

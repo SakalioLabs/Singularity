@@ -1,0 +1,27 @@
+{
+  "type": "stone_pickaxe_machine_verification",
+  "schema_version": 1,
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "task_id": "SP-002",
+  "criteria_passed": true,
+  "evidence_eligible": true,
+  "passed": true,
+  "criteria_issues": [],
+  "eligibility_issues": [],
+  "metrics": {
+    "craft_action_count": 1,
+    "material_delta": {
+      "cobblestone": -3,
+      "stick": -2
+    },
+    "inventory_delta": {
+      "stone_pickaxe": 1
+    },
+    "stable_observation_id": "bf519195e679fae4d93899c910e73ea595b09d6b70ce8eb4e1e960547234675a"
+  },
+  "evidence_kind": "live_verified",
+  "counts_toward_skill_gate": true,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

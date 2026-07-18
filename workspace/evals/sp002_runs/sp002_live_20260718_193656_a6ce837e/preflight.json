@@ -1,0 +1,838 @@
+{
+  "type": "stone_pickaxe_live_preflight",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T11:46:02.019974+00:00",
+  "episode_id": "sp002_live_20260718_193656_a6ce837e",
+  "task_id": "SP-002",
+  "runtime_policy_id": "stone-pickaxe-sp002-controlled-runtime-v1",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "static_checks": {
+    "authorization": true,
+    "protocol_hash": true,
+    "fixture_scope": true,
+    "fixture_identity": true,
+    "hypothesis_episode": true,
+    "hypothesis_task": true,
+    "hypothesis_precedes_live": true,
+    "hypothesis_protocol": true,
+    "hypothesis_authorization": true,
+    "restoration_passed": true,
+    "restoration_level": true,
+    "server_jar": true
+  },
+  "authorization_preflight": {
+    "type": "stone_pickaxe_sp002_authorization_preflight",
+    "schema_version": 1,
+    "passed": true,
+    "checks": {
+      "authorization_type": true,
+      "authorization_schema": true,
+      "authorization_status": true,
+      "task_id": true,
+      "scope": true,
+      "episode_id": true,
+      "protocol_id": true,
+      "protocol_sha256": true,
+      "created_before_live": true,
+      "single_episode": true,
+      "automatic_retry_disabled": true,
+      "support_rerun_disabled": true,
+      "sp003_disabled": true,
+      "no_capability_credit": true,
+      "no_m4_credit": true,
+      "authorization_commit_is_new": true,
+      "authorization_predecessor": true,
+      "fixture_path": true,
+      "fixture_sha256": true,
+      "fixture_id": true,
+      "fixture_tree_sha256": true,
+      "harness_policy_path": true,
+      "harness_policy_sha256": true,
+      "authorization_fingerprint": true
+    },
+    "issues": [],
+    "episode_id": "sp002_live_20260718_193656_a6ce837e",
+    "scope": "live_episode",
+    "authorization_id": "85e760c64c18651b91ecfda3cd257615c2f5705338dfe044957600eddb53135f",
+    "consumed_by_process_start": false
+  },
+  "fixture_machine_audit": {
+    "type": "stone_pickaxe_sp002_fixture_machine_audit",
+    "schema_version": 1,
+    "policy_id": "stone-pickaxe-survival-fixture-preparation-v1",
+    "passed": true,
+    "checks": {
+      "cobblestone_exact": true,
+      "stick_exact": true,
+      "stone_pickaxe_absent": true,
+      "survival_mode": true,
+      "safe": true,
+      "movable": true,
+      "interactive_crafting_table_observed": true
+    },
+    "issues": [],
+    "observation": {
+      "role": "fixture_audit",
+      "monotonic_s": 0.0,
+      "position": {
+        "x": 95.579073,
+        "y": 130.0,
+        "z": -31.494352
+      },
+      "inventory": {
+        "cobblestone": 3,
+        "dark_oak_log": 3,
+        "dark_oak_planks": 7,
+        "dirt": 3,
+        "stick": 2,
+        "wooden_pickaxe": 1
+      },
+      "health": 20.0,
+      "hunger": 20.0,
+      "game_mode": "survival",
+      "dimension": "overworld",
+      "ground_block": "stone",
+      "safe": true,
+      "movable": true,
+      "observed_blocks": [
+        {
+          "source_id": "stone:94:130:-32",
+          "name": "stone",
+          "position": {
+            "x": 94.0,
+            "y": 130.0,
+            "z": -32.0
+          },
+          "distance": 1.0,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:129:-32",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 129.0,
+            "z": -32.0
+          },
+          "distance": 1.0,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:130:-31",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 130.0,
+            "z": -31.0
+          },
+          "distance": 1.0,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:130:-33",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 130.0,
+            "z": -33.0
+          },
+          "distance": 1.0,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:96:130:-32",
+          "name": "stone",
+          "position": {
+            "x": 96.0,
+            "y": 130.0,
+            "z": -32.0
+          },
+          "distance": 1.0,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:94:129:-32",
+          "name": "stone",
+          "position": {
+            "x": 94.0,
+            "y": 129.0,
+            "z": -32.0
+          },
+          "distance": 1.414214,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:94:130:-31",
+          "name": "stone",
+          "position": {
+            "x": 94.0,
+            "y": 130.0,
+            "z": -31.0
+          },
+          "distance": 1.414214,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:94:130:-33",
+          "name": "stone",
+          "position": {
+            "x": 94.0,
+            "y": 130.0,
+            "z": -33.0
+          },
+          "distance": 1.414214,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:129:-31",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 129.0,
+            "z": -31.0
+          },
+          "distance": 1.414214,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:129:-33",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 129.0,
+            "z": -33.0
+          },
+          "distance": 1.414214,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:131:-31",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 131.0,
+            "z": -31.0
+          },
+          "distance": 1.414214,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:131:-33",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 131.0,
+            "z": -33.0
+          },
+          "distance": 1.414214,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:96:129:-32",
+          "name": "stone",
+          "position": {
+            "x": 96.0,
+            "y": 129.0,
+            "z": -32.0
+          },
+          "distance": 1.414214,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:96:130:-31",
+          "name": "stone",
+          "position": {
+            "x": 96.0,
+            "y": 130.0,
+            "z": -31.0
+          },
+          "distance": 1.414214,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:96:130:-33",
+          "name": "stone",
+          "position": {
+            "x": 96.0,
+            "y": 130.0,
+            "z": -33.0
+          },
+          "distance": 1.414214,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:96:131:-32",
+          "name": "stone",
+          "position": {
+            "x": 96.0,
+            "y": 131.0,
+            "z": -32.0
+          },
+          "distance": 1.414214,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:94:129:-31",
+          "name": "stone",
+          "position": {
+            "x": 94.0,
+            "y": 129.0,
+            "z": -31.0
+          },
+          "distance": 1.732051,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:94:129:-33",
+          "name": "stone",
+          "position": {
+            "x": 94.0,
+            "y": 129.0,
+            "z": -33.0
+          },
+          "distance": 1.732051,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:94:131:-33",
+          "name": "stone",
+          "position": {
+            "x": 94.0,
+            "y": 131.0,
+            "z": -33.0
+          },
+          "distance": 1.732051,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:96:129:-31",
+          "name": "stone",
+          "position": {
+            "x": 96.0,
+            "y": 129.0,
+            "z": -31.0
+          },
+          "distance": 1.732051,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:96:129:-33",
+          "name": "stone",
+          "position": {
+            "x": 96.0,
+            "y": 129.0,
+            "z": -33.0
+          },
+          "distance": 1.732051,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:96:131:-31",
+          "name": "stone",
+          "position": {
+            "x": 96.0,
+            "y": 131.0,
+            "z": -31.0
+          },
+          "distance": 1.732051,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:96:131:-33",
+          "name": "stone",
+          "position": {
+            "x": 96.0,
+            "y": 131.0,
+            "z": -33.0
+          },
+          "distance": 1.732051,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:93:130:-32",
+          "name": "stone",
+          "position": {
+            "x": 93.0,
+            "y": 130.0,
+            "z": -32.0
+          },
+          "distance": 2.0,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:128:-32",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 128.0,
+            "z": -32.0
+          },
+          "distance": 2.0,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:130:-30",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 130.0,
+            "z": -30.0
+          },
+          "distance": 2.0,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:130:-34",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 130.0,
+            "z": -34.0
+          },
+          "distance": 2.0,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:97:130:-32",
+          "name": "stone",
+          "position": {
+            "x": 97.0,
+            "y": 130.0,
+            "z": -32.0
+          },
+          "distance": 2.0,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:93:129:-32",
+          "name": "stone",
+          "position": {
+            "x": 93.0,
+            "y": 129.0,
+            "z": -32.0
+          },
+          "distance": 2.236068,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:93:130:-33",
+          "name": "stone",
+          "position": {
+            "x": 93.0,
+            "y": 130.0,
+            "z": -33.0
+          },
+          "distance": 2.236068,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:94:128:-32",
+          "name": "stone",
+          "position": {
+            "x": 94.0,
+            "y": 128.0,
+            "z": -32.0
+          },
+          "distance": 2.236068,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:94:130:-30",
+          "name": "stone",
+          "position": {
+            "x": 94.0,
+            "y": 130.0,
+            "z": -30.0
+          },
+          "distance": 2.236068,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:128:-31",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 128.0,
+            "z": -31.0
+          },
+          "distance": 2.236068,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:128:-33",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 128.0,
+            "z": -33.0
+          },
+          "distance": 2.236068,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:129:-30",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 129.0,
+            "z": -30.0
+          },
+          "distance": 2.236068,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:129:-34",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 129.0,
+            "z": -34.0
+          },
+          "distance": 2.236068,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:131:-30",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 131.0,
+            "z": -30.0
+          },
+          "distance": 2.236068,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:95:131:-34",
+          "name": "stone",
+          "position": {
+            "x": 95.0,
+            "y": 131.0,
+            "z": -34.0
+          },
+          "distance": 2.236068,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:96:128:-32",
+          "name": "stone",
+          "position": {
+            "x": 96.0,
+            "y": 128.0,
+            "z": -32.0
+          },
+          "distance": 2.236068,
+          "observed": true,
+          "reachable": true
+        },
+        {
+          "source_id": "stone:96:130:-34",
+          "name": "stone",
+          "position": {
+            "x": 96.0,
+            "y": 130.0,
+            "z": -34.0
+          },
+          "distance": 2.236068,
+          "observed": true,
+          "reachable": true
+        }
+      ],
+      "nearby_hostile_count": 0,
+      "player_lifecycle": {},
+      "nearby_blocks": [
+        {
+          "block_id": "crafting_table:94:131:-32",
+          "name": "crafting_table",
+          "position": {
+            "x": 94.0,
+            "y": 131.0,
+            "z": -32.0
+          },
+          "distance": 1.414214,
+          "observed": true,
+          "interactive": true
+        }
+      ],
+      "observation_id": "9ce5c29b68eae50a162ef10b124380cb9f4f53584ade96f466a4f3fdb01ad6d7"
+    },
+    "crafting_tables": [
+      {
+        "block_id": "crafting_table:94:131:-32",
+        "name": "crafting_table",
+        "position": {
+          "x": 94.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "interactive": true
+      }
+    ],
+    "counts_toward_skill_gate": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "protocol_status": {
+    "success": true,
+    "configured": true,
+    "profile": "m4-fixed-v1",
+    "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "minecraft_version": "1.20.4",
+    "observed_minecraft_version": "1.20.4",
+    "server_type": "Paper",
+    "server_build": "paper-1.20.4-499",
+    "server_jar_policy": "pinned_sha256_v1",
+    "agent_id": "singularity-agent-v1",
+    "goal_generator_id": "survival-goal-generator-v1",
+    "curriculum_id": "autonomous-curriculum-v1",
+    "planner_id": "llm-autonomous-planner-v1",
+    "planner_schema_id": "",
+    "planner_schema_sha256": "",
+    "action_backend_id": "mineflayer-bridge-v1",
+    "verifier_id": "m4-survival-machine-verifier-v1",
+    "runtime_interrupt_id": "m4-survival-interrupt-v1",
+    "skill_runtime_profile_id": "m4-baseline-learned-skills-off-v1",
+    "player_lifecycle_verifier_id": "m4-player-lifecycle-verifier-v1",
+    "player_lifecycle_supported": true,
+    "player_lifecycle_source": "mineflayer_events",
+    "reset_protocol_sha256": "0df412101c5c01bf89b32e26d2d9beead7f9b64d10ba5de714caab51b1b63e52",
+    "validation_protocol_sha256": "bd2e7466d18d72927c7ca84a11736597a05eab5adf4b788627fe9377542d1e02",
+    "llm": {
+      "provider": "openai",
+      "base_url": "https://opencode.ai/zen/go/v1",
+      "model": "deepseek-v4-flash",
+      "temperature": 0,
+      "max_tokens": 4096,
+      "extra_body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      }
+    },
+    "runtime_controls": {
+      "skill_execution_mode": "off",
+      "learned_executable_skills_enabled": false,
+      "quarantined_skills_enabled": false,
+      "policy_skills_enabled": false,
+      "skill_memory_context_enabled": false,
+      "memory_persistence_enabled": false,
+      "vision_enabled": false,
+      "visual_action_grounding_enabled": false,
+      "screenshot_capture_enabled": false,
+      "self_evolution_policy_enabled": false,
+      "world_model_curriculum_feedback_enabled": false,
+      "multi_agent_enabled": false,
+      "autocurriculum_enabled": true,
+      "goal_verification_enabled": true,
+      "action_verification_enabled": true,
+      "action_verification_enforced": true
+    },
+    "server_brand": "Paper",
+    "seed": "12345",
+    "episode_id": "sp002_live_20260718_193656_a6ce837e",
+    "level_name": "sp002_live_20260718_193656_a6ce837e_world",
+    "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+    "episode_strategy": "fresh_level_per_run_v1",
+    "dependencies": {
+      "mineflayer": "4.37.1",
+      "mineflayer-pathfinder": "2.4.5",
+      "minecraft-data": "3.111.0"
+    },
+    "runtime_versions": {
+      "node": "22.16.0",
+      "python": "3.12.8"
+    },
+    "tasks": [
+      {
+        "id": "BM-011",
+        "name": "Survive the first night",
+        "terminal_goal": "Survive until the next dawn",
+        "max_duration_s": 1200,
+        "max_autonomous_goals": 24,
+        "max_cycles_per_goal": 40,
+        "success_criteria": {
+          "health_above": 0,
+          "bot_connected": true,
+          "active_episode_deaths_equal": 0,
+          "active_episode_respawns_equal": 0,
+          "uninterrupted_survival": true,
+          "night_crossed": true,
+          "dawn_reached": true,
+          "natural_time_progression": true
+        }
+      },
+      {
+        "id": "BM-012",
+        "name": "Get 8 iron resources",
+        "terminal_goal": "Collect 8 iron resources",
+        "max_duration_s": 600,
+        "success_criteria": {
+          "inventory_any": {
+            "raw_iron": 8,
+            "iron_ore": 8
+          }
+        }
+      },
+      {
+        "id": "BM-013",
+        "name": "Smelt iron ingot",
+        "terminal_goal": "Smelt an iron ingot",
+        "max_duration_s": 300,
+        "success_criteria": {
+          "inventory": {
+            "iron_ingot": 1
+          }
+        }
+      },
+      {
+        "id": "BM-014",
+        "name": "Craft iron pickaxe",
+        "terminal_goal": "Craft an iron pickaxe",
+        "max_duration_s": 300,
+        "success_criteria": {
+          "inventory": {
+            "iron_pickaxe": 1
+          }
+        }
+      }
+    ],
+    "task_contracts": {
+      "BM-012": {
+        "id": "m4-bm012-resource-contract-v1",
+        "sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d"
+      }
+    },
+    "reset_supported": true,
+    "validation_supported": true,
+    "errors": []
+  },
+  "protocol_status_audit": {
+    "type": "stone_pickaxe_sp002_bridge_protocol_audit",
+    "schema_version": 1,
+    "passed": true,
+    "checks": {
+      "command_success": true,
+      "configured": true,
+      "profile": true,
+      "minecraft_version": true,
+      "seed": true,
+      "episode_id": true,
+      "level_name": true,
+      "server_jar": true,
+      "skill_execution_off": true,
+      "no_protocol_errors": true
+    },
+    "issues": []
+  },
+  "bridge_health": {
+    "success": true,
+    "bridge": true,
+    "bot_created": true,
+    "bot_ready": true,
+    "mc_host": "127.0.0.1",
+    "mc_port": 25565,
+    "bridge_host": "127.0.0.1",
+    "bridge_port": 30000,
+    "username": "Singularity",
+    "version": "1.20.4",
+    "server_brand": "Paper",
+    "position": {
+      "x": 95.57907285827427,
+      "y": 130,
+      "z": -31.494351547541445
+    },
+    "last_error": "",
+    "benchmark_protocol": {
+      "profile": "m1-fixed-v1",
+      "configured": true,
+      "episode_id": "sp002_live_20260718_193656_a6ce837e",
+      "seed": "12345"
+    },
+    "craft_policy": {
+      "max_attempts": 1,
+      "automatic_retry": false
+    },
+    "screenshot_capture_supported": false,
+    "screenshot_plugin": {
+      "configured": false,
+      "loaded": false,
+      "supported": false,
+      "source": "",
+      "resolved": "",
+      "options": {
+        "width": 512,
+        "height": 512,
+        "viewDistance": 4,
+        "renderDelayMs": 500
+      },
+      "error": ""
+    }
+  },
+  "runtime_controls": {
+    "planner_protocol": "stone-pickaxe-skill-fixed-v1",
+    "require_llm_root_plan": true,
+    "skill_execution_mode": "off",
+    "skill_candidate_extraction": false,
+    "policy_skills": false,
+    "memory_persistence": false,
+    "planning_memory_context": false,
+    "task_memory_context": false,
+    "task_continuity_context": false,
+    "vision_analysis": false,
+    "visual_action_grounding": false,
+    "goal_verification": true,
+    "action_verification": true,
+    "action_verification_enforced": true,
+    "action_candidate_selection": false,
+    "automatic_retry": false,
+    "external_step_script": false
+  },
+  "craft_backend_policy": {
+    "max_attempts": 1,
+    "automatic_retry": false
+  },
+  "active_episode_reset": false,
+  "external_step_script": false,
+  "passed": true
+}
