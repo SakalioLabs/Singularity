@@ -13,7 +13,7 @@
   "valid_pair_count": 0,
   "baseline_session_ids": [],
   "candidate_session_ids": [],
-  "shadow_verified": false,
+  "shadow_verified": true,
   "advisory_verified": false,
   "fallback_verified": false,
   "fixed_controls_match": false,
@@ -154,8 +154,8 @@
     {
       "arm": "shadow",
       "replicate_id": "shadow-2",
-      "run_id": "",
-      "status": "missing"
+      "run_id": "shadow:sp002_skill_shadow_v2_20260719_005650_445ae601",
+      "status": "pass"
     },
     {
       "arm": "advisory",
@@ -189,7 +189,7 @@
     "paired_live_session_count": 0,
     "baseline_session_ids": [],
     "candidate_session_ids": [],
-    "shadow_plan_verified": false,
+    "shadow_plan_verified": true,
     "advisory_hint_verified": false,
     "fixed_controls_match": false,
     "live_minecraft_only": false,
@@ -237,8 +237,7 @@
       "promotion_gate_check_failed:candidate_steps_verified",
       "promotion_gate_check_failed:fallback_verified",
       "promotion_gate_check_failed:fixed_controls_match",
-      "promotion_gate_check_failed:live_minecraft_only",
-      "promotion_gate_check_failed:shadow_plan_verified"
+      "promotion_gate_check_failed:live_minecraft_only"
     ]
   },
   "evaluation_window_id": "sp002-first-cycle-skill-routing-v2",
