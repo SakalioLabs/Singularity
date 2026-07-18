@@ -1,0 +1,53 @@
+{
+  "type": "stone_pickaxe_machine_verification",
+  "schema_version": 1,
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "task_id": "SP-002",
+  "criteria_passed": false,
+  "evidence_eligible": false,
+  "passed": false,
+  "criteria_issues": [
+    "action_verified",
+    "cobblestone_consumption_exact",
+    "craft_action_type",
+    "craft_count_exact",
+    "craft_item_exact",
+    "craft_transition:action_before_deadline",
+    "craft_transition:action_finish_time",
+    "craft_transition:action_start_time",
+    "craft_transition:action_time_order",
+    "crafting_table_interaction",
+    "exactly_one_craft_action",
+    "pre_crafting_table",
+    "pre_materials_cobblestone",
+    "pre_materials_stick",
+    "stable_observation_before_deadline",
+    "stable_observation_distinct",
+    "stable_observation_id",
+    "stable_reobservation_delay",
+    "stable_stone_pickaxe",
+    "stick_consumption_exact",
+    "stone_pickaxe_delta"
+  ],
+  "eligibility_issues": [
+    "backend_single_craft_attempt",
+    "eligibility:passed",
+    "eligibility:planner_request_controls"
+  ],
+  "metrics": {
+    "craft_action_count": 0,
+    "material_delta": {
+      "cobblestone": 0,
+      "stick": 0
+    },
+    "inventory_delta": {
+      "stone_pickaxe": 0
+    },
+    "stable_observation_id": ""
+  },
+  "evidence_kind": "live_verified",
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}
