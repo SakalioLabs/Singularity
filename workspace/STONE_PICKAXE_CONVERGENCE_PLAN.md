@@ -187,7 +187,7 @@ The 30 numbered cases cover:
 | 3. SP-001 3/3 gate | Complete; evidence pushed at `6c8c995` |
 | 4. Acquire candidate/advisory | Complete; advisory pushed at `822057b` |
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
-| 6. Craft candidate/advisory | V2 support and candidate pairs 3/3; executable 1.0.1 review approved, separate promotion pending |
+| 6. Craft candidate/advisory | V2 support and candidate pairs 3/3; executable 1.0.1 review approved; task-specific promotion tooling 43/43, separate promotion pending |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
 | 8. SP-003 composite acceptance | Locked |
 

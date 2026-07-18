@@ -886,6 +886,30 @@ def test_36_sp002_lifecycle_separates_candidate_and_advisory():
         assert len(matching) == 1
         assert matching[0]["status"] == "advisory"
 
+        real_records = [
+            json.loads(line)
+            for line in (
+                REPOSITORY_ROOT / "workspace/skills/custom_skills.jsonl"
+            ).read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        source = next(
+            item
+            for item in real_records
+            if item.get("skill_id") == "learned:craft_stone_pickaxe"
+            and item.get("version") == "1.0.0"
+        )
+        (storage / "custom_skills.jsonl").write_text(
+            json.dumps(source) + "\n",
+            encoding="utf-8",
+        )
+        executable_promotion = root / "executable_promotion.json"
+        runtime_gate = root / "runtime_gate.json"
+        paired_report = (
+            REPOSITORY_ROOT
+            / "workspace/evals/sp002_skill_evaluation_v2/"
+            "craft_stone_pickaxe_paired_evaluation_v2.json"
+        )
         executable = subprocess.run(
             [
                 sys.executable,
@@ -893,14 +917,44 @@ def test_36_sp002_lifecycle_separates_candidate_and_advisory():
                 "promote-executable",
                 "--task-id",
                 "SP-002",
+                "--storage-path",
+                relative(storage),
+                "--learning-ledger",
+                relative(learning_ledger),
+                "--paired-report",
+                relative(paired_report),
+                "--output",
+                relative(executable_promotion),
+                "--runtime-gate-output",
+                relative(runtime_gate),
             ],
             cwd=REPOSITORY_ROOT,
             env=environment,
             capture_output=True,
             text=True,
         )
-        assert executable.returncode != 0
-        assert "invalid choice: 'SP-002'" in executable.stderr
+        assert executable.returncode == 0, executable.stderr
+        executable_result = json.loads(executable.stdout)
+        assert executable_result["changed"] is True
+        assert executable_result["promoted_version"] == "1.0.1"
+        promoted_records = [
+            json.loads(line)
+            for line in (storage / "custom_skills.jsonl").read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip()
+        ]
+        promoted = next(
+            item
+            for item in promoted_records
+            if item.get("skill_id") == "learned:craft_stone_pickaxe"
+            and item.get("version") == "1.0.1"
+        )
+        assert promoted["status"] == "executable"
+        assert promoted["parent_version"] == "1.0.0"
+        assert json.loads(runtime_gate.read_text(encoding="utf-8"))[
+            "normal_runtime_permission"
+        ] is True
 
 
 if __name__ == "__main__":

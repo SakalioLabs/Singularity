@@ -34,6 +34,13 @@ from singularity.evaluation.stone_pickaxe_skill_evaluation_v5 import (
     discover_evaluation_run_paths as discover_v5_evaluation_run_paths,
     policy_identity_report as v5_policy_identity_report,
 )
+from singularity.evaluation.stone_pickaxe_sp002_skill_evaluation_v2 import (
+    POLICY as SP002_V2_POLICY,
+    POLICY_SHA256 as SP002_V2_POLICY_SHA256,
+    build_paired_evaluation_report as build_sp002_v2_paired_evaluation_report,
+    discover_evaluation_run_paths as discover_sp002_v2_evaluation_run_paths,
+    policy_identity_report as sp002_v2_policy_identity_report,
+)
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -58,6 +65,63 @@ DEFAULT_RUNTIME_GATE = (
     "workspace/evals/sp001_skill_promotion/"
     "acquire_cobblestone_runtime_default_gate.json"
 )
+DEFAULT_PAIRED_REPORTS = {
+    "SP-001": DEFAULT_PAIRED_REPORT,
+    "SP-002": (
+        "workspace/evals/sp002_skill_evaluation_v2/"
+        "craft_stone_pickaxe_paired_evaluation_v2.json"
+    ),
+}
+DEFAULT_EXECUTABLE_PROMOTIONS = {
+    "SP-001": DEFAULT_EXECUTABLE_PROMOTION,
+    "SP-002": (
+        "workspace/evals/sp002_skill_promotion/"
+        "craft_stone_pickaxe_executable_promotion.json"
+    ),
+}
+DEFAULT_RUNTIME_GATES = {
+    "SP-001": DEFAULT_RUNTIME_GATE,
+    "SP-002": (
+        "workspace/evals/sp002_skill_promotion/"
+        "craft_stone_pickaxe_runtime_default_gate.json"
+    ),
+}
+EXECUTABLE_PROMOTION_CONFIGS = {
+    "SP-001": {
+        "policy": V5_POLICY,
+        "policy_sha256": V5_POLICY_SHA256,
+        "policy_identity": v5_policy_identity_report,
+        "build_report": build_v5_paired_evaluation_report,
+        "discover_runs": discover_v5_evaluation_run_paths,
+        "report_type": "stone_pickaxe_skill_paired_recovery_evaluation",
+        "transition_reason": (
+            "three fresh v5 paired live trials passed the fixed stone-pickaxe "
+            "promotion gate"
+        ),
+        "decision_reason": (
+            "v5 r13-r15 produced three fresh eligible pairs and the exact "
+            "1.1.0 gate passed"
+        ),
+        "next_gate": "sp002_offline_harness_and_separate_live_authorization",
+    },
+    "SP-002": {
+        "policy": SP002_V2_POLICY,
+        "policy_sha256": SP002_V2_POLICY_SHA256,
+        "policy_identity": sp002_v2_policy_identity_report,
+        "build_report": build_sp002_v2_paired_evaluation_report,
+        "discover_runs": discover_sp002_v2_evaluation_run_paths,
+        "report_type": "stone_pickaxe_sp002_skill_paired_recovery_evaluation",
+        "transition_reason": (
+            "three fresh SP-002 v2 paired live trials passed the fixed craft "
+            "promotion gate"
+        ),
+        "decision_reason": (
+            "SP-002 v2 r4-r6 produced three fresh eligible pairs and the exact "
+            "1.0.1 gate passed"
+        ),
+        "next_gate": "sp003_composite_protocol_definition_and_offline_verification",
+    },
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -65,8 +129,7 @@ def parse_args() -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command", required=True)
     for command in ("extract-candidate", "promote-advisory", "promote-executable"):
         subparser = subparsers.add_parser(command)
-        task_choices = ("SP-001",) if command == "promote-executable" else ("SP-001", "SP-002")
-        subparser.add_argument("--task-id", choices=task_choices, default="SP-001")
+        subparser.add_argument("--task-id", choices=("SP-001", "SP-002"), default="SP-001")
         subparser.add_argument("--failure-ledger", default=DEFAULT_FAILURE_LEDGER)
         subparser.add_argument("--queue", default=DEFAULT_QUEUE)
         subparser.add_argument("--learning-ledger", default=DEFAULT_LEARNING_LEDGER)
@@ -74,9 +137,8 @@ def parse_args() -> argparse.Namespace:
         subparser.add_argument("--output", default="")
     subparsers.choices["promote-advisory"].add_argument("--candidate-id", default="")
     executable = subparsers.choices["promote-executable"]
-    executable.set_defaults(output=DEFAULT_EXECUTABLE_PROMOTION)
-    executable.add_argument("--paired-report", default=DEFAULT_PAIRED_REPORT)
-    executable.add_argument("--runtime-gate-output", default=DEFAULT_RUNTIME_GATE)
+    executable.add_argument("--paired-report", default="")
+    executable.add_argument("--runtime-gate-output", default="")
     return parser.parse_args()
 
 
@@ -123,33 +185,41 @@ def exact_skill_version(library: SkillLibrary, skill_id: str, version: str):
     return matches[0]
 
 
-def validated_v5_promotion_report(path: Path) -> tuple[dict, dict, dict]:
-    identity = v5_policy_identity_report()
+def validated_promotion_report(
+    path: Path,
+    task_id: str,
+) -> tuple[dict, dict, dict, dict]:
+    config = EXECUTABLE_PROMOTION_CONFIGS[task_id]
+    policy = config["policy"]
+    policy_sha256 = config["policy_sha256"]
+    identity = config["policy_identity"]()
     if not identity.get("passed"):
-        raise ValueError(f"v5 policy identity failed: {identity.get('issues', [])}")
+        raise ValueError(
+            f"{task_id} policy identity failed: {identity.get('issues', [])}"
+        )
     stored = read_json(path)
-    rebuilt = build_v5_paired_evaluation_report(discover_v5_evaluation_run_paths())
+    rebuilt = config["build_report"](config["discover_runs"]())
     if stored != rebuilt:
         raise ValueError("paired report does not match a fresh reconstruction from retained runs")
 
-    target = V5_POLICY["target_skill"]
-    policy_gate = V5_POLICY["promotion_gate"]
+    target = policy["target_skill"]
+    policy_gate = policy["promotion_gate"]
     gate = stored.get("executable_promotion_gate", {})
     gate = gate if isinstance(gate, dict) else {}
     issues = []
     expected_values = {
-        "type": "stone_pickaxe_skill_paired_recovery_evaluation",
-        "policy_id": V5_POLICY["id"],
-        "policy_sha256": V5_POLICY_SHA256,
+        "type": config["report_type"],
+        "policy_id": policy["id"],
+        "policy_sha256": policy_sha256,
         "protocol_id": PROTOCOL["id"],
         "protocol_sha256": PROTOCOL_SHA256,
-        "task_id": "SP-001",
+        "task_id": task_id,
         "skill_id": target["skill_id"],
         "candidate_id": target["candidate_id"],
         "evaluated_skill_version": target["version"],
         "decision": "review_executable_new_version",
         "readiness": "approved",
-        "evaluation_window_id": V5_POLICY["recovery_window"]["id"],
+        "evaluation_window_id": policy["recovery_window"]["id"],
     }
     for field, expected in expected_values.items():
         if stored.get(field) != expected:
@@ -180,7 +250,7 @@ def validated_v5_promotion_report(path: Path) -> tuple[dict, dict, dict]:
         issues.append("paired_report_capability_credit_invalid")
     if stored.get("counts_toward_m4") is not False:
         issues.append("paired_report_m4_credit_invalid")
-    expected_replicates = list(V5_POLICY["arms"]["candidate"]["replicate_ids"])
+    expected_replicates = list(policy["arms"]["candidate"]["replicate_ids"])
     actual_replicates = [
         pair.get("replicate_id")
         for pair in stored.get("pairs", [])
@@ -212,11 +282,24 @@ def validated_v5_promotion_report(path: Path) -> tuple[dict, dict, dict]:
     if gate.get("validation_issues") != []:
         issues.append("promotion_gate_validation_issues_present")
     if issues:
-        raise ValueError(f"v5 executable promotion evidence rejected: {sorted(set(issues))}")
-    return stored, gate, identity
+        raise ValueError(
+            f"{task_id} executable promotion evidence rejected: "
+            f"{sorted(set(issues))}"
+        )
+    return stored, gate, identity, config
 
 
-def build_stone_pickaxe_runtime_gate(report: dict, gate: dict, skill_name: str) -> dict:
+def validated_v5_promotion_report(path: Path) -> tuple[dict, dict, dict]:
+    report, gate, identity, _ = validated_promotion_report(path, "SP-001")
+    return report, gate, identity
+
+
+def build_stone_pickaxe_runtime_gate(
+    report: dict,
+    gate: dict,
+    skill_name: str,
+    source_report_path: str,
+) -> dict:
     source = deepcopy(report)
     source["task_family"] = gate["transfer_scope"]["task_family"]
     source["report_id"] = (
@@ -224,7 +307,7 @@ def build_stone_pickaxe_runtime_gate(report: dict, gate: dict, skill_name: str) 
     )
     runtime_gate = build_runtime_default_gate(source, skill_name)
     runtime_gate.update({
-        "source_report_path": DEFAULT_PAIRED_REPORT,
+        "source_report_path": source_report_path,
         "source_report_sha256": "",
         "source_report_canonical_sha256": canonical_record_sha256(report),
         "promoted_skill_version": gate["promoted_skill_version"],
@@ -425,17 +508,30 @@ def run_promote_advisory(args: argparse.Namespace) -> int:
 
 
 def run_promote_executable(args: argparse.Namespace) -> int:
+    task_id = str(args.task_id)
+    config = EXECUTABLE_PROMOTION_CONFIGS[task_id]
     storage_path = repository_path(args.storage_path, must_exist=True)
     learning_ledger_path = repository_path(args.learning_ledger)
-    paired_report_path = repository_path(args.paired_report, must_exist=True)
-    output_path = repository_path(args.output)
-    runtime_gate_path = repository_path(args.runtime_gate_output)
+    paired_report_path = repository_path(
+        args.paired_report or DEFAULT_PAIRED_REPORTS[task_id],
+        must_exist=True,
+    )
+    output_path = repository_path(
+        args.output or DEFAULT_EXECUTABLE_PROMOTIONS[task_id]
+    )
+    runtime_gate_path = repository_path(
+        args.runtime_gate_output or DEFAULT_RUNTIME_GATES[task_id]
+    )
     if output_path == runtime_gate_path:
         raise ValueError("promotion output and runtime gate output must be different files")
 
-    report, gate, policy_identity = validated_v5_promotion_report(paired_report_path)
-    target = V5_POLICY["target_skill"]
-    policy_gate = V5_POLICY["promotion_gate"]
+    report, gate, policy_identity, config = validated_promotion_report(
+        paired_report_path,
+        task_id,
+    )
+    policy = config["policy"]
+    target = policy["target_skill"]
+    policy_gate = policy["promotion_gate"]
     source_version = str(target["version"])
     promoted_version = str(policy_gate["promoted_version"])
     skill_id = str(target["skill_id"])
@@ -483,6 +579,7 @@ def run_promote_executable(args: argparse.Namespace) -> int:
             "promoted_rollback": promoted.rollback_target == source_version,
             "promoted_gate": evidence_fingerprint(promoted_gate) == gate_fingerprint,
             "promotion_type": promotion.get("type") == "stone_pickaxe_skill_executable_promotion",
+            "promotion_task": promotion.get("task_id") == task_id,
             "promotion_stage": promotion.get("stage") == "executable",
             "promotion_report": promotion.get("paired_evaluation") == report_binding,
             "promotion_gate": promotion.get("executable_promotion_gate_fingerprint") == gate_fingerprint,
@@ -523,7 +620,7 @@ def run_promote_executable(args: argparse.Namespace) -> int:
     transition = library.transition_skill_status(
         skill_id,
         "executable",
-        "three fresh v5 paired live trials passed the fixed stone-pickaxe promotion gate",
+        config["transition_reason"],
         evidence={
             "executable_promotion_gate": gate,
             "paired_evaluation": report_binding,
@@ -544,7 +641,12 @@ def run_promote_executable(args: argparse.Namespace) -> int:
     if evidence_fingerprint(promoted_gate) != gate_fingerprint:
         raise RuntimeError("promoted skill gate fingerprint changed")
 
-    runtime_gate = build_stone_pickaxe_runtime_gate(report, gate, promoted.name)
+    runtime_gate = build_stone_pickaxe_runtime_gate(
+        report,
+        gate,
+        promoted.name,
+        relative_path(paired_report_path),
+    )
     runtime_gate.update({
         "source_report_path": relative_path(paired_report_path),
         "source_report_sha256": file_sha256(paired_report_path),
@@ -553,11 +655,11 @@ def run_promote_executable(args: argparse.Namespace) -> int:
     promotion = {
         "type": "stone_pickaxe_skill_executable_promotion",
         "schema_version": 1,
-        "report_id": f"sp001-executable-promotion:{gate_fingerprint[:16]}",
+        "report_id": f"{task_id.lower()}-executable-promotion:{gate_fingerprint[:16]}",
         "generated_at_utc": utc_now(),
         "protocol_id": PROTOCOL["id"],
         "protocol_sha256": PROTOCOL_SHA256,
-        "task_id": "SP-001",
+        "task_id": task_id,
         "skill_id": skill_id,
         "candidate_id": target["candidate_id"],
         "stage": "executable",
@@ -599,7 +701,7 @@ def run_promote_executable(args: argparse.Namespace) -> int:
         "automatic_live_resume_allowed": False,
         "counts_toward_capability": False,
         "counts_toward_m4": False,
-        "next_gate": "sp002_offline_harness_and_separate_live_authorization",
+        "next_gate": config["next_gate"],
         "artifacts": {
             "custom_skills": relative_path(storage_path / "custom_skills.jsonl"),
             "skill_learning_ledger": relative_path(learning_ledger_path),
@@ -614,7 +716,7 @@ def run_promote_executable(args: argparse.Namespace) -> int:
     learning.record_decision(
         skill_id,
         "promote_executable_new_version",
-        "v5 r13-r15 produced three fresh eligible pairs and the exact 1.1.0 gate passed",
+        config["decision_reason"],
         evidence={
             "paired_evaluation": report_binding,
             "executable_promotion_gate": gate,
