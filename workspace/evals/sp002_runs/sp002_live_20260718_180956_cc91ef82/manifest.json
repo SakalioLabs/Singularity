@@ -1,0 +1,58 @@
+{
+  "type": "stone_pickaxe_live_manifest",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T10:14:30.374445+00:00",
+  "runtime_policy_id": "stone-pickaxe-sp002-controlled-runtime-v1",
+  "episode_id": "sp002_live_20260718_180956_cc91ef82",
+  "session_id": "dcdb63d5-a9c",
+  "task_id": "SP-002",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "authorization_id": "ad8b9ce2e49606232e79ca40d7347af667f26a0b42a6e9c45152f974eccc533e",
+  "fixture_tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c",
+  "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+  "evidence_eligible": false,
+  "passed": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "sp003_allowed": false,
+  "files": [
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_180956_cc91ef82/authorization.json",
+      "sha256": "6824d49717d7c318304a1f22a6e5cd6066c120bd5b40aa735c8354513118f5ec"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_180956_cc91ef82/authorization_consumption.json",
+      "sha256": "1f2f0a883ecb7a069b3274a2b588c066527b6366f9ccd52e5d4a10ed16ac3a6b"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_180956_cc91ef82/hypothesis.json",
+      "sha256": "d761f1eaa1ec72889bc13de93e4216ebaaf3de42c82f521d8a1c780de366543e"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_180956_cc91ef82/restoration.json",
+      "sha256": "5835f3e4c3f7bc7c8c1f27e6446a763bfc38b6edfafc6a6ce5c17e4b626a55d7"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_180956_cc91ef82/preflight.json",
+      "sha256": "d483ed07bdf11760b0d3bede07ab4fc3384008c6a27c7bbd88b8e6a56ea980c9"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_180956_cc91ef82/session.json",
+      "sha256": "8aee924bac4cd84a8855ee5b7559f24f1a7b6056fa2fde5e53803fdade2e598b"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_180956_cc91ef82/episode.json",
+      "sha256": "0869857d1716991db707e50a394d376508b13bd28ae9899504f3ccd96a2c4f03"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_180956_cc91ef82/verification.json",
+      "sha256": "bb768daa7693717d02bea93c1a10461e53e5dc1d5813ddeb3d0706c2c57f8259"
+    },
+    {
+      "path": "workspace/evals/sp002_runs/sp002_live_20260718_180956_cc91ef82/audit.json",
+      "sha256": "8c4fe9c8c82fac2936769bfb6bbeff612323a74ae90bce56272cc350c2e78b9e"
+    }
+  ]
+}

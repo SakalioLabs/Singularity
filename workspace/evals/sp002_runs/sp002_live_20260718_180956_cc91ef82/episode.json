@@ -1,0 +1,2216 @@
+{
+  "type": "stone_pickaxe_microbenchmark_episode",
+  "schema_version": 1,
+  "runtime_policy_id": "stone-pickaxe-sp002-controlled-runtime-v1",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "task_id": "SP-002",
+  "session_id": "dcdb63d5-a9c",
+  "episode_id": "sp002_live_20260718_180956_cc91ef82",
+  "session_sha256": "8aee924bac4cd84a8855ee5b7559f24f1a7b6056fa2fde5e53803fdade2e598b",
+  "level_name": "sp002_live_20260718_180956_cc91ef82_world",
+  "evidence_kind": "live_verified",
+  "hypothesis_path": "workspace/evals/sp002_runs/sp002_live_20260718_180956_cc91ef82/hypothesis.json",
+  "authorization_path": "workspace/evals/sp002_runs/sp002_live_20260718_180956_cc91ef82/authorization.json",
+  "fixture": {
+    "fixture_id": "sp002-craft-stone-pickaxe-v1",
+    "manifest_protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+    "snapshot_tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c",
+    "snapshot_identity_verified": true
+  },
+  "episode_started_monotonic": 119851.343,
+  "episode_deadline_monotonic": 119941.343,
+  "episode_ended_monotonic": 119860.984,
+  "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+  "action_count": 1,
+  "action_failure_count": 0,
+  "action_failures": [],
+  "world_mutating_non_target_actions": [],
+  "initial_observation": {
+    "role": "initial",
+    "monotonic_s": 119851.343,
+    "position": {
+      "x": 95.579073,
+      "y": 130.0,
+      "z": -31.494352
+    },
+    "inventory": {
+      "cobblestone": 3,
+      "dark_oak_log": 3,
+      "dark_oak_planks": 7,
+      "dirt": 3,
+      "stick": 2,
+      "wooden_pickaxe": 1
+    },
+    "health": 20.0,
+    "hunger": 20.0,
+    "game_mode": "survival",
+    "dimension": "overworld",
+    "ground_block": "stone",
+    "safe": true,
+    "movable": true,
+    "observed_blocks": [
+      {
+        "source_id": "stone:94:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:129:-32",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 129.0,
+          "z": -32.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:130:-31",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 130.0,
+          "z": -31.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:130:-33",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 130.0,
+          "z": -33.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:129:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 129.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:130:-31",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -31.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:130:-33",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:129:-31",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 129.0,
+          "z": -31.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:129:-33",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 129.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-31",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -31.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:129:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 129.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:130:-31",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 130.0,
+          "z": -31.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:130:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 130.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:129:-31",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 129.0,
+          "z": -31.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:129:-33",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 129.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:129:-31",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 129.0,
+          "z": -31.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:129:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 129.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-31",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -31.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:93:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 93.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:128:-32",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 128.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:130:-30",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 130.0,
+          "z": -30.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:130:-34",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 130.0,
+          "z": -34.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:97:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 97.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:93:129:-32",
+        "name": "stone",
+        "position": {
+          "x": 93.0,
+          "y": 129.0,
+          "z": -32.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:93:130:-33",
+        "name": "stone",
+        "position": {
+          "x": 93.0,
+          "y": 130.0,
+          "z": -33.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:128:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 128.0,
+          "z": -32.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:130:-30",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -30.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:128:-31",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 128.0,
+          "z": -31.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:128:-33",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 128.0,
+          "z": -33.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:129:-30",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 129.0,
+          "z": -30.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:129:-34",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 129.0,
+          "z": -34.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-30",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -30.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-34",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -34.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:128:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 128.0,
+          "z": -32.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:130:-34",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 130.0,
+          "z": -34.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      }
+    ],
+    "nearby_hostile_count": 0,
+    "player_lifecycle": {},
+    "nearby_blocks": [
+      {
+        "block_id": "crafting_table:94:131:-32",
+        "name": "crafting_table",
+        "position": {
+          "x": 94.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "interactive": true
+      }
+    ],
+    "observation_id": "2e9b6bdb96e9734a918c907cfc923b1057c9800911af9268cd229ec6167d3a84"
+  },
+  "transitions": [
+    {
+      "action": {
+        "type": "craft",
+        "parameters": {
+          "item": "stone_pickaxe",
+          "count": 1
+        }
+      },
+      "action_verified": true,
+      "pre_observation": {
+        "role": "pre_craft",
+        "monotonic_s": 119855.937,
+        "position": {
+          "x": 95.579073,
+          "y": 130.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "cobblestone": 3,
+          "dark_oak_log": 3,
+          "dark_oak_planks": 7,
+          "dirt": 3,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:94:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:129:-32",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 129.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:130:-31",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -31.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:130:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -33.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:129:-32",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 129.0,
+              "z": -32.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:130:-33",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 130.0,
+              "z": -33.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "nearby_blocks": [
+          {
+            "block_id": "crafting_table:94:131:-32",
+            "name": "crafting_table",
+            "position": {
+              "x": 94.0,
+              "y": 131.0,
+              "z": -32.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "interactive": true
+          }
+        ],
+        "observation_id": "91f971980e2e90afb4143160b28aaa1b2e521fa4c78f40a115a71c75f952fcfa"
+      },
+      "post_observation": {
+        "role": "post_craft",
+        "monotonic_s": 119856.828,
+        "position": {
+          "x": 95.579073,
+          "y": 130.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "dark_oak_log": 3,
+          "dark_oak_planks": 7,
+          "dirt": 3,
+          "stick": 2,
+          "stone_pickaxe": 1,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "",
+        "safe": true,
+        "movable": false,
+        "observed_blocks": [
+          {
+            "source_id": "stone:94:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:129:-32",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 129.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:130:-31",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -31.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:130:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -33.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:129:-32",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 129.0,
+              "z": -32.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:130:-33",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 130.0,
+              "z": -33.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "nearby_blocks": [
+          {
+            "block_id": "crafting_table:94:131:-32",
+            "name": "crafting_table",
+            "position": {
+              "x": 94.0,
+              "y": 131.0,
+              "z": -32.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "interactive": true
+          }
+        ],
+        "observation_id": "4dd302e05767a7a9776296daaec299d0b06fe369d9dfcfe3621b407b555f3e42"
+      },
+      "stable_observation": {
+        "role": "stable_post_craft",
+        "monotonic_s": 119860.984,
+        "position": {
+          "x": 95.579073,
+          "y": 130.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "dark_oak_log": 3,
+          "dark_oak_planks": 7,
+          "dirt": 3,
+          "stick": 2,
+          "stone_pickaxe": 1,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "stone",
+        "safe": true,
+        "movable": true,
+        "observed_blocks": [
+          {
+            "source_id": "stone:94:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:129:-32",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 129.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:130:-31",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -31.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:130:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -33.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:129:-32",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 129.0,
+              "z": -32.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:130:-31",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 130.0,
+              "z": -31.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:130:-33",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 130.0,
+              "z": -33.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:129:-31",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 129.0,
+              "z": -31.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:129:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 129.0,
+              "z": -33.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:131:-31",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -31.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:131:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -33.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:129:-32",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 129.0,
+              "z": -32.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:130:-31",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 130.0,
+              "z": -31.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:130:-33",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 130.0,
+              "z": -33.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:131:-32",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 131.0,
+              "z": -32.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:129:-31",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 129.0,
+              "z": -31.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:129:-33",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 129.0,
+              "z": -33.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:131:-33",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 131.0,
+              "z": -33.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:129:-31",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 129.0,
+              "z": -31.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:129:-33",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 129.0,
+              "z": -33.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:131:-31",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 131.0,
+              "z": -31.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:131:-33",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 131.0,
+              "z": -33.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:93:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 93.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 2.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:128:-32",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 128.0,
+              "z": -32.0
+            },
+            "distance": 2.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:130:-30",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -30.0
+            },
+            "distance": 2.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:130:-34",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -34.0
+            },
+            "distance": 2.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:97:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 97.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 2.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:93:129:-32",
+            "name": "stone",
+            "position": {
+              "x": 93.0,
+              "y": 129.0,
+              "z": -32.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:93:130:-33",
+            "name": "stone",
+            "position": {
+              "x": 93.0,
+              "y": 130.0,
+              "z": -33.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:128:-32",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 128.0,
+              "z": -32.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:130:-30",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 130.0,
+              "z": -30.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:128:-31",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 128.0,
+              "z": -31.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:128:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 128.0,
+              "z": -33.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:129:-30",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 129.0,
+              "z": -30.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:129:-34",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 129.0,
+              "z": -34.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:131:-30",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -30.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:131:-34",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -34.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:128:-32",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 128.0,
+              "z": -32.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:130:-34",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 130.0,
+              "z": -34.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "nearby_blocks": [
+          {
+            "block_id": "crafting_table:94:131:-32",
+            "name": "crafting_table",
+            "position": {
+              "x": 94.0,
+              "y": 131.0,
+              "z": -32.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "interactive": true
+          }
+        ],
+        "observation_id": "cd11192640b05340853ddb322a9de40a48bd940712b9661003d5aafe6ae27012"
+      },
+      "crafting_table_interaction": {
+        "block_id": "crafting_table:94:131:-32",
+        "position": {
+          "x": 94.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "interactive": true,
+        "observation_id": "91f971980e2e90afb4143160b28aaa1b2e521fa4c78f40a115a71c75f952fcfa"
+      },
+      "action_started_monotonic": 119855.937,
+      "action_finished_monotonic": 119856.828,
+      "backend_result": {
+        "success": true,
+        "item": "stone_pickaxe",
+        "requested_output_count": 1,
+        "inventory_before": {
+          "dark_oak_planks": 7,
+          "stick": 2,
+          "dirt": 3,
+          "dark_oak_log": 3,
+          "wooden_pickaxe": 1,
+          "cobblestone": 3
+        },
+        "inventory_after": {
+          "dark_oak_planks": 7,
+          "stone_pickaxe": 1,
+          "stick": 2,
+          "dirt": 3,
+          "dark_oak_log": 3,
+          "wooden_pickaxe": 1
+        },
+        "inventory_delta": {
+          "stone_pickaxe": 1
+        },
+        "craft_attempts": 1,
+        "craft_retry_count": 0,
+        "single_attempt": true,
+        "stable_ms": 800
+      }
+    }
+  ],
+  "terminal_observation": {
+    "role": "terminal",
+    "monotonic_s": 119860.984,
+    "position": {
+      "x": 95.579073,
+      "y": 130.0,
+      "z": -31.494352
+    },
+    "inventory": {
+      "dark_oak_log": 3,
+      "dark_oak_planks": 7,
+      "dirt": 3,
+      "stick": 2,
+      "stone_pickaxe": 1,
+      "wooden_pickaxe": 1
+    },
+    "health": 20.0,
+    "hunger": 20.0,
+    "game_mode": "survival",
+    "dimension": "overworld",
+    "ground_block": "stone",
+    "safe": true,
+    "movable": true,
+    "observed_blocks": [
+      {
+        "source_id": "stone:94:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:129:-32",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 129.0,
+          "z": -32.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:130:-31",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 130.0,
+          "z": -31.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:130:-33",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 130.0,
+          "z": -33.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 1.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:129:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 129.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:130:-31",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -31.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:130:-33",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:129:-31",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 129.0,
+          "z": -31.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:129:-33",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 129.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-31",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -31.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:129:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 129.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:130:-31",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 130.0,
+          "z": -31.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:130:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 130.0,
+          "z": -33.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:129:-31",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 129.0,
+          "z": -31.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:129:-33",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 129.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:129:-31",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 129.0,
+          "z": -31.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:129:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 129.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-31",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -31.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:131:-33",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 131.0,
+          "z": -33.0
+        },
+        "distance": 1.732051,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:93:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 93.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:128:-32",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 128.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:130:-30",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 130.0,
+          "z": -30.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:130:-34",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 130.0,
+          "z": -34.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:97:130:-32",
+        "name": "stone",
+        "position": {
+          "x": 97.0,
+          "y": 130.0,
+          "z": -32.0
+        },
+        "distance": 2.0,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:93:129:-32",
+        "name": "stone",
+        "position": {
+          "x": 93.0,
+          "y": 129.0,
+          "z": -32.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:93:130:-33",
+        "name": "stone",
+        "position": {
+          "x": 93.0,
+          "y": 130.0,
+          "z": -33.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:128:-32",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 128.0,
+          "z": -32.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:94:130:-30",
+        "name": "stone",
+        "position": {
+          "x": 94.0,
+          "y": 130.0,
+          "z": -30.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:128:-31",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 128.0,
+          "z": -31.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:128:-33",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 128.0,
+          "z": -33.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:129:-30",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 129.0,
+          "z": -30.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:129:-34",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 129.0,
+          "z": -34.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-30",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -30.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:95:131:-34",
+        "name": "stone",
+        "position": {
+          "x": 95.0,
+          "y": 131.0,
+          "z": -34.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:128:-32",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 128.0,
+          "z": -32.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      },
+      {
+        "source_id": "stone:96:130:-34",
+        "name": "stone",
+        "position": {
+          "x": 96.0,
+          "y": 130.0,
+          "z": -34.0
+        },
+        "distance": 2.236068,
+        "observed": true,
+        "reachable": true
+      }
+    ],
+    "nearby_hostile_count": 0,
+    "player_lifecycle": {},
+    "nearby_blocks": [
+      {
+        "block_id": "crafting_table:94:131:-32",
+        "name": "crafting_table",
+        "position": {
+          "x": 94.0,
+          "y": 131.0,
+          "z": -32.0
+        },
+        "distance": 1.414214,
+        "observed": true,
+        "interactive": true
+      }
+    ],
+    "observation_id": "2504952cd16d1a6ae7d531d58d9e3960b0e30434e7b7a74b029e89f8c11e7dc4"
+  },
+  "goal_result": {
+    "goal": "Craft exactly 1 stone_pickaxe from 3 cobblestone and 2 sticks at the observed crafting table",
+    "cycles": 2,
+    "completed": false,
+    "termination_reason": "empty_plan",
+    "max_cycles": 6,
+    "max_duration_s": 90.0,
+    "max_actions": 1,
+    "action_count": 1,
+    "elapsed_s": 9.282,
+    "episode_started_monotonic": 119851.343,
+    "episode_ended_monotonic": 119860.625,
+    "episode_deadline_monotonic": 119941.343,
+    "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+    "deadline_eligible": true,
+    "summary": {
+      "session_id": "dcdb63d5-a9c",
+      "duration_s": 10.24,
+      "total_events": 35,
+      "action_count": 1,
+      "error_count": 0,
+      "intervention_metrics": {
+        "policy_hint_count": 0,
+        "policy_intervention_count": 0,
+        "policy_intervention_actions": 0,
+        "policy_intervention_successes": 0,
+        "policy_intervention_failures": 0,
+        "policy_intervention_success_rate": 0.0,
+        "policy_intervention_skills": [],
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": [],
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {},
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": [],
+        "action_verification_event_count": 1,
+        "action_verification_status_counts": {
+          "accept": 1
+        },
+        "action_verification_action_types": {
+          "craft": 1
+        },
+        "action_verification_blocked_count": 0,
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "visual_action_metrics": {
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": []
+      },
+      "skill_memory_metrics": {
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {}
+      },
+      "skill_learning_metrics": {
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": []
+      },
+      "action_verification_metrics": {
+        "action_verification_event_count": 1,
+        "action_verification_status_counts": {
+          "accept": 1
+        },
+        "action_verification_action_types": {
+          "craft": 1
+        },
+        "action_verification_blocked_count": 0
+      },
+      "action_candidate_selection_metrics": {
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "goal_verification_metrics": {
+        "count": 0,
+        "achieved": 0,
+        "failed": 0,
+        "unknown": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "acceptance_reasons": {}
+      },
+      "plan_cache_metrics": {
+        "plan_cache_hit_count": 0,
+        "plan_cache_hybrid_hint_count": 0,
+        "plan_cache_workflow_intervention_count": 0,
+        "plan_cache_miss_count": 0,
+        "plan_cache_signature_count": 0,
+        "plan_cache_hit_rate": 0.0,
+        "plan_cache_hit_entries": {},
+        "plan_cache_hit_goals": [],
+        "plan_cache_execution_stage_counts": {
+          "hybrid": 0,
+          "deterministic": 0
+        }
+      },
+      "episode_abort_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "gate_readiness": "not_configured",
+        "viability_probe_count": 0,
+        "early_abort_trigger_count": 0,
+        "active_early_abort_count": 0,
+        "shadow_would_abort_count": 0,
+        "probe_round_counts": {},
+        "average_viability_risk_score": 0.0
+      },
+      "frontier_budget_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "policy": "information",
+        "allocation_event_count": 0,
+        "planner_context_event_count": 0,
+        "outcome_event_count": 0,
+        "completed_outcome_count": 0,
+        "recovery_credit_event_count": 0,
+        "recovered_rounds": 0,
+        "reallocated_rounds_consumed": 0,
+        "allocation_pool_rounds": 0,
+        "allocated_rounds": 0,
+        "budget_conservation_failure_count": 0,
+        "policy_counts": {}
+      },
+      "memory_policy_metrics": {
+        "memory_write_count": 11,
+        "memory_read_count": 2,
+        "memory_manage_count": 0,
+        "memory_write_layers": {
+          "episodic": 6,
+          "context": 5
+        },
+        "memory_write_types": {
+          "goal_start": 1,
+          "context": 5,
+          "action_verification": 1,
+          "task_state_update": 1,
+          "action": 1,
+          "empty_plan": 1,
+          "goal_end": 1
+        },
+        "memory_read_types": {
+          "opportunity_context": 2
+        },
+        "memory_manage_operations": {},
+        "memory_policy_decisions": {
+          "write_blocked": 11,
+          "read_allowed": 2
+        },
+        "memory_read_filter_event_count": 0,
+        "memory_read_filtered_entries": 0,
+        "memory_read_filter_reasons": {},
+        "memory_retrieval_trace_event_count": 0,
+        "weighted_memory_read_count": 0,
+        "weighted_memory_match_count": 0,
+        "weighted_transfer_match_count": 0,
+        "memory_attribution_policy_counts": {}
+      },
+      "log_path": "workspace/evals/sp002_runs/sp002_live_20260718_180956_cc91ef82\\session_dcdb63d5-a9c.jsonl"
+    }
+  },
+  "eligibility": {
+    "passed": false,
+    "protocol_match": true,
+    "planner_request_controls": false,
+    "reset_clean": true,
+    "backend_single_craft_attempt": true,
+    "no_forbidden_intervention": true,
+    "no_post_deadline_action": true,
+    "fixture_snapshot_tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c"
+  },
+  "reset_contamination": false,
+  "post_deadline_action_count": 0,
+  "post_deadline_action_indexes": [],
+  "forbidden_interventions": [],
+  "selected_skills": [],
+  "planner_request_controls": {
+    "type": "stone_pickaxe_planner_request_controls_audit",
+    "schema_version": 1,
+    "passed": false,
+    "protocol_id": "stone-pickaxe-skill-fixed-v1",
+    "call_count": 2,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 0,
+    "calls": [
+      {
+        "call_id": "llm-1f802315dfe24d70",
+        "call_index": 0,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "0486b2cddfcdadbc59431bf51da4d07ecaa17da8d2a5fe05383e52bff4227891",
+        "request_sha256": "2fdd3ec5b0d3ce2b7636bcd673ff4c2d72b224b14e093f5b757b4ba223c44070"
+      },
+      {
+        "call_id": "llm-9558a399e9374d43",
+        "call_index": 1,
+        "passed": false,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": false,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "69a3cc0650aaec08ea19f9dafcacb15bf0f6bd52aa388b66ce7e9cfd0ff89c95",
+        "request_sha256": "22a5ba81a4045cf46a857827c39fbd5b8d9b68708b3fa91ac15226ea93aeb964"
+      }
+    ],
+    "issues": [
+      "llm-9558a399e9374d43:schema_valid"
+    ]
+  },
+  "external_step_script": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

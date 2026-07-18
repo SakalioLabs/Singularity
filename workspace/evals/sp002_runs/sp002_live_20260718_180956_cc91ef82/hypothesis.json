@@ -1,0 +1,34 @@
+{
+  "type": "stone_pickaxe_live_hypothesis",
+  "schema_version": 1,
+  "created_at_utc": "2026-07-18T10:14:10.230489+00:00",
+  "created_before_live_process_start": true,
+  "episode_id": "sp002_live_20260718_180956_cc91ef82",
+  "task_id": "SP-002",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "git_head_before_episode": "91d1c8cd655a993ac63dc16f1de9f627beb26330",
+  "authorization_id": "ad8b9ce2e49606232e79ca40d7347af667f26a0b42a6e9c45152f974eccc533e",
+  "authorization_path": "workspace/evals/sp002_runs/sp002_live_20260718_180956_cc91ef82/authorization.json",
+  "fixture_path": "workspace/evals/stone_pickaxe_sp002_fixture.json",
+  "fixture_tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c",
+  "hypothesis": "From the verified immutable SP-002 snapshot, the skills-off LLM Planner will emit one exact craft stone_pickaxe action. The single-attempt bridge will consume exactly three cobblestone and two sticks at the observed crafting table, and a distinct delayed observation will retain one stone_pickaxe.",
+  "falsifiers": [
+    "initial inventory is not exact cobblestone=3 and stick=2",
+    "stone_pickaxe is present before the action",
+    "no interactive crafting table is observed within 4.5 blocks",
+    "Planner emits anything other than one exact craft action",
+    "backend reports more than one craft attempt or any retry",
+    "material consumption is not exactly cobblestone=3 and stick=2",
+    "stone_pickaxe is absent or transient at stable reobservation",
+    "any learned or quarantined skill is selected"
+  ],
+  "authorization": {
+    "single_episode": true,
+    "automatic_retry_allowed": false,
+    "consumed_by_process_start": true
+  },
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "sp003_allowed": false
+}
