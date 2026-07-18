@@ -1,14 +1,14 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T15:43:00+08:00",
+  "generated_at": "2026-07-18T15:55:00+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_40_sp002_fixture_terminal_action_contract_offline_fix",
-  "status": "sp002_fixture_terminal_action_contract_failure_retained_pending_commit_push",
+  "phase": "phase_41_sp002_fixture_preparation_reauthorization_gate",
+  "status": "sp002_fixture_terminal_action_contract_offline_fixed_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
@@ -1365,6 +1365,40 @@
       "matching_runtime_process_count_after_stop": 0,
       "authorization_reuse_allowed": false,
       "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 40,
+      "name": "sp002_fixture_terminal_action_contract_offline_fix",
+      "status": "offline_fix_complete_pending_commit_push",
+      "failure_evidence_commit": "4977e26f66776456c5bc0d56ee466028d60323f7",
+      "root_cause": "prepare_sp002_fixture_prompt_did_not_make_machine_state_completion_readiness_explicit_at_the_action_boundary",
+      "fix": "compute_completion_ready_from_exact_inventory_and_observed_table_state_then_forbid_complete_until_a_post_action_machine_observation_satisfies_it",
+      "planner_sha256": "d4df30912bc04b3fa362c1db420954f988514184fb227f6e67b043d37f52ace3",
+      "regression_test_sha256": "f2c4681ad3cb39e3caf76460c5fa205c86aac1c9b962ef84603d88e9790ed724",
+      "sp002_runtime_harness_cases": "14/14",
+      "stone_pickaxe_runtime_cases": "32/32",
+      "stone_pickaxe_protocol_cases": "34/34",
+      "m1_regression": "passed",
+      "m2_protocol_and_harness_regressions": "passed",
+      "m2_real_provider_integration": "skipped_without_openai_api_key",
+      "memory_task_system_regression": "passed",
+      "goal_verifier_regression": "passed",
+      "m4_deadline_regression": "passed",
+      "repository_non_live_python_scripts": "46/46",
+      "fixed_node_suites": "6/6",
+      "python_compileall": "passed",
+      "tracked_json_files_parsed": 1286,
+      "ledger_path_hash_bindings": "310/310",
+      "credential_scan": "passed",
+      "git_diff_check": "passed",
+      "protocol_sha256_unchanged": true,
+      "sp002_policy_sha256_unchanged": true,
+      "frozen_sp001_runtime_unchanged": true,
+      "frozen_sp001_launcher_unchanged": true,
+      "live_episode_run": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "automatic_retry_allowed": false
@@ -3530,7 +3564,7 @@
       "id": "sp002-fixture-prep-002-terminal-action-contract",
       "phase": "sp002_fixture_preparation",
       "classification": "sp002_fixture_preparation_terminal_action_contract",
-      "status": "retained_failure_offline_fix_required",
+      "status": "retained_failure_offline_fixed",
       "attributable_to_learned_skill": false,
       "task_id": "SP-002",
       "scope": "fixture_preparation",
@@ -3685,7 +3719,48 @@
       "counts_toward_m4": false,
       "automatic_retry_attempted": false,
       "automatic_retry_allowed": false,
-      "single_next_offline_fix": "make_fixture_planner_status_in_progress_mandatory_for_every_action_bearing_plan_and_allow_complete_only_after_machine_state_already_observes_the_interactive_crafting_table_then_replay_the_retained_terminal_response_offline"
+      "single_next_offline_fix": "none_terminal_action_contract_fix_reproduced_and_tested_new_authorization_requires_separate_parent_bound_commit",
+      "offline_resolution": {
+        "status": "reproduced_fixed_and_tested",
+        "root_cause": "the_generic_terminal_action_validator_was_correct_but_prepare_sp002_fixture_did_not_receive_an_explicit_machine_state_completion_ready_decision_at_each_call",
+        "fix": {
+          "completion_ready_inputs": [
+            "inventory:cobblestone_exact_3",
+            "inventory:stick_exact_2",
+            "inventory:stone_pickaxe_absent",
+            "observed:crafting_table_within_4_5"
+          ],
+          "completion_ready_false_status": "planning",
+          "action_bearing_status": "planning",
+          "terminal_actions": [],
+          "predicted_action_result_counts_before_reobservation": false,
+          "validator_relaxed": false
+        },
+        "retained_terminal_shape_replay_test": "test_14_fixture_terminal_action_contract_is_prompted_and_fails_closed",
+        "retained_terminal_shape_issue": "terminal_actions_forbidden",
+        "incomplete_prompt_gate_test": "completion_ready=false",
+        "complete_prompt_gate_test": "completion_ready=true",
+        "regressions": {
+          "sp002_runtime_harness_cases": "14/14",
+          "stone_pickaxe_runtime_cases": "32/32",
+          "stone_pickaxe_protocol_cases": "34/34",
+          "m1_harness": "passed",
+          "m2_protocol_and_harness": "passed",
+          "m2_real_provider_integration": "skipped_without_openai_api_key",
+          "memory_task_system": "passed",
+          "goal_verifier": "passed",
+          "m4_deadline": "passed"
+        },
+        "planner_sha256": "d4df30912bc04b3fa362c1db420954f988514184fb227f6e67b043d37f52ace3",
+        "test_sha256": "f2c4681ad3cb39e3caf76460c5fa205c86aac1c9b962ef84603d88e9790ed724",
+        "protocol_json_modified": false,
+        "sp002_policy_modified": false,
+        "frozen_sp001_runtime_modified": false,
+        "frozen_sp001_launcher_modified": false,
+        "counts_toward_skill_gate": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      }
     }
   ],
   "eligible_successes": [
@@ -4012,8 +4087,8 @@
       "total": 32
     },
     "sp002_runtime_harness_cases": {
-      "passed": 13,
-      "total": 13
+      "passed": 14,
+      "total": 14
     },
     "sp002_harness_policy_sha256": "d3ccb78a4851fa9e7e41786638b4946247660cac3f848ba0648c1d8f75442fef",
     "sp002_fixture_audit_offline_passed": true,
@@ -4047,6 +4122,20 @@
     "sp002_fixture_preparation_attempt_2_evidence_hashes_passed": 11,
     "sp002_fixture_preparation_attempt_2_authorization_reuse_allowed": false,
     "sp002_fixture_preparation_consumed_authorization_archive_count": 2,
+    "sp002_fixture_terminal_action_contract_offline_fix_passed": true,
+    "sp002_fixture_terminal_action_contract_retained_shape_replay_passed": true,
+    "sp002_fixture_completion_ready_false_prompt_gate_passed": true,
+    "sp002_fixture_completion_ready_true_prompt_gate_passed": true,
+    "sp002_fixture_terminal_action_validator_unchanged": true,
+    "sp002_fixture_terminal_action_fix_planner_sha256": "d4df30912bc04b3fa362c1db420954f988514184fb227f6e67b043d37f52ace3",
+    "sp002_fixture_terminal_action_fix_test_sha256": "f2c4681ad3cb39e3caf76460c5fa205c86aac1c9b962ef84603d88e9790ed724",
+    "sp002_fixture_terminal_action_fix_repository_non_live_python_scripts": "46/46",
+    "sp002_fixture_terminal_action_fix_fixed_node_suites": "6/6",
+    "sp002_fixture_terminal_action_fix_tracked_json_files_parsed": 1286,
+    "sp002_fixture_terminal_action_fix_ledger_bindings_passed": 310,
+    "sp002_fixture_terminal_action_fix_compileall_passed": true,
+    "sp002_fixture_terminal_action_fix_credential_scan_passed": true,
+    "sp002_fixture_terminal_action_fix_git_diff_check_passed": true,
     "sp001_frozen_runtime_identity_preserved": true,
     "sp001_frozen_launcher_identity_preserved": true,
     "impacted_runtime_regressions": {
@@ -4296,7 +4385,7 @@
     "sp001_paired_decision": "review_executable_new_version"
   },
   "next_required_gate": {
-    "id": "sp002_fixture_terminal_action_contract_offline_fix",
+    "id": "sp002_fixture_preparation_reauthorization_after_terminal_contract_fix",
     "authorization": false,
     "prerequisites": [
       "sp002_fixture_preparation_attempt_2_failure_evidence_commit_pushed",
@@ -4304,11 +4393,15 @@
       "fixture_prompt_requires_in_progress_for_every_action_bearing_plan",
       "fixture_prompt_allows_complete_only_after_machine_state_satisfaction",
       "sp002_and_frozen_sp001_regressions_pass",
-      "offline_fix_commit_pushed_before_any_new_authorization"
+      "offline_fix_commit_pushed_before_any_new_authorization",
+      "sp001_source_fixture_tree_reaudited",
+      "new_sp002_fixture_preparation_authorization_committed_and_pushed",
+      "authorization_predecessor_equals_authorization_commit_parent",
+      "clean_synchronized_main_before_runtime_start"
     ],
     "arm": null,
     "replicate_id": null,
-    "live_episode_limit": 0,
+    "live_episode_limit": 1,
     "normal_runtime_permission": false,
     "normal_runtime_permission_scope": "none_fixture_preparation_only",
     "automatic_retry_allowed": false

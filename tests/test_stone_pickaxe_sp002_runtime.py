@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 
 from singularity.core.planner import Planner
+from singularity.core.task_system import TaskSystem
 from singularity.evaluation.stone_pickaxe_protocol import PROTOCOL, PROTOCOL_SHA256
 from singularity.evaluation.stone_pickaxe_sp002_runtime import (
     SP002_GOAL,
@@ -537,6 +538,46 @@ def test_13_prior_protocol_and_promotion_evidence_remain_byte_identical():
     }
     for relative, digest in expected.items():
         assert _sha256(ROOT / relative) == digest
+
+
+def test_14_fixture_terminal_action_contract_is_prompted_and_fails_closed():
+    planner = Planner(object(), TaskSystem(), protocol=PROTOCOL["id"])
+    planner._expected_plan_kind = "continuation"
+    observation = _raw_observation(table=False)
+    observation["stone_pickaxe_runtime_mode"] = "prepare_sp002_fixture"
+
+    system_prompt = planner._stone_pickaxe_system_prompt()
+    user_prompt = planner._build_planning_prompt(SP002_GOAL, observation, "")
+    assert "Every response containing an action must use status planning" in system_prompt
+    assert "completion_ready=false" in user_prompt
+    assert "status=complete is forbidden" in user_prompt
+    assert "An action's predicted result does not satisfy this gate" in user_prompt
+
+    retained_terminal_shape = {
+        "schema_version": "stone-pickaxe-plan-v1",
+        "plan_kind": "continuation",
+        "goal": SP002_GOAL,
+        "status": "complete",
+        "reasoning": "Approach the table and finish the fixture.",
+        "subtasks": [],
+        "actions": [{
+            "type": "move_to",
+            "parameters": {"x": 95, "y": 132, "z": -32},
+        }],
+    }
+    report = Planner._validate_stone_pickaxe_plan_envelope(
+        retained_terminal_shape,
+        SP002_GOAL,
+        "continuation",
+    )
+    assert not report["passed"]
+    assert report["issues"] == ["terminal_actions_forbidden"]
+
+    ready_observation = _raw_observation(table=True)
+    ready_observation["stone_pickaxe_runtime_mode"] = "prepare_sp002_fixture"
+    ready_prompt = planner._build_planning_prompt(SP002_GOAL, ready_observation, "")
+    assert "completion_ready=true" in ready_prompt
+    assert "return status=complete with actions=[]" in ready_prompt
 
 
 if __name__ == "__main__":
