@@ -1,0 +1,74 @@
+{
+  "type": "stone_pickaxe_sp003_reset_audit_repair",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T20:51:44.0545455Z",
+  "phase": 74,
+  "status": "offline_fix_verified_pending_commit_push",
+  "base_commit": "402c0ea9799eb1f7dcdec2fb39911eb7b93f7bdf",
+  "task_id": "SP-003",
+  "runtime_policy": {
+    "id": "stone-pickaxe-sp003-empty-hand-runtime-v1",
+    "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+    "sha256": "a1aad016b58bad4d0def89f782f67d2cb02ea9c1b846d7c9d9c4e32cfdc2a438",
+    "modified": false
+  },
+  "retained_failure": {
+    "episode_id": "sp003_baseline_20260719_044130_998a5bbd",
+    "authorization_commit": "e5b8050bd44e4637fbf13790fed0f772c279e8f0",
+    "evidence_commit": "402c0ea9799eb1f7dcdec2fb39911eb7b93f7bdf",
+    "manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_044130_998a5bbd/failure_manifest.json",
+    "manifest_sha256": "4405289733c957e11e35ee6b9eef05bc45f0661d7b25fcc9b45f0ba89f96bd7c",
+    "failed_stage": "reset_audit",
+    "llm_call_count": 0,
+    "agent_action_count": 0,
+    "automatic_retry_performed": false
+  },
+  "root_cause": {
+    "classification": "sp003_reset_audit_contract_mismatch",
+    "no_fixture_blocks": "The audit read absent expected.initial_blocks instead of the machine-observed after_state.fixture_blocks and fixture block.",
+    "daylight_start": "The audit required exact tick zero even though doDaylightCycle=true and the established M4 preflight contract permits bounded natural startup drift.",
+    "reset_was_machine_successful": true,
+    "initial_inventory_was_exact_empty": true,
+    "observed_fixture_blocks_were_empty": true,
+    "observed_time_of_day": 67
+  },
+  "change": {
+    "runtime_path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+    "runtime_sha256": "f89297a0a7e2ab0571f37f4e39adf4345095459debcf305a650fb94de967339b",
+    "tests_path": "tests/test_stone_pickaxe_sp003_runtime.py",
+    "tests_sha256": "e4cc1a1e62b4d29216b1494d22ef9b682efd80e3398d55d9fefe802545782617",
+    "fixture_rule": "Require after_state.fixture_blocks=[] and after_state.fixture.block=air.",
+    "daylight_rule": "Require expected tick zero, bridge daytime/time_initialized checks, and modulo-24000 natural drift no greater than 600 ticks.",
+    "failure_closed_tamper_cases": [
+      "nonempty_fixture_blocks",
+      "startup_drift_over_600_ticks"
+    ]
+  },
+  "validation": {
+    "sp003_dedicated": "20/20",
+    "stone_pickaxe_protocol_and_runtime": "106/106",
+    "repository_non_live_python": "956/956",
+    "m4_reset_node_cases": "12/12",
+    "python_compile": true,
+    "powershell_parse": true,
+    "retained_failure_replay_now_passes_reset_audit": true
+  },
+  "immutability": {
+    "retained_failure_modified": false,
+    "frozen_protocol_modified": false,
+    "prior_sp001_sp002_evidence_modified": false,
+    "custom_skill_store_modified": false,
+    "capability_report_modified": false,
+    "shared_agent_modified": false
+  },
+  "live_state": {
+    "baseline_authorizations_consumed": 1,
+    "baseline_failures": 1,
+    "baseline_successes": 0,
+    "candidate_successes": 0,
+    "live_authorization": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "next_gate": "push_phase_74_then_commit_a_fresh_parent_bound_baseline_authorization_without_reusing_the_failed_episode"
+}

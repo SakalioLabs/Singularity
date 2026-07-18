@@ -22,6 +22,7 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     _progress_snapshot,
     _sp003_observation_targets,
     audit_sp003_initial_state,
+    audit_sp003_reset,
     build_sp003_authorization,
     build_sp003_episode,
     build_sp003_runtime_config,
@@ -112,6 +113,44 @@ def test_initial_state_requires_exact_empty_inventory_and_observed_log():
     assert "inventory_exact_empty" in contaminated["issues"]
     missing = audit_sp003_initial_state(observation({}, []))
     assert "observed_log_source" in missing["issues"]
+
+
+def test_reset_audit_accepts_natural_tick_drift_and_machine_proven_empty_fixture():
+    evidence_dir = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_044130_998a5bbd"
+    )
+    status = json.loads((evidence_dir / "protocol_status.json").read_text(encoding="utf-8"))
+    reset = json.loads((evidence_dir / "reset.json").read_text(encoding="utf-8"))
+    report = audit_sp003_reset(
+        status,
+        reset,
+        episode_id="sp003_baseline_20260719_044130_998a5bbd",
+        level_name="sp003_baseline_20260719_044130_998a5bbd_world",
+    )
+    assert report["passed"], report
+
+    fixture_tamper = copy.deepcopy(reset)
+    fixture_tamper["after_state"]["fixture_blocks"] = [
+        {"name": "crafting_table", "position": {"x": 97, "y": 144, "z": -32}}
+    ]
+    fixture_report = audit_sp003_reset(
+        status,
+        fixture_tamper,
+        episode_id="sp003_baseline_20260719_044130_998a5bbd",
+        level_name="sp003_baseline_20260719_044130_998a5bbd_world",
+    )
+    assert "no_fixture_blocks" in fixture_report["issues"]
+
+    time_tamper = copy.deepcopy(reset)
+    time_tamper["after_state"]["time_of_day"] = 601
+    time_report = audit_sp003_reset(
+        status,
+        time_tamper,
+        episode_id="sp003_baseline_20260719_044130_998a5bbd",
+        level_name="sp003_baseline_20260719_044130_998a5bbd_world",
+    )
+    assert "daylight_start" in time_report["issues"]
 
 
 def test_log_guard_uses_nearest_observed_same_family_and_stops_at_three():

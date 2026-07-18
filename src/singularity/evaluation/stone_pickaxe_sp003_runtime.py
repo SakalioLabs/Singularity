@@ -406,7 +406,17 @@ def audit_sp003_reset(
     environment = policy["environment"]
     expected = value.get("expected") if isinstance(value.get("expected"), dict) else {}
     after = value.get("after_state") if isinstance(value.get("after_state"), dict) else {}
+    fixture = after.get("fixture") if isinstance(after.get("fixture"), dict) else {}
+    fixture_blocks = after.get("fixture_blocks") if isinstance(after.get("fixture_blocks"), list) else None
+    reset_checks = value.get("checks") if isinstance(value.get("checks"), dict) else {}
     lifecycle = value.get("player_lifecycle") if isinstance(value.get("player_lifecycle"), dict) else {}
+    expected_time = _finite(expected.get("time_of_day"))
+    observed_time = _finite(after.get("time_of_day"))
+    daylight_delta = (
+        (float(observed_time) - float(expected_time)) % 24000
+        if expected_time is not None and observed_time is not None
+        else None
+    )
     checks = {
         "protocol_status_success": status.get("success") is True,
         "protocol_configured": status.get("configured") is True,
@@ -425,12 +435,21 @@ def audit_sp003_reset(
         "reset_contract": value.get("task_contract_sha256") == substrate["task_contract_sha256"],
         "expected_empty_inventory": expected.get("initial_inventory") == {},
         "observed_empty_inventory": after.get("inventory") == {},
-        "no_fixture_blocks": expected.get("initial_blocks") == [],
+        "no_fixture_blocks": (
+            fixture_blocks == []
+            and str(fixture.get("block") or "") == "air"
+        ),
         "survival": after.get("game_mode") == environment["game_mode"],
         "difficulty": after.get("difficulty") == environment["difficulty"],
-        "daylight_start": after.get("time_of_day") == 0,
+        "daylight_start": (
+            expected_time == 0
+            and daylight_delta is not None
+            and daylight_delta <= 600
+            and reset_checks.get("daytime") is True
+            and reset_checks.get("time_initialized") is True
+        ),
         "lifecycle_baseline": (
-            (value.get("checks") or {}).get("player_lifecycle_baseline") is True
+            reset_checks.get("player_lifecycle_baseline") is True
             and lifecycle.get("uninterrupted") is True
             and lifecycle.get("death_count") == 0
             and lifecycle.get("respawn_count") == 0
