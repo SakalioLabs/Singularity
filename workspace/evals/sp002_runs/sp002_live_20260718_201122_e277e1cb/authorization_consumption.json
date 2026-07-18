@@ -1,0 +1,15 @@
+{
+  "type": "stone_pickaxe_sp002_authorization_consumption",
+  "schema_version": 1,
+  "consumed_at_utc": "2026-07-18T12:15:43.567141+00:00",
+  "authorization_id": "92463fa4a5d55401b8f2f28809b7536b3083228d225b63c93d7c69551d37e035",
+  "authorization_path": "workspace/evals/sp002_runs/sp002_live_20260718_201122_e277e1cb/authorization.json",
+  "authorization_sha256": "cb4217103070bf714055cd7cc45b4f03cc38b6288ed99af9f56071c48d0957b0",
+  "authorization_commit": "2ba0c7db2c5542b98c17d352ecece21eb6c54544",
+  "episode_id": "sp002_live_20260718_201122_e277e1cb",
+  "scope": "live_episode",
+  "consumed_by": "controlled_runtime_start",
+  "automatic_retry_allowed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}
