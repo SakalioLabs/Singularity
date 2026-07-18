@@ -1,0 +1,105 @@
+{
+  "type": "stone_pickaxe_sp003_offline_definition_audit",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T20:33:26.6266469Z",
+  "phase": 72,
+  "status": "offline_harness_ready_pending_commit_push",
+  "base_commit": "e71c46cd11c88d04e9509da3d5b58ab6ea4565ce",
+  "task_id": "SP-003",
+  "runtime_policy": {
+    "id": "stone-pickaxe-sp003-empty-hand-runtime-v1",
+    "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+    "sha256": "a1aad016b58bad4d0def89f782f67d2cb02ea9c1b846d7c9d9c4e32cfdc2a438",
+    "offline_harness_ready": true
+  },
+  "frozen_protocol": {
+    "id": "stone-pickaxe-skill-fixed-v1",
+    "path": "workspace/evals/stone_pickaxe_protocol.json",
+    "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+    "modified": false
+  },
+  "reset_substrate": {
+    "profile": "m4-fixed-v1",
+    "base_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "bm012_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "reset_only": true,
+    "bm012_terminal_started": false,
+    "counts_toward_m4": false
+  },
+  "implementation": [
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+      "sha256": "24c20c3c6eff6dfcf04487f795af52c97941cfa2e105a1b8017ce0c1855f89e3"
+    },
+    {
+      "path": "scripts/stone_pickaxe_sp003_episode_runner.py",
+      "sha256": "d70dc440d6f3c4bfd57d66fd4128e4d5d101cfe4f1f9cd40155116fc0be865fe"
+    },
+    {
+      "path": "scripts/stone-pickaxe-sp003-runtime.ps1",
+      "sha256": "cae58193f2e987dd13b2056f360ce78b4799843ea21678f447903c836ad30ee1"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_runtime.py",
+      "sha256": "a0f01ffc2f7da099c56f43aa9ae9615b3829e2362c1e8c3817ea519f57b3fbec"
+    },
+    {
+      "path": "src/singularity/core/planner.py",
+      "sha256": "5087500f3c28e1946d8ecb4498a7f4bc3acbf060668fc49a11cd8706c617e104"
+    },
+    {
+      "path": "src/singularity/core/agent.py",
+      "sha256": "c7425d93078ace3dfd2e5038a1eea4dad36c1e14ee300dcd219eb024ce1d5a95"
+    }
+  ],
+  "skill_bindings": {
+    "custom_skills_sha256": "beb99b61daf99c638036ed8d12e4d1a836c209b11e5ad31d6b19122d8a9c8c0b",
+    "runtime_persistence_allowed": false,
+    "approved_exact_skills": [
+      "learned:acquire_cobblestone@1.1.0",
+      "learned:craft_stone_pickaxe@1.0.1"
+    ],
+    "baseline_skill_execution": "off",
+    "candidate_other_learned_skills_allowed": false
+  },
+  "offline_validation": {
+    "sp003_dedicated": "19/19",
+    "stone_pickaxe_protocol_and_runtime": "105/105",
+    "memory_task_system": "106/106",
+    "m1_m2_goal_verifier_capability": "54/54",
+    "m3_self_learning_and_retirement": "21/21",
+    "m4_reset_node_cases": "12/12",
+    "repository_non_live_python": "955/955",
+    "python_compile": true,
+    "powershell_parse": true
+  },
+  "local_runtime_preflight": {
+    "paper_jar_present_and_hash_matched": true,
+    "eula_true": true,
+    "java_available": true,
+    "node_available": true,
+    "llm_credential_available_outside_repository": true,
+    "minecraft_port_free": true,
+    "bridge_port_free": true,
+    "live_process_started": false
+  },
+  "immutability": {
+    "prior_sp001_evidence_modified": false,
+    "prior_sp002_evidence_modified": false,
+    "probe_21_22_23_evidence_modified": false,
+    "custom_skill_store_modified": false,
+    "capability_report_modified": false,
+    "shared_agent_modified": false,
+    "root_gitattributes_modified": false
+  },
+  "live_state": {
+    "baseline_successes": 0,
+    "eligible_candidate_successes": 0,
+    "live_authorization": false,
+    "live_episode_count": 0,
+    "automatic_retry_allowed": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "next_gate": "push_phase_72_then_commit_one_parent_bound_baseline_authorization"
+}

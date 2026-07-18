@@ -32,6 +32,57 @@ _M2_TASK_GUIDANCE = {
         "Do not emit move_to or individual place actions, and do not split the 55 fixed placements into planner actions.",
     ],
 }
+
+_STONE_PICKAXE_SP003_ROOT_GRAPH = [
+    {
+        "id": "acquire_wood",
+        "title": "Acquire exactly three logs from empty hands",
+        "type": "gather",
+        "priority": 1,
+        "preconditions": {},
+        "success_criteria": {"flags": ["sp003_wood_acquired"]},
+        "depends_on": [],
+    },
+    {
+        "id": "place_crafting_table",
+        "title": "Craft and place exactly one crafting table",
+        "type": "craft",
+        "priority": 1,
+        "preconditions": {"flags": ["sp003_wood_acquired"]},
+        "success_criteria": {"nearby_block_present": "crafting_table"},
+        "depends_on": ["acquire_wood"],
+    },
+    {
+        "id": "craft_wooden_pickaxe",
+        "title": "Craft exactly one wooden pickaxe",
+        "type": "craft",
+        "priority": 1,
+        "preconditions": {"nearby_block_present": "crafting_table"},
+        "success_criteria": {"inventory": {"wooden_pickaxe": 1}},
+        "depends_on": ["place_crafting_table"],
+    },
+    {
+        "id": "acquire_cobblestone",
+        "title": "Mine exactly three stone blocks for cobblestone",
+        "type": "gather",
+        "priority": 1,
+        "preconditions": {"inventory": {"wooden_pickaxe": 1}},
+        "success_criteria": {"inventory": {"cobblestone": 3}},
+        "depends_on": ["craft_wooden_pickaxe"],
+    },
+    {
+        "id": "craft_stone_pickaxe",
+        "title": "Craft exactly one stone pickaxe",
+        "type": "craft",
+        "priority": 1,
+        "preconditions": {
+            "inventory": {"cobblestone": 3, "stick": 2},
+            "nearby_block_present": "crafting_table",
+        },
+        "success_criteria": {"inventory": {"stone_pickaxe": 1}},
+        "depends_on": ["acquire_cobblestone"],
+    },
+]
 try:
     _KB = KnowledgeBase()
     _CRAFTING_KNOWLEDGE = _KB.format_for_prompt()
@@ -412,6 +463,11 @@ class Planner:
                 raw_plan,
                 expected_goal=goal,
                 expected_kind=plan_kind,
+                runtime_mode=str(
+                    (world_state if isinstance(world_state, dict) else {}).get(
+                        "stone_pickaxe_runtime_mode", ""
+                    )
+                ),
             )
 
         schema_valid = bool(schema_validation.get("passed"))
@@ -619,6 +675,7 @@ RUNTIME RULES:
 - sp001: do not craft or place. Treat held_item as the authoritative current main-hand item. Equip the exact wooden_pickaxe only when held_item differs; when held_item is wooden_pickaxe, never equip it again and dig block="stone" at the nearest reachable observed stone coordinates. Never repeat a removed source.
 - prepare_sp002_fixture: preserve exactly two sticks and never craft stone_pickaxe. If no interactive crafting_table is observed, craft at most one table only when needed, then place or move to it. Equip wooden_pickaxe only when held_item differs. Mine only the nearest reachable observed stone and stop at exactly three cobblestone. On a root planning call, copy the exact two-node subtask graph supplied in the user prompt; never return subtasks=[]. Every response containing an action must use status planning. Never declare complete in the same response as placing, approaching, or moving to the table; the action counts only after the next machine observation. Report complete with actions=[] only when the current observation already has cobblestone=3, stick=2, stone_pickaxe=0, and crafting_table within 4.5 blocks.
 - sp002: on a root planning call, copy the exact two-node subtask graph supplied in the user prompt; never return subtasks=[]. Emit exactly one action: craft item="stone_pickaxe" count=1. Require current cobblestone=3, stick=2, stone_pickaxe=0, and an observed crafting_table within 4.5 blocks. Never move, wait, equip, retry, use a recipe alias, craft another item, or report textual success before the machine state changes. On continuation or replan, the one-action budget is already consumed: return complete with actions=[] only for exact cobblestone=0, stick=0, stone_pickaxe=1; otherwise return blocked with actions=[]. Never return planning after the root action.
+- sp003: begin from exact empty inventory and copy the exact five-node graph supplied in the user prompt on the root call. Gather exactly three observed logs of one family, using only the first entry in sp003_targets and no repeated coordinate. Craft exactly 12 matching planks, exactly 4 sticks, exactly one crafting_table, place it once using a solid reference from sp003_targets with clear space above, and craft exactly one wooden_pickaxe. Equip the wooden_pickaxe once, remove exactly three stone sources using the first entry in sp003_targets, then approach the same machine-proven table in sp003_targets if needed and craft exactly one stone_pickaxe. Never dig iron, gather extra logs or stone, repeat a table/wooden-pickaxe craft or placement, or use a family substitute for an exact item. Use the compact flags and sp003_progress as authoritative monotonic history. Return blocked with no actions when sp003_targets is empty and the current stage needs navigation, digging, or placement. Return complete only after the current machine state contains stone_pickaxe=1.
 
 Required JSON shape:
 {{
@@ -853,6 +910,32 @@ If target_achieved=false, return status=blocked with actions=[]. Never retry or 
                     root_graph_gate = """
 SP-002 live root graph gate: root_graph_required=false.
 This call must return subtasks=[]; do not create a new root graph."""
+            elif machine_state.get("runtime_mode") == "sp003":
+                inventory = machine_state.get("inventory", {})
+                target_achieved = inventory.get("stone_pickaxe") == 1
+                if self._expected_plan_kind == "root" and not target_achieved:
+                    completion_gate = """
+SP-003 empty-hand action gate: target_achieved=false.
+Return status=planning with exactly one grounded action for the current machine stage. Textual predictions never advance a stage."""
+                    root_graph_gate = f"""
+SP-003 exact root graph gate: root_graph_required=true.
+Copy this exact JSON array into subtasks without omitting, adding, renaming, or reordering nodes:
+{json.dumps(_STONE_PICKAXE_SP003_ROOT_GRAPH, sort_keys=True, separators=(',', ':'))}
+Never return subtasks=[] on this root planning call. The graph does not authorize more than the one immediate grounded action."""
+                elif target_achieved:
+                    completion_gate = """
+SP-003 terminal gate: target_achieved=true.
+Return status=complete with actions=[]. The independent machine verifier will decide acceptance."""
+                    root_graph_gate = """
+SP-003 root graph gate: root_graph_required=false.
+This call must return subtasks=[]; never rebuild the completed graph."""
+                else:
+                    completion_gate = """
+SP-003 continuation gate: target_achieved=false.
+Return status=planning with exactly one action for the next unmet stage. Return blocked with actions=[] only when no grounded observed target exists; never invent coordinates or retry a completed mutation."""
+                    root_graph_gate = """
+SP-003 root graph gate: root_graph_required=false.
+This continuation/replan call must return subtasks=[] and preserve the existing graph."""
             return f"""Exact goal: {goal}
 Expected plan_kind: {self._expected_plan_kind}
 Runtime mode: {machine_state.get('runtime_mode') or 'unknown'}
@@ -967,6 +1050,28 @@ Plan the steps to achieve this goal."""
 
         return {
             "runtime_mode": str(state.get("stone_pickaxe_runtime_mode") or ""),
+            "sp003_arm": str(state.get("sp003_arm") or ""),
+            "flags": sorted(
+                str(flag)
+                for flag in (
+                    state.get("flags") if isinstance(state.get("flags"), list) else []
+                )
+                if str(flag)
+            )[:16],
+            "sp003_progress": (
+                dict(state.get("sp003_progress"))
+                if isinstance(state.get("sp003_progress"), dict)
+                else {}
+            ),
+            "sp003_targets": [
+                dict(item)
+                for item in (
+                    state.get("sp003_targets")
+                    if isinstance(state.get("sp003_targets"), list)
+                    else []
+                )
+                if isinstance(item, dict)
+            ][:8],
             "position": compact_position(state.get("position")),
             "inventory": compact_inventory,
             "held_item": str(main_hand.get("name") or ""),
@@ -983,6 +1088,7 @@ Plan the steps to achieve this goal."""
         plan: dict,
         expected_goal: str,
         expected_kind: str,
+        runtime_mode: str = "",
     ) -> dict:
         """Fail closed on malformed or unbounded stone-pickaxe plans."""
         issues: list[str] = []
@@ -1108,6 +1214,8 @@ Plan the steps to achieve this goal."""
                     seen_ids.add(node_id)
             if dependency_count == 0:
                 issues.append("root_dependency_edge_missing")
+            if str(runtime_mode or "") == "sp003" and subtasks != _STONE_PICKAXE_SP003_ROOT_GRAPH:
+                issues.append("sp003_exact_root_graph_required")
         elif subtasks:
             issues.append("non_root_subtasks_forbidden")
 

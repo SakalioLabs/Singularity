@@ -1,0 +1,212 @@
+{
+  "type": "stone_pickaxe_sp003_harness_policy",
+  "schema_version": 1,
+  "id": "stone-pickaxe-sp003-empty-hand-runtime-v1",
+  "phase": "offline_harness",
+  "protocol": {
+    "path": "workspace/evals/stone_pickaxe_protocol.json",
+    "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+    "id": "stone-pickaxe-skill-fixed-v1",
+    "task_id": "SP-003",
+    "bytes_must_remain_unchanged": true
+  },
+  "environment": {
+    "minecraft_version": "1.20.4",
+    "server_build": "Paper 1.20.4 build 499",
+    "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+    "world_seed": "12345",
+    "game_mode": "survival",
+    "difficulty": "normal",
+    "fresh_unique_level_required": true,
+    "reuse_existing_world_forbidden": true,
+    "initial_inventory_exact": {},
+    "target_result_injection_allowed": false,
+    "external_step_script_allowed": false
+  },
+  "reset_substrate": {
+    "profile": "m4-fixed-v1",
+    "base_protocol_path": "src/singularity/data/m4_protocol.json",
+    "base_protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+    "task_contract_path": "src/singularity/data/m4_bm012_protocol.json",
+    "task_contract_sha256": "389bafa8651cd6d46b259a708e1f82144615d1a8ae90aa840b00c3751404b45d",
+    "reset_task_id": "BM-012",
+    "reset_only": true,
+    "granted_items_allowed": false,
+    "fixtures_allowed": false,
+    "bm012_terminal_execution_allowed": false,
+    "counts_toward_bm012": false,
+    "counts_toward_m4": false
+  },
+  "skills": [
+    {
+      "task_id": "SP-001",
+      "skill_id": "learned:acquire_cobblestone",
+      "version": "1.1.0",
+      "status": "executable",
+      "record_canonical_sha256": "f1320195139eb2d8fe73a033d067b6b9a4b745d9656a20f7276556704306057c",
+      "promotion_gate_fingerprint": "132028ca9819fb21f8d8fc27812769059622444208b89125b3e5334f2a3e21f9",
+      "promotion_artifact": {
+        "path": "workspace/evals/sp001_skill_promotion/acquire_cobblestone_executable_promotion.json",
+        "sha256": "d03a4e9790d714504719f522b0e4ac1a0c0f80a02a9dbc1168caedbdb3aeec62"
+      },
+      "runtime_default_gate": {
+        "path": "workspace/evals/sp001_skill_promotion/acquire_cobblestone_runtime_default_gate.json",
+        "sha256": "6a91887265adc3a8979a59636d3235da5cd0d13b487869308d029752a63800d7",
+        "readiness": "approved"
+      }
+    },
+    {
+      "task_id": "SP-002",
+      "skill_id": "learned:craft_stone_pickaxe",
+      "version": "1.0.1",
+      "status": "executable",
+      "record_canonical_sha256": "c7f4e53602f8397cc913cc4a98e01d56324f83af4430fe8283c3b293abcb5fa4",
+      "promotion_gate_fingerprint": "47840e035ecbfe6552b2b2bfb939553d824a045204dd5263557c553460db926d",
+      "promotion_artifact": {
+        "path": "workspace/evals/sp002_skill_promotion/craft_stone_pickaxe_executable_promotion.json",
+        "sha256": "36c4613b9f4908691f6916c07c40b54cda28213ba658b5f73b89f7870232c971"
+      },
+      "runtime_default_gate": {
+        "path": "workspace/evals/sp002_skill_promotion/craft_stone_pickaxe_runtime_default_gate.json",
+        "sha256": "3c8606bea20b6455a06be240e8af6998488fb8cf0eb747a6eb260d019c4ff64d",
+        "readiness": "approved"
+      }
+    }
+  ],
+  "skill_store": {
+    "path": "workspace/skills/custom_skills.jsonl",
+    "sha256_at_definition": "beb99b61daf99c638036ed8d12e4d1a836c209b11e5ad31d6b19122d8a9c8c0b",
+    "runtime_persistence_allowed": false,
+    "learning_ledger_write_allowed": false
+  },
+  "task_graph": [
+    {
+      "id": "acquire_wood",
+      "title": "Acquire exactly three logs from empty hands",
+      "type": "gather",
+      "priority": 1,
+      "preconditions": {},
+      "success_criteria": {"flags": ["sp003_wood_acquired"]},
+      "depends_on": []
+    },
+    {
+      "id": "place_crafting_table",
+      "title": "Craft and place exactly one crafting table",
+      "type": "craft",
+      "priority": 1,
+      "preconditions": {"flags": ["sp003_wood_acquired"]},
+      "success_criteria": {"nearby_block_present": "crafting_table"},
+      "depends_on": ["acquire_wood"]
+    },
+    {
+      "id": "craft_wooden_pickaxe",
+      "title": "Craft exactly one wooden pickaxe",
+      "type": "craft",
+      "priority": 1,
+      "preconditions": {"nearby_block_present": "crafting_table"},
+      "success_criteria": {"inventory": {"wooden_pickaxe": 1}},
+      "depends_on": ["place_crafting_table"]
+    },
+    {
+      "id": "acquire_cobblestone",
+      "title": "Mine exactly three stone blocks for cobblestone",
+      "type": "gather",
+      "priority": 1,
+      "preconditions": {"inventory": {"wooden_pickaxe": 1}},
+      "success_criteria": {"inventory": {"cobblestone": 3}},
+      "depends_on": ["craft_wooden_pickaxe"]
+    },
+    {
+      "id": "craft_stone_pickaxe",
+      "title": "Craft exactly one stone pickaxe",
+      "type": "craft",
+      "priority": 1,
+      "preconditions": {
+        "inventory": {"cobblestone": 3, "stick": 2},
+        "nearby_block_present": "crafting_table"
+      },
+      "success_criteria": {"inventory": {"stone_pickaxe": 1}},
+      "depends_on": ["acquire_cobblestone"]
+    }
+  ],
+  "episode_contract": {
+    "goal": "From empty hands, gather wood, craft and place one crafting table, craft one wooden pickaxe, mine exactly three stone, and craft one stone pickaxe",
+    "maximum_actions": 32,
+    "maximum_cycles": 40,
+    "episode_timeout_s": 300,
+    "planner_actions_per_cycle": 1,
+    "bridge_craft_max_attempts": 1,
+    "automatic_retry_allowed": false,
+    "stable_reobservation_delay_s": 0.25,
+    "allowed_log_family": [
+      "oak_log", "spruce_log", "birch_log", "jungle_log", "acacia_log",
+      "dark_oak_log", "mangrove_log", "cherry_log", "crimson_stem", "warped_stem"
+    ],
+    "log_source_removals_exact": 3,
+    "stone_source_removals_exact": 3,
+    "crafting_table_craft_count_exact": 1,
+    "crafting_table_place_count_exact": 1,
+    "wooden_pickaxe_craft_count_exact": 1,
+    "stone_pickaxe_craft_count_exact": 1,
+    "iron_mining_action_count_exact": 0,
+    "terminal_inventory": {"stone_pickaxe": 1}
+  },
+  "evaluation_contract": {
+    "baseline_required": 1,
+    "candidate_successes_required": 3,
+    "sequence": ["baseline", "candidate/r1", "candidate/r2", "candidate/r3"],
+    "baseline_skill_execution_mode": "off",
+    "candidate_skill_execution_mode": "runtime",
+    "candidate_separate_skill_attribution_required": true,
+    "distinct_episode_ids_required": true,
+    "distinct_session_ids_required": true,
+    "one_authorization_per_episode": true,
+    "authorization_predecessor_must_equal_parent": true,
+    "authorization_commit_must_be_pushed": true,
+    "clean_synchronized_main_required": true,
+    "prior_success_must_be_pushed_before_next_authorization": true,
+    "support_rerun_allowed": false
+  },
+  "authorization_contract": {
+    "path": "workspace/evals/stone_pickaxe_sp003_next_authorization.json",
+    "single_episode": true,
+    "automatic_retry_allowed": false,
+    "batch_execution_allowed": false
+  },
+  "evidence_contract": {
+    "directory": "workspace/evals/sp003_runs",
+    "append_only": true,
+    "planner_request_controls_required": true,
+    "action_verification_required": true,
+    "component_machine_verifiers_required": ["SP-001", "SP-002"],
+    "fresh_reset_audit_required": true,
+    "stable_reobservation_required": true,
+    "task_graph_completion_required": true
+  },
+  "implementation_contract": {
+    "runtime_module": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+    "episode_runner": "scripts/stone_pickaxe_sp003_episode_runner.py",
+    "launcher": "scripts/stone-pickaxe-sp003-runtime.ps1",
+    "dedicated_tests": "tests/test_stone_pickaxe_sp003_runtime.py",
+    "planner_module": "src/singularity/core/planner.py",
+    "task_reconciliation_module": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+    "fresh_level_name_template": "<episode_id>_world",
+    "retained_authorization_copy_required": true,
+    "same_machine_proven_table_for_tool_crafts_required": true
+  },
+  "current_state": {
+    "offline_harness_ready": true,
+    "baseline_successes": 0,
+    "eligible_candidate_successes": 0,
+    "live_authorization": false,
+    "sp003_repeat_verified": false
+  },
+  "capability_policy": {
+    "counts_toward_capability": false,
+    "counts_toward_m4": false,
+    "changes_m1_m2_m3": false,
+    "changes_goal_verifier_thresholds": false,
+    "capability_upgrade_allowed": false
+  },
+  "automatic_retry_allowed": false
+}

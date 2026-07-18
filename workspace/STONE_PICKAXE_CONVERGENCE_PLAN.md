@@ -14,12 +14,12 @@ This project isolates two bounded Minecraft capabilities:
 | Microbenchmark | Eligible live successes | Extraction gate | Current learned skill |
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
-| SP-002 Craft Stone Pickaxe | 3 | 3 | Advisory `1.0.0`; v2 support 2/3, candidate pairs 0/3 |
-| SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
+| SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Offline harness ready; live baseline not yet authorized |
 
-Current phase: **Phase 65 retains the passing SP-002 v2 `advisory-2` evidence. The learned skill produced one bounded advisory hint before the real root Planner call, directly executed zero actions, and the ordinary Planner/Mineflayer path machine-verified the exact craft. Support is 2/3, candidate pairs are 0/3, `learned:craft_stone_pickaxe@1.0.0` remains advisory, and normal runtime remains disabled**.
+Current phase: **Phase 72 defines and verifies the supplemental SP-003 empty-hand harness. Both component skills are executable under their exact approved runtime gates. No SP-003 live process has run, so the complete empty-hand chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. Replicates `r1..r15` from SP-001, all nine SP-002 fixture/live authorizations, v1 `shadow/shadow-1`, v2 support `shadow-2/advisory-2/fallback-2`, and candidates `r4/r5/r6` are consumed and cannot be reused. V1 `advisory-1`, `fallback-1`, and candidate `r1..r3` are excluded from recovery. The v2 window is closed at support 3/3 and candidates 3/3. After the Phase 69 evidence commit is pushed and `main` is synchronized, the next transaction is a separate offline append-only promotion review for `learned:craft_stone_pickaxe@1.0.1`. Automatic retry, SP-003, Probe 24, full BM-012, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations and paired-evaluation IDs remain consumed or excluded. After the Phase 72 definition commit is pushed and `main` is synchronized, the next transaction is one separate parent-bound authorization for the SP-003 baseline. Automatic retry, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -86,11 +86,11 @@ Machine success requires exact material consumption, positive stone-pickaxe inve
 
 ## SP-003 Contract
 
-The frozen v1 composite task starts with `wooden_pickaxe:1`, `stick:2`, a nearby table, no cobblestone, and no stone pickaxe. The TaskSystem path is fixed as `SP-001 -> SP-002`.
+The supplemental `stone-pickaxe-sp003-empty-hand-runtime-v1` policy is bound to the unchanged v1 protocol and existing executable skill records. Every episode uses a fresh seed-12345 survival world and exact empty inventory, then follows the fixed five-node graph: three same-family logs, one placed crafting table, one wooden pickaxe, three verified stone removals, and one stone pickaxe.
 
-The requested acceptance target is stronger: empty inventory must progress through wood acquisition, crafting-table creation, wooden-pickaxe creation, three verified stone removals, and exact stone-pickaxe craft in one fresh survival episode. That target will use a supplemental `stone-pickaxe-sp003-empty-hand-runtime-v1` policy bound to the unchanged v1 protocol and existing skill records; the prior protocol bytes and SP-001/SP-002 evidence remain immutable.
+The action guard permits exactly one grounded action per Planner cycle. It binds navigation and digging to the nearest observed same-family source, retains the machine-proven table position for bounded return navigation, permits exactly five single-attempt craft actions, and rejects extra resources, duplicate mutation, iron mining, family substitution, target injection, or retry. Wooden- and stone-pickaxe crafts must use the same placed table.
 
-Success requires both component machine verifiers, acquisition completion releasing the craft dependency, exactly three source removals, no repeated wooden-pickaxe or crafting-table craft, no iron-mining action, and separate local attribution for each learned skill. Full BM-012 terminal criteria are forbidden.
+Success requires the full five-node TaskSystem graph, both frozen component machine verifiers, stable terminal re-observation, and no skill-store mutation. The baseline keeps learned skills off. Each candidate must separately attribute the cobblestone stage to `learned:acquire_cobblestone@1.1.0` and the final craft to `learned:craft_stone_pickaxe@1.0.1`. Reset reuses BM-012 only as an empty natural-state substrate; BM-012 terminal execution and M4 credit are forbidden.
 
 ## Evidence Policy
 
@@ -112,9 +112,11 @@ No threshold, GoalVerifier relaxation, or synthetic evidence can bypass these ga
 
 ## Offline Harness
 
-Implementation: `src/singularity/evaluation/stone_pickaxe_protocol.py`
+Base implementation: `src/singularity/evaluation/stone_pickaxe_protocol.py`
 
-Tests: `tests/test_stone_pickaxe_protocol.py`
+SP-003 implementation: `src/singularity/evaluation/stone_pickaxe_sp003_runtime.py`
+
+SP-003 tests: `tests/test_stone_pickaxe_sp003_runtime.py`
 
 The 30 numbered cases cover:
 
@@ -130,6 +132,8 @@ The 30 numbered cases cover:
 - `src/singularity/evaluation/stone_pickaxe_runtime.py` seals canonical `world`, `world_nether`, and `world_the_end` trees under one content identity; restoration is hash-checked before Paper starts.
 - Fixture preparation permits ordinary survival wood/table/wooden-pickaxe actions but rejects stone mining, duplicate wooden-pickaxe craft, and wooden-pickaxe craft without an observed table within 4.5 blocks. Its output is non-counting.
 - SP-001 keeps learned skills off and allows only bounded observation/navigation, exact wooden-pickaxe equip, and the nearest reachable observed `stone` dig. Every dig requires strict tool, block-removal, pickup, and pre/post-observation proof.
+- `scripts/stone-pickaxe-sp003-runtime.ps1` requires clean synchronized `main`, a pushed one-file authorization commit, a fresh unique world and evidence directory, the pinned Paper/protocol identities, free owned ports, and bridge craft attempts fixed to one. It starts exactly one episode and has no retry loop.
+- `scripts/stone_pickaxe_sp003_episode_runner.py` retains the authorization, reset, preflight, raw session, episode, component verification, audit, and manifest in one append-only run directory. It never starts BM-012 terminal evaluation or grants capability/M4 credit.
 - `Agent.run_goal` can now bind Planner and ActionController to one supplied absolute deadline and suppress every action beyond a supplied total budget. Existing callers retain their previous behavior when those optional bounds are absent.
 - Offline status: 36/36 protocol cases and 32/32 runtime cases pass. The repository-wide non-live regression gate is rerun before each evidence or offline-fix commit.
 - Fixture session `sp_fixture_prep_20260715_143222_b0e58483` exposed the first blocker: Planner call 0 consumed the completion budget as hidden reasoning, returned zero response bytes, and caused `empty_plan` before any action. The fixed request path now sends thinking-disabled controls, uses one deadline-bounded zero-retry call, rejects empty output, and independently audits Planner controls before fixture sealing or SP-001 eligibility.
@@ -189,7 +193,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Unlocked for protocol definition and offline verification; live execution not authorized |
+| 8. SP-003 composite acceptance | Phase 72 offline harness ready; baseline 0/1 and candidates 0/3; live execution not yet authorized |
 
 ## Frozen Baseline
 
@@ -201,4 +205,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed v2 arms or candidates; run excluded v1 IDs; reuse prior pair IDs; create another SP-002 live evaluation window; run SP-003 live before its protocol, offline verifier, and separate authorization are committed; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen protocol or evidence; run SP-003 before Phase 72 is pushed and a separate one-use authorization is pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
