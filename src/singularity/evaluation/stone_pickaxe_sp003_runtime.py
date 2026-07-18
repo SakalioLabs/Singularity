@@ -927,21 +927,47 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
     }
 
 
-def _verified_action_success(result: Any) -> bool:
+def _verified_action_success(result: Any, *, allow_review: bool = False) -> bool:
     value = result if isinstance(result, dict) else {}
     verification = value.get("action_verification") if isinstance(value.get("action_verification"), dict) else {}
-    return value.get("success") is True and verification.get("status") == "accept"
+    accepted_statuses = {"accept", "review"} if allow_review else {"accept"}
+    return value.get("success") is True and verification.get("status") in accepted_statuses
+
+
+def _single_craft_machine_success(result: Any, item: str, count: int) -> bool:
+    value = result if isinstance(result, dict) else {}
+    inventory_delta = (
+        value.get("inventory_delta")
+        if isinstance(value.get("inventory_delta"), dict)
+        else {}
+    )
+    signed_delta = (
+        value.get("inventory_signed_delta")
+        if isinstance(value.get("inventory_signed_delta"), dict)
+        else {}
+    )
+    return bool(
+        item
+        and count > 0
+        and value.get("item") == item
+        and _count(value.get("count")) == count
+        and _count(value.get("requested_output_count")) == count
+        and value.get("craft_attempts") == 1
+        and value.get("craft_retry_count") == 0
+        and _count(inventory_delta.get(item)) == count
+        and _count(signed_delta.get(item)) == count
+    )
 
 
 def record_sp003_success(progress: dict, action: Any, result: Any) -> dict:
-    if not _verified_action_success(result):
-        return _progress_snapshot(progress)
     value = action if isinstance(action, dict) else {}
     params = value.get("parameters") if isinstance(value.get("parameters"), dict) else {}
     backend = result if isinstance(result, dict) else {}
     action_type = str(value.get("type") or "")
     item = str(params.get("item") or "")
     block = str(params.get("block") or backend.get("block") or "")
+    if not _verified_action_success(result, allow_review=action_type == "craft"):
+        return _progress_snapshot(progress)
     mutation = {"type": action_type, "item": item, "block": block}
     if action_type == "dig" and block in IRON_BLOCKS:
         progress["iron_mining_action_count"] += 1
@@ -971,7 +997,10 @@ def record_sp003_success(progress: dict, action: Any, result: Any) -> dict:
         ):
             progress["stone_source_ids"].add(identifier)
             mutation["source_id"] = identifier
-    elif action_type == "craft" and backend.get("craft_attempts") == 1 and backend.get("craft_retry_count") == 0:
+    elif action_type == "craft":
+        output_count = _count(params.get("count"))
+        if not _single_craft_machine_success(backend, item, output_count):
+            return _progress_snapshot(progress)
         if item in set(PLANK_BY_LOG.values()) and params.get("count") == 12:
             progress["plank_craft_count"] += 1
         elif item == "stick" and params.get("count") == 4:
@@ -982,6 +1011,8 @@ def record_sp003_success(progress: dict, action: Any, result: Any) -> dict:
             progress["wooden_pickaxe_craft_count"] += 1
         elif item == "stone_pickaxe" and params.get("count") == 1:
             progress["stone_pickaxe_craft_count"] += 1
+        else:
+            return _progress_snapshot(progress)
     elif action_type == "place" and item == "crafting_table":
         placed_position = _compact_position(backend.get("placed_position"))
         target_after = (

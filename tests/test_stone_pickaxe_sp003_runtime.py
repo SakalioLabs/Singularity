@@ -360,6 +360,69 @@ def test_progress_only_advances_on_verified_machine_success():
     assert _progress_snapshot(progress)["log_source_removal_count"] == 1
 
 
+def test_third_baseline_reviewed_plank_transition_unblocks_exact_stick_craft():
+    session_path = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_051736_a27843f7/session.json"
+    )
+    events = json.loads(session_path.read_text(encoding="utf-8"))
+    plank_event = next(
+        event["data"]
+        for event in events
+        if event.get("type") == "action"
+        and event.get("data", {}).get("action", {}).get("parameters", {}).get("item")
+        == "dark_oak_planks"
+    )
+    action = plank_event["action"]
+    result = plank_event["result"]
+    assert result["action_verification"]["status"] == "review"
+    assert result["inventory_signed_delta"] == {
+        "dark_oak_log": -3,
+        "dark_oak_planks": 12,
+    }
+
+    progress = _empty_progress()
+    progress["log_source_ids"] = {
+        "dark_oak_log:93:142:-31",
+        "dark_oak_log:94:141:-31",
+        "dark_oak_log:94:142:-31",
+    }
+    progress["log_item"] = "dark_oak_log"
+    after = record_sp003_success(progress, action, result)
+
+    assert after["plank_craft_count"] == 1
+    assert after["successful_mutation_count"] == 1
+    sticks = guard_sp003_action(
+        {"type": "craft", "parameters": {"item": "stick", "count": 4}},
+        observation(result["inventory_after"]),
+        progress,
+    )
+    assert sticks["allowed"], sticks
+
+
+def test_reviewed_craft_without_exact_machine_delta_fails_closed():
+    progress = preparation_progress()
+    action = {
+        "type": "craft",
+        "parameters": {"item": "oak_planks", "count": 12},
+    }
+    result = accepted_result(
+        action_verification={"status": "review"},
+        item="oak_planks",
+        count=12,
+        requested_output_count=12,
+        craft_attempts=1,
+        craft_retry_count=0,
+        inventory_delta={"oak_planks": 12},
+        inventory_signed_delta={"oak_log": -3, "oak_planks": 11},
+    )
+
+    after = record_sp003_success(progress, action, result)
+
+    assert after["plank_craft_count"] == 0
+    assert after["successful_mutation_count"] == 0
+
+
 def test_machine_proven_table_position_can_be_used_for_bounded_return_navigation():
     progress = preparation_progress()
     progress.update({

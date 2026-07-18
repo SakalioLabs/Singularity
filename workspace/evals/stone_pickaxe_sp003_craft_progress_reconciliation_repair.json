@@ -1,0 +1,121 @@
+{
+  "type": "stone_pickaxe_sp003_craft_progress_reconciliation_repair",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T21:40:06Z",
+  "phase": 78,
+  "status": "offline_fix_verified_pending_commit_push",
+  "base_commit": "ec0b612dcaeda0fafe4f0c9bec3bcc601fb6ef4e",
+  "task_id": "SP-003",
+  "runtime_policy": {
+    "id": "stone-pickaxe-sp003-empty-hand-runtime-v1",
+    "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+    "sha256": "a1aad016b58bad4d0def89f782f67d2cb02ea9c1b846d7c9d9c4e32cfdc2a438",
+    "modified": false
+  },
+  "retained_failure": {
+    "episode_id": "sp003_baseline_20260719_051736_a27843f7",
+    "session_id": "6c068f4d-7e2",
+    "authorization_commit": "5efdada20920a4ffb69ea84ad2254d4a555050a3",
+    "evidence_commit": "ec0b612dcaeda0fafe4f0c9bec3bcc601fb6ef4e",
+    "manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_051736_a27843f7/manifest.json",
+    "manifest_sha256": "0199d27983e337c59c012e1061411ef02e2339e159bb62ffbe5e3f9e841f20c2",
+    "session_sha256": "a9e32b15c37d441a04d401be3f281c78413c50d7bcf2320e8a0a3dc7a0da2ad0",
+    "llm_call_count": 15,
+    "action_count": 15,
+    "successful_action_count": 4,
+    "failed_action_count": 11,
+    "elapsed_s": 318.5,
+    "automatic_retry_performed": false
+  },
+  "earliest_unrecovered_transition": {
+    "action_index": 4,
+    "action": {
+      "type": "craft",
+      "item": "dark_oak_planks",
+      "count": 12
+    },
+    "backend_success": true,
+    "backend_craft_attempts": 1,
+    "backend_craft_retry_count": 0,
+    "inventory_before": {
+      "dark_oak_log": 3
+    },
+    "inventory_after": {
+      "dark_oak_planks": 12
+    },
+    "inventory_signed_delta": {
+      "dark_oak_log": -3,
+      "dark_oak_planks": 12
+    },
+    "generic_action_verification_status": "review",
+    "generic_action_verification_reason": "unknown recipe for dark_oak_planks",
+    "sp003_progress_before": {
+      "log_source_removal_count": 3,
+      "plank_craft_count": 0
+    },
+    "sp003_progress_after": {
+      "log_source_removal_count": 3,
+      "plank_craft_count": 0
+    },
+    "downstream_failure": "Eleven exact stick crafts were rejected because the stale progress still required the already completed plank transition."
+  },
+  "root_cause": {
+    "classification": "sp003_successful_craft_progress_reconciliation_disconnect",
+    "runtime_required_generic_accept": true,
+    "generic_verifier_returned_review": true,
+    "strict_sp003_guard_had_allowed_action": true,
+    "machine_transition_proved_exact_output": true,
+    "world_interaction_failed": false,
+    "planner_recovery_failed": true
+  },
+  "change": {
+    "runtime_path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+    "runtime_sha256": "5f1136777a409c59cfe8823d94373a804048df51bcaf2c37ad9eec4123fde09d",
+    "tests_path": "tests/test_stone_pickaxe_sp003_runtime.py",
+    "tests_sha256": "588455e750ef0ee44237b103e92c2ce6e5944fdec7f65c3998b382c2738d5700",
+    "review_scope": "craft actions only",
+    "required_machine_proofs": [
+      "result success",
+      "exact result item",
+      "exact result count",
+      "exact requested output count",
+      "one backend craft attempt",
+      "zero backend craft retries",
+      "exact positive inventory delta for the requested output",
+      "exact positive signed inventory delta for the requested output"
+    ],
+    "non_craft_acceptance_changed": false,
+    "action_guard_changed": false,
+    "planner_changed": false,
+    "shared_agent_changed": false
+  },
+  "validation": {
+    "retained_third_baseline_replay_unblocks_stick_craft": true,
+    "tampered_signed_output_delta_fails_closed": true,
+    "sp003_dedicated": "22/22",
+    "stone_pickaxe_protocol_and_runtime": "108/108",
+    "repository_non_live_python": "958/958",
+    "m4_benchmark_reset_node_suite": true,
+    "python_compile": true,
+    "frozen_policy_sha256_preserved": true,
+    "frozen_protocol_sha256_preserved": true,
+    "retained_manifest_sha256_preserved": true
+  },
+  "immutability": {
+    "retained_failure_modified": false,
+    "prior_sp003_failures_modified": false,
+    "prior_sp001_sp002_evidence_modified": false,
+    "custom_skill_store_modified": false,
+    "capability_report_modified": false
+  },
+  "live_state": {
+    "baseline_authorizations_consumed": 3,
+    "baseline_failures": 3,
+    "baseline_successes": 0,
+    "candidate_successes": 0,
+    "live_authorization": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "next_gate": "push_phase_78_then_commit_a_fresh_parent_bound_baseline_authorization_without_reusing_any_failed_episode"
+}

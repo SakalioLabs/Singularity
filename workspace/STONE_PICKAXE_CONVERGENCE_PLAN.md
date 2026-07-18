@@ -17,9 +17,9 @@ This project isolates two bounded Minecraft capabilities:
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
 | SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Offline harness ready; live baseline not yet authorized |
 
-Current phase: **Phase 76 verifies the Runner gate-profile API repair after a second consumed SP-003 baseline passed reset and Agent connection but stopped before preflight. Both retained failures have zero LLM calls and zero actions. The full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 78 verifies successful-craft progress reconciliation after the third consumed SP-003 baseline reached the real Planner, removed three exact logs, and crafted 12 exact planks, but stale progress caused eleven rejected stick actions. The full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and failed SP-003 episodes `sp003_baseline_20260719_044130_998a5bbd` and `sp003_baseline_20260719_045836_da326336` cannot be reused. After the Phase 76 repair commit is pushed and `main` is synchronized, the next transaction is one fresh parent-bound SP-003 baseline authorization. Automatic retry, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and failed SP-003 episodes `sp003_baseline_20260719_044130_998a5bbd`, `sp003_baseline_20260719_045836_da326336`, and `sp003_baseline_20260719_051736_a27843f7` cannot be reused. After the Phase 78 repair commit is pushed and `main` is synchronized, the next transaction is one fresh parent-bound SP-003 baseline authorization. Automatic retry, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -193,7 +193,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 76 Runner API repair verified; two zero-action baseline failures retained; baseline 0/1 and candidates 0/3 |
+| 8. SP-003 composite acceptance | Phase 78 craft-progress repair verified; three baseline failures retained; baseline 0/1 and candidates 0/3 |
 
 ## Frozen Baseline
 
@@ -205,4 +205,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen protocol or evidence; run SP-003 before Phase 72 is pushed and a separate one-use authorization is pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen protocol or evidence; run SP-003 before the current offline repair is pushed and a separate one-use authorization is pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
