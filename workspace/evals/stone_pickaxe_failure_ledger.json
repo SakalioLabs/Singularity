@@ -1,14 +1,14 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T15:12:00+08:00",
+  "generated_at": "2026-07-18T15:28:00+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_37_sp002_fixture_preparation_failure_evidence",
-  "status": "sp002_fixture_preparation_transport_failure_retained_pending_commit_push",
+  "phase": "phase_38_sp002_fixture_preparation_reauthorization_gate",
+  "status": "sp002_consumed_authorization_archive_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
@@ -1299,6 +1299,23 @@
       "matching_runtime_process_count_after_stop": 0,
       "authorization_reuse_allowed": false,
       "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 37,
+      "name": "sp002_consumed_authorization_immutable_archive",
+      "status": "archive_ready_pending_commit_push",
+      "failure_evidence_commit": "35a0ee596f8d22cc8941e18656b023fcee97fe01",
+      "episode_id": "sp002_fixture_20260718_150018_18719678",
+      "authorization_id": "b31e8d01c6c1ffd25eed5466d2571c733a8c7affd55b0471e3bacb9c95240743",
+      "immutable_authorization_archive_path": "workspace/evals/sp002_fixture_preparation_failures/sp002_fixture_20260718_150018_18719678/authorization.json",
+      "immutable_authorization_archive_sha256": "ede6f9af6e56d70d01c505ad808050cf1612acca6b7cf5f87fa3af55dd4341e7",
+      "mutable_next_authorization_path_excluded_from_retained_failure_hashes": true,
+      "source_fixture_reaudit_passed": true,
+      "source_fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+      "live_episode_run": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "automatic_retry_allowed": false
@@ -3405,7 +3422,7 @@
       },
       "evidence": [
         {
-          "path": "workspace/evals/stone_pickaxe_sp002_next_authorization.json",
+          "path": "workspace/evals/sp002_fixture_preparation_failures/sp002_fixture_20260718_150018_18719678/authorization.json",
           "sha256": "ede6f9af6e56d70d01c505ad808050cf1612acca6b7cf5f87fa3af55dd4341e7"
         },
         {
@@ -3805,6 +3822,8 @@
     "sp002_fixture_preparation_external_transport_fail_closed": true,
     "sp002_fixture_preparation_evidence_hashes_passed": 11,
     "sp002_fixture_preparation_authorization_reuse_allowed": false,
+    "sp002_fixture_preparation_consumed_authorization_archive_immutable": true,
+    "sp002_fixture_preparation_consumed_authorization_archive_sha256": "ede6f9af6e56d70d01c505ad808050cf1612acca6b7cf5f87fa3af55dd4341e7",
     "sp001_frozen_runtime_identity_preserved": true,
     "sp001_frozen_launcher_identity_preserved": true,
     "impacted_runtime_regressions": {
@@ -4060,6 +4079,7 @@
       "sp002_offline_harness_commit_pushed",
       "sp001_source_fixture_tree_reaudited",
       "sp002_fixture_preparation_failure_evidence_commit_pushed",
+      "sp002_consumed_authorization_archive_commit_pushed",
       "new_sp002_fixture_preparation_authorization_committed_and_pushed",
       "authorization_predecessor_equals_authorization_commit_parent",
       "clean_synchronized_main_before_runtime_start"
@@ -4084,7 +4104,7 @@
     "sp002_fixture_manifest_created": false,
     "sp002_fixture_snapshot_created": false,
     "sp002_authorization_artifacts_created": 1,
-    "sp002_fixture_preparation_artifacts_created": 10,
+    "sp002_fixture_preparation_artifacts_created": 11,
     "sp002_fixture_preparation_artifacts_retained_locally": true,
     "sp002_run_artifacts_created": 0,
     "sp003_run_artifacts_created": 0,
