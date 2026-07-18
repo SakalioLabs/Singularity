@@ -10,19 +10,21 @@
   "evaluated_skill_version": "1.0.0",
   "candidate_id": "a488cd61",
   "pair_count": 3,
-  "valid_pair_count": 2,
+  "valid_pair_count": 3,
   "baseline_session_ids": [
     "009dafd7-659",
+    "102aa710-b41",
     "e6cebfbe-dfe"
   ],
   "candidate_session_ids": [
+    "2b6baf3a-e3e",
     "45f20f79-0ac",
     "6acf4503-737"
   ],
   "shadow_verified": true,
   "advisory_verified": true,
   "fallback_verified": true,
-  "fixed_controls_match": false,
+  "fixed_controls_match": true,
   "live_minecraft_only": true,
   "candidate_steps_verified": true,
   "candidate_steps_reobserved": true,
@@ -37,15 +39,15 @@
     "candidate_verifier_rejects": 0,
     "baseline_no_progress_loops": 0,
     "candidate_no_progress_loops": 0,
-    "baseline_environment_steps": 2,
-    "candidate_environment_steps": 2,
-    "baseline_planner_calls": 2,
-    "candidate_planner_calls": 2,
+    "baseline_environment_steps": 3,
+    "candidate_environment_steps": 3,
+    "baseline_planner_calls": 3,
+    "candidate_planner_calls": 3,
     "environment_step_gain": 0,
     "planner_call_gain": 0
   },
-  "decision": "retain_advisory",
-  "readiness": "review",
+  "decision": "review_executable_new_version",
+  "readiness": "approved",
   "pairs": [
     {
       "pair_id": "sp002-craft-v2-r4",
@@ -161,15 +163,15 @@
       "pair_id": "sp002-craft-v2-r6",
       "replicate_id": "r6",
       "baseline_run_id": "baseline:sp002_live_20260718_203340_c9749b39",
-      "candidate_run_id": "",
+      "candidate_run_id": "candidate:sp002_skill_candidate_v2_20260719_021828_219d1851",
       "baseline_session_id": "102aa710-b41",
-      "candidate_session_id": "",
+      "candidate_session_id": "2b6baf3a-e3e",
       "baseline_passed": true,
-      "candidate_passed": false,
-      "fixed_controls_match": false,
-      "initial_state_match": false,
+      "candidate_passed": true,
+      "fixed_controls_match": true,
+      "initial_state_match": true,
       "baseline_integrity": true,
-      "candidate_integrity": false,
+      "candidate_integrity": true,
       "baseline_metrics": {
         "task_completion": 1,
         "environment_steps": 1,
@@ -190,8 +192,27 @@
         "exact_skill_context_only": false,
         "attribution_confidence": 0.0
       },
-      "candidate_metrics": {},
-      "eligible": false
+      "candidate_metrics": {
+        "task_completion": 1,
+        "environment_steps": 1,
+        "successful_actions": 1,
+        "failed_actions": 0,
+        "verifier_rejects": 0,
+        "planner_calls": 1,
+        "no_progress_loops": 0,
+        "skill_selected_count": 1,
+        "skill_executed_count": 1,
+        "skill_completion_count": 1,
+        "skill_outcome_count": 1,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "candidate_steps_verified": true,
+        "candidate_steps_reobserved": true,
+        "exact_skill_context_only": true,
+        "attribution_confidence": 1.0
+      },
+      "eligible": true
     }
   ],
   "support_runs": [
@@ -227,21 +248,23 @@
     "skill_version": "1.0.1",
     "promoted_skill_version": "1.0.1",
     "evaluated_skill_version": "1.0.0",
-    "readiness": "review",
-    "decision": "retain_advisory",
+    "readiness": "approved",
+    "decision": "promote_executable",
     "single_target_skill": true,
-    "paired_live_session_count": 2,
+    "paired_live_session_count": 3,
     "baseline_session_ids": [
       "009dafd7-659",
+      "102aa710-b41",
       "e6cebfbe-dfe"
     ],
     "candidate_session_ids": [
+      "2b6baf3a-e3e",
       "45f20f79-0ac",
       "6acf4503-737"
     ],
     "shadow_plan_verified": true,
     "advisory_hint_verified": true,
-    "fixed_controls_match": false,
+    "fixed_controls_match": true,
     "live_minecraft_only": true,
     "goal_verifier_enforced": true,
     "action_verifier_enforced": true,
@@ -276,14 +299,7 @@
     "normal_runtime_permission": false,
     "counts_toward_capability": false,
     "counts_toward_m4": false,
-    "validation_issues": [
-      "executable_promotion_decision_invalid",
-      "executable_promotion_gate_not_approved",
-      "insufficient_distinct_baseline_sessions",
-      "insufficient_distinct_candidate_sessions",
-      "insufficient_paired_live_sessions",
-      "promotion_gate_check_failed:fixed_controls_match"
-    ]
+    "validation_issues": []
   },
   "evaluation_window_id": "sp002-first-cycle-skill-routing-v2",
   "prior_policy_id": "stone-pickaxe-sp002-paired-evaluation-v1",
