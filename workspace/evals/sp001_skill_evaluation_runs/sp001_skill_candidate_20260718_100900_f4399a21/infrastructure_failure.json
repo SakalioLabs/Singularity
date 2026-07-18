@@ -1,0 +1,109 @@
+{
+  "$schema": "workspace/evals/schemas/sp001_skill_evaluation_infrastructure_failure.schema.json",
+  "type": "sp001_skill_evaluation_infrastructure_failure",
+  "schema_version": 1,
+  "generated_at": "2026-07-18T10:16:37+08:00",
+  "classification": "infrastructure_ineligible",
+  "failure_stage": "controlled_runtime_startup_before_bot_ready",
+  "authorization": {
+    "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/authorization.json",
+    "sha256": "f395717e7cbb34c28404cb89bc9a528c69e481cefb78147498750d1b7c6095b5",
+    "authorization_id": "sp001-eval:candidate:r12:sp001_skill_candidate_20260718_100900_f4399a21",
+    "git_head": "be9e770f972a6615bdf8f5dd07075896b3e92846",
+    "arm": "candidate",
+    "replicate_id": "r12",
+    "pair_id": "sp001-acquire-recovery-v4-r12",
+    "single_use": true,
+    "consumed": true
+  },
+  "restoration": {
+    "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/restoration.json",
+    "sha256": "b796e42f4c81c9812b3b0a7384c98263c2723b7f89e3e3915a11a9fee4422253",
+    "passed": true,
+    "fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636"
+  },
+  "runtime": {
+    "server_process_started": true,
+    "minecraft_port_became_ready": true,
+    "bridge_process_started": true,
+    "bridge_bot_ready": false,
+    "session_created": false,
+    "episode_created": false,
+    "evaluation_run_created": false,
+    "manifest_created": false,
+    "planner_call_count": 0,
+    "action_count": 0,
+    "skill_selection_count": 0,
+    "skill_execution_count": 0,
+    "skill_completion_count": 0,
+    "launcher_error": "Bridge did not report bot_ready=true for sp001_skill_candidate_20260718_100900_f4399a21.",
+    "controlled_ports_clear_after_stop": true,
+    "matching_runtime_process_count_after_stop": 0
+  },
+  "diagnosis": {
+    "root_cause": "host_virtual_memory_exhaustion",
+    "paper_failure": "jvm_native_memory_allocation_failed",
+    "native_allocation_request_bytes": 1103256,
+    "jvm_crash_report_local_sha256": "41d890deae33d8240e961ddc0a4dac0f908d987a4c0a463e3ac4d68baf6f992f",
+    "resource_pressure_source": "unrelated_nuxt_dev_server",
+    "before_remediation": {
+      "total_physical_mb": 98093,
+      "free_physical_mb": 46845,
+      "free_virtual_mb": 708,
+      "runaway_working_set_bytes": 17118613504,
+      "runaway_page_file_usage_kb": 173775156
+    },
+    "remediation": {
+      "exact_process_tree_stopped": true,
+      "target_process_count": 5,
+      "target_processes_remaining": 0,
+      "free_physical_mb_after": 64459,
+      "free_virtual_mb_after": 100883
+    }
+  },
+  "eligibility": {
+    "skill_quality_observed": false,
+    "eligible_pair": false,
+    "v4_valid_pair_count_before": 2,
+    "v4_valid_pair_count_after": 2,
+    "v4_report_rewritten": false,
+    "counts_toward_skill_gate": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "retry_policy": {
+    "automatic_retry_allowed": false,
+    "r12_reuse_allowed": false,
+    "fresh_window_required": true
+  },
+  "evidence": [
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/runtime_bridge_stderr.log",
+      "sha256": "6243325e1897c5f2915fab1e8b27f4f997db6d37242b779bf21ce99fec75fb80",
+      "bytes": 439
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/runtime_bridge_stdout.log",
+      "sha256": "0fbc87210ff4f97aec8ac06f3d5e3024fd8ef6f247afe310fc4a6faaa7b7bfb9",
+      "bytes": 4274
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/runtime_server_stderr.log",
+      "sha256": "abecda7d02d7013fc88b67ece5249ffcfe3ae86789b7645740a190dd583e9096",
+      "bytes": 1120
+    },
+    {
+      "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/runtime_server_stdout.log",
+      "sha256": "1234a2034789ca9ab9970ff75fac9a4a2523afa0e882ae8f0cc7be2ae731929d",
+      "bytes": 2641
+    }
+  ],
+  "excluded_sensitive_artifacts": [
+    {
+      "artifact": "jvm_crash_report",
+      "reason": "contains_process_environment_and_host_metadata",
+      "retained_in_repository": false,
+      "source_sha256": "41d890deae33d8240e961ddc0a4dac0f908d987a4c0a463e3ac4d68baf6f992f"
+    }
+  ]
+}

@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sp001_skill_evaluation_infrastructure_failure.schema.json",
+  "title": "SP-001 Skill Evaluation Infrastructure Failure",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "type",
+    "schema_version",
+    "generated_at",
+    "classification",
+    "failure_stage",
+    "authorization",
+    "restoration",
+    "runtime",
+    "diagnosis",
+    "eligibility",
+    "retry_policy",
+    "evidence",
+    "excluded_sensitive_artifacts"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "workspace/evals/schemas/sp001_skill_evaluation_infrastructure_failure.schema.json"
+    },
+    "type": {
+      "const": "sp001_skill_evaluation_infrastructure_failure"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "classification": {
+      "const": "infrastructure_ineligible"
+    },
+    "failure_stage": {
+      "const": "controlled_runtime_startup_before_bot_ready"
+    },
+    "authorization": {
+      "$ref": "#/$defs/authorization"
+    },
+    "restoration": {
+      "$ref": "#/$defs/restoration"
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "server_process_started",
+        "minecraft_port_became_ready",
+        "bridge_process_started",
+        "bridge_bot_ready",
+        "session_created",
+        "episode_created",
+        "evaluation_run_created",
+        "manifest_created",
+        "planner_call_count",
+        "action_count",
+        "skill_selection_count",
+        "skill_execution_count",
+        "skill_completion_count",
+        "launcher_error",
+        "controlled_ports_clear_after_stop",
+        "matching_runtime_process_count_after_stop"
+      ],
+      "properties": {
+        "server_process_started": { "const": true },
+        "minecraft_port_became_ready": { "const": true },
+        "bridge_process_started": { "const": true },
+        "bridge_bot_ready": { "const": false },
+        "session_created": { "const": false },
+        "episode_created": { "const": false },
+        "evaluation_run_created": { "const": false },
+        "manifest_created": { "const": false },
+        "planner_call_count": { "const": 0 },
+        "action_count": { "const": 0 },
+        "skill_selection_count": { "const": 0 },
+        "skill_execution_count": { "const": 0 },
+        "skill_completion_count": { "const": 0 },
+        "launcher_error": {
+          "const": "Bridge did not report bot_ready=true for sp001_skill_candidate_20260718_100900_f4399a21."
+        },
+        "controlled_ports_clear_after_stop": { "const": true },
+        "matching_runtime_process_count_after_stop": { "const": 0 }
+      }
+    },
+    "diagnosis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "root_cause",
+        "paper_failure",
+        "native_allocation_request_bytes",
+        "jvm_crash_report_local_sha256",
+        "resource_pressure_source",
+        "before_remediation",
+        "remediation"
+      ],
+      "properties": {
+        "root_cause": { "const": "host_virtual_memory_exhaustion" },
+        "paper_failure": { "const": "jvm_native_memory_allocation_failed" },
+        "native_allocation_request_bytes": { "const": 1103256 },
+        "jvm_crash_report_local_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "resource_pressure_source": { "const": "unrelated_nuxt_dev_server" },
+        "before_remediation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total_physical_mb",
+            "free_physical_mb",
+            "free_virtual_mb",
+            "runaway_working_set_bytes",
+            "runaway_page_file_usage_kb"
+          ],
+          "properties": {
+            "total_physical_mb": { "type": "integer", "minimum": 1 },
+            "free_physical_mb": { "type": "integer", "minimum": 0 },
+            "free_virtual_mb": { "type": "integer", "minimum": 0 },
+            "runaway_working_set_bytes": { "type": "integer", "minimum": 1 },
+            "runaway_page_file_usage_kb": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "remediation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "exact_process_tree_stopped",
+            "target_process_count",
+            "target_processes_remaining",
+            "free_physical_mb_after",
+            "free_virtual_mb_after"
+          ],
+          "properties": {
+            "exact_process_tree_stopped": { "const": true },
+            "target_process_count": { "const": 5 },
+            "target_processes_remaining": { "const": 0 },
+            "free_physical_mb_after": { "type": "integer", "minimum": 1 },
+            "free_virtual_mb_after": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "eligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "skill_quality_observed",
+        "eligible_pair",
+        "v4_valid_pair_count_before",
+        "v4_valid_pair_count_after",
+        "v4_report_rewritten",
+        "counts_toward_skill_gate",
+        "counts_toward_capability",
+        "counts_toward_m4"
+      ],
+      "properties": {
+        "skill_quality_observed": { "const": false },
+        "eligible_pair": { "const": false },
+        "v4_valid_pair_count_before": { "const": 2 },
+        "v4_valid_pair_count_after": { "const": 2 },
+        "v4_report_rewritten": { "const": false },
+        "counts_toward_skill_gate": { "const": false },
+        "counts_toward_capability": { "const": false },
+        "counts_toward_m4": { "const": false }
+      }
+    },
+    "retry_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "automatic_retry_allowed",
+        "r12_reuse_allowed",
+        "fresh_window_required"
+      ],
+      "properties": {
+        "automatic_retry_allowed": { "const": false },
+        "r12_reuse_allowed": { "const": false },
+        "fresh_window_required": { "const": true }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/file" }
+    },
+    "excluded_sensitive_artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["artifact", "reason", "retained_in_repository", "source_sha256"],
+        "properties": {
+          "artifact": { "const": "jvm_crash_report" },
+          "reason": {
+            "const": "contains_process_environment_and_host_metadata"
+          },
+          "retained_in_repository": { "const": false },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "bytes"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "bytes": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "authorization_id",
+        "git_head",
+        "arm",
+        "replicate_id",
+        "pair_id",
+        "single_use",
+        "consumed"
+      ],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "authorization_id": { "type": "string", "minLength": 1 },
+        "git_head": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "arm": { "const": "candidate" },
+        "replicate_id": { "const": "r12" },
+        "pair_id": { "const": "sp001-acquire-recovery-v4-r12" },
+        "single_use": { "const": true },
+        "consumed": { "const": true }
+      }
+    },
+    "restoration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "passed", "fixture_tree_sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "passed": { "const": true },
+        "fixture_tree_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

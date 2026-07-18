@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T10:02:15+08:00",
+  "generated_at": "2026-07-18T10:16:37+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_25_sp001_recovery_candidate_r12_authorized",
-  "status": "sp001_recovery_candidate_r12_authorized_pending_commit_push",
+  "phase": "phase_26_sp001_recovery_candidate_r12_infrastructure_failure_retained",
+  "status": "sp001_recovery_candidate_r12_infrastructure_failure_evidence_pending_commit_push",
   "capability_evidence": false,
   "m4_evidence": false,
-  "live_authorization": true,
+  "live_authorization": false,
   "fixture_preparation_authorization": false,
-  "authorized_live_episode_count": 1,
-  "authorization_scope": "single_sp001_recovery_candidate_r12_only",
+  "authorized_live_episode_count": 0,
+  "authorization_scope": "none",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -23,10 +23,11 @@
     "conditional_sp001_authorization_activated": true,
     "sp001_live_episodes_run": 12,
     "paired_evaluation_arms_authorized": 9,
-    "paired_evaluation_arms_consumed": 8,
+    "paired_evaluation_arms_consumed": 9,
     "paired_evaluation_arm_passes": 5,
     "paired_evaluation_arm_failures": 3,
-    "next_live_authorization": true
+    "paired_evaluation_arm_infrastructure_failures": 1,
+    "next_live_authorization": false
   },
   "fixture_preparation_success": {
     "episode_id": "sp_fixture_prep_20260717_221520_064dd337",
@@ -137,6 +138,8 @@
       "recovery_candidate_count": 2,
       "recovery_candidate_attempt_count": 2,
       "recovery_candidate_failure_count": 0,
+      "recovery_candidate_runtime_start_attempt_count": 3,
+      "recovery_candidate_infrastructure_failure_count": 1,
       "recovery_candidate_required": 3,
       "shadow_pass_count": 1,
       "advisory_pass_count": 1,
@@ -864,6 +867,51 @@
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "automatic_retry_allowed": false
+    },
+    {
+      "phase": 25,
+      "name": "sp001_recovery_candidate_r12_infrastructure_failure",
+      "status": "infrastructure_failure_evidence_pending_commit_push",
+      "authorization_predecessor": "be9e770f972a6615bdf8f5dd07075896b3e92846",
+      "window_id": "sp001-acquire-route-scope-recovery-v4",
+      "arm": "candidate",
+      "replicate_id": "r12",
+      "pair_id": "sp001-acquire-recovery-v4-r12",
+      "authorization_consumed": true,
+      "classification": "infrastructure_ineligible",
+      "failure_stage": "controlled_runtime_startup_before_bot_ready",
+      "root_cause": "host_virtual_memory_exhaustion",
+      "paper_failure": "jvm_native_memory_allocation_failed",
+      "episode_created": false,
+      "session_created": false,
+      "planner_call_count": 0,
+      "action_count": 0,
+      "skill_quality_observed": false,
+      "evaluation_run_created": false,
+      "v4_valid_pair_count": 2,
+      "v4_report_sha256": "cad8a9ed52168b1c06adb669851f730e6cafe14aa0badf2ab337a1f50c158469",
+      "authorization": {
+        "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/authorization.json",
+        "sha256": "f395717e7cbb34c28404cb89bc9a528c69e481cefb78147498750d1b7c6095b5"
+      },
+      "restoration": {
+        "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/restoration.json",
+        "sha256": "b796e42f4c81c9812b3b0a7384c98263c2723b7f89e3e3915a11a9fee4422253"
+      },
+      "infrastructure_failure": {
+        "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/infrastructure_failure.json",
+        "sha256": "de4a393bf184411d6f48c8ce70ff3c0389f8497214377483ca58e3007dc668c1"
+      },
+      "schema": {
+        "path": "workspace/evals/schemas/sp001_skill_evaluation_infrastructure_failure.schema.json",
+        "sha256": "2c6298ca37147ee97c3f2b72cb6b09851acd657fed789f607d39de004ff84a55"
+      },
+      "r12_reuse_allowed": false,
+      "fresh_window_required": true,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
     }
   ],
   "failure_taxonomy": [
@@ -885,7 +933,8 @@
     "sp001_pickup_same_cell_goal_alias",
     "sp001_skill_nearest_observed_ordering_disconnect",
     "sp001_skill_context_provenance_stripped_by_runtime_guard",
-    "sp001_skill_route_scope_root_goal_overwrite"
+    "sp001_skill_route_scope_root_goal_overwrite",
+    "sp001_skill_evaluation_host_virtual_memory_exhaustion"
   ],
   "failures": [
     {
@@ -2803,6 +2852,93 @@
         "counts_toward_capability": false,
         "counts_toward_m4": false
       }
+    },
+    {
+      "id": "sp001-skill-candidate-r12-host-virtual-memory-exhaustion",
+      "phase": "sp001_paired_evaluation_infrastructure",
+      "classification": "sp001_skill_evaluation_host_virtual_memory_exhaustion",
+      "status": "infrastructure_ineligible",
+      "attributable_to_learned_skill": false,
+      "arm": "candidate",
+      "replicate_id": "r12",
+      "pair_id": "sp001-acquire-recovery-v4-r12",
+      "evaluation_window_id": "sp001-acquire-route-scope-recovery-v4",
+      "episode_id": "sp001_skill_candidate_20260718_100900_f4399a21",
+      "session_id": "",
+      "occurred_at_utc": "2026-07-18T02:09:15Z",
+      "git_head_before_runtime_start": "be9e770f972a6615bdf8f5dd07075896b3e92846",
+      "authorization_consumed": true,
+      "restoration_passed": true,
+      "server_process_started": true,
+      "bridge_process_started": true,
+      "bridge_bot_ready": false,
+      "episode_created": false,
+      "session_created": false,
+      "planner_call_count": 0,
+      "action_count": 0,
+      "skill_quality_observed": false,
+      "evaluation_run_created": false,
+      "manifest_created": false,
+      "root_cause": "host_virtual_memory_exhaustion",
+      "paper_failure": "jvm_native_memory_allocation_failed",
+      "native_allocation_request_bytes": 1103256,
+      "resource_pressure_source": "unrelated_nuxt_dev_server",
+      "host_memory_before_remediation": {
+        "total_physical_mb": 98093,
+        "free_physical_mb": 46845,
+        "free_virtual_mb": 708,
+        "runaway_working_set_bytes": 17118613504,
+        "runaway_page_file_usage_kb": 173775156
+      },
+      "host_memory_after_remediation": {
+        "free_physical_mb": 64459,
+        "free_virtual_mb": 100883,
+        "target_processes_remaining": 0
+      },
+      "evidence": [
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/authorization.json",
+          "sha256": "f395717e7cbb34c28404cb89bc9a528c69e481cefb78147498750d1b7c6095b5"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/infrastructure_failure.json",
+          "sha256": "de4a393bf184411d6f48c8ce70ff3c0389f8497214377483ca58e3007dc668c1"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/restoration.json",
+          "sha256": "b796e42f4c81c9812b3b0a7384c98263c2723b7f89e3e3915a11a9fee4422253"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/runtime_bridge_stderr.log",
+          "sha256": "6243325e1897c5f2915fab1e8b27f4f997db6d37242b779bf21ce99fec75fb80"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/runtime_bridge_stdout.log",
+          "sha256": "0fbc87210ff4f97aec8ac06f3d5e3024fd8ef6f247afe310fc4a6faaa7b7bfb9"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/runtime_server_stderr.log",
+          "sha256": "abecda7d02d7013fc88b67ece5249ffcfe3ae86789b7645740a190dd583e9096"
+        },
+        {
+          "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/runtime_server_stdout.log",
+          "sha256": "1234a2034789ca9ab9970ff75fac9a4a2523afa0e882ae8f0cc7be2ae731929d"
+        }
+      ],
+      "jvm_crash_report_local_sha256": "41d890deae33d8240e961ddc0a4dac0f908d987a4c0a463e3ac4d68baf6f992f",
+      "jvm_crash_report_retained_in_repository": false,
+      "controlled_ports_clear_after_stop": true,
+      "matching_runtime_process_count_after_stop": 0,
+      "v4_valid_pair_count_before": 2,
+      "v4_valid_pair_count_after": 2,
+      "v4_report_rewritten": false,
+      "r12_reuse_allowed": false,
+      "counts_toward_skill_gate": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_attempted": false,
+      "automatic_retry_allowed": false,
+      "single_next_offline_fix": "define_a_fresh_non_overlapping_v5_recovery_window"
     }
   ],
   "eligible_successes": [
@@ -3146,7 +3282,7 @@
       "passed": 6,
       "total": 6
     },
-    "repository_json_files_parsed": 1294,
+    "repository_json_files_parsed": 1298,
     "python_compileall_passed": true,
     "fixture_snapshot_audit_passed": true,
     "fixture_manifest_hash_passed": true,
@@ -3173,7 +3309,7 @@
     "sp001_candidate_lifecycle_state_separation_test_passed": true,
     "skill_extractor_source_path_regression_passed": true,
     "runtime_profile_required_label_boundary_regression_passed": true,
-    "ledger_declared_hashes_passed": 235,
+    "ledger_declared_hashes_passed": 247,
     "sp001_declared_hashes_passed": 80,
     "sp001_candidate_materialization_passed": true,
     "sp001_candidate_custom_skill_isolation_passed": true,
@@ -3265,8 +3401,8 @@
     "sp001_route_scope_tamper_rejection_passed": true,
     "sp001_route_scope_fix_live_episode_run": false,
     "sp001_v4_policy_identity_passed": true,
-    "sp001_v4_recovery_window_cases_passed": 12,
-    "sp001_v4_recovery_window_cases_total": 12,
+    "sp001_v4_recovery_window_cases_passed": 13,
+    "sp001_v4_recovery_window_cases_total": 13,
     "sp001_v4_inherited_support_pass_count": 3,
     "sp001_v4_excluded_r1_through_r9_verified": true,
     "sp001_v4_retained_r1_r4_r7_integrity_verified": true,
@@ -3290,6 +3426,20 @@
     "sp001_v4_candidate_r11_skill_completed": true,
     "sp001_v4_candidate_r11_route_scope_valid": true,
     "sp001_v4_candidate_r11_live_authorization_consumed": true,
+    "sp001_v4_candidate_r12_live_authorization_consumed": true,
+    "sp001_v4_candidate_r12_infrastructure_ineligible": true,
+    "sp001_v4_candidate_r12_episode_created": false,
+    "sp001_v4_candidate_r12_planner_call_count": 0,
+    "sp001_v4_candidate_r12_action_count": 0,
+    "sp001_v4_candidate_r12_skill_quality_observed": false,
+    "sp001_v4_candidate_r12_reuse_allowed": false,
+    "sp001_v4_runtime_start_attempt_count": 3,
+    "sp001_v4_infrastructure_failure_count": 1,
+    "sp001_v4_infrastructure_failure_schema_passed": true,
+    "sp001_v4_infrastructure_failure_evidence_hashes_passed": 7,
+    "sp001_v4_infrastructure_failure_sha256": "de4a393bf184411d6f48c8ce70ff3c0389f8497214377483ca58e3007dc668c1",
+    "sp001_v4_infrastructure_failure_schema_sha256": "2c6298ca37147ee97c3f2b72cb6b09851acd657fed789f607d39de004ff84a55",
+    "sp001_v4_test_sha256": "fa0661bfa7c40a3e556315bc3b86f08104a61107ae2f12e1d906bd7d9a76cf23",
     "sp001_v4_policy_sha256": "dd9c40e876cc6e82f2219305da30fec2e5876998905a0332db929d0cbb16708a",
     "sp001_v4_baseline_index_sha256": "7a29efc1a95f6ed9b16a6c89566d49410af50d858a192c337ee3dc9db62f9ede",
     "sp001_v4_report_sha256": "cad8a9ed52168b1c06adb669851f730e6cafe14aa0badf2ab337a1f50c158469",
@@ -3301,18 +3451,17 @@
     "sp001_paired_decision": "retain_advisory"
   },
   "next_required_gate": {
-    "id": "sp001_candidate_r12_authorization",
-    "authorization": true,
+    "id": "sp001_recovery_window_v5_offline_definition",
+    "authorization": false,
     "prerequisites": [
-      "r11_pass_evidence_commit_pushed",
-      "r11_manifest_and_all_eleven_artifact_hashes_verified",
-      "v4_report_retains_two_independent_eligible_pairs",
-      "candidate_r12_is_fresh_and_unconsumed",
-      "clean_synchronized_main_before_separate_authorization"
+      "r12_infrastructure_failure_evidence_commit_pushed",
+      "r12_authorization_and_restoration_hashes_verified",
+      "r12_runtime_logs_and_schema_verified",
+      "v4_report_remains_byte_identical_at_two_independent_eligible_pairs",
+      "r12_is_permanently_consumed_and_excluded",
+      "fresh_non_overlapping_replicate_ids_are_defined_offline"
     ],
-    "arm": "candidate",
-    "replicate_id": "r12",
-    "live_episode_limit": 1,
+    "live_episode_limit": 0,
     "normal_runtime_permission": false,
     "automatic_retry_allowed": false
   },
@@ -3333,6 +3482,8 @@
     "paired_evaluation_report_artifacts_created": 4,
     "paired_baseline_records_created": 3,
     "paired_candidate_run_artifacts_created": 55,
+    "paired_infrastructure_failure_artifacts_created": 7,
+    "paired_infrastructure_failure_schema_artifacts_created": 1,
     "paired_support_run_artifacts_created": 33,
     "candidate_queue_records_created": 1,
     "advisory_skill_records_created": 1,
@@ -3480,6 +3631,18 @@
       "candidate_attempt_count": 2,
       "candidate_pass_count": 2,
       "candidate_failure_count": 0,
+      "runtime_start_attempt_count": 3,
+      "infrastructure_failure_count": 1,
+      "retained_infrastructure_failure": {
+        "replicate_id": "r12",
+        "episode_id": "sp001_skill_candidate_20260718_100900_f4399a21",
+        "path": "workspace/evals/sp001_skill_evaluation_runs/sp001_skill_candidate_20260718_100900_f4399a21/infrastructure_failure.json",
+        "sha256": "de4a393bf184411d6f48c8ce70ff3c0389f8497214377483ca58e3007dc668c1",
+        "classification": "infrastructure_ineligible",
+        "eligible_pair": false,
+        "skill_quality_observed": false,
+        "reuse_allowed": false
+      },
       "support_rerun_allowed": false,
       "prior_candidate_reuse_allowed": false,
       "normal_runtime_permission": false,
@@ -3980,13 +4143,10 @@
         "automatic_retry_allowed": false
       }
     ],
-    "next_arm": {
-      "arm": "candidate",
-      "replicate_id": "r12",
-      "authorized_after_commit_push": true,
-      "reason": "r11_evidence_is_pushed_and_exactly_one_r12_arm_is_authorized_after_this_commit_is_pushed",
-      "automatic_retry_allowed": false
-    },
+    "next_arm": null,
+    "window_closed": true,
+    "window_closure_reason": "r12_authorization_consumed_before_bot_ready_by_infrastructure_failure",
+    "fresh_window_required": true,
     "counts_toward_capability": false,
     "counts_toward_m4": false
   },

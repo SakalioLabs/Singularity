@@ -1,0 +1,37 @@
+Starting org.bukkit.craftbukkit.Main
+System Info: Java 25 (OpenJDK 64-Bit Server VM 25.0.1+8-LTS) Host: Windows 11 10.0 (amd64)
+Loading libraries, please wait...
+2026-07-18 10:09:07,559 ServerMain WARN Advanced terminal features are not available in this environment
+[10:09:11 INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, name=PROD]
+[10:09:12 INFO]: Loaded 1174 recipes
+[10:09:12 INFO]: Loaded 1271 advancements
+[10:09:12 INFO]: Starting minecraft server version 1.20.4
+[10:09:12 INFO]: Loading properties
+[10:09:12 INFO]: This server is running Paper version git-Paper-499 (MC: 1.20.4) (Implementing API version 1.20.4-R0.1-SNAPSHOT) (Git: 9de3f75 on ver/1.20.4)
+[10:09:13 INFO]: Server Ping Player Sample Count: 12
+[10:09:13 INFO]: Using 4 threads for Netty based IO
+[10:09:13 WARN]: [!] The timings profiler has been enabled but has been scheduled for removal from Paper in the future.
+    We recommend installing the spark profiler as a replacement: https://spark.lucko.me/
+    For more information please visit: https://github.com/PaperMC/Paper/issues/8948
+[10:09:13 INFO]: [ChunkTaskScheduler] Chunk system is using 1 I/O threads, 7 worker threads, and gen parallelism of 7 threads
+[10:09:13 INFO]: Default game type: SURVIVAL
+[10:09:13 INFO]: Generating keypair
+[10:09:13 INFO]: Starting Minecraft server on 127.0.0.1:25565
+[10:09:13 INFO]: Using default channel type
+[10:09:13 INFO]: Paper: Using Java compression from Velocity.
+[10:09:13 INFO]: Paper: Using Java cipher from Velocity.
+[10:09:13 INFO]: Server permissions file permissions.yml is empty, ignoring it
+[10:09:13 WARN]: **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[10:09:13 WARN]: The server will make no attempt to authenticate usernames. Beware.
+[10:09:13 WARN]: While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[10:09:13 WARN]: To change this, set "online-mode" to "true" in the server.properties file.
+[10:09:13 INFO]: Preparing level "sp001_skill_candidate_20260718_100900_f4399a21"
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (malloc) failed to allocate 1103256 bytes. Error detail: Chunk::new
+[10:09:14 INFO]: Preparing start region for dimension minecraft:overworld
+# An error report file with more information is saved as:
+# F:\Codex-Project\Singularity\mc-server\hs_err_pid124152.log
+#
+# Compiler replay data is saved as:
+# F:\Codex-Project\Singularity\mc-server\replay_pid124152.log

@@ -1,8 +1,11 @@
 import copy
+import hashlib
 import json
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
+
+from jsonschema import Draft202012Validator, FormatChecker
 
 from singularity.evaluation.stone_pickaxe_protocol import REPOSITORY_ROOT
 from singularity.evaluation.stone_pickaxe_runtime import file_sha256, read_json, repo_relative, write_json
@@ -161,6 +164,70 @@ def test_current_v4_report_retains_r10_and_r11_as_two_eligible_pairs():
         assert audit["passed"], audit["issues"]
         assert run["status"] == "pass"
         assert run["metrics"]["skill_completion_count"] == 1
+
+
+def test_r12_infrastructure_failure_is_schema_valid_consumed_and_ineligible():
+    run_root = (
+        REPOSITORY_ROOT
+        / "workspace/evals/sp001_skill_evaluation_runs"
+        / "sp001_skill_candidate_20260718_100900_f4399a21"
+    )
+    failure = read_json(run_root / "infrastructure_failure.json")
+    schema = read_json(
+        REPOSITORY_ROOT
+        / "workspace/evals/schemas/sp001_skill_evaluation_infrastructure_failure.schema.json"
+    )
+    Draft202012Validator(schema, format_checker=FormatChecker()).validate(failure)
+
+    authorization = read_json(run_root / "authorization.json")
+    restoration = read_json(run_root / "restoration.json")
+    assert failure["authorization"]["authorization_id"] == authorization["authorization_id"]
+    assert failure["authorization"]["git_head"] == authorization["git_head"]
+    assert failure["authorization"]["consumed"] is True
+    assert failure["restoration"]["passed"] == restoration["passed"] is True
+    assert failure["eligibility"]["eligible_pair"] is False
+    assert failure["runtime"]["planner_call_count"] == 0
+    assert failure["runtime"]["action_count"] == 0
+    assert failure["retry_policy"] == {
+        "automatic_retry_allowed": False,
+        "r12_reuse_allowed": False,
+        "fresh_window_required": True,
+    }
+
+    for record in [failure["authorization"], failure["restoration"], *failure["evidence"]]:
+        path = REPOSITORY_ROOT / record["path"]
+        assert path.is_file(), record["path"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+        if "bytes" in record:
+            assert path.stat().st_size == record["bytes"]
+
+    for forbidden in ("preflight.json", "session.json", "episode.json", "evaluation_run.json", "manifest.json"):
+        assert not (run_root / forbidden).exists()
+
+    report_path = (
+        REPOSITORY_ROOT
+        / "workspace/evals/sp001_skill_evaluation_v4/acquire_cobblestone_paired_evaluation_v4.json"
+    )
+    report = read_json(report_path)
+    assert file_sha256(report_path) == "cad8a9ed52168b1c06adb669851f730e6cafe14aa0badf2ab337a1f50c158469"
+    assert report["valid_pair_count"] == 2
+    assert {pair["replicate_id"] for pair in report["pairs"] if pair["eligible"]} == {"r10", "r11"}
+    r12_pair = next(pair for pair in report["pairs"] if pair["replicate_id"] == "r12")
+    assert r12_pair["candidate_run_id"] == ""
+    assert r12_pair["candidate_integrity"] is False
+    assert r12_pair["eligible"] is False
+
+    ledger = read_json(REPOSITORY_ROOT / "workspace/evals/stone_pickaxe_failure_ledger.json")
+    retained = next(item for item in ledger["failures"] if item.get("replicate_id") == "r12")
+    assert ledger["live_authorization"] is False
+    assert ledger["authorized_live_episode_count"] == 0
+    assert ledger["authorization_consumption"]["paired_evaluation_arms_consumed"] == 9
+    assert retained["status"] == "infrastructure_ineligible"
+    assert retained["attributable_to_learned_skill"] is False
+    assert retained["episode_created"] is False
+    assert retained["automatic_retry_allowed"] is False
+    assert ledger["paired_evaluation"]["next_arm"] is None
+    assert ledger["next_required_gate"]["authorization"] is False
 
 
 def test_v4_policy_rejects_inherited_support_hash_tampering():

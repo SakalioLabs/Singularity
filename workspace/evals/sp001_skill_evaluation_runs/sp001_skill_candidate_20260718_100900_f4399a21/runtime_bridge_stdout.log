@@ -1,0 +1,142 @@
+[Bridge] Listening on 127.0.0.1:30000
+[Bridge] Connecting to MC server 127.0.0.1:25565 as Singularity
+Error: connect ECONNREFUSED 127.0.0.1:25565
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 25565
+}
+[Bot] Disconnected - reconnecting in 5s
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+Error: connect ECONNREFUSED 127.0.0.1:25565
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 25565
+}
+[Bot] Disconnected - reconnecting in 5s
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+Error: connect ECONNREFUSED 127.0.0.1:25565
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 25565
+}
+[Bot] Disconnected - reconnecting in 5s
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+Error: connect ECONNREFUSED 127.0.0.1:25565
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 25565
+}
+[Bot] Disconnected - reconnecting in 5s
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+Error: connect ECONNREFUSED 127.0.0.1:25565
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 25565
+}
+[Bot] Disconnected - reconnecting in 5s
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+Error: connect ECONNREFUSED 127.0.0.1:25565
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 25565
+}
+[Bot] Disconnected - reconnecting in 5s
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+Error: connect ECONNREFUSED 127.0.0.1:25565
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 25565
+}
+[Bot] Disconnected - reconnecting in 5s
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+[Bridge] Python client connected
+[Bridge] Client disconnected
+Error: connect ECONNREFUSED 127.0.0.1:25565
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 25565
+}
+[Bot] Disconnected - reconnecting in 5s

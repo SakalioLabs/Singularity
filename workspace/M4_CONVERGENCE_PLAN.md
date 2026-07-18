@@ -12,6 +12,10 @@
 
 BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Probes 1 through 23 remain ineligible at 0/3. Probe 23 ran exactly once from frozen commit `f528ea17` and consumed its authorization at `autonomous_start`. The failed-dependency reconciliation branch was not exercised: three failed wooden-pickaxe tasks existed when `wooden_pickaxe:1` was machine-observed, but none was a direct dependency of an active-frontier task. No reconciliation event, failed-task reselection, or recovery child occurred. The Agent nevertheless advanced through twelve successful stone digs before a failed bound `Craft torches` ready-task suppressed machine-grounded completion for 23 cycles. The outcome is `intervention_not_exercised`; next authorization is false and BM-013/BM-014 remain sequentially locked.
 
+## Stone Pickaxe Research Gate
+
+The separate stone-pickaxe skill project remains non-capability research and does not authorize another M4 probe. V4 candidate runs r10 and r11 passed, while the single-use r12 authorization ended before bot readiness when Paper exhausted host virtual memory. The incident created no session, episode, Planner call, action, or skill-quality evidence; r12 is permanently consumed and infrastructure-ineligible. The v4 report remains byte-identical at 2/3. Host memory pressure was removed by stopping only the unrelated Nuxt process tree, and the next stone-pickaxe gate is offline definition of a fresh non-overlapping v5 window. M4 status and all capability counts are unchanged.
+
 ## Scope
 
 The protocol is independent from M1/M2 task semantics. It reuses the pinned Paper runtime, bridge, machine evidence shape, content hashing, and anti-replay controls. It does not inherit peaceful difficulty, prepared inventory, terminal fixtures, or scripted intermediate goals.
