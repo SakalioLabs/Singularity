@@ -15,11 +15,11 @@ This project isolates two bounded Minecraft capabilities:
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
-| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Offline harness ready; live baseline not yet authorized |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 85 canopy failure retained; offline egress repair required |
 
-Current phase: **Phase 83 verifies the one-line preload module-specifier repair after Phase 82's pre-Bridge infrastructure failure. Node now resolves the SP-003 preload and instantiates inventory-preserving `Movements`; the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 85 retains the fifth gameplay failure after the repaired preload started correctly. The fresh empty-hand Agent spawned on a leaf canopy, removed ten logs, acquired none, and never reached the table, wooden-pickaxe, stone, or final-craft stages. The full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and SP-003 IDs `sp003_baseline_20260719_044130_998a5bbd`, `sp003_baseline_20260719_045836_da326336`, `sp003_baseline_20260719_051736_a27843f7`, `sp003_baseline_20260719_055541_f863c62c`, and `sp003_baseline_20260719_070034_8d6e8eef` cannot be reused. After the Phase 83 repair is pushed and `main` is synchronized, the next transaction may be one fresh parent-bound SP-003 baseline authorization. Automatic retry, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and SP-003 IDs `sp003_baseline_20260719_044130_998a5bbd`, `sp003_baseline_20260719_045836_da326336`, `sp003_baseline_20260719_051736_a27843f7`, `sp003_baseline_20260719_055541_f863c62c`, `sp003_baseline_20260719_070034_8d6e8eef`, and `sp003_baseline_20260719_072552_4e3a282c` cannot be reused. The next transaction is offline-only: retain Phase 85 evidence, replay its initial observation, and verify one bounded non-mutating canopy-egress repair. Automatic retry, another baseline before that repair, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -197,7 +197,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 83 preload-specifier repair verified; five authorizations consumed; baseline 0/1 and candidates 0/3 |
+| 8. SP-003 composite acceptance | Phase 85 canopy pickup failure retained; six authorizations consumed; baseline 0/1 and candidates 0/3 |
 
 ## Frozen Baseline
 
@@ -209,4 +209,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen protocol or evidence; run SP-003 before the current offline repair is pushed and a separate one-use authorization is pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen protocol or evidence; run SP-003 before the Phase 85 evidence and bounded offline canopy-egress repair are pushed and a separate one-use authorization is pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
