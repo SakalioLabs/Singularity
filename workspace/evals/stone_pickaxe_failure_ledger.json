@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T23:31:57+08:00",
+  "generated_at": "2026-07-19T00:07:56+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_61_sp002_paired_evaluation_definition",
-  "status": "sp002_paired_evaluation_defined_pending_commit_push",
+  "phase": "phase_62_sp002_shadow_failure",
+  "status": "sp002_shadow_machine_success_evaluation_failure_recovery_window_required",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 0,
-  "authorization_scope": "none_sp002_evaluation_definition_unpushed_sp003_locked",
+  "authorization_scope": "none_sp002_v1_shadow_consumed_recovery_window_offline_only_sp003_locked",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -40,10 +40,10 @@
     "sp002_live_sessions_consumed": 5,
     "sp002_live_sessions_passed": 3,
     "sp002_live_sessions_failed": 2,
-    "sp002_evaluation_arms_authorized": 0,
-    "sp002_evaluation_arms_consumed": 0,
+    "sp002_evaluation_arms_authorized": 1,
+    "sp002_evaluation_arms_consumed": 1,
     "sp002_evaluation_arm_passes": 0,
-    "sp002_evaluation_arm_failures": 0,
+    "sp002_evaluation_arm_failures": 1,
     "next_live_authorization": false
   },
   "fixture_preparation_success": {
@@ -2428,6 +2428,41 @@
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "automatic_retry_allowed": false
+    },
+    {
+      "phase": 62,
+      "name": "sp002_v1_shadow_failure",
+      "status": "retained_failure_recovery_window_required",
+      "definition_commit": "194a4e7d87e9faf7729dfe54184019b17b2a906f",
+      "authorization_commit": "72f62dd4eb9717d10c6d961578298732509647d6",
+      "authorization_predecessor": "194a4e7d87e9faf7729dfe54184019b17b2a906f",
+      "policy_id": "stone-pickaxe-sp002-paired-evaluation-v1",
+      "policy_sha256": "f050c96428f9be7c576a19acc9b6ef135fd9530f49c959bb67024d721eb87880",
+      "arm": "shadow",
+      "replicate_id": "shadow-1",
+      "episode_id": "sp002_skill_shadow_20260718_235731_deb281fc",
+      "session_id": "a60f84e5-a75",
+      "machine_verification_passed": true,
+      "evaluation_status": "fail",
+      "failed_checks": [
+        "shadow_plan_observed"
+      ],
+      "planner_call_count": 1,
+      "environment_step_count": 1,
+      "successful_action_count": 1,
+      "failed_action_count": 0,
+      "backend_craft_attempt_count": 1,
+      "backend_craft_retry_count": 0,
+      "skill_shadow_plan_count": 0,
+      "automatic_retry_attempted": false,
+      "authorization_reuse_allowed": false,
+      "root_cause": "require_llm_root_plan_defers_skill_routing_until_after_root_validation_but_sp002_completes_its_only_action_in_the_root_cycle",
+      "next_gate": "offline_non_overlapping_v2_recovery_policy_and_first_cycle_skill_routing_repair",
+      "paired_report_sha256": "54a836ec1b2a16d97409b117ba5a0a0d54b037dce576a69d1d6edba8dfa443eb",
+      "normal_runtime_permission": false,
+      "sp003_unlocked": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false
     }
   ],
   "failure_taxonomy": [
@@ -2455,7 +2490,8 @@
     "sp001_skill_nearest_observed_ordering_disconnect",
     "sp001_skill_context_provenance_stripped_by_runtime_guard",
     "sp001_skill_route_scope_root_goal_overwrite",
-    "sp001_skill_evaluation_host_virtual_memory_exhaustion"
+    "sp001_skill_evaluation_host_virtual_memory_exhaustion",
+    "sp002_skill_root_first_single_action_shadow_bypass"
   ],
   "failures": [
     {
@@ -5453,6 +5489,69 @@
       "automatic_retry_attempted": false,
       "automatic_retry_allowed": false,
       "single_next_offline_fix": "replay_and_bind_exact_material_deltas_then_require_terminal_complete_with_zero_actions_after_machine_observation"
+    },
+    {
+      "id": "sp002-skill-shadow-v1-001",
+      "phase": "sp002_paired_evaluation_v1",
+      "task_id": "SP-002",
+      "classification": "sp002_skill_root_first_single_action_shadow_bypass",
+      "status": "retained_failure_offline_fix_required",
+      "attributable_to_learned_skill": false,
+      "episode_id": "sp002_skill_shadow_20260718_235731_deb281fc",
+      "session_id": "a60f84e5-a75",
+      "occurred_at_utc": "2026-07-18T16:04:40.324720+00:00",
+      "authorization_commit": "72f62dd4eb9717d10c6d961578298732509647d6",
+      "authorization_sha256": "ad9980ea0faa65a24769eae1cd20ed193e740cfd21c673c5fe2a1f6fd3083f68",
+      "policy_id": "stone-pickaxe-sp002-paired-evaluation-v1",
+      "policy_sha256": "f050c96428f9be7c576a19acc9b6ef135fd9530f49c959bb67024d721eb87880",
+      "earliest_unrecovered_transition": "root_plan_validated_and_single_craft_action_selected_before_first_skill_routing_opportunity",
+      "root_cause": {
+        "require_llm_root_plan": true,
+        "root_plan_valid_before_think": false,
+        "skill_hook_called": false,
+        "root_plan_action_count": 1,
+        "goal_completed_in_root_cycle": true,
+        "second_cycle_available": false
+      },
+      "machine_result": {
+        "passed": true,
+        "planner_call_count": 1,
+        "action_count": 1,
+        "successful_action_count": 1,
+        "failed_action_count": 0,
+        "backend_craft_attempt_count": 1,
+        "backend_craft_retry_count": 0,
+        "cobblestone_delta": -3,
+        "stick_delta": -2,
+        "stone_pickaxe_delta": 1
+      },
+      "evaluation_result": {
+        "status": "fail",
+        "failed_checks": [
+          "shadow_plan_observed"
+        ],
+        "skill_selected_count": 0,
+        "skill_shadow_plan_count": 0,
+        "record_integrity_passed": true
+      },
+      "evidence": [
+        { "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_shadow_20260718_235731_deb281fc/audit.json", "sha256": "190222a9fb7fc1ed1bfdd1030b9cca90985c649750af4ac9eb58242f2e03bc6f" },
+        { "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_shadow_20260718_235731_deb281fc/authorization.json", "sha256": "ad9980ea0faa65a24769eae1cd20ed193e740cfd21c673c5fe2a1f6fd3083f68" },
+        { "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_shadow_20260718_235731_deb281fc/episode.json", "sha256": "802f00198dcda6eead8834e33f6b5f6f0f2ead53a97d793c125328ddc8230805" },
+        { "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_shadow_20260718_235731_deb281fc/evaluation_run.json", "sha256": "a5efc29ffe388a4d81d5cf47adf4ee6cdae778a8fd1b33cb9be3d7dea01cea8f" },
+        { "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_shadow_20260718_235731_deb281fc/manifest.json", "sha256": "3ac7861080cfd42c35caf110f269acabd234b474349d282be570d22dea4db20f" },
+        { "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_shadow_20260718_235731_deb281fc/preflight.json", "sha256": "a94042e5250f3411d5742e6c937501d5e8513c401456e135f9dccdccc6b68362" },
+        { "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_shadow_20260718_235731_deb281fc/restoration.json", "sha256": "7e0efa1b3a744688c16d4badbe18a7febfdf9f7516607611c744df459ab4c9e5" },
+        { "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_shadow_20260718_235731_deb281fc/session.json", "sha256": "9bec44fda6d4e01a804799d0d3e58ce69eb0fe23312502540c1a24f43e0eb698" },
+        { "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_shadow_20260718_235731_deb281fc/session_a60f84e5-a75.jsonl", "sha256": "abc449e97c890ef2ba60319e531e767480f94edefa95a5f1ecb2b16542189634" },
+        { "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_shadow_20260718_235731_deb281fc/session_a60f84e5-a75_summary.json", "sha256": "9b4b1a48510d0be8bce9bf539b387d710e8c47ecf26beffe2349c7a484901688" },
+        { "path": "workspace/evals/sp002_skill_evaluation_runs/sp002_skill_shadow_20260718_235731_deb281fc/verification.json", "sha256": "a47dbb5598146dbec4792fa6ca05dc88d65bf1111aed6c08dd3bbbb6d707d540" }
+      ],
+      "automatic_retry_attempted": false,
+      "authorization_reuse_allowed": false,
+      "counts_toward_skill_gate": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false
     }
   ],
   "eligible_successes": [
@@ -6844,24 +6943,34 @@
     "sp002_paired_support_pass_count": 0,
     "sp002_paired_decision": "retain_advisory",
     "sp002_paired_normal_runtime_permission": false,
-    "sp002_paired_live_episode_run": false,
+    "sp002_paired_live_episode_run": true,
+    "sp002_paired_v1_shadow_authorization_commit": "72f62dd4eb9717d10c6d961578298732509647d6",
+    "sp002_paired_v1_shadow_authorization_consumed": true,
+    "sp002_paired_v1_shadow_machine_verification_passed": true,
+    "sp002_paired_v1_shadow_evaluation_status": "fail",
+    "sp002_paired_v1_shadow_plan_count": 0,
+    "sp002_paired_v1_shadow_failed_closed": true,
+    "sp002_paired_v1_shadow_automatic_retry_attempted": false,
+    "sp002_paired_v1_shadow_record_integrity_passed": true,
+    "sp002_paired_recovery_window_required": true,
     "sp002_paired_base_protocol_unchanged": true,
     "sp002_paired_prior_evidence_unchanged": true
   },
   "next_required_gate": {
-    "id": "sp002_paired_shadow_authorization",
+    "id": "sp002_paired_v2_recovery_definition",
     "authorization": false,
     "prerequisites": [
-      "phase_61_sp002_paired_definition_commit_pushed_and_main_synchronized",
+      "phase_62_sp002_v1_shadow_failure_commit_pushed_and_main_synchronized",
       "clean_worktree_and_exact_remote_tree_identity",
       "advisory_record_7c9a596e_is_preserved_append_only",
-      "policy_f050c964_and_three_fixed_baselines_reaudit_exactly",
-      "shadow_arm_uses_a_separate_parent_bound_authorization",
-      "one_live_arm_only_and_no_automatic_retry",
+      "v1_policy_f050c964_and_failed_shadow_evidence_reaudit_exactly",
+      "first_cycle_skill_routing_is_repaired_without_mutating_v1",
+      "new_support_and_candidate_ids_do_not_overlap_v1",
+      "no_live_arm_is_authorized_by_the_recovery_definition",
       "sp002_normal_runtime_and_sp003_remain_disabled_until_executable_review"
     ],
-    "arm": "shadow",
-    "replicate_id": "shadow-1",
+    "arm": null,
+    "replicate_id": null,
     "live_episode_limit": 0,
     "normal_runtime_permission": false,
     "normal_runtime_permission_scope": "none_candidate_and_advisory_are_nonexecutable",
@@ -6881,7 +6990,7 @@
     "sp002_fixture_manifest_sha256": "2c24a363a1d92370c88bd5797570c6069673af37d014130f29f1cf2bab456e91",
     "sp002_fixture_snapshot_created": true,
     "sp002_fixture_snapshot_tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c",
-    "sp002_authorization_artifacts_created": 7,
+    "sp002_authorization_artifacts_created": 8,
     "sp002_fixture_preparation_artifacts_created": 47,
     "sp002_fixture_preparation_artifacts_retained_locally": true,
     "sp002_run_artifacts_created": 85,
@@ -6897,7 +7006,7 @@
     "paired_candidate_run_artifacts_created": 88,
     "paired_infrastructure_failure_artifacts_created": 7,
     "paired_infrastructure_failure_schema_artifacts_created": 1,
-    "paired_support_run_artifacts_created": 33,
+    "paired_support_run_artifacts_created": 44,
     "candidate_queue_records_created": 2,
     "advisory_skill_records_created": 2,
     "executable_skill_records_created": 1,
@@ -6909,7 +7018,7 @@
     "sp002_paired_baseline_index_artifacts_created": 1,
     "sp002_paired_evaluation_report_artifacts_created": 1,
     "sp002_paired_evidence_attribute_artifacts_created": 2,
-    "sp002_paired_live_run_artifacts_created": 0,
+    "sp002_paired_live_run_artifacts_created": 11,
     "acceptance_artifacts_created": 0,
     "custom_skills_modified": true,
     "capability_report_modified": false,
@@ -6933,7 +7042,7 @@
       },
       "report": {
         "path": "workspace/evals/sp002_skill_evaluation/craft_stone_pickaxe_paired_evaluation.json",
-        "sha256": "fc8d7df0f16dd5bcafb68515e8e69d3984b45e29dce7fb094f953013bfb705e1",
+        "sha256": "54a836ec1b2a16d97409b117ba5a0a0d54b037dce576a69d1d6edba8dfa443eb",
         "valid_pair_count": 0,
         "required_pair_count": 3,
         "shadow_verified": false,
@@ -6953,8 +7062,12 @@
         "advisory-1",
         "fallback-1"
       ],
-      "authorization_count": 0,
-      "live_arm_count": 0,
+      "authorization_count": 1,
+      "live_arm_count": 1,
+      "failed_support_run_count": 1,
+      "consumed_support_replicate_ids": [
+        "shadow-1"
+      ],
       "automatic_retry_allowed": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false

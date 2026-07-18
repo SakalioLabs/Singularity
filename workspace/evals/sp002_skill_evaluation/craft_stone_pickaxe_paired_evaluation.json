@@ -154,8 +154,8 @@
     {
       "arm": "shadow",
       "replicate_id": "shadow-1",
-      "run_id": "",
-      "status": "missing"
+      "run_id": "shadow:sp002_skill_shadow_20260718_235731_deb281fc",
+      "status": "fail"
     },
     {
       "arm": "advisory",
