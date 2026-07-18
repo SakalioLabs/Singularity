@@ -494,6 +494,7 @@ class SkillLibrary:
         reason: str,
         evidence: Optional[dict] = None,
         persist: Optional[bool] = None,
+        promoted_version: str = "",
     ) -> dict:
         skill = self.get_skill_by_id(skill_id)
         target = str(target_status or "").strip().lower()
@@ -508,6 +509,17 @@ class SkillLibrary:
         if target not in allowed.get(skill.status, set()):
             return {"changed": False, "reason": "invalid_lifecycle_transition"}
         if target == "executable":
+            requested_version = str(promoted_version or "").strip()
+            if requested_version:
+                if not re.fullmatch(r"\d+\.\d+\.\d+", requested_version):
+                    return {"changed": False, "reason": "invalid_promoted_skill_version"}
+                if self._version_key(requested_version) <= self._version_key(skill.version):
+                    return {"changed": False, "reason": "promoted_skill_version_must_advance"}
+                if any(
+                    item.version == requested_version
+                    for item in self.skill_versions(skill.skill_id or skill.name)
+                ):
+                    return {"changed": False, "reason": "promoted_skill_version_exists"}
             validation = validate_bounded_action_template(skill.bounded_action_template)
             if not validation.valid:
                 return {"changed": False, "reason": "invalid_bounded_action_template", "issues": validation.issues}
@@ -515,7 +527,7 @@ class SkillLibrary:
             gate_issues = executable_promotion_gate_issues(
                 promotion_gate,
                 skill_id=skill.skill_id,
-                version=skill.version,
+                version=requested_version or skill.version,
             )
             if gate_issues:
                 return {
@@ -528,7 +540,7 @@ class SkillLibrary:
         if target == "executable":
             self._skill_history[(skill.skill_id or skill.name, skill.version)] = deepcopy(skill)
             promoted = deepcopy(skill)
-            promoted.version = self._next_patch_version(skill.version)
+            promoted.version = requested_version or self._next_patch_version(skill.version)
             promoted.parent_version = skill.version
             promoted.rollback_target = skill.version
             promoted.status = "executable"

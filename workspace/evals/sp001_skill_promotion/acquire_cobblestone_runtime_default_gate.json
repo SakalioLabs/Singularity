@@ -1,0 +1,30 @@
+{
+  "approved_candidate_count": 1,
+  "candidates": [
+    {
+      "candidate_readiness": "approved",
+      "decision": "allow_task_family_runtime_default",
+      "promotion_gate_fingerprint": "132028ca9819fb21f8d8fc27812769059622444208b89125b3e5334f2a3e21f9",
+      "skill": "learned_acquire_cobblestone",
+      "skill_id": "learned:acquire_cobblestone",
+      "task_family": "mining"
+    }
+  ],
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "decision": "allow_task_family_runtime_default",
+  "executable_promotion_gate_fingerprint": "132028ca9819fb21f8d8fc27812769059622444208b89125b3e5334f2a3e21f9",
+  "normal_runtime_permission": true,
+  "promoted_skill_version": "1.1.0",
+  "readiness": "approved",
+  "reason": "paired live executable evidence approved",
+  "required": true,
+  "review_candidate_count": 0,
+  "schema_version": 1,
+  "source_report_canonical_sha256": "86c018ba698f517b00870859a8bb2e3f70ce36b54eecfea1f994ed653a5a3abb",
+  "source_report_id": "stone-pickaxe-sp001-paired-evaluation-v5:86c018ba698f517b00870859a8bb2e3f70ce36b54eecfea1f994ed653a5a3abb",
+  "source_report_path": "workspace/evals/sp001_skill_evaluation_v5/acquire_cobblestone_paired_evaluation_v5.json",
+  "source_report_sha256": "e1d064c3b93eb92a3eef9c495fb8411b99632eadd183738c99682e36e6c2586d",
+  "target_task_family": "mining",
+  "type": "skill_runtime_default_gate"
+}

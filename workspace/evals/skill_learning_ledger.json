@@ -3272,6 +3272,87 @@
       "reason": "three_verified_sources_support_advisory_promotion",
       "skill_id": "learned:acquire_cobblestone",
       "timestamp": 1784316501.9681928
+    },
+    {
+      "decision": "promote_executable_new_version",
+      "evidence": {
+        "executable_promotion_gate": {
+          "action_controller_enforced": true,
+          "action_verifier_enforced": true,
+          "advisory_hint_verified": true,
+          "baseline_session_ids": [
+            "7e550b04-90e",
+            "b93a7777-207",
+            "cbbd4e7e-7d8"
+          ],
+          "candidate_session_ids": [
+            "18a71a99-e9f",
+            "bec8094e-147",
+            "e0669d82-9a9"
+          ],
+          "candidate_steps_reobserved": true,
+          "candidate_steps_verified": true,
+          "counts_toward_capability": false,
+          "counts_toward_m4": false,
+          "decision": "promote_executable",
+          "evaluated_skill_version": "1.0.0",
+          "fallback_verified": true,
+          "fixed_controls_match": true,
+          "goal_verifier_enforced": true,
+          "live_minecraft_only": true,
+          "no_action_failure_regression": true,
+          "no_completion_rate_regression": true,
+          "no_no_progress_regression": true,
+          "no_verifier_reject_regression": true,
+          "normal_runtime_permission": false,
+          "paired_live_session_count": 3,
+          "promoted_skill_version": "1.1.0",
+          "readiness": "approved",
+          "rollback_path_present": true,
+          "rollback_target": "learned:acquire_cobblestone@1.0.0",
+          "schema_version": 1,
+          "shadow_plan_verified": true,
+          "single_target_skill": true,
+          "skill_id": "learned:acquire_cobblestone",
+          "skill_version": "1.1.0",
+          "synthetic_evidence_count": 0,
+          "thresholds": {
+            "min_paired_live_sessions": 3
+          },
+          "transfer_scope": {
+            "quantity_range": {
+              "default": 3,
+              "maximum": 8,
+              "minimum": 1
+            },
+            "source_blocks": [
+              "stone"
+            ],
+            "target_item": "cobblestone",
+            "task_family": "mining"
+          },
+          "type": "skill_executable_promotion_gate",
+          "validation_issues": []
+        },
+        "paired_evaluation": {
+          "candidate_replicate_ids": [
+            "r13",
+            "r14",
+            "r15"
+          ],
+          "canonical_sha256": "86c018ba698f517b00870859a8bb2e3f70ce36b54eecfea1f994ed653a5a3abb",
+          "evaluation_window_id": "sp001-acquire-infrastructure-recovery-v5",
+          "path": "workspace/evals/sp001_skill_evaluation_v5/acquire_cobblestone_paired_evaluation_v5.json",
+          "policy_id": "stone-pickaxe-sp001-paired-evaluation-v5",
+          "policy_sha256": "2f4155e01a4c360041c3cff8d3eff6aa70079ba46377b6fc3669206762092b18",
+          "sha256": "e1d064c3b93eb92a3eef9c495fb8411b99632eadd183738c99682e36e6c2586d",
+          "valid_pair_count": 3
+        },
+        "runtime_default_gate_path": "workspace/evals/sp001_skill_promotion/acquire_cobblestone_runtime_default_gate.json"
+      },
+      "reason": "v5 r13-r15 produced three fresh eligible pairs and the exact 1.1.0 gate passed",
+      "skill_id": "learned:acquire_cobblestone",
+      "timestamp": 1784350874.181405
     }
   ],
   "experiments": [
@@ -20254,6 +20335,216 @@
       "termination_reason": "goal_verified",
       "type": "skill_learning_live_run",
       "world_seed": "12345"
+    },
+    {
+      "artifacts": {
+        "custom_skills": "workspace/skills/custom_skills.jsonl",
+        "paired_report_mutated": false,
+        "skill_learning_ledger": "workspace/evals/skill_learning_ledger.json",
+        "source_skill_mutated": false
+      },
+      "automatic_live_resume_allowed": false,
+      "candidate_id": "e1534e57",
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "executable_promotion_gate": {
+        "action_controller_enforced": true,
+        "action_verifier_enforced": true,
+        "advisory_hint_verified": true,
+        "baseline_session_ids": [
+          "7e550b04-90e",
+          "b93a7777-207",
+          "cbbd4e7e-7d8"
+        ],
+        "candidate_session_ids": [
+          "18a71a99-e9f",
+          "bec8094e-147",
+          "e0669d82-9a9"
+        ],
+        "candidate_steps_reobserved": true,
+        "candidate_steps_verified": true,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false,
+        "decision": "promote_executable",
+        "evaluated_skill_version": "1.0.0",
+        "fallback_verified": true,
+        "fixed_controls_match": true,
+        "goal_verifier_enforced": true,
+        "live_minecraft_only": true,
+        "no_action_failure_regression": true,
+        "no_completion_rate_regression": true,
+        "no_no_progress_regression": true,
+        "no_verifier_reject_regression": true,
+        "normal_runtime_permission": false,
+        "paired_live_session_count": 3,
+        "promoted_skill_version": "1.1.0",
+        "readiness": "approved",
+        "rollback_path_present": true,
+        "rollback_target": "learned:acquire_cobblestone@1.0.0",
+        "schema_version": 1,
+        "shadow_plan_verified": true,
+        "single_target_skill": true,
+        "skill_id": "learned:acquire_cobblestone",
+        "skill_version": "1.1.0",
+        "synthetic_evidence_count": 0,
+        "thresholds": {
+          "min_paired_live_sessions": 3
+        },
+        "transfer_scope": {
+          "quantity_range": {
+            "default": 3,
+            "maximum": 8,
+            "minimum": 1
+          },
+          "source_blocks": [
+            "stone"
+          ],
+          "target_item": "cobblestone",
+          "task_family": "mining"
+        },
+        "type": "skill_executable_promotion_gate",
+        "validation_issues": []
+      },
+      "executable_promotion_gate_fingerprint": "132028ca9819fb21f8d8fc27812769059622444208b89125b3e5334f2a3e21f9",
+      "experiment_id": "sp001-executable-promotion:132028ca9819fb21",
+      "generated_at_utc": "2026-07-18T05:01:14.012652+00:00",
+      "lifecycle_transition": {
+        "automatic_delete_allowed": false,
+        "changed": true,
+        "evidence": {
+          "executable_promotion_gate": {
+            "action_controller_enforced": true,
+            "action_verifier_enforced": true,
+            "advisory_hint_verified": true,
+            "baseline_session_ids": [
+              "7e550b04-90e",
+              "b93a7777-207",
+              "cbbd4e7e-7d8"
+            ],
+            "candidate_session_ids": [
+              "18a71a99-e9f",
+              "bec8094e-147",
+              "e0669d82-9a9"
+            ],
+            "candidate_steps_reobserved": true,
+            "candidate_steps_verified": true,
+            "counts_toward_capability": false,
+            "counts_toward_m4": false,
+            "decision": "promote_executable",
+            "evaluated_skill_version": "1.0.0",
+            "fallback_verified": true,
+            "fixed_controls_match": true,
+            "goal_verifier_enforced": true,
+            "live_minecraft_only": true,
+            "no_action_failure_regression": true,
+            "no_completion_rate_regression": true,
+            "no_no_progress_regression": true,
+            "no_verifier_reject_regression": true,
+            "normal_runtime_permission": false,
+            "paired_live_session_count": 3,
+            "promoted_skill_version": "1.1.0",
+            "readiness": "approved",
+            "rollback_path_present": true,
+            "rollback_target": "learned:acquire_cobblestone@1.0.0",
+            "schema_version": 1,
+            "shadow_plan_verified": true,
+            "single_target_skill": true,
+            "skill_id": "learned:acquire_cobblestone",
+            "skill_version": "1.1.0",
+            "synthetic_evidence_count": 0,
+            "thresholds": {
+              "min_paired_live_sessions": 3
+            },
+            "transfer_scope": {
+              "quantity_range": {
+                "default": 3,
+                "maximum": 8,
+                "minimum": 1
+              },
+              "source_blocks": [
+                "stone"
+              ],
+              "target_item": "cobblestone",
+              "task_family": "mining"
+            },
+            "type": "skill_executable_promotion_gate",
+            "validation_issues": []
+          },
+          "paired_evaluation": {
+            "candidate_replicate_ids": [
+              "r13",
+              "r14",
+              "r15"
+            ],
+            "canonical_sha256": "86c018ba698f517b00870859a8bb2e3f70ce36b54eecfea1f994ed653a5a3abb",
+            "evaluation_window_id": "sp001-acquire-infrastructure-recovery-v5",
+            "path": "workspace/evals/sp001_skill_evaluation_v5/acquire_cobblestone_paired_evaluation_v5.json",
+            "policy_id": "stone-pickaxe-sp001-paired-evaluation-v5",
+            "policy_sha256": "2f4155e01a4c360041c3cff8d3eff6aa70079ba46377b6fc3669206762092b18",
+            "sha256": "e1d064c3b93eb92a3eef9c495fb8411b99632eadd183738c99682e36e6c2586d",
+            "valid_pair_count": 3
+          }
+        },
+        "previous_status": "advisory",
+        "previous_version": "1.0.0",
+        "reason": "three fresh v5 paired live trials passed the fixed stone-pickaxe promotion gate",
+        "rollback_target": "1.0.0",
+        "skill_id": "learned:acquire_cobblestone",
+        "status": "executable",
+        "timestamp": 1784350873.967085,
+        "version": "1.1.0"
+      },
+      "next_gate": "sp002_offline_harness_and_separate_live_authorization",
+      "normal_runtime_permission": true,
+      "paired_evaluation": {
+        "candidate_replicate_ids": [
+          "r13",
+          "r14",
+          "r15"
+        ],
+        "canonical_sha256": "86c018ba698f517b00870859a8bb2e3f70ce36b54eecfea1f994ed653a5a3abb",
+        "evaluation_window_id": "sp001-acquire-infrastructure-recovery-v5",
+        "path": "workspace/evals/sp001_skill_evaluation_v5/acquire_cobblestone_paired_evaluation_v5.json",
+        "policy_id": "stone-pickaxe-sp001-paired-evaluation-v5",
+        "policy_sha256": "2f4155e01a4c360041c3cff8d3eff6aa70079ba46377b6fc3669206762092b18",
+        "sha256": "e1d064c3b93eb92a3eef9c495fb8411b99632eadd183738c99682e36e6c2586d",
+        "valid_pair_count": 3
+      },
+      "policy_identity": {
+        "passed": true,
+        "policy_sha256": "2f4155e01a4c360041c3cff8d3eff6aa70079ba46377b6fc3669206762092b18",
+        "source_skill_record_canonical_sha256": "c71e126a64b662bc803eee623e6481b921306d1f3d0782e3b6baf90dbdfa876f"
+      },
+      "promoted_skill": {
+        "name": "learned_acquire_cobblestone",
+        "parent_version": "1.0.0",
+        "record_canonical_sha256": "f1320195139eb2d8fe73a033d067b6b9a4b745d9656a20f7276556704306057c",
+        "rollback_target": "1.0.0",
+        "status": "executable",
+        "version": "1.1.0"
+      },
+      "protocol_id": "stone-pickaxe-skill-fixed-v1",
+      "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+      "recorded_at": 1784350874.0816758,
+      "report_id": "sp001-executable-promotion:132028ca9819fb21",
+      "runtime_default_gate": {
+        "decision": "allow_task_family_runtime_default",
+        "path": "workspace/evals/sp001_skill_promotion/acquire_cobblestone_runtime_default_gate.json",
+        "promotion_gate_fingerprint": "132028ca9819fb21f8d8fc27812769059622444208b89125b3e5334f2a3e21f9",
+        "readiness": "approved",
+        "sha256": "6a91887265adc3a8979a59636d3235da5cd0d13b487869308d029752a63800d7"
+      },
+      "schema_version": 1,
+      "skill_id": "learned:acquire_cobblestone",
+      "source_skill": {
+        "preserved": true,
+        "record_canonical_sha256": "c71e126a64b662bc803eee623e6481b921306d1f3d0782e3b6baf90dbdfa876f",
+        "status": "advisory",
+        "version": "1.0.0"
+      },
+      "stage": "executable",
+      "task_id": "SP-001",
+      "type": "stone_pickaxe_skill_executable_promotion"
     }
   ],
   "schema_version": 1,
@@ -20478,6 +20769,371 @@
       "updated_at": 1784316501.8525891,
       "verifier_version": "stone-pickaxe-machine-verification-v1",
       "version": "1.0.0"
+    },
+    "learned:acquire_cobblestone@1.1.0": {
+      "confidence_interval": {
+        "lower": 0.438494,
+        "method": "wilson_95",
+        "samples": 3,
+        "upper": 1.0
+      },
+      "failure_count": 0,
+      "failure_type_counts": {},
+      "gate": {
+        "causal_evidence": {
+          "approved_report_count": 0,
+          "average_causal_evidence_score": 0.0,
+          "causal_claim_count": 0,
+          "causal_memory_write_count": 0,
+          "checks": [
+            {
+              "detail": "causal evidence gate not required",
+              "name": "causal_evidence_gate_required",
+              "status": "pass"
+            }
+          ],
+          "contrast_control_count": 0,
+          "counterexample_count": 0,
+          "decision": "allow",
+          "error_report_count": 0,
+          "errors": [],
+          "evidence": [],
+          "generated_at": 1784316501.594,
+          "missing": [],
+          "policy_hints": [],
+          "readable_log_count": 0,
+          "readiness": "not_required",
+          "readinesses": [],
+          "ready_log_count": 0,
+          "reason": "no_causal_evidence_gate_required",
+          "rejected_report_count": 0,
+          "report_count": 0,
+          "required": false,
+          "review_report_count": 0,
+          "sources": [],
+          "target": "causal_summary_skill_promotion",
+          "thresholds": {
+            "max_unmitigated_bias_risks": 0,
+            "max_unresolved_counterexamples": 0,
+            "min_approved_reports": 1,
+            "min_contrast_count": 1
+          },
+          "type": "causal_evidence_gate",
+          "unmitigated_bias_risk_count": 0,
+          "unresolved_counterexample_count": 0,
+          "warnings": []
+        },
+        "decision": "promote_advisory",
+        "discovery": {
+          "decision": "allow",
+          "errors": [],
+          "evidence": [],
+          "missing": [],
+          "readiness": "not_required",
+          "reason": "no_discovery_gate_required",
+          "required": false,
+          "sources": [],
+          "warnings": []
+        },
+        "executable_promotion": {
+          "action_controller_enforced": true,
+          "action_verifier_enforced": true,
+          "advisory_hint_verified": true,
+          "baseline_session_ids": [
+            "7e550b04-90e",
+            "b93a7777-207",
+            "cbbd4e7e-7d8"
+          ],
+          "candidate_session_ids": [
+            "18a71a99-e9f",
+            "bec8094e-147",
+            "e0669d82-9a9"
+          ],
+          "candidate_steps_reobserved": true,
+          "candidate_steps_verified": true,
+          "counts_toward_capability": false,
+          "counts_toward_m4": false,
+          "decision": "promote_executable",
+          "evaluated_skill_version": "1.0.0",
+          "fallback_verified": true,
+          "fixed_controls_match": true,
+          "goal_verifier_enforced": true,
+          "live_minecraft_only": true,
+          "no_action_failure_regression": true,
+          "no_completion_rate_regression": true,
+          "no_no_progress_regression": true,
+          "no_verifier_reject_regression": true,
+          "normal_runtime_permission": false,
+          "paired_live_session_count": 3,
+          "promoted_skill_version": "1.1.0",
+          "readiness": "approved",
+          "rollback_path_present": true,
+          "rollback_target": "learned:acquire_cobblestone@1.0.0",
+          "schema_version": 1,
+          "shadow_plan_verified": true,
+          "single_target_skill": true,
+          "skill_id": "learned:acquire_cobblestone",
+          "skill_version": "1.1.0",
+          "synthetic_evidence_count": 0,
+          "thresholds": {
+            "min_paired_live_sessions": 3
+          },
+          "transfer_scope": {
+            "quantity_range": {
+              "default": 3,
+              "maximum": 8,
+              "minimum": 1
+            },
+            "source_blocks": [
+              "stone"
+            ],
+            "target_item": "cobblestone",
+            "task_family": "mining"
+          },
+          "type": "skill_executable_promotion_gate",
+          "validation_issues": []
+        },
+        "matched_rules": [
+          "stone_pickaxe_fixed_protocol",
+          "three_distinct_live_successes",
+          "typed_bounded_skill_contract",
+          "three_state_skill_lifecycle",
+          "distinct_live_source_gate"
+        ],
+        "readiness": "approved",
+        "reason": "three_verified_sources_support_advisory_promotion",
+        "status": "advisory_ready",
+        "transfer": {
+          "decision": "allow",
+          "errors": [],
+          "evidence": [],
+          "missing": [],
+          "readiness": "not_required",
+          "reason": "no_task_stream_transfer_gate_required",
+          "required": false,
+          "sources": [],
+          "warnings": []
+        },
+        "verification": {
+          "achieved": true,
+          "decision": "allow",
+          "evidence": [
+            "eligible live success sp001_episode_20260717_232454_5c05abf0",
+            "eligible live success sp001_episode_20260718_012012_0349d399",
+            "eligible live success sp001_episode_20260718_023754_912de280"
+          ],
+          "inventory_delta": {
+            "cobblestone": 3
+          },
+          "matched_rules": [
+            "stone_pickaxe_fixed_protocol",
+            "three_distinct_live_successes"
+          ],
+          "missing": [],
+          "reason": "stone_pickaxe_three_live_success_gate",
+          "status": "achieved",
+          "target_inventory": {
+            "cobblestone": 3
+          }
+        },
+        "warnings": []
+      },
+      "lifecycle_history": [
+        {
+          "automatic_delete_allowed": false,
+          "evidence": {
+            "executable_promotion_gate": {
+              "action_controller_enforced": true,
+              "action_verifier_enforced": true,
+              "advisory_hint_verified": true,
+              "baseline_session_ids": [
+                "7e550b04-90e",
+                "b93a7777-207",
+                "cbbd4e7e-7d8"
+              ],
+              "candidate_session_ids": [
+                "18a71a99-e9f",
+                "bec8094e-147",
+                "e0669d82-9a9"
+              ],
+              "candidate_steps_reobserved": true,
+              "candidate_steps_verified": true,
+              "counts_toward_capability": false,
+              "counts_toward_m4": false,
+              "decision": "promote_executable",
+              "evaluated_skill_version": "1.0.0",
+              "fallback_verified": true,
+              "fixed_controls_match": true,
+              "goal_verifier_enforced": true,
+              "live_minecraft_only": true,
+              "no_action_failure_regression": true,
+              "no_completion_rate_regression": true,
+              "no_no_progress_regression": true,
+              "no_verifier_reject_regression": true,
+              "normal_runtime_permission": false,
+              "paired_live_session_count": 3,
+              "promoted_skill_version": "1.1.0",
+              "readiness": "approved",
+              "rollback_path_present": true,
+              "rollback_target": "learned:acquire_cobblestone@1.0.0",
+              "schema_version": 1,
+              "shadow_plan_verified": true,
+              "single_target_skill": true,
+              "skill_id": "learned:acquire_cobblestone",
+              "skill_version": "1.1.0",
+              "synthetic_evidence_count": 0,
+              "thresholds": {
+                "min_paired_live_sessions": 3
+              },
+              "transfer_scope": {
+                "quantity_range": {
+                  "default": 3,
+                  "maximum": 8,
+                  "minimum": 1
+                },
+                "source_blocks": [
+                  "stone"
+                ],
+                "target_item": "cobblestone",
+                "task_family": "mining"
+              },
+              "type": "skill_executable_promotion_gate",
+              "validation_issues": []
+            },
+            "paired_evaluation": {
+              "candidate_replicate_ids": [
+                "r13",
+                "r14",
+                "r15"
+              ],
+              "canonical_sha256": "86c018ba698f517b00870859a8bb2e3f70ce36b54eecfea1f994ed653a5a3abb",
+              "evaluation_window_id": "sp001-acquire-infrastructure-recovery-v5",
+              "path": "workspace/evals/sp001_skill_evaluation_v5/acquire_cobblestone_paired_evaluation_v5.json",
+              "policy_id": "stone-pickaxe-sp001-paired-evaluation-v5",
+              "policy_sha256": "2f4155e01a4c360041c3cff8d3eff6aa70079ba46377b6fc3669206762092b18",
+              "sha256": "e1d064c3b93eb92a3eef9c495fb8411b99632eadd183738c99682e36e6c2586d",
+              "valid_pair_count": 3
+            }
+          },
+          "previous_status": "advisory",
+          "previous_version": "1.0.0",
+          "reason": "three fresh v5 paired live trials passed the fixed stone-pickaxe promotion gate",
+          "skill_id": "learned:acquire_cobblestone",
+          "status": "executable",
+          "timestamp": 1784350873.967085,
+          "version": "1.1.0"
+        }
+      ],
+      "name": "learned_acquire_cobblestone",
+      "observed_failure_count": 0,
+      "parent_version": "1.0.0",
+      "provenance": {
+        "candidate_id": "e1534e57",
+        "created_at": 1784313512.75821,
+        "goal": "Acquire Cobblestone",
+        "reason": "three_verified_sources_support_advisory_promotion",
+        "score": 0.9,
+        "sources": [
+          {
+            "environment_id": "sp001_episode_20260717_232454_5c05abf0",
+            "episode_id": "sp001_episode_20260717_232454_5c05abf0",
+            "evidence_kind": "live_verified",
+            "goal_end_completed": true,
+            "goal_verifier_achieved": true,
+            "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+            "runtime_eligible": true,
+            "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+            "session_id": "b93a7777-207",
+            "source_log": "workspace/evals/sp001_runs/sp001_episode_20260717_232454_5c05abf0/session_b93a7777-207.jsonl",
+            "source_trace_sha256": "c8fca9a47e671e480742af5147411d324d4daaea1b18eff5976569924d6a2ff3",
+            "transition_count": 4,
+            "transition_proof_count": 4,
+            "verifier_version": "stone-pickaxe-machine-verification-v1",
+            "world_seed": "12345"
+          },
+          {
+            "environment_id": "sp001_episode_20260718_012012_0349d399",
+            "episode_id": "sp001_episode_20260718_012012_0349d399",
+            "evidence_kind": "live_verified",
+            "goal_end_completed": true,
+            "goal_verifier_achieved": true,
+            "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+            "runtime_eligible": true,
+            "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+            "session_id": "7e550b04-90e",
+            "source_log": "workspace/evals/sp001_runs/sp001_episode_20260718_012012_0349d399/session_7e550b04-90e.jsonl",
+            "source_trace_sha256": "0502ee1cc415257b0683eb2f0054b0fdfedcc8a4cfc608e7749059a1d08499bb",
+            "transition_count": 4,
+            "transition_proof_count": 4,
+            "verifier_version": "stone-pickaxe-machine-verification-v1",
+            "world_seed": "12345"
+          },
+          {
+            "environment_id": "sp001_episode_20260718_023754_912de280",
+            "episode_id": "sp001_episode_20260718_023754_912de280",
+            "evidence_kind": "live_verified",
+            "goal_end_completed": true,
+            "goal_verifier_achieved": true,
+            "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+            "runtime_eligible": true,
+            "server_jar_sha256": "cabed3ae77cf55deba7c7d8722bc9cfd5e991201c211665f9265616d9fe5c77b",
+            "session_id": "cbbd4e7e-7d8",
+            "source_log": "workspace/evals/sp001_runs/sp001_episode_20260718_023754_912de280/session_cbbd4e7e-7d8.jsonl",
+            "source_trace_sha256": "8983b0a1390499a233c3c5aa4c3dedf536da7bcf46853b1d736619d2d665630b",
+            "transition_count": 4,
+            "transition_proof_count": 4,
+            "verifier_version": "stone-pickaxe-machine-verification-v1",
+            "world_seed": "12345"
+          }
+        ]
+      },
+      "rollback_target": "1.0.0",
+      "skill_id": "learned:acquire_cobblestone",
+      "source_environment_ids": [
+        "sp001_episode_20260717_232454_5c05abf0",
+        "sp001_episode_20260718_012012_0349d399",
+        "sp001_episode_20260718_023754_912de280"
+      ],
+      "source_session_ids": [
+        "b93a7777-207",
+        "7e550b04-90e",
+        "cbbd4e7e-7d8"
+      ],
+      "status": "executable",
+      "success_count": 3,
+      "task_family": "mining",
+      "transfer_scope": {
+        "heldout_validated": false,
+        "quantity_range": {
+          "default": 3,
+          "maximum": 8,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "source_blocks": [
+          "stone"
+        ],
+        "supported_task_families": [
+          "mining"
+        ],
+        "training_environment_ids": [
+          "sp001_episode_20260717_232454_5c05abf0",
+          "sp001_episode_20260718_012012_0349d399",
+          "sp001_episode_20260718_023754_912de280"
+        ],
+        "training_goals": [
+          "Acquire Cobblestone"
+        ],
+        "training_session_ids": [
+          "b93a7777-207",
+          "7e550b04-90e",
+          "cbbd4e7e-7d8"
+        ],
+        "unsupported_task_families": []
+      },
+      "updated_at": 1784350874.019685,
+      "verifier_version": "stone-pickaxe-machine-verification-v1",
+      "version": "1.1.0"
     },
     "learned:craft_crafting_table@1.0.0": {
       "confidence_interval": {
@@ -24541,5 +25197,5 @@
     }
   },
   "type": "skill_learning_ledger",
-  "updated_at": 1784316501.9681928
+  "updated_at": 1784350874.181405
 }

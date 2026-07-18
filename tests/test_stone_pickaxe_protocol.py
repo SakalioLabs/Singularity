@@ -689,11 +689,29 @@ def test_33_stone_pickaxe_lifecycle_separates_candidate_and_advisory():
         assert matching[-1]["status"] == "advisory"
 
 
-def test_34_real_sp001_advisory_artifacts_are_consistent_and_non_executable():
-    report = json.loads(
+def test_34_real_sp001_executable_promotion_is_append_only_and_runtime_gated():
+    advisory_report = json.loads(
         (REPOSITORY_ROOT / "workspace" / "evals" / "acquire_cobblestone_promotion.json").read_text(
             encoding="utf-8"
         )
+    )
+    executable_report = json.loads(
+        (
+            REPOSITORY_ROOT
+            / "workspace"
+            / "evals"
+            / "sp001_skill_promotion"
+            / "acquire_cobblestone_executable_promotion.json"
+        ).read_text(encoding="utf-8")
+    )
+    runtime_gate = json.loads(
+        (
+            REPOSITORY_ROOT
+            / "workspace"
+            / "evals"
+            / "sp001_skill_promotion"
+            / "acquire_cobblestone_runtime_default_gate.json"
+        ).read_text(encoding="utf-8")
     )
     queue = [
         json.loads(line)
@@ -715,26 +733,51 @@ def test_34_real_sp001_advisory_artifacts_are_consistent_and_non_executable():
         )
     )
     candidates = [item for item in queue if item.get("id") == "e1534e57"]
-    advisory = [item for item in skills if item.get("skill_id") == "learned:acquire_cobblestone"]
-    assert len(candidates) == len(advisory) == 1
+    acquired = [item for item in skills if item.get("skill_id") == "learned:acquire_cobblestone"]
+    assert len(candidates) == 1
+    assert len(acquired) == 2
     assert candidates[0]["status"] == "advisory"
     assert candidates[0]["review_status"] == "approved"
-    assert advisory[0]["version"] == "1.0.0"
-    assert advisory[0]["status"] == "advisory"
-    assert "executable_promotion" not in advisory[0].get("gate", {})
-    assert report["stage"] == "advisory"
-    assert [item["stage"] for item in report["lifecycle_history"]] == ["candidate", "advisory"]
-    assert report["counts_toward_capability"] is False
-    assert report["counts_toward_m4"] is False
+    source = next(item for item in acquired if item["version"] == "1.0.0")
+    promoted = next(item for item in acquired if item["version"] == "1.1.0")
+    assert source["status"] == "advisory"
+    assert "executable_promotion" not in source.get("gate", {})
+    assert promoted["status"] == "executable"
+    assert promoted["parent_version"] == "1.0.0"
+    assert promoted["rollback_target"] == "1.0.0"
+    assert promoted["gate"]["executable_promotion"]["promoted_skill_version"] == "1.1.0"
+    assert advisory_report["stage"] == "advisory"
+    assert [item["stage"] for item in advisory_report["lifecycle_history"]] == [
+        "candidate",
+        "advisory",
+    ]
+    assert executable_report["stage"] == "executable"
+    assert executable_report["source_skill"]["preserved"] is True
+    assert executable_report["normal_runtime_permission"] is True
+    assert executable_report["counts_toward_capability"] is False
+    assert executable_report["counts_toward_m4"] is False
+    assert runtime_gate["readiness"] == "approved"
+    assert runtime_gate["normal_runtime_permission"] is True
     assert "learned:acquire_cobblestone@1.0.0" in learning["skills"]
-    library = SkillLibrary(str(REPOSITORY_ROOT / "workspace" / "skills"), persist=False)
+    assert learning["skills"]["learned:acquire_cobblestone@1.0.0"]["status"] == "advisory"
+    assert learning["skills"]["learned:acquire_cobblestone@1.1.0"]["status"] == "executable"
+    library = SkillLibrary(str(REPOSITORY_ROOT / "workspace" / "skills"), persist=True)
     selected = library.select_runtime_skill(
         "Acquire 3 cobblestone",
         _sp001_observation(),
-        execution_mode="execute",
+        execution_mode="runtime",
         target_skill_id="learned:acquire_cobblestone",
     )
     assert selected is None
+    assert library.record_skill_runtime_default_gate(runtime_gate) == 1
+    selected = library.select_runtime_skill(
+        "Acquire 3 cobblestone",
+        _sp001_observation(),
+        execution_mode="runtime",
+        target_skill_id="learned:acquire_cobblestone",
+    )
+    assert selected is not None
+    assert selected.version == "1.1.0"
 
 
 if __name__ == "__main__":
