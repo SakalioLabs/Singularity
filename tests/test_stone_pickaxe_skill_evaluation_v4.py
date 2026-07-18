@@ -116,7 +116,12 @@ def test_v4_duplicate_candidate_authorization_fails_closed(tmp_path):
 
 
 def test_initial_v4_report_inherits_support_and_excludes_all_failed_candidates():
-    report = build_paired_evaluation_report(discover_evaluation_run_paths())
+    prior_paths = [
+        path
+        for path in discover_evaluation_run_paths()
+        if read_json(path).get("policy_id") != POLICY["id"]
+    ]
+    report = build_paired_evaluation_report(prior_paths)
     assert report["valid_pair_count"] == 0
     assert report["shadow_verified"] is True
     assert report["advisory_verified"] is True
@@ -129,6 +134,27 @@ def test_initial_v4_report_inherits_support_and_excludes_all_failed_candidates()
         ("r7", "fail"),
     ]
     assert len(report["inherited_support_runs"]) == 3
+
+
+def test_current_v4_report_retains_r10_as_one_eligible_pair():
+    report = read_json(
+        REPOSITORY_ROOT
+        / "workspace/evals/sp001_skill_evaluation_v4/acquire_cobblestone_paired_evaluation_v4.json"
+    )
+    assert report["valid_pair_count"] == 1
+    assert report["decision"] == "retain_advisory"
+    assert report["normal_runtime_permission"] is False
+    pair = next(item for item in report["pairs"] if item["replicate_id"] == "r10")
+    assert pair["eligible"] is True
+    run = read_json(
+        REPOSITORY_ROOT
+        / "workspace/evals/sp001_skill_evaluation_runs/"
+        "sp001_skill_candidate_20260718_085317_8e8de2cf/evaluation_run.json"
+    )
+    audit = verify_run_record(run)
+    assert audit["passed"], audit["issues"]
+    assert run["status"] == "pass"
+    assert run["metrics"]["skill_completion_count"] == 1
 
 
 def test_v4_policy_rejects_inherited_support_hash_tampering():

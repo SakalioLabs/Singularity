@@ -17,9 +17,9 @@ This project isolates two bounded Minecraft capabilities:
 | SP-002 Craft Stone Pickaxe | 0 | 3 | `learned:craft_stone_pickaxe` not created |
 | SP-003 Composite Chain | 0 | Both skills executable, then 3 candidate successes | Locked |
 
-Current phase: **Phase 7 paired evaluation recovery with three immutable baseline arms, all three support arms verified, candidates `r1`, `r4`, and `r7` retained failed, and isolated v4 opened at 0/3 for fresh candidates `r10/r11/r12`; `learned:acquire_cobblestone@1.0.0` remains advisory and non-executable**.
+Current phase: **Phase 7 paired evaluation recovery with three immutable baseline arms, all three support arms verified, candidates `r1`, `r4`, and `r7` retained failed, and isolated v4 at 1/3 after `r10` passed; `learned:acquire_cobblestone@1.0.0` remains advisory and non-executable**.
 
-Current authorization: **exactly one `candidate/r10` live episode becomes authorized only after this ledger commit is pushed**. Candidates `r1`, `r4`, and `r7` are consumed and cannot be retried; `r2/r3/r5/r6/r8/r9` remain excluded, while `r11/r12` remain locked pending separate evidence review. R7 evidence is pushed at `2089ff89`, its route-scope repair is pushed at `18525025`, and v4 is pushed at `8eaa6800`. Another fixture session, support reruns, retries, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain locked.
+Current authorization: **no live episode is authorized**. Candidates `r1`, `r4`, `r7`, and `r10` are consumed and cannot be retried; `r2/r3/r5/r6/r8/r9` remain excluded, while `r11/r12` remain locked pending pushed r10 evidence and separate review. R10 passed from authorization commit `5ad854d1`, and v4 is now 1/3. Another fixture session, support reruns, retries, SP-002/SP-003, Probe 24, full BM-012, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -173,7 +173,7 @@ The 30 numbered cases cover:
 | 4. Acquire candidate/advisory | Complete; advisory pushed at `822057b` |
 | 5. SP-002 controlled live convergence | Not started |
 | 6. Craft candidate/advisory | Not started |
-| 7. Paired promotion evaluations | In progress; v1 `r1`, v2 `r4`, and v3 `r7` are consumed, all defects pass offline regression, and v4 is open at 0/3 pending push plus separate `r10` authorization |
+| 7. Paired promotion evaluations | In progress; v1 `r1`, v2 `r4`, and v3 `r7` are consumed failures, v4 `r10` passed, and the fresh window is 1/3 |
 | 8. SP-003 composite acceptance | Locked |
 
 ## Frozen Baseline
@@ -186,4 +186,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers plus all three controlled SP-001 behavioral failures are reproduced and fixed; the two provider TLS EOF traces are retained as zero-action fail-closed failures. All source sessions remain immutable. The fixture snapshot still passes independent identity audit, and three eligible SP-001 successes establish 3/3. The acquire skill is advisory only. Shadow, advisory, and fallback each ran exactly once from pushed predecessors and passed. Candidates `r1`, `r4`, and `r7` each ran exactly once and remain immutable ineligible failures; nearest ordering, guard provenance, and root/subtask route provenance now pass bounded offline regressions. V4 is pushed at 0/3. Push this single-arm authorization, run exactly one `candidate/r10` experiment, then stop for immutable evidence review. Do not retry consumed candidates, run excluded IDs `r2/r3/r5/r6/r8/r9/r11/r12`, reuse prior pair IDs, rerun support arms, batch candidates, run SP-002/SP-003 before their gates unlock, run full BM-012, run Probe 24, or begin iron mining.
+The retained fixture blockers plus all three controlled SP-001 behavioral failures are reproduced and fixed; the two provider TLS EOF traces are retained as zero-action fail-closed failures. All source sessions remain immutable. The fixture snapshot still passes independent identity audit, and three eligible SP-001 successes establish 3/3. The acquire skill is advisory only. Shadow, advisory, and fallback each ran exactly once from pushed predecessors and passed. Candidates `r1`, `r4`, and `r7` each ran exactly once and remain immutable ineligible failures; candidate `r10` then passed all checks and advances v4 to 1/3. Push the r10 evidence, then make a separate decision before any r11 authorization. Do not retry consumed candidates, run excluded IDs `r2/r3/r5/r6/r8/r9/r11/r12`, reuse prior pair IDs, rerun support arms, batch candidates, run SP-002/SP-003 before their gates unlock, run full BM-012, run Probe 24, or begin iron mining.
