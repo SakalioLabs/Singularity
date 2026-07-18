@@ -1,0 +1,79 @@
+{
+  "type": "stone_pickaxe_sp003_retained_failure_manifest",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T21:00:54.1096800Z",
+  "phase": 75,
+  "task_id": "SP-003",
+  "arm": "baseline",
+  "replicate_id": "baseline",
+  "sequence_position": 0,
+  "episode_id": "sp003_baseline_20260719_045836_da326336",
+  "level_name": "sp003_baseline_20260719_045836_da326336_world",
+  "session_id": "2e34110a-808",
+  "authorization_id": "c2c1a2901ea700b3c9bd4aef93038c1f92a33fb9fd999f0c013fe926d59dbcdf",
+  "authorization_commit": "363ef9ff922490843e39e0fa097ffe7c79ab590a",
+  "implementation_commit": "da3263361eaf5f7a1851534cc6a6ba212809e93e",
+  "runtime_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v1",
+  "runtime_policy_sha256": "a1aad016b58bad4d0def89f782f67d2cb02ea9c1b846d7c9d9c4e32cfdc2a438",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "result": {
+    "passed": false,
+    "evidence_eligible": false,
+    "failed_stage": "initial_agent_preflight",
+    "failure_taxonomy": "sp003_runner_runtime_gate_profile_api_mismatch",
+    "exception_type": "AttributeError",
+    "exception": "SkillLibrary has no runtime_default_gate_profile method; the public method is skill_runtime_default_profile"
+  },
+  "machine_facts": {
+    "reset_audit_passed": true,
+    "inventory_exact_empty": true,
+    "fixture_blocks": [],
+    "player_lifecycle_baseline": true,
+    "agent_connected": true
+  },
+  "execution": {
+    "authorization_consumed": true,
+    "minecraft_process_started": true,
+    "llm_call_count": 0,
+    "agent_action_count": 0,
+    "skill_selection_count": 0,
+    "goal_verification_count": 0,
+    "automatic_retry_allowed": false,
+    "automatic_retry_performed": false,
+    "bm012_terminal_started": false
+  },
+  "files": [
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_045836_da326336/authorization.json",
+      "sha256": "5ef4ef2de530d396e6c1e1dd1b898b8b60a8ee86c14b607add3b49ce79c48416"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_045836_da326336/authorization_consumption.json",
+      "sha256": "9cfb4bf7e5945632ae45319fbed22fd08317e17e6aa025bb812e0d743e8c1eb2"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_045836_da326336/protocol_status.json",
+      "sha256": "a9f803f07d5ef433f042bb3d8510eccbe131fbd8cbabb12c72d6ed6e8d80b6e1"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_045836_da326336/reset.json",
+      "sha256": "9c2973dad0a9c44801ec0bb264581659cc4c2aac4cad2166b1e8a5b3b8081af9"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_045836_da326336/reset_audit.json",
+      "sha256": "5f581916e323325b7e702a83cd6afb31b70ed830aa802c39524f79fa3e719894"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_045836_da326336/session_2e34110a-808.jsonl",
+      "sha256": "0f513e230827abcec949ad9fb17c2f8f9ec822fcc7ce2eb93bf526b0b6625cec"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_045836_da326336/session_2e34110a-808_summary.json",
+      "sha256": "36abed91732bd0a99e428a82e9f56e5fb51df53fc80039039907159726917a4b"
+    }
+  ],
+  "raw_evidence_immutable": true,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "next_gate": "push_retained_failure_then_replace_the_single_runner_api_call_without_reusing_this_episode"
+}
