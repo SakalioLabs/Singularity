@@ -1,0 +1,883 @@
+{
+  "type": "stone_pickaxe_fixture_manifest",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-18T09:13:45.265847+00:00",
+  "fixture_id": "sp002-craft-stone-pickaxe-v1",
+  "policy_id": "stone-pickaxe-sp002-survival-fixture-preparation-v1",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "snapshot": {
+    "policy_id": "stone-pickaxe-immutable-snapshot-v1",
+    "path": "logs/stone_pickaxe/fixtures/sp002-craft-stone-pickaxe-v1/sp002_fixture_20260718_170101_39bce6f7",
+    "tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c",
+    "file_count": 48,
+    "total_bytes": 14962077,
+    "components": [
+      "world",
+      "world_nether",
+      "world_the_end"
+    ],
+    "immutable": true,
+    "restoration_only": true
+  },
+  "preparation": {
+    "session_id": "b80a2014-5bd",
+    "episode_id": "sp002_fixture_20260718_170101_39bce6f7",
+    "level_name": "sp002_fixture_20260718_170101_39bce6f7_world",
+    "evidence_path": "logs/stone_pickaxe/sp002_fixture_preparations/sp002_fixture_20260718_170101_39bce6f7/preparation.json",
+    "goal": "Prepare the SP-002 fixture using only normal survival actions: keep exactly two sticks, acquire exactly three cobblestone with the wooden pickaxe, place or approach one crafting table until it is observed within interaction range, and keep stone_pickaxe at zero. Do not craft a stone pickaxe.",
+    "source_fixture": {
+      "path": "workspace/evals/stone_pickaxe_fixture.json",
+      "sha256": "acd7175247a346cdf73fce3be78aab788c928d5f74d731c8449f0a10188fc760",
+      "fixture_id": "sp001-acquire-cobblestone-v1",
+      "tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+      "snapshot_identity_verified": true
+    },
+    "machine_audit": {
+      "type": "stone_pickaxe_sp002_fixture_machine_audit",
+      "schema_version": 1,
+      "policy_id": "stone-pickaxe-survival-fixture-preparation-v1",
+      "passed": true,
+      "checks": {
+        "cobblestone_exact": true,
+        "stick_exact": true,
+        "stone_pickaxe_absent": true,
+        "survival_mode": true,
+        "safe": true,
+        "movable": true,
+        "interactive_crafting_table_observed": true,
+        "planner_request_controls": true,
+        "bridge_protocol_status": true
+      },
+      "issues": [],
+      "observation": {
+        "role": "fixture_audit",
+        "monotonic_s": 0.0,
+        "position": {
+          "x": 95.579073,
+          "y": 130.0,
+          "z": -31.494352
+        },
+        "inventory": {
+          "cobblestone": 3,
+          "dark_oak_log": 3,
+          "dark_oak_planks": 7,
+          "dirt": 3,
+          "stick": 2,
+          "wooden_pickaxe": 1
+        },
+        "health": 20.0,
+        "hunger": 20.0,
+        "game_mode": "survival",
+        "dimension": "overworld",
+        "ground_block": "stone",
+        "safe": true,
+        "movable": true,
+        "observed_blocks": [
+          {
+            "source_id": "stone:94:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:129:-32",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 129.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:130:-31",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -31.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:130:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -33.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 1.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:129:-32",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 129.0,
+              "z": -32.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:130:-31",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 130.0,
+              "z": -31.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:130:-33",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 130.0,
+              "z": -33.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:129:-31",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 129.0,
+              "z": -31.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:129:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 129.0,
+              "z": -33.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:131:-31",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -31.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:131:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -33.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:129:-32",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 129.0,
+              "z": -32.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:130:-31",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 130.0,
+              "z": -31.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:130:-33",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 130.0,
+              "z": -33.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:131:-32",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 131.0,
+              "z": -32.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:129:-31",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 129.0,
+              "z": -31.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:129:-33",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 129.0,
+              "z": -33.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:131:-33",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 131.0,
+              "z": -33.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:129:-31",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 129.0,
+              "z": -31.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:129:-33",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 129.0,
+              "z": -33.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:131:-31",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 131.0,
+              "z": -31.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:131:-33",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 131.0,
+              "z": -33.0
+            },
+            "distance": 1.732051,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:93:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 93.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 2.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:128:-32",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 128.0,
+              "z": -32.0
+            },
+            "distance": 2.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:130:-30",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -30.0
+            },
+            "distance": 2.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:130:-34",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 130.0,
+              "z": -34.0
+            },
+            "distance": 2.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:97:130:-32",
+            "name": "stone",
+            "position": {
+              "x": 97.0,
+              "y": 130.0,
+              "z": -32.0
+            },
+            "distance": 2.0,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:93:129:-32",
+            "name": "stone",
+            "position": {
+              "x": 93.0,
+              "y": 129.0,
+              "z": -32.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:93:130:-33",
+            "name": "stone",
+            "position": {
+              "x": 93.0,
+              "y": 130.0,
+              "z": -33.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:128:-32",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 128.0,
+              "z": -32.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:94:130:-30",
+            "name": "stone",
+            "position": {
+              "x": 94.0,
+              "y": 130.0,
+              "z": -30.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:128:-31",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 128.0,
+              "z": -31.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:128:-33",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 128.0,
+              "z": -33.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:129:-30",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 129.0,
+              "z": -30.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:129:-34",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 129.0,
+              "z": -34.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:131:-30",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -30.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:95:131:-34",
+            "name": "stone",
+            "position": {
+              "x": 95.0,
+              "y": 131.0,
+              "z": -34.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:128:-32",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 128.0,
+              "z": -32.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          },
+          {
+            "source_id": "stone:96:130:-34",
+            "name": "stone",
+            "position": {
+              "x": 96.0,
+              "y": 130.0,
+              "z": -34.0
+            },
+            "distance": 2.236068,
+            "observed": true,
+            "reachable": true
+          }
+        ],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "nearby_blocks": [
+          {
+            "block_id": "crafting_table:94:131:-32",
+            "name": "crafting_table",
+            "position": {
+              "x": 94.0,
+              "y": 131.0,
+              "z": -32.0
+            },
+            "distance": 1.414214,
+            "observed": true,
+            "interactive": true
+          }
+        ],
+        "observation_id": "9ce5c29b68eae50a162ef10b124380cb9f4f53584ade96f466a4f3fdb01ad6d7"
+      },
+      "crafting_tables": [
+        {
+          "block_id": "crafting_table:94:131:-32",
+          "name": "crafting_table",
+          "position": {
+            "x": 94.0,
+            "y": 131.0,
+            "z": -32.0
+          },
+          "distance": 1.414214,
+          "observed": true,
+          "interactive": true
+        }
+      ],
+      "counts_toward_skill_gate": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false
+    },
+    "planner_request_controls": {
+      "type": "stone_pickaxe_planner_request_controls_audit",
+      "schema_version": 1,
+      "passed": true,
+      "protocol_id": "stone-pickaxe-skill-fixed-v1",
+      "call_count": 6,
+      "expected_extra_body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "expected_finish_reason": "stop",
+      "reasoning_content_max_bytes": 0,
+      "calls": [
+        {
+          "call_id": "llm-b12352f6ac9b44e7",
+          "call_index": 0,
+          "passed": true,
+          "checks": {
+            "protocol": true,
+            "real_llm_call": true,
+            "schema_valid": true,
+            "nonempty_response": true,
+            "no_call_error": true,
+            "deadline_policy": true,
+            "deadline_remaining_positive": true,
+            "request_timeout_positive": true,
+            "request_timeout_within_remaining": true,
+            "deadline_max_retries_zero": true,
+            "transport_single_attempt": true,
+            "transport_attempt_count": true,
+            "transport_retry_count_zero": true,
+            "transport_attempt_success": true,
+            "transport_attempt_timeout_matches_request": true,
+            "transport_sdk_retries_zero": true,
+            "transport_finish_reason": true,
+            "provider": true,
+            "base_url": true,
+            "model": true,
+            "temperature": true,
+            "max_tokens": true,
+            "response_format": true,
+            "extra_body": true,
+            "provider_timeout_positive": true,
+            "provider_timeout_matches_request": true,
+            "provider_retries_zero": true,
+            "finish_reason": true,
+            "reasoning_content_bounded": true
+          },
+          "response_sha256": "ec824a39281ea4c06cc5c20df89c2f956e8874fad77be06f342a40a413af5df4",
+          "request_sha256": "a64184480d99e5d328bd69b760473f8848eb7a1ae8ad268852e80aad759acfa5"
+        },
+        {
+          "call_id": "llm-4e09452ee2194875",
+          "call_index": 1,
+          "passed": true,
+          "checks": {
+            "protocol": true,
+            "real_llm_call": true,
+            "schema_valid": true,
+            "nonempty_response": true,
+            "no_call_error": true,
+            "deadline_policy": true,
+            "deadline_remaining_positive": true,
+            "request_timeout_positive": true,
+            "request_timeout_within_remaining": true,
+            "deadline_max_retries_zero": true,
+            "transport_single_attempt": true,
+            "transport_attempt_count": true,
+            "transport_retry_count_zero": true,
+            "transport_attempt_success": true,
+            "transport_attempt_timeout_matches_request": true,
+            "transport_sdk_retries_zero": true,
+            "transport_finish_reason": true,
+            "provider": true,
+            "base_url": true,
+            "model": true,
+            "temperature": true,
+            "max_tokens": true,
+            "response_format": true,
+            "extra_body": true,
+            "provider_timeout_positive": true,
+            "provider_timeout_matches_request": true,
+            "provider_retries_zero": true,
+            "finish_reason": true,
+            "reasoning_content_bounded": true
+          },
+          "response_sha256": "c17c15b0c4695741b2b9ed63a15f1504fc79f88078d50c2ca93f11dc6ccf7848",
+          "request_sha256": "08b611d05442a5eb315796a6e8b822512fefed54010a7adb085fb175afbc2560"
+        },
+        {
+          "call_id": "llm-3cadea2cea6c4faf",
+          "call_index": 2,
+          "passed": true,
+          "checks": {
+            "protocol": true,
+            "real_llm_call": true,
+            "schema_valid": true,
+            "nonempty_response": true,
+            "no_call_error": true,
+            "deadline_policy": true,
+            "deadline_remaining_positive": true,
+            "request_timeout_positive": true,
+            "request_timeout_within_remaining": true,
+            "deadline_max_retries_zero": true,
+            "transport_single_attempt": true,
+            "transport_attempt_count": true,
+            "transport_retry_count_zero": true,
+            "transport_attempt_success": true,
+            "transport_attempt_timeout_matches_request": true,
+            "transport_sdk_retries_zero": true,
+            "transport_finish_reason": true,
+            "provider": true,
+            "base_url": true,
+            "model": true,
+            "temperature": true,
+            "max_tokens": true,
+            "response_format": true,
+            "extra_body": true,
+            "provider_timeout_positive": true,
+            "provider_timeout_matches_request": true,
+            "provider_retries_zero": true,
+            "finish_reason": true,
+            "reasoning_content_bounded": true
+          },
+          "response_sha256": "4db55514d0b7357e5134616f579f114852ae58db84cfdd22626199b7af4cb813",
+          "request_sha256": "ada4df1286d22279c7502c3912face35d3ec06557d6552db1655d50b356dc604"
+        },
+        {
+          "call_id": "llm-489872faa0894a94",
+          "call_index": 3,
+          "passed": true,
+          "checks": {
+            "protocol": true,
+            "real_llm_call": true,
+            "schema_valid": true,
+            "nonempty_response": true,
+            "no_call_error": true,
+            "deadline_policy": true,
+            "deadline_remaining_positive": true,
+            "request_timeout_positive": true,
+            "request_timeout_within_remaining": true,
+            "deadline_max_retries_zero": true,
+            "transport_single_attempt": true,
+            "transport_attempt_count": true,
+            "transport_retry_count_zero": true,
+            "transport_attempt_success": true,
+            "transport_attempt_timeout_matches_request": true,
+            "transport_sdk_retries_zero": true,
+            "transport_finish_reason": true,
+            "provider": true,
+            "base_url": true,
+            "model": true,
+            "temperature": true,
+            "max_tokens": true,
+            "response_format": true,
+            "extra_body": true,
+            "provider_timeout_positive": true,
+            "provider_timeout_matches_request": true,
+            "provider_retries_zero": true,
+            "finish_reason": true,
+            "reasoning_content_bounded": true
+          },
+          "response_sha256": "80d817e4ed4472703c9ccf94b18a178a83ae4221502a4804f89b1dcc116fcbf8",
+          "request_sha256": "b867daaf43d8c6bf7d89f8409aab85ac8327c3fa372a2ba2c1c116d7b7201d25"
+        },
+        {
+          "call_id": "llm-16766dca10dd464c",
+          "call_index": 4,
+          "passed": true,
+          "checks": {
+            "protocol": true,
+            "real_llm_call": true,
+            "schema_valid": true,
+            "nonempty_response": true,
+            "no_call_error": true,
+            "deadline_policy": true,
+            "deadline_remaining_positive": true,
+            "request_timeout_positive": true,
+            "request_timeout_within_remaining": true,
+            "deadline_max_retries_zero": true,
+            "transport_single_attempt": true,
+            "transport_attempt_count": true,
+            "transport_retry_count_zero": true,
+            "transport_attempt_success": true,
+            "transport_attempt_timeout_matches_request": true,
+            "transport_sdk_retries_zero": true,
+            "transport_finish_reason": true,
+            "provider": true,
+            "base_url": true,
+            "model": true,
+            "temperature": true,
+            "max_tokens": true,
+            "response_format": true,
+            "extra_body": true,
+            "provider_timeout_positive": true,
+            "provider_timeout_matches_request": true,
+            "provider_retries_zero": true,
+            "finish_reason": true,
+            "reasoning_content_bounded": true
+          },
+          "response_sha256": "6d93e22eaad2772acdb04e5d16bf4744b7187f483090983a8f95fd9cf569b311",
+          "request_sha256": "90e26c1fe0d174f65675af20d7e06de6c0fc51cc4f11427dcb289d98fe26ff45"
+        },
+        {
+          "call_id": "llm-fbe919af38274b8a",
+          "call_index": 5,
+          "passed": true,
+          "checks": {
+            "protocol": true,
+            "real_llm_call": true,
+            "schema_valid": true,
+            "nonempty_response": true,
+            "no_call_error": true,
+            "deadline_policy": true,
+            "deadline_remaining_positive": true,
+            "request_timeout_positive": true,
+            "request_timeout_within_remaining": true,
+            "deadline_max_retries_zero": true,
+            "transport_single_attempt": true,
+            "transport_attempt_count": true,
+            "transport_retry_count_zero": true,
+            "transport_attempt_success": true,
+            "transport_attempt_timeout_matches_request": true,
+            "transport_sdk_retries_zero": true,
+            "transport_finish_reason": true,
+            "provider": true,
+            "base_url": true,
+            "model": true,
+            "temperature": true,
+            "max_tokens": true,
+            "response_format": true,
+            "extra_body": true,
+            "provider_timeout_positive": true,
+            "provider_timeout_matches_request": true,
+            "provider_retries_zero": true,
+            "finish_reason": true,
+            "reasoning_content_bounded": true
+          },
+          "response_sha256": "9ba8557ba54c32c356842b6f8f3f7ec3ac207d3b0a58e23364222aac3325fb9c",
+          "request_sha256": "377a2df566e910745de789aadd17e76354816c2094e172f488619ce1dd4217b6"
+        }
+      ],
+      "issues": []
+    },
+    "protocol_status_audit": {
+      "type": "stone_pickaxe_sp002_bridge_protocol_audit",
+      "schema_version": 1,
+      "passed": true,
+      "checks": {
+        "command_success": true,
+        "configured": true,
+        "profile": true,
+        "minecraft_version": true,
+        "seed": true,
+        "episode_id": true,
+        "level_name": true,
+        "server_jar": true,
+        "skill_execution_off": true,
+        "no_protocol_errors": true
+      },
+      "issues": []
+    },
+    "administrative_commands": [
+      {
+        "command": "save-all flush",
+        "purpose": "persist SP-002 survival-prepared world before snapshot sealing",
+        "success": true
+      }
+    ]
+  },
+  "checks": {
+    "protocol_identity": true,
+    "preparation_machine_audit": true,
+    "preparation_planner_request_controls": true,
+    "bridge_protocol_status": true,
+    "source_sp001_fixture_verified": true,
+    "survival_preparation": true,
+    "normal_agent_actions": true,
+    "no_forbidden_intervention": true,
+    "no_target_result_injection": true,
+    "no_active_episode_reset": true,
+    "snapshot_tree": true
+  },
+  "snapshot_identity_verified": true,
+  "issues": [],
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T16:52:00+08:00",
+  "generated_at": "2026-07-18T17:18:00+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_44_sp002_fixture_preparation_reauthorization_gate",
-  "status": "sp002_fixture_root_plan_contract_offline_fixed_pending_commit_push",
+  "phase": "phase_46_sp002_live_authorization_gate",
+  "status": "sp002_fixture_prepared_verified_live_authorization_required",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 0,
-  "authorization_scope": "none_sp002_fixture_preparation_authorization_required",
+  "authorization_scope": "none_sp002_live_authorization_required",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -32,9 +32,9 @@
     "v5_candidate_arm_passes": 3,
     "v5_candidate_arm_failures": 0,
     "v5_candidate_arm_infrastructure_failures": 0,
-    "sp002_fixture_preparation_sessions_authorized": 3,
-    "sp002_fixture_preparation_sessions_consumed": 3,
-    "sp002_fixture_preparation_sessions_passed": 0,
+    "sp002_fixture_preparation_sessions_authorized": 4,
+    "sp002_fixture_preparation_sessions_consumed": 4,
+    "sp002_fixture_preparation_sessions_passed": 1,
     "sp002_fixture_preparation_sessions_failed": 3,
     "next_live_authorization": false
   },
@@ -127,6 +127,166 @@
     "counts_toward_capability": false,
     "counts_toward_m4": false
   },
+  "sp002_fixture_preparation_success": {
+    "episode_id": "sp002_fixture_20260718_170101_39bce6f7",
+    "session_id": "b80a2014-5bd",
+    "occurred_at_utc": "2026-07-18T09:13:42.290171+00:00",
+    "authorization_commit": "c1a12d8ef290e3caefcc7f25c42d3dc343a6749e",
+    "authorization_predecessor": "80fe59817d740b82c765a1661ee4a6a4078b6e6e",
+    "authorization_id": "ca5dfd7906602bb1218ea2a254af34f8b2098b8d92dc81651fee177c944cc1af",
+    "authorization_consumed": true,
+    "authorization_reuse_allowed": false,
+    "transport_preflight": {
+      "attempt_count": 2,
+      "first_attempt": "tls_unexpected_eof_before_response",
+      "passed": true,
+      "model": "deepseek-v4-flash",
+      "duration_ms": 2093,
+      "response_bytes": 11,
+      "response_sha256": "4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef045150f93",
+      "finish_reason": "stop",
+      "reasoning_content_byte_count": 0,
+      "provider_retry_count": 0
+    },
+    "goal_result": {
+      "completed": true,
+      "termination_reason": "goal_verified",
+      "cycles": 6,
+      "action_count": 6,
+      "elapsed_s": 26.328,
+      "deadline_eligible": true
+    },
+    "actions": {
+      "equip": 1,
+      "dig": 3,
+      "craft": 1,
+      "place": 1,
+      "accepted": 6,
+      "failed": 0
+    },
+    "planner": {
+      "call_count": 6,
+      "schema_valid_call_count": 6,
+      "transport_success_count": 6,
+      "transport_retry_count": 0,
+      "request_controls_passed": true,
+      "root_subtask_count": 2,
+      "root_dependency_edge": "observe_crafting_table_depends_on_acquire_cobblestone"
+    },
+    "terminal_machine_state": {
+      "position": {
+        "x": 95.579073,
+        "y": 130.0,
+        "z": -31.494352
+      },
+      "inventory": {
+        "cobblestone": 3,
+        "dark_oak_log": 3,
+        "dark_oak_planks": 7,
+        "dirt": 3,
+        "stick": 2,
+        "wooden_pickaxe": 1
+      },
+      "stone_pickaxe": 0,
+      "crafting_table_distance": 1.414214,
+      "crafting_table_observed": true,
+      "crafting_table_interactive": true,
+      "survival_mode": true,
+      "safe": true,
+      "movable": true
+    },
+    "machine_audit": {
+      "passed": true,
+      "issues": [],
+      "planner_request_controls_passed": true,
+      "bridge_protocol_status_passed": true,
+      "forbidden_intervention_count": 0,
+      "administrative_save_command_count": 1
+    },
+    "task_graph": {
+      "task_count": 2,
+      "completed_task_count": 2,
+      "dependency_edge_count": 1,
+      "sha256": "e5da21292681150740b920546a315fb257a27caeedfbff9640b086be8708f675"
+    },
+    "fixture": {
+      "manifest_path": "workspace/evals/stone_pickaxe_sp002_fixture.json",
+      "manifest_sha256": "2c24a363a1d92370c88bd5797570c6069673af37d014130f29f1cf2bab456e91",
+      "snapshot_path": "logs/stone_pickaxe/fixtures/sp002-craft-stone-pickaxe-v1/sp002_fixture_20260718_170101_39bce6f7",
+      "tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c",
+      "file_count": 48,
+      "total_bytes": 14962077,
+      "independent_audit_passed": true
+    },
+    "cleanup": {
+      "controlled_listener_count": 0,
+      "matching_runtime_process_count": 0,
+      "server_properties_restored": true,
+      "paper_stopped": true,
+      "bridge_stopped": true
+    },
+    "evidence": [
+      {
+        "path": "workspace/evals/sp002_fixture_preparation_successes/sp002_fixture_20260718_170101_39bce6f7/authorization.json",
+        "sha256": "1bc4ef6c56de04650959b8694fd4aa1b11e5f7b5c53169ef8224b6b013e9bf4e"
+      },
+      {
+        "path": "workspace/evals/stone_pickaxe_sp002_fixture.json",
+        "sha256": "2c24a363a1d92370c88bd5797570c6069673af37d014130f29f1cf2bab456e91"
+      },
+      {
+        "path": "logs/stone_pickaxe/sp002_preflights/sp002_fixture_20260718_170101_39bce6f7/authorization_preflight.json",
+        "sha256": "2fa8372d9edfdb712bcd152c04d4a678912f3e8e3d8986fd3324f1866c3a9819"
+      },
+      {
+        "path": "logs/stone_pickaxe/sp002_preflights/sp002_fixture_20260718_170101_39bce6f7/restoration.json",
+        "sha256": "780c08475d72a1dcd5a8c4cb26b7632fbdee98d1720716e141a73d213cc19c65"
+      },
+      {
+        "path": "logs/stone_pickaxe/sp002_fixture_preparations/sp002_fixture_20260718_170101_39bce6f7/authorization_preflight.json",
+        "sha256": "2fa8372d9edfdb712bcd152c04d4a678912f3e8e3d8986fd3324f1866c3a9819"
+      },
+      {
+        "path": "logs/stone_pickaxe/sp002_fixture_preparations/sp002_fixture_20260718_170101_39bce6f7/preparation.json",
+        "sha256": "13045aae656a0f3c416273e8e3f9c8bc1acb3e54ff130812ec1076b0cf94570f"
+      },
+      {
+        "path": "logs/stone_pickaxe/sp002_fixture_preparations/sp002_fixture_20260718_170101_39bce6f7/session.json",
+        "sha256": "d9cf0917886c54acf8154d553aedf8d17b2e2de804eb4772d5361850f36ed776"
+      },
+      {
+        "path": "logs/stone_pickaxe/sp002_fixture_preparations/sp002_fixture_20260718_170101_39bce6f7/session_b80a2014-5bd.jsonl",
+        "sha256": "27fbdec393e2bb4824a5df05b05bc90c4491ec00a9d78959e4f8f61660a13968"
+      },
+      {
+        "path": "logs/stone_pickaxe/sp002_fixture_preparations/sp002_fixture_20260718_170101_39bce6f7/session_b80a2014-5bd_summary.json",
+        "sha256": "50f2bfb6006641e909769a203387bd6ab9b38d7b89984ff928fd049750eeeb41"
+      },
+      {
+        "path": "logs/stone_pickaxe/fixtures/sp002-craft-stone-pickaxe-v1/sp002_fixture_20260718_170101_39bce6f7/snapshot_identity.json",
+        "sha256": "2c24a363a1d92370c88bd5797570c6069673af37d014130f29f1cf2bab456e91"
+      },
+      {
+        "path": "logs/stone_pickaxe/sp002_runtime/bridge_sp002_fixture_20260718_170101_39bce6f7.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "logs/stone_pickaxe/sp002_runtime/bridge_sp002_fixture_20260718_170101_39bce6f7.stdout.log",
+        "sha256": "fe6607e8f37247fdc943481388907f232f510327e63e584235c7ebe8dab1d689"
+      },
+      {
+        "path": "logs/stone_pickaxe/sp002_runtime/server_sp002_fixture_20260718_170101_39bce6f7.stderr.log",
+        "sha256": "abecda7d02d7013fc88b67ece5249ffcfe3ae86789b7645740a190dd583e9096"
+      },
+      {
+        "path": "logs/stone_pickaxe/sp002_runtime/server_sp002_fixture_20260718_170101_39bce6f7.stdout.log",
+        "sha256": "15bfdd9b98bdcec000e05048e9da18c1f76b6120aad1679565fd1af31fec9693"
+      }
+    ],
+    "counts_toward_skill_gate": false,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
   "current_gate": {
     "SP-001": {
       "eligible_live_successes": 3,
@@ -168,11 +328,15 @@
       "learned_skill_status": "not_created",
       "unlocked": true,
       "offline_harness_ready": true,
-      "fixture_ready": false,
-      "fixture_preparation_attempt_count": 3,
+      "fixture_ready": true,
+      "fixture_preparation_attempt_count": 4,
       "fixture_preparation_failure_count": 3,
+      "fixture_preparation_success_count": 1,
       "fixture_preparation_authorization_consumed": true,
-      "last_fixture_preparation_episode_id": "sp002_fixture_20260718_161807_484083ea",
+      "last_fixture_preparation_episode_id": "sp002_fixture_20260718_170101_39bce6f7",
+      "fixture_manifest_path": "workspace/evals/stone_pickaxe_sp002_fixture.json",
+      "fixture_manifest_sha256": "2c24a363a1d92370c88bd5797570c6069673af37d014130f29f1cf2bab456e91",
+      "fixture_tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c",
       "harness_policy_id": "stone-pickaxe-sp002-controlled-runtime-v1",
       "harness_policy_sha256": "d3ccb78a4851fa9e7e41786638b4946247660cac3f848ba0648c1d8f75442fef",
       "live_authorization": false
@@ -1464,8 +1628,9 @@
     {
       "phase": 43,
       "name": "sp002_fixture_root_plan_contract_offline_fix",
-      "status": "offline_fix_complete_pending_commit_push",
+      "status": "offline_fix_complete_pushed",
       "failure_evidence_commit": "0d25cfe166464c67685b891bc0a04a03402ec181",
+      "fix_commit": "80fe59817d740b82c765a1661ee4a6a4078b6e6e",
       "root_cause": "prepare_sp002_fixture_did_not_repeat_the_required_root_subtask_graph_at_the_mode_specific_immediate_decision_boundary",
       "fix": "supply_an_exact_two_node_machine_verifiable_root_graph_for_unsatisfied_root_calls_while_preserving_one_action_and_empty_continuation_subtasks",
       "required_root_subtask_count": 2,
@@ -1487,6 +1652,76 @@
       "frozen_sp001_launcher_unchanged": true,
       "validator_relaxed": false,
       "live_episode_run": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 44,
+      "name": "sp002_fixture_preparation_authorization_4",
+      "status": "authorized_pushed_and_consumed",
+      "offline_fix_commit": "80fe59817d740b82c765a1661ee4a6a4078b6e6e",
+      "commit": "c1a12d8ef290e3caefcc7f25c42d3dc343a6749e",
+      "authorization_predecessor": "80fe59817d740b82c765a1661ee4a6a4078b6e6e",
+      "authorization_id": "ca5dfd7906602bb1218ea2a254af34f8b2098b8d92dc81651fee177c944cc1af",
+      "task_id": "SP-002",
+      "scope": "fixture_preparation",
+      "episode_id": "sp002_fixture_20260718_170101_39bce6f7",
+      "live_episode_limit": 1,
+      "source_fixture_reaudit_passed": true,
+      "source_fixture_tree_sha256": "996b2a1f989626e9c44ddca5c24f81ae55a5dca03b246f0d72723c46fd6a7636",
+      "harness_policy_sha256": "d3ccb78a4851fa9e7e41786638b4946247660cac3f848ba0648c1d8f75442fef",
+      "transport_preflight_attempt_count": 2,
+      "transport_preflight_initial_tls_eof": true,
+      "transport_preflight_passed": true,
+      "transport_preflight_duration_ms": 2093,
+      "transport_preflight_model": "deepseek-v4-flash",
+      "transport_preflight_retry_count": 0,
+      "physical_memory_free_gb": 67.19,
+      "virtual_memory_free_gb": 98.87,
+      "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 45,
+      "name": "sp002_fixture_preparation_attempt_4",
+      "status": "fixture_prepared_and_machine_verified",
+      "authorization_commit": "c1a12d8ef290e3caefcc7f25c42d3dc343a6749e",
+      "authorization_id": "ca5dfd7906602bb1218ea2a254af34f8b2098b8d92dc81651fee177c944cc1af",
+      "authorization_consumed": true,
+      "episode_id": "sp002_fixture_20260718_170101_39bce6f7",
+      "session_id": "b80a2014-5bd",
+      "protocol_status_audit_passed": true,
+      "planner_call_count": 6,
+      "schema_valid_planner_call_count": 6,
+      "planner_transport_failure_count": 0,
+      "planner_retry_count": 0,
+      "root_plan_subtask_count": 2,
+      "root_plan_dependency_edge_count": 1,
+      "action_count": 6,
+      "successful_action_count": 6,
+      "action_types": {
+        "equip": 1,
+        "dig": 3,
+        "craft": 1,
+        "place": 1
+      },
+      "terminal_cobblestone": 3,
+      "terminal_stick": 2,
+      "terminal_stone_pickaxe": 0,
+      "terminal_interactive_crafting_table_observed": true,
+      "fixture_created": true,
+      "fixture_manifest_sha256": "2c24a363a1d92370c88bd5797570c6069673af37d014130f29f1cf2bab456e91",
+      "fixture_tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c",
+      "fixture_file_count": 48,
+      "fixture_total_bytes": 14962077,
+      "independent_fixture_audit_passed": true,
+      "controlled_listener_count_after_stop": 0,
+      "matching_runtime_process_count_after_stop": 0,
+      "authorization_reuse_allowed": false,
+      "normal_runtime_permission": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "automatic_retry_allowed": false
@@ -4418,7 +4653,7 @@
     "sp002_fixture_preparation_attempt_2_terminal_action_contract_failed_closed": true,
     "sp002_fixture_preparation_attempt_2_evidence_hashes_passed": 11,
     "sp002_fixture_preparation_attempt_2_authorization_reuse_allowed": false,
-    "sp002_fixture_preparation_consumed_authorization_archive_count": 3,
+    "sp002_fixture_preparation_consumed_authorization_archive_count": 4,
     "sp002_fixture_preparation_attempt_3_authorization_commit": "759fd5a211941b3c7b5d6167943b84580b831fc0",
     "sp002_fixture_preparation_attempt_3_authorization_consumed": true,
     "sp002_fixture_preparation_attempt_3_source_fixture_reaudit_passed": true,
@@ -4453,6 +4688,30 @@
     "sp002_fixture_root_plan_fix_compileall_passed": true,
     "sp002_fixture_root_plan_fix_credential_scan_passed": true,
     "sp002_fixture_root_plan_fix_git_diff_check_passed": true,
+    "sp002_fixture_preparation_attempt_4_authorization_commit": "c1a12d8ef290e3caefcc7f25c42d3dc343a6749e",
+    "sp002_fixture_preparation_attempt_4_authorization_consumed": true,
+    "sp002_fixture_preparation_attempt_4_source_fixture_reaudit_passed": true,
+    "sp002_fixture_preparation_attempt_4_transport_preflight_passed": true,
+    "sp002_fixture_preparation_attempt_4_transport_preflight_duration_ms": 2093,
+    "sp002_fixture_preparation_attempt_4_planner_call_count": 6,
+    "sp002_fixture_preparation_attempt_4_schema_valid_call_count": 6,
+    "sp002_fixture_preparation_attempt_4_transport_failure_count": 0,
+    "sp002_fixture_preparation_attempt_4_action_count": 6,
+    "sp002_fixture_preparation_attempt_4_successful_action_count": 6,
+    "sp002_fixture_preparation_attempt_4_machine_audit_passed": true,
+    "sp002_fixture_preparation_attempt_4_exact_inventory_passed": true,
+    "sp002_fixture_preparation_attempt_4_interactive_table_passed": true,
+    "sp002_fixture_preparation_attempt_4_fixture_audit_passed": true,
+    "sp002_fixture_preparation_attempt_4_fixture_manifest_sha256": "2c24a363a1d92370c88bd5797570c6069673af37d014130f29f1cf2bab456e91",
+    "sp002_fixture_preparation_attempt_4_fixture_tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c",
+    "sp002_fixture_preparation_attempt_4_evidence_hashes_passed": 14,
+    "sp002_fixture_preparation_attempt_4_ledger_path_hash_bindings": "335/335",
+    "sp002_fixture_preparation_attempt_4_tracked_json_files_parsed": 1289,
+    "sp002_fixture_preparation_attempt_4_credential_scan_passed": true,
+    "sp002_fixture_preparation_attempt_4_git_diff_check_passed": true,
+    "sp002_fixture_preparation_attempt_4_cleanup_passed": true,
+    "sp002_fixture_preparation_attempt_4_authorization_archive_sha256": "1bc4ef6c56de04650959b8694fd4aa1b11e5f7b5c53169ef8224b6b013e9bf4e",
+    "sp002_fixture_preparation_attempt_4_authorization_reuse_allowed": false,
     "sp002_fixture_terminal_action_contract_offline_fix_passed": true,
     "sp002_fixture_terminal_action_contract_retained_shape_replay_passed": true,
     "sp002_fixture_completion_ready_false_prompt_gate_passed": true,
@@ -4716,19 +4975,16 @@
     "sp001_paired_decision": "review_executable_new_version"
   },
   "next_required_gate": {
-    "id": "sp002_fixture_preparation_reauthorization_after_root_graph_fix",
+    "id": "sp002_live_episode_authorization_1",
     "authorization": false,
     "prerequisites": [
-      "sp002_fixture_preparation_attempt_3_failure_evidence_commit_pushed",
-      "retained_zero_subtask_root_response_replay_rejects_exact_schema_issues",
-      "fixture_root_prompt_requires_two_to_six_subtasks",
-      "fixture_root_prompt_requires_at_least_one_dependency_edge",
-      "fixture_root_prompt_still_emits_only_one_next_grounded_action",
-      "root_plan_validator_remains_unchanged",
-      "sp002_and_frozen_sp001_regressions_pass",
-      "offline_fix_commit_pushed_before_any_new_authorization",
-      "sp001_source_fixture_tree_reaudited",
-      "new_sp002_fixture_preparation_authorization_committed_and_pushed",
+      "sp002_fixture_preparation_attempt_4_evidence_commit_pushed",
+      "sp002_fixture_manifest_committed_and_pushed",
+      "sp002_fixture_tree_independently_reaudited",
+      "sp002_fixture_exact_cobblestone_3_stick_2_stone_pickaxe_0",
+      "sp002_fixture_interactive_crafting_table_within_4_5_blocks",
+      "fixture_preparation_authorization_archived_and_nonreusable",
+      "new_sp002_live_episode_authorization_committed_and_pushed",
       "authorization_predecessor_equals_authorization_commit_parent",
       "clean_synchronized_main_before_runtime_start"
     ],
@@ -4736,7 +4992,7 @@
     "replicate_id": null,
     "live_episode_limit": 1,
     "normal_runtime_permission": false,
-    "normal_runtime_permission_scope": "none_fixture_preparation_only",
+    "normal_runtime_permission_scope": "none_one_sp002_live_episode_requires_separate_authorization",
     "automatic_retry_allowed": false
   },
   "artifact_state": {
@@ -4749,10 +5005,12 @@
     "sp001_run_artifacts_created": 80,
     "sp001_run_artifacts_retained_locally": true,
     "sp002_harness_policy_artifacts_created": 1,
-    "sp002_fixture_manifest_created": false,
-    "sp002_fixture_snapshot_created": false,
-    "sp002_authorization_artifacts_created": 1,
-    "sp002_fixture_preparation_artifacts_created": 33,
+    "sp002_fixture_manifest_created": true,
+    "sp002_fixture_manifest_sha256": "2c24a363a1d92370c88bd5797570c6069673af37d014130f29f1cf2bab456e91",
+    "sp002_fixture_snapshot_created": true,
+    "sp002_fixture_snapshot_tree_sha256": "e5201d33a5eb2b9a0d52c0c8be5165363c95e61ef5fc3e88644b3c3d70e2dc0c",
+    "sp002_authorization_artifacts_created": 2,
+    "sp002_fixture_preparation_artifacts_created": 47,
     "sp002_fixture_preparation_artifacts_retained_locally": true,
     "sp002_run_artifacts_created": 0,
     "sp003_run_artifacts_created": 0,
