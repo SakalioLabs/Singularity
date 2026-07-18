@@ -166,19 +166,23 @@ def test_initial_v5_report_inherits_support_and_excludes_every_prior_candidate()
     }]
 
 
-def test_current_v5_report_retains_r13_and_r14_as_two_eligible_pairs():
+def test_current_v5_report_approves_r13_r14_and_r15_as_three_eligible_pairs():
     report = read_json(
         REPOSITORY_ROOT
         / "workspace/evals/sp001_skill_evaluation_v5/acquire_cobblestone_paired_evaluation_v5.json"
     )
-    assert report["valid_pair_count"] == 2
-    assert report["decision"] == "retain_advisory"
+    assert report["valid_pair_count"] == 3
+    assert report["decision"] == "review_executable_new_version"
+    assert report["readiness"] == "approved"
     assert report["normal_runtime_permission"] is False
     assert report["errors"] == []
+    assert report["executable_promotion_gate"]["decision"] == "promote_executable"
+    assert report["executable_promotion_gate"]["validation_issues"] == []
 
     episodes = {
         "r13": "sp001_skill_candidate_20260718_112102_6a99724e",
         "r14": "sp001_skill_candidate_20260718_120904_1785ae0b",
+        "r15": "sp001_skill_candidate_20260718_123511_a340128d",
     }
     for replicate_id, episode_id in episodes.items():
         pair = next(item for item in report["pairs"] if item["replicate_id"] == replicate_id)
