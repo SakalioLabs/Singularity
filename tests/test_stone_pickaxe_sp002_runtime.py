@@ -431,7 +431,8 @@ def test_11_planner_prompt_and_runtime_config_are_sp002_fail_closed():
     planner = object.__new__(Planner)
     planner._expected_plan_kind = "root"
     prompt = Planner._stone_pickaxe_system_prompt(planner)
-    assert "sp002: emit exactly one action" in prompt
+    assert "sp002: on a root planning call, copy the exact two-node" in prompt
+    assert "Emit exactly one action" in prompt
     plan = {
         "schema_version": "stone-pickaxe-plan-v1",
         "plan_kind": "root",
@@ -650,6 +651,89 @@ def test_15_fixture_root_graph_contract_is_prompted_and_fails_closed():
     planner._expected_plan_kind = "continuation"
     continuation_prompt = planner._build_planning_prompt(SP002_GOAL, observation, "")
     assert "root_graph_required=false" in continuation_prompt
+    assert "This call must return subtasks=[]" in continuation_prompt
+
+
+def test_16_live_root_graph_contract_replays_retained_failure():
+    planner = Planner(object(), TaskSystem(), protocol=PROTOCOL["id"])
+    planner._expected_plan_kind = "root"
+    observation = _raw_observation(table=True)
+    observation["stone_pickaxe_runtime_mode"] = "sp002"
+
+    system_prompt = planner._stone_pickaxe_system_prompt()
+    user_prompt = planner._build_planning_prompt(SP002_GOAL, observation, "")
+    assert "sp002: on a root planning call, copy the exact two-node" in system_prompt
+    assert "SP-002 live root graph gate: root_graph_required=true" in user_prompt
+    assert '"id":"verify_inputs"' in user_prompt
+    assert '"id":"craft_stone_pickaxe"' in user_prompt
+    assert '"depends_on":["verify_inputs"]' in user_prompt
+    assert "Never return subtasks=[] on this root planning call" in user_prompt
+    assert "only craft stone_pickaxe count=1" in user_prompt
+
+    retained_root_shape = {
+        "schema_version": "stone-pickaxe-plan-v1",
+        "plan_kind": "root",
+        "goal": SP002_GOAL,
+        "status": "planning",
+        "reasoning": "Craft exactly one stone pickaxe from the verified fixture.",
+        "subtasks": [],
+        "actions": [{
+            "type": "craft",
+            "parameters": {"item": "stone_pickaxe", "count": 1},
+        }],
+    }
+    report = Planner._validate_stone_pickaxe_plan_envelope(
+        retained_root_shape,
+        SP002_GOAL,
+        "root",
+    )
+    assert not report["passed"]
+    assert report["issues"] == [
+        "root_dependency_edge_missing",
+        "root_subtask_count_out_of_bounds",
+    ]
+
+    contract_valid_shape = dict(retained_root_shape)
+    contract_valid_shape["subtasks"] = [
+        {
+            "id": "verify_inputs",
+            "title": "Verify exact materials and crafting table",
+            "type": "verify",
+            "priority": 1,
+            "preconditions": {},
+            "success_criteria": {
+                "inventory": {"cobblestone": 3, "stick": 2},
+                "nearby_block_present": "crafting_table",
+            },
+            "depends_on": [],
+        },
+        {
+            "id": "craft_stone_pickaxe",
+            "title": "Craft exactly one stone pickaxe",
+            "type": "craft",
+            "priority": 1,
+            "preconditions": {
+                "inventory": {"cobblestone": 3, "stick": 2},
+                "nearby_block_present": "crafting_table",
+            },
+            "success_criteria": {"inventory": {"stone_pickaxe": 1}},
+            "depends_on": ["verify_inputs"],
+        },
+    ]
+    valid_report = Planner._validate_stone_pickaxe_plan_envelope(
+        contract_valid_shape,
+        SP002_GOAL,
+        "root",
+    )
+    assert valid_report["passed"]
+
+    planner._expected_plan_kind = "continuation"
+    continuation_prompt = planner._build_planning_prompt(
+        SP002_GOAL,
+        observation,
+        "",
+    )
+    assert "SP-002 live root graph gate: root_graph_required=false" in continuation_prompt
     assert "This call must return subtasks=[]" in continuation_prompt
 
 

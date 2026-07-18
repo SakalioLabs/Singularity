@@ -618,7 +618,7 @@ RUNTIME RULES:
 - prepare_fixture: if no nearby blocks are observed, wait 500 ms. Otherwise use only observed coordinates. Dig only exact observed logs, leaves, or allowed terrain; never dig stone or cobblestone. Include block on every dig. Gather at least 3 logs, craft at least 12 matching planks, craft sticks and one table, place the table, then craft exactly one wooden_pickaxe. A crafting_table item in inventory is not a nearby crafting table. Craft wooden_pickaxe only when the current observation contains crafting_table within 4.5 blocks; when the table exists only in inventory, emit place first using an observed solid reference. Never retry wooden_pickaxe craft while no nearby crafting table is observed. Move near observed stone without digging it.
 - sp001: do not craft or place. Treat held_item as the authoritative current main-hand item. Equip the exact wooden_pickaxe only when held_item differs; when held_item is wooden_pickaxe, never equip it again and dig block="stone" at the nearest reachable observed stone coordinates. Never repeat a removed source.
 - prepare_sp002_fixture: preserve exactly two sticks and never craft stone_pickaxe. If no interactive crafting_table is observed, craft at most one table only when needed, then place or move to it. Equip wooden_pickaxe only when held_item differs. Mine only the nearest reachable observed stone and stop at exactly three cobblestone. On a root planning call, copy the exact two-node subtask graph supplied in the user prompt; never return subtasks=[]. Every response containing an action must use status planning. Never declare complete in the same response as placing, approaching, or moving to the table; the action counts only after the next machine observation. Report complete with actions=[] only when the current observation already has cobblestone=3, stick=2, stone_pickaxe=0, and crafting_table within 4.5 blocks.
-- sp002: emit exactly one action: craft item="stone_pickaxe" count=1. Require current cobblestone=3, stick=2, stone_pickaxe=0, and an observed crafting_table within 4.5 blocks. Never move, wait, equip, retry, use a recipe alias, craft another item, or report textual success before the machine state changes.
+- sp002: on a root planning call, copy the exact two-node subtask graph supplied in the user prompt; never return subtasks=[]. Emit exactly one action: craft item="stone_pickaxe" count=1. Require current cobblestone=3, stick=2, stone_pickaxe=0, and an observed crafting_table within 4.5 blocks. Never move, wait, equip, retry, use a recipe alias, craft another item, or report textual success before the machine state changes.
 
 Required JSON shape:
 {{
@@ -778,6 +778,46 @@ This graph does not authorize extra actions; actions must still contain only the
                 else:
                     root_graph_gate = """
 SP-002 fixture root graph gate: root_graph_required=false.
+This call must return subtasks=[]; do not create a new root graph."""
+            elif machine_state.get("runtime_mode") == "sp002":
+                if self._expected_plan_kind == "root":
+                    required_root_graph = [
+                        {
+                            "id": "verify_inputs",
+                            "title": "Verify exact materials and crafting table",
+                            "type": "verify",
+                            "priority": 1,
+                            "preconditions": {},
+                            "success_criteria": {
+                                "inventory": {"cobblestone": 3, "stick": 2},
+                                "nearby_block_present": "crafting_table",
+                            },
+                            "depends_on": [],
+                        },
+                        {
+                            "id": "craft_stone_pickaxe",
+                            "title": "Craft exactly one stone pickaxe",
+                            "type": "craft",
+                            "priority": 1,
+                            "preconditions": {
+                                "inventory": {"cobblestone": 3, "stick": 2},
+                                "nearby_block_present": "crafting_table",
+                            },
+                            "success_criteria": {
+                                "inventory": {"stone_pickaxe": 1}
+                            },
+                            "depends_on": ["verify_inputs"],
+                        },
+                    ]
+                    root_graph_gate = f"""
+SP-002 live root graph gate: root_graph_required=true.
+Copy this exact JSON array into subtasks without omitting, adding, renaming, or reordering nodes:
+{json.dumps(required_root_graph, sort_keys=True, separators=(',', ':'))}
+The second node must keep depends_on=["verify_inputs"]. Never return subtasks=[] on this root planning call.
+This graph does not authorize extra actions; actions must still contain only craft stone_pickaxe count=1."""
+                else:
+                    root_graph_gate = """
+SP-002 live root graph gate: root_graph_required=false.
 This call must return subtasks=[]; do not create a new root graph."""
             return f"""Exact goal: {goal}
 Expected plan_kind: {self._expected_plan_kind}

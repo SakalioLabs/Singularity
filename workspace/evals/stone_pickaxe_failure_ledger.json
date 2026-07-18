@@ -1,20 +1,20 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-18T17:36:00+08:00",
+  "generated_at": "2026-07-18T17:58:00+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_48_sp002_live_root_plan_contract_offline_fix_gate",
-  "status": "sp002_live_root_plan_contract_failure_retained_offline_fix_required",
+  "phase": "phase_49_sp002_live_reauthorization_gate",
+  "status": "sp002_live_root_plan_contract_offline_fixed_reauthorization_required",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
   "fixture_preparation_authorization": false,
   "authorized_live_episode_count": 0,
-  "authorization_scope": "none_sp002_live_root_plan_offline_fix_required",
+  "authorization_scope": "none_sp002_live_authorization_required_after_offline_fix",
   "automatic_live_resume_allowed": false,
   "authorization_consumption": {
     "fixture_preparation_sessions_authorized": 5,
@@ -1543,7 +1543,7 @@
     {
       "phase": 40,
       "name": "sp002_fixture_terminal_action_contract_offline_fix",
-      "status": "offline_fix_complete_pending_commit_push",
+      "status": "offline_fix_complete",
       "failure_evidence_commit": "4977e26f66776456c5bc0d56ee466028d60323f7",
       "root_cause": "prepare_sp002_fixture_prompt_did_not_make_machine_state_completion_readiness_explicit_at_the_action_boundary",
       "fix": "compute_completion_ready_from_exact_inventory_and_observed_table_state_then_forbid_complete_until_a_post_action_machine_observation_satisfies_it",
@@ -1792,6 +1792,42 @@
       "matching_runtime_process_count_after_stop": 0,
       "authorization_reuse_allowed": false,
       "normal_runtime_permission": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "automatic_retry_allowed": false
+    },
+    {
+      "phase": 48,
+      "name": "sp002_live_root_plan_contract_offline_fix",
+      "status": "offline_fix_complete_pending_commit_push",
+      "failure_evidence_commit": "25f8bed39200ae16615dffe4f8b946ba759b32f3",
+      "root_cause": "sp002_live_mode_did_not_repeat_the_required_root_subtask_graph_at_the_mode_specific_immediate_prompt_boundary",
+      "fix": "supply_an_exact_verify_inputs_then_craft_stone_pickaxe_root_graph_while_preserving_one_exact_craft_action_and_the_unchanged_validator",
+      "required_root_subtask_count": 2,
+      "required_root_dependency_edge": "craft_stone_pickaxe_depends_on_verify_inputs",
+      "required_root_action": "craft_stone_pickaxe_count_1",
+      "planner_sha256": "6701bfd5f1365c99f22f23122e155d356e9702e6f894f9bad80918cb86e74452",
+      "regression_test_sha256": "49a7246499e0bd611a9901398bf1b8f00ee8d4aa760ee4e2a4eea3d4eb139d77",
+      "sp002_runtime_harness_cases": "16/16",
+      "stone_pickaxe_runtime_cases": "32/32",
+      "stone_pickaxe_protocol_cases": "34/34",
+      "repository_non_live_python_scripts": "46/46",
+      "fixed_node_suites": "6/6",
+      "python_compileall": "passed",
+      "node_syntax_files": 8,
+      "tracked_json_files_parsed": 1301,
+      "ledger_path_hash_bindings": "352/352",
+      "protected_baseline_hashes": "4/4",
+      "probe_evidence_diff": "clean",
+      "credential_scan_passed": true,
+      "git_diff_check_passed": true,
+      "controlled_runtime_cleanup_passed": true,
+      "protocol_sha256_unchanged": true,
+      "sp002_policy_sha256_unchanged": true,
+      "frozen_sp001_runtime_unchanged": true,
+      "frozen_sp001_launcher_unchanged": true,
+      "validator_relaxed": false,
+      "live_episode_run": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "automatic_retry_allowed": false
@@ -4369,7 +4405,7 @@
       "id": "sp002-live-001-root-plan-contract",
       "phase": "sp002_live_episode",
       "classification": "sp002_live_root_plan_contract",
-      "status": "retained_failure_pending_offline_fix",
+      "status": "retained_failure_offline_fixed",
       "attributable_to_learned_skill": false,
       "task_id": "SP-002",
       "episode_id": "sp002_live_20260718_173020_6a24cd3a",
@@ -4525,7 +4561,50 @@
       "counts_toward_m4": false,
       "automatic_retry_attempted": false,
       "automatic_retry_allowed": false,
-      "single_next_offline_fix": "repeat_an_exact_two_node_root_graph_in_sp002_live_mode_while_preserving_the_single_exact_craft_action_and_unchanged_validator"
+      "offline_resolution": {
+        "status": "reproduced_fixed_and_tested",
+        "root_cause": "the_global_root_contract_was_correct_but_sp002_live_did_not_repeat_the_exact_required_graph_at_the_mode_specific_immediate_prompt_boundary",
+        "fix": {
+          "root_graph_required": true,
+          "root_subtask_count": 2,
+          "root_subtask_ids": [
+            "verify_inputs",
+            "craft_stone_pickaxe"
+          ],
+          "root_dependency_edge": "craft_stone_pickaxe_depends_on_verify_inputs",
+          "root_action": {
+            "type": "craft",
+            "item": "stone_pickaxe",
+            "count": 1
+          },
+          "continuation_subtasks": [],
+          "validator_relaxed": false
+        },
+        "retained_root_shape_replay_test": "test_16_live_root_graph_contract_replays_retained_failure",
+        "retained_root_shape_issues": [
+          "root_dependency_edge_missing",
+          "root_subtask_count_out_of_bounds"
+        ],
+        "valid_root_graph_replay_passed": true,
+        "planner_sha256": "6701bfd5f1365c99f22f23122e155d356e9702e6f894f9bad80918cb86e74452",
+        "test_sha256": "49a7246499e0bd611a9901398bf1b8f00ee8d4aa760ee4e2a4eea3d4eb139d77",
+        "regressions": {
+          "sp002_runtime_harness_cases": "16/16",
+          "stone_pickaxe_runtime_cases": "32/32",
+          "stone_pickaxe_protocol_cases": "34/34",
+          "repository_non_live_python_scripts": "46/46",
+          "fixed_node_suites": "6/6"
+        },
+        "protocol_json_modified": false,
+        "sp002_policy_modified": false,
+        "frozen_sp001_runtime_modified": false,
+        "frozen_sp001_launcher_modified": false,
+        "live_episode_run": false,
+        "counts_toward_skill_gate": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      },
+      "single_next_offline_fix": "none_offline_fix_complete_fresh_parent_bound_live_authorization_required_after_fix_commit_is_pushed"
     }
   ],
   "eligible_successes": [
@@ -4966,6 +5045,33 @@
     "sp002_live_episode_attempt_1_credential_scan_passed": true,
     "sp002_live_episode_attempt_1_cleanup_passed": true,
     "sp002_live_episode_attempt_1_authorization_reuse_allowed": false,
+    "sp002_live_root_plan_contract_offline_fix_passed": true,
+    "sp002_live_root_plan_contract_retained_shape_replay_passed": true,
+    "sp002_live_root_plan_contract_retained_shape_issues": [
+      "root_dependency_edge_missing",
+      "root_subtask_count_out_of_bounds"
+    ],
+    "sp002_live_root_prompt_exact_two_node_graph_passed": true,
+    "sp002_live_root_prompt_single_exact_craft_action_passed": true,
+    "sp002_live_continuation_empty_subtasks_gate_passed": true,
+    "sp002_live_valid_root_graph_replay_passed": true,
+    "sp002_live_root_plan_validator_unchanged": true,
+    "sp002_live_root_plan_fix_planner_sha256": "6701bfd5f1365c99f22f23122e155d356e9702e6f894f9bad80918cb86e74452",
+    "sp002_live_root_plan_fix_test_sha256": "49a7246499e0bd611a9901398bf1b8f00ee8d4aa760ee4e2a4eea3d4eb139d77",
+    "sp002_live_root_plan_fix_sp002_runtime_harness_cases": "16/16",
+    "sp002_live_root_plan_fix_stone_pickaxe_runtime_cases": "32/32",
+    "sp002_live_root_plan_fix_stone_pickaxe_protocol_cases": "34/34",
+    "sp002_live_root_plan_fix_repository_non_live_python_scripts": "46/46",
+    "sp002_live_root_plan_fix_fixed_node_suites": "6/6",
+    "sp002_live_root_plan_fix_compileall_passed": true,
+    "sp002_live_root_plan_fix_node_syntax_files": 8,
+    "sp002_live_root_plan_fix_tracked_json_files_parsed": 1301,
+    "sp002_live_root_plan_fix_ledger_path_hash_bindings": "352/352",
+    "sp002_live_root_plan_fix_protected_baseline_hashes": "4/4",
+    "sp002_live_root_plan_fix_probe_evidence_diff_clean": true,
+    "sp002_live_root_plan_fix_credential_scan_passed": true,
+    "sp002_live_root_plan_fix_git_diff_check_passed": true,
+    "sp002_live_root_plan_fix_controlled_runtime_cleanup_passed": true,
     "sp002_fixture_terminal_action_contract_offline_fix_passed": true,
     "sp002_fixture_terminal_action_contract_retained_shape_replay_passed": true,
     "sp002_fixture_completion_ready_false_prompt_gate_passed": true,
@@ -5229,7 +5335,7 @@
     "sp001_paired_decision": "review_executable_new_version"
   },
   "next_required_gate": {
-    "id": "sp002_live_root_plan_contract_offline_fix",
+    "id": "sp002_live_episode_reauthorization_after_root_graph_fix",
     "authorization": false,
     "prerequisites": [
       "sp002_live_episode_attempt_1_failure_evidence_commit_pushed",
@@ -5238,13 +5344,17 @@
       "sp002_live_root_prompt_still_emits_only_one_exact_craft_action",
       "root_plan_validator_remains_unchanged",
       "sp002_and_frozen_sp001_regressions_pass",
-      "offline_fix_commit_pushed_before_any_new_authorization"
+      "offline_fix_commit_pushed_before_any_new_authorization",
+      "sp002_fixture_tree_reaudited",
+      "new_sp002_live_episode_authorization_committed_and_pushed",
+      "authorization_predecessor_equals_authorization_commit_parent",
+      "clean_synchronized_main_before_runtime_start"
     ],
     "arm": null,
     "replicate_id": null,
     "live_episode_limit": 1,
     "normal_runtime_permission": false,
-    "normal_runtime_permission_scope": "none_offline_fix_only",
+    "normal_runtime_permission_scope": "none_one_sp002_live_episode_requires_separate_authorization",
     "automatic_retry_allowed": false
   },
   "artifact_state": {
