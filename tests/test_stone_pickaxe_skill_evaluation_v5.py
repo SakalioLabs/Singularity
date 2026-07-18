@@ -134,7 +134,12 @@ def test_v5_duplicate_candidate_authorization_fails_closed(tmp_path):
 
 
 def test_initial_v5_report_inherits_support_and_excludes_every_prior_candidate():
-    report = build_paired_evaluation_report(discover_evaluation_run_paths())
+    prior_paths = [
+        path
+        for path in discover_evaluation_run_paths()
+        if read_json(path).get("policy_id") != POLICY["id"]
+    ]
+    report = build_paired_evaluation_report(prior_paths)
     assert report["valid_pair_count"] == 0
     assert report["shadow_verified"] is True
     assert report["advisory_verified"] is True
@@ -159,6 +164,33 @@ def test_initial_v5_report_inherits_support_and_excludes_every_prior_candidate()
         "skill_quality_observed": False,
         "reuse_allowed": False,
     }]
+
+
+def test_current_v5_report_retains_r13_as_one_eligible_pair():
+    report = read_json(
+        REPOSITORY_ROOT
+        / "workspace/evals/sp001_skill_evaluation_v5/acquire_cobblestone_paired_evaluation_v5.json"
+    )
+    assert report["valid_pair_count"] == 1
+    assert report["decision"] == "retain_advisory"
+    assert report["normal_runtime_permission"] is False
+    pair = next(item for item in report["pairs"] if item["replicate_id"] == "r13")
+    assert pair["eligible"] is True
+    assert pair["candidate_passed"] is True
+    assert pair["fixed_controls_match"] is True
+    assert pair["initial_state_match"] is True
+
+    run = read_json(
+        REPOSITORY_ROOT
+        / "workspace/evals/sp001_skill_evaluation_runs"
+        / "sp001_skill_candidate_20260718_112102_6a99724e"
+        / "evaluation_run.json"
+    )
+    audit = verify_run_record(run)
+    assert audit["passed"], audit["issues"]
+    assert run["status"] == "pass"
+    assert run["metrics"]["skill_completion_count"] == 1
+    assert run["metrics"]["failed_actions"] == 0
 
 
 def test_v5_binds_schema_valid_r12_infrastructure_failure_without_counting_it():
