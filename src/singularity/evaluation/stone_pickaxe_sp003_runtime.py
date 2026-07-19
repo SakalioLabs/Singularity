@@ -84,6 +84,15 @@ SP003_SURFACE_CLEARANCE_MAX = 3
 SP003_CRAFT_SETTLEMENT_DELAY_MS = 1000
 SP003_DELAYED_LOG_PICKUP_POLICY_ID = "sp003-delayed-log-pickup-reconciliation-v1"
 SP003_PENDING_LOG_PICKUP_MAX = 3
+SP003_TABLE_REFERENCE_REPAIR_POLICY_ID = (
+    "sp003-table-reference-clear-target-repair-v1"
+)
+SP003_TABLE_REFERENCE_REPAIR_MAX = 1
+SP003_MOVE_TO_GOAL_POLICY_ID = "sp003-goalnearxz-cell-metric-alignment-v1"
+SP003_MOVE_TO_CONTINUOUS_TOLERANCE = 1.6
+SP003_PICKUP_GOAL_POLICY_ID = "sp003-exact-unit-goal-near-v1"
+SP003_PICKUP_GOAL_REQUESTED_RANGE = 1
+SP003_PICKUP_GOAL_EFFECTIVE_RANGE = 0
 SP003_FROZEN_BRIDGE_SHA256 = "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
 REPLACEABLE_BLOCKS = {
     "air",
@@ -239,6 +248,41 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         and episode_contract.get("delayed_pickup_current_source_reserved_count") == 1
         and episode_contract.get("delayed_pickup_same_log_family_required") is True
         and episode_contract.get("delayed_pickup_raw_failure_preserved") is True
+    )
+    checks["bounded_table_reference_repair_contract"] = (
+        episode_contract.get("table_reference_repair_policy_id")
+        == SP003_TABLE_REFERENCE_REPAIR_POLICY_ID
+        and episode_contract.get("table_reference_repair_attempts_max")
+        == SP003_TABLE_REFERENCE_REPAIR_MAX
+        and episode_contract.get("table_reference_repair_requires_observed_solid")
+        is True
+        and episode_contract.get("table_reference_repair_selects_nearest_clear_candidate")
+        is True
+        and episode_contract.get("table_reference_repair_world_mutation_allowed")
+        is False
+    )
+    checks["bounded_move_metric_alignment_contract"] = (
+        episode_contract.get("move_target_metric_alignment_policy_id")
+        == SP003_MOVE_TO_GOAL_POLICY_ID
+        and episode_contract.get("move_target_cell_centered") is True
+        and episode_contract.get("move_continuous_tolerance")
+        == SP003_MOVE_TO_CONTINUOUS_TOLERANCE
+        and episode_contract.get("move_pathfinder_goal_range") == 1
+        and episode_contract.get("move_pathfinder_goal_cell_unchanged") is True
+        and episode_contract.get("move_inventory_preservation_required")
+        is True
+    )
+    checks["exact_unit_pickup_goal_contract"] = (
+        episode_contract.get("pickup_exact_unit_goal_near_policy_id")
+        == SP003_PICKUP_GOAL_POLICY_ID
+        and episode_contract.get("pickup_goal_near_requested_range")
+        == SP003_PICKUP_GOAL_REQUESTED_RANGE
+        and episode_contract.get("pickup_goal_near_effective_range")
+        == SP003_PICKUP_GOAL_EFFECTIVE_RANGE
+        and episode_contract.get("pickup_non_unit_goal_near_ranges_unchanged")
+        is True
+        and episode_contract.get("pickup_inventory_or_distance_grounding_required")
+        is True
     )
 
     reset = value.get("reset_substrate") if isinstance(value.get("reset_substrate"), dict) else {}
@@ -869,6 +913,48 @@ def _place_reference_candidates(observation: Any) -> list[dict]:
     return candidates
 
 
+def _observed_solid_place_reference(observation: Any, params: dict) -> dict:
+    raw = observation if isinstance(observation, dict) else {}
+    player = raw.get("position") if isinstance(raw.get("position"), dict) else {}
+    blocks = raw.get("nearby_blocks") if isinstance(raw.get("nearby_blocks"), list) else []
+    matches = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        name = str(block.get("name") or "")
+        position = block.get("position") if isinstance(block.get("position"), dict) else {}
+        if name in REPLACEABLE_BLOCKS or name == "crafting_table":
+            continue
+        if not _coordinates_match(params, block):
+            continue
+        if not all(_finite(position.get(axis)) is not None for axis in ("x", "y", "z")):
+            continue
+        compact = {axis: round(float(position[axis])) for axis in ("x", "y", "z")}
+        distance = _finite(block.get("distance"))
+        if distance is None and all(
+            _finite(player.get(axis)) is not None for axis in ("x", "y", "z")
+        ):
+            distance = math.sqrt(sum(
+                (float(player[axis]) - compact[axis]) ** 2
+                for axis in ("x", "y", "z")
+            ))
+        if distance is None or distance > 4.5:
+            continue
+        matches.append({
+            "source_id": source_id(name, compact),
+            "name": name,
+            "position": compact,
+            "distance": round(float(distance), 6),
+            "target_position": {
+                "x": compact["x"],
+                "y": compact["y"] + 1,
+                "z": compact["z"],
+            },
+        })
+    matches.sort(key=lambda item: item["source_id"])
+    return matches[0] if matches else {}
+
+
 def _remembered_table_candidate(observation: Any, progress: Any) -> dict:
     state = _progress_snapshot(progress)
     position = state.get("crafting_table_position", {})
@@ -1396,6 +1482,7 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
     normalized = {"type": action_type, "parameters": dict(params)}
     issues: list[str] = []
     selected_source = {}
+    action_repair = {}
     state = _progress_snapshot(progress)
     stage = _stage(observation, progress)
     inventory = _safe_inventory(observation)
@@ -1443,7 +1530,35 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
                         selected_source.get("stone_clearance_probe") is True
                         or selected_source.get("stone_pickup_approach") is True
                     ):
-                        normalized["parameters"]["tolerance"] = 1
+                        requested_target = {
+                            axis: normalized["parameters"].get(axis)
+                            for axis in ("x", "y", "z")
+                            if axis in normalized["parameters"]
+                        }
+                        for axis in ("x", "z"):
+                            coordinate = _finite(normalized["parameters"].get(axis))
+                            if coordinate is not None:
+                                normalized["parameters"][axis] = math.floor(coordinate) + 0.5
+                        normalized["parameters"]["tolerance"] = (
+                            SP003_MOVE_TO_CONTINUOUS_TOLERANCE
+                        )
+                        action_repair = {
+                            "type": "sp003_centered_unit_tolerance_target",
+                            "schema_version": 1,
+                            "policy_id": SP003_MOVE_TO_GOAL_POLICY_ID,
+                            "attempt_limit": 1,
+                            "attempt_count": 1,
+                            "requested_target": requested_target,
+                            "selected_target": {
+                                axis: normalized["parameters"].get(axis)
+                                for axis in ("x", "y", "z", "tolerance")
+                                if axis in normalized["parameters"]
+                            },
+                            "pathfinder_goal_cell_unchanged": True,
+                            "pathfinder_goal_range": 1,
+                            "continuous_bound_basis": "adjacent_cell_far_corner",
+                            "world_mutation": False,
+                        }
                     normalized["parameters"]["preserve_inventory"] = True
     elif action_type == "dig" and stage == "acquire_wood":
         block = str(params.get("block") or "")
@@ -1519,6 +1634,24 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
         if not matching and target_matching:
             matching = target_matching
             normalized["parameters"].update(target_matching[0]["position"])
+        if not matching and not issues and candidates:
+            requested_reference = _observed_solid_place_reference(observation, params)
+            if requested_reference:
+                selected = candidates[0]
+                matching = [selected]
+                normalized["parameters"].update(selected["position"])
+                action_repair = {
+                    "type": "sp003_table_reference_repair",
+                    "schema_version": 1,
+                    "policy_id": SP003_TABLE_REFERENCE_REPAIR_POLICY_ID,
+                    "attempt_limit": SP003_TABLE_REFERENCE_REPAIR_MAX,
+                    "attempt_count": 1,
+                    "reason": "requested_observed_reference_target_not_clear",
+                    "requested_reference": requested_reference,
+                    "selected_reference": copy.deepcopy(selected),
+                    "selection_basis": "nearest_clear_candidate_then_source_id",
+                    "world_mutation": False,
+                }
         if not matching:
             issues.append("sp003_table_reference_must_be_observed_solid_with_clear_target")
         else:
@@ -1632,6 +1765,7 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
         "issues": sorted(set(issues)),
         "action": normalized,
         "selected_source": selected_source,
+        "action_repair": action_repair,
         "progress": state,
         "runtime_influence": True,
     }

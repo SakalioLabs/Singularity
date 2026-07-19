@@ -2,7 +2,11 @@
 
 const POLICY_ID = 'sp003-runtime-preload-v2';
 const CRAFT_SETTLEMENT_DELAY_MS = 1000;
+const EXACT_UNIT_GOAL_NEAR_POLICY_ID = 'sp003-exact-unit-goal-near-v1';
+const EXACT_UNIT_GOAL_NEAR_REQUESTED_RANGE = 1;
+const EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE = 0;
 const MOVEMENTS_PATCH_MARK = Symbol.for('singularity.sp003.inventoryPreservingNavigation');
+const GOAL_NEAR_PATCH_MARK = Symbol.for('singularity.sp003.exactUnitGoalNear');
 const CREATE_BOT_PATCH_MARK = Symbol.for('singularity.sp003.createBot');
 const BOT_CRAFT_INSTALL_MARK = Symbol.for('singularity.sp003.craftSettlementInstall');
 const BOT_CRAFT_PATCH_MARK = Symbol.for('singularity.sp003.craftSettlement');
@@ -10,6 +14,12 @@ const pathfinderModule = require('mineflayer-pathfinder');
 const mineflayerModule = require('mineflayer');
 
 const waitForSettlement = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function exactUnitGoalNearRange(range) {
+    return Number(range) === EXACT_UNIT_GOAL_NEAR_REQUESTED_RANGE
+        ? EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE
+        : range;
+}
 
 function hardenMovements(movements) {
     if (!movements || typeof movements !== 'object') {
@@ -95,6 +105,30 @@ if (!pathfinderModule[MOVEMENTS_PATCH_MARK]) {
     });
 }
 
+if (!pathfinderModule[GOAL_NEAR_PATCH_MARK]) {
+    const OriginalGoalNear = pathfinderModule.goals.GoalNear;
+    class SP003ExactUnitGoalNear extends OriginalGoalNear {
+        constructor(x, y, z, range) {
+            const effectiveRange = exactUnitGoalNearRange(range);
+            super(x, y, z, effectiveRange);
+            this.sp003ExactUnitGoalNear = Object.freeze({
+                policyId: EXACT_UNIT_GOAL_NEAR_POLICY_ID,
+                requestedRange: range,
+                effectiveRange,
+                transformed: Number(range) === EXACT_UNIT_GOAL_NEAR_REQUESTED_RANGE,
+            });
+        }
+    }
+    pathfinderModule.goals.GoalNear = SP003ExactUnitGoalNear;
+    pathfinderModule[GOAL_NEAR_PATCH_MARK] = Object.freeze({
+        policyId: EXACT_UNIT_GOAL_NEAR_POLICY_ID,
+        requestedRange: EXACT_UNIT_GOAL_NEAR_REQUESTED_RANGE,
+        effectiveRange: EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE,
+        originalGoalNear: OriginalGoalNear,
+        patchedGoalNear: SP003ExactUnitGoalNear,
+    });
+}
+
 if (!mineflayerModule[CREATE_BOT_PATCH_MARK]) {
     const originalCreateBot = mineflayerModule.createBot;
     mineflayerModule.createBot = function sp003CreateBot(...args) {
@@ -113,9 +147,14 @@ if (!mineflayerModule[CREATE_BOT_PATCH_MARK]) {
 module.exports = {
     POLICY_ID,
     CRAFT_SETTLEMENT_DELAY_MS,
+    EXACT_UNIT_GOAL_NEAR_POLICY_ID,
+    EXACT_UNIT_GOAL_NEAR_REQUESTED_RANGE,
+    EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE,
+    exactUnitGoalNearRange,
     hardenMovements,
     installCraftSettlement,
     wrapCraftSettlement,
     status: pathfinderModule[MOVEMENTS_PATCH_MARK],
+    goalStatus: pathfinderModule[GOAL_NEAR_PATCH_MARK],
     craftStatus: mineflayerModule[CREATE_BOT_PATCH_MARK],
 };

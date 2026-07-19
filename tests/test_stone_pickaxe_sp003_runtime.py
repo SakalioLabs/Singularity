@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -127,6 +128,17 @@ def test_policy_identity_binds_frozen_protocol_and_promoted_skills():
     )
     assert policy["episode_contract"]["pending_removed_log_sources_max"] == 3
     assert policy["episode_contract"]["delayed_pickup_raw_failure_preserved"] is True
+    assert policy["episode_contract"]["table_reference_repair_attempts_max"] == 1
+    assert policy["episode_contract"]["move_target_cell_centered"] is True
+    assert policy["episode_contract"]["move_continuous_tolerance"] == 1.6
+    assert policy["episode_contract"]["pickup_goal_near_requested_range"] == 1
+    assert policy["episode_contract"]["pickup_goal_near_effective_range"] == 0
+    assert (
+        policy["episode_contract"][
+            "pickup_inventory_or_distance_grounding_required"
+        ]
+        is True
+    )
     assert [(item["skill_id"], item["version"]) for item in policy["skills"]] == [
         ("learned:acquire_cobblestone", "1.1.0"),
         ("learned:craft_stone_pickaxe", "1.0.1"),
@@ -161,6 +173,26 @@ def test_policy_identity_rejects_eager_craft_settlement_installation():
     hidden_failure["episode_contract"]["delayed_pickup_raw_failure_preserved"] = False
     assert not verify_sp003_policy_identity(hidden_failure)["checks"][
         "delayed_log_pickup_reconciliation_contract"
+    ]
+
+    arbitrary_reference = copy.deepcopy(policy)
+    arbitrary_reference["episode_contract"][
+        "table_reference_repair_requires_observed_solid"
+    ] = False
+    assert not verify_sp003_policy_identity(arbitrary_reference)["checks"][
+        "bounded_table_reference_repair_contract"
+    ]
+
+    uncentered_goal = copy.deepcopy(policy)
+    uncentered_goal["episode_contract"]["move_target_cell_centered"] = False
+    assert not verify_sp003_policy_identity(uncentered_goal)["checks"][
+        "bounded_move_metric_alignment_contract"
+    ]
+
+    loose_pickup_goal = copy.deepcopy(policy)
+    loose_pickup_goal["episode_contract"]["pickup_goal_near_effective_range"] = 1
+    assert not verify_sp003_policy_identity(loose_pickup_goal)["checks"][
+        "exact_unit_pickup_goal_contract"
     ]
 
 
@@ -473,11 +505,14 @@ def test_phase88_retained_stone_target_requires_grounded_navigation_before_dig()
     )
     assert horizontal["allowed"], horizontal
     assert horizontal["action"]["parameters"] == {
-        "x": 124,
-        "z": -37,
-        "tolerance": 1,
+        "x": 124.5,
+        "z": -36.5,
+        "tolerance": 1.6,
         "preserve_inventory": True,
     }
+    assert horizontal["action_repair"]["policy_id"] == (
+        "sp003-goalnearxz-cell-metric-alignment-v1"
+    )
 
     centered = copy.deepcopy(retained)
     centered["position"] = {"x": 124.5, "y": 142.0, "z": -36.5}
@@ -515,10 +550,10 @@ def test_phase88_retained_stone_target_requires_grounded_navigation_before_dig()
     )
     assert move["allowed"], move
     assert move["action"]["parameters"] == {
-        "x": 124,
+        "x": 124.5,
         "y": 140,
-        "z": -37,
-        "tolerance": 1,
+        "z": -36.5,
+        "tolerance": 1.6,
         "preserve_inventory": True,
     }
     assert move["selected_source"]["stone_pickup_approach"] is True
@@ -740,6 +775,66 @@ def test_grounded_stone_approach_excludes_anchor_and_allows_adjacent_stone_dig()
     assert adjacent["allowed"], adjacent
 
 
+def test_phase97_move_replay_aligns_block_cell_and_continuous_distance_metrics():
+    session_path = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_121946_1d855e28/session.json"
+    )
+    events = json.loads(session_path.read_text(encoding="utf-8"))
+    retained_guard = next(
+        event
+        for event in events
+        if event.get("type") == "stone_pickaxe_sp003_action_guard"
+        and (event.get("data") or {}).get("selected_source", {}).get("source_id")
+        == "stone:122:138:-36"
+    )
+    retained_action = next(
+        event
+        for event in events
+        if event.get("type") == "action"
+        and (event.get("data") or {}).get("action", {}).get("type") == "move_to"
+        and (event.get("data") or {}).get("action", {}).get("parameters", {}).get("x")
+        == 122
+    )
+    guard_index = events.index(retained_guard)
+    retained_observation = next(
+        event["data"]
+        for event in reversed(events[:guard_index])
+        if event.get("type") == "observation"
+    )
+
+    replayed = guard_sp003_action(
+        {"type": "move_to", "parameters": {"x": 122, "z": -36}},
+        copy.deepcopy(retained_observation),
+        copy.deepcopy(retained_guard["data"]["progress"]),
+    )
+
+    assert replayed["allowed"], replayed
+    assert replayed["action"]["parameters"] == {
+        "x": 122.5,
+        "z": -35.5,
+        "tolerance": 1.6,
+        "preserve_inventory": True,
+    }
+    assert replayed["action_repair"]["policy_id"] == (
+        "sp003-goalnearxz-cell-metric-alignment-v1"
+    )
+    assert replayed["action_repair"]["pathfinder_goal_range"] == 1
+    assert replayed["action_repair"]["pathfinder_goal_cell_unchanged"] is True
+
+    final_position = retained_action["data"]["result"]["position"]
+    old_distance = math.hypot(
+        final_position["x"] - 122,
+        final_position["z"] - (-36),
+    )
+    aligned_distance = math.hypot(
+        final_position["x"] - replayed["action"]["parameters"]["x"],
+        final_position["z"] - replayed["action"]["parameters"]["z"],
+    )
+    assert old_distance > 1.6
+    assert aligned_distance <= replayed["action"]["parameters"]["tolerance"]
+
+
 def test_preparation_guard_enforces_exact_recipe_sequence_and_single_table():
     progress = preparation_progress()
     planks = guard_sp003_action(
@@ -808,6 +903,78 @@ def test_preparation_guard_enforces_exact_recipe_sequence_and_single_table():
     )
     assert not duplicate_place["allowed"]
     assert "sp003_duplicate_table_placement_forbidden" in duplicate_place["issues"]
+
+
+def test_phase97_table_reference_replay_repairs_only_observed_unsafe_target():
+    session_path = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_121946_1d855e28/session.json"
+    )
+    events = json.loads(session_path.read_text(encoding="utf-8"))
+    retained_guard = next(
+        event
+        for event in events
+        if event.get("type") == "stone_pickaxe_sp003_action_guard"
+        and (event.get("data") or {}).get("action", {}).get("type") == "place"
+        and (event.get("data") or {}).get("action", {}).get("parameters", {}).get("x")
+        == 118
+    )
+    retained_action = next(
+        event
+        for event in events
+        if event.get("type") == "action"
+        and (event.get("data") or {}).get("action", {}).get("type") == "place"
+        and (event.get("data") or {}).get("action", {}).get("parameters", {}).get("x")
+        == 118
+    )
+    guard_data = retained_guard["data"]
+    action_data = retained_action["data"]
+
+    repaired = guard_sp003_action(
+        copy.deepcopy(guard_data["action"]),
+        copy.deepcopy(action_data["pre_observation"]),
+        copy.deepcopy(guard_data["progress"]),
+    )
+
+    assert repaired["allowed"], repaired
+    assert repaired["action"]["parameters"] == {
+        "item": "crafting_table",
+        "x": 119,
+        "y": 139,
+        "z": -33,
+        "reference_source_id": "dirt:119:139:-33",
+    }
+    assert repaired["selected_source"]["source_id"] == "dirt:119:139:-33"
+    assert repaired["action_repair"]["policy_id"] == (
+        "sp003-table-reference-clear-target-repair-v1"
+    )
+    assert repaired["action_repair"]["attempt_limit"] == 1
+    assert repaired["action_repair"]["attempt_count"] == 1
+    assert repaired["action_repair"]["requested_reference"]["source_id"] == (
+        "grass_block:118:139:-33"
+    )
+    assert repaired["action_repair"]["selected_reference"]["source_id"] == (
+        "dirt:119:139:-33"
+    )
+
+    unobserved = guard_sp003_action(
+        {
+            "type": "place",
+            "parameters": {
+                "item": "crafting_table",
+                "x": 999,
+                "y": 139,
+                "z": -33,
+            },
+        },
+        copy.deepcopy(action_data["pre_observation"]),
+        copy.deepcopy(guard_data["progress"]),
+    )
+    assert not unobserved["allowed"]
+    assert unobserved["action_repair"] == {}
+    assert "sp003_table_reference_must_be_observed_solid_with_clear_target" in (
+        unobserved["issues"]
+    )
 
 
 def test_stone_guard_requires_held_wooden_pickaxe_nearest_source_and_exact_limit():
