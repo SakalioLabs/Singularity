@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import subprocess
 from types import SimpleNamespace
 
 import pytest
@@ -1187,6 +1188,178 @@ def test_phase103_retained_baseline_replays_move_to_y_contract_disconnect():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
+def test_phase105_retained_baseline_replays_covered_stone_pickup_failure():
+    run_dir = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_164341_b6f52e23"
+    )
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    episode = json.loads((run_dir / "episode.json").read_text(encoding="utf-8"))
+    events = json.loads((run_dir / "session.json").read_text(encoding="utf-8"))
+
+    assert manifest["passed"] is False
+    assert manifest["evidence_eligible"] is False
+    assert manifest["authorization_id"] == (
+        "01da5db4fdadaee2ead01915e59a18de5bfd45771ccd9291c536acacf859dbba"
+    )
+    assert manifest["automatic_retry_allowed"] is False
+    assert manifest["bm012_terminal_started"] is False
+    assert episode["goal_result"]["termination_reason"] == "max_duration"
+    assert episode["goal_result"]["deadline_eligible"] is False
+    assert episode["goal_result"]["cycles"] == 27
+    assert episode["action_count"] == 27
+    assert len(episode["raw_action_failures"]) == 9
+    assert episode["reconciled_action_failure_indexes"] == []
+    assert len(episode["unreconciled_action_failures"]) == 9
+    assert episode["post_deadline_action_indexes"] == []
+    assert len(episode["distinct_log_source_ids"]) == 3
+    assert len(episode["distinct_surface_clearance_source_ids"]) == 3
+    assert episode["distinct_stone_source_ids"] == []
+    assert episode["stable_observation"]["inventory"] == {
+        "stick": 2,
+        "oak_planks": 3,
+        "wooden_pickaxe": 1,
+        "dirt": 3,
+    }
+
+    planner_calls = [
+        event["data"]
+        for event in events
+        if event.get("type") == "llm_planner_call"
+    ]
+    assert [call["call_index"] for call in planner_calls] == list(range(27))
+    assert all(call["schema_valid"] is True for call in planner_calls)
+    assert all(
+        call["transport_evidence"]["attempt_count"] == 1
+        and call["transport_evidence"]["retry_count"] == 0
+        and call["transport_evidence"]["attempts"][0]["success"] is True
+        for call in planner_calls
+    )
+    assert max(
+        call["provider_metadata"]["prompt_tokens"] for call in planner_calls
+    ) == 2955
+    assert max(call["response_byte_count"] for call in planner_calls) == 2095
+
+    stone_actions = [
+        (index, event["data"])
+        for index, event in enumerate(events)
+        if event.get("type") == "action"
+        and event.get("data", {}).get("action", {}).get("parameters", {}).get(
+            "block"
+        )
+        == "stone"
+    ]
+    removed = [item for item in stone_actions if item[1]["result"].get("block_removed")]
+    assert [index for index, _data in removed] == [356, 376]
+    expected = [
+        (
+            "stone:124:139:-38",
+            964,
+            1.6831034082055907,
+            {"x": 124.875, "y": 139, "z": -37.875},
+        ),
+        (
+            "stone:125:139:-37",
+            1014,
+            1.1649104141027862,
+            {"x": 125.125, "y": 139, "z": -36.875},
+        ),
+    ]
+    for (_index, action_event), (
+        source,
+        entity_id,
+        final_distance,
+        drop_position,
+    ) in zip(removed, expected):
+        params = action_event["action"]["parameters"]
+        result = action_event["result"]
+        pickup = result["pickup_collection"]
+        assert params["source_id"] == source
+        assert result["success"] is False
+        assert result["target_block_before"]["name"] == "stone"
+        assert result["target_block_after"]["name"] == "air"
+        assert result["pickup_inventory_delta"] == {}
+        assert result["error"] == "expected block drop was not acquired"
+        assert pickup["entity_id"] == entity_id
+        assert pickup["position"] == drop_position
+        assert pickup["direct_navigation"]["pathfinder_resolved"] is True
+        assert pickup["direct_navigation"]["completion_grounded"] is False
+        assert pickup["final_distance"] == final_distance
+        assert pickup["fallback_candidate"] is None
+        assert pickup["fallback_attempt_count"] == 0
+        assert pickup["error"] == (
+            "pickup navigation completed outside acquisition range and no "
+            "standable fallback was available"
+        )
+        head = {
+            "x": params["x"],
+            "y": params["y"] + 1,
+            "z": params["z"],
+        }
+        assert any(
+            block_item.get("name") == "dirt"
+            and block_item.get("position") == head
+            for block_item in action_event["pre_observation"]["nearby_blocks"]
+        )
+
+    first_guard_index = next(
+        index
+        for index, event in enumerate(events)
+        if event.get("type") == "stone_pickaxe_sp003_action_guard"
+        and event.get("data", {}).get("selected_source", {}).get("source_id")
+        == "stone:124:139:-38"
+    )
+    first_observation = next(
+        event["data"]
+        for event in reversed(events[:first_guard_index])
+        if event.get("type") == "observation"
+    )
+    assert first_observation["sp003_complete_local_scan"] == {}
+
+    second_guard_index = next(
+        index
+        for index, event in enumerate(events)
+        if event.get("type") == "stone_pickaxe_sp003_action_guard"
+        and event.get("data", {}).get("selected_source", {}).get("source_id")
+        == "stone:125:139:-37"
+    )
+    second_observation = next(
+        event["data"]
+        for event in reversed(events[:second_guard_index])
+        if event.get("type") == "observation"
+    )
+    complete_scan = second_observation["sp003_complete_local_scan"]
+    assert complete_scan["scan_complete"] is True
+    by_cell = {
+        tuple(block_item["position"][axis] for axis in ("x", "y", "z")):
+        block_item["name"]
+        for block_item in complete_scan["blocks"]
+    }
+    assert by_cell[(125, 138, -37)] == "stone"
+    assert by_cell[(125, 139, -37)] == "stone"
+    assert by_cell[(125, 140, -37)] == "dirt"
+    assert by_cell[(125, 141, -37)] == "dirt"
+
+    ledger = json.loads(
+        (REPO / "workspace/evals/stone_pickaxe_failure_ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    failure = next(
+        item
+        for item in ledger["failures"]
+        if item["id"]
+        == "sp003-baseline-015-covered-stone-pickup-access-disconnect"
+    )
+    assert failure["automatic_retry_attempted"] is False
+    assert failure["counts_toward_baseline_success"] is False
+    assert len(failure["evidence"]) == 13
+    for record in failure["evidence"]:
+        path = REPO / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+
 def test_phase104_move_to_schema_repair_audit_binds_current_contract():
     audit_path = REPO / "workspace/evals/stone_pickaxe_sp003_move_to_schema_repair.json"
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
@@ -1214,10 +1387,13 @@ def test_phase104_move_to_schema_repair_audit_binds_current_contract():
     assert audit["live_episode_run"] is False
     assert audit["live_authorization"] is False
 
+    implementation_commit = "61a7a28fa30e6a40cd638ea9feff4a010f62babb"
     for record in audit["implementation"]:
-        path = REPO / record["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+        historical_bytes = subprocess.check_output(
+            ["git", "show", f"{implementation_commit}:{record['path']}"],
+            cwd=REPO,
+        )
+        assert hashlib.sha256(historical_bytes).hexdigest() == record["sha256"]
 
 
 def test_preparation_guard_enforces_exact_recipe_sequence_and_single_table():
