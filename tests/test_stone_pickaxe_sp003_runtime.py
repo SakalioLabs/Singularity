@@ -28,6 +28,7 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     SP003_GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
     SP003_GOALBLOCK_NUDGE_MAX_PULSES,
     SP003_GOALBLOCK_NUDGE_PULSE_MS,
+    SP003_PATHFINDER_STOP_DRAIN_POLICY_ID,
     SP003_POLICY_PATH,
     SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID,
     SP003_RUNTIME_POLICY_ID,
@@ -225,6 +226,59 @@ def test_policy_identity_binds_frozen_protocol_and_promoted_skills():
     )
     assert policy["episode_contract"]["move_unmarked_goal_near_unchanged"] is True
     assert policy["episode_contract"]["move_non_unit_goal_near_unchanged"] is True
+    assert policy["episode_contract"]["pathfinder_stop_drain_policy_id"] == (
+        SP003_PATHFINDER_STOP_DRAIN_POLICY_ID
+    )
+    assert (
+        policy["episode_contract"]["pathfinder_stop_drain_process_local_only"]
+        is True
+    )
+    assert (
+        policy["episode_contract"]["pathfinder_stop_drain_after_original_stop"]
+        is True
+    )
+    assert (
+        policy["episode_contract"][
+            "pathfinder_stop_drain_set_goal_null_required"
+        ]
+        is True
+    )
+    assert (
+        policy["episode_contract"][
+            "pathfinder_stop_drain_before_next_goto_required"
+        ]
+        is True
+    )
+    assert (
+        policy["episode_contract"][
+            "pathfinder_stop_drain_original_stop_calls_per_request_max"
+        ]
+        == 1
+    )
+    assert (
+        policy["episode_contract"][
+            "pathfinder_stop_drain_automatic_retry_allowed"
+        ]
+        is False
+    )
+    assert (
+        policy["episode_contract"][
+            "pathfinder_stop_drain_world_mutation_allowed"
+        ]
+        is False
+    )
+    assert (
+        policy["episode_contract"][
+            "pathfinder_stop_drain_original_errors_propagated"
+        ]
+        is True
+    )
+    assert (
+        policy["episode_contract"][
+            "pathfinder_stop_drain_shared_bridge_change_allowed"
+        ]
+        is False
+    )
     assert policy["episode_contract"]["planner_state_policy_id"] == (
         "sp003-bounded-planner-state-v1"
     )
@@ -2183,10 +2237,13 @@ def test_phase110_exact_goalnear_completion_grounding_audit_binds_current_contra
     assert audit["live_authorization"] is False
     assert audit["counts_toward_capability"] is False
 
+    implementation_commit = "cfa05fd60bb326b1d1b86b5d73864371d2ae057e"
     for record in audit["implementation"]:
-        path = REPO / record["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+        historical_bytes = subprocess.check_output(
+            ["git", "show", f"{implementation_commit}:{record['path']}"],
+            cwd=REPO,
+        )
+        assert hashlib.sha256(historical_bytes).hexdigest() == record["sha256"]
 
 
 def test_phase109_retained_baseline_replays_exact_goalnear_false_resolution():
@@ -2432,6 +2489,83 @@ def test_phase111_retained_baseline_replays_deferred_pathfinder_stop_poisoning()
         path = REPO / record["path"]
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+
+def test_phase112_pathfinder_stop_drain_audit_binds_current_contract():
+    audit_path = (
+        REPO / "workspace/evals/stone_pickaxe_sp003_pathfinder_stop_drain_repair.json"
+    )
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+
+    assert audit["type"] == "stone_pickaxe_sp003_pathfinder_stop_drain_repair"
+    assert audit["phase"] == 112
+    assert audit["base_commit"] == "3bbeeca4d162882d37bf08e8bb00857f66a451b1"
+    assert audit["policy_id"] == SP003_PATHFINDER_STOP_DRAIN_POLICY_ID
+    assert audit["retained_failure"]["manifest_sha256"] == (
+        "e4e1eb83a6a9adbd8e497cf142376e9566d9065b09b87b922f760d8e29bff37c"
+    )
+    assert audit["retained_failure"]["session_sha256"] == (
+        "ea145b598724ed9e31209e57a319dde7cd6d87359ea952888901874c577acaf6"
+    )
+    assert audit["retained_failure"]["path_stopped_cascade_count"] == 28
+    assert audit["retained_failure"]["failed_horizontal_move_count"] == 25
+    assert audit["retained_failure"]["automatic_retry_attempted"] is False
+
+    dependency = audit["dependency_root_cause"]
+    assert dependency["public_stop_sets_deferred_flag_only"] is True
+    assert dependency["reset_path_consumes_deferred_stop"] is True
+    assert dependency["later_goto_consumes_prior_stop_before_pathing"] is True
+    assert dependency["vendored_dependency_modified"] is False
+    dependency_path = REPO / dependency["path"]
+    assert hashlib.sha256(dependency_path.read_bytes()).hexdigest() == dependency[
+        "sha256"
+    ]
+
+    contract = audit["repair_contract"]
+    assert contract["scope"] == "sp003_process_local_preload_only"
+    assert contract["public_stop_wrapped_once_per_bot"] is True
+    assert contract["original_stop_calls_per_request_max"] == 1
+    assert contract["original_stop_called_before_drain"] is True
+    assert contract["drain_operation"] == "original_setGoal(null)"
+    assert contract["drain_immediate_before_return"] is True
+    assert contract["deferred_stop_clear_required_before_next_goto"] is True
+    assert contract["active_goto_must_reject"] is True
+    assert contract["active_goto_false_success_allowed"] is False
+    assert contract["navigation_retry_allowed"] is False
+    assert contract["action_retry_allowed"] is False
+    assert contract["world_mutation_allowed"] is False
+    assert contract["shared_bridge_changed"] is False
+    assert contract["base_protocol_changed"] is False
+
+    replay = audit["retained_replay"]
+    assert replay["phase_111_initial_pickup_timeout_preserved"] is True
+    assert replay["phase_111_path_stopped_cascade_count"] == 28
+    assert replay["deferred_stop_consumed_immediately"] is True
+    assert replay["simulated_original_stop_call_count"] == 1
+    assert replay["simulated_set_goal_null_call_count"] == 1
+    assert replay["simulated_next_goto_succeeded"] is True
+    assert replay["simulated_hidden_retry_count"] == 0
+    assert replay["active_goto_rejected"] is True
+    assert replay["active_goto_false_success"] is False
+    assert replay["integrated_dig_pickup_timeout_preserved"] is True
+    assert replay["integrated_following_move_passed"] is True
+    assert replay["integrated_total_goto_count"] == 2
+    assert replay["drain_world_mutation_count"] == 0
+
+    for record in audit["implementation"]:
+        path = REPO / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+    protected = audit["protected_identities"]
+    for prefix in ("shared_bridge", "base_protocol"):
+        actual_sha256 = hashlib.sha256(
+            (REPO / protected[f"{prefix}_path"]).read_bytes()
+        ).hexdigest()
+        assert actual_sha256 == protected[f"{prefix}_sha256"]
+    assert audit["live_episode_run"] is False
+    assert audit["live_authorization"] is False
+    assert audit["automatic_retry_allowed"] is False
+    assert audit["counts_toward_capability"] is False
 
 
 def test_preparation_guard_enforces_exact_recipe_sequence_and_single_table():

@@ -101,6 +101,7 @@ SP003_GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID = (
 SP003_EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID = (
     "sp003-exact-goalnear-completion-grounding-v1"
 )
+SP003_PATHFINDER_STOP_DRAIN_POLICY_ID = "sp003-pathfinder-stop-drain-v1"
 SP003_GOALBLOCK_NUDGE_PULSE_MS = 125
 SP003_GOALBLOCK_NUDGE_MAX_PULSES = 4
 SP003_GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE = 1.6
@@ -427,6 +428,36 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
             "move_exact_goalnear_original_pathfinder_errors_propagated"
         )
         is True
+    )
+    checks["pathfinder_stop_drain_contract"] = (
+        episode_contract.get("pathfinder_stop_drain_policy_id")
+        == SP003_PATHFINDER_STOP_DRAIN_POLICY_ID
+        and episode_contract.get("pathfinder_stop_drain_process_local_only")
+        is True
+        and episode_contract.get("pathfinder_stop_drain_after_original_stop")
+        is True
+        and episode_contract.get("pathfinder_stop_drain_set_goal_null_required")
+        is True
+        and episode_contract.get(
+            "pathfinder_stop_drain_before_next_goto_required"
+        )
+        is True
+        and episode_contract.get(
+            "pathfinder_stop_drain_original_stop_calls_per_request_max"
+        )
+        == 1
+        and episode_contract.get("pathfinder_stop_drain_automatic_retry_allowed")
+        is False
+        and episode_contract.get("pathfinder_stop_drain_world_mutation_allowed")
+        is False
+        and episode_contract.get(
+            "pathfinder_stop_drain_original_errors_propagated"
+        )
+        is True
+        and episode_contract.get(
+            "pathfinder_stop_drain_shared_bridge_change_allowed"
+        )
+        is False
     )
     checks["bounded_planner_state_contract"] = (
         episode_contract.get("planner_state_policy_id")

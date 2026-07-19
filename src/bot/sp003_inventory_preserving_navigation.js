@@ -7,6 +7,7 @@ const EXACT_UNIT_GOAL_NEAR_REQUESTED_RANGE = 1;
 const EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE = 0;
 const GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID = 'sp003-goalblock-completion-grounding-v1';
 const EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID = 'sp003-exact-goalnear-completion-grounding-v1';
+const PATHFINDER_STOP_DRAIN_POLICY_ID = 'sp003-pathfinder-stop-drain-v1';
 const GOALBLOCK_NUDGE_PULSE_MS = 125;
 const GOALBLOCK_NUDGE_MAX_PULSES = 4;
 const GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE = 1.6;
@@ -14,6 +15,7 @@ const MOVEMENTS_PATCH_MARK = Symbol.for('singularity.sp003.inventoryPreservingNa
 const GOAL_NEAR_PATCH_MARK = Symbol.for('singularity.sp003.exactUnitGoalNear');
 const PATHFINDER_PLUGIN_PATCH_MARK = Symbol.for('singularity.sp003.pathfinderPlugin');
 const BOT_PATHFINDER_PATCH_MARK = Symbol.for('singularity.sp003.goalBlockCompletionGrounding');
+const BOT_PATHFINDER_STOP_DRAIN_MARK = Symbol.for('singularity.sp003.pathfinderStopDrain');
 const CREATE_BOT_PATCH_MARK = Symbol.for('singularity.sp003.createBot');
 const BOT_CRAFT_INSTALL_MARK = Symbol.for('singularity.sp003.craftSettlementInstall');
 const BOT_CRAFT_PATCH_MARK = Symbol.for('singularity.sp003.craftSettlement');
@@ -168,6 +170,47 @@ function goalCompletionError(message, issues = [], policyId = GOALBLOCK_COMPLETI
     error.policyId = policyId;
     error.issues = [...issues];
     return error;
+}
+
+function pathfinderStopDrainStatus(bot) {
+    return bot?.pathfinder?.[BOT_PATHFINDER_STOP_DRAIN_MARK] || null;
+}
+
+function installPathfinderStopDrain(bot) {
+    if (!bot || typeof bot !== 'object' || !bot.pathfinder) {
+        throw new TypeError('SP-003 stop drain requires a pathfinder bot');
+    }
+    if (typeof bot.pathfinder.stop !== 'function') {
+        throw new TypeError('SP-003 stop drain requires pathfinder.stop');
+    }
+    if (typeof bot.pathfinder.setGoal !== 'function') {
+        throw new TypeError('SP-003 stop drain requires pathfinder.setGoal');
+    }
+    if (bot.pathfinder[BOT_PATHFINDER_STOP_DRAIN_MARK]) return bot;
+
+    const originalStop = bot.pathfinder.stop;
+    const originalSetGoal = bot.pathfinder.setGoal;
+    bot.pathfinder.stop = function sp003StopAndDrain(...args) {
+        const result = originalStop.apply(this, args);
+        originalSetGoal.call(this, null);
+        return result;
+    };
+    Object.defineProperty(bot.pathfinder, BOT_PATHFINDER_STOP_DRAIN_MARK, {
+        configurable: false,
+        enumerable: false,
+        writable: false,
+        value: Object.freeze({
+            policyId: PATHFINDER_STOP_DRAIN_POLICY_ID,
+            drainMethod: 'setGoal(null)',
+            immediate: true,
+            automaticRetryAllowed: false,
+            worldMutationAllowed: false,
+            originalStop,
+            originalSetGoal,
+            patchedStop: bot.pathfinder.stop,
+        }),
+    });
+    return bot;
 }
 
 function installPathfinderGoalCompletion(bot, wait = waitForSettlement) {
@@ -364,12 +407,14 @@ if (!pathfinderModule[PATHFINDER_PLUGIN_PATCH_MARK]) {
     const originalPathfinder = pathfinderModule.pathfinder;
     pathfinderModule.pathfinder = function sp003PathfinderPlugin(...args) {
         const result = originalPathfinder.apply(this, args);
+        installPathfinderStopDrain(args[0]);
         installPathfinderGoalCompletion(args[0]);
         return result;
     };
     pathfinderModule[PATHFINDER_PLUGIN_PATCH_MARK] = Object.freeze({
         policyId: GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
         exactGoalNearPolicyId: EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID,
+        stopDrainPolicyId: PATHFINDER_STOP_DRAIN_POLICY_ID,
         originalPathfinder,
         patchedPathfinder: pathfinderModule.pathfinder,
     });
@@ -398,6 +443,7 @@ module.exports = {
     EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE,
     GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
     EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID,
+    PATHFINDER_STOP_DRAIN_POLICY_ID,
     GOALBLOCK_NUDGE_PULSE_MS,
     GOALBLOCK_NUDGE_MAX_PULSES,
     GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE,
@@ -406,6 +452,8 @@ module.exports = {
     goalCompletionNudgeProof,
     goalBlockNudgeProof,
     hardenMovements,
+    pathfinderStopDrainStatus,
+    installPathfinderStopDrain,
     installPathfinderGoalCompletion,
     installCraftSettlement,
     wrapCraftSettlement,

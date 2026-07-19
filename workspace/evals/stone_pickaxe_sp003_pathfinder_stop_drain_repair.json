@@ -1,0 +1,126 @@
+{
+  "type": "stone_pickaxe_sp003_pathfinder_stop_drain_repair",
+  "schema_version": 1,
+  "phase": 112,
+  "generated_at": "2026-07-19T21:50:28+08:00",
+  "base_commit": "3bbeeca4d162882d37bf08e8bb00857f66a451b1",
+  "task_id": "SP-003",
+  "policy_id": "sp003-pathfinder-stop-drain-v1",
+  "status": "offline_verified",
+  "retained_failure": {
+    "episode_id": "sp003_baseline_20260719_210605_35b1bb55",
+    "session_id": "d58a779c-4ae",
+    "manifest_sha256": "e4e1eb83a6a9adbd8e497cf142376e9566d9065b09b87b922f760d8e29bff37c",
+    "episode_sha256": "4715bfee37b71f49774ab17c29c6475e532ec003e5e0aef8baa07e6458dd63f3",
+    "session_sha256": "ea145b598724ed9e31209e57a319dde7cd6d87359ea952888901874c577acaf6",
+    "session_jsonl_sha256": "fb980d6b9c20f1d44e0901da4e92e6a72296923e883c92d793e247769edcab57",
+    "authorization_commit": "e148ac113e77e5d7cb61ea4647060d8838813dc1",
+    "authorization_id": "c33ec22ec4f7090c98e6909f7b418ecaa4909f70687406f51ff253ae856f94cf",
+    "authorization_consumed": true,
+    "automatic_retry_attempted": false,
+    "planner_calls": 33,
+    "planner_schema_valid_calls": 33,
+    "planner_retry_count": 0,
+    "initial_pickup_navigation_error": "Took to long to decide path to goal!",
+    "initial_pickup_navigation_timeout_ms": 6000,
+    "path_stopped_cascade_count": 28,
+    "failed_horizontal_move_count": 25,
+    "terminal_inventory": {"oak_log": 2},
+    "phase_110_exact_goalnear_grounding_exercised": false
+  },
+  "dependency_root_cause": {
+    "package": "mineflayer-pathfinder",
+    "version": "2.4.5",
+    "path": "node_modules/mineflayer-pathfinder/index.js",
+    "sha256": "bfb62da3111470fa3f515ed89a95bc5018843d89b883ebafa97410d2f14d4fae",
+    "public_stop_sets_deferred_flag_only": true,
+    "set_goal_calls_reset_path": true,
+    "reset_path_consumes_deferred_stop": true,
+    "consumption_emits_path_stop": true,
+    "later_goto_consumes_prior_stop_before_pathing": true,
+    "bridge_failure_handler_rearms_public_stop": true,
+    "vendored_dependency_modified": false
+  },
+  "repair_contract": {
+    "scope": "sp003_process_local_preload_only",
+    "pathfinder_plugin_wrapped_once": true,
+    "public_stop_wrapped_once_per_bot": true,
+    "original_stop_calls_per_request_max": 1,
+    "original_stop_called_before_drain": true,
+    "drain_operation": "original_setGoal(null)",
+    "drain_immediate_before_return": true,
+    "deferred_stop_clear_required_before_next_goto": true,
+    "active_goto_must_reject": true,
+    "active_goto_false_success_allowed": false,
+    "navigation_retry_allowed": false,
+    "action_retry_allowed": false,
+    "dig_allowed": false,
+    "place_allowed": false,
+    "scaffold_allowed": false,
+    "world_mutation_allowed": false,
+    "original_stop_error_propagated": true,
+    "original_set_goal_error_propagated": true,
+    "shared_bridge_changed": false,
+    "base_protocol_changed": false
+  },
+  "retained_replay": {
+    "phase_111_initial_pickup_timeout_preserved": true,
+    "phase_111_path_stopped_cascade_replayed": true,
+    "phase_111_path_stopped_cascade_count": 28,
+    "deferred_stop_consumed_immediately": true,
+    "simulated_original_stop_call_count": 1,
+    "simulated_set_goal_null_call_count": 1,
+    "simulated_path_stop_emission_count": 1,
+    "simulated_next_goto_succeeded": true,
+    "simulated_hidden_retry_count": 0,
+    "active_goto_rejected": true,
+    "active_goto_false_success": false,
+    "integrated_dig_pickup_timeout_preserved": true,
+    "integrated_following_move_passed": true,
+    "integrated_total_goto_count": 2,
+    "drain_world_mutation_count": 0,
+    "real_mineflayer_plugin_lifecycle_wrapped": true
+  },
+  "implementation": [
+    {
+      "path": "src/bot/sp003_inventory_preserving_navigation.js",
+      "sha256": "d5b9798e6643bee6e609cee0a1786a1981667d922c6303005cc33d76b186acc5"
+    },
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+      "sha256": "6d5ff2c3aa1d543aa8afff50a4ff64e279e671383955668c6e8648cca45b8d00"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+      "sha256": "1b75b69bd616afc19f21d4aba5652a3947469f5dc92bd9adfdf42c5567011f5e"
+    },
+    {
+      "path": "tests/test_sp003_inventory_preserving_navigation.js",
+      "sha256": "a8e374ec0f226a08d2510592b242edbf3c3100000a3134be1b975de0d6f06819"
+    }
+  ],
+  "protected_identities": {
+    "shared_bridge_path": "src/bot/bot_server.js",
+    "shared_bridge_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+    "base_protocol_path": "workspace/evals/stone_pickaxe_protocol.json",
+    "base_protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+  },
+  "validation": {
+    "node_preload_cases": "22/22",
+    "policy_identity_cases": "1/1",
+    "dedicated_sp003_cases": "83/83",
+    "stone_pickaxe_cases": "264/264",
+    "repository_python_cases": "1019/1019",
+    "node_suites": "7/7",
+    "node_internal_cases": "79/79",
+    "capability_consistency_cases": "8/8",
+    "python_compileall_passed": true,
+    "full_regression_pending": false
+  },
+  "live_episode_run": false,
+  "live_authorization": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

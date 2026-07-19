@@ -15,11 +15,11 @@ This project isolates two bounded Minecraft capabilities:
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
-| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 111 deferred Pathfinder stop poisoning retained; evidence push required |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 112 immediate Pathfinder stop drain verified offline; fix push required |
 
-Current phase: **Phase 111 retained one pushed, parent-bound baseline after Phase 110. All 33 Planner calls were schema-valid with no retry, but the first log-drop navigation timed out and Bridge called deferred `pathfinder.stop()`. Each later `goto` consumed the pending stop while its catch rearmed it, producing 28 `PathStopped` results and 25 failed horizontal moves at one unchanged position. The run ended after 32 actions with two logs, no crafts, and no stone action; Phase 110 exact-GoalNear grounding was not exercised. SP-003 is 82/82, all stone-pickaxe tests are 263/263, full Python is 1018/1018, and Node remains 75/75, but the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 112 preserves the pushed Phase 111 failure at `3bbeeca4` and implements `sp003-pathfinder-stop-drain-v1` only in the SP-003 process. One original stop is followed immediately by original `setGoal(null)`, clearing the dependency's deferred stop before another `goto`; the retained timeout still fails, active navigation still rejects, and the next Bridge move succeeds with zero retry and no added mutation. Audit `406ebbab...` binds unchanged Bridge, dependency, and protocol identities. SP-003 is 83/83, all stone-pickaxe tests are 264/264, full Python is 1019/1019, and Node is 79/79, but the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all eighteen SP-003 baseline IDs through `sp003_baseline_20260719_210605_35b1bb55` cannot be reused. Phase 111 ran exactly once and cannot be retried. The next transaction is the Phase 111 evidence commit and push, followed by an offline SP-003-only immediate Pathfinder stop-drain repair. Any later baseline requires that repair to be committed and synchronized before a separate fresh parent-bound authorization is created and pushed. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all eighteen SP-003 baseline IDs through `sp003_baseline_20260719_210605_35b1bb55` cannot be reused. Phase 111 ran exactly once and cannot be retried. The next transaction is the Phase 112 offline-fix commit and push. Only after synchronization may a separate fresh parent-bound one-use baseline authorization be created and pushed. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -201,7 +201,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 111 failure retained; eighteen authorizations consumed; baseline 0/1 and candidates 0/3; evidence push then offline stop-drain repair required |
+| 8. SP-003 composite acceptance | Phase 112 stop-drain repair verified offline; eighteen authorizations consumed; baseline 0/1 and candidates 0/3; fix commit/push required |
 
 ## Frozen Baseline
 
@@ -213,4 +213,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before Phase 111 evidence is pushed, the stop-drain repair is committed and pushed, and a new one-use authorization is separately pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before the Phase 112 stop-drain repair is committed and pushed and a new one-use authorization is separately pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.

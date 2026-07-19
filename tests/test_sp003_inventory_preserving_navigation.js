@@ -94,10 +94,289 @@ function testPreloadPatchesPathfinderPluginOnceWithinItsNodeProcess() {
         'sp003-exact-goalnear-completion-grounding-v1',
     );
     assert.strictEqual(
+        preload.pathfinderStatus.stopDrainPolicyId,
+        'sp003-pathfinder-stop-drain-v1',
+    );
+    assert.strictEqual(
         require('../src/bot/sp003_inventory_preserving_navigation').pathfinderStatus,
         preload.pathfinderStatus,
     );
     console.log('PASS: SP-003 preload patches the process-local pathfinder plugin once');
+}
+
+function testStopDrainPolicyRequiresTheDependencyLifecycleSurface() {
+    assert.strictEqual(
+        preload.PATHFINDER_STOP_DRAIN_POLICY_ID,
+        'sp003-pathfinder-stop-drain-v1',
+    );
+    assert.throws(
+        () => preload.installPathfinderStopDrain(null),
+        /pathfinder bot/,
+    );
+    assert.throws(
+        () => preload.installPathfinderStopDrain({ pathfinder: { setGoal() {} } }),
+        /pathfinder\.stop/,
+    );
+    assert.throws(
+        () => preload.installPathfinderStopDrain({ pathfinder: { stop() {} } }),
+        /pathfinder\.setGoal/,
+    );
+    const stopError = new Error('original stop failed');
+    let setGoalAfterStopFailure = 0;
+    const stopFailure = {
+        pathfinder: {
+            stop() { throw stopError; },
+            setGoal() { setGoalAfterStopFailure += 1; },
+        },
+    };
+    preload.installPathfinderStopDrain(stopFailure);
+    assert.throws(() => stopFailure.pathfinder.stop(), (error) => error === stopError);
+    assert.strictEqual(setGoalAfterStopFailure, 0);
+
+    const setGoalError = new Error('original setGoal failed');
+    let stopBeforeSetGoalFailure = 0;
+    const setGoalFailure = {
+        pathfinder: {
+            stop() { stopBeforeSetGoalFailure += 1; },
+            setGoal() { throw setGoalError; },
+        },
+    };
+    preload.installPathfinderStopDrain(setGoalFailure);
+    assert.throws(
+        () => setGoalFailure.pathfinder.stop(),
+        (error) => error === setGoalError,
+    );
+    assert.strictEqual(stopBeforeSetGoalFailure, 1);
+    console.log('PASS: SP-003 stop drain requires the exact dependency lifecycle surface');
+}
+
+function deferredStopPathfinderBot() {
+    const calls = {
+        goto: [],
+        stop: 0,
+        setGoal: [],
+        pathStop: 0,
+        worldMutations: 0,
+    };
+    let stopPathing = false;
+    let firstGoto = true;
+    const firstError = new Error('Took to long to decide path to goal!');
+    const bot = new EventEmitter();
+    bot.pathfinder = {
+        setGoal(goal) {
+            calls.setGoal.push(goal);
+            bot.emit('goal_updated', goal, false);
+            if (stopPathing) {
+                stopPathing = false;
+                calls.pathStop += 1;
+                bot.emit('path_stop');
+            }
+        },
+        stop() {
+            calls.stop += 1;
+            stopPathing = true;
+            return 'stopped';
+        },
+        async goto(goal) {
+            calls.goto.push(goal);
+            const poisoned = stopPathing;
+            this.setGoal(goal);
+            if (poisoned) {
+                throw new Error(
+                    'Path was stopped before it could be completed! Thus, the desired goal was not reached.',
+                );
+            }
+            if (firstGoto) {
+                firstGoto = false;
+                throw firstError;
+            }
+            return { reached: goal };
+        },
+    };
+    return {
+        bot,
+        calls,
+        firstError,
+        stopPending: () => stopPathing,
+    };
+}
+
+async function testStopDrainConsumesDeferredStopBeforeTheNextGoto() {
+    const { bot, calls, firstError, stopPending } = deferredStopPathfinderBot();
+    const originalStop = bot.pathfinder.stop;
+    const originalSetGoal = bot.pathfinder.setGoal;
+
+    assert.strictEqual(preload.installPathfinderStopDrain(bot), bot);
+    const patchedStop = bot.pathfinder.stop;
+    assert.strictEqual(preload.installPathfinderStopDrain(bot), bot);
+    assert.strictEqual(bot.pathfinder.stop, patchedStop);
+    await assert.rejects(bot.pathfinder.goto({ id: 'first' }), (error) => error === firstError);
+    assert.strictEqual(bot.pathfinder.stop(), 'stopped');
+
+    assert.strictEqual(stopPending(), false);
+    assert.deepStrictEqual(await bot.pathfinder.goto({ id: 'second' }), {
+        reached: { id: 'second' },
+    });
+    assert.strictEqual(calls.goto.length, 2);
+    assert.strictEqual(calls.stop, 1);
+    assert.strictEqual(calls.setGoal.filter(goal => goal === null).length, 1);
+    assert.strictEqual(calls.pathStop, 1);
+    assert.strictEqual(calls.worldMutations, 0);
+
+    const status = preload.pathfinderStopDrainStatus(bot);
+    assert.strictEqual(status.policyId, 'sp003-pathfinder-stop-drain-v1');
+    assert.strictEqual(status.drainMethod, 'setGoal(null)');
+    assert.strictEqual(status.immediate, true);
+    assert.strictEqual(status.automaticRetryAllowed, false);
+    assert.strictEqual(status.worldMutationAllowed, false);
+    assert.strictEqual(status.originalStop, originalStop);
+    assert.strictEqual(status.originalSetGoal, originalSetGoal);
+    assert.strictEqual(status.patchedStop, patchedStop);
+    console.log('PASS: SP-003 stop drain consumes one deferred stop before the next goto');
+}
+
+async function testStopDrainStillRejectsAnActiveGoto() {
+    const bot = new EventEmitter();
+    const calls = { stop: 0, setGoal: [], pathStop: 0 };
+    let stopPathing = false;
+    bot.pathfinder = {
+        setGoal(goal) {
+            calls.setGoal.push(goal);
+            bot.emit('goal_updated', goal, false);
+            if (stopPathing) {
+                stopPathing = false;
+                calls.pathStop += 1;
+                bot.emit('path_stop');
+            }
+        },
+        stop() {
+            calls.stop += 1;
+            stopPathing = true;
+        },
+        goto(goal) {
+            return new Promise((resolve, reject) => {
+                const cleanup = () => {
+                    bot.removeListener('goal_updated', changed);
+                    bot.removeListener('path_stop', stopped);
+                };
+                const changed = (newGoal) => {
+                    if (newGoal === goal) return;
+                    cleanup();
+                    reject(new Error('The goal was changed before it could be completed!'));
+                };
+                const stopped = () => {
+                    cleanup();
+                    reject(new Error('Path was stopped before it could be completed!'));
+                };
+                bot.on('goal_updated', changed);
+                bot.on('path_stop', stopped);
+                this.setGoal(goal);
+            });
+        },
+    };
+    preload.installPathfinderStopDrain(bot);
+
+    const pending = bot.pathfinder.goto({ id: 'active' });
+    bot.pathfinder.stop();
+    await assert.rejects(pending, /goal was changed/);
+    assert.strictEqual(calls.stop, 1);
+    assert.strictEqual(calls.setGoal.filter(goal => goal === null).length, 1);
+    assert.strictEqual(calls.pathStop, 1);
+    assert.strictEqual(stopPathing, false);
+    console.log('PASS: SP-003 immediate stop drain still rejects an active goto');
+}
+
+async function testPickupTimeoutCannotPoisonTheFollowingMove() {
+    const mcData = require('minecraft-data')('1.20.4');
+    const target = new Vec3(1, 64, 0);
+    const drop = {
+        id: 1111,
+        name: 'item',
+        position: new Vec3(1.5, 64, 0.5),
+        getDroppedItem: () => ({ name: 'oak_log' }),
+    };
+    const calls = { goto: [], stop: 0, setGoal: [], pathStop: 0, dig: 0 };
+    let stopPathing = false;
+    let removed = false;
+    let clockMs = 0;
+    const bot = {
+        version: '1.20.4',
+        entity: { position: new Vec3(0.5, 64, 0.5), onGround: true },
+        entities: { [drop.id]: drop },
+        inventory: { items: () => [] },
+        blockAt(position) {
+            if (position.x === target.x && position.y === target.y && position.z === target.z) {
+                return removed
+                    ? { name: 'air', type: 0, boundingBox: 'empty', position: target }
+                    : {
+                        name: 'oak_log',
+                        type: mcData.blocksByName.oak_log.id,
+                        boundingBox: 'block',
+                        drops: [mcData.itemsByName.oak_log.id],
+                        position: target,
+                    };
+            }
+            return { name: 'air', type: 0, boundingBox: 'empty', position };
+        },
+        async dig() {
+            calls.dig += 1;
+            removed = true;
+        },
+        pathfinder: {
+            setGoal(goal) {
+                calls.setGoal.push(goal);
+                if (stopPathing) {
+                    stopPathing = false;
+                    calls.pathStop += 1;
+                }
+            },
+            stop() {
+                calls.stop += 1;
+                stopPathing = true;
+            },
+            async goto(goal) {
+                calls.goto.push(goal);
+                const poisoned = stopPathing;
+                this.setGoal(goal);
+                if (poisoned) {
+                    throw new Error(
+                        'Path was stopped before it could be completed! Thus, the desired goal was not reached.',
+                    );
+                }
+                if (calls.goto.length === 1) {
+                    throw new Error('Took to long to decide path to goal!');
+                }
+                bot.entity.position = new Vec3(goal.x + 0.5, goal.y, goal.z + 0.5);
+            },
+        },
+    };
+    preload.installPathfinderStopDrain(bot);
+    preload.installPathfinderGoalCompletion(bot, async () => {});
+    const wait = async (ms) => { clockMs += Number(ms) || 0; };
+    const dig = createDigHandler(
+        () => ({ bot, botReady: true }),
+        wait,
+        { monotonicMs: () => clockMs },
+    );
+    const move = createMoveToHandler(() => ({ bot, botReady: true }));
+
+    const digResult = await dig({ x: 1, y: 64, z: 0, require_pickup: true });
+    assert.strictEqual(digResult.success, false);
+    assert.strictEqual(
+        digResult.pickup_collection.direct_navigation.error,
+        'Took to long to decide path to goal!',
+    );
+    assert.strictEqual(stopPathing, false);
+
+    const moveResult = await move({ x: 4, y: 64, z: 0, tolerance: 1, timeout_ms: 100 });
+    assert.strictEqual(moveResult.success, true);
+    assert.strictEqual(moveResult.reached, true);
+    assert.strictEqual(calls.goto.length, 2);
+    assert.strictEqual(calls.stop, 1);
+    assert.strictEqual(calls.setGoal.filter(goal => goal === null).length, 1);
+    assert.strictEqual(calls.pathStop, 1);
+    assert.strictEqual(calls.dig, 1);
+    console.log('PASS: a pickup timeout cannot poison the following Bridge move');
 }
 
 function phase107GoalBlockBot(overrides = {}) {
@@ -645,6 +924,11 @@ async function testRealMineflayerCreateBotInstallsAfterPluginInjection() {
     assert.strictEqual(bot.craft.name, 'sp003CraftWithSettlement');
     assert.strictEqual(typeof bot.pathfinder?.goto, 'function');
     assert.strictEqual(bot.pathfinder.goto.name, 'sp003GroundedGoto');
+    assert.strictEqual(bot.pathfinder.stop.name, 'sp003StopAndDrain');
+    assert.strictEqual(
+        preload.pathfinderStopDrainStatus(bot).policyId,
+        'sp003-pathfinder-stop-drain-v1',
+    );
     console.log('PASS: real Mineflayer lifecycle installs settlement and goal grounding');
 }
 
@@ -701,6 +985,10 @@ async function main() {
     testMovementHardeningDisablesHiddenWorldMutation();
     testPreloadTightensOnlyUnitRangeThreeDimensionalGoals();
     testPreloadPatchesPathfinderPluginOnceWithinItsNodeProcess();
+    testStopDrainPolicyRequiresTheDependencyLifecycleSurface();
+    await testStopDrainConsumesDeferredStopBeforeTheNextGoto();
+    await testStopDrainStillRejectsAnActiveGoto();
+    await testPickupTimeoutCannotPoisonTheFollowingMove();
     await testFalseResolvedGoalBlockUsesBoundedClearDownStep();
     await testFalseResolvedExactUnitGoalNearUsesBoundedClearDownStep();
     await testMoveToHandlerCannotAcceptPhase109PositionOutsideExactGoal();
