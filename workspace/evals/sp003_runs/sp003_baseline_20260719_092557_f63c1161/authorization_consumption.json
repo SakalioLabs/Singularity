@@ -1,0 +1,19 @@
+{
+  "type": "stone_pickaxe_sp003_authorization_consumption",
+  "schema_version": 1,
+  "consumed_at_utc": "2026-07-19T01:28:30.751312+00:00",
+  "authorization_id": "78106bf05136215ba8ae1cb35f71ed15aecc65ea7cf5e9beef3a1768cdbba402",
+  "authorization_source_path": "workspace/evals/stone_pickaxe_sp003_next_authorization.json",
+  "authorization_source_sha256": "08c12f771795e51ba54c4bd4adb82b6c607de9b77223a9be236494d56a183244",
+  "authorization_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_092557_f63c1161/authorization.json",
+  "authorization_sha256": "08c12f771795e51ba54c4bd4adb82b6c607de9b77223a9be236494d56a183244",
+  "authorization_commit": "60fda7b9164e611e6069d2330124923d123ecff5",
+  "episode_id": "sp003_baseline_20260719_092557_f63c1161",
+  "arm": "baseline",
+  "replicate_id": "baseline",
+  "consumed_by": "fresh_sp003_process_start",
+  "single_episode": true,
+  "automatic_retry_allowed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}
