@@ -333,12 +333,12 @@ try {
     $env:SINGULARITY_LLM_BASE_URL = [string]$protocol.planner.base_url
     $env:PYTHONPATH = Join-Path $repoRoot "src"
 
-    & python scripts/stone_pickaxe_sp003_phase118_episode_runner.py audit-authorization --arm $Arm --replicate-id $ReplicateId --episode-id $EpisodeId --git-head $gitHead --git-parent $gitParent --authorization $authorizationRelative
+    & python scripts/stone_pickaxe_sp003_phase120_episode_runner.py audit-authorization --arm $Arm --replicate-id $ReplicateId --episode-id $EpisodeId --git-head $gitHead --git-parent $gitParent --authorization $authorizationRelative
     if ($LASTEXITCODE -ne 0) { throw "SP-003 authorization audit failed." }
 
     Set-EpisodeServerProperties
     Start-ControlledRuntime $jarSha256
-    & python scripts/stone_pickaxe_sp003_phase118_episode_runner.py run --arm $Arm --replicate-id $ReplicateId --episode-id $EpisodeId --level-name $levelName --output-dir $outputRelative --authorization $authorizationRelative --git-head $gitHead --git-parent $gitParent --host $MinecraftHost --port $MinecraftPort --username $Username --bridge-host 127.0.0.1 --bridge-port $BridgePort --fresh-level
+    & python scripts/stone_pickaxe_sp003_phase120_episode_runner.py run --arm $Arm --replicate-id $ReplicateId --episode-id $EpisodeId --level-name $levelName --output-dir $outputRelative --authorization $authorizationRelative --git-head $gitHead --git-parent $gitParent --host $MinecraftHost --port $MinecraftPort --username $Username --bridge-host 127.0.0.1 --bridge-port $BridgePort --fresh-level
     $runnerExit = $LASTEXITCODE
     Stop-ControlledRuntime
     if ($runnerExit -ne 0) {

@@ -1,0 +1,237 @@
+{
+  "type": "stone_pickaxe_sp003_partial_clearance_shaft_continuation_repair",
+  "schema_version": 1,
+  "phase": 120,
+  "generated_at": "2026-07-20T02:48:29+08:00",
+  "base_commit": "5eedb1b43c04ef0d0c2dac5c6c2062953bff65bb",
+  "task_id": "SP-003",
+  "policy_id": "sp003-partial-clearance-shaft-continuation-v1",
+  "status": "offline_verified",
+  "retained_failure": {
+    "classification": "sp003_surface_clearance_budget_fragmented_across_pickup_displaced_shafts",
+    "episode_id": "sp003_baseline_20260720_015550_a54561d9",
+    "session_id": "b0e8023e-b51",
+    "evidence_commit": "5eedb1b43c04ef0d0c2dac5c6c2062953bff65bb",
+    "manifest_sha256": "fb64e76fc8980421a7bb957740f1e11ddadbddf6d82576524c426270fe09080b",
+    "session_sha256": "25460f37294796267a96513ade354f15eb4f6136be08dd56aea3d78288a3e6bf",
+    "episode_sha256": "b3d6de9f70f9b5549906534e81f9313375a95e6d98c7916d8a42ca7baacb5718",
+    "authorization_commit": "9225f5e292dc89faa52d6d0133f861adcf6ac7c4",
+    "authorization_id": "0f3899baee5ec12b7ccf2fc313971b83a88e427b7946ecf108681754dcff185c",
+    "authorization_consumed": true,
+    "automatic_retry_attempted": false,
+    "action_count": 16,
+    "successful_action_count": 15,
+    "surface_clearance_count": 6,
+    "distinct_surface_clearance_support_count": 4,
+    "termination_reason": "blocked_plan",
+    "elapsed_s": 115.453,
+    "terminal_inventory": {
+      "dark_oak_planks": 6,
+      "stick": 4,
+      "crafting_table": 1,
+      "dirt": 6
+    }
+  },
+  "root_cause": {
+    "first_clearance_source_id": "grass_block:121:141:-37",
+    "first_clearance_support_source_id": "stone:121:138:-37",
+    "first_clearance_pre_player_cell": {"x": 120, "y": 141, "z": -37},
+    "first_clearance_post_player_cell": {"x": 121, "y": 141, "z": -37},
+    "pickup_navigation_entered_support_column": true,
+    "old_scheduler_excluded_player_column_support": true,
+    "old_next_support_source_id": "stone:122:138:-36",
+    "surface_clearance_count_by_support": {
+      "stone:121:138:-37": 1,
+      "stone:122:138:-36": 1,
+      "stone:124:139:-37": 3,
+      "stone:124:139:-38": 1
+    },
+    "episode_clearance_maximum": 6,
+    "terminal_remaining_source_id": "grass_block:124:140:-38",
+    "terminal_remaining_support_source_id": "stone:124:139:-38",
+    "terminal_remaining_count": 1,
+    "terminal_blocker": "machine_proven_stone_access_target_unavailable"
+  },
+  "repair_contract": {
+    "scope": "sp003_only_process_local_overlay",
+    "parent_policy_id": "sp003-exact-navigation-parameter-normalization-v1",
+    "partial_shaft_lock_source": "successful_machine_verified_clearance_mutation_history",
+    "partial_shaft_lock_selects_latest_valid_support": true,
+    "history_requires_exact_source_and_stone_support_coordinates": true,
+    "history_requires_sha256_proof_fingerprint": true,
+    "history_clearance_family": ["coarse_dirt", "dirt", "grass_block", "podzol"],
+    "history_clearance_vertical_maximum": 3,
+    "shaft_egress_requires_player_in_locked_support_column": true,
+    "shaft_egress_scan_basis": "validated_bounded_scan_with_full_or_strict_priority_visibility",
+    "shaft_egress_cardinal_step_count": 1,
+    "shaft_egress_requires_solid_ground": true,
+    "shaft_egress_requires_air_feet_and_head": true,
+    "shaft_egress_requires_exact_y": true,
+    "shaft_egress_continuous_tolerance": 1.0,
+    "shaft_egress_attempt_limit_per_proof_fingerprint": 1,
+    "shaft_egress_preserves_inventory": true,
+    "shaft_egress_world_mutation": false,
+    "same_support_top_down_continuation_required": true,
+    "raw_validated_locked_pickup_access_can_unlock_table_placement": true,
+    "table_reference_targets_restored_after_unlock": true,
+    "surface_clearance_episode_maximum_unchanged": 6,
+    "surface_clearance_shaft_maximum_unchanged": 3,
+    "wrong_y_allowed": false,
+    "unexpected_extra_parameters_allowed": false,
+    "skill_context_allowed": false,
+    "malformed_scan_allowed": false,
+    "missing_player_position_allowed": false,
+    "seventh_surface_clearance_allowed": false,
+    "shared_bridge_changed": false,
+    "vendored_dependency_changed": false,
+    "base_sp003_runtime_changed": false,
+    "phase_116_runtime_changed": false,
+    "phase_118_runtime_changed": false,
+    "frozen_runner_changed": false,
+    "planner_changed": false,
+    "base_protocol_changed": false
+  },
+  "retained_replay": {
+    "first_displacement_observation_replayed": true,
+    "old_selected_support_source_id": "stone:122:138:-36",
+    "new_locked_support_source_id": "stone:121:138:-37",
+    "new_target_mode": "locked_shaft_egress",
+    "machine_selected_egress_position": {"x": 120.5, "y": 141, "z": -36.5},
+    "machine_selected_egress_ground_source_id": "grass_block:120:140:-37",
+    "remaining_obstruction_source_ids_top_down": [
+      "dirt:121:140:-37",
+      "dirt:121:139:-37"
+    ],
+    "one_egress_attempt_allowed": true,
+    "same_fingerprint_second_attempt_allowed": false,
+    "retained_terminal_seventh_clearance_allowed": false,
+    "extra_world_mutation_count": 0,
+    "hidden_retry_count": 0
+  },
+  "synthetic_replay": {
+    "three_obstruction_same_shaft_reaches_pickup_access": true,
+    "second_clearance_reentry_gets_one_fresh_egress": true,
+    "latest_valid_mutation_support_owns_lock": true,
+    "pickup_access_exposes_table_reference": true,
+    "table_place_action_remains_machine_bound": true,
+    "wrong_y_cases_allowed": 0,
+    "unexpected_extra_parameter_cases_allowed": 0,
+    "skill_context_cases_allowed": 0,
+    "tampered_scan_cases_allowed": 0,
+    "missing_position_cases_allowed": 0,
+    "budget_exhaustion_cases_allowed": 0
+  },
+  "implementation": [
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_phase120_runtime.py",
+      "sha256": "74d526fbb281a411e857a4db418757a6c4689d1b6eb42f5e6dd3b8d762fbe1b3"
+    },
+    {
+      "path": "scripts/stone_pickaxe_sp003_phase120_episode_runner.py",
+      "sha256": "11de351fe800ec0219d002266f1ad09561878499c621ea0a0704878b10011d2d"
+    },
+    {
+      "path": "scripts/stone-pickaxe-sp003-runtime.ps1",
+      "sha256": "1d25376b9724bcab3f9d03ca40c89d7584928ac6e352cf65afe26b3dcf108488"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_phase120_partial_shaft.py",
+      "sha256": "561f90c295458467e574f4a4129a0877d51bd45da907562dd96cb9c9cc7878ff"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_phase118_navigation_normalization.py",
+      "sha256": "bc409b10bbc6ed4f77ee3766d04eeaa62c036a214d30e6ee322611fe753da203"
+    }
+  ],
+  "protected_phase_118_identities": [
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_phase118_runtime.py",
+      "sha256": "1bf2840658fbc9aa88c6ccb52539f5879d8a67a01ad265787a04be20faebcca7"
+    },
+    {
+      "path": "scripts/stone_pickaxe_sp003_phase118_episode_runner.py",
+      "sha256": "875f5ac63030f5ba70b49abcecbbe58ffe9045140462dd4a925fd631122eeaa4"
+    },
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_phase116_runtime.py",
+      "sha256": "c11225f0f42ca05558504b47f05fc87d8e57c051a98336d148c686fd6f0b2225"
+    },
+    {
+      "path": "src/singularity/core/planner.py",
+      "sha256": "0dff2d7dce103d4c7f5bfe4fe0c5d0d1454f91026c8f678bc27c8d7361274ea0"
+    },
+    {
+      "path": "scripts/stone_pickaxe_sp003_episode_runner.py",
+      "sha256": "0ca5ad64c0f77b246276bb9e9c01d8d88bc95227bcb9a017a14150e9173ba8a5"
+    }
+  ],
+  "protected_runtime_identities": [
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+      "sha256": "325ade1461c5465f83963de0b1346bc7aacba50b253713b542034277b0b1d5f3"
+    },
+    {
+      "path": "src/bot/sp003_inventory_preserving_navigation.js",
+      "sha256": "4925d9083e7e6d4a1253ea5c37e188236b6fbdbbca7a9b733341eb37e4ee5678"
+    },
+    {
+      "path": "src/bot/bot_server.js",
+      "sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
+    },
+    {
+      "path": "node_modules/mineflayer-pathfinder/index.js",
+      "sha256": "bfb62da3111470fa3f515ed89a95bc5018843d89b883ebafa97410d2f14d4fae"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_protocol.json",
+      "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+      "sha256": "41455c715752bdb6f485e10597518e98a9bfe11920ad10b9fcff24e870a243d5"
+    }
+  ],
+  "retained_evidence_identities": [
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_015550_a54561d9/manifest.json",
+      "sha256": "fb64e76fc8980421a7bb957740f1e11ddadbddf6d82576524c426270fe09080b"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_015550_a54561d9/session.json",
+      "sha256": "25460f37294796267a96513ade354f15eb4f6136be08dd56aea3d78288a3e6bf"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_015550_a54561d9/episode.json",
+      "sha256": "b3d6de9f70f9b5549906534e81f9313375a95e6d98c7916d8a42ca7baacb5718"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_015550_a54561d9/authorization_consumption.json",
+      "sha256": "a67d2d2d01014f5fb191466dbf62cb77b31d31de7bb0af8ca8fafa308ab570d6"
+    }
+  ],
+  "validation": {
+    "phase_120_focused_cases": "10/10",
+    "phase_116_through_phase_120_cases": "30/30",
+    "all_stone_pickaxe_cases": "298/298",
+    "task_goal_capability_cases": "140/140",
+    "selected_m1_m2_m3_cases": "72/72",
+    "node_suites": "7/7",
+    "node_internal_cases": "80/80",
+    "wrapper_cli_passed": true,
+    "powershell_parse_passed": true,
+    "python_compile_passed": true,
+    "json_files_parsed": 1688,
+    "json_validation_passed": true,
+    "credential_scan_matches": 0,
+    "credential_scan_passed": true,
+    "full_repository_cases": "1053/1053",
+    "git_diff_check_passed": true
+  },
+  "live_episode_run": false,
+  "live_authorization": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

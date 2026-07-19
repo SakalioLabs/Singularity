@@ -4,6 +4,7 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 from types import SimpleNamespace
 
 import pytest
@@ -18,6 +19,7 @@ from singularity.evaluation.stone_pickaxe_sp003_phase118_runtime import (
 
 
 REPO = Path(__file__).resolve().parents[1]
+PHASE118_FIX_COMMIT = "b77f7fe5642df3588964c8860d2000837e54f9b1"
 RUN_DIR = (
     REPO
     / "workspace/evals/sp003_runs/sp003_baseline_20260720_011038_c6886c53"
@@ -230,8 +232,15 @@ def test_phase118_runner_is_process_local_and_preserves_frozen_phase116_runner()
     wrapper = (
         REPO / "scripts/stone_pickaxe_sp003_phase118_episode_runner.py"
     ).read_text(encoding="utf-8")
-    launcher = (REPO / "scripts/stone-pickaxe-sp003-runtime.ps1").read_text(
-        encoding="utf-8-sig"
+    launcher = subprocess.check_output(
+        [
+            "git",
+            "show",
+            f"{PHASE118_FIX_COMMIT}:scripts/stone-pickaxe-sp003-runtime.ps1",
+        ],
+        cwd=REPO,
+        text=True,
+        encoding="utf-8",
     )
     assert "frozen_runner.StonePickaxeSP003Phase116RuntimeAgent" in wrapper
     assert "StonePickaxeSP003Phase118RuntimeAgent" in wrapper
@@ -255,12 +264,16 @@ def test_phase118_audit_binds_repair_evidence_and_protected_identities():
     assert audit["retained_failure"]["manifest_sha256"] == (
         "a7580b5b0c1a563c3e36425070913cf10c9bcbeea0051008f9a921b9c415965c"
     )
-    records = [
-        *audit["implementation"],
+    for record in audit["implementation"]:
+        historical = subprocess.check_output(
+            ["git", "show", f"{PHASE118_FIX_COMMIT}:{record['path']}"],
+            cwd=REPO,
+        )
+        assert hashlib.sha256(historical).hexdigest() == record["sha256"]
+    for record in [
         *audit["protected_phase_116_identities"],
         *audit["protected_runtime_identities"],
-    ]
-    for record in records:
+    ]:
         path = REPO / record["path"]
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
