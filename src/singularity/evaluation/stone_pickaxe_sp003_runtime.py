@@ -82,6 +82,8 @@ SP003_CLEARANCE_SCAN_RESPONSE_LIMIT = 50
 SP003_SURFACE_CLEARANCE_BLOCKS = ("grass_block", "dirt")
 SP003_SURFACE_CLEARANCE_MAX = 3
 SP003_CRAFT_SETTLEMENT_DELAY_MS = 1000
+SP003_DELAYED_LOG_PICKUP_POLICY_ID = "sp003-delayed-log-pickup-reconciliation-v1"
+SP003_PENDING_LOG_PICKUP_MAX = 3
 SP003_FROZEN_BRIDGE_SHA256 = "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
 REPLACEABLE_BLOCKS = {
     "air",
@@ -228,6 +230,15 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
             "crafting_table_tool_settlement_requires_synchronous_craft"
         )
         is False
+    )
+    checks["delayed_log_pickup_reconciliation_contract"] = (
+        episode_contract.get("delayed_log_pickup_reconciliation_policy_id")
+        == SP003_DELAYED_LOG_PICKUP_POLICY_ID
+        and episode_contract.get("pending_removed_log_sources_max")
+        == SP003_PENDING_LOG_PICKUP_MAX
+        and episode_contract.get("delayed_pickup_current_source_reserved_count") == 1
+        and episode_contract.get("delayed_pickup_same_log_family_required") is True
+        and episode_contract.get("delayed_pickup_raw_failure_preserved") is True
     )
 
     reset = value.get("reset_substrate") if isinstance(value.get("reset_substrate"), dict) else {}
@@ -705,6 +716,8 @@ def _empty_progress() -> dict:
     return {
         "log_source_ids": set(),
         "log_item": "",
+        "pending_log_pickups": [],
+        "delayed_log_pickup_reconciliations": [],
         "plank_craft_count": 0,
         "stick_craft_count": 0,
         "crafting_table_craft_count": 0,
@@ -726,6 +739,16 @@ def _progress_snapshot(progress: Any) -> dict:
         "log_source_ids": sorted(str(item) for item in value.get("log_source_ids", set())),
         "log_source_removal_count": len(set(value.get("log_source_ids", set()))),
         "log_item": str(value.get("log_item") or ""),
+        "pending_log_pickup_count": len(value.get("pending_log_pickups", [])),
+        "pending_log_pickups": copy.deepcopy(
+            list(value.get("pending_log_pickups", []))
+        ),
+        "delayed_log_pickup_reconciliation_count": len(
+            value.get("delayed_log_pickup_reconciliations", [])
+        ),
+        "delayed_log_pickup_reconciliations": copy.deepcopy(
+            list(value.get("delayed_log_pickup_reconciliations", []))
+        ),
         "plank_craft_count": _count(value.get("plank_craft_count")),
         "stick_craft_count": _count(value.get("stick_craft_count")),
         "crafting_table_craft_count": _count(value.get("crafting_table_craft_count")),
@@ -1646,6 +1669,228 @@ def _single_craft_machine_success(result: Any, item: str, count: int) -> bool:
     )
 
 
+def _exact_log_mutation_proof(params: dict, backend: dict, block: str) -> bool:
+    identifier = str(params.get("source_id") or "")
+    parameter_cell = _integer_cell(params)
+    target_cell = _integer_cell(backend.get("target"))
+    before = (
+        backend.get("target_block_before")
+        if isinstance(backend.get("target_block_before"), dict)
+        else {}
+    )
+    after = (
+        backend.get("target_block_after")
+        if isinstance(backend.get("target_block_after"), dict)
+        else {}
+    )
+    return bool(
+        block in LOG_ITEMS
+        and parameter_cell is not None
+        and target_cell == parameter_cell
+        and _integer_cell(before.get("position")) == parameter_cell
+        and _integer_cell(after.get("position")) == parameter_cell
+        and before.get("name") == block
+        and str(after.get("name") or "") in {"", "air", "cave_air", "void_air"}
+        and backend.get("block_removed") is True
+        and identifier == source_id(
+            block,
+            {"x": parameter_cell[0], "y": parameter_cell[1], "z": parameter_cell[2]},
+        )
+    )
+
+
+def _pending_log_pickup_proof(
+    progress: dict,
+    params: dict,
+    backend: dict,
+    block: str,
+) -> dict:
+    verification = (
+        backend.get("action_verification")
+        if isinstance(backend.get("action_verification"), dict)
+        else {}
+    )
+    pickup = (
+        backend.get("pickup_inventory_delta")
+        if isinstance(backend.get("pickup_inventory_delta"), dict)
+        else {}
+    )
+    collection = (
+        backend.get("pickup_collection")
+        if isinstance(backend.get("pickup_collection"), dict)
+        else {}
+    )
+    postcondition = (
+        backend.get("dig_postcondition")
+        if isinstance(backend.get("dig_postcondition"), dict)
+        else {}
+    )
+    identifier = str(params.get("source_id") or "")
+    parameter_cell = _integer_cell(params)
+    drop_position = _compact_position(collection.get("position"))
+    entity_id = collection.get("entity_id")
+    if not (
+        backend.get("success") is False
+        and verification.get("status") == "accept"
+        and _exact_log_mutation_proof(params, backend, block)
+        and backend.get("expected_drops") == [block]
+        and backend.get("pickup_observed") is False
+        and not any(_count(count) for count in pickup.values())
+        and collection.get("detected") is True
+        and collection.get("attempted") is True
+        and collection.get("item_name") == block
+        and isinstance(entity_id, int)
+        and not isinstance(entity_id, bool)
+        and entity_id > 0
+        and len(drop_position) == 3
+        and collection.get("success") is False
+        and collection.get("completion_grounded") is False
+        and postcondition.get("required") is True
+        and postcondition.get("block_removed") is True
+        and postcondition.get("expected_drop_required") is True
+        and postcondition.get("expected_drop_observed") is False
+        and postcondition.get("passed") is False
+        and backend.get("error") == "expected block drop was not acquired"
+        and identifier
+        and parameter_cell is not None
+        and identifier not in set(progress.get("log_source_ids", set()))
+        and str(progress.get("log_item") or "") in {"", block}
+    ):
+        return {}
+    proof = {
+        "type": "sp003_pending_removed_log_pickup",
+        "schema_version": 1,
+        "policy_id": SP003_DELAYED_LOG_PICKUP_POLICY_ID,
+        "source_id": identifier,
+        "source_block": block,
+        "source_position": {
+            "x": parameter_cell[0],
+            "y": parameter_cell[1],
+            "z": parameter_cell[2],
+        },
+        "action_verified": True,
+        "raw_action_success": False,
+        "block_removed": True,
+        "target_block_before": block,
+        "target_block_after": str(
+            (backend.get("target_block_after") or {}).get("name") or ""
+        ),
+        "expected_drops": [block],
+        "pickup_observed": False,
+        "pickup_inventory_delta": {},
+        "drop_entity_id": entity_id,
+        "drop_item_name": block,
+        "drop_position": drop_position,
+        "pickup_collection_detected": True,
+        "pickup_collection_attempted": True,
+        "pickup_collection_success": False,
+        "pickup_completion_grounded": False,
+        "dig_postcondition_passed": False,
+        "error": "expected block drop was not acquired",
+    }
+    proof["proof_fingerprint"] = canonical_sha256(proof)
+    return proof
+
+
+def _record_pending_log_pickup(
+    progress: dict,
+    params: dict,
+    backend: dict,
+    block: str,
+) -> None:
+    proof = _pending_log_pickup_proof(progress, params, backend, block)
+    if not proof:
+        return
+    pending = progress.setdefault("pending_log_pickups", [])
+    existing = next(
+        (
+            item
+            for item in pending
+            if isinstance(item, dict) and item.get("source_id") == proof["source_id"]
+        ),
+        None,
+    )
+    if existing is not None:
+        backend["sp003_pending_log_pickup"] = copy.deepcopy(existing)
+        return
+    if len(pending) >= SP003_PENDING_LOG_PICKUP_MAX:
+        return
+    pending.append(proof)
+    progress["log_item"] = progress.get("log_item") or block
+    backend["sp003_pending_log_pickup"] = copy.deepcopy(proof)
+
+
+def _reconcile_delayed_log_pickups(
+    progress: dict,
+    params: dict,
+    backend: dict,
+    block: str,
+    current_source_id: str,
+    pickup_count: int,
+) -> list[str]:
+    surplus = pickup_count - 1
+    if surplus <= 0 or not _exact_log_mutation_proof(params, backend, block):
+        return []
+    pending = progress.setdefault("pending_log_pickups", [])
+    matching = [
+        item
+        for item in pending
+        if isinstance(item, dict)
+        and item.get("source_block") == block
+        and item.get("source_id") != current_source_id
+        and item.get("source_id") not in set(progress.get("log_source_ids", set()))
+        and item.get("proof_fingerprint")
+        == canonical_sha256(
+            {key: value for key, value in item.items() if key != "proof_fingerprint"}
+        )
+    ]
+    remaining_capacity = max(
+        0,
+        3 - len(set(progress.get("log_source_ids", set()))) - 1,
+    )
+    if surplus > len(matching) or surplus > remaining_capacity:
+        return []
+    selected = matching[:surplus]
+    if not selected:
+        return []
+    before_count = len(set(progress.get("log_source_ids", set())))
+    reconciled_ids = [str(item["source_id"]) for item in selected]
+    pending_fingerprints = [str(item["proof_fingerprint"]) for item in selected]
+    remaining = [item for item in pending if item not in selected]
+    proof = {
+        "type": "sp003_delayed_log_pickup_reconciliation",
+        "schema_version": 1,
+        "policy_id": SP003_DELAYED_LOG_PICKUP_POLICY_ID,
+        "source_block": block,
+        "current_source_id": current_source_id,
+        "current_source_position": {
+            axis: int(params[axis]) for axis in ("x", "y", "z")
+        },
+        "pickup_inventory_delta": {block: pickup_count},
+        "current_source_reserved_count": 1,
+        "surplus_pickup_count": surplus,
+        "pending_source_ids_before": [
+            str(item.get("source_id") or "")
+            for item in pending
+            if isinstance(item, dict)
+        ],
+        "reconciled_pending_source_ids": reconciled_ids,
+        "pending_proof_fingerprints": pending_fingerprints,
+        "log_source_count_before": before_count,
+        "log_source_count_after": before_count + 1 + len(reconciled_ids),
+        "remaining_pending_source_ids": [
+            str(item.get("source_id") or "")
+            for item in remaining
+            if isinstance(item, dict)
+        ],
+    }
+    proof["proof_fingerprint"] = canonical_sha256(proof)
+    progress["pending_log_pickups"] = remaining
+    progress.setdefault("delayed_log_pickup_reconciliations", []).append(proof)
+    backend["sp003_delayed_log_pickup_reconciliation"] = copy.deepcopy(proof)
+    return reconciled_ids
+
+
 def record_sp003_success(progress: dict, action: Any, result: Any) -> dict:
     value = action if isinstance(action, dict) else {}
     params = value.get("parameters") if isinstance(value.get("parameters"), dict) else {}
@@ -1653,6 +1898,11 @@ def record_sp003_success(progress: dict, action: Any, result: Any) -> dict:
     action_type = str(value.get("type") or "")
     item = str(params.get("item") or "")
     block = str(params.get("block") or backend.get("block") or "")
+    if action_type == "dig" and block in LOG_ITEMS and not _verified_action_success(
+        result
+    ):
+        _record_pending_log_pickup(progress, params, backend, block)
+        return _progress_snapshot(progress)
     if not _verified_action_success(result, allow_review=action_type == "craft"):
         return _progress_snapshot(progress)
     mutation = {"type": action_type, "item": item, "block": block}
@@ -1662,14 +1912,38 @@ def record_sp003_success(progress: dict, action: Any, result: Any) -> dict:
         pickup = backend.get("pickup_inventory_delta") if isinstance(backend.get("pickup_inventory_delta"), dict) else {}
         identifier = str(params.get("source_id") or source_id(block, params))
         if (
-            backend.get("block_removed") is True
+            str(progress.get("log_item") or "") in {"", block}
+            and backend.get("block_removed") is True
             and backend.get("pickup_observed") is True
             and _count(pickup.get(block)) >= 1
             and identifier
         ):
+            if identifier in progress["log_source_ids"]:
+                return _progress_snapshot(progress)
+            source_count_before = len(progress["log_source_ids"])
+            reconciled_ids = _reconcile_delayed_log_pickups(
+                progress,
+                params,
+                backend,
+                block,
+                identifier,
+                _count(pickup.get(block)),
+            )
             progress["log_source_ids"].add(identifier)
+            progress["log_source_ids"].update(reconciled_ids)
             progress["log_item"] = progress.get("log_item") or block
             mutation["source_id"] = identifier
+            if reconciled_ids:
+                mutation["reconciled_pending_source_ids"] = reconciled_ids
+                mutation["delayed_pickup_reconciliation_fingerprint"] = str(
+                    backend["sp003_delayed_log_pickup_reconciliation"][
+                        "proof_fingerprint"
+                    ]
+                )
+                if len(progress["log_source_ids"]) != (
+                    source_count_before + 1 + len(reconciled_ids)
+                ):
+                    raise RuntimeError("SP-003 delayed pickup reconciliation count drift")
     elif action_type == "dig" and block in SP003_SURFACE_CLEARANCE_BLOCKS:
         identifier = str(params.get("source_id") or source_id(block, params))
         support_identifier = str(params.get("support_source_id") or "")
@@ -2534,7 +2808,9 @@ def build_sp003_episode(
         and isinstance(event.get("data"), dict)
     ]
     deadline = _finite(goal_result.get("episode_deadline_monotonic"))
-    action_failures = []
+    raw_action_failures = []
+    pending_log_pickup_proofs = []
+    delayed_log_pickup_reconciliation_proofs = []
     post_deadline = []
     forbidden = []
     counts: dict[str, int] = {}
@@ -2560,7 +2836,33 @@ def build_sp003_episode(
             label = f"{action_type}:{subject}"
         counts[label] = counts.get(label, 0) + 1
         if result.get("success") is not True:
-            action_failures.append({"index": index, "action": action, "error": str(result.get("error") or "action_not_successful")})
+            raw_action_failures.append({
+                "index": index,
+                "action": action,
+                "error": str(result.get("error") or "action_not_successful"),
+            })
+        pending_pickup = (
+            result.get("sp003_pending_log_pickup")
+            if isinstance(result.get("sp003_pending_log_pickup"), dict)
+            else {}
+        )
+        if pending_pickup:
+            pending_log_pickup_proofs.append({
+                "index": index,
+                "proof": copy.deepcopy(pending_pickup),
+            })
+        delayed_reconciliation = (
+            result.get("sp003_delayed_log_pickup_reconciliation")
+            if isinstance(
+                result.get("sp003_delayed_log_pickup_reconciliation"), dict
+            )
+            else {}
+        )
+        if delayed_reconciliation:
+            delayed_log_pickup_reconciliation_proofs.append({
+                "index": index,
+                "proof": copy.deepcopy(delayed_reconciliation),
+            })
         started, finished = _event_times(event, result, goal_result, initial_monotonic)
         if result.get("accepted_within_episode_deadline") is False or (
             deadline is not None and finished > deadline
@@ -2577,14 +2879,29 @@ def build_sp003_episode(
             log_sources.add(identifier)
             pickup = result.get("pickup_inventory_delta") if isinstance(result.get("pickup_inventory_delta"), dict) else {}
             verification = result.get("action_verification") if isinstance(result.get("action_verification"), dict) else {}
+            before_block = (
+                result.get("target_block_before")
+                if isinstance(result.get("target_block_before"), dict)
+                else {}
+            )
+            after_block = (
+                result.get("target_block_after")
+                if isinstance(result.get("target_block_after"), dict)
+                else {}
+            )
             log_transition_proofs.append({
                 "index": index,
                 "source_id": identifier,
                 "source_block": subject,
+                "source_position": _compact_position(params),
+                "raw_action_success": True,
                 "action_verified": verification.get("status") == "accept",
                 "block_removed": result.get("block_removed") is True,
+                "target_block_before": str(before_block.get("name") or ""),
+                "target_block_after": str(after_block.get("name") or ""),
                 "pickup_observed": result.get("pickup_observed") is True,
                 "pickup_count": _count(pickup.get(subject)),
+                "delayed_pickup_reconciled": False,
             })
         if action_type == "dig" and subject == "stone" and result.get("success") is True:
             stone_sources.add(str(params.get("source_id") or source_id(subject, params)))
@@ -2685,6 +3002,88 @@ def build_sp003_episode(
                 "success": result.get("success") is True,
             })
 
+    pending_by_fingerprint = {
+        str((item.get("proof") or {}).get("proof_fingerprint") or ""): item
+        for item in pending_log_pickup_proofs
+        if isinstance(item, dict)
+        and isinstance(item.get("proof"), dict)
+        and str(item["proof"].get("proof_fingerprint") or "")
+    }
+    reconciliation_links: dict[str, tuple[dict, int]] = {}
+    for reconciliation in delayed_log_pickup_reconciliation_proofs:
+        proof = (
+            reconciliation.get("proof")
+            if isinstance(reconciliation.get("proof"), dict)
+            else {}
+        )
+        fingerprints = (
+            proof.get("pending_proof_fingerprints")
+            if isinstance(proof.get("pending_proof_fingerprints"), list)
+            else []
+        )
+        for offset, fingerprint in enumerate(fingerprints):
+            normalized = str(fingerprint or "")
+            if normalized in pending_by_fingerprint and normalized not in reconciliation_links:
+                reconciliation_links[normalized] = (reconciliation, offset)
+
+    reconciled_action_failure_indexes = []
+    for fingerprint, pending_record in pending_by_fingerprint.items():
+        link = reconciliation_links.get(fingerprint)
+        if link is None:
+            continue
+        reconciliation_record, offset = link
+        pending_proof = pending_record["proof"]
+        reconciliation_proof = reconciliation_record["proof"]
+        reconciled_ids = (
+            reconciliation_proof.get("reconciled_pending_source_ids")
+            if isinstance(
+                reconciliation_proof.get("reconciled_pending_source_ids"), list
+            )
+            else []
+        )
+        if offset >= len(reconciled_ids):
+            continue
+        identifier = str(pending_proof.get("source_id") or "")
+        if str(reconciled_ids[offset] or "") != identifier:
+            continue
+        pending_index = int(pending_record.get("index") or 0)
+        reconciliation_index = int(reconciliation_record.get("index") or 0)
+        reconciled_action_failure_indexes.append(pending_index)
+        log_sources.add(identifier)
+        log_transition_proofs.append({
+            "index": pending_index,
+            "source_id": identifier,
+            "source_block": str(pending_proof.get("source_block") or ""),
+            "source_position": copy.deepcopy(
+                pending_proof.get("source_position") or {}
+            ),
+            "raw_action_success": False,
+            "action_verified": pending_proof.get("action_verified") is True,
+            "block_removed": pending_proof.get("block_removed") is True,
+            "target_block_before": str(
+                pending_proof.get("target_block_before") or ""
+            ),
+            "target_block_after": str(
+                pending_proof.get("target_block_after") or ""
+            ),
+            "pickup_observed": False,
+            "pickup_count": 0,
+            "delayed_pickup_reconciled": True,
+            "pending_proof_fingerprint": fingerprint,
+            "reconciliation_action_index": reconciliation_index,
+            "reconciliation_proof_fingerprint": str(
+                reconciliation_proof.get("proof_fingerprint") or ""
+            ),
+        })
+    reconciled_action_failure_indexes = sorted(
+        set(reconciled_action_failure_indexes)
+    )
+    unreconciled_action_failures = [
+        copy.deepcopy(item)
+        for item in raw_action_failures
+        if item.get("index") not in set(reconciled_action_failure_indexes)
+    ]
+
     planner_audit = planner_request_controls_audit(events)
     selected = _selected_skills(events)
     attributions = _local_attributions(events)
@@ -2745,7 +3144,10 @@ def build_sp003_episode(
         "episode_ended_monotonic": stable_monotonic,
         "deadline_policy_id": goal_result.get("deadline_policy_id", ""),
         "action_count": len(action_events),
-        "action_failures": action_failures,
+        "action_failures": copy.deepcopy(raw_action_failures),
+        "raw_action_failures": raw_action_failures,
+        "reconciled_action_failure_indexes": reconciled_action_failure_indexes,
+        "unreconciled_action_failures": unreconciled_action_failures,
         "post_deadline_action_indexes": post_deadline,
         "forbidden_interventions": forbidden,
         "iron_mining_action_indexes": iron_actions,
@@ -2757,6 +3159,10 @@ def build_sp003_episode(
         ),
         "distinct_stone_source_ids": sorted(item for item in stone_sources if item),
         "log_transition_proofs": log_transition_proofs,
+        "pending_log_pickup_proofs": pending_log_pickup_proofs,
+        "delayed_log_pickup_reconciliation_proofs": (
+            delayed_log_pickup_reconciliation_proofs
+        ),
         "surface_clearance_transition_proofs": surface_clearance_transition_proofs,
         "craft_backend_proofs": craft_backend_proofs,
         "table_placement_proofs": table_placement_proofs,
@@ -2829,6 +3235,26 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
     attributions = value.get("local_skill_attributions") if isinstance(value.get("local_skill_attributions"), list) else []
     skill_actions = value.get("skill_action_map") if isinstance(value.get("skill_action_map"), list) else []
     log_proofs = value.get("log_transition_proofs") if isinstance(value.get("log_transition_proofs"), list) else []
+    raw_action_failures = (
+        value.get("raw_action_failures")
+        if isinstance(value.get("raw_action_failures"), list)
+        else []
+    )
+    unreconciled_action_failures = (
+        value.get("unreconciled_action_failures")
+        if isinstance(value.get("unreconciled_action_failures"), list)
+        else []
+    )
+    pending_log_pickup_proofs = (
+        value.get("pending_log_pickup_proofs")
+        if isinstance(value.get("pending_log_pickup_proofs"), list)
+        else []
+    )
+    delayed_log_pickup_reconciliation_proofs = (
+        value.get("delayed_log_pickup_reconciliation_proofs")
+        if isinstance(value.get("delayed_log_pickup_reconciliation_proofs"), list)
+        else []
+    )
     surface_clearance_proofs = (
         value.get("surface_clearance_transition_proofs")
         if isinstance(value.get("surface_clearance_transition_proofs"), list)
@@ -2968,6 +3394,270 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
             and top_down_ids[0] == item.get("source_id")
         )
 
+    def fingerprint_valid(proof: Any) -> bool:
+        item = proof if isinstance(proof, dict) else {}
+        fingerprint = str(item.get("proof_fingerprint") or "")
+        return bool(
+            fingerprint
+            and fingerprint
+            == canonical_sha256({
+                key: content
+                for key, content in item.items()
+                if key != "proof_fingerprint"
+            })
+        )
+
+    raw_failure_indexes = [
+        item.get("index")
+        for item in raw_action_failures
+        if isinstance(item, dict)
+    ]
+    raw_failure_by_index = {
+        item.get("index"): item
+        for item in raw_action_failures
+        if isinstance(item, dict)
+        and isinstance(item.get("index"), int)
+        and not isinstance(item.get("index"), bool)
+        and item.get("index") > 0
+    }
+
+    def valid_pending_log_pickup(record: Any) -> bool:
+        wrapper = record if isinstance(record, dict) else {}
+        proof = wrapper.get("proof") if isinstance(wrapper.get("proof"), dict) else {}
+        index = wrapper.get("index")
+        failure = raw_failure_by_index.get(index, {})
+        action = failure.get("action") if isinstance(failure.get("action"), dict) else {}
+        params = (
+            action.get("parameters")
+            if isinstance(action.get("parameters"), dict)
+            else {}
+        )
+        source_position = _integer_cell(proof.get("source_position"))
+        return bool(
+            isinstance(index, int)
+            and not isinstance(index, bool)
+            and index > 0
+            and proof.get("type") == "sp003_pending_removed_log_pickup"
+            and proof.get("schema_version") == 1
+            and proof.get("policy_id") == SP003_DELAYED_LOG_PICKUP_POLICY_ID
+            and fingerprint_valid(proof)
+            and proof.get("source_block") in LOG_ITEMS
+            and source_position is not None
+            and proof.get("source_id")
+            == source_id(proof.get("source_block"), proof.get("source_position"))
+            and action.get("type") == "dig"
+            and params.get("block") == proof.get("source_block")
+            and params.get("source_id") == proof.get("source_id")
+            and _integer_cell(params) == source_position
+            and failure.get("error") == "expected block drop was not acquired"
+            and proof.get("action_verified") is True
+            and proof.get("raw_action_success") is False
+            and proof.get("block_removed") is True
+            and proof.get("target_block_before") == proof.get("source_block")
+            and proof.get("target_block_after")
+            in {"", "air", "cave_air", "void_air"}
+            and proof.get("expected_drops") == [proof.get("source_block")]
+            and proof.get("pickup_observed") is False
+            and proof.get("pickup_inventory_delta") == {}
+            and isinstance(proof.get("drop_entity_id"), int)
+            and not isinstance(proof.get("drop_entity_id"), bool)
+            and proof.get("drop_entity_id") > 0
+            and proof.get("drop_item_name") == proof.get("source_block")
+            and len(_compact_position(proof.get("drop_position"))) == 3
+            and proof.get("pickup_collection_detected") is True
+            and proof.get("pickup_collection_attempted") is True
+            and proof.get("pickup_collection_success") is False
+            and proof.get("pickup_completion_grounded") is False
+            and proof.get("dig_postcondition_passed") is False
+            and proof.get("error") == "expected block drop was not acquired"
+        )
+
+    valid_pending_records = [
+        item for item in pending_log_pickup_proofs if valid_pending_log_pickup(item)
+    ]
+    valid_pending_by_fingerprint = {
+        str(item["proof"]["proof_fingerprint"]): item
+        for item in valid_pending_records
+    }
+    direct_log_proofs_by_index = {
+        item.get("index"): item
+        for item in log_proofs
+        if isinstance(item, dict) and item.get("raw_action_success") is True
+    }
+
+    def valid_delayed_log_reconciliation(record: Any) -> bool:
+        wrapper = record if isinstance(record, dict) else {}
+        proof = wrapper.get("proof") if isinstance(wrapper.get("proof"), dict) else {}
+        index = wrapper.get("index")
+        block_name = str(proof.get("source_block") or "")
+        current_position = _integer_cell(proof.get("current_source_position"))
+        reconciled_ids = (
+            proof.get("reconciled_pending_source_ids")
+            if isinstance(proof.get("reconciled_pending_source_ids"), list)
+            else []
+        )
+        pending_fingerprints = (
+            proof.get("pending_proof_fingerprints")
+            if isinstance(proof.get("pending_proof_fingerprints"), list)
+            else []
+        )
+        pending_before = (
+            proof.get("pending_source_ids_before")
+            if isinstance(proof.get("pending_source_ids_before"), list)
+            else []
+        )
+        remaining = (
+            proof.get("remaining_pending_source_ids")
+            if isinstance(proof.get("remaining_pending_source_ids"), list)
+            else []
+        )
+        surplus = proof.get("surplus_pickup_count")
+        before_count = proof.get("log_source_count_before")
+        after_count = proof.get("log_source_count_after")
+        direct = direct_log_proofs_by_index.get(index, {})
+        paired_pending = [
+            valid_pending_by_fingerprint.get(str(fingerprint or ""))
+            for fingerprint in pending_fingerprints
+        ]
+        return bool(
+            isinstance(index, int)
+            and not isinstance(index, bool)
+            and index > 0
+            and proof.get("type") == "sp003_delayed_log_pickup_reconciliation"
+            and proof.get("schema_version") == 1
+            and proof.get("policy_id") == SP003_DELAYED_LOG_PICKUP_POLICY_ID
+            and fingerprint_valid(proof)
+            and block_name in LOG_ITEMS
+            and current_position is not None
+            and proof.get("current_source_id")
+            == source_id(block_name, proof.get("current_source_position"))
+            and direct.get("source_id") == proof.get("current_source_id")
+            and direct.get("source_block") == block_name
+            and direct.get("action_verified") is True
+            and direct.get("block_removed") is True
+            and direct.get("target_block_before") == block_name
+            and direct.get("target_block_after")
+            in {"", "air", "cave_air", "void_air"}
+            and direct.get("pickup_observed") is True
+            and proof.get("current_source_reserved_count") == 1
+            and isinstance(surplus, int)
+            and not isinstance(surplus, bool)
+            and 1 <= surplus <= SP003_PENDING_LOG_PICKUP_MAX
+            and proof.get("pickup_inventory_delta")
+            == {block_name: surplus + 1}
+            and direct.get("pickup_count") == surplus + 1
+            and len(reconciled_ids) == surplus
+            and len(set(str(item) for item in reconciled_ids)) == surplus
+            and len(pending_fingerprints) == surplus
+            and len(set(str(item) for item in pending_fingerprints)) == surplus
+            and all(item is not None for item in paired_pending)
+            and all(
+                item["proof"].get("source_block") == block_name
+                and item["proof"].get("source_id") == reconciled_ids[offset]
+                and int(item.get("index") or 0) < index
+                for offset, item in enumerate(paired_pending)
+            )
+            and proof.get("current_source_id") not in set(reconciled_ids)
+            and pending_before[:surplus] == reconciled_ids
+            and remaining == pending_before[surplus:]
+            and isinstance(before_count, int)
+            and not isinstance(before_count, bool)
+            and before_count >= 0
+            and after_count == before_count + 1 + surplus
+            and after_count <= 3
+        )
+
+    valid_reconciliation_records = [
+        item
+        for item in delayed_log_pickup_reconciliation_proofs
+        if valid_delayed_log_reconciliation(item)
+    ]
+    valid_reconciliation_by_fingerprint = {
+        str(item["proof"]["proof_fingerprint"]): item
+        for item in valid_reconciliation_records
+    }
+    referenced_pending_fingerprints = [
+        str(fingerprint or "")
+        for item in valid_reconciliation_records
+        for fingerprint in item["proof"].get("pending_proof_fingerprints", [])
+    ]
+    delayed_reconciliation_machine_proof = bool(
+        len(valid_pending_records) == len(pending_log_pickup_proofs)
+        and len(valid_reconciliation_records)
+        == len(delayed_log_pickup_reconciliation_proofs)
+        and len(referenced_pending_fingerprints)
+        == len(set(referenced_pending_fingerprints))
+        and set(referenced_pending_fingerprints)
+        == set(valid_pending_by_fingerprint)
+        and len(valid_pending_by_fingerprint) == len(valid_pending_records)
+        and len(valid_reconciliation_by_fingerprint)
+        == len(valid_reconciliation_records)
+    )
+    expected_reconciled_failure_indexes = sorted(
+        int(valid_pending_by_fingerprint[fingerprint].get("index") or 0)
+        for fingerprint in referenced_pending_fingerprints
+    )
+    expected_unreconciled_failures = [
+        item
+        for item in raw_action_failures
+        if isinstance(item, dict)
+        and item.get("index") not in set(expected_reconciled_failure_indexes)
+    ]
+    transparent_failure_accounting = bool(
+        value.get("action_failures") == raw_action_failures
+        and len(raw_failure_indexes) == len(raw_failure_by_index)
+        and value.get("reconciled_action_failure_indexes")
+        == expected_reconciled_failure_indexes
+        and unreconciled_action_failures == expected_unreconciled_failures
+    )
+
+    def valid_log_transition(proof: Any) -> bool:
+        item = proof if isinstance(proof, dict) else {}
+        block_name = str(item.get("source_block") or "")
+        common = bool(
+            block_name in LOG_ITEMS
+            and item.get("source_id")
+            == source_id(block_name, item.get("source_position"))
+            and item.get("action_verified") is True
+            and item.get("block_removed") is True
+            and item.get("target_block_before") == block_name
+            and item.get("target_block_after")
+            in {"", "air", "cave_air", "void_air"}
+        )
+        if not common:
+            return False
+        if item.get("delayed_pickup_reconciled") is not True:
+            return bool(
+                item.get("raw_action_success") is True
+                and item.get("pickup_observed") is True
+                and _count(item.get("pickup_count")) >= 1
+            )
+        pending_fingerprint = str(item.get("pending_proof_fingerprint") or "")
+        reconciliation_fingerprint = str(
+            item.get("reconciliation_proof_fingerprint") or ""
+        )
+        pending_record = valid_pending_by_fingerprint.get(pending_fingerprint, {})
+        reconciliation_record = valid_reconciliation_by_fingerprint.get(
+            reconciliation_fingerprint,
+            {},
+        )
+        return bool(
+            item.get("raw_action_success") is False
+            and item.get("pickup_observed") is False
+            and _count(item.get("pickup_count")) == 0
+            and pending_record
+            and reconciliation_record
+            and item.get("index") == pending_record.get("index")
+            and item.get("source_id") == pending_record["proof"].get("source_id")
+            and item.get("reconciliation_action_index")
+            == reconciliation_record.get("index")
+            and pending_fingerprint
+            in reconciliation_record["proof"].get(
+                "pending_proof_fingerprints",
+                [],
+            )
+        )
+
     criteria = {
         "policy_identity": verify_sp003_policy_identity().get("passed") is True,
         "episode_type": value.get("type") == "stone_pickaxe_sp003_empty_hand_episode",
@@ -2986,7 +3676,11 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
         "action_bound": _count(value.get("action_count")) <= int(contract["maximum_actions"]),
         "cycle_bound": _count(goal_result.get("cycles")) <= int(contract["maximum_cycles"]),
         "duration_bound": (_finite(goal_result.get("elapsed_s")) or float("inf")) < float(contract["episode_timeout_s"]),
-        "zero_action_failures": value.get("action_failures") == [],
+        "transparent_raw_action_failure_accounting": transparent_failure_accounting,
+        "delayed_log_pickup_reconciliation_machine_proof": (
+            delayed_reconciliation_machine_proof
+        ),
+        "zero_unreconciled_action_failures": unreconciled_action_failures == [],
         "zero_post_deadline_actions": value.get("post_deadline_action_indexes") == [],
         "zero_forbidden_interventions": value.get("forbidden_interventions") == [],
         "zero_iron_mining": value.get("iron_mining_action_indexes") == [],
@@ -3015,14 +3709,17 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
                 for proof in surface_clearance_proofs
             )
         ),
-        "log_transition_machine_proof": len(log_proofs) == 3 and all(
-            isinstance(proof, dict)
-            and proof.get("source_block") in LOG_ITEMS
-            and proof.get("action_verified") is True
-            and proof.get("block_removed") is True
-            and proof.get("pickup_observed") is True
-            and _count(proof.get("pickup_count")) >= 1
-            for proof in log_proofs
+        "log_transition_machine_proof": (
+            len(log_proofs) == 3
+            and len(value.get("distinct_log_source_ids", [])) == 3
+            and len(set(value.get("distinct_log_source_ids", []))) == 3
+            and {
+                proof.get("source_id")
+                for proof in log_proofs
+                if isinstance(proof, dict)
+            }
+            == set(value.get("distinct_log_source_ids", []))
+            and all(valid_log_transition(proof) for proof in log_proofs)
         ),
         "one_plank_craft": sum(counts.get(f"craft:{item}", 0) for item in PLANK_BY_LOG.values()) == 1,
         "one_stick_craft": counts.get("craft:stick", 0) == 1,
@@ -3118,6 +3815,16 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
                 value.get("distinct_surface_clearance_source_ids", [])
             ),
             "stone_source_removal_count": len(value.get("distinct_stone_source_ids", [])),
+            "raw_action_failure_count": len(raw_action_failures),
+            "reconciled_action_failure_count": len(
+                expected_reconciled_failure_indexes
+            ),
+            "unreconciled_action_failure_count": len(
+                unreconciled_action_failures
+            ),
+            "delayed_log_pickup_reconciliation_count": len(
+                delayed_log_pickup_reconciliation_proofs
+            ),
             "selected_skill_count": len(selected),
             "local_attribution_count": len(attributions),
         },

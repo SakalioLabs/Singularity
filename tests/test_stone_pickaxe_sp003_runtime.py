@@ -119,6 +119,14 @@ def test_policy_identity_binds_frozen_protocol_and_promoted_skills():
         ]
         is False
     )
+    assert (
+        policy["episode_contract"][
+            "delayed_log_pickup_reconciliation_policy_id"
+        ]
+        == "sp003-delayed-log-pickup-reconciliation-v1"
+    )
+    assert policy["episode_contract"]["pending_removed_log_sources_max"] == 3
+    assert policy["episode_contract"]["delayed_pickup_raw_failure_preserved"] is True
     assert [(item["skill_id"], item["version"]) for item in policy["skills"]] == [
         ("learned:acquire_cobblestone", "1.1.0"),
         ("learned:craft_stone_pickaxe", "1.0.1"),
@@ -141,6 +149,18 @@ def test_policy_identity_rejects_eager_craft_settlement_installation():
     ] = True
     assert not verify_sp003_policy_identity(synchronous)["checks"][
         "interactive_craft_settlement_contract"
+    ]
+
+    unbounded = copy.deepcopy(policy)
+    unbounded["episode_contract"]["pending_removed_log_sources_max"] = 4
+    assert not verify_sp003_policy_identity(unbounded)["checks"][
+        "delayed_log_pickup_reconciliation_contract"
+    ]
+
+    hidden_failure = copy.deepcopy(policy)
+    hidden_failure["episode_contract"]["delayed_pickup_raw_failure_preserved"] = False
+    assert not verify_sp003_policy_identity(hidden_failure)["checks"][
+        "delayed_log_pickup_reconciliation_contract"
     ]
 
 
@@ -905,6 +925,161 @@ def test_progress_only_advances_on_verified_machine_success():
     assert _progress_snapshot(progress)["log_source_removal_count"] == 1
 
 
+def retained_phase95_log_actions():
+    session_path = (
+        REPO
+        / "workspace/evals/sp003_runs/"
+        "sp003_baseline_20260719_112312_39755e3d/session.json"
+    )
+    events = json.loads(session_path.read_text(encoding="utf-8"))
+    return [
+        copy.deepcopy(event["data"])
+        for event in events
+        if event.get("type") == "action"
+        and event.get("data", {}).get("action", {}).get("parameters", {}).get(
+            "source_id"
+        )
+        in {
+            "oak_log:119:142:-33",
+            "oak_log:119:141:-33",
+            "oak_log:119:140:-33",
+        }
+    ]
+
+
+def test_phase95_delayed_pickup_replay_reconciles_exact_pending_source():
+    first, second, third = retained_phase95_log_actions()
+    progress = _empty_progress()
+
+    after_first = record_sp003_success(progress, first["action"], first["result"])
+    assert after_first["log_source_removal_count"] == 0
+    assert after_first["pending_log_pickup_count"] == 1
+    pending = after_first["pending_log_pickups"][0]
+    assert pending["source_id"] == "oak_log:119:142:-33"
+    assert pending["proof_fingerprint"] == canonical_sha256({
+        key: value
+        for key, value in pending.items()
+        if key != "proof_fingerprint"
+    })
+
+    after_second = record_sp003_success(
+        progress,
+        second["action"],
+        second["result"],
+    )
+    assert after_second["log_source_ids"] == [
+        "oak_log:119:141:-33",
+        "oak_log:119:142:-33",
+    ]
+    assert after_second["pending_log_pickup_count"] == 0
+    assert after_second["delayed_log_pickup_reconciliation_count"] == 1
+    reconciliation = second["result"][
+        "sp003_delayed_log_pickup_reconciliation"
+    ]
+    assert reconciliation["current_source_reserved_count"] == 1
+    assert reconciliation["surplus_pickup_count"] == 1
+    assert reconciliation["reconciled_pending_source_ids"] == [
+        "oak_log:119:142:-33"
+    ]
+
+    after_third = record_sp003_success(
+        progress,
+        third["action"],
+        third["result"],
+    )
+    assert after_third["log_source_removal_count"] == 3
+    plank = guard_sp003_action(
+        {"type": "craft", "parameters": {"item": "oak_planks", "count": 12}},
+        observation({"oak_log": 3}),
+        progress,
+    )
+    assert plank["allowed"], plank
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    [
+        lambda result: result["target_block_before"].update({"name": "air"}),
+        lambda result: result["pickup_collection"].update({"detected": False}),
+        lambda result: result["pickup_collection"].update({"item_name": "birch_log"}),
+        lambda result: result.update({"expected_drops": ["stick"]}),
+    ],
+)
+def test_pending_removed_log_requires_exact_machine_proof(tamper):
+    first, _, _ = retained_phase95_log_actions()
+    tamper(first["result"])
+    progress = _empty_progress()
+
+    after = record_sp003_success(progress, first["action"], first["result"])
+
+    assert after["pending_log_pickup_count"] == 0
+    assert after["log_source_removal_count"] == 0
+
+
+def test_delayed_pickup_reconciliation_is_idempotent_and_surplus_bounded():
+    first, second, _ = retained_phase95_log_actions()
+    progress = _empty_progress()
+    record_sp003_success(progress, first["action"], first["result"])
+    record_sp003_success(progress, first["action"], first["result"])
+    assert _progress_snapshot(progress)["pending_log_pickup_count"] == 1
+
+    no_surplus = copy.deepcopy(second)
+    no_surplus["result"]["pickup_inventory_delta"] = {"oak_log": 1}
+    after = record_sp003_success(
+        progress,
+        no_surplus["action"],
+        no_surplus["result"],
+    )
+    assert after["log_source_removal_count"] == 1
+    assert after["pending_log_pickup_count"] == 1
+    assert after["delayed_log_pickup_reconciliation_count"] == 0
+
+    wrong_family = copy.deepcopy(second)
+    wrong_family["action"]["parameters"].update({
+        "block": "birch_log",
+        "source_id": "birch_log:119:141:-33",
+    })
+    wrong_family["result"].update({
+        "block": "birch_log",
+        "pickup_inventory_delta": {"birch_log": 2},
+    })
+    wrong_family["result"]["target_block_before"]["name"] = "birch_log"
+    wrong_after = record_sp003_success(
+        progress,
+        wrong_family["action"],
+        wrong_family["result"],
+    )
+    assert wrong_after["log_source_removal_count"] == 1
+    assert wrong_after["pending_log_pickup_count"] == 1
+    assert wrong_after["delayed_log_pickup_reconciliation_count"] == 0
+
+
+def test_one_pickup_surplus_reconciles_only_oldest_of_two_pending_sources():
+    first, second, _ = retained_phase95_log_actions()
+    progress = _empty_progress()
+    record_sp003_success(progress, first["action"], first["result"])
+    extra = copy.deepcopy(first)
+    extra["action"]["parameters"].update({
+        "x": 118,
+        "source_id": "oak_log:118:142:-33",
+    })
+    extra["result"]["target"].update({"x": 118})
+    extra["result"]["target_block_before"]["position"].update({"x": 118})
+    extra["result"]["target_block_after"]["position"].update({"x": 118})
+    extra["result"]["pickup_collection"]["entity_id"] += 1
+    record_sp003_success(progress, extra["action"], extra["result"])
+    assert _progress_snapshot(progress)["pending_log_pickup_count"] == 2
+
+    after = record_sp003_success(progress, second["action"], second["result"])
+
+    assert after["log_source_ids"] == [
+        "oak_log:119:141:-33",
+        "oak_log:119:142:-33",
+    ]
+    assert after["pending_log_pickup_count"] == 1
+    assert after["pending_log_pickups"][0]["source_id"] == "oak_log:118:142:-33"
+
+
 def test_third_baseline_reviewed_plank_transition_unblocks_exact_stick_craft():
     session_path = (
         REPO
@@ -1548,12 +1723,64 @@ def synthetic_sp003_events():
     return states[0], terminal, events
 
 
-def build_passing_episode(monkeypatch):
+def delayed_pickup_synthetic_sp003_events():
+    initial, terminal, events = synthetic_sp003_events()
+    first = events[0]["data"]
+    second = events[1]["data"]
+    for data in (first, second):
+        position = {
+            axis: data["action"]["parameters"][axis]
+            for axis in ("x", "y", "z")
+        }
+        data["result"]["target_block_before"]["position"] = dict(position)
+        data["result"]["target_block_after"]["position"] = dict(position)
+    first["result"].update({
+        "success": False,
+        "expected_drops": ["oak_log"],
+        "pickup_observed": False,
+        "pickup_inventory_delta": {},
+        "pickup_collection": {
+            "detected": True,
+            "attempted": True,
+            "entity_id": 827,
+            "item_name": "oak_log",
+            "position": {"x": 1.25, "y": 64.0, "z": 0.25},
+            "success": False,
+            "completion_grounded": False,
+        },
+        "dig_postcondition": {
+            "required": True,
+            "block_removed": True,
+            "expected_drop_required": True,
+            "expected_drop_observed": False,
+            "passed": False,
+        },
+        "error": "expected block drop was not acquired",
+    })
+    first["post_observation"] = observation(
+        {},
+        [
+            block("oak_log", 2, 64, 0, 2.0),
+            block("oak_log", 3, 64, 0, 3.0),
+        ],
+    )
+    second["pre_observation"] = copy.deepcopy(first["post_observation"])
+    second["result"]["pickup_inventory_delta"] = {"oak_log": 2}
+
+    progress = _empty_progress()
+    for event in events[:3]:
+        data = event["data"]
+        record_sp003_success(progress, data["action"], data["result"])
+    assert _progress_snapshot(progress)["log_source_removal_count"] == 3
+    return initial, terminal, events
+
+
+def build_passing_episode(monkeypatch, *, scenario=None):
     monkeypatch.setattr(
         "singularity.evaluation.stone_pickaxe_sp003_runtime.planner_request_controls_audit",
         lambda _events: {"passed": True, "issues": [], "call_count": 13},
     )
-    initial, terminal, events = synthetic_sp003_events()
+    initial, terminal, events = scenario or synthetic_sp003_events()
     goal_result = {
         "completed": True,
         "cycles": 13,
@@ -1596,6 +1823,65 @@ def test_synthetic_empty_hand_episode_passes_both_component_verifiers(monkeypatc
     assert report["components"]["sp002"]["criteria_passed"] is True
     assert report["metrics"]["log_source_removal_count"] == 3
     assert report["metrics"]["stone_source_removal_count"] == 3
+
+
+def test_delayed_pickup_episode_preserves_raw_failure_and_passes_reconciliation(
+    monkeypatch,
+):
+    episode = build_passing_episode(
+        monkeypatch,
+        scenario=delayed_pickup_synthetic_sp003_events(),
+    )
+    report = verify_sp003_runtime_episode(episode)
+
+    assert report["passed"], report
+    assert len(episode["action_failures"]) == 1
+    assert episode["action_failures"] == episode["raw_action_failures"]
+    assert episode["reconciled_action_failure_indexes"] == [1]
+    assert episode["unreconciled_action_failures"] == []
+    assert len(episode["pending_log_pickup_proofs"]) == 1
+    assert len(episode["delayed_log_pickup_reconciliation_proofs"]) == 1
+    assert report["criteria"]["transparent_raw_action_failure_accounting"] is True
+    assert report["criteria"][
+        "delayed_log_pickup_reconciliation_machine_proof"
+    ] is True
+    assert report["criteria"]["zero_unreconciled_action_failures"] is True
+    assert report["metrics"]["raw_action_failure_count"] == 1
+    assert report["metrics"]["reconciled_action_failure_count"] == 1
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    [
+        lambda episode: episode["pending_log_pickup_proofs"][0]["proof"].update(
+            {"drop_item_name": "birch_log"}
+        ),
+        lambda episode: episode[
+            "delayed_log_pickup_reconciliation_proofs"
+        ][0]["proof"].update({"surplus_pickup_count": 2}),
+        lambda episode: episode.update({"raw_action_failures": []}),
+        lambda episode: episode.update({"reconciled_action_failure_indexes": []}),
+    ],
+)
+def test_delayed_pickup_episode_verifier_rejects_tamper(monkeypatch, tamper):
+    episode = build_passing_episode(
+        monkeypatch,
+        scenario=delayed_pickup_synthetic_sp003_events(),
+    )
+    tamper(episode)
+
+    report = verify_sp003_runtime_episode(episode)
+
+    assert not report["passed"]
+    assert any(
+        issue
+        in {
+            "delayed_log_pickup_reconciliation_machine_proof",
+            "log_transition_machine_proof",
+            "transparent_raw_action_failure_accounting",
+        }
+        for issue in report["criteria_issues"]
+    )
 
 
 def add_bounded_surface_clearance_evidence(episode):

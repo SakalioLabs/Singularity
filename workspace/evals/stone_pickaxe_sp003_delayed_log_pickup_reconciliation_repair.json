@@ -1,0 +1,118 @@
+{
+  "type": "stone_pickaxe_sp003_delayed_log_pickup_reconciliation_repair",
+  "schema_version": 1,
+  "generated_at": "2026-07-19T12:07:02+08:00",
+  "phase": 96,
+  "status": "offline_fix_verified_pending_commit_push",
+  "base_commit": "69468c2eddfb2b423f90ecf9f80245124994760e",
+  "task_id": "SP-003",
+  "runtime_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+  "reconciliation_policy_id": "sp003-delayed-log-pickup-reconciliation-v1",
+  "retained_failure": {
+    "episode_id": "sp003_baseline_20260719_112312_39755e3d",
+    "session_id": "436ff5c9-40b",
+    "manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_112312_39755e3d/manifest.json",
+    "manifest_sha256": "c1b22e696a4e70ccf0b3e1268333303d5a3f1b3bde21a1baba5ed17061ba2ffa",
+    "session_sha256": "3234f0da23e6a0e3f0f1255a0eb35147a46fcf4764349712d0d9e867415512d7",
+    "first_source_id": "oak_log:119:142:-33",
+    "second_source_id": "oak_log:119:141:-33",
+    "third_source_id": "oak_log:119:140:-33",
+    "terminal_inventory": {
+      "oak_log": 3
+    },
+    "recorded_source_count_before_repair": 2,
+    "raw_evidence_modified": false
+  },
+  "root_cause": {
+    "first_log_block_removed": true,
+    "first_drop_entity_detected": true,
+    "first_immediate_pickup_inventory_delta": {},
+    "first_action_error": "expected block drop was not acquired",
+    "second_action_pickup_inventory_delta": {
+      "oak_log": 2
+    },
+    "second_action_current_source_reserved_count": 1,
+    "second_action_delayed_surplus_count": 1,
+    "disconnect": "the delayed first drop was conserved in the second action inventory delta but its exact removed source was not credited"
+  },
+  "repair_contract": {
+    "pending_removed_log_sources_max": 3,
+    "same_log_family_required": true,
+    "exact_source_id_and_coordinates_required": true,
+    "exact_target_block_before_required": true,
+    "exact_air_target_block_after_required": true,
+    "accepted_action_verification_required": true,
+    "detected_failed_pickup_collection_required": true,
+    "exact_expected_drop_required": true,
+    "zero_immediate_pickup_delta_required": true,
+    "later_pickup_surplus_required": true,
+    "one_current_source_item_reserved": true,
+    "oldest_pending_sources_reconciled_first": true,
+    "reconciled_count_cannot_exceed_surplus": true,
+    "source_removal_total_cannot_exceed_three": true,
+    "canonical_fingerprints_required": true,
+    "duplicate_source_replay_idempotent": true,
+    "raw_action_failure_preserved": true,
+    "unreconciled_failure_list_separate": true,
+    "wrong_family_fails_closed": true,
+    "missing_or_tampered_proof_fails_closed": true
+  },
+  "retained_replay": {
+    "pending_proof_fingerprint": "aeead701ec67b0f3cdc43a267d7cc3517c607ded83624163dc8f2f78578ac945",
+    "reconciliation_proof_fingerprint": "b9afa45433c4686162a241f56fc005e5fc6d768379f0c2a4f04c47c72b2fbc1d",
+    "after_first": {
+      "log_source_ids": [],
+      "pending_log_pickup_count": 1
+    },
+    "after_second": {
+      "log_source_ids": [
+        "oak_log:119:141:-33",
+        "oak_log:119:142:-33"
+      ],
+      "pending_log_pickup_count": 0,
+      "delayed_log_pickup_reconciliation_count": 1
+    },
+    "after_third": {
+      "log_source_ids": [
+        "oak_log:119:140:-33",
+        "oak_log:119:141:-33",
+        "oak_log:119:142:-33"
+      ],
+      "pending_log_pickup_count": 0,
+      "stage": "prepare_wooden_pickaxe",
+      "exact_twelve_plank_craft_allowed": true
+    }
+  },
+  "implementation": {
+    "runtime_path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+    "runtime_sha256": "3dae548b9f59d5e3893bce427067d5105ea61d85c2ed35c354d369e474aaaa2b",
+    "test_path": "tests/test_stone_pickaxe_sp003_runtime.py",
+    "test_sha256": "ba87a54d0d98bf35b49dc9efd953690c9726471d162ce91f921c8cc15790655a",
+    "policy_path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+    "policy_sha256": "5e4c6227314a831e8efaad6e7c264b545f1dabab5a4da0e4abf40b46f928a22b",
+    "shared_bridge_path": "src/bot/bot_server.js",
+    "shared_bridge_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+    "base_protocol_path": "workspace/evals/stone_pickaxe_protocol.json",
+    "base_protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+  },
+  "validation": {
+    "sp003_dedicated_cases": "46/46",
+    "stone_pickaxe_related_cases": "227/227",
+    "repository_non_live_python_cases": "982/982",
+    "node_suites": "7/7",
+    "node_internal_cases": "65/65",
+    "policy_identity_passed": true,
+    "python_compile_passed": true,
+    "tracked_json_parse_passed": true,
+    "credential_scan_passed": true,
+    "git_diff_check_passed": true
+  },
+  "live_episode_run": false,
+  "live_authorization": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "next_gate": "commit_push_then_create_one_fresh_parent_bound_baseline_authorization"
+}

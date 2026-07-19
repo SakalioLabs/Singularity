@@ -139,6 +139,11 @@
     "crafting_table_tool_settlement_delay_ms": 1000,
     "crafting_table_tool_settlement_install_event": "inject_allowed",
     "crafting_table_tool_settlement_requires_synchronous_craft": false,
+    "delayed_log_pickup_reconciliation_policy_id": "sp003-delayed-log-pickup-reconciliation-v1",
+    "pending_removed_log_sources_max": 3,
+    "delayed_pickup_current_source_reserved_count": 1,
+    "delayed_pickup_same_log_family_required": true,
+    "delayed_pickup_raw_failure_preserved": true,
     "automatic_retry_allowed": false,
     "stable_reobservation_delay_s": 0.25,
     "allowed_log_family": [
