@@ -1,0 +1,88 @@
+{
+  "type": "stone_pickaxe_sp003_infrastructure_failure",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-19T02:55:16.971594Z",
+  "status": "retained_infrastructure_failure_pending_commit_push",
+  "task_id": "SP-003",
+  "arm": "baseline",
+  "replicate_id": "baseline",
+  "episode_id": "sp003_baseline_20260719_104845_aad1e286",
+  "authorization": {
+    "authorization_id": "f5428baebed7bb95f022f754253e1407bab07da68658e241251b9e0e18d6b841",
+    "authorization_commit": "dbaa4b0753ec017f6f00f6298e37ffa76ed8eaa4",
+    "authorization_predecessor": "aad1e286b88a33754d6bc621f58b0b41f1a07fae",
+    "authorization_sha256": "8c9db68c73558339144d72df5adf5a1375173a94bcede26a3ef52b1a744e2f43",
+    "audit_passed": true,
+    "consumed": true,
+    "reuse_allowed": false
+  },
+  "runtime_policy": {
+    "id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+    "sha256": "783a9fe31874400a5fd91993c347898f276ae9d3c648b4efac67479afe61cace"
+  },
+  "protocol": {
+    "id": "stone-pickaxe-skill-fixed-v1",
+    "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+  },
+  "classification": "sp003_craft_settlement_preload_eager_injection_failure",
+  "earliest_blocker": "bridge_process_create_bot_before_mineflayer_plugin_injection",
+  "runtime_start": {
+    "live_process_start_attempted": true,
+    "fresh_world_created": true,
+    "paper_ready": true,
+    "bridge_process_start_attempted": true,
+    "bridge_ready": false,
+    "agent_runner_started": false,
+    "episode_created": false,
+    "session_id": "",
+    "llm_call_count": 0,
+    "action_count": 0,
+    "skill_selection_count": 0,
+    "goal_verification_count": 0
+  },
+  "root_cause": {
+    "node_version": "22.16.0",
+    "error_name": "TypeError",
+    "error_message": "SP-003 craft settlement requires a mineflayer bot",
+    "requested_preload": "./src/bot/sp003_inventory_preserving_navigation.js",
+    "preload_module_executed": true,
+    "create_bot_called": true,
+    "craft_plugin_available_at_create_bot_return": false,
+    "mineflayer_inject_allowed_is_deferred": true,
+    "gameplay_repair_exercised": false,
+    "required_change": "Return the original bot immediately and install the process-local craft wrapper after Mineflayer emits inject_allowed and its internal craft plugin has been injected."
+  },
+  "retained_evidence": [
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_104845_aad1e286/authorization.json",
+      "sha256": "59815e2721fde6bc94b18ccc168daa9fd33929cb965816b883533060e80d41d1",
+      "line_endings": "lf_normalized",
+      "source_sha256": "8c9db68c73558339144d72df5adf5a1375173a94bcede26a3ef52b1a744e2f43"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_104845_aad1e286/runtime_bridge_stderr.log",
+      "sha256": "429b3e19d10c15dc7486125037d969992ee4cfd20d28f51f6f1e9e4828f88128",
+      "line_endings": "lf_normalized",
+      "source_sha256": "7cb8e5a5a4fcb86ce2136e0709d19b8f667049146425bdc1ec09acc4873348a4"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_104845_aad1e286/runtime_server_stdout.log",
+      "sha256": "8695c47916c4eff2a940591aa4af85f421d4b02cfcb67ef576fe8042313deea1",
+      "line_endings": "lf_normalized",
+      "source_sha256": "ed8d55f7b9a2d99cd11284f25077f5d379f55369de1d15ac1373093daf903ba3"
+    }
+  ],
+  "cleanup": {
+    "minecraft_port_listening": false,
+    "bridge_port_listening": false,
+    "matching_external_process_count": 0,
+    "server_properties_restored": true,
+    "fresh_world_retained": true
+  },
+  "automatic_retry_attempted": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_candidate_success": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "next_gate": "retain_and_push_this_failure_then_defer_the_process_local_craft_wrapper_until_mineflayer_plugin_injection"
+}

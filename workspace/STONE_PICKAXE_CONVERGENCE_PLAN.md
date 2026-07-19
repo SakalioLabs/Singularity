@@ -15,11 +15,11 @@ This project isolates two bounded Minecraft capabilities:
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
-| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 92 offline repair verified; live revalidation pending |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 93 infrastructure failure retained; deferred-injection repair pending |
 
-Current phase: **Phase 92 offline-verifies both blockers retained by Phase 91. A process-local preload delays only resolved interactive crafts by 1000ms before the frozen bridge refreshes table inventory, with one original craft call and no retry. A complete stable radius-one scan may authorize at most three top-down `grass_block`/`dirt` removals above one exact non-player-column stone support. The retained 29-block scan replays as `grass -> dirt -> dirt`, then proves the full entry shaft and stand `(124,140,-38)`. The full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 93 retains a pre-Bridge infrastructure failure from the first runtime-v2 start. Paper created the fresh world and became ready, but Mineflayer had not yet injected `bot.craft` when `createBot` returned; the process-local settlement preload rejected that normal lifecycle and Bridge never became ready. No Agent episode, LLM call, skill selection, or gameplay action started. The Phase 92 surface-clearance and craft-settlement behavior remains offline-only, and the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and SP-003 IDs `sp003_baseline_20260719_044130_998a5bbd`, `sp003_baseline_20260719_045836_da326336`, `sp003_baseline_20260719_051736_a27843f7`, `sp003_baseline_20260719_055541_f863c62c`, `sp003_baseline_20260719_070034_8d6e8eef`, `sp003_baseline_20260719_072552_4e3a282c`, `sp003_baseline_20260719_081246_b6ebff81`, and `sp003_baseline_20260719_092557_f63c1161` cannot be reused. The next transaction is to commit and push Phase 92, then create and push one separate fresh parent-bound baseline authorization. Automatic retry, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and SP-003 IDs `sp003_baseline_20260719_044130_998a5bbd`, `sp003_baseline_20260719_045836_da326336`, `sp003_baseline_20260719_051736_a27843f7`, `sp003_baseline_20260719_055541_f863c62c`, `sp003_baseline_20260719_070034_8d6e8eef`, `sp003_baseline_20260719_072552_4e3a282c`, `sp003_baseline_20260719_081246_b6ebff81`, `sp003_baseline_20260719_092557_f63c1161`, and `sp003_baseline_20260719_104845_aad1e286` cannot be reused. The next transaction is to commit and push Phase 93 evidence, then repair and offline-verify deferred process-local craft wrapping. Automatic retry, a replacement live authorization before that repair is pushed, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -198,7 +198,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 92 offline repair verified; eight authorizations consumed; baseline 0/1 and candidates 0/3; fresh baseline authorization pending |
+| 8. SP-003 composite acceptance | Phase 93 infrastructure failure retained; nine authorizations consumed; baseline 0/1 and candidates 0/3; deferred-injection repair pending |
 
 ## Frozen Baseline
 
@@ -210,4 +210,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before the Phase 92 offline repair is pushed and a separate one-use authorization is pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before the Phase 93 evidence and a deferred-injection offline repair are pushed and a separate one-use authorization is pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.

@@ -1,0 +1,17 @@
+F:\Codex-Project\Singularity\src\bot\sp003_inventory_preserving_navigation.js:26
+        throw new TypeError('SP-003 craft settlement requires a mineflayer bot');
+        ^
+
+TypeError: SP-003 craft settlement requires a mineflayer bot
+    at wrapCraftSettlement (F:\Codex-Project\Singularity\src\bot\sp003_inventory_preserving_navigation.js:26:15)
+    at Object.sp003CreateBot [as createBot] (F:\Codex-Project\Singularity\src\bot\sp003_inventory_preserving_navigation.js:75:16)
+    at connectBot (F:\Codex-Project\Singularity\src\bot\bot_server.js:3250:22)
+    at startBridge (F:\Codex-Project\Singularity\src\bot\bot_server.js:3539:5)
+    at Object.<anonymous> (F:\Codex-Project\Singularity\src\bot\bot_server.js:3549:5)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Object..js (node:internal/modules/cjs/loader:1895:10)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+
+Node.js v22.16.0

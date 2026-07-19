@@ -1,0 +1,36 @@
+{
+  "type": "stone_pickaxe_sp003_infrastructure_failure_manifest",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-19T02:55:16.971594Z",
+  "task_id": "SP-003",
+  "arm": "baseline",
+  "replicate_id": "baseline",
+  "episode_id": "sp003_baseline_20260719_104845_aad1e286",
+  "authorization_id": "f5428baebed7bb95f022f754253e1407bab07da68658e241251b9e0e18d6b841",
+  "authorization_commit": "dbaa4b0753ec017f6f00f6298e37ffa76ed8eaa4",
+  "classification": "sp003_craft_settlement_preload_eager_injection_failure",
+  "runtime_start_attempted": true,
+  "episode_created": false,
+  "evidence_eligible": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "files": [
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_104845_aad1e286/authorization.json",
+      "sha256": "59815e2721fde6bc94b18ccc168daa9fd33929cb965816b883533060e80d41d1"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_104845_aad1e286/runtime_bridge_stderr.log",
+      "sha256": "429b3e19d10c15dc7486125037d969992ee4cfd20d28f51f6f1e9e4828f88128"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_104845_aad1e286/runtime_server_stdout.log",
+      "sha256": "8695c47916c4eff2a940591aa4af85f421d4b02cfcb67ef576fe8042313deea1"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260719_104845_aad1e286/infrastructure_failure.json",
+      "sha256": "c894176ae766d8e6b7a19ff408e0d1a42e6632471b3189eda5b2b1341856cd2a"
+    }
+  ]
+}
