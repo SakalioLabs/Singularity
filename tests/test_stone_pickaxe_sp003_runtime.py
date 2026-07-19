@@ -206,6 +206,91 @@ def test_log_guard_uses_nearest_observed_same_family_and_stops_at_three():
     assert any("stage:prepare_wooden_pickaxe" in issue for issue in stopped["issues"])
 
 
+def test_phase85_retained_canopy_observation_selects_navigation_only_ground_egress():
+    session_path = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_072552_4e3a282c/session.json"
+    )
+    events = json.loads(session_path.read_text(encoding="utf-8"))
+    retained = copy.deepcopy(next(
+        event["data"] for event in events if event.get("type") == "observation"
+    ))
+    progress = _empty_progress()
+
+    targets = _sp003_observation_targets(retained, progress)
+
+    assert targets[0] == {
+        "source_id": "grass_block:121:141:-36",
+        "name": "grass_block",
+        "position": {"x": 121.0, "y": 141.0, "z": -36.0},
+        "distance": 25.495098,
+        "horizontal_distance": 24.909837,
+        "stand_position": {"x": 121, "y": 142, "z": -36},
+        "navigation_only": True,
+        "canopy_egress": True,
+    }
+    move = guard_sp003_action(
+        {"type": "move_to", "parameters": {"x": 121, "y": 141, "z": -36}},
+        retained,
+        progress,
+    )
+    assert move["allowed"], move
+    assert move["action"]["parameters"] == {
+        "x": 121,
+        "y": 142,
+        "z": -36,
+        "preserve_inventory": True,
+    }
+    assert move["selected_source"]["canopy_egress"] is True
+
+
+def test_phase85_canopy_guard_rejects_log_dig_and_fails_closed_without_ground_egress():
+    progress = _empty_progress()
+    canopy = observation(
+        {},
+        [block("dark_oak_log", 94, 142, -31, 3.0)],
+        position={"x": 96.5, "y": 144.0, "z": -31.5},
+    )
+    canopy["ground_block"] = "dark_oak_leaves"
+
+    assert _sp003_observation_targets(canopy, progress) == []
+    obstructed = copy.deepcopy(canopy)
+    obstructed["nearby_blocks"].extend([
+        block("grass_block", 121, 141, -36, 25.495098),
+        block("oak_leaves", 121, 142, -36, 25.317978),
+    ])
+    assert _sp003_observation_targets(obstructed, progress) == []
+    direct = guard_sp003_action(
+        {
+            "type": "dig",
+            "parameters": {"block": "dark_oak_log", "x": 94, "y": 142, "z": -31},
+        },
+        canopy,
+        progress,
+    )
+    assert not direct["allowed"]
+    assert "sp003_canopy_egress_required_before_log_dig" in direct["issues"]
+    move_to_log = guard_sp003_action(
+        {"type": "move_to", "parameters": {"x": 94, "z": -31}},
+        canopy,
+        progress,
+    )
+    assert not move_to_log["allowed"]
+    assert "acquire_wood_navigation_target_must_be_observed" in move_to_log["issues"]
+
+    grounded = copy.deepcopy(canopy)
+    grounded["ground_block"] = "grass_block"
+    allowed = guard_sp003_action(
+        {
+            "type": "dig",
+            "parameters": {"block": "dark_oak_log", "x": 94, "y": 142, "z": -31},
+        },
+        grounded,
+        progress,
+    )
+    assert allowed["allowed"], allowed
+
+
 def preparation_progress():
     progress = _empty_progress()
     progress["log_source_ids"] = {"oak_log:1:64:0", "oak_log:2:64:0", "oak_log:3:64:0"}
@@ -566,6 +651,8 @@ def test_planner_compacts_sp003_state_and_requires_exact_five_node_graph():
     planner = object.__new__(Planner)
     planner._expected_plan_kind = "continuation"
     prompt = Planner._stone_pickaxe_system_prompt(planner)
+    assert "has canopy_egress=true, it is navigation-only" in prompt
+    assert "when that wood target's distance exceeds 4.5" in prompt
     assert "never add 1 to y or emit target_position" in prompt
     assert "when it exceeds 4.5, emit move_to with only that target's x and z" in prompt
     assert "Never dig a block directly below the player" in prompt

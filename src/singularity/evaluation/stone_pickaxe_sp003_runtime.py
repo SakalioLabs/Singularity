@@ -69,6 +69,14 @@ PLANK_BY_LOG = {
     "warped_stem": "warped_planks",
 }
 IRON_BLOCKS = {"iron_ore", "deepslate_iron_ore", "raw_iron_block"}
+CANOPY_EGRESS_GROUND_BLOCKS = {
+    "coarse_dirt",
+    "dirt",
+    "grass_block",
+    "podzol",
+    "sand",
+}
+CANOPY_EGRESS_MIN_HORIZONTAL_DISTANCE = 8.0
 REPLACEABLE_BLOCKS = {
     "air",
     "cave_air",
@@ -546,6 +554,86 @@ def _observed_candidates(
     return candidates
 
 
+def _canopy_egress_required(observation: Any, progress: Any) -> bool:
+    raw = observation if isinstance(observation, dict) else {}
+    state = _progress_snapshot(progress)
+    inventory = _safe_inventory(raw)
+    return (
+        str(raw.get("ground_block") or "").endswith("_leaves")
+        and state["log_source_removal_count"] == 0
+        and not any(inventory.get(item, 0) > 0 for item in LOG_ITEMS)
+    )
+
+
+def _canopy_egress_candidates(observation: Any) -> list[dict]:
+    raw = observation if isinstance(observation, dict) else {}
+    player = raw.get("position") if isinstance(raw.get("position"), dict) else {}
+    player_x = _finite(player.get("x"))
+    player_y = _finite(player.get("y"))
+    player_z = _finite(player.get("z"))
+    if player_x is None or player_y is None or player_z is None:
+        return []
+    blocks = raw.get("nearby_blocks") if isinstance(raw.get("nearby_blocks"), list) else []
+    occupied = {
+        (
+            round(float(position["x"])),
+            round(float(position["y"])),
+            round(float(position["z"])),
+        )
+        for block in blocks
+        if isinstance(block, dict)
+        for position in [block.get("position")]
+        if isinstance(position, dict)
+        and all(_finite(position.get(axis)) is not None for axis in ("x", "y", "z"))
+    }
+    candidates = []
+    for candidate in _observed_candidates(raw, CANOPY_EGRESS_GROUND_BLOCKS):
+        position = candidate.get("position") if isinstance(candidate.get("position"), dict) else {}
+        x = _finite(position.get("x"))
+        y = _finite(position.get("y"))
+        z = _finite(position.get("z"))
+        if x is None or y is None or z is None:
+            continue
+        horizontal_distance = math.hypot(x - player_x, z - player_z)
+        if horizontal_distance < CANOPY_EGRESS_MIN_HORIZONTAL_DISTANCE or y >= player_y:
+            continue
+        stand_cell = (round(x), round(y) + 1, round(z))
+        head_cell = (stand_cell[0], stand_cell[1] + 1, stand_cell[2])
+        if stand_cell in occupied or head_cell in occupied:
+            continue
+        candidates.append({
+            **candidate,
+            "horizontal_distance": round(horizontal_distance, 6),
+            "stand_position": {
+                "x": stand_cell[0],
+                "y": stand_cell[1],
+                "z": stand_cell[2],
+            },
+            "navigation_only": True,
+            "canopy_egress": True,
+        })
+    candidates.sort(key=lambda item: (item["distance"], item["source_id"]))
+    return candidates
+
+
+def _wood_stage_candidates(
+    observation: Any,
+    progress: Any,
+    *,
+    reachable_only: bool = False,
+) -> list[dict]:
+    state = _progress_snapshot(progress)
+    if _canopy_egress_required(observation, progress):
+        return [] if reachable_only else _canopy_egress_candidates(observation)
+    log_names = {state["log_item"]} if state.get("log_item") else set(LOG_ITEMS)
+    return _observed_candidates(
+        observation,
+        log_names,
+        reachable_only=reachable_only,
+        excluded=set(state["log_source_ids"]),
+    )
+
+
 def audit_sp003_initial_state(observation: Any) -> dict:
     raw = observation if isinstance(observation, dict) else {}
     inventory = _safe_inventory(raw)
@@ -803,12 +891,7 @@ def _sp003_observation_targets(observation: Any, progress: Any) -> list[dict]:
     stage = _stage(observation, progress)
     inventory = _safe_inventory(observation)
     if stage == "acquire_wood":
-        log_names = {state["log_item"]} if state.get("log_item") else set(LOG_ITEMS)
-        return _observed_candidates(
-            observation,
-            log_names,
-            excluded=set(state["log_source_ids"]),
-        )[:8]
+        return _wood_stage_candidates(observation, progress)[:8]
     if stage == "acquire_cobblestone" and inventory.get("cobblestone", 0) < 3:
         return _safe_stone_candidates(observation, progress)[:8]
     if stage == "prepare_wooden_pickaxe" and state["crafting_table_craft_count"] == 1:
@@ -842,12 +925,7 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
         issues.extend(_non_mutating_action_issues(action_type, params, observation, 32.0))
         if action_type != "wait" and not issues:
             if stage == "acquire_wood":
-                log_names = {state["log_item"]} if state.get("log_item") else set(LOG_ITEMS)
-                candidates = _observed_candidates(
-                    observation,
-                    log_names,
-                    excluded=set(state["log_source_ids"]),
-                )
+                candidates = _wood_stage_candidates(observation, progress)
             elif stage == "acquire_cobblestone" and inventory.get("cobblestone", 0) < 3:
                 candidates = _safe_stone_candidates(observation, progress)
             else:
@@ -867,20 +945,27 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
             else:
                 selected_source = matching[0]
                 if action_type == "move_to":
-                    normalized["parameters"].pop("y", None)
+                    stand_position = selected_source.get("stand_position")
+                    if (
+                        selected_source.get("canopy_egress") is True
+                        and isinstance(stand_position, dict)
+                    ):
+                        normalized["parameters"].update(stand_position)
+                    else:
+                        normalized["parameters"].pop("y", None)
                     normalized["parameters"]["preserve_inventory"] = True
     elif action_type == "dig" and stage == "acquire_wood":
         block = str(params.get("block") or "")
+        if _canopy_egress_required(observation, progress):
+            issues.append("sp003_canopy_egress_required_before_log_dig")
         if block not in LOG_ITEMS:
             issues.append("sp003_wood_dig_requires_log_family")
         if state.get("log_item") and block != state["log_item"]:
             issues.append("sp003_mixed_log_family_forbidden")
-        log_names = {state["log_item"]} if state.get("log_item") else set(LOG_ITEMS)
-        candidates = _observed_candidates(
+        candidates = _wood_stage_candidates(
             observation,
-            log_names,
+            progress,
             reachable_only=True,
-            excluded=set(state["log_source_ids"]),
         )
         target_id = source_id(block, params)
         matching = [item for item in candidates if item["source_id"] == target_id]

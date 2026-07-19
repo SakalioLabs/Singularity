@@ -15,11 +15,11 @@ This project isolates two bounded Minecraft capabilities:
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
-| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 85 canopy failure retained; offline egress repair required |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 86 egress repair verified offline; push required |
 
-Current phase: **Phase 85 retains the fifth gameplay failure after the repaired preload started correctly. The fresh empty-hand Agent spawned on a leaf canopy, removed ten logs, acquired none, and never reached the table, wooden-pickaxe, stone, or final-craft stages. The full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 86 verifies a bounded offline repair for Phase 85's leaf-canopy pickup disconnect. The retained initial observation now yields one navigation-only, lower, clear ground stand cell; pre-egress log digs and ungrounded targets fail closed. The full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and SP-003 IDs `sp003_baseline_20260719_044130_998a5bbd`, `sp003_baseline_20260719_045836_da326336`, `sp003_baseline_20260719_051736_a27843f7`, `sp003_baseline_20260719_055541_f863c62c`, `sp003_baseline_20260719_070034_8d6e8eef`, and `sp003_baseline_20260719_072552_4e3a282c` cannot be reused. The next transaction is offline-only: retain Phase 85 evidence, replay its initial observation, and verify one bounded non-mutating canopy-egress repair. Automatic retry, another baseline before that repair, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and SP-003 IDs `sp003_baseline_20260719_044130_998a5bbd`, `sp003_baseline_20260719_045836_da326336`, `sp003_baseline_20260719_051736_a27843f7`, `sp003_baseline_20260719_055541_f863c62c`, `sp003_baseline_20260719_070034_8d6e8eef`, and `sp003_baseline_20260719_072552_4e3a282c` cannot be reused. After Phase 86 is committed and pushed with exact local/remote tree identity, the next transaction may create one fresh parent-bound baseline authorization. Automatic retry, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -88,7 +88,7 @@ Machine success requires exact material consumption, positive stone-pickaxe inve
 
 The supplemental `stone-pickaxe-sp003-empty-hand-runtime-v1` policy is bound to the unchanged v1 protocol and existing executable skill records. Every episode uses a fresh seed-12345 survival world and exact empty inventory, then follows the fixed five-node graph: three same-family logs, one placed crafting table, one wooden pickaxe, three verified stone removals, and one stone pickaxe.
 
-The action guard permits exactly one grounded action per Planner cycle. It binds navigation and digging to the nearest observed same-family source, retains the machine-proven table position for bounded return navigation, permits exactly five single-attempt craft actions, and rejects extra resources, duplicate mutation, support-column stone, iron mining, family substitution, target injection, or retry. SP-003 movement uses horizontal goals under a process-local Pathfinder policy that forbids digging and scaffolding; any machine-observed inventory loss during a guarded move fails closed. Wooden- and stone-pickaxe crafts must use the same placed table.
+The action guard permits exactly one grounded action per Planner cycle. It binds navigation and digging to the nearest observed same-family source, retains the machine-proven table position for bounded return navigation, permits exactly five single-attempt craft actions, and rejects extra resources, duplicate mutation, support-column stone, iron mining, family substitution, target injection, or retry. SP-003 normally uses horizontal movement goals; the empty leaf-canopy gate alone binds an exact observed clear stand height one block above eligible distant ground. Its process-local Pathfinder policy forbids digging and scaffolding, and any machine-observed inventory loss during a guarded move fails closed. Wooden- and stone-pickaxe crafts must use the same placed table.
 
 Success requires the full five-node TaskSystem graph, both frozen component machine verifiers, stable terminal re-observation, and no skill-store mutation. The baseline keeps learned skills off. Each candidate must separately attribute the cobblestone stage to `learned:acquire_cobblestone@1.1.0` and the final craft to `learned:craft_stone_pickaxe@1.0.1`. Reset reuses BM-012 only as an empty natural-state substrate; BM-012 terminal execution and M4 credit are forbidden.
 
@@ -197,7 +197,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 85 canopy pickup failure retained; six authorizations consumed; baseline 0/1 and candidates 0/3 |
+| 8. SP-003 composite acceptance | Phase 86 canopy egress repair verified offline; six authorizations consumed; baseline 0/1 and candidates 0/3 |
 
 ## Frozen Baseline
 
@@ -209,4 +209,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen protocol or evidence; run SP-003 before the Phase 85 evidence and bounded offline canopy-egress repair are pushed and a separate one-use authorization is pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, and v1 `shadow-1` failure remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen protocol or evidence; run SP-003 before the Phase 86 repair and a separate one-use authorization are pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
