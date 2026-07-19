@@ -1,14 +1,14 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-19T23:51:16+08:00",
+  "generated_at": "2026-07-20T00:44:01+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_115_sp003_destroyed_egress_anchor_failure",
-  "status": "sp003_phase_115_failure_retained_pending_evidence_commit_push_live_authorization_false",
+  "phase": "phase_116_sp003_local_table_staging_offline_repair",
+  "status": "sp003_phase_116_offline_verified_pending_fix_commit_push_live_authorization_false",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
@@ -9133,8 +9133,8 @@
       "phase": "sp003_baseline",
       "task_id": "SP-003",
       "classification": "sp003_destroyed_unique_egress_anchor_before_terminal_craft",
-      "status": "retained_failure_pending_evidence_commit_push",
-      "evidence_commit": null,
+      "status": "retained_failure_evidence_pushed_offline_repair_verified",
+      "evidence_commit": "14ce593e2e830ff1a6bece11e1e7abb63d013155",
       "attributable_to_learned_skill": false,
       "episode_id": "sp003_baseline_20260719_232840_66a67eeb",
       "session_id": "9d9ad518-890",
@@ -9225,12 +9225,31 @@
         {"path": "workspace/evals/sp003_runs/sp003_baseline_20260719_232840_66a67eeb/session_9d9ad518-890.jsonl", "sha256": "71d6c5671ca346589633f7cd4386897f6d002e35f736f751ccdd6c04797cc093"},
         {"path": "workspace/evals/sp003_runs/sp003_baseline_20260719_232840_66a67eeb/session_9d9ad518-890_summary.json", "sha256": "222ebe566fc922bc6333a92782a02190c266adbb71bcab27e2faeab2e7db59b2"}
       ],
+      "offline_repair": {
+        "phase": 116,
+        "policy_id": "sp003-local-crafting-table-staging-v1",
+        "status": "offline_verified",
+        "audit_path": "workspace/evals/stone_pickaxe_sp003_local_table_staging_repair.json",
+        "base_commit": "14ce593e2e830ff1a6bece11e1e7abb63d013155",
+        "strategy": "carry_the_single_table_to_machine_proven_stone_access_clear_the_existing_five_bounded_surface_blocks_then_place_once_within_terminal_craft_range",
+        "projected_table_position": {"x": 123, "y": 142, "z": -37},
+        "terminal_player_to_table_distance": 4.296874774664889,
+        "projected_action_count": 21,
+        "episode_action_limit": 32,
+        "new_live_episode_run": false,
+        "new_live_authorization": false,
+        "automatic_retry_allowed": false,
+        "counts_toward_baseline_success": false,
+        "counts_toward_capability": false,
+        "counts_toward_m4": false
+      },
       "automatic_retry_attempted": false,
       "counts_toward_baseline_success": false,
       "counts_toward_skill_gate": false,
       "counts_toward_capability": false,
       "counts_toward_m4": false,
-      "single_next_offline_fix": "phase_116_machine_proven_egress_anchor_preservation"
+      "single_next_offline_fix": "completed_by_phase_116_local_crafting_table_staging",
+      "next_gate": "commit_and_push_phase_116_then_create_one_separate_parent_bound_baseline_authorization"
     }
   ],
   "eligible_successes": [

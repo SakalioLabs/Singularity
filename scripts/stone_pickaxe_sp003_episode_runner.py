@@ -27,7 +27,6 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     SP003_GOAL,
     SP003_POLICY_PATH,
     SP003_RUNTIME_POLICY_ID,
-    StonePickaxeSP003RuntimeAgent,
     audit_sp003_initial_state,
     audit_sp003_reset,
     build_sp003_authorization,
@@ -38,6 +37,9 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     verify_sp003_authorization,
     verify_sp003_policy_identity,
     verify_sp003_runtime_episode,
+)
+from singularity.evaluation.stone_pickaxe_sp003_phase116_runtime import (
+    StonePickaxeSP003Phase116RuntimeAgent,
 )
 
 
@@ -275,7 +277,7 @@ def run_episode(args: argparse.Namespace) -> int:
     config = build_sp003_runtime_config(base_config=base_config, arm=args.arm)
     skill_store_path = REPOSITORY_ROOT / policy["skill_store"]["path"]
     skill_store_sha256_before = file_sha256(skill_store_path)
-    agent = StonePickaxeSP003RuntimeAgent(config, arm=args.arm)
+    agent = StonePickaxeSP003Phase116RuntimeAgent(config, arm=args.arm)
     connected = False
     raw_session_path = Path(agent.session_logger._log_path).resolve()
     try:
