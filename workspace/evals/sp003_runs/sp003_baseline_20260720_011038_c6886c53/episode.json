@@ -1,0 +1,4917 @@
+{
+  "type": "stone_pickaxe_sp003_empty_hand_episode",
+  "schema_version": 1,
+  "runtime_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+  "runtime_policy_sha256": "41455c715752bdb6f485e10597518e98a9bfe11920ad10b9fcff24e870a243d5",
+  "protocol_id": "stone-pickaxe-skill-fixed-v1",
+  "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+  "task_id": "SP-003",
+  "arm": "baseline",
+  "replicate_id": "baseline",
+  "sequence_position": 0,
+  "episode_id": "sp003_baseline_20260720_011038_c6886c53",
+  "session_id": "35ce4675-038",
+  "session_sha256": "77f535d5ba4d750a40bbf5ac15ea16a52f93fa06fbcff179e5ae00739d0f21b7",
+  "level_name": "sp003_baseline_20260720_011038_c6886c53_world",
+  "evidence_kind": "live_verified",
+  "authorization_path": "workspace/evals/sp003_runs/sp003_baseline_20260720_011038_c6886c53/authorization.json",
+  "authorization_sha256": "0844c34a56e15ceb8bb58f6dc8a471f57bba827d9d51d5403fb8a28d2ca9165b",
+  "authorization_preflight": {
+    "type": "stone_pickaxe_sp003_authorization_preflight",
+    "schema_version": 1,
+    "passed": true,
+    "checks": {
+      "authorization_type": true,
+      "authorization_schema": true,
+      "authorization_status": true,
+      "task_id": true,
+      "protocol_id": true,
+      "protocol_sha256": true,
+      "arm": true,
+      "replicate_id": true,
+      "sequence_position": true,
+      "episode_id": true,
+      "skill_mode": true,
+      "created_before_live": true,
+      "single_episode": true,
+      "no_retry": true,
+      "no_batch": true,
+      "no_support_rerun": true,
+      "sp003_only": true,
+      "bm012_terminal_disabled": true,
+      "no_capability_credit": true,
+      "no_m4_credit": true,
+      "authorization_commit_is_new": true,
+      "authorization_predecessor": true,
+      "policy_path": true,
+      "policy_sha256": true,
+      "prerequisite_exists": true,
+      "prerequisite_identity": true,
+      "prerequisite_eligible": true,
+      "authorization_fingerprint": true
+    },
+    "issues": [],
+    "authorization_id": "8c8be4b0431b6b6c18f8e2be1bfdf26d99e435e062df6421c0df23876bc703c7",
+    "arm": "baseline",
+    "replicate_id": "baseline",
+    "sequence_position": 0,
+    "episode_id": "sp003_baseline_20260720_011038_c6886c53",
+    "prerequisite_manifest": "",
+    "consumed_by_process_start": false
+  },
+  "episode_started_monotonic": 231389.218,
+  "episode_deadline_monotonic": 231689.218,
+  "episode_ended_monotonic": 231689.625,
+  "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+  "action_count": 17,
+  "action_failures": [
+    {
+      "index": 8,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 137.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    },
+    {
+      "index": 9,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 140.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch"
+    },
+    {
+      "index": 10,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 137.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    },
+    {
+      "index": 11,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 140.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch"
+    },
+    {
+      "index": 12,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 137.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    },
+    {
+      "index": 13,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121,
+          "y": 137,
+          "z": -33
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    },
+    {
+      "index": 14,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 140.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch"
+    },
+    {
+      "index": 15,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 137.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    }
+  ],
+  "raw_action_failures": [
+    {
+      "index": 8,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 137.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    },
+    {
+      "index": 9,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 140.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch"
+    },
+    {
+      "index": 10,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 137.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    },
+    {
+      "index": 11,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 140.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch"
+    },
+    {
+      "index": 12,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 137.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    },
+    {
+      "index": 13,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121,
+          "y": 137,
+          "z": -33
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    },
+    {
+      "index": 14,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 140.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch"
+    },
+    {
+      "index": 15,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 137.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    }
+  ],
+  "reconciled_action_failure_indexes": [],
+  "unreconciled_action_failures": [
+    {
+      "index": 8,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 137.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    },
+    {
+      "index": 9,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 140.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch"
+    },
+    {
+      "index": 10,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 137.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    },
+    {
+      "index": 11,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 140.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch"
+    },
+    {
+      "index": 12,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 137.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    },
+    {
+      "index": 13,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121,
+          "y": 137,
+          "z": -33
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    },
+    {
+      "index": 14,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 140.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch"
+    },
+    {
+      "index": 15,
+      "action": {
+        "type": "move_to",
+        "parameters": {
+          "x": 121.0,
+          "y": 137.0,
+          "z": -33.0
+        }
+      },
+      "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+    }
+  ],
+  "post_deadline_action_indexes": [],
+  "forbidden_interventions": [],
+  "iron_mining_action_indexes": [],
+  "unexpected_actions": [],
+  "action_type_counts": {
+    "move_to": 11,
+    "dig:oak_log": 3,
+    "craft:oak_planks": 1,
+    "craft:stick": 1,
+    "craft:crafting_table": 1
+  },
+  "distinct_log_source_ids": [
+    "oak_log:119:140:-33",
+    "oak_log:119:141:-33",
+    "oak_log:119:142:-33"
+  ],
+  "distinct_surface_clearance_source_ids": [],
+  "distinct_stone_source_ids": [],
+  "log_transition_proofs": [
+    {
+      "index": 2,
+      "source_id": "oak_log:119:142:-33",
+      "source_block": "oak_log",
+      "source_position": {
+        "x": 119.0,
+        "y": 142.0,
+        "z": -33.0
+      },
+      "raw_action_success": true,
+      "action_verified": true,
+      "block_removed": true,
+      "target_block_before": "oak_log",
+      "target_block_after": "air",
+      "pickup_observed": true,
+      "pickup_count": 1,
+      "delayed_pickup_reconciled": false
+    },
+    {
+      "index": 3,
+      "source_id": "oak_log:119:140:-33",
+      "source_block": "oak_log",
+      "source_position": {
+        "x": 119.0,
+        "y": 140.0,
+        "z": -33.0
+      },
+      "raw_action_success": true,
+      "action_verified": true,
+      "block_removed": true,
+      "target_block_before": "oak_log",
+      "target_block_after": "air",
+      "pickup_observed": true,
+      "pickup_count": 1,
+      "delayed_pickup_reconciled": false
+    },
+    {
+      "index": 4,
+      "source_id": "oak_log:119:141:-33",
+      "source_block": "oak_log",
+      "source_position": {
+        "x": 119.0,
+        "y": 141.0,
+        "z": -33.0
+      },
+      "raw_action_success": true,
+      "action_verified": true,
+      "block_removed": true,
+      "target_block_before": "oak_log",
+      "target_block_after": "air",
+      "pickup_observed": true,
+      "pickup_count": 1,
+      "delayed_pickup_reconciled": false
+    }
+  ],
+  "pending_log_pickup_proofs": [],
+  "delayed_log_pickup_reconciliation_proofs": [],
+  "surface_clearance_transition_proofs": [],
+  "stone_pickup_access_transition_proofs": [],
+  "craft_backend_proofs": [
+    {
+      "index": 5,
+      "item": "oak_planks",
+      "requested_count": 12,
+      "backend_requested_count": 12,
+      "action_verified": true,
+      "success": true,
+      "craft_attempts": 1,
+      "craft_retry_count": 0,
+      "crafting_table_found": false,
+      "crafting_table_position": {}
+    },
+    {
+      "index": 6,
+      "item": "stick",
+      "requested_count": 4,
+      "backend_requested_count": 4,
+      "action_verified": true,
+      "success": true,
+      "craft_attempts": 1,
+      "craft_retry_count": 0,
+      "crafting_table_found": false,
+      "crafting_table_position": {}
+    },
+    {
+      "index": 7,
+      "item": "crafting_table",
+      "requested_count": 1,
+      "backend_requested_count": 1,
+      "action_verified": true,
+      "success": true,
+      "craft_attempts": 1,
+      "craft_retry_count": 0,
+      "crafting_table_found": false,
+      "crafting_table_position": {}
+    }
+  ],
+  "table_placement_proofs": [],
+  "initial_observation": {
+    "position": {
+      "x": 96.5,
+      "y": 144,
+      "z": -31.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "food_saturation": 5,
+    "oxygen": null,
+    "xp_level": 0,
+    "dimension": "overworld",
+    "game_mode": "survival",
+    "selected_slot": 0,
+    "equipment": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "yaw": 3.141592653589793,
+    "pitch": 0,
+    "player_lifecycle": {
+      "type": "m4_player_lifecycle",
+      "schema_version": 1,
+      "verifier_id": "m4-player-lifecycle-verifier-v1",
+      "source": "mineflayer_events",
+      "profile": "m4-fixed-v1",
+      "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "tracker_id": "9e5897ea-3bd4-40bf-a510-1c3d114da982",
+      "episode_id": "sp003_baseline_20260720_011038_c6886c53",
+      "level_name": "sp003_baseline_20260720_011038_c6886c53_world",
+      "baseline_id": "533587558b3ea775d35b009c37e8f11aa263d76d78f18f5fa43864cb2e03698c",
+      "baseline_established": true,
+      "initial_spawn_observed": true,
+      "baseline_death_count_total": 0,
+      "baseline_respawn_count_total": 0,
+      "baseline_spawn_count_total": 1,
+      "baseline_observed_at_ms": 1784481198511,
+      "baseline_bridge_monotonic_ms": 231387703,
+      "death_count_total": 0,
+      "respawn_count_total": 0,
+      "spawn_count_total": 1,
+      "death_count": 0,
+      "respawn_count": 0,
+      "spawn_count": 0,
+      "pending_respawn_count": 0,
+      "uninterrupted": true,
+      "last_death": null,
+      "last_respawn": null
+    },
+    "inventory": {},
+    "inventory_count": 0,
+    "nearby_entities": [],
+    "time_of_day": 104,
+    "is_daytime": true,
+    "weather": "clear",
+    "nearby_blocks": [
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 143,
+          "z": -32
+        },
+        "distance": 1
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 96,
+          "y": 141,
+          "z": -32
+        },
+        "distance": 3
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 143,
+          "z": -32
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 143,
+          "z": -31
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 143,
+          "z": -32
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 144,
+          "z": -33
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 143,
+          "z": -31
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 143,
+          "z": -31
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 142,
+          "z": -32
+        },
+        "distance": 2
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 142,
+          "z": -32
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 142,
+          "z": -33
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 142,
+          "z": -31
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 142,
+          "z": -32
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 142,
+          "z": -33
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 142,
+          "z": -31
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 142,
+          "z": -33
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 142,
+          "z": -31
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 141,
+          "z": -32
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 141,
+          "z": -33
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 96,
+          "y": 141,
+          "z": -31
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 141,
+          "z": -32
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 141,
+          "z": -33
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 141,
+          "z": -31
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 141,
+          "z": -33
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 141,
+          "z": -31
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 94,
+          "y": 142,
+          "z": -31
+        },
+        "distance": 3
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 102,
+          "y": 141,
+          "z": -30
+        },
+        "distance": 7
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 111,
+          "y": 141,
+          "z": -28
+        },
+        "distance": 15.811388300841896
+      },
+      {
+        "name": "short_grass",
+        "position": {
+          "x": 120,
+          "y": 141,
+          "z": -39
+        },
+        "distance": 25.179356624028344
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 121,
+          "y": 141,
+          "z": -36
+        },
+        "distance": 25.495097567963924
+      },
+      {
+        "name": "birch_leaves",
+        "position": {
+          "x": 123,
+          "y": 144,
+          "z": -30
+        },
+        "distance": 27.073972741361768
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 124,
+          "y": 141,
+          "z": -36
+        },
+        "distance": 28.442925306655784
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 125,
+          "y": 144,
+          "z": -29
+        },
+        "distance": 29.154759474226502
+      },
+      {
+        "name": "brown_mushroom_block",
+        "position": {
+          "x": 128,
+          "y": 146,
+          "z": -22
+        },
+        "distance": 33.58571124749333
+      },
+      {
+        "name": "red_mushroom_block",
+        "position": {
+          "x": 122,
+          "y": 141,
+          "z": -10
+        },
+        "distance": 34.19064199455752
+      },
+      {
+        "name": "mushroom_stem",
+        "position": {
+          "x": 124,
+          "y": 144,
+          "z": -54
+        },
+        "distance": 35.608987629529715
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 144,
+          "z": -32
+        },
+        "distance": 2
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 94,
+          "y": 143,
+          "z": -32
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 94,
+          "y": 144,
+          "z": -31
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 143,
+          "z": -34
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 143,
+          "z": -30
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 144,
+          "z": -34
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 143,
+          "z": -32
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 144,
+          "z": -33
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 94,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 94,
+          "y": 143,
+          "z": -31
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 95,
+          "y": 143,
+          "z": -30
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 143,
+          "z": -34
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 97,
+          "y": 143,
+          "z": -30
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 143,
+          "z": -31
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 94,
+          "y": 142,
+          "z": -32
+        },
+        "distance": 2.8284271247461903
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 94,
+          "y": 144,
+          "z": -30
+        },
+        "distance": 2.8284271247461903
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 142,
+          "z": -34
+        },
+        "distance": 2.8284271247461903
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 96,
+          "y": 142,
+          "z": -30
+        },
+        "distance": 2.8284271247461903
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 142,
+          "z": -32
+        },
+        "distance": 2.8284271247461903
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 98,
+          "y": 144,
+          "z": -34
+        },
+        "distance": 2.8284271247461903
+      }
+    ],
+    "trees_found": [
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 94,
+          "y": 142,
+          "z": -31
+        },
+        "distance": 3
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 99,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 94,
+          "y": 142,
+          "z": -30
+        },
+        "distance": 3.4641016151377544
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 93,
+          "y": 142,
+          "z": -31
+        },
+        "distance": 3.7416573867739413
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 99,
+          "y": 143,
+          "z": -34
+        },
+        "distance": 3.7416573867739413
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 93,
+          "y": 142,
+          "z": -30
+        },
+        "distance": 4.123105625617661
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 100,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 4.242640687119285
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 100,
+          "y": 142,
+          "z": -32
+        },
+        "distance": 4.47213595499958
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 100,
+          "y": 142,
+          "z": -33
+        },
+        "distance": 4.58257569495584
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 100,
+          "y": 143,
+          "z": -34
+        },
+        "distance": 4.58257569495584
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 118,
+          "y": 143,
+          "z": -29
+        },
+        "distance": 22.22611077089287
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 125,
+          "y": 144,
+          "z": -29
+        },
+        "distance": 29.154759474226502
+      }
+    ],
+    "ground_block": "dark_oak_leaves",
+    "stone_pickaxe_runtime_mode": "sp003",
+    "sp003_complete_local_scan": {
+      "type": "sp003_bounded_complete_nearby_block_scan",
+      "schema_version": 1,
+      "scan_complete": true,
+      "targeted_air_visibility_complete": false,
+      "radius": 1,
+      "vertical_min_offset": -3,
+      "vertical_max_offset": 3,
+      "origin_cell": {
+        "x": 96,
+        "y": 144,
+        "z": -32
+      },
+      "origin_stable": true,
+      "post_scan_player_cell": {
+        "x": 96,
+        "y": 144,
+        "z": -32
+      },
+      "scanned_cell_count": 63,
+      "backend_path": "src/bot/bot_server.js",
+      "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+      "response_limit": 50,
+      "response_count": 27,
+      "completeness_basis": "result_count_below_frozen_backend_limit",
+      "priority_unique_name_prefix_count": 0,
+      "visibility_distance_strict_upper_bound": null,
+      "selection_trace_fingerprint": "",
+      "blocks": [
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 143,
+            "z": -32
+          },
+          "distance": 1
+        },
+        {
+          "name": "dark_oak_log",
+          "position": {
+            "x": 96,
+            "y": 141,
+            "z": -32
+          },
+          "distance": 3
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 143,
+            "z": -32
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 143,
+            "z": -33
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 143,
+            "z": -31
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 143,
+            "z": -32
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 144,
+            "z": -33
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 143,
+            "z": -31
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 143,
+            "z": -33
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 143,
+            "z": -31
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 142,
+            "z": -32
+          },
+          "distance": 2
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 142,
+            "z": -32
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 142,
+            "z": -33
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 142,
+            "z": -31
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 142,
+            "z": -32
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 142,
+            "z": -33
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 142,
+            "z": -31
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 142,
+            "z": -33
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 142,
+            "z": -31
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 141,
+            "z": -32
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 96,
+            "y": 141,
+            "z": -33
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "dark_oak_log",
+          "position": {
+            "x": 96,
+            "y": 141,
+            "z": -31
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 141,
+            "z": -32
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 141,
+            "z": -33
+          },
+          "distance": 3.3166247903554
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 95,
+            "y": 141,
+            "z": -31
+          },
+          "distance": 3.3166247903554
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 141,
+            "z": -33
+          },
+          "distance": 3.3166247903554
+        },
+        {
+          "name": "dark_oak_leaves",
+          "position": {
+            "x": 97,
+            "y": 141,
+            "z": -31
+          },
+          "distance": 3.3166247903554
+        }
+      ]
+    },
+    "sp003_stone_approach_stands": [],
+    "sp003_stone_pickup_accesses": [],
+    "sp003_stone_surface_clearances": [],
+    "flags": [],
+    "sp003_progress": {
+      "log_source_ids": [],
+      "log_source_removal_count": 0,
+      "log_item": "",
+      "pending_log_pickup_count": 0,
+      "pending_log_pickups": [],
+      "delayed_log_pickup_reconciliation_count": 0,
+      "delayed_log_pickup_reconciliations": [],
+      "plank_craft_count": 0,
+      "stick_craft_count": 0,
+      "crafting_table_craft_count": 0,
+      "crafting_table_place_count": 0,
+      "crafting_table_position": {},
+      "wooden_pickaxe_craft_count": 0,
+      "wooden_pickaxe_equip_count": 0,
+      "surface_clearance_source_ids": [],
+      "surface_clearance_removal_count": 0,
+      "stone_source_ids": [],
+      "stone_source_removal_count": 0,
+      "stone_pickaxe_craft_count": 0,
+      "iron_mining_action_count": 0,
+      "successful_mutation_count": 0,
+      "successful_mutations": []
+    },
+    "sp003_arm": "baseline",
+    "sp003_targets": [
+      {
+        "source_id": "grass_block:121:141:-36",
+        "name": "grass_block",
+        "position": {
+          "x": 121.0,
+          "y": 141.0,
+          "z": -36.0
+        },
+        "distance": 25.495098,
+        "horizontal_distance": 24.909837,
+        "stand_position": {
+          "x": 121,
+          "y": 142,
+          "z": -36
+        },
+        "navigation_only": true,
+        "canopy_egress": true
+      },
+      {
+        "source_id": "dirt:124:141:-36",
+        "name": "dirt",
+        "position": {
+          "x": 124.0,
+          "y": 141.0,
+          "z": -36.0
+        },
+        "distance": 28.442925,
+        "horizontal_distance": 27.86575,
+        "stand_position": {
+          "x": 124,
+          "y": 142,
+          "z": -36
+        },
+        "navigation_only": true,
+        "canopy_egress": true
+      }
+    ]
+  },
+  "stable_observation": {
+    "position": {
+      "x": 122.4920028855422,
+      "y": 142,
+      "z": -34.5
+    },
+    "health": 20,
+    "hunger": 20,
+    "food_saturation": 5,
+    "oxygen": 312,
+    "xp_level": 0,
+    "dimension": "overworld",
+    "game_mode": "survival",
+    "selected_slot": 0,
+    "equipment": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "yaw": -0.01832595714574392,
+    "pitch": 0,
+    "player_lifecycle": {
+      "type": "m4_player_lifecycle",
+      "schema_version": 1,
+      "verifier_id": "m4-player-lifecycle-verifier-v1",
+      "source": "mineflayer_events",
+      "profile": "m4-fixed-v1",
+      "protocol_sha256": "378689bc96d28580b2debcccb12efb4f955de38dd031e681ace529d4f75d157d",
+      "tracker_id": "9e5897ea-3bd4-40bf-a510-1c3d114da982",
+      "episode_id": "sp003_baseline_20260720_011038_c6886c53",
+      "level_name": "sp003_baseline_20260720_011038_c6886c53_world",
+      "baseline_id": "533587558b3ea775d35b009c37e8f11aa263d76d78f18f5fa43864cb2e03698c",
+      "baseline_established": true,
+      "initial_spawn_observed": true,
+      "baseline_death_count_total": 0,
+      "baseline_respawn_count_total": 0,
+      "baseline_spawn_count_total": 1,
+      "baseline_observed_at_ms": 1784481198511,
+      "baseline_bridge_monotonic_ms": 231387703,
+      "death_count_total": 0,
+      "respawn_count_total": 0,
+      "spawn_count_total": 1,
+      "death_count": 0,
+      "respawn_count": 0,
+      "spawn_count": 0,
+      "pending_respawn_count": 0,
+      "uninterrupted": true,
+      "last_death": null,
+      "last_respawn": null
+    },
+    "inventory": {
+      "oak_planks": 6,
+      "stick": 4,
+      "crafting_table": 1
+    },
+    "inventory_count": 3,
+    "nearby_entities": [],
+    "time_of_day": 6104,
+    "is_daytime": true,
+    "weather": "clear",
+    "nearby_blocks": [
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 122,
+          "y": 141,
+          "z": -35
+        },
+        "distance": 1
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 121,
+          "y": 143,
+          "z": -35
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "short_grass",
+        "position": {
+          "x": 123,
+          "y": 142,
+          "z": -36
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 122,
+          "y": 140,
+          "z": -35
+        },
+        "distance": 2
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 122,
+          "y": 141,
+          "z": -36
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 123,
+          "y": 141,
+          "z": -35
+        },
+        "distance": 1.4142135623730951
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 121,
+          "y": 141,
+          "z": -36
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "short_grass",
+        "position": {
+          "x": 121,
+          "y": 141,
+          "z": -34
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 121,
+          "y": 143,
+          "z": -34
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 123,
+          "y": 141,
+          "z": -36
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 123,
+          "y": 141,
+          "z": -34
+        },
+        "distance": 1.7320508075688772
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 121,
+          "y": 140,
+          "z": -35
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 121,
+          "y": 144,
+          "z": -35
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 122,
+          "y": 140,
+          "z": -36
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 122,
+          "y": 140,
+          "z": -34
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 140,
+          "z": -35
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 121,
+          "y": 140,
+          "z": -36
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 121,
+          "y": 140,
+          "z": -34
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 121,
+          "y": 144,
+          "z": -34
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 140,
+          "z": -36
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 140,
+          "z": -34
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 122,
+          "y": 139,
+          "z": -35
+        },
+        "distance": 3
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 121,
+          "y": 139,
+          "z": -35
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 122,
+          "y": 139,
+          "z": -36
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 122,
+          "y": 139,
+          "z": -34
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 139,
+          "z": -35
+        },
+        "distance": 3.1622776601683795
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 121,
+          "y": 139,
+          "z": -36
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 121,
+          "y": 139,
+          "z": -34
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 139,
+          "z": -36
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 123,
+          "y": 139,
+          "z": -34
+        },
+        "distance": 3.3166247903554
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 119,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 3.7416573867739413
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 125,
+          "y": 143,
+          "z": -37
+        },
+        "distance": 3.7416573867739413
+      },
+      {
+        "name": "stone",
+        "position": {
+          "x": 124,
+          "y": 139,
+          "z": -37
+        },
+        "distance": 4.123105625617661
+      },
+      {
+        "name": "dark_oak_leaves",
+        "position": {
+          "x": 118,
+          "y": 144,
+          "z": -37
+        },
+        "distance": 4.898979485566356
+      },
+      {
+        "name": "birch_leaves",
+        "position": {
+          "x": 124,
+          "y": 144,
+          "z": -31
+        },
+        "distance": 4.898979485566356
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 116,
+          "y": 143,
+          "z": -38
+        },
+        "distance": 6.782329983125268
+      },
+      {
+        "name": "brown_mushroom_block",
+        "position": {
+          "x": 112,
+          "y": 140,
+          "z": -45
+        },
+        "distance": 14.2828568570857
+      },
+      {
+        "name": "mushroom_stem",
+        "position": {
+          "x": 136,
+          "y": 144,
+          "z": -40
+        },
+        "distance": 15
+      },
+      {
+        "name": "iron_ore",
+        "position": {
+          "x": 138,
+          "y": 140,
+          "z": -33
+        },
+        "distance": 16.24807680927192
+      },
+      {
+        "name": "coal_ore",
+        "position": {
+          "x": 142,
+          "y": 139,
+          "z": -42
+        },
+        "distance": 21.400934559032695
+      },
+      {
+        "name": "snow",
+        "position": {
+          "x": 141,
+          "y": 144,
+          "z": -48
+        },
+        "distance": 23.108440016582687
+      },
+      {
+        "name": "snow_block",
+        "position": {
+          "x": 141,
+          "y": 143,
+          "z": -49
+        },
+        "distance": 23.62202362203543
+      },
+      {
+        "name": "packed_ice",
+        "position": {
+          "x": 141,
+          "y": 140,
+          "z": -49
+        },
+        "distance": 23.68543856465402
+      },
+      {
+        "name": "red_mushroom_block",
+        "position": {
+          "x": 122,
+          "y": 140,
+          "z": -11
+        },
+        "distance": 24.08318915758459
+      },
+      {
+        "name": "gravel",
+        "position": {
+          "x": 148,
+          "y": 139,
+          "z": -48
+        },
+        "distance": 29.223278392404914
+      },
+      {
+        "name": "short_grass",
+        "position": {
+          "x": 124,
+          "y": 142,
+          "z": -35
+        },
+        "distance": 2
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 120,
+          "y": 143,
+          "z": -35
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 122,
+          "y": 141,
+          "z": -37
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 124,
+          "y": 141,
+          "z": -35
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 124,
+          "y": 142,
+          "z": -36
+        },
+        "distance": 2.23606797749979
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 120,
+          "y": 143,
+          "z": -34
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 121,
+          "y": 141,
+          "z": -37
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 121,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 123,
+          "y": 141,
+          "z": -37
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 124,
+          "y": 141,
+          "z": -36
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 124,
+          "y": 141,
+          "z": -34
+        },
+        "distance": 2.449489742783178
+      },
+      {
+        "name": "grass_block",
+        "position": {
+          "x": 120,
+          "y": 140,
+          "z": -35
+        },
+        "distance": 2.8284271247461903
+      },
+      {
+        "name": "oak_leaves",
+        "position": {
+          "x": 120,
+          "y": 144,
+          "z": -35
+        },
+        "distance": 2.8284271247461903
+      },
+      {
+        "name": "dirt",
+        "position": {
+          "x": 122,
+          "y": 140,
+          "z": -37
+        },
+        "distance": 2.8284271247461903
+      }
+    ],
+    "trees_found": [
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 119,
+          "y": 143,
+          "z": -33
+        },
+        "distance": 3.7416573867739413
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 125,
+          "y": 143,
+          "z": -37
+        },
+        "distance": 3.7416573867739413
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 119,
+          "y": 144,
+          "z": -33
+        },
+        "distance": 4.123105625617661
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 125,
+          "y": 144,
+          "z": -37
+        },
+        "distance": 4.123105625617661
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 119,
+          "y": 145,
+          "z": -33
+        },
+        "distance": 4.69041575982343
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 125,
+          "y": 145,
+          "z": -37
+        },
+        "distance": 4.69041575982343
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 121,
+          "y": 142,
+          "z": -30
+        },
+        "distance": 5.0990195135927845
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 121,
+          "y": 141,
+          "z": -30
+        },
+        "distance": 5.196152422706632
+      },
+      {
+        "name": "oak_log",
+        "position": {
+          "x": 121,
+          "y": 143,
+          "z": -30
+        },
+        "distance": 5.196152422706632
+      },
+      {
+        "name": "birch_log",
+        "position": {
+          "x": 125,
+          "y": 146,
+          "z": -37
+        },
+        "distance": 5.385164807134504
+      },
+      {
+        "name": "dark_oak_log",
+        "position": {
+          "x": 116,
+          "y": 143,
+          "z": -38
+        },
+        "distance": 6.782329983125268
+      }
+    ],
+    "ground_block": "grass_block",
+    "stone_pickaxe_runtime_mode": "sp003",
+    "sp003_complete_local_scan": {
+      "type": "sp003_bounded_complete_nearby_block_scan",
+      "schema_version": 1,
+      "scan_complete": true,
+      "targeted_air_visibility_complete": false,
+      "radius": 1,
+      "vertical_min_offset": -3,
+      "vertical_max_offset": 3,
+      "origin_cell": {
+        "x": 122,
+        "y": 142,
+        "z": -35
+      },
+      "origin_stable": true,
+      "post_scan_player_cell": {
+        "x": 122,
+        "y": 142,
+        "z": -35
+      },
+      "scanned_cell_count": 63,
+      "backend_path": "src/bot/bot_server.js",
+      "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+      "response_limit": 50,
+      "response_count": 30,
+      "completeness_basis": "result_count_below_frozen_backend_limit",
+      "priority_unique_name_prefix_count": 0,
+      "visibility_distance_strict_upper_bound": null,
+      "selection_trace_fingerprint": "",
+      "blocks": [
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 122,
+            "y": 141,
+            "z": -35
+          },
+          "distance": 1
+        },
+        {
+          "name": "oak_leaves",
+          "position": {
+            "x": 121,
+            "y": 143,
+            "z": -35
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "short_grass",
+          "position": {
+            "x": 123,
+            "y": 142,
+            "z": -36
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 122,
+            "y": 140,
+            "z": -35
+          },
+          "distance": 2
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 122,
+            "y": 141,
+            "z": -36
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 123,
+            "y": 141,
+            "z": -35
+          },
+          "distance": 1.4142135623730951
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 121,
+            "y": 141,
+            "z": -36
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "short_grass",
+          "position": {
+            "x": 121,
+            "y": 141,
+            "z": -34
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "oak_leaves",
+          "position": {
+            "x": 121,
+            "y": 143,
+            "z": -34
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 123,
+            "y": 141,
+            "z": -36
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 123,
+            "y": 141,
+            "z": -34
+          },
+          "distance": 1.7320508075688772
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 121,
+            "y": 140,
+            "z": -35
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "oak_leaves",
+          "position": {
+            "x": 121,
+            "y": 144,
+            "z": -35
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 122,
+            "y": 140,
+            "z": -36
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 122,
+            "y": 140,
+            "z": -34
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 140,
+            "z": -35
+          },
+          "distance": 2.23606797749979
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 121,
+            "y": 140,
+            "z": -36
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "grass_block",
+          "position": {
+            "x": 121,
+            "y": 140,
+            "z": -34
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "oak_leaves",
+          "position": {
+            "x": 121,
+            "y": 144,
+            "z": -34
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 140,
+            "z": -36
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 140,
+            "z": -34
+          },
+          "distance": 2.449489742783178
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 122,
+            "y": 139,
+            "z": -35
+          },
+          "distance": 3
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 121,
+            "y": 139,
+            "z": -35
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 122,
+            "y": 139,
+            "z": -36
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 122,
+            "y": 139,
+            "z": -34
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 139,
+            "z": -35
+          },
+          "distance": 3.1622776601683795
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 121,
+            "y": 139,
+            "z": -36
+          },
+          "distance": 3.3166247903554
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 121,
+            "y": 139,
+            "z": -34
+          },
+          "distance": 3.3166247903554
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 139,
+            "z": -36
+          },
+          "distance": 3.3166247903554
+        },
+        {
+          "name": "dirt",
+          "position": {
+            "x": 123,
+            "y": 139,
+            "z": -34
+          },
+          "distance": 3.3166247903554
+        }
+      ]
+    },
+    "sp003_stone_approach_stands": [],
+    "sp003_stone_pickup_accesses": [],
+    "sp003_stone_surface_clearances": [],
+    "flags": [
+      "sp003_wood_acquired"
+    ],
+    "sp003_progress": {
+      "log_source_ids": [
+        "oak_log:119:140:-33",
+        "oak_log:119:141:-33",
+        "oak_log:119:142:-33"
+      ],
+      "log_source_removal_count": 3,
+      "log_item": "oak_log",
+      "pending_log_pickup_count": 0,
+      "pending_log_pickups": [],
+      "delayed_log_pickup_reconciliation_count": 0,
+      "delayed_log_pickup_reconciliations": [],
+      "plank_craft_count": 1,
+      "stick_craft_count": 1,
+      "crafting_table_craft_count": 1,
+      "crafting_table_place_count": 0,
+      "crafting_table_position": {},
+      "wooden_pickaxe_craft_count": 0,
+      "wooden_pickaxe_equip_count": 0,
+      "surface_clearance_source_ids": [],
+      "surface_clearance_removal_count": 0,
+      "stone_source_ids": [],
+      "stone_source_removal_count": 0,
+      "stone_pickaxe_craft_count": 0,
+      "iron_mining_action_count": 0,
+      "successful_mutation_count": 6,
+      "successful_mutations": [
+        {
+          "type": "dig",
+          "item": "",
+          "block": "oak_log",
+          "source_id": "oak_log:119:142:-33"
+        },
+        {
+          "type": "dig",
+          "item": "",
+          "block": "oak_log",
+          "source_id": "oak_log:119:140:-33"
+        },
+        {
+          "type": "dig",
+          "item": "",
+          "block": "oak_log",
+          "source_id": "oak_log:119:141:-33"
+        },
+        {
+          "type": "craft",
+          "item": "oak_planks",
+          "block": ""
+        },
+        {
+          "type": "craft",
+          "item": "stick",
+          "block": ""
+        },
+        {
+          "type": "craft",
+          "item": "crafting_table",
+          "block": ""
+        }
+      ]
+    },
+    "sp003_arm": "baseline",
+    "sp003_targets": [
+      {
+        "source_id": "stone:124:139:-37",
+        "name": "stone",
+        "position": {
+          "x": 124.0,
+          "y": 139.0,
+          "z": -37.0
+        },
+        "distance": 4.123106,
+        "vertical_delta": -3.0,
+        "horizontal_distance": 2.919598,
+        "navigation_only": true,
+        "stone_clearance_probe": true
+      }
+    ],
+    "sp003_table_staging": {
+      "type": "sp003_table_staging_state",
+      "schema_version": 1,
+      "policy_id": "sp003-local-crafting-table-staging-v1",
+      "active": true,
+      "ready_for_table_placement": false,
+      "blocked": false,
+      "target": {
+        "source_id": "stone:124:139:-37",
+        "name": "stone",
+        "position": {
+          "x": 124.0,
+          "y": 139.0,
+          "z": -37.0
+        },
+        "distance": 4.123106,
+        "vertical_delta": -3.0,
+        "horizontal_distance": 2.919598,
+        "navigation_only": true,
+        "stone_clearance_probe": true
+      },
+      "target_mode": "navigation"
+    }
+  },
+  "initial_state_audit": {
+    "type": "stone_pickaxe_sp003_initial_state_audit",
+    "schema_version": 1,
+    "passed": true,
+    "checks": {
+      "inventory_exact_empty": true,
+      "survival_mode": true,
+      "health_positive": true,
+      "finite_position": true,
+      "safe_ground": true,
+      "observed_log_source": true,
+      "no_crafting_table": true,
+      "no_stone_pickaxe": true,
+      "no_wooden_pickaxe": true,
+      "no_cobblestone": true
+    },
+    "issues": [],
+    "inventory": {},
+    "observed_log_source_count": 5,
+    "nearest_log_source": {
+      "source_id": "dark_oak_log:94:142:-31",
+      "name": "dark_oak_log",
+      "position": {
+        "x": 94.0,
+        "y": 142.0,
+        "z": -31.0
+      },
+      "distance": 3.0
+    },
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "reset_audit": {
+    "type": "stone_pickaxe_sp003_reset_audit",
+    "schema_version": 1,
+    "passed": true,
+    "policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+    "checks": {
+      "protocol_status_success": true,
+      "protocol_configured": true,
+      "protocol_profile": true,
+      "protocol_errors": true,
+      "episode_id": true,
+      "level_name": true,
+      "world_seed": true,
+      "minecraft_version": true,
+      "server_jar": true,
+      "reset_success": true,
+      "reset_task": true,
+      "reset_contract": true,
+      "expected_empty_inventory": true,
+      "observed_empty_inventory": true,
+      "no_fixture_blocks": true,
+      "survival": true,
+      "difficulty": true,
+      "daylight_start": true,
+      "lifecycle_baseline": true
+    },
+    "issues": [],
+    "reset_task_id": "BM-012",
+    "reset_only": true,
+    "bm012_terminal_started": false,
+    "granted_items": [],
+    "counts_toward_bm012": false,
+    "counts_toward_m4": false
+  },
+  "planner_request_controls": {
+    "type": "stone_pickaxe_planner_request_controls_audit",
+    "schema_version": 1,
+    "passed": false,
+    "protocol_id": "stone-pickaxe-skill-fixed-v1",
+    "call_count": 18,
+    "expected_extra_body": {
+      "thinking": {
+        "type": "disabled"
+      }
+    },
+    "expected_finish_reason": "stop",
+    "reasoning_content_max_bytes": 0,
+    "calls": [
+      {
+        "call_id": "llm-37dbd56f3cc64bf1",
+        "call_index": 0,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "35b592b2999e206344573afa87425bb9da24093efd85a478bccdb33b4e1fdeca",
+        "request_sha256": "ddb732b86a8679495223190128246c5b834437841935d5c5742d827eb9ed86d7"
+      },
+      {
+        "call_id": "llm-fc3eb925c02f446e",
+        "call_index": 1,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "4baaf3c7dc451d90ed974cbd5cc578d6a6e077e9a7334d7a99e6900bba87837f",
+        "request_sha256": "9466e59c990166345b8b69016237a19b3a0a5ae8c7d9195c666c418a35f5a72c"
+      },
+      {
+        "call_id": "llm-5fa806c458294482",
+        "call_index": 2,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "ba1b4371e28289e5ea1f6d229b980e102d17c16af1117f991b720045d5ec81fe",
+        "request_sha256": "2a05adc5fc5c3981be48ad687be275e7f406330daf613b880920a58b59056810"
+      },
+      {
+        "call_id": "llm-51dae38393254ea6",
+        "call_index": 3,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "8034ba9ea85f25075a61c45b727cd129b46c8f5777899aa40f1ab8ff5a872e8d",
+        "request_sha256": "45643d233666ab88928f051ad567102604b2d6c001076a7271096c91a3f31a43"
+      },
+      {
+        "call_id": "llm-5066e908b2524839",
+        "call_index": 4,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "363db06178ba785229f50ca2e6457989e6f0dd591d8b930903221512e2d22b63",
+        "request_sha256": "67ae0385dd1c5147596da60ff4e93c5e628f26a27c18ffc16392f577ffe1e14a"
+      },
+      {
+        "call_id": "llm-429b16693d274664",
+        "call_index": 5,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "dabe3334c2eca12903d20b465272827cc8f25299f38757a2b140d8e397641f36",
+        "request_sha256": "407978c6e99ba41fcee0130b248544a11847d072ec3b192b2b991cd321fef28a"
+      },
+      {
+        "call_id": "llm-9846937780714f61",
+        "call_index": 6,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "15ca916645cbda0ecf6aedc9c0e03ad37aae71aad531a0eea9bc101efcb7144c",
+        "request_sha256": "6bac0f893f8f3104ff30ba31779ee6dedcad4cba9956cfc83832f59d60e582eb"
+      },
+      {
+        "call_id": "llm-f7758a30d35a42a7",
+        "call_index": 7,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "f2558211ebf8b04ea68e79597a5da240c406054ec52008a310f99c20e9d1d3a8",
+        "request_sha256": "8cba369cdd2fcf1461ba5a94a58b21ea4fa42e2ec6ec01e0d15fd9c5bfe00c5f"
+      },
+      {
+        "call_id": "llm-1fcc06d635514663",
+        "call_index": 8,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "32f42e67f32f5ef75569a69e06929babed4680fa51b7b9f8e3d4542d8408555d",
+        "request_sha256": "73719a8166eaa4c7a3eec5b193fb3716acb18f00856d91b84618876280de741f"
+      },
+      {
+        "call_id": "llm-d3746ebfe01442cc",
+        "call_index": 9,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "aafbaf4c27ee1985058644e0267c963d4f12518573478b9acb6f078c4b536f83",
+        "request_sha256": "5aab6936c472871fe7c72257429ebbf9065a845195afb689a22311f04656b7db"
+      },
+      {
+        "call_id": "llm-767d64b480854904",
+        "call_index": 10,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "32f42e67f32f5ef75569a69e06929babed4680fa51b7b9f8e3d4542d8408555d",
+        "request_sha256": "73719a8166eaa4c7a3eec5b193fb3716acb18f00856d91b84618876280de741f"
+      },
+      {
+        "call_id": "llm-d248110f608c450f",
+        "call_index": 11,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "aadeffdb479e92951e2a01c1ccafa6decc637b3871df591bf6a09b4b09e6a55d",
+        "request_sha256": "5aab6936c472871fe7c72257429ebbf9065a845195afb689a22311f04656b7db"
+      },
+      {
+        "call_id": "llm-155f07a7333341ea",
+        "call_index": 12,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "89016bf42b1f1aa8f28e6d3db90feb9626be9091f7634d598197ac9a9043ed9b",
+        "request_sha256": "73719a8166eaa4c7a3eec5b193fb3716acb18f00856d91b84618876280de741f"
+      },
+      {
+        "call_id": "llm-2c765f1eade14cd6",
+        "call_index": 13,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "8b57ab06bb6f4b3f0022d68e1db7e2b101c2728f2d870ed10d263b6eecda4a54",
+        "request_sha256": "73719a8166eaa4c7a3eec5b193fb3716acb18f00856d91b84618876280de741f"
+      },
+      {
+        "call_id": "llm-bc66c3cc994e4550",
+        "call_index": 14,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "a66b6b6bfae9b0264cb51cd63f844e8b199928e52d8705488a91f5e441998199",
+        "request_sha256": "5aab6936c472871fe7c72257429ebbf9065a845195afb689a22311f04656b7db"
+      },
+      {
+        "call_id": "llm-23f8e099eb464910",
+        "call_index": 15,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "5a7ee7a27a1ab89f4e697c3c73d16434a5bfea9cb6a281031c9e5c0cc52c9520",
+        "request_sha256": "73719a8166eaa4c7a3eec5b193fb3716acb18f00856d91b84618876280de741f"
+      },
+      {
+        "call_id": "llm-94cbbfac27e94a12",
+        "call_index": 16,
+        "passed": true,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": true,
+          "schema_valid": true,
+          "nonempty_response": true,
+          "no_call_error": true,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": true,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": true,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": true,
+          "reasoning_content_bounded": true
+        },
+        "response_sha256": "eb4262b837ffa76ab0dd26b8de69202d98831b1cf7fd0035364f702fc129d631",
+        "request_sha256": "cb21fa586078b099f59aa00e5073f4460b2e6d7b2fadfef6d5dce8fd9740461f"
+      },
+      {
+        "call_id": "llm-15ecd920365f478c",
+        "call_index": 17,
+        "passed": false,
+        "checks": {
+          "protocol": true,
+          "real_llm_call": false,
+          "schema_valid": false,
+          "nonempty_response": false,
+          "no_call_error": false,
+          "deadline_policy": true,
+          "deadline_remaining_positive": true,
+          "request_timeout_positive": true,
+          "request_timeout_within_remaining": true,
+          "deadline_max_retries_zero": true,
+          "transport_single_attempt": true,
+          "transport_attempt_count": true,
+          "transport_retry_count_zero": true,
+          "transport_attempt_success": false,
+          "transport_attempt_timeout_matches_request": true,
+          "transport_sdk_retries_zero": true,
+          "transport_finish_reason": false,
+          "provider": true,
+          "base_url": true,
+          "model": true,
+          "temperature": true,
+          "max_tokens": true,
+          "response_format": true,
+          "extra_body": true,
+          "provider_timeout_positive": true,
+          "provider_timeout_matches_request": true,
+          "provider_retries_zero": true,
+          "finish_reason": false,
+          "reasoning_content_bounded": false
+        },
+        "response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "request_sha256": "d5fe225a5fa6d5f04c748e2312d499dd3f43bc585a909c8eb233579acd8a7d46"
+      }
+    ],
+    "issues": [
+      "llm-15ecd920365f478c:finish_reason",
+      "llm-15ecd920365f478c:no_call_error",
+      "llm-15ecd920365f478c:nonempty_response",
+      "llm-15ecd920365f478c:real_llm_call",
+      "llm-15ecd920365f478c:reasoning_content_bounded",
+      "llm-15ecd920365f478c:schema_valid",
+      "llm-15ecd920365f478c:transport_attempt_success",
+      "llm-15ecd920365f478c:transport_finish_reason"
+    ]
+  },
+  "selected_skills": [],
+  "skill_action_map": [],
+  "local_skill_attributions": [],
+  "components": {
+    "sp001": {
+      "type": "stone_pickaxe_microbenchmark_episode",
+      "schema_version": 1,
+      "protocol_id": "stone-pickaxe-skill-fixed-v1",
+      "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+      "task_id": "SP-001",
+      "session_id": "35ce4675-038",
+      "episode_id": "sp003_baseline_20260720_011038_c6886c53",
+      "session_sha256": "77f535d5ba4d750a40bbf5ac15ea16a52f93fa06fbcff179e5ae00739d0f21b7",
+      "level_name": "sp003_baseline_20260720_011038_c6886c53_world",
+      "evidence_kind": "live_verified",
+      "episode_started_monotonic": 231389.218,
+      "episode_deadline_monotonic": 231689.218,
+      "episode_ended_monotonic": 231389.218,
+      "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+      "action_count": 0,
+      "action_failure_count": 0,
+      "false_success_dig_count": 0,
+      "world_mutating_non_target_actions": [],
+      "initial_observation": {
+        "role": "sp003_sp001_initial",
+        "monotonic_s": 231389.218,
+        "position": {},
+        "inventory": {},
+        "health": null,
+        "hunger": null,
+        "game_mode": "",
+        "dimension": "",
+        "ground_block": "",
+        "safe": false,
+        "movable": false,
+        "observed_blocks": [],
+        "nearby_hostile_count": 0,
+        "player_lifecycle": {},
+        "observation_id": "3979e93875bed55e13d5f50f2656555b81e87ac2783e00071acfd92c84d6b288"
+      },
+      "transitions": [],
+      "terminal_observation": {},
+      "goal_result": {
+        "goal": "From empty hands, gather wood, craft and place one crafting table, craft one wooden pickaxe, mine exactly three stone, and craft one stone pickaxe",
+        "cycles": 18,
+        "completed": false,
+        "termination_reason": "max_duration",
+        "max_cycles": 40,
+        "max_duration_s": 300.0,
+        "max_actions": 32,
+        "action_count": 17,
+        "elapsed_s": 300.0,
+        "episode_started_monotonic": 231389.218,
+        "episode_ended_monotonic": 231689.218,
+        "episode_deadline_monotonic": 231689.218,
+        "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+        "deadline_eligible": false,
+        "summary": {
+          "session_id": "35ce4675-038",
+          "duration_s": 301.53,
+          "total_events": 350,
+          "action_count": 17,
+          "error_count": 0,
+          "intervention_metrics": {
+            "policy_hint_count": 0,
+            "policy_intervention_count": 0,
+            "policy_intervention_actions": 0,
+            "policy_intervention_successes": 0,
+            "policy_intervention_failures": 0,
+            "policy_intervention_success_rate": 0.0,
+            "policy_intervention_skills": [],
+            "visual_action_suggestion_event_count": 0,
+            "visual_action_suggestion_count": 0,
+            "visual_action_intervention_count": 0,
+            "visual_action_suggestion_kinds": {},
+            "visual_action_intervention_kinds": {},
+            "visual_action_intervention_phases": {},
+            "visual_action_action_types": {},
+            "visual_action_goals": [],
+            "skill_memory_hint_event_count": 0,
+            "skill_memory_hint_count": 0,
+            "skill_memory_task_families": {},
+            "skill_selected_count": 0,
+            "skill_executed_count": 0,
+            "skill_successful_action_count": 0,
+            "skill_failed_action_count": 0,
+            "skill_completion_count": 0,
+            "skill_outcome_count": 0,
+            "skill_fallback_count": 0,
+            "skill_shadow_plan_count": 0,
+            "skill_advisory_hint_count": 0,
+            "skill_candidate_extraction_count": 0,
+            "skill_attribution_confidence": 0.0,
+            "skill_ids": [],
+            "action_verification_event_count": 9,
+            "action_verification_status_counts": {
+              "accept": 9
+            },
+            "action_verification_action_types": {
+              "move_to": 3,
+              "dig": 3,
+              "craft": 3
+            },
+            "action_verification_blocked_count": 0,
+            "action_candidate_selection_event_count": 0,
+            "action_candidate_selection_repaired_reject_count": 0,
+            "action_candidate_selection_selected_types": {}
+          },
+          "visual_action_metrics": {
+            "visual_action_suggestion_event_count": 0,
+            "visual_action_suggestion_count": 0,
+            "visual_action_intervention_count": 0,
+            "visual_action_suggestion_kinds": {},
+            "visual_action_intervention_kinds": {},
+            "visual_action_intervention_phases": {},
+            "visual_action_action_types": {},
+            "visual_action_goals": []
+          },
+          "skill_memory_metrics": {
+            "skill_memory_hint_event_count": 0,
+            "skill_memory_hint_count": 0,
+            "skill_memory_task_families": {}
+          },
+          "skill_learning_metrics": {
+            "skill_selected_count": 0,
+            "skill_executed_count": 0,
+            "skill_successful_action_count": 0,
+            "skill_failed_action_count": 0,
+            "skill_completion_count": 0,
+            "skill_outcome_count": 0,
+            "skill_fallback_count": 0,
+            "skill_shadow_plan_count": 0,
+            "skill_advisory_hint_count": 0,
+            "skill_candidate_extraction_count": 0,
+            "skill_attribution_confidence": 0.0,
+            "skill_ids": []
+          },
+          "action_verification_metrics": {
+            "action_verification_event_count": 9,
+            "action_verification_status_counts": {
+              "accept": 9
+            },
+            "action_verification_action_types": {
+              "move_to": 3,
+              "dig": 3,
+              "craft": 3
+            },
+            "action_verification_blocked_count": 0
+          },
+          "action_candidate_selection_metrics": {
+            "action_candidate_selection_event_count": 0,
+            "action_candidate_selection_repaired_reject_count": 0,
+            "action_candidate_selection_selected_types": {}
+          },
+          "goal_verification_metrics": {
+            "count": 26,
+            "achieved": 0,
+            "failed": 26,
+            "unknown": 0,
+            "accepted": 0,
+            "rejected": 26,
+            "acceptance_reasons": {}
+          },
+          "plan_cache_metrics": {
+            "plan_cache_hit_count": 0,
+            "plan_cache_hybrid_hint_count": 0,
+            "plan_cache_workflow_intervention_count": 0,
+            "plan_cache_miss_count": 0,
+            "plan_cache_signature_count": 0,
+            "plan_cache_hit_rate": 0.0,
+            "plan_cache_hit_entries": {},
+            "plan_cache_hit_goals": [],
+            "plan_cache_execution_stage_counts": {
+              "hybrid": 0,
+              "deterministic": 0
+            }
+          },
+          "episode_abort_metrics": {
+            "runtime_gate_event_count": 0,
+            "requested_mode": "off",
+            "effective_mode": "off",
+            "gate_readiness": "not_configured",
+            "viability_probe_count": 0,
+            "early_abort_trigger_count": 0,
+            "active_early_abort_count": 0,
+            "shadow_would_abort_count": 0,
+            "probe_round_counts": {},
+            "average_viability_risk_score": 0.0
+          },
+          "frontier_budget_metrics": {
+            "runtime_gate_event_count": 0,
+            "requested_mode": "off",
+            "effective_mode": "off",
+            "policy": "information",
+            "allocation_event_count": 0,
+            "planner_context_event_count": 0,
+            "outcome_event_count": 0,
+            "completed_outcome_count": 0,
+            "recovery_credit_event_count": 0,
+            "recovered_rounds": 0,
+            "reallocated_rounds_consumed": 0,
+            "allocation_pool_rounds": 0,
+            "allocated_rounds": 0,
+            "budget_conservation_failure_count": 0,
+            "policy_counts": {}
+          },
+          "memory_policy_metrics": {
+            "memory_write_count": 132,
+            "memory_read_count": 17,
+            "memory_manage_count": 0,
+            "memory_write_layers": {
+              "episodic": 79,
+              "context": 53
+            },
+            "memory_write_types": {
+              "goal_start": 1,
+              "context": 53,
+              "goal_verification": 26,
+              "action_verification": 9,
+              "task_state_update": 17,
+              "action": 17,
+              "failure": 8,
+              "goal_end": 1
+            },
+            "memory_read_types": {
+              "opportunity_context": 17
+            },
+            "memory_manage_operations": {},
+            "memory_policy_decisions": {
+              "write_blocked": 132,
+              "read_allowed": 17
+            },
+            "memory_read_filter_event_count": 0,
+            "memory_read_filtered_entries": 0,
+            "memory_read_filter_reasons": {},
+            "memory_retrieval_trace_event_count": 0,
+            "weighted_memory_read_count": 0,
+            "weighted_memory_match_count": 0,
+            "weighted_transfer_match_count": 0,
+            "memory_attribution_policy_counts": {}
+          },
+          "log_path": "workspace/evals/sp003_runs/sp003_baseline_20260720_011038_c6886c53\\session_35ce4675-038.jsonl"
+        }
+      },
+      "eligibility": {
+        "passed": false,
+        "protocol_match": true,
+        "planner_request_controls": false,
+        "reset_clean": true,
+        "no_forbidden_intervention": true,
+        "no_post_deadline_action": true
+      },
+      "reset_contamination": false,
+      "post_deadline_action_count": 0,
+      "forbidden_interventions": [],
+      "selected_skills": [],
+      "counts_toward_capability": false,
+      "counts_toward_m4": false
+    },
+    "sp002": {
+      "type": "stone_pickaxe_microbenchmark_episode",
+      "schema_version": 1,
+      "protocol_id": "stone-pickaxe-skill-fixed-v1",
+      "protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+      "task_id": "SP-002",
+      "session_id": "35ce4675-038",
+      "episode_id": "sp003_baseline_20260720_011038_c6886c53",
+      "session_sha256": "77f535d5ba4d750a40bbf5ac15ea16a52f93fa06fbcff179e5ae00739d0f21b7",
+      "level_name": "sp003_baseline_20260720_011038_c6886c53_world",
+      "evidence_kind": "live_verified",
+      "episode_started_monotonic": 231389.218,
+      "episode_deadline_monotonic": 231689.218,
+      "episode_ended_monotonic": 231689.625,
+      "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+      "action_count": 0,
+      "action_failure_count": 0,
+      "world_mutating_non_target_actions": [],
+      "initial_observation": {},
+      "transitions": [],
+      "terminal_observation": {},
+      "goal_result": {
+        "goal": "From empty hands, gather wood, craft and place one crafting table, craft one wooden pickaxe, mine exactly three stone, and craft one stone pickaxe",
+        "cycles": 18,
+        "completed": false,
+        "termination_reason": "max_duration",
+        "max_cycles": 40,
+        "max_duration_s": 300.0,
+        "max_actions": 32,
+        "action_count": 17,
+        "elapsed_s": 300.0,
+        "episode_started_monotonic": 231389.218,
+        "episode_ended_monotonic": 231689.218,
+        "episode_deadline_monotonic": 231689.218,
+        "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+        "deadline_eligible": false,
+        "summary": {
+          "session_id": "35ce4675-038",
+          "duration_s": 301.53,
+          "total_events": 350,
+          "action_count": 17,
+          "error_count": 0,
+          "intervention_metrics": {
+            "policy_hint_count": 0,
+            "policy_intervention_count": 0,
+            "policy_intervention_actions": 0,
+            "policy_intervention_successes": 0,
+            "policy_intervention_failures": 0,
+            "policy_intervention_success_rate": 0.0,
+            "policy_intervention_skills": [],
+            "visual_action_suggestion_event_count": 0,
+            "visual_action_suggestion_count": 0,
+            "visual_action_intervention_count": 0,
+            "visual_action_suggestion_kinds": {},
+            "visual_action_intervention_kinds": {},
+            "visual_action_intervention_phases": {},
+            "visual_action_action_types": {},
+            "visual_action_goals": [],
+            "skill_memory_hint_event_count": 0,
+            "skill_memory_hint_count": 0,
+            "skill_memory_task_families": {},
+            "skill_selected_count": 0,
+            "skill_executed_count": 0,
+            "skill_successful_action_count": 0,
+            "skill_failed_action_count": 0,
+            "skill_completion_count": 0,
+            "skill_outcome_count": 0,
+            "skill_fallback_count": 0,
+            "skill_shadow_plan_count": 0,
+            "skill_advisory_hint_count": 0,
+            "skill_candidate_extraction_count": 0,
+            "skill_attribution_confidence": 0.0,
+            "skill_ids": [],
+            "action_verification_event_count": 9,
+            "action_verification_status_counts": {
+              "accept": 9
+            },
+            "action_verification_action_types": {
+              "move_to": 3,
+              "dig": 3,
+              "craft": 3
+            },
+            "action_verification_blocked_count": 0,
+            "action_candidate_selection_event_count": 0,
+            "action_candidate_selection_repaired_reject_count": 0,
+            "action_candidate_selection_selected_types": {}
+          },
+          "visual_action_metrics": {
+            "visual_action_suggestion_event_count": 0,
+            "visual_action_suggestion_count": 0,
+            "visual_action_intervention_count": 0,
+            "visual_action_suggestion_kinds": {},
+            "visual_action_intervention_kinds": {},
+            "visual_action_intervention_phases": {},
+            "visual_action_action_types": {},
+            "visual_action_goals": []
+          },
+          "skill_memory_metrics": {
+            "skill_memory_hint_event_count": 0,
+            "skill_memory_hint_count": 0,
+            "skill_memory_task_families": {}
+          },
+          "skill_learning_metrics": {
+            "skill_selected_count": 0,
+            "skill_executed_count": 0,
+            "skill_successful_action_count": 0,
+            "skill_failed_action_count": 0,
+            "skill_completion_count": 0,
+            "skill_outcome_count": 0,
+            "skill_fallback_count": 0,
+            "skill_shadow_plan_count": 0,
+            "skill_advisory_hint_count": 0,
+            "skill_candidate_extraction_count": 0,
+            "skill_attribution_confidence": 0.0,
+            "skill_ids": []
+          },
+          "action_verification_metrics": {
+            "action_verification_event_count": 9,
+            "action_verification_status_counts": {
+              "accept": 9
+            },
+            "action_verification_action_types": {
+              "move_to": 3,
+              "dig": 3,
+              "craft": 3
+            },
+            "action_verification_blocked_count": 0
+          },
+          "action_candidate_selection_metrics": {
+            "action_candidate_selection_event_count": 0,
+            "action_candidate_selection_repaired_reject_count": 0,
+            "action_candidate_selection_selected_types": {}
+          },
+          "goal_verification_metrics": {
+            "count": 26,
+            "achieved": 0,
+            "failed": 26,
+            "unknown": 0,
+            "accepted": 0,
+            "rejected": 26,
+            "acceptance_reasons": {}
+          },
+          "plan_cache_metrics": {
+            "plan_cache_hit_count": 0,
+            "plan_cache_hybrid_hint_count": 0,
+            "plan_cache_workflow_intervention_count": 0,
+            "plan_cache_miss_count": 0,
+            "plan_cache_signature_count": 0,
+            "plan_cache_hit_rate": 0.0,
+            "plan_cache_hit_entries": {},
+            "plan_cache_hit_goals": [],
+            "plan_cache_execution_stage_counts": {
+              "hybrid": 0,
+              "deterministic": 0
+            }
+          },
+          "episode_abort_metrics": {
+            "runtime_gate_event_count": 0,
+            "requested_mode": "off",
+            "effective_mode": "off",
+            "gate_readiness": "not_configured",
+            "viability_probe_count": 0,
+            "early_abort_trigger_count": 0,
+            "active_early_abort_count": 0,
+            "shadow_would_abort_count": 0,
+            "probe_round_counts": {},
+            "average_viability_risk_score": 0.0
+          },
+          "frontier_budget_metrics": {
+            "runtime_gate_event_count": 0,
+            "requested_mode": "off",
+            "effective_mode": "off",
+            "policy": "information",
+            "allocation_event_count": 0,
+            "planner_context_event_count": 0,
+            "outcome_event_count": 0,
+            "completed_outcome_count": 0,
+            "recovery_credit_event_count": 0,
+            "recovered_rounds": 0,
+            "reallocated_rounds_consumed": 0,
+            "allocation_pool_rounds": 0,
+            "allocated_rounds": 0,
+            "budget_conservation_failure_count": 0,
+            "policy_counts": {}
+          },
+          "memory_policy_metrics": {
+            "memory_write_count": 132,
+            "memory_read_count": 17,
+            "memory_manage_count": 0,
+            "memory_write_layers": {
+              "episodic": 79,
+              "context": 53
+            },
+            "memory_write_types": {
+              "goal_start": 1,
+              "context": 53,
+              "goal_verification": 26,
+              "action_verification": 9,
+              "task_state_update": 17,
+              "action": 17,
+              "failure": 8,
+              "goal_end": 1
+            },
+            "memory_read_types": {
+              "opportunity_context": 17
+            },
+            "memory_manage_operations": {},
+            "memory_policy_decisions": {
+              "write_blocked": 132,
+              "read_allowed": 17
+            },
+            "memory_read_filter_event_count": 0,
+            "memory_read_filtered_entries": 0,
+            "memory_read_filter_reasons": {},
+            "memory_retrieval_trace_event_count": 0,
+            "weighted_memory_read_count": 0,
+            "weighted_memory_match_count": 0,
+            "weighted_transfer_match_count": 0,
+            "memory_attribution_policy_counts": {}
+          },
+          "log_path": "workspace/evals/sp003_runs/sp003_baseline_20260720_011038_c6886c53\\session_35ce4675-038.jsonl"
+        }
+      },
+      "eligibility": {
+        "passed": false,
+        "protocol_match": true,
+        "planner_request_controls": false,
+        "reset_clean": true,
+        "no_forbidden_intervention": true,
+        "no_post_deadline_action": true,
+        "backend_single_craft_attempt": false
+      },
+      "reset_contamination": false,
+      "post_deadline_action_count": 0,
+      "forbidden_interventions": [],
+      "selected_skills": [],
+      "counts_toward_capability": false,
+      "counts_toward_m4": false
+    }
+  },
+  "task_graph": {
+    "task_count": 5,
+    "tasks": [
+      {
+        "id": "0df1cdcb",
+        "title": "Acquire exactly three logs from empty hands",
+        "type": "gather",
+        "parent_id": null,
+        "status": "completed",
+        "priority": 1,
+        "preconditions": {},
+        "success_criteria": {
+          "flags": [
+            "sp003_wood_acquired"
+          ]
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784481206.6798747,
+        "updated_at": 1784481244.3609552,
+        "attempts": 0,
+        "observations": [
+          {
+            "action": {
+              "type": "move_to",
+              "parameters": {
+                "x": 121,
+                "y": 142,
+                "z": -36,
+                "preserve_inventory": true
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "move_to"
+          },
+          {
+            "action": {
+              "type": "dig",
+              "parameters": {
+                "block": "oak_log",
+                "x": 119,
+                "y": 142,
+                "z": -33,
+                "source_id": "oak_log:119:142:-33"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "dig"
+          },
+          {
+            "action": {
+              "type": "dig",
+              "parameters": {
+                "block": "oak_log",
+                "x": 119,
+                "y": 140,
+                "z": -33,
+                "source_id": "oak_log:119:140:-33"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "dig"
+          },
+          {
+            "action": {
+              "type": "dig",
+              "parameters": {
+                "block": "oak_log",
+                "x": 119,
+                "y": 141,
+                "z": -33,
+                "source_id": "oak_log:119:141:-33"
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "dig"
+          }
+        ],
+        "blockers": [],
+        "result": {
+          "completed_by": "action_result",
+          "action": {
+            "type": "dig",
+            "parameters": {
+              "block": "oak_log",
+              "x": 119,
+              "y": 141,
+              "z": -33,
+              "source_id": "oak_log:119:141:-33"
+            }
+          },
+          "result": {
+            "success": true,
+            "block": "oak_log",
+            "expected_drops": [
+              "oak_log"
+            ],
+            "target": {
+              "x": 119,
+              "y": 141,
+              "z": -33
+            },
+            "block_removed": true,
+            "target_block_before": {
+              "name": "oak_log",
+              "type": 46,
+              "position": {
+                "x": 119,
+                "y": 141,
+                "z": -33
+              }
+            },
+            "target_block_after": {
+              "name": "air",
+              "type": 0,
+              "position": {
+                "x": 119,
+                "y": 141,
+                "z": -33
+              }
+            },
+            "pickup_observed": true,
+            "pickup_inventory_delta": {
+              "oak_log": 1
+            },
+            "pickup_waited_ms": 400,
+            "pickup_collection": {
+              "detected": false,
+              "attempted": false
+            },
+            "dig_tool_equip": {
+              "schema_version": 1,
+              "policy": "m4-dig-required-tool-equip-v1",
+              "required": false,
+              "block": "oak_log",
+              "metadata_valid": true,
+              "harvest_tool_item_types": [],
+              "compatible_inventory_tools": [],
+              "selected_tool": null,
+              "selected_tool_type": null,
+              "equipped_tool": null,
+              "equipped_tool_type": null,
+              "equip_attempted": false,
+              "equip_confirmed": null,
+              "mutation_allowed": true,
+              "passed": true
+            },
+            "dig_postcondition": {
+              "schema_version": 1,
+              "policy": "m4-expected-drop-pickup-postcondition-v1",
+              "required": true,
+              "block_removed": true,
+              "expected_drop_required": true,
+              "expected_drop_observed": true,
+              "passed": true
+            },
+            "action_started_monotonic": 231429.281,
+            "action_finished_monotonic": 231433.468,
+            "duration_ms": 4187,
+            "action_type": "dig",
+            "backend": "mineflayer",
+            "backend_command": "dig",
+            "backend_params": {
+              "block": "oak_log",
+              "x": 119,
+              "y": 141,
+              "z": -33,
+              "source_id": "oak_log:119:141:-33",
+              "timeout_ms": 60000
+            },
+            "control_policy": {
+              "action_type": "dig",
+              "backend": "mineflayer",
+              "preferred_backend": "mineflayer",
+              "preferred_control": "mineflayer_api_ok",
+              "reason": "default_backend"
+            },
+            "action_budget_s": 60.0,
+            "action_deadline_monotonic": 231489.281,
+            "accepted_within_episode_deadline": true,
+            "accepted_within_action_deadline": true,
+            "action_verification": {
+              "action_type": "dig",
+              "status": "accept",
+              "score": 0.9,
+              "reason": "available tool can mine oak_log",
+              "evidence": [
+                "observed:oak_log"
+              ]
+            }
+          },
+          "world_state": {
+            "inventory": {
+              "oak_log": 3
+            },
+            "health": 20,
+            "position": {
+              "x": 118.47846342780504,
+              "y": 140,
+              "z": -31.5
+            },
+            "time_of_day": 984
+          }
+        },
+        "children": [],
+        "depends_on": [],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "acquire_wood",
+        "root_plan_id": "root-6d655abcdcfc4100",
+        "planner_call_id": "llm-37dbd56f3cc64bf1",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "0df1cdcb",
+            "task_title": "Acquire exactly three logs from empty hands",
+            "plan_node_id": "acquire_wood",
+            "root_plan_id": "root-6d655abcdcfc4100",
+            "planner_call_id": "llm-37dbd56f3cc64bf1",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784481206.6798747
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "0df1cdcb",
+            "task_title": "Acquire exactly three logs from empty hands",
+            "plan_node_id": "acquire_wood",
+            "root_plan_id": "root-6d655abcdcfc4100",
+            "planner_call_id": "llm-37dbd56f3cc64bf1",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784481206.6835492
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "0df1cdcb",
+            "task_title": "Acquire exactly three logs from empty hands",
+            "plan_node_id": "acquire_wood",
+            "root_plan_id": "root-6d655abcdcfc4100",
+            "planner_call_id": "llm-37dbd56f3cc64bf1",
+            "from_status": "accepted",
+            "to_status": "active",
+            "reason": "action_started",
+            "timestamp": 1784481216.2062085
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "0df1cdcb",
+            "task_title": "Acquire exactly three logs from empty hands",
+            "plan_node_id": "acquire_wood",
+            "root_plan_id": "root-6d655abcdcfc4100",
+            "planner_call_id": "llm-37dbd56f3cc64bf1",
+            "from_status": "active",
+            "to_status": "completed",
+            "reason": "success_criteria_satisfied",
+            "timestamp": 1784481244.3609552
+          }
+        ],
+        "metadata": {}
+      },
+      {
+        "id": "1351b081",
+        "title": "Craft exactly one wooden pickaxe",
+        "type": "craft",
+        "parent_id": null,
+        "status": "accepted",
+        "priority": 1,
+        "preconditions": {
+          "nearby_block_present": "crafting_table"
+        },
+        "success_criteria": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784481206.6798747,
+        "updated_at": 1784481206.6835492,
+        "attempts": 0,
+        "observations": [],
+        "blockers": [],
+        "result": null,
+        "children": [],
+        "depends_on": [
+          "ca684f69"
+        ],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "craft_wooden_pickaxe",
+        "root_plan_id": "root-6d655abcdcfc4100",
+        "planner_call_id": "llm-37dbd56f3cc64bf1",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "1351b081",
+            "task_title": "Craft exactly one wooden pickaxe",
+            "plan_node_id": "craft_wooden_pickaxe",
+            "root_plan_id": "root-6d655abcdcfc4100",
+            "planner_call_id": "llm-37dbd56f3cc64bf1",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784481206.6798747
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "1351b081",
+            "task_title": "Craft exactly one wooden pickaxe",
+            "plan_node_id": "craft_wooden_pickaxe",
+            "root_plan_id": "root-6d655abcdcfc4100",
+            "planner_call_id": "llm-37dbd56f3cc64bf1",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784481206.6835492
+          }
+        ],
+        "metadata": {}
+      },
+      {
+        "id": "64f286b4",
+        "title": "Mine exactly three stone blocks for cobblestone",
+        "type": "gather",
+        "parent_id": null,
+        "status": "accepted",
+        "priority": 1,
+        "preconditions": {
+          "inventory": {
+            "wooden_pickaxe": 1
+          }
+        },
+        "success_criteria": {
+          "inventory": {
+            "cobblestone": 3
+          }
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784481206.6798747,
+        "updated_at": 1784481206.6835492,
+        "attempts": 0,
+        "observations": [],
+        "blockers": [],
+        "result": null,
+        "children": [],
+        "depends_on": [
+          "1351b081"
+        ],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "acquire_cobblestone",
+        "root_plan_id": "root-6d655abcdcfc4100",
+        "planner_call_id": "llm-37dbd56f3cc64bf1",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "64f286b4",
+            "task_title": "Mine exactly three stone blocks for cobblestone",
+            "plan_node_id": "acquire_cobblestone",
+            "root_plan_id": "root-6d655abcdcfc4100",
+            "planner_call_id": "llm-37dbd56f3cc64bf1",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784481206.6798747
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "64f286b4",
+            "task_title": "Mine exactly three stone blocks for cobblestone",
+            "plan_node_id": "acquire_cobblestone",
+            "root_plan_id": "root-6d655abcdcfc4100",
+            "planner_call_id": "llm-37dbd56f3cc64bf1",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784481206.6835492
+          }
+        ],
+        "metadata": {}
+      },
+      {
+        "id": "a9fecfcd",
+        "title": "Craft exactly one stone pickaxe",
+        "type": "craft",
+        "parent_id": null,
+        "status": "accepted",
+        "priority": 1,
+        "preconditions": {
+          "inventory": {
+            "cobblestone": 3,
+            "stick": 2
+          },
+          "nearby_block_present": "crafting_table"
+        },
+        "success_criteria": {
+          "inventory": {
+            "stone_pickaxe": 1
+          }
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784481206.6798747,
+        "updated_at": 1784481206.6835492,
+        "attempts": 0,
+        "observations": [],
+        "blockers": [],
+        "result": null,
+        "children": [],
+        "depends_on": [
+          "64f286b4"
+        ],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "craft_stone_pickaxe",
+        "root_plan_id": "root-6d655abcdcfc4100",
+        "planner_call_id": "llm-37dbd56f3cc64bf1",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "a9fecfcd",
+            "task_title": "Craft exactly one stone pickaxe",
+            "plan_node_id": "craft_stone_pickaxe",
+            "root_plan_id": "root-6d655abcdcfc4100",
+            "planner_call_id": "llm-37dbd56f3cc64bf1",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784481206.6798747
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "a9fecfcd",
+            "task_title": "Craft exactly one stone pickaxe",
+            "plan_node_id": "craft_stone_pickaxe",
+            "root_plan_id": "root-6d655abcdcfc4100",
+            "planner_call_id": "llm-37dbd56f3cc64bf1",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784481206.6835492
+          }
+        ],
+        "metadata": {}
+      },
+      {
+        "id": "ca684f69",
+        "title": "Craft and place exactly one crafting table",
+        "type": "craft",
+        "parent_id": null,
+        "status": "active",
+        "priority": 1,
+        "preconditions": {
+          "flags": [
+            "sp003_wood_acquired"
+          ]
+        },
+        "success_criteria": {
+          "nearby_block_present": "crafting_table"
+        },
+        "failure_criteria": {},
+        "assigned_skill": null,
+        "created_at": 1784481206.6798747,
+        "updated_at": 1784481499.0314255,
+        "attempts": 8,
+        "observations": [
+          {
+            "action": {
+              "type": "craft",
+              "parameters": {
+                "item": "oak_planks",
+                "count": 12
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "craft"
+          },
+          {
+            "action": {
+              "type": "craft",
+              "parameters": {
+                "item": "stick",
+                "count": 4
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "craft"
+          },
+          {
+            "action": {
+              "type": "craft",
+              "parameters": {
+                "item": "crafting_table",
+                "count": 1
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "craft"
+          },
+          {
+            "action": {
+              "type": "move_to",
+              "parameters": {
+                "x": 121.0,
+                "y": 137.0,
+                "z": -33.0
+              }
+            },
+            "success": false,
+            "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz",
+            "action_type": "move_to"
+          },
+          {
+            "action": {
+              "type": "move_to",
+              "parameters": {
+                "x": 121.0,
+                "y": 140.0,
+                "z": -33.0
+              }
+            },
+            "success": false,
+            "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch",
+            "action_type": "move_to"
+          },
+          {
+            "action": {
+              "type": "move_to",
+              "parameters": {
+                "x": 121.0,
+                "y": 137.0,
+                "z": -33.0
+              }
+            },
+            "success": false,
+            "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz",
+            "action_type": "move_to"
+          },
+          {
+            "action": {
+              "type": "move_to",
+              "parameters": {
+                "x": 121.0,
+                "y": 140.0,
+                "z": -33.0
+              }
+            },
+            "success": false,
+            "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch",
+            "action_type": "move_to"
+          },
+          {
+            "action": {
+              "type": "move_to",
+              "parameters": {
+                "x": 121.0,
+                "y": 137.0,
+                "z": -33.0
+              }
+            },
+            "success": false,
+            "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz",
+            "action_type": "move_to"
+          },
+          {
+            "action": {
+              "type": "move_to",
+              "parameters": {
+                "x": 121,
+                "y": 137,
+                "z": -33
+              }
+            },
+            "success": false,
+            "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz",
+            "action_type": "move_to"
+          },
+          {
+            "action": {
+              "type": "move_to",
+              "parameters": {
+                "x": 121.0,
+                "y": 140.0,
+                "z": -33.0
+              }
+            },
+            "success": false,
+            "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch",
+            "action_type": "move_to"
+          },
+          {
+            "action": {
+              "type": "move_to",
+              "parameters": {
+                "x": 121.0,
+                "y": 137.0,
+                "z": -33.0
+              }
+            },
+            "success": false,
+            "error": "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz",
+            "action_type": "move_to"
+          },
+          {
+            "action": {
+              "type": "move_to",
+              "parameters": {
+                "x": 121.5,
+                "z": -32.5,
+                "tolerance": 1.6,
+                "preserve_inventory": true
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "move_to"
+          },
+          {
+            "action": {
+              "type": "move_to",
+              "parameters": {
+                "x": 122.5,
+                "z": -35.5,
+                "tolerance": 1.6,
+                "preserve_inventory": true
+              }
+            },
+            "success": true,
+            "error": null,
+            "action_type": "move_to"
+          }
+        ],
+        "blockers": [
+          "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz",
+          "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch",
+          "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz",
+          "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch",
+          "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz",
+          "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz",
+          "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz; sp003_table_staging_navigation_target_mismatch",
+          "SP-003 action guard rejected: sp003_table_staging_move_requires_exact_xz"
+        ],
+        "result": {
+          "last_action": {
+            "type": "move_to",
+            "parameters": {
+              "x": 122.5,
+              "z": -35.5,
+              "tolerance": 1.6,
+              "preserve_inventory": true
+            }
+          },
+          "last_result": {
+            "success": true,
+            "reached": true,
+            "position": {
+              "x": 122.4920028855422,
+              "y": 142.02442408821366,
+              "z": -34.5
+            },
+            "target": {
+              "x": 122.5,
+              "y": 141,
+              "z": -35.5
+            },
+            "distance_to_target": 1.00003197640858,
+            "tolerance": 1.6,
+            "action_started_monotonic": 231686.671,
+            "action_finished_monotonic": 231688.078,
+            "duration_ms": 1407,
+            "action_type": "move_to",
+            "backend": "mineflayer",
+            "backend_command": "move_to",
+            "backend_params": {
+              "x": 122.5,
+              "z": -35.5,
+              "tolerance": 1.6,
+              "preserve_inventory": true,
+              "timeout_ms": 2546
+            },
+            "control_policy": {
+              "action_type": "move_to",
+              "backend": "mineflayer",
+              "preferred_backend": "mineflayer",
+              "preferred_control": "mineflayer_api_ok",
+              "reason": "default_backend"
+            },
+            "action_budget_s": 2.547,
+            "action_deadline_monotonic": 231689.218,
+            "accepted_within_episode_deadline": true,
+            "accepted_within_action_deadline": true,
+            "navigation_reached": true,
+            "requires_replan": false,
+            "action_verification": {
+              "action_type": "move_to",
+              "status": "accept",
+              "score": 0.9,
+              "reason": "navigation or low-impact action"
+            },
+            "inventory_preservation": {
+              "policy_id": "sp003-runtime-preload-v2",
+              "preload_module": "src/bot/sp003_inventory_preserving_navigation.js",
+              "requested": true,
+              "post_observation_complete": true,
+              "world_mutation_allowed": false,
+              "can_dig": false,
+              "can_place_scaffolding": false,
+              "inventory_before": {
+                "oak_planks": 6,
+                "stick": 4,
+                "crafting_table": 1
+              },
+              "inventory_after": {
+                "oak_planks": 6,
+                "stick": 4,
+                "crafting_table": 1
+              },
+              "inventory_signed_delta": {},
+              "inventory_losses": {},
+              "passed": true
+            }
+          }
+        },
+        "children": [],
+        "depends_on": [
+          "0df1cdcb"
+        ],
+        "tags": [],
+        "opportunity_triggers": [],
+        "deadline": null,
+        "rationale": "",
+        "plan_node_id": "place_crafting_table",
+        "root_plan_id": "root-6d655abcdcfc4100",
+        "planner_call_id": "llm-37dbd56f3cc64bf1",
+        "status_history": [
+          {
+            "type": "task_state_transition",
+            "task_id": "ca684f69",
+            "task_title": "Craft and place exactly one crafting table",
+            "plan_node_id": "place_crafting_table",
+            "root_plan_id": "root-6d655abcdcfc4100",
+            "planner_call_id": "llm-37dbd56f3cc64bf1",
+            "from_status": "",
+            "to_status": "proposed",
+            "reason": "task_created",
+            "timestamp": 1784481206.6798747
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "ca684f69",
+            "task_title": "Craft and place exactly one crafting table",
+            "plan_node_id": "place_crafting_table",
+            "root_plan_id": "root-6d655abcdcfc4100",
+            "planner_call_id": "llm-37dbd56f3cc64bf1",
+            "from_status": "proposed",
+            "to_status": "accepted",
+            "reason": "task_updated",
+            "timestamp": 1784481206.6835492
+          },
+          {
+            "type": "task_state_transition",
+            "task_id": "ca684f69",
+            "task_title": "Craft and place exactly one crafting table",
+            "plan_node_id": "place_crafting_table",
+            "root_plan_id": "root-6d655abcdcfc4100",
+            "planner_call_id": "llm-37dbd56f3cc64bf1",
+            "from_status": "accepted",
+            "to_status": "active",
+            "reason": "action_started",
+            "timestamp": 1784481249.2363641
+          }
+        ],
+        "metadata": {}
+      }
+    ],
+    "transition_count": 0,
+    "transitions": [],
+    "sha256": "22b7f5e195718f2542a246d48ba34a285d9e550bf36f5f06d67f44af6971107c"
+  },
+  "goal_result": {
+    "goal": "From empty hands, gather wood, craft and place one crafting table, craft one wooden pickaxe, mine exactly three stone, and craft one stone pickaxe",
+    "cycles": 18,
+    "completed": false,
+    "termination_reason": "max_duration",
+    "max_cycles": 40,
+    "max_duration_s": 300.0,
+    "max_actions": 32,
+    "action_count": 17,
+    "elapsed_s": 300.0,
+    "episode_started_monotonic": 231389.218,
+    "episode_ended_monotonic": 231689.218,
+    "episode_deadline_monotonic": 231689.218,
+    "deadline_policy_id": "stone-pickaxe-absolute-deadline-v1",
+    "deadline_eligible": false,
+    "summary": {
+      "session_id": "35ce4675-038",
+      "duration_s": 301.53,
+      "total_events": 350,
+      "action_count": 17,
+      "error_count": 0,
+      "intervention_metrics": {
+        "policy_hint_count": 0,
+        "policy_intervention_count": 0,
+        "policy_intervention_actions": 0,
+        "policy_intervention_successes": 0,
+        "policy_intervention_failures": 0,
+        "policy_intervention_success_rate": 0.0,
+        "policy_intervention_skills": [],
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": [],
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {},
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": [],
+        "action_verification_event_count": 9,
+        "action_verification_status_counts": {
+          "accept": 9
+        },
+        "action_verification_action_types": {
+          "move_to": 3,
+          "dig": 3,
+          "craft": 3
+        },
+        "action_verification_blocked_count": 0,
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "visual_action_metrics": {
+        "visual_action_suggestion_event_count": 0,
+        "visual_action_suggestion_count": 0,
+        "visual_action_intervention_count": 0,
+        "visual_action_suggestion_kinds": {},
+        "visual_action_intervention_kinds": {},
+        "visual_action_intervention_phases": {},
+        "visual_action_action_types": {},
+        "visual_action_goals": []
+      },
+      "skill_memory_metrics": {
+        "skill_memory_hint_event_count": 0,
+        "skill_memory_hint_count": 0,
+        "skill_memory_task_families": {}
+      },
+      "skill_learning_metrics": {
+        "skill_selected_count": 0,
+        "skill_executed_count": 0,
+        "skill_successful_action_count": 0,
+        "skill_failed_action_count": 0,
+        "skill_completion_count": 0,
+        "skill_outcome_count": 0,
+        "skill_fallback_count": 0,
+        "skill_shadow_plan_count": 0,
+        "skill_advisory_hint_count": 0,
+        "skill_candidate_extraction_count": 0,
+        "skill_attribution_confidence": 0.0,
+        "skill_ids": []
+      },
+      "action_verification_metrics": {
+        "action_verification_event_count": 9,
+        "action_verification_status_counts": {
+          "accept": 9
+        },
+        "action_verification_action_types": {
+          "move_to": 3,
+          "dig": 3,
+          "craft": 3
+        },
+        "action_verification_blocked_count": 0
+      },
+      "action_candidate_selection_metrics": {
+        "action_candidate_selection_event_count": 0,
+        "action_candidate_selection_repaired_reject_count": 0,
+        "action_candidate_selection_selected_types": {}
+      },
+      "goal_verification_metrics": {
+        "count": 26,
+        "achieved": 0,
+        "failed": 26,
+        "unknown": 0,
+        "accepted": 0,
+        "rejected": 26,
+        "acceptance_reasons": {}
+      },
+      "plan_cache_metrics": {
+        "plan_cache_hit_count": 0,
+        "plan_cache_hybrid_hint_count": 0,
+        "plan_cache_workflow_intervention_count": 0,
+        "plan_cache_miss_count": 0,
+        "plan_cache_signature_count": 0,
+        "plan_cache_hit_rate": 0.0,
+        "plan_cache_hit_entries": {},
+        "plan_cache_hit_goals": [],
+        "plan_cache_execution_stage_counts": {
+          "hybrid": 0,
+          "deterministic": 0
+        }
+      },
+      "episode_abort_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "gate_readiness": "not_configured",
+        "viability_probe_count": 0,
+        "early_abort_trigger_count": 0,
+        "active_early_abort_count": 0,
+        "shadow_would_abort_count": 0,
+        "probe_round_counts": {},
+        "average_viability_risk_score": 0.0
+      },
+      "frontier_budget_metrics": {
+        "runtime_gate_event_count": 0,
+        "requested_mode": "off",
+        "effective_mode": "off",
+        "policy": "information",
+        "allocation_event_count": 0,
+        "planner_context_event_count": 0,
+        "outcome_event_count": 0,
+        "completed_outcome_count": 0,
+        "recovery_credit_event_count": 0,
+        "recovered_rounds": 0,
+        "reallocated_rounds_consumed": 0,
+        "allocation_pool_rounds": 0,
+        "allocated_rounds": 0,
+        "budget_conservation_failure_count": 0,
+        "policy_counts": {}
+      },
+      "memory_policy_metrics": {
+        "memory_write_count": 132,
+        "memory_read_count": 17,
+        "memory_manage_count": 0,
+        "memory_write_layers": {
+          "episodic": 79,
+          "context": 53
+        },
+        "memory_write_types": {
+          "goal_start": 1,
+          "context": 53,
+          "goal_verification": 26,
+          "action_verification": 9,
+          "task_state_update": 17,
+          "action": 17,
+          "failure": 8,
+          "goal_end": 1
+        },
+        "memory_read_types": {
+          "opportunity_context": 17
+        },
+        "memory_manage_operations": {},
+        "memory_policy_decisions": {
+          "write_blocked": 132,
+          "read_allowed": 17
+        },
+        "memory_read_filter_event_count": 0,
+        "memory_read_filtered_entries": 0,
+        "memory_read_filter_reasons": {},
+        "memory_retrieval_trace_event_count": 0,
+        "weighted_memory_read_count": 0,
+        "weighted_memory_match_count": 0,
+        "weighted_transfer_match_count": 0,
+        "memory_attribution_policy_counts": {}
+      },
+      "log_path": "workspace/evals/sp003_runs/sp003_baseline_20260720_011038_c6886c53\\session_35ce4675-038.jsonl"
+    }
+  },
+  "stable_reobservation_delay_s": 0.40700000000651926,
+  "skill_store_sha256_before": "beb99b61daf99c638036ed8d12e4d1a836c209b11e5ad31d6b19122d8a9c8c0b",
+  "skill_store_sha256_after": "beb99b61daf99c638036ed8d12e4d1a836c209b11e5ad31d6b19122d8a9c8c0b",
+  "external_step_script": false,
+  "automatic_retry_allowed": false,
+  "bm012_terminal_started": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

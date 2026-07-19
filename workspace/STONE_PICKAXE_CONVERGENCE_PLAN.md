@@ -15,11 +15,11 @@ This project isolates two bounded Minecraft capabilities:
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
-| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 116 stages the table beside proven stone access offline; live closure remains unproven |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 117 exposes exact navigation rejection when matching y is included |
 
-Current phase: **Phase 116 offline-verifies `sp003-local-crafting-table-staging-v1` from pushed Phase 115 evidence commit `14ce593e`. The SP-003-only overlay carries the one crafted table through the existing three inventory-preserving stone probes and five machine-proven grass/dirt clearances, then permits the one table placement only after direct stone pickup access exists. Retained geometry selects reference `grass_block:123:141:-37`, placing the table at `(123,142,-37)`, 4.297 blocks from the retained terminal pit position and inside the runtime's table search range. The projected exact chain uses 21 actions under the unchanged 32-action limit. This is offline repair evidence only; the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 117 live-exercises pushed Phase 116 repair `c5f120cc` from separate authorization `38e5c370`. Episode `sp003_baseline_20260720_011038_c6886c53` completes the wood chain and carries the sole table. The local guard then rejects five schema-valid navigation actions whose `(x,y,z)` exactly match machine target `(121,137,-33)` because its parameter contract requires the key set to be exactly `x,z`; it correctly rejects three additional wrong-y actions. Two x/z-only actions finally succeed after more than 230 seconds, but the run reaches the 300-second deadline before table placement. Manifest `a7580b5b...` retains all 13 files. The next gate is evidence commit/push and an offline exact-target parameter-normalization repair; the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all twenty SP-003 baseline IDs through `sp003_baseline_20260719_232840_66a67eeb` cannot be reused. Phase 115 ran exactly once and cannot be retried. The next transaction is the Phase 116 offline repair commit and push. Only afterward may a fresh parent-bound one-use baseline authorization be committed and pushed. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all twenty-one SP-003 baseline IDs through `sp003_baseline_20260720_011038_c6886c53` cannot be reused. Phase 117 ran exactly once and cannot be retried. The next transactions are the evidence commit/push and a separate offline repair commit/push. Only afterward may a fresh parent-bound one-use baseline authorization be committed and pushed. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -201,7 +201,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 116 local-table staging passes offline; twenty authorizations consumed; baseline 0/1 and candidates 0/3; repair commit/push required before another authorization |
+| 8. SP-003 composite acceptance | Phase 117 exact-target y rejection retained; twenty-one authorizations consumed; baseline 0/1 and candidates 0/3; offline normalization required before another authorization |
 
 ## Frozen Baseline
 
@@ -213,4 +213,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before the Phase 116 offline repair is committed and pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before Phase 117 evidence and the next offline exact-target parameter-normalization repair are each committed and pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
