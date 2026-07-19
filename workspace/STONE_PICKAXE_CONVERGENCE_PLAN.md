@@ -15,11 +15,11 @@ This project isolates two bounded Minecraft capabilities:
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
-| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 98 offline metric repair verified; fresh live validation pending |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 99 external Planner failure retained; Phase 98 repair remains unexercised live |
 
-Current phase: **Phase 98 offline-repairs the three deterministic raw failures exposed by Phase 97. A requested observed table reference whose target overlaps the player is rewritten once to the nearest clear observed reference; arbitrary coordinates still reject. Stone-approach moves use cell-center coordinates with a bounded 1.6 continuous tolerance while preserving Pathfinder range 1. The SP-003-only preload tightens three-dimensional `GoalNear(1)` to exact range 0 and leaves the shared Bridge, `GoalNearXZ`, and non-unit ranges unchanged. Retained replays and all regressions pass, but the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 99 retains one separately authorized baseline that reached healthy Paper, Bridge, Mineflayer, reset, and Agent startup, then failed closed on the sole root Planner transport with HTTP 500. It produced zero response bytes, tasks, actions, retries, or chain mutations. Phase 98's observed-table repair, cell-centered stone approach, and exact process-local `GoalNear(1)` repair therefore remain live-unexercised. Retained replays and all regressions pass, but the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all eleven SP-003 baseline IDs through `sp003_baseline_20260719_121946_1d855e28` cannot be reused. The next transaction is to commit and push Phase 98, then create and push exactly one fresh parent-bound baseline authorization. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all twelve SP-003 baseline IDs through `sp003_baseline_20260719_135031_9aa6c664` cannot be reused. The next transaction is to commit and push the Phase 99 failure evidence. Only after that push and re-established provider health may a separate transaction create and push exactly one fresh parent-bound baseline authorization. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -198,7 +198,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 98 offline repair verified; eleven authorizations consumed; baseline 0/1 and candidates 0/3; one fresh baseline pending after push |
+| 8. SP-003 composite acceptance | Phase 99 external Planner failure retained; twelve authorizations consumed; baseline 0/1 and candidates 0/3; next authorization locked until evidence push and provider health |
 
 ## Frozen Baseline
 
@@ -210,4 +210,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before Phase 98 and a separate one-use authorization are pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before Phase 99 evidence is pushed, provider health is re-established, and a separate one-use authorization is pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -833,6 +834,68 @@ def test_phase97_move_replay_aligns_block_cell_and_continuous_distance_metrics()
     )
     assert old_distance > 1.6
     assert aligned_distance <= replayed["action"]["parameters"]["tolerance"]
+
+
+def test_phase99_provider_internal_server_error_is_fail_closed_and_immutable():
+    run = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_135031_9aa6c664"
+    )
+    episode = json.loads((run / "episode.json").read_text(encoding="utf-8"))
+    events = json.loads((run / "session.json").read_text(encoding="utf-8"))
+    consumption = json.loads(
+        (run / "authorization_consumption.json").read_text(encoding="utf-8")
+    )
+    planner = next(event["data"] for event in events if event["type"] == "llm_planner_call")
+    transport = planner["transport_evidence"]
+
+    assert episode["goal_result"]["termination_reason"] == "empty_plan"
+    assert episode["action_count"] == 0
+    assert episode["action_failures"] == []
+    assert episode["distinct_log_source_ids"] == []
+    assert episode["distinct_stone_source_ids"] == []
+    assert episode["task_graph"]["task_count"] == 0
+    assert episode["task_graph"]["transitions"] == []
+    assert episode["initial_observation"]["inventory"] == {}
+    assert episode["stable_observation"]["inventory"] == {}
+    assert planner["real_llm_call"] is False
+    assert planner["response_byte_count"] == 0
+    assert planner["provider_metadata"]["error_type"] == "InternalServerError"
+    assert transport["policy_id"] == "single-attempt"
+    assert transport["attempt_count"] == 1
+    assert transport["retry_count"] == 0
+    assert transport["attempts"] == [
+        {
+            "attempt_index": 0,
+            "success": False,
+            "timeout_s": 299.938,
+            "sdk_max_retries": 0,
+            "error_type": "InternalServerError",
+            "error_chain": ["InternalServerError", "HTTPStatusError"],
+        }
+    ]
+    assert consumption["authorization_commit"] == (
+        "0283c1f95638ae99d06b2aac9014c805f0a4dfd9"
+    )
+    assert consumption["automatic_retry_allowed"] is False
+
+    ledger = json.loads(
+        (REPO / "workspace/evals/stone_pickaxe_failure_ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    failure = next(
+        item
+        for item in ledger["failures"]
+        if item["id"] == "sp003-baseline-012-root-planner-internal-server-error"
+    )
+    assert failure["automatic_retry_attempted"] is False
+    assert failure["counts_toward_baseline_success"] is False
+    assert len(failure["evidence"]) == 13
+    for record in failure["evidence"]:
+        path = REPO / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
 def test_preparation_guard_enforces_exact_recipe_sequence_and_single_table():
