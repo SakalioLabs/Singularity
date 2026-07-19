@@ -2491,6 +2491,153 @@ def test_phase111_retained_baseline_replays_deferred_pathfinder_stop_poisoning()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
+def test_phase113_retained_baseline_replays_downstep_transition_clearance_disconnect():
+    run_dir = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_221125_16ea129e"
+    )
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    consumption = json.loads(
+        (run_dir / "authorization_consumption.json").read_text(encoding="utf-8")
+    )
+    episode = json.loads((run_dir / "episode.json").read_text(encoding="utf-8"))
+    events = json.loads((run_dir / "session.json").read_text(encoding="utf-8"))
+
+    assert manifest["passed"] is False
+    assert manifest["evidence_eligible"] is False
+    assert manifest["authorization_id"] == (
+        "65a8ffb448c53f0ea48531d6270713deb1204fab7552222c0c6d7993d663bffd"
+    )
+    assert manifest["automatic_retry_allowed"] is False
+    assert manifest["bm012_terminal_started"] is False
+    assert consumption["authorization_commit"] == (
+        "4206aa173aa46f2846d228fb4994f36e0fd6585f"
+    )
+    assert consumption["consumed_by"] == "fresh_sp003_process_start"
+    assert consumption["single_episode"] is True
+    assert consumption["automatic_retry_allowed"] is False
+
+    goal = episode["goal_result"]
+    assert goal["termination_reason"] == "max_actions"
+    assert goal["deadline_eligible"] is True
+    assert goal["cycles"] == 33
+    assert goal["action_count"] == 32
+    assert goal["elapsed_s"] == pytest.approx(229.859)
+    assert episode["action_count"] == 32
+    assert len(episode["raw_action_failures"]) == 4
+    assert episode["reconciled_action_failure_indexes"] == []
+    assert len(episode["unreconciled_action_failures"]) == 4
+    assert episode["post_deadline_action_indexes"] == []
+    assert len(episode["distinct_log_source_ids"]) == 3
+    assert len(episode["distinct_surface_clearance_source_ids"]) == 4
+    assert episode["distinct_stone_source_ids"] == []
+    assert episode["stable_observation"]["inventory"] == {
+        "stick": 2,
+        "oak_planks": 3,
+        "wooden_pickaxe": 1,
+        "dirt": 4,
+    }
+
+    planner_calls = [
+        event["data"]
+        for event in events
+        if event.get("type") == "llm_planner_call"
+    ]
+    assert [call["call_index"] for call in planner_calls] == list(range(33))
+    assert all(call["schema_valid"] is True for call in planner_calls)
+    assert all(
+        call["transport_evidence"]["attempt_count"] == 1
+        and call["transport_evidence"]["retry_count"] == 0
+        and call["transport_evidence"]["attempts"][0]["success"] is True
+        for call in planner_calls
+    )
+    assert max(
+        call["provider_metadata"]["prompt_tokens"] for call in planner_calls
+    ) == 2974
+    assert max(call["response_byte_count"] for call in planner_calls) == 2108
+
+    actions = [event["data"] for event in events if event.get("type") == "action"]
+    action_types = [item["action"]["type"] for item in actions]
+    assert action_types.count("move_to") == 18
+    assert action_types.count("dig") == 8
+    assert action_types.count("craft") == 4
+    assert action_types.count("place") == 1
+    assert action_types.count("equip") == 1
+    assert sum(item["result"].get("success") is True for item in actions) == 28
+
+    stopped_error = (
+        "Path was stopped before it could be completed! Thus, the desired goal "
+        "was not reached."
+    )
+    assert not any(
+        stopped_error in json.dumps(item["result"], sort_keys=True)
+        for item in actions
+    )
+
+    clearance = actions[16]
+    assert clearance["action"]["parameters"]["source_id"] == "dirt:124:140:-38"
+    clearance_proof = clearance["action"]["parameters"]["surface_clearance_proof"]
+    assert clearance_proof["entry_shaft_positions"] == [
+        {"x": 124, "y": 140, "z": -38}
+    ]
+    transition_cell = next(
+        item
+        for item in clearance_proof["priority_selection_trace"]
+        if item["position"] == {"x": 124, "y": 141, "z": -38}
+    )
+    assert transition_cell["name"] == "dirt"
+    assert transition_cell["distance"] == pytest.approx(2**0.5)
+
+    stone_dig = actions[17]
+    assert stone_dig["action"]["parameters"]["source_id"] == "stone:124:139:-38"
+    assert stone_dig["result"]["block_removed"] is True
+    pickup = stone_dig["result"]["pickup_collection"]
+    assert pickup["detected"] is True
+    assert pickup["item_name"] == "cobblestone"
+    assert pickup["success"] is False
+    assert pickup["inventory_delta"] == {}
+    assert pickup["direct_navigation"]["pathfinder_resolved"] is False
+    assert pickup["direct_navigation"]["completion_grounded"] is False
+    assert pickup["direct_navigation"]["error"] == (
+        "SP-003 SP003ExactUnitGoalNear remained unresolved after bounded recovery"
+    )
+    assert pickup["direct_navigation"]["final_distance"] == pytest.approx(
+        1.7176774328965967
+    )
+
+    warning_moves = [
+        item
+        for item in actions
+        if item["action"]["type"] == "move_to"
+        and item["result"].get("pathfinder_warning")
+    ]
+    assert len(warning_moves) == 11
+    assert all(item["result"]["success"] is True for item in warning_moves)
+    assert all(
+        item["result"]["pathfinder_warning"]
+        == "SP-003 SP003ExactUnitGoalNear remained unresolved after bounded recovery"
+        for item in warning_moves
+    )
+
+    ledger = json.loads(
+        (REPO / "workspace/evals/stone_pickaxe_failure_ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    failure = next(
+        item
+        for item in ledger["failures"]
+        if item["id"] == "sp003-baseline-019-downstep-transition-clearance-disconnect"
+    )
+    assert failure["automatic_retry_attempted"] is False
+    assert failure["counts_toward_baseline_success"] is False
+    assert len(failure["evidence"]) == 13
+    for record in failure["evidence"]:
+        path = REPO / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+
 def test_phase112_pathfinder_stop_drain_audit_binds_current_contract():
     audit_path = (
         REPO / "workspace/evals/stone_pickaxe_sp003_pathfinder_stop_drain_repair.json"
