@@ -1,0 +1,120 @@
+{
+  "type": "stone_pickaxe_sp003_pre_dig_pickup_access_repair",
+  "schema_version": 1,
+  "generated_at": "2026-07-19T18:09:14+08:00",
+  "phase": 106,
+  "status": "offline_fix_verified_pending_commit_push",
+  "base_commit": "b8d45909878438b5a40ab3da5326b684cd73cf5e",
+  "task_id": "SP-003",
+  "runtime_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+  "pre_dig_pickup_access_policy_id": "sp003-pre-dig-pickup-access-v1",
+  "retained_failure": {
+    "episode_id": "sp003_baseline_20260719_164341_b6f52e23",
+    "session_id": "e1a4bda0-c7d",
+    "manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_164341_b6f52e23/manifest.json",
+    "manifest_sha256": "8a04a05943a7d41eacf382776ab4391fe8eeb75f5d5bd36501b77dccdfc988aa",
+    "session_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_164341_b6f52e23/session.json",
+    "session_sha256": "ec019d6589d3010b7e08ffd9be579961214da4c94f514b51e1e0b470f7661727",
+    "raw_evidence_modified": false
+  },
+  "root_cause": {
+    "classification": "covered_stone_post_dig_pickup_access_disconnect",
+    "planner_call_count": 27,
+    "planner_schema_valid_count": 27,
+    "planner_retry_count": 0,
+    "first_removed_source_id": "stone:124:139:-38",
+    "first_post_dig_head_state": "dirt",
+    "first_pickup_navigation_distance": 1.683,
+    "second_removed_source_id": "stone:125:139:-37",
+    "second_post_dig_head_state": "dirt",
+    "second_pickup_navigation_distance": 1.165,
+    "removed_stone_count": 2,
+    "collected_cobblestone_count": 0,
+    "standable_pickup_fallback_count": 0
+  },
+  "repair_contract": {
+    "direct_stone_requires_pickup_access": true,
+    "target_block_must_be_exact_stone": true,
+    "support_block_must_be_exact_stone": true,
+    "post_dig_head_cell_must_be_machine_proven_air": true,
+    "post_dig_stand_cell_is_verified_removed_target": true,
+    "target_vertical_gap_min": 0,
+    "target_vertical_gap_max": 1,
+    "complete_local_scan_allowed": true,
+    "strict_priority_visibility_allowed": true,
+    "strict_priority_visibility_response_limit": 50,
+    "strict_priority_visibility_requires_unique_prefix": true,
+    "strict_priority_visibility_requires_stable_distance_order": true,
+    "strict_priority_visibility_distances_bound_to_origin": true,
+    "strict_priority_visibility_requires_strict_final_distance_cutoff": true,
+    "strict_priority_visibility_trace_reconstructed_by_verifier": true,
+    "maximum_clearances_per_shaft": 3,
+    "maximum_clearances_per_episode": 6,
+    "caller_proof_is_authoritative": false,
+    "action_rewrite_allowed": false,
+    "base_protocol_changed": false,
+    "shared_bridge_changed": false,
+    "automatic_retry_allowed": false
+  },
+  "retained_replay": {
+    "first_original_scan_was_empty": true,
+    "first_scan_unique_name_prefix_count": 5,
+    "first_scan_visibility_distance_strict_upper_bound": 3.3166247903554,
+    "first_scan_clearance_source_id": "dirt:124:140:-38",
+    "second_covered_target_rejected": true,
+    "second_head_clearance_source_id": "dirt:125:140:-37",
+    "second_opened_target_allowed": true,
+    "forged_caller_proof_removed": true,
+    "wrong_support_family_rejected": true,
+    "saturated_visibility_tamper_rejected": true
+  },
+  "implementation": [
+    {
+      "path": "src/singularity/core/planner.py",
+      "sha256": "1f099bebece0a73c74e42ff45881a590aabe4f74d0f20cb6bbb4f9a143111bff"
+    },
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+      "sha256": "bcc17891aa624a8d36d6ebd99d77955b79a448ab49106ceec567eab202175294"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_runtime.py",
+      "sha256": "ae20c94da6536d15e230c0d2b923324c142749c9f6e7047d8b170a5c94abe29d"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+      "sha256": "b37b358601e36f60175248f83c1773c2042ff06f407bdc15f1b0ba25ae1ddf62"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_protocol.json",
+      "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+    },
+    {
+      "path": "src/bot/bot_server.js",
+      "sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
+    }
+  ],
+  "validation": {
+    "sp003_dedicated_cases": "77/77",
+    "stone_pickaxe_related_cases": "258/258",
+    "repository_non_live_python_cases": "1013/1013",
+    "capability_consistency_cases": "8/8",
+    "node_suites": "7/7",
+    "node_internal_cases": "67/67",
+    "policy_identity_passed": true,
+    "python_compile_passed": true,
+    "tracked_json_parse_passed": true,
+    "probe_22_report_sha256": "3db980c2c95efa9c505cd3da92d78883f5628006871210904e18cf8f782251f0",
+    "probe_21_probe_22_comparison_sha256": "28679e2eafc632bfb26ce2f8c19737cf784a27cc9f16de0f996c44c2ee49a90a",
+    "credential_scan_passed": true,
+    "git_diff_check_passed": true
+  },
+  "live_episode_run": false,
+  "live_authorization": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "next_gate": "commit_push_then_create_one_fresh_parent_bound_baseline_authorization"
+}

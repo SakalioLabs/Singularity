@@ -20,8 +20,12 @@ from singularity.evaluation.stone_pickaxe_sp002_runtime import (
 )
 from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     EXPECTED_SKILLS,
+    SP003_CLEARANCE_SCAN_RESPONSE_LIMIT,
+    SP003_CLEARANCE_SHAFT_MAX,
+    SP003_FROZEN_BRIDGE_SHA256,
     SP003_GOAL,
     SP003_POLICY_PATH,
+    SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID,
     SP003_RUNTIME_POLICY_ID,
     SP003_SURFACE_CLEARANCE_MAX,
     StonePickaxeSP003RuntimeAgent,
@@ -32,6 +36,7 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     _progress_snapshot,
     _sp003_observation_targets,
     _stone_approach_stands,
+    _stone_pickup_accesses,
     _stone_surface_clearances,
     audit_sp003_initial_state,
     audit_sp003_reset,
@@ -65,6 +70,28 @@ def block(name, x, y, z, distance):
         "position": {"x": x, "y": y, "z": z},
         "distance": distance,
     }
+
+
+def prioritize_block_response(blocks, limit=50):
+    ordered = sorted(blocks, key=lambda item: item["distance"])
+    selected = []
+    selected_indexes = set()
+    selected_names = set()
+    for index, item in enumerate(ordered):
+        if item["name"] in selected_names:
+            continue
+        selected.append(item)
+        selected_indexes.add(index)
+        selected_names.add(item["name"])
+        if len(selected) >= limit:
+            return selected
+    for index, item in enumerate(ordered):
+        if index in selected_indexes:
+            continue
+        selected.append(item)
+        if len(selected) >= limit:
+            break
+    return selected
 
 
 def observation(
@@ -110,7 +137,12 @@ def test_policy_identity_binds_frozen_protocol_and_promoted_skills():
     assert policy["protocol"]["bytes_must_remain_unchanged"] is True
     assert policy["reset_substrate"]["reset_only"] is True
     assert policy["reset_substrate"]["bm012_terminal_execution_allowed"] is False
-    assert policy["episode_contract"]["surface_clearance_actions_max"] == 3
+    assert policy["episode_contract"]["surface_clearance_actions_max"] == 6
+    assert policy["episode_contract"]["surface_clearance_actions_per_shaft_max"] == 3
+    assert policy["episode_contract"]["pre_dig_pickup_access_policy_id"] == (
+        SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID
+    )
+    assert policy["episode_contract"]["pre_dig_scan_response_limit"] == 50
     assert policy["episode_contract"]["crafting_table_tool_settlement_delay_ms"] == 1000
     assert (
         policy["episode_contract"]["crafting_table_tool_settlement_install_event"]
@@ -439,6 +471,7 @@ def complete_block_scan(blocks, *, origin=None, radius=1):
         "type": "sp003_bounded_complete_nearby_block_scan",
         "schema_version": 1,
         "scan_complete": True,
+        "targeted_air_visibility_complete": False,
         "radius": radius,
         "vertical_min_offset": vertical_min,
         "vertical_max_offset": vertical_max,
@@ -448,10 +481,13 @@ def complete_block_scan(blocks, *, origin=None, radius=1):
         "scanned_cell_count": (2 * radius + 1) ** 2
         * (vertical_max - vertical_min + 1),
         "backend_path": "src/bot/bot_server.js",
-        "backend_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
-        "response_limit": 50,
+        "backend_sha256": SP003_FROZEN_BRIDGE_SHA256,
+        "response_limit": SP003_CLEARANCE_SCAN_RESPONSE_LIMIT,
         "response_count": len(blocks),
         "completeness_basis": "result_count_below_frozen_backend_limit",
+        "priority_unique_name_prefix_count": 0,
+        "visibility_distance_strict_upper_bound": None,
+        "selection_trace_fingerprint": "",
         "blocks": copy.deepcopy(list(blocks)),
     }
 
@@ -460,6 +496,7 @@ def attach_complete_sp003_scan(world, blocks, *, origin):
     scan = complete_block_scan(blocks, origin=origin)
     world["sp003_complete_local_scan"] = scan
     world["sp003_stone_approach_stands"] = _stone_approach_stands(scan)
+    world["sp003_stone_pickup_accesses"] = _stone_pickup_accesses(scan)
     world["sp003_stone_surface_clearances"] = _stone_surface_clearances(scan)
     return scan
 
@@ -505,7 +542,7 @@ def test_complete_stone_scan_proves_clear_stand_and_fails_closed_when_obstructed
     assert machine_report["response_count"] == 1
     assert _bounded_complete_local_scan(
         observation(position={"x": 0.5, "y": 64.0, "z": 0.5}),
-        [stone] * 50,
+        [stone] * 64,
     ) == {}
     assert _bounded_complete_local_scan(
         observation(position={"x": 0.5, "y": 64.0, "z": 0.5}),
@@ -732,18 +769,71 @@ def test_phase91_retained_buried_stone_is_cleared_top_down_with_three_machine_pr
         "air",
     ]
 
+    fourth_blocks = [
+        block("stone", 1, 63, 0, 1.414214),
+        block("stone", 1, 62, 0, 2.236068),
+        block("dirt", 1, 64, 0, 1.0),
+    ]
+    fourth_world = observation(
+        {"wooden_pickaxe": 1},
+        fourth_blocks,
+        held="wooden_pickaxe",
+    )
+    attach_complete_sp003_scan(
+        fourth_world,
+        fourth_blocks,
+        origin={"x": 0, "y": 64, "z": 0},
+    )
     fourth = guard_sp003_action(
         {
             "type": "dig",
-            "parameters": {"block": "grass_block", "x": 124, "y": 142, "z": -37},
+            "parameters": {"block": "dirt", "x": 1, "y": 64, "z": 0},
         },
-        retained,
+        fourth_world,
         progress,
     )
-    assert not fourth["allowed"]
-    assert "sp003_surface_clearance_removal_limit_reached" in fourth["issues"]
-    assert _progress_snapshot(progress)["surface_clearance_removal_count"] == 3
-    assert SP003_SURFACE_CLEARANCE_MAX == 3
+    assert fourth["allowed"], fourth
+    record_sp003_success(
+        progress,
+        fourth["action"],
+        accepted_result(
+            block="dirt",
+            block_removed=True,
+            target_block_before={"name": "dirt"},
+            target_block_after={"name": "air"},
+        ),
+    )
+    assert _progress_snapshot(progress)["surface_clearance_removal_count"] == 4
+
+    progress["surface_clearance_source_ids"].update({"dirt:2:64:0", "dirt:3:64:0"})
+    seventh_blocks = [
+        block("stone", -1, 63, 0, 1.414214),
+        block("stone", -1, 62, 0, 2.236068),
+        block("dirt", -1, 64, 0, 1.0),
+    ]
+    seventh_world = observation(
+        {"wooden_pickaxe": 1},
+        seventh_blocks,
+        held="wooden_pickaxe",
+    )
+    attach_complete_sp003_scan(
+        seventh_world,
+        seventh_blocks,
+        origin={"x": 0, "y": 64, "z": 0},
+    )
+    assert _sp003_observation_targets(seventh_world, progress) == []
+    seventh = guard_sp003_action(
+        {
+            "type": "dig",
+            "parameters": {"block": "dirt", "x": -1, "y": 64, "z": 0},
+        },
+        seventh_world,
+        progress,
+    )
+    assert not seventh["allowed"]
+    assert "sp003_surface_clearance_removal_limit_reached" in seventh["issues"]
+    assert SP003_CLEARANCE_SHAFT_MAX == 3
+    assert SP003_SURFACE_CLEARANCE_MAX == 6
 
 
 def test_surface_clearance_scan_fails_closed_on_incomplete_forged_or_disallowed_geometry():
@@ -796,21 +886,145 @@ def test_surface_clearance_scan_fails_closed_on_incomplete_forged_or_disallowed_
     assert _sp003_observation_targets(world, progress) == []
 
 
+def test_radius_one_scan_uses_strict_priority_visibility_at_frozen_limit():
+    world = observation(position={"x": 0.5, "y": 64.0, "z": 0.5})
+    local_blocks = [
+        block("dirt", x, y, z, math.sqrt(x * x + (y - 64) ** 2 + z * z))
+        for x in range(-1, 2)
+        for y in range(61, 68)
+        for z in range(-1, 2)
+    ]
+    assert len(local_blocks) == 63
+
+    full = _bounded_complete_local_scan(
+        world,
+        local_blocks[:49],
+        {"position": {"x": 0.5, "y": 64.0, "z": 0.5}},
+    )
+    assert full["scan_complete"] is True
+    assert full["targeted_air_visibility_complete"] is False
+    assert full["response_count"] == 49
+    assert full["response_limit"] == 50
+
+    prioritized = prioritize_block_response(local_blocks)
+    saturated = _bounded_complete_local_scan(
+        world,
+        prioritized,
+        {"position": {"x": 0.5, "y": 64.0, "z": 0.5}},
+    )
+    assert saturated["scan_complete"] is False
+    assert saturated["targeted_air_visibility_complete"] is True
+    assert saturated["priority_unique_name_prefix_count"] == 1
+    assert saturated["visibility_distance_strict_upper_bound"] > 1
+    assert saturated["selection_trace_fingerprint"] == canonical_sha256(prioritized)
+
+    forged_distances = copy.deepcopy(prioritized)
+    for item in forged_distances:
+        item["distance"] += 10
+    assert _bounded_complete_local_scan(
+        world,
+        forged_distances,
+        {"position": {"x": 0.5, "y": 64.0, "z": 0.5}},
+    ) == {}
+
+    assert _bounded_complete_local_scan(
+        world,
+        local_blocks[:51],
+        {"position": {"x": 0.5, "y": 64.0, "z": 0.5}},
+    ) == {}
+
+
+def test_saturated_priority_trace_proves_near_head_air_and_observed_obstruction():
+    origin = {"x": 0, "y": 64, "z": 0}
+    target_cell = (1, 63, 0)
+    support_cell = (1, 62, 0)
+    head_cell = (1, 64, 0)
+    excluded = {
+        (0, 64, 0),
+        (0, 65, 0),
+        target_cell,
+        support_cell,
+        head_cell,
+    }
+    dense = [
+        block(
+            "dirt",
+            x,
+            y,
+            z,
+            math.sqrt(x * x + (y - 64) ** 2 + z * z),
+        )
+        for x in range(-1, 2)
+        for y in range(61, 68)
+        for z in range(-1, 2)
+        if (x, y, z) not in excluded
+    ]
+    dense.extend([
+        block("stone", *target_cell, math.sqrt(2)),
+        block("stone", *support_cell, math.sqrt(5)),
+    ])
+    world = observation(
+        {"wooden_pickaxe": 1},
+        dense,
+        held="wooden_pickaxe",
+        position={"x": 0.5, "y": 64.0, "z": 0.5},
+    )
+    response = prioritize_block_response(dense)
+    assert len(response) == 50
+    scan = _bounded_complete_local_scan(world, response, world)
+    assert scan["targeted_air_visibility_complete"] is True
+    assert scan["visibility_distance_strict_upper_bound"] > 1
+    access = next(
+        item
+        for item in _stone_pickup_accesses(scan)
+        if item["source_id"] == "stone:1:63:0"
+    )
+    assert access["pickup_access_proof"]["scan_complete"] is False
+    assert access["pickup_access_proof"]["head_cell_state"] == "air"
+    assert len(access["pickup_access_proof"]["priority_selection_trace"]) == 50
+
+    covered_dense = [*dense, block("dirt", *head_cell, 1.0)]
+    covered_scan = _bounded_complete_local_scan(
+        world,
+        prioritize_block_response(covered_dense),
+        world,
+    )
+    assert not any(
+        item["source_id"] == "stone:1:63:0"
+        for item in _stone_pickup_accesses(covered_scan)
+    )
+    clearance = next(
+        item
+        for item in _stone_surface_clearances(covered_scan)
+        if item["support_source_id"] == "stone:1:63:0"
+    )
+    assert clearance["source_id"] == "dirt:1:64:0"
+
+
 def test_grounded_stone_approach_excludes_anchor_and_allows_adjacent_stone_dig():
     progress = cobblestone_progress()
+    local_blocks = [
+        block("stone", 124, 139, -37, 1.0),
+        block("stone", 125, 139, -37, 1.414214),
+        block("stone", 124, 138, -37, 2.0),
+        block("stone", 125, 138, -37, 2.236068),
+    ]
     grounded = observation(
         {"wooden_pickaxe": 1},
-        [
-            block("stone", 124, 139, -37, 1.0),
-            block("stone", 125, 139, -37, 1.414214),
-        ],
+        local_blocks,
         held="wooden_pickaxe",
         position={"x": 124.5, "y": 140.0, "z": -36.5},
+    )
+    attach_complete_sp003_scan(
+        grounded,
+        local_blocks,
+        origin={"x": 124, "y": 140, "z": -37},
     )
 
     targets = _sp003_observation_targets(grounded, progress)
 
     assert [target["source_id"] for target in targets] == ["stone:125:139:-37"]
+    assert targets[0]["stone_pickup_access"] is True
     adjacent = guard_sp003_action(
         {
             "type": "dig",
@@ -820,6 +1034,65 @@ def test_grounded_stone_approach_excludes_anchor_and_allows_adjacent_stone_dig()
         progress,
     )
     assert adjacent["allowed"], adjacent
+    assert adjacent["action"]["parameters"]["stone_pickup_access"] is True
+    proof = adjacent["action"]["parameters"]["pickup_access_proof"]
+    assert proof["support_position"] == {"x": 125, "y": 138, "z": -37}
+    assert proof["head_position"] == {"x": 125, "y": 140, "z": -37}
+    assert adjacent["action"]["parameters"]["pickup_access_proof_fingerprint"] == (
+        canonical_sha256(proof)
+    )
+
+    covered = copy.deepcopy(grounded)
+    covered_blocks = [*local_blocks, block("dirt", 125, 140, -37, 1.0)]
+    covered["nearby_blocks"] = covered_blocks
+    attach_complete_sp003_scan(
+        covered,
+        covered_blocks,
+        origin={"x": 124, "y": 140, "z": -37},
+    )
+    covered_targets = _sp003_observation_targets(covered, progress)
+    assert covered_targets[0]["source_id"] == "dirt:125:140:-37"
+    assert covered_targets[0]["support_source_id"] == "stone:125:139:-37"
+    assert covered_targets[0]["stone_surface_clearance"] is True
+    rejected = guard_sp003_action(
+        {
+            "type": "dig",
+            "parameters": {"block": "stone", "x": 125, "y": 139, "z": -37},
+        },
+        covered,
+        progress,
+    )
+    assert not rejected["allowed"]
+    assert "sp003_stone_surface_clearance_required_before_dig" in rejected["issues"]
+
+    wrong_support_blocks = [
+        block("stone", 125, 139, -37, 1.414214),
+        block("dirt", 125, 138, -37, 2.236068),
+    ]
+    wrong_support = observation(
+        {"wooden_pickaxe": 1},
+        wrong_support_blocks,
+        held="wooden_pickaxe",
+        position={"x": 124.5, "y": 140.0, "z": -36.5},
+    )
+    wrong_support_scan = attach_complete_sp003_scan(
+        wrong_support,
+        wrong_support_blocks,
+        origin={"x": 124, "y": 140, "z": -37},
+    )
+    assert _stone_pickup_accesses(wrong_support_scan) == []
+    unsupported = guard_sp003_action(
+        {
+            "type": "dig",
+            "parameters": {"block": "stone", "x": 125, "y": 139, "z": -37},
+        },
+        wrong_support,
+        progress,
+    )
+    assert not unsupported["allowed"]
+    assert "sp003_stone_target_must_be_reachable_and_observed" in unsupported[
+        "issues"
+    ]
 
 
 def test_phase97_move_replay_aligns_block_cell_and_continuous_distance_metrics():
@@ -1315,6 +1588,25 @@ def test_phase105_retained_baseline_replays_covered_stone_pickup_failure():
         if event.get("type") == "observation"
     )
     assert first_observation["sp003_complete_local_scan"] == {}
+    first_response = first_observation["nearby_blocks"][:50]
+    saturated_replay = _bounded_complete_local_scan(
+        first_observation,
+        first_response,
+        first_observation,
+    )
+    assert saturated_replay["scan_complete"] is False
+    assert saturated_replay["targeted_air_visibility_complete"] is True
+    assert saturated_replay["priority_unique_name_prefix_count"] == 5
+    assert saturated_replay["visibility_distance_strict_upper_bound"] == (
+        3.3166247903554
+    )
+    first_clearance = next(
+        item
+        for item in _stone_surface_clearances(saturated_replay)
+        if item["support_source_id"] == "stone:124:139:-38"
+    )
+    assert first_clearance["source_id"] == "dirt:124:140:-38"
+    assert first_clearance["remaining_clearance_count"] == 1
 
     second_guard_index = next(
         index
@@ -1339,6 +1631,89 @@ def test_phase105_retained_baseline_replays_covered_stone_pickup_failure():
     assert by_cell[(125, 139, -37)] == "stone"
     assert by_cell[(125, 140, -37)] == "dirt"
     assert by_cell[(125, 141, -37)] == "dirt"
+
+    replay_blocks = [
+        item
+        for item in complete_scan["blocks"]
+        if tuple(item["position"][axis] for axis in ("x", "y", "z"))
+        in {
+            (125, 138, -37),
+            (125, 139, -37),
+            (125, 140, -37),
+            (125, 141, -37),
+        }
+    ]
+    replay = copy.deepcopy(second_observation)
+    replay["nearby_blocks"] = copy.deepcopy(replay_blocks)
+    replay_progress = copy.deepcopy(second_observation["sp003_progress"])
+    attach_complete_sp003_scan(
+        replay,
+        replay_blocks,
+        origin=complete_scan["origin_cell"],
+    )
+    clearance = next(
+        target
+        for target in _sp003_observation_targets(replay, replay_progress)
+        if target.get("support_source_id") == "stone:125:139:-37"
+    )
+    assert clearance["source_id"] == "dirt:125:140:-37"
+    assert clearance["remaining_clearance_count"] == 1
+    covered_guard = guard_sp003_action(
+        {
+            "type": "dig",
+            "parameters": {"block": "stone", "x": 125, "y": 139, "z": -37},
+        },
+        replay,
+        replay_progress,
+    )
+    assert not covered_guard["allowed"]
+    assert "sp003_stone_surface_clearance_required_before_dig" in covered_guard[
+        "issues"
+    ]
+
+    opened = copy.deepcopy(replay)
+    opened_blocks = [
+        item
+        for item in replay_blocks
+        if item["position"] != {"x": 125, "y": 140, "z": -37}
+    ]
+    opened["nearby_blocks"] = copy.deepcopy(opened_blocks)
+    attach_complete_sp003_scan(
+        opened,
+        opened_blocks,
+        origin=complete_scan["origin_cell"],
+    )
+    opened_target = next(
+        target
+        for target in _sp003_observation_targets(opened, replay_progress)
+        if target["source_id"] == "stone:125:139:-37"
+    )
+    assert opened_target["stone_pickup_access"] is True
+    opened_guard = guard_sp003_action(
+        {
+            "type": "dig",
+            "parameters": {
+                "block": "stone",
+                "x": 125,
+                "y": 139,
+                "z": -37,
+                "stone_pickup_access": True,
+                "pickup_access_proof": {"forged": True},
+                "pickup_access_proof_fingerprint": "0" * 64,
+            },
+        },
+        opened,
+        replay_progress,
+    )
+    assert opened_guard["allowed"], opened_guard
+    normalized_proof = opened_guard["action"]["parameters"][
+        "pickup_access_proof"
+    ]
+    assert normalized_proof.get("forged") is None
+    assert normalized_proof["target_source_id"] == "stone:125:139:-37"
+    assert opened_guard["action"]["parameters"][
+        "pickup_access_proof_fingerprint"
+    ] == canonical_sha256(normalized_proof)
 
     ledger = json.loads(
         (REPO / "workspace/evals/stone_pickaxe_failure_ledger.json").read_text(
@@ -1394,6 +1769,45 @@ def test_phase104_move_to_schema_repair_audit_binds_current_contract():
             cwd=REPO,
         )
         assert hashlib.sha256(historical_bytes).hexdigest() == record["sha256"]
+
+
+def test_phase106_pre_dig_pickup_access_audit_binds_current_contract():
+    audit_path = (
+        REPO
+        / "workspace/evals/stone_pickaxe_sp003_pre_dig_pickup_access_repair.json"
+    )
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+
+    assert audit["type"] == "stone_pickaxe_sp003_pre_dig_pickup_access_repair"
+    assert audit["phase"] == 106
+    assert audit["base_commit"] == "b8d45909878438b5a40ab3da5326b684cd73cf5e"
+    assert audit["pre_dig_pickup_access_policy_id"] == (
+        SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID
+    )
+    assert audit["retained_failure"]["manifest_sha256"] == (
+        "8a04a05943a7d41eacf382776ab4391fe8eeb75f5d5bd36501b77dccdfc988aa"
+    )
+    assert audit["retained_failure"]["session_sha256"] == (
+        "ec019d6589d3010b7e08ffd9be579961214da4c94f514b51e1e0b470f7661727"
+    )
+    assert audit["repair_contract"]["direct_stone_requires_pickup_access"] is True
+    assert audit["repair_contract"]["strict_priority_visibility_allowed"] is True
+    assert audit["repair_contract"]["maximum_clearances_per_shaft"] == 3
+    assert audit["repair_contract"]["maximum_clearances_per_episode"] == 6
+    assert audit["repair_contract"]["caller_proof_is_authoritative"] is False
+    assert audit["repair_contract"]["shared_bridge_changed"] is False
+    assert audit["retained_replay"]["first_scan_unique_name_prefix_count"] == 5
+    assert audit["retained_replay"]["first_scan_clearance_source_id"] == (
+        "dirt:124:140:-38"
+    )
+    assert audit["live_episode_run"] is False
+    assert audit["live_authorization"] is False
+    assert audit["counts_toward_capability"] is False
+
+    for record in audit["implementation"]:
+        path = REPO / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
 def test_preparation_guard_enforces_exact_recipe_sequence_and_single_table():
@@ -1547,32 +1961,53 @@ def test_stone_guard_requires_held_wooden_pickaxe_nearest_source_and_exact_limit
         "crafting_table_place_count": 1,
         "wooden_pickaxe_craft_count": 1,
     })
-    stones = [block("stone", 1, 63, 0, 1.4), block("stone", 2, 63, 0, 2.2)]
+    stones = [
+        block("stone", 1, 63, 0, 1.4),
+        block("stone", 2, 63, 0, 2.2),
+        block("stone", 1, 62, 0, 2.2),
+    ]
+    no_tool_world = observation({"wooden_pickaxe": 1}, stones)
+    attach_complete_sp003_scan(
+        no_tool_world,
+        [stones[0], stones[2]],
+        origin={"x": 0, "y": 64, "z": 0},
+    )
     no_tool = guard_sp003_action(
         {"type": "dig", "parameters": {"block": "stone", "x": 1, "y": 63, "z": 0}},
-        observation({"wooden_pickaxe": 1}, stones),
+        no_tool_world,
         progress,
     )
     assert "sp003_stone_dig_requires_held_wooden_pickaxe" in no_tool["issues"]
+    held_world = copy.deepcopy(no_tool_world)
+    held_world["equipment"] = [{"name": "wooden_pickaxe", "count": 1}]
     farther = guard_sp003_action(
         {"type": "dig", "parameters": {"block": "stone", "x": 2, "y": 63, "z": 0}},
-        observation({"wooden_pickaxe": 1}, stones, held="wooden_pickaxe"),
+        held_world,
         progress,
     )
     assert "sp003_stone_target_must_be_nearest_observed" in farther["issues"]
     nearest = guard_sp003_action(
         {"type": "dig", "parameters": {"block": "stone", "x": 1, "y": 63, "z": 0}},
-        observation({"wooden_pickaxe": 1}, stones, held="wooden_pickaxe"),
+        held_world,
         progress,
     )
     assert nearest["allowed"], nearest
+    assert nearest["action"]["parameters"]["stone_pickup_access"] is True
+    safe_blocks = [
+        block("stone", 0, 63, 0, 1.0),
+        block("stone", 1, 63, 0, 1.4),
+        block("stone", 0, 62, 0, 2.0),
+        block("stone", 1, 62, 0, 2.2),
+    ]
     support_safe_world = observation(
         {"wooden_pickaxe": 1},
-        [
-            block("stone", 0, 63, 0, 1.0),
-            block("stone", 1, 63, 0, 1.4),
-        ],
+        safe_blocks,
         held="wooden_pickaxe",
+    )
+    attach_complete_sp003_scan(
+        support_safe_world,
+        safe_blocks,
+        origin={"x": 0, "y": 64, "z": 0},
     )
     safe_targets = _sp003_observation_targets(support_safe_world, progress)
     assert [item["source_id"] for item in safe_targets] == ["stone:1:63:0"]
@@ -2061,9 +2496,11 @@ def test_planner_compacts_sp003_state_and_requires_exact_five_node_graph():
     assert "wait for the bounded clearance scan" in prompt
     assert "has stone_pickup_approach=true, it is navigation-only" in prompt
     assert "let the action guard bind the machine-proven stand y" in prompt
+    assert "require stone_pickup_access=true on the first target" in prompt
+    assert "more than six machine-proven" in prompt
     assert "when that wood target's distance exceeds 4.5" in prompt
     assert "never add 1 to y or emit target_position" in prompt
-    assert "when it exceeds 4.5, emit move_to with only that target's x and z" in prompt
+    assert "when it exceeds 4.5 emit move_to with only that target's x and z" in prompt
     assert "Never dig a block directly below the player" in prompt
 
     planner._expected_plan_kind = "root"
@@ -2799,12 +3236,24 @@ def synthetic_sp003_events():
         ]
         inventory = {"oak_planks": 3, "stick": 2, "wooden_pickaxe": 1, "cobblestone": offset}
         after = observation(inventory, table_blocks + remaining_stones, held="wooden_pickaxe")
+        pickup_scan = complete_block_scan(
+            [
+                block("stone", offset, 63, 0, 1.0),
+                block("stone", offset, 62, 0, 2.0),
+            ],
+            origin={"x": offset - 1, "y": 64, "z": 0},
+        )
+        pickup_access = _stone_pickup_accesses(pickup_scan)[0]
+        pickup_proof = pickup_access["pickup_access_proof"]
         params = {
             "block": "stone",
             "x": offset,
             "y": 63,
             "z": 0,
             "source_id": f"stone:{offset}:63:0",
+            "stone_pickup_access": True,
+            "pickup_access_proof": pickup_proof,
+            "pickup_access_proof_fingerprint": canonical_sha256(pickup_proof),
         }
         events.append(action_event(
             index,
@@ -2938,6 +3387,78 @@ def test_synthetic_empty_hand_episode_passes_both_component_verifiers(monkeypatc
     assert report["metrics"]["stone_source_removal_count"] == 3
 
 
+def test_episode_verifier_reconstructs_saturated_pickup_visibility(monkeypatch):
+    initial, terminal, events = synthetic_sp003_events()
+    target_cell = (1, 63, 0)
+    support_cell = (1, 62, 0)
+    head_cell = (1, 64, 0)
+    excluded = {
+        (0, 64, 0),
+        (0, 65, 0),
+        target_cell,
+        support_cell,
+        head_cell,
+    }
+    dense = [
+        block(
+            "dirt",
+            x,
+            y,
+            z,
+            math.sqrt(x * x + (y - 64) ** 2 + z * z),
+        )
+        for x in range(-1, 2)
+        for y in range(61, 68)
+        for z in range(-1, 2)
+        if (x, y, z) not in excluded
+    ]
+    dense.extend([
+        block("stone", *target_cell, math.sqrt(2)),
+        block("stone", *support_cell, math.sqrt(5)),
+    ])
+    world = observation(
+        {"wooden_pickaxe": 1},
+        dense,
+        held="wooden_pickaxe",
+        position={"x": 0.5, "y": 64.0, "z": 0.5},
+    )
+    scan = _bounded_complete_local_scan(
+        world,
+        prioritize_block_response(dense),
+        world,
+    )
+    pickup_proof = next(
+        item["pickup_access_proof"]
+        for item in _stone_pickup_accesses(scan)
+        if item["source_id"] == "stone:1:63:0"
+    )
+    first_stone = next(
+        event
+        for event in events
+        if event["data"]["action"]["type"] == "dig"
+        and event["data"]["action"]["parameters"].get("source_id")
+        == "stone:1:63:0"
+    )
+    first_stone["data"]["action"]["parameters"].update({
+        "pickup_access_proof": pickup_proof,
+        "pickup_access_proof_fingerprint": canonical_sha256(pickup_proof),
+    })
+
+    episode = build_passing_episode(
+        monkeypatch,
+        scenario=(initial, terminal, events),
+    )
+    report = verify_sp003_runtime_episode(episode)
+    assert report["passed"], report
+
+    tampered = copy.deepcopy(episode)
+    transition = tampered["stone_pickup_access_transition_proofs"][0]
+    transition["proof"]["visibility_distance_strict_upper_bound"] += 0.25
+    transition["proof_fingerprint"] = canonical_sha256(transition["proof"])
+    rejected = verify_sp003_runtime_episode(tampered)
+    assert "pre_dig_pickup_access_machine_proof" in rejected["criteria_issues"]
+
+
 def test_delayed_pickup_episode_preserves_raw_failure_and_passes_reconciliation(
     monkeypatch,
 ):
@@ -2998,7 +3519,6 @@ def test_delayed_pickup_episode_verifier_rejects_tamper(monkeypatch, tamper):
 
 
 def add_bounded_surface_clearance_evidence(episode):
-    support = block("stone", 1, 61, 0, 3.162278)
     obstruction_sets = [
         [
             block("dirt", 1, 62, 0, 2.236068),
@@ -3012,43 +3532,55 @@ def add_bounded_surface_clearance_evidence(episode):
         [block("dirt", 1, 62, 0, 2.236068)],
     ]
     transitions = []
-    for index, obstructions in enumerate(obstruction_sets, start=1):
-        scan = complete_block_scan(
-            [support, *obstructions],
-            origin={"x": 0, "y": 64, "z": 0},
-        )
-        target = _stone_surface_clearances(scan)[0]
-        proof = target["clearance_proof"]
-        transitions.append({
-            "index": 9 + index,
-            "source_id": target["source_id"],
-            "source_block": target["name"],
-            "support_source_id": target["support_source_id"],
-            "action_verified": True,
-            "block_removed": True,
-            "target_block_before": target["name"],
-            "target_block_after": "air",
-            "proof_fingerprint": canonical_sha256(proof),
-            "proof": copy.deepcopy(proof),
-        })
+    for column in (1, -1):
+        support = block("stone", column, 61, 0, 3.162278)
+        for obstructions in obstruction_sets:
+            shifted = [
+                block(
+                    item["name"],
+                    column,
+                    item["position"]["y"],
+                    0,
+                    item["distance"],
+                )
+                for item in obstructions
+            ]
+            scan = complete_block_scan(
+                [support, *shifted],
+                origin={"x": 0, "y": 64, "z": 0},
+            )
+            target = _stone_surface_clearances(scan)[0]
+            proof = target["clearance_proof"]
+            transitions.append({
+                "index": 9 + len(transitions) + 1,
+                "source_id": target["source_id"],
+                "source_block": target["name"],
+                "support_source_id": target["support_source_id"],
+                "action_verified": True,
+                "block_removed": True,
+                "target_block_before": target["name"],
+                "target_block_after": "air",
+                "proof_fingerprint": canonical_sha256(proof),
+                "proof": copy.deepcopy(proof),
+            })
     episode["surface_clearance_transition_proofs"] = transitions
     episode["distinct_surface_clearance_source_ids"] = sorted(
         item["source_id"] for item in transitions
     )
-    episode["action_type_counts"]["dig:grass_block"] = 1
-    episode["action_type_counts"]["dig:dirt"] = 2
-    episode["action_count"] += 3
-    episode["goal_result"]["cycles"] += 3
+    episode["action_type_counts"]["dig:grass_block"] = 2
+    episode["action_type_counts"]["dig:dirt"] = 4
+    episode["action_count"] += 6
+    episode["goal_result"]["cycles"] += 6
     return episode
 
 
-def test_machine_verifier_accepts_three_bounded_clearances_and_rejects_tamper_or_fourth(
+def test_machine_verifier_accepts_six_bounded_clearances_and_rejects_tamper_or_seventh(
     monkeypatch,
 ):
     episode = add_bounded_surface_clearance_evidence(build_passing_episode(monkeypatch))
     passed = verify_sp003_runtime_episode(episode)
     assert passed["passed"], passed
-    assert passed["metrics"]["surface_clearance_removal_count"] == 3
+    assert passed["metrics"]["surface_clearance_removal_count"] == 6
 
     tampered = copy.deepcopy(episode)
     tampered["surface_clearance_transition_proofs"][0]["proof"][
@@ -3058,16 +3590,16 @@ def test_machine_verifier_accepts_three_bounded_clearances_and_rejects_tamper_or
         tampered
     )["criteria_issues"]
 
-    fourth = copy.deepcopy(episode)
-    fourth["action_type_counts"]["dig:dirt"] = 3
-    fourth["action_count"] += 1
-    fourth["surface_clearance_transition_proofs"].append(
-        copy.deepcopy(fourth["surface_clearance_transition_proofs"][-1])
+    seventh = copy.deepcopy(episode)
+    seventh["action_type_counts"]["dig:dirt"] = 5
+    seventh["action_count"] += 1
+    seventh["surface_clearance_transition_proofs"].append(
+        copy.deepcopy(seventh["surface_clearance_transition_proofs"][-1])
     )
-    fourth["surface_clearance_transition_proofs"][-1]["source_id"] = "dirt:2:62:0"
-    fourth["distinct_surface_clearance_source_ids"].append("dirt:2:62:0")
+    seventh["surface_clearance_transition_proofs"][-1]["source_id"] = "dirt:2:62:0"
+    seventh["distinct_surface_clearance_source_ids"].append("dirt:2:62:0")
     assert "bounded_surface_clearance_machine_proof" in verify_sp003_runtime_episode(
-        fourth
+        seventh
     )["criteria_issues"]
 
 
@@ -3118,6 +3650,13 @@ def test_verifier_fails_closed_on_overdig_wrong_family_or_skill_store_mutation(m
     malformed = copy.deepcopy(episode)
     malformed["craft_backend_proofs"][0] = None
     assert "all_crafts_single_verified_attempt" in verify_sp003_runtime_episode(malformed)["criteria_issues"]
+    covered_pickup = copy.deepcopy(episode)
+    covered_pickup["stone_pickup_access_transition_proofs"][0]["proof"][
+        "head_cell_state"
+    ] = "dirt"
+    assert "pre_dig_pickup_access_machine_proof" in verify_sp003_runtime_episode(
+        covered_pickup
+    )["criteria_issues"]
     mutated = copy.deepcopy(episode)
     mutated["skill_store_sha256_after"] = "d" * 64
     assert "skill_store_immutable" in verify_sp003_runtime_episode(mutated)["criteria_issues"]

@@ -80,7 +80,9 @@ CANOPY_EGRESS_MIN_HORIZONTAL_DISTANCE = 8.0
 SP003_CLEARANCE_SCAN_RADIUS = 1
 SP003_CLEARANCE_SCAN_RESPONSE_LIMIT = 50
 SP003_SURFACE_CLEARANCE_BLOCKS = ("grass_block", "dirt")
-SP003_SURFACE_CLEARANCE_MAX = 3
+SP003_CLEARANCE_SHAFT_MAX = 3
+SP003_SURFACE_CLEARANCE_MAX = 6
+SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID = "sp003-pre-dig-pickup-access-v1"
 SP003_CRAFT_SETTLEMENT_DELAY_MS = 1000
 SP003_DELAYED_LOG_PICKUP_POLICY_ID = "sp003-delayed-log-pickup-reconciliation-v1"
 SP003_PENDING_LOG_PICKUP_MAX = 3
@@ -126,6 +128,7 @@ SP003_PLANNER_TARGET_FIELDS = [
     "remaining_clearance_count",
     "stone_clearance_probe",
     "stone_pickup_approach",
+    "stone_pickup_access",
     "machine_proven_placement",
     "vertical_delta",
 ]
@@ -268,8 +271,32 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         == list(SP003_SURFACE_CLEARANCE_BLOCKS)
         and episode_contract.get("surface_clearance_actions_max")
         == SP003_SURFACE_CLEARANCE_MAX
-        and episode_contract.get("surface_clearance_complete_scan_required") is True
+        and episode_contract.get("surface_clearance_actions_per_shaft_max")
+        == SP003_CLEARANCE_SHAFT_MAX
+        and episode_contract.get(
+            "surface_clearance_complete_or_strict_visibility_required"
+        )
+        is True
     )
+    checks["pre_dig_pickup_access_contract"] = (
+        episode_contract.get("pre_dig_pickup_access_policy_id")
+        == SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID
+        and episode_contract.get("pre_dig_complete_local_scan_required") is True
+        and episode_contract.get("pre_dig_scan_radius")
+        == SP003_CLEARANCE_SCAN_RADIUS
+        and episode_contract.get("pre_dig_scan_response_limit")
+        == SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
+        and episode_contract.get("pre_dig_support_block_allowed") == "stone"
+        and episode_contract.get("pre_dig_post_removal_stand_cell_required") is True
+        and episode_contract.get("pre_dig_head_cell_air_required") is True
+        and episode_contract.get("pre_dig_saturated_priority_visibility_allowed")
+        is True
+        and episode_contract.get("pre_dig_visibility_distance_must_be_strict")
+        is True
+    )
+    checks["frozen_bridge_identity"] = file_sha256(
+        REPOSITORY_ROOT / "src/bot/bot_server.js"
+    ) == SP003_FROZEN_BRIDGE_SHA256
     checks["interactive_craft_settlement_contract"] = (
         episode_contract.get("crafting_table_tool_settlement_delay_ms")
         == SP003_CRAFT_SETTLEMENT_DELAY_MS
@@ -1059,6 +1086,80 @@ def _integer_cell(value: Any) -> tuple[int, int, int] | None:
     return tuple(int(item) for item in coordinates)
 
 
+def _priority_visibility_metadata(
+    blocks: Any,
+    origin_cell: tuple[int, int, int] | None = None,
+) -> dict:
+    records = blocks if isinstance(blocks, list) else []
+    if len(records) != SP003_CLEARANCE_SCAN_RESPONSE_LIMIT:
+        return {}
+    cells = set()
+    names = []
+    distances = []
+    for block in records:
+        if not isinstance(block, dict):
+            return {}
+        name = str(block.get("name") or "")
+        cell = _integer_cell(block.get("position"))
+        distance = _finite(block.get("distance"))
+        if (
+            not name
+            or cell is None
+            or cell in cells
+            or distance is None
+            or distance < 0
+        ):
+            return {}
+        if origin_cell is not None:
+            expected_distance = math.sqrt(sum(
+                (cell[index] - origin_cell[index]) ** 2
+                for index in range(3)
+            ))
+            if not math.isclose(
+                float(distance),
+                expected_distance,
+                rel_tol=0.0,
+                abs_tol=1e-9,
+            ):
+                return {}
+        cells.add(cell)
+        names.append(name)
+        distances.append(float(distance))
+    first_duplicate = next(
+        (
+            index
+            for index, name in enumerate(names)
+            if name in set(names[:index])
+        ),
+        None,
+    )
+    if first_duplicate is None or first_duplicate <= 0:
+        return {}
+    prefix_names = names[:first_duplicate]
+    suffix_names = names[first_duplicate:]
+    prefix_distances = distances[:first_duplicate]
+    suffix_distances = distances[first_duplicate:]
+    if (
+        len(set(prefix_names)) != len(prefix_names)
+        or any(name not in set(prefix_names) for name in suffix_names)
+        or prefix_distances != sorted(prefix_distances)
+        or suffix_distances != sorted(suffix_distances)
+        or not suffix_distances
+    ):
+        return {}
+    nearest_by_name = dict(zip(prefix_names, prefix_distances))
+    if any(
+        nearest_by_name[name] > distance
+        for name, distance in zip(suffix_names, suffix_distances)
+    ):
+        return {}
+    return {
+        "priority_unique_name_prefix_count": first_duplicate,
+        "visibility_distance_strict_upper_bound": suffix_distances[-1],
+        "selection_trace_fingerprint": canonical_sha256(records),
+    }
+
+
 def _validated_complete_scan_index(scan_report: Any) -> dict:
     report = scan_report if isinstance(scan_report, dict) else {}
     blocks = report.get("blocks") if isinstance(report.get("blocks"), list) else []
@@ -1070,7 +1171,6 @@ def _validated_complete_scan_index(scan_report: Any) -> dict:
     if (
         report.get("type") != "sp003_bounded_complete_nearby_block_scan"
         or report.get("schema_version") != 1
-        or report.get("scan_complete") is not True
         or report.get("origin_stable") is not True
         or origin_cell is None
         or post_cell != origin_cell
@@ -1085,10 +1185,35 @@ def _validated_complete_scan_index(scan_report: Any) -> dict:
         != SP003_FROZEN_BRIDGE_SHA256
         or report.get("response_limit") != SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
         or report.get("response_count") != len(blocks)
-        or len(blocks) >= SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
-        or report.get("completeness_basis")
-        != "result_count_below_frozen_backend_limit"
+        or len(blocks) > SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
     ):
+        return {}
+    full_scan = bool(
+        report.get("scan_complete") is True
+        and report.get("targeted_air_visibility_complete") is False
+        and len(blocks) < SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
+        and report.get("completeness_basis")
+        == "result_count_below_frozen_backend_limit"
+        and report.get("priority_unique_name_prefix_count") == 0
+        and report.get("visibility_distance_strict_upper_bound") is None
+        and report.get("selection_trace_fingerprint") == ""
+    )
+    visibility = _priority_visibility_metadata(blocks, origin_cell)
+    targeted_visibility = bool(
+        report.get("scan_complete") is False
+        and report.get("targeted_air_visibility_complete") is True
+        and len(blocks) == SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
+        and report.get("completeness_basis")
+        == "frozen_priority_selection_strict_distance_cutoff"
+        and visibility
+        and report.get("priority_unique_name_prefix_count")
+        == visibility["priority_unique_name_prefix_count"]
+        and report.get("visibility_distance_strict_upper_bound")
+        == visibility["visibility_distance_strict_upper_bound"]
+        and report.get("selection_trace_fingerprint")
+        == visibility["selection_trace_fingerprint"]
+    )
+    if not full_scan and not targeted_visibility:
         return {}
 
     def inside_scan(cell: tuple[int, int, int]) -> bool:
@@ -1116,6 +1241,24 @@ def _validated_complete_scan_index(scan_report: Any) -> dict:
         ):
             return {}
         by_cell[cell] = block
+
+    cutoff = (
+        float(visibility["visibility_distance_strict_upper_bound"])
+        if targeted_visibility
+        else None
+    )
+
+    def air_proven(cell: tuple[int, int, int]) -> bool:
+        if not inside_scan(cell) or cell in by_cell:
+            return False
+        if full_scan:
+            return True
+        distance = math.sqrt(sum(
+            (cell[index] - origin_cell[index]) ** 2
+            for index in range(3)
+        ))
+        return cutoff is not None and distance < cutoff
+
     return {
         "report": report,
         "origin_cell": origin_cell,
@@ -1124,6 +1267,10 @@ def _validated_complete_scan_index(scan_report: Any) -> dict:
         "vertical_max": vertical_max,
         "by_cell": by_cell,
         "inside_scan": inside_scan,
+        "air_proven": air_proven,
+        "full_scan": full_scan,
+        "targeted_visibility": targeted_visibility,
+        "visibility_distance_strict_upper_bound": cutoff,
         "scan_fingerprint": canonical_sha256(report),
     }
 
@@ -1132,7 +1279,10 @@ def _scan_proof_base(scan: dict) -> dict:
     report = scan["report"]
     origin = scan["origin_cell"]
     return {
-        "scan_complete": True,
+        "scan_complete": report["scan_complete"],
+        "targeted_air_visibility_complete": report[
+            "targeted_air_visibility_complete"
+        ],
         "scan_fingerprint": scan["scan_fingerprint"],
         "scan_radius": scan["radius"],
         "scan_origin_cell": {"x": origin[0], "y": origin[1], "z": origin[2]},
@@ -1146,6 +1296,18 @@ def _scan_proof_base(scan: dict) -> dict:
         "response_limit": report["response_limit"],
         "response_count": report["response_count"],
         "completeness_basis": report["completeness_basis"],
+        "priority_unique_name_prefix_count": report[
+            "priority_unique_name_prefix_count"
+        ],
+        "visibility_distance_strict_upper_bound": report[
+            "visibility_distance_strict_upper_bound"
+        ],
+        "selection_trace_fingerprint": report["selection_trace_fingerprint"],
+        "priority_selection_trace": (
+            copy.deepcopy(report["blocks"])
+            if report["targeted_air_visibility_complete"]
+            else []
+        ),
     }
 
 
@@ -1156,6 +1318,7 @@ def _stone_approach_stands(scan_report: Any) -> list[dict]:
     origin_cell = scan["origin_cell"]
     by_cell = scan["by_cell"]
     inside_scan = scan["inside_scan"]
+    air_proven = scan["air_proven"]
     approaches = []
     for cell, block in by_cell.items():
         vertical_gap = origin_cell[1] - cell[1]
@@ -1165,7 +1328,7 @@ def _stone_approach_stands(scan_report: Any) -> list[dict]:
             (cell[0], y, cell[2])
             for y in range(cell[1] + 1, origin_cell[1] + 1)
         ]
-        if any(not inside_scan(item) or item in by_cell for item in shaft):
+        if any(not inside_scan(item) or not air_proven(item) for item in shaft):
             continue
         stand_cell = shaft[0]
         head_cell = shaft[1]
@@ -1202,6 +1365,77 @@ def _stone_approach_stands(scan_report: Any) -> list[dict]:
     return approaches[:16]
 
 
+def _stone_pickup_accesses(scan_report: Any) -> list[dict]:
+    scan = _validated_complete_scan_index(scan_report)
+    if not scan:
+        return []
+    origin_cell = scan["origin_cell"]
+    by_cell = scan["by_cell"]
+    inside_scan = scan["inside_scan"]
+    air_proven = scan["air_proven"]
+    accesses = []
+    for target_cell, target_block in by_cell.items():
+        vertical_gap = origin_cell[1] - target_cell[1]
+        if target_block.get("name") != "stone" or not 0 <= vertical_gap <= 1:
+            continue
+        support_cell = (target_cell[0], target_cell[1] - 1, target_cell[2])
+        head_cell = (target_cell[0], target_cell[1] + 1, target_cell[2])
+        support_block = by_cell.get(support_cell)
+        if (
+            not inside_scan(support_cell)
+            or not inside_scan(head_cell)
+            or not isinstance(support_block, dict)
+            or support_block.get("name") != "stone"
+            or not air_proven(head_cell)
+        ):
+            continue
+        target_position = {
+            "x": target_cell[0],
+            "y": target_cell[1],
+            "z": target_cell[2],
+        }
+        support_position = {
+            "x": support_cell[0],
+            "y": support_cell[1],
+            "z": support_cell[2],
+        }
+        head_position = {
+            "x": head_cell[0],
+            "y": head_cell[1],
+            "z": head_cell[2],
+        }
+        target_source_id = source_id("stone", target_position)
+        support_source_id = source_id("stone", support_position)
+        proof = {
+            "type": "sp003_stone_pickup_access_proof",
+            "schema_version": 1,
+            "policy_id": SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID,
+            **_scan_proof_base(scan),
+            "target_block": "stone",
+            "target_source_id": target_source_id,
+            "target_position": target_position,
+            "target_cell_state_before": "stone",
+            "support_block": "stone",
+            "support_source_id": support_source_id,
+            "support_position": support_position,
+            "post_dig_stand_position": copy.deepcopy(target_position),
+            "post_dig_stand_cell_state": "air_after_verified_removal",
+            "head_position": head_position,
+            "head_cell_state": "air",
+            "pickup_access_proven": True,
+        }
+        accesses.append({
+            "source_id": target_source_id,
+            "name": "stone",
+            "position": target_position,
+            "distance": round(float(target_block["distance"]), 6),
+            "stone_pickup_access": True,
+            "pickup_access_proof": proof,
+        })
+    accesses.sort(key=lambda item: (item["distance"], item["source_id"]))
+    return accesses[:16]
+
+
 def _stone_surface_clearances(scan_report: Any) -> list[dict]:
     scan = _validated_complete_scan_index(scan_report)
     if not scan:
@@ -1209,25 +1443,31 @@ def _stone_surface_clearances(scan_report: Any) -> list[dict]:
     origin_cell = scan["origin_cell"]
     by_cell = scan["by_cell"]
     inside_scan = scan["inside_scan"]
+    air_proven = scan["air_proven"]
     clearances = []
     for support_cell, support_block in by_cell.items():
         vertical_gap = origin_cell[1] - support_cell[1]
         if (
             support_block.get("name") != "stone"
-            or not 2 <= vertical_gap <= 3
+            or not 0 <= vertical_gap <= 3
             or (support_cell[0], support_cell[2])
             == (origin_cell[0], origin_cell[2])
         ):
             continue
         shaft = [
             (support_cell[0], y, support_cell[2])
-            for y in range(support_cell[1] + 1, origin_cell[1] + 1)
+            for y in range(
+                support_cell[1] + 1,
+                max(origin_cell[1], support_cell[1] + 1) + 1,
+            )
         ]
         if any(not inside_scan(item) for item in shaft):
             continue
         occupied = [item for item in shaft if item in by_cell]
+        if any(item not in by_cell and not air_proven(item) for item in shaft):
+            continue
         if (
-            not 1 <= len(occupied) <= SP003_SURFACE_CLEARANCE_MAX
+            not 1 <= len(occupied) <= SP003_CLEARANCE_SHAFT_MAX
             or any(
                 str(by_cell[item].get("name") or "")
                 not in SP003_SURFACE_CLEARANCE_BLOCKS
@@ -1292,7 +1532,7 @@ def _stone_surface_clearances(scan_report: Any) -> list[dict]:
                     for item in top_down
                 ],
                 "allowed_blocks": list(SP003_SURFACE_CLEARANCE_BLOCKS),
-                "maximum_removals": SP003_SURFACE_CLEARANCE_MAX,
+                "maximum_removals": SP003_CLEARANCE_SHAFT_MAX,
                 "selected_block": selected_name,
                 "selected_source_id": selected_source_id,
                 "selected_position": selected_position,
@@ -1321,6 +1561,27 @@ def _validated_stone_approach(
     if (
         not expected
         or source_id("stone", candidate.get("position")) != candidate.get("source_id")
+        or canonical_sha256(record) != canonical_sha256(expected)
+    ):
+        return {}
+    return expected
+
+
+def _validated_stone_pickup_access(
+    candidate: Any,
+    record: Any,
+    scan_report: Any,
+) -> dict:
+    if not isinstance(candidate, dict) or not isinstance(record, dict):
+        return {}
+    expected = {
+        item["source_id"]: item
+        for item in _stone_pickup_accesses(scan_report)
+    }.get(str(candidate.get("source_id") or ""), {})
+    if (
+        not expected
+        or source_id("stone", candidate.get("position"))
+        != candidate.get("source_id")
         or canonical_sha256(record) != canonical_sha256(expected)
     ):
         return {}
@@ -1382,6 +1643,16 @@ def _safe_stone_candidates(
         for record in clearance_records
         if isinstance(record, dict) and record.get("support_source_id")
     }
+    pickup_access_records = raw.get("sp003_stone_pickup_accesses")
+    pickup_access_records = (
+        pickup_access_records if isinstance(pickup_access_records, list) else []
+    )
+    pickup_accesses = {
+        str(record.get("source_id") or ""): record
+        for record in pickup_access_records
+        if isinstance(record, dict) and record.get("source_id")
+    }
+    validated_scan = _validated_complete_scan_index(scan_report)
     cleared_sources = set(state["surface_clearance_source_ids"])
     player_column = (math.floor(player_x), math.floor(player_z))
     interaction_range = float(
@@ -1397,19 +1668,49 @@ def _safe_stone_candidates(
             continue
         directly_below = (round(x), round(z)) == player_column and y < player_y
         vertical_gap = player_y - y
+        horizontal_distance = math.hypot(x - player_x, z - player_z)
         if directly_below and vertical_gap <= 1.25:
             continue
-        rank = 0
-        candidate = support
-        if vertical_gap > 1.25:
+        target_cell = _integer_cell(position)
+        target_inside_scan = bool(
+            validated_scan
+            and target_cell is not None
+            and validated_scan["inside_scan"](target_cell)
+        )
+        clearance = _validated_stone_surface_clearance(
+            support,
+            clearances.get(support["source_id"]),
+            scan_report,
+        )
+        pickup_access = _validated_stone_pickup_access(
+            support,
+            pickup_accesses.get(support["source_id"]),
+            scan_report,
+        )
+        if (
+            clearance
+            and clearance["source_id"] not in cleared_sources
+            and state["surface_clearance_removal_count"]
+            < SP003_SURFACE_CLEARANCE_MAX
+        ):
+            rank = 2
+            candidate = {
+                **copy.deepcopy(clearance),
+                "vertical_delta": round(y - player_y, 6),
+            }
+        elif pickup_access:
+            rank = 0
+            candidate = {
+                **support,
+                "stone_pickup_access": True,
+                "pickup_access_proof": copy.deepcopy(
+                    pickup_access["pickup_access_proof"]
+                ),
+            }
+        elif vertical_gap > 1.25:
             approach = _validated_stone_approach(
                 support,
                 approaches.get(support["source_id"]),
-                scan_report,
-            )
-            clearance = _validated_stone_surface_clearance(
-                support,
-                clearances.get(support["source_id"]),
                 scan_report,
             )
             if approach:
@@ -1422,15 +1723,8 @@ def _safe_stone_candidates(
                     "stone_pickup_approach": True,
                     "clearance_proof": copy.deepcopy(approach["proof"]),
                 }
-            elif clearance and clearance["source_id"] not in cleared_sources:
-                rank = 2
-                candidate = {
-                    **copy.deepcopy(clearance),
-                    "vertical_delta": round(y - player_y, 6),
-                }
             else:
-                horizontal_distance = math.hypot(x - player_x, z - player_z)
-                if directly_below or horizontal_distance <= 1.25:
+                if target_inside_scan or directly_below or horizontal_distance <= 1.25:
                     continue
                 rank = 3
                 candidate = {
@@ -1440,6 +1734,17 @@ def _safe_stone_candidates(
                     "navigation_only": True,
                     "stone_clearance_probe": True,
                 }
+        else:
+            if target_inside_scan or horizontal_distance <= 1.25:
+                continue
+            rank = 3
+            candidate = {
+                **support,
+                "vertical_delta": round(y - player_y, 6),
+                "horizontal_distance": round(horizontal_distance, 6),
+                "navigation_only": True,
+                "stone_clearance_probe": True,
+            }
         if reachable_only and float(candidate["distance"]) > interaction_range:
             continue
         ranked.append((rank, float(support["distance"]), candidate["source_id"], candidate))
@@ -1474,19 +1779,24 @@ def _bounded_complete_local_scan(
     )
     if (
         not isinstance(local_scan, list)
-        or len(blocks) >= SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
+        or len(blocks) > SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
         or origin_cell is None
         or post_cell != origin_cell
         or file_sha256(backend_path) != SP003_FROZEN_BRIDGE_SHA256
     ):
         return {}
+    visibility = _priority_visibility_metadata(blocks, origin_cell)
+    if len(blocks) == SP003_CLEARANCE_SCAN_RESPONSE_LIMIT and not visibility:
+        return {}
+    full_scan = len(blocks) < SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
     radius = SP003_CLEARANCE_SCAN_RADIUS
     vertical_min = -3
     vertical_max = 3
     return {
         "type": "sp003_bounded_complete_nearby_block_scan",
         "schema_version": 1,
-        "scan_complete": True,
+        "scan_complete": full_scan,
+        "targeted_air_visibility_complete": not full_scan,
         "radius": radius,
         "vertical_min_offset": vertical_min,
         "vertical_max_offset": vertical_max,
@@ -1507,7 +1817,22 @@ def _bounded_complete_local_scan(
         "backend_sha256": SP003_FROZEN_BRIDGE_SHA256,
         "response_limit": SP003_CLEARANCE_SCAN_RESPONSE_LIMIT,
         "response_count": len(blocks),
-        "completeness_basis": "result_count_below_frozen_backend_limit",
+        "completeness_basis": (
+            "result_count_below_frozen_backend_limit"
+            if full_scan
+            else "frozen_priority_selection_strict_distance_cutoff"
+        ),
+        "priority_unique_name_prefix_count": visibility.get(
+            "priority_unique_name_prefix_count",
+            0,
+        ),
+        "visibility_distance_strict_upper_bound": visibility.get(
+            "visibility_distance_strict_upper_bound"
+        ),
+        "selection_trace_fingerprint": visibility.get(
+            "selection_trace_fingerprint",
+            "",
+        ),
         "blocks": copy.deepcopy(blocks),
     }
 
@@ -1743,6 +2068,9 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
             "support_source_id",
             "surface_clearance_proof",
             "surface_clearance_proof_fingerprint",
+            "stone_pickup_access",
+            "pickup_access_proof",
+            "pickup_access_proof_fingerprint",
         ):
             normalized["parameters"].pop(key, None)
         if _main_hand_item(observation) != "wooden_pickaxe":
@@ -1770,9 +2098,17 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
                 issues.append("sp003_stone_clearance_probe_required_before_dig")
             elif matching[0].get("stone_pickup_approach") is True:
                 issues.append("sp003_stone_grounded_approach_required_before_dig")
+            elif matching[0].get("stone_pickup_access") is not True:
+                issues.append("sp003_stone_pickup_access_must_be_machine_proven")
             else:
                 selected_source = matching[0]
-                normalized["parameters"]["source_id"] = target_id
+                proof = copy.deepcopy(selected_source["pickup_access_proof"])
+                normalized["parameters"].update({
+                    "source_id": target_id,
+                    "stone_pickup_access": True,
+                    "pickup_access_proof": proof,
+                    "pickup_access_proof_fingerprint": canonical_sha256(proof),
+                })
             if (
                 state["stone_source_removal_count"] >= 3
                 or inventory.get("cobblestone", 0) >= 3
@@ -2193,6 +2529,11 @@ def record_sp003_success(progress: dict, action: Any, result: Any) -> dict:
         pickup = backend.get("pickup_inventory_delta") if isinstance(backend.get("pickup_inventory_delta"), dict) else {}
         tool = backend.get("dig_tool_equip") if isinstance(backend.get("dig_tool_equip"), dict) else {}
         identifier = str(params.get("source_id") or source_id(block, params))
+        proof = (
+            params.get("pickup_access_proof")
+            if isinstance(params.get("pickup_access_proof"), dict)
+            else {}
+        )
         if (
             backend.get("block_removed") is True
             and backend.get("pickup_observed") is True
@@ -2200,6 +2541,12 @@ def record_sp003_success(progress: dict, action: Any, result: Any) -> dict:
             and str(tool.get("equipped_tool") or tool.get("selected_tool") or "") == "wooden_pickaxe"
             and tool.get("passed") is True
             and identifier
+            and params.get("stone_pickup_access") is True
+            and proof.get("type") == "sp003_stone_pickup_access_proof"
+            and proof.get("policy_id") == SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID
+            and proof.get("target_source_id") == identifier
+            and params.get("pickup_access_proof_fingerprint")
+            == canonical_sha256(proof)
         ):
             progress["stone_source_ids"].add(identifier)
             mutation["source_id"] = identifier
@@ -2285,6 +2632,9 @@ class StonePickaxeSP003RuntimeAgent(StonePickaxeSP002RuntimeAgent):
         )
         observation["sp003_complete_local_scan"] = copy.deepcopy(scan_report)
         observation["sp003_stone_approach_stands"] = _stone_approach_stands(scan_report)
+        observation["sp003_stone_pickup_accesses"] = _stone_pickup_accesses(
+            scan_report
+        )
         observation["sp003_stone_surface_clearances"] = _stone_surface_clearances(
             scan_report
         )
@@ -3025,6 +3375,7 @@ def build_sp003_episode(
     stone_sources = set()
     log_transition_proofs = []
     surface_clearance_transition_proofs = []
+    stone_pickup_access_transition_proofs = []
     craft_backend_proofs = []
     table_placement_proofs = []
     iron_actions = []
@@ -3110,7 +3461,56 @@ def build_sp003_episode(
                 "delayed_pickup_reconciled": False,
             })
         if action_type == "dig" and subject == "stone" and result.get("success") is True:
-            stone_sources.add(str(params.get("source_id") or source_id(subject, params)))
+            identifier = str(params.get("source_id") or source_id(subject, params))
+            proof = (
+                params.get("pickup_access_proof")
+                if isinstance(params.get("pickup_access_proof"), dict)
+                else {}
+            )
+            verification = (
+                result.get("action_verification")
+                if isinstance(result.get("action_verification"), dict)
+                else {}
+            )
+            before_block = (
+                result.get("target_block_before")
+                if isinstance(result.get("target_block_before"), dict)
+                else {}
+            )
+            after_block = (
+                result.get("target_block_after")
+                if isinstance(result.get("target_block_after"), dict)
+                else {}
+            )
+            pickup = (
+                result.get("pickup_inventory_delta")
+                if isinstance(result.get("pickup_inventory_delta"), dict)
+                else {}
+            )
+            tool = (
+                result.get("dig_tool_equip")
+                if isinstance(result.get("dig_tool_equip"), dict)
+                else {}
+            )
+            stone_sources.add(identifier)
+            stone_pickup_access_transition_proofs.append({
+                "index": index,
+                "source_id": identifier,
+                "action_verified": verification.get("status") == "accept",
+                "block_removed": result.get("block_removed") is True,
+                "target_block_before": str(before_block.get("name") or ""),
+                "target_block_after": str(after_block.get("name") or ""),
+                "pickup_observed": result.get("pickup_observed") is True,
+                "pickup_count": _count(pickup.get("cobblestone")),
+                "tool_equipped": str(
+                    tool.get("equipped_tool") or tool.get("selected_tool") or ""
+                ),
+                "tool_equip_passed": tool.get("passed") is True,
+                "proof_fingerprint": str(
+                    params.get("pickup_access_proof_fingerprint") or ""
+                ),
+                "proof": copy.deepcopy(proof),
+            })
         if (
             action_type == "dig"
             and subject in SP003_SURFACE_CLEARANCE_BLOCKS
@@ -3370,6 +3770,9 @@ def build_sp003_episode(
             delayed_log_pickup_reconciliation_proofs
         ),
         "surface_clearance_transition_proofs": surface_clearance_transition_proofs,
+        "stone_pickup_access_transition_proofs": (
+            stone_pickup_access_transition_proofs
+        ),
         "craft_backend_proofs": craft_backend_proofs,
         "table_placement_proofs": table_placement_proofs,
         "initial_observation": copy.deepcopy(initial_observation),
@@ -3466,6 +3869,11 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
         if isinstance(value.get("surface_clearance_transition_proofs"), list)
         else []
     )
+    stone_pickup_access_proofs = (
+        value.get("stone_pickup_access_transition_proofs")
+        if isinstance(value.get("stone_pickup_access_transition_proofs"), list)
+        else []
+    )
     craft_proofs = value.get("craft_backend_proofs") if isinstance(value.get("craft_backend_proofs"), list) else []
     table_proofs = value.get("table_placement_proofs") if isinstance(value.get("table_placement_proofs"), list) else []
     arm = str(value.get("arm") or "")
@@ -3500,6 +3908,121 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
         for block_name in SP003_SURFACE_CLEARANCE_BLOCKS
     )
 
+    def valid_scan_visibility_proof(
+        proof: Any,
+        *,
+        air_cells: list[Any] | None = None,
+    ) -> bool:
+        item = proof if isinstance(proof, dict) else {}
+        origin_cell = _integer_cell(item.get("scan_origin_cell"))
+        post_cell = _integer_cell(item.get("post_scan_player_cell"))
+        common = bool(
+            origin_cell is not None
+            and post_cell == origin_cell
+            and item.get("origin_stable") is True
+            and item.get("scan_radius") == SP003_CLEARANCE_SCAN_RADIUS
+            and item.get("vertical_min_offset") == -3
+            and item.get("vertical_max_offset") == 3
+            and item.get("scanned_cell_count") == 63
+            and item.get("backend_path") == "src/bot/bot_server.js"
+            and item.get("backend_sha256") == SP003_FROZEN_BRIDGE_SHA256
+            and file_sha256(REPOSITORY_ROOT / "src/bot/bot_server.js")
+            == SP003_FROZEN_BRIDGE_SHA256
+            and item.get("response_limit") == SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
+            and isinstance(item.get("response_count"), int)
+            and not isinstance(item.get("response_count"), bool)
+            and 0 <= item.get("response_count") <= SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
+        )
+        if not common:
+            return False
+        full_scan = bool(
+            item.get("scan_complete") is True
+            and item.get("targeted_air_visibility_complete") is False
+            and item.get("response_count") < SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
+            and item.get("completeness_basis")
+            == "result_count_below_frozen_backend_limit"
+            and item.get("priority_unique_name_prefix_count") == 0
+            and item.get("visibility_distance_strict_upper_bound") is None
+            and item.get("selection_trace_fingerprint") == ""
+            and item.get("priority_selection_trace") == []
+        )
+        if full_scan:
+            return True
+
+        trace = (
+            item.get("priority_selection_trace")
+            if isinstance(item.get("priority_selection_trace"), list)
+            else []
+        )
+        visibility = _priority_visibility_metadata(trace, origin_cell)
+        if not (
+            item.get("scan_complete") is False
+            and item.get("targeted_air_visibility_complete") is True
+            and item.get("response_count") == SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
+            and len(trace) == item.get("response_count")
+            and item.get("completeness_basis")
+            == "frozen_priority_selection_strict_distance_cutoff"
+            and visibility
+            and item.get("priority_unique_name_prefix_count")
+            == visibility["priority_unique_name_prefix_count"]
+            and item.get("visibility_distance_strict_upper_bound")
+            == visibility["visibility_distance_strict_upper_bound"]
+            and item.get("selection_trace_fingerprint")
+            == visibility["selection_trace_fingerprint"]
+        ):
+            return False
+        reconstructed = {
+            "type": "sp003_bounded_complete_nearby_block_scan",
+            "schema_version": 1,
+            "scan_complete": False,
+            "targeted_air_visibility_complete": True,
+            "radius": item["scan_radius"],
+            "vertical_min_offset": item["vertical_min_offset"],
+            "vertical_max_offset": item["vertical_max_offset"],
+            "origin_cell": copy.deepcopy(item["scan_origin_cell"]),
+            "origin_stable": True,
+            "post_scan_player_cell": copy.deepcopy(item["post_scan_player_cell"]),
+            "scanned_cell_count": item["scanned_cell_count"],
+            "backend_path": item["backend_path"],
+            "backend_sha256": item["backend_sha256"],
+            "response_limit": item["response_limit"],
+            "response_count": item["response_count"],
+            "completeness_basis": item["completeness_basis"],
+            "priority_unique_name_prefix_count": item[
+                "priority_unique_name_prefix_count"
+            ],
+            "visibility_distance_strict_upper_bound": item[
+                "visibility_distance_strict_upper_bound"
+            ],
+            "selection_trace_fingerprint": item["selection_trace_fingerprint"],
+            "blocks": copy.deepcopy(trace),
+        }
+        if item.get("scan_fingerprint") != canonical_sha256(reconstructed):
+            return False
+        trace_cells = {
+            _integer_cell(block.get("position"))
+            for block in trace
+            if isinstance(block, dict)
+        }
+        cutoff = float(visibility["visibility_distance_strict_upper_bound"])
+        for raw_cell in air_cells or []:
+            cell = _integer_cell(raw_cell)
+            if (
+                cell is None
+                or cell in trace_cells
+                or abs(cell[0] - origin_cell[0]) > SP003_CLEARANCE_SCAN_RADIUS
+                or not origin_cell[1] - 3 <= cell[1] <= origin_cell[1] + 3
+                or abs(cell[2] - origin_cell[2]) > SP003_CLEARANCE_SCAN_RADIUS
+            ):
+                return False
+            distance = math.sqrt(sum(
+                (cell[index] - origin_cell[index]) ** 2
+                for index in range(3)
+            ))
+            if distance >= cutoff:
+                return False
+        return True
+
     def valid_surface_clearance_proof(transition: Any) -> bool:
         item = transition if isinstance(transition, dict) else {}
         proof = item.get("proof") if isinstance(item.get("proof"), dict) else {}
@@ -3519,7 +4042,10 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
         expected_shaft = (
             [
                 (support_cell[0], y, support_cell[2])
-                for y in range(support_cell[1] + 1, origin_cell[1] + 1)
+                for y in range(
+                    support_cell[1] + 1,
+                    max(origin_cell[1], support_cell[1] + 1) + 1,
+                )
             ]
             if origin_cell is not None and support_cell is not None
             else []
@@ -3559,15 +4085,14 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
             and item.get("proof_fingerprint") == canonical_sha256(proof)
             and proof.get("type") == "sp003_stone_surface_clearance_proof"
             and proof.get("schema_version") == 1
-            and proof.get("scan_complete") is True
-            and proof.get("origin_stable") is True
-            and proof.get("backend_path") == "src/bot/bot_server.js"
-            and proof.get("backend_sha256") == SP003_FROZEN_BRIDGE_SHA256
-            and proof.get("response_limit") == SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
-            and isinstance(proof.get("response_count"), int)
-            and proof.get("response_count") < SP003_CLEARANCE_SCAN_RESPONSE_LIMIT
-            and proof.get("completeness_basis")
-            == "result_count_below_frozen_backend_limit"
+            and valid_scan_visibility_proof(
+                proof,
+                air_cells=[
+                    state.get("position")
+                    for state in shaft_states
+                    if isinstance(state, dict) and state.get("state") == "air"
+                ],
+            )
             and proof.get("support_block") == "stone"
             and proof.get("support_source_id") == item.get("support_source_id")
             and source_id("stone", proof.get("support_position"))
@@ -3576,20 +4101,20 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
             and origin_cell is not None
             and support_cell is not None
             and selected_cell is not None
-            and 2 <= origin_cell[1] - support_cell[1] <= 3
+            and 0 <= origin_cell[1] - support_cell[1] <= 3
             and (origin_cell[0], origin_cell[2])
             != (support_cell[0], support_cell[2])
             and shaft_position_cells == expected_shaft
             and shaft_state_cells == expected_shaft
             and selected_cell in expected_shaft
             and proof.get("allowed_blocks") == list(SP003_SURFACE_CLEARANCE_BLOCKS)
-            and proof.get("maximum_removals") == SP003_SURFACE_CLEARANCE_MAX
+            and proof.get("maximum_removals") == SP003_CLEARANCE_SHAFT_MAX
             and proof.get("selected_block") == item.get("source_block")
             and proof.get("selected_source_id") == item.get("source_id")
             and source_id(proof.get("selected_block"), proof.get("selected_position"))
             == item.get("source_id")
             and proof.get("selected_is_highest_obstruction") is True
-            and 1 <= len(occupied) <= SP003_SURFACE_CLEARANCE_MAX
+            and 1 <= len(occupied) <= SP003_CLEARANCE_SHAFT_MAX
             and all(
                 state.get("state") in SP003_SURFACE_CLEARANCE_BLOCKS
                 and state.get("source_id")
@@ -3598,6 +4123,56 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
             )
             and proof.get("obstruction_source_ids_top_down") == top_down_ids
             and top_down_ids[0] == item.get("source_id")
+        )
+
+    def valid_stone_pickup_access_proof(transition: Any) -> bool:
+        item = transition if isinstance(transition, dict) else {}
+        proof = item.get("proof") if isinstance(item.get("proof"), dict) else {}
+        origin_cell = _integer_cell(proof.get("scan_origin_cell"))
+        post_cell = _integer_cell(proof.get("post_scan_player_cell"))
+        target_cell = _integer_cell(proof.get("target_position"))
+        support_cell = _integer_cell(proof.get("support_position"))
+        stand_cell = _integer_cell(proof.get("post_dig_stand_position"))
+        head_cell = _integer_cell(proof.get("head_position"))
+        return bool(
+            item.get("source_id")
+            and item.get("action_verified") is True
+            and item.get("block_removed") is True
+            and item.get("target_block_before") == "stone"
+            and item.get("target_block_after") in {"", "air", "cave_air", "void_air"}
+            and item.get("pickup_observed") is True
+            and _count(item.get("pickup_count")) >= 1
+            and item.get("tool_equipped") == "wooden_pickaxe"
+            and item.get("tool_equip_passed") is True
+            and item.get("proof_fingerprint") == canonical_sha256(proof)
+            and proof.get("type") == "sp003_stone_pickup_access_proof"
+            and proof.get("schema_version") == 1
+            and proof.get("policy_id") == SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID
+            and valid_scan_visibility_proof(
+                proof,
+                air_cells=[proof.get("head_position")],
+            )
+            and origin_cell is not None
+            and post_cell == origin_cell
+            and target_cell is not None
+            and support_cell
+            == (target_cell[0], target_cell[1] - 1, target_cell[2])
+            and stand_cell == target_cell
+            and head_cell
+            == (target_cell[0], target_cell[1] + 1, target_cell[2])
+            and 0 <= origin_cell[1] - target_cell[1] <= 1
+            and proof.get("target_block") == "stone"
+            and proof.get("target_cell_state_before") == "stone"
+            and proof.get("target_source_id") == item.get("source_id")
+            and source_id("stone", proof.get("target_position"))
+            == item.get("source_id")
+            and proof.get("support_block") == "stone"
+            and proof.get("support_source_id")
+            == source_id("stone", proof.get("support_position"))
+            and proof.get("post_dig_stand_cell_state")
+            == "air_after_verified_removal"
+            and proof.get("head_cell_state") == "air"
+            and proof.get("pickup_access_proven") is True
         )
 
     def fingerprint_valid(proof: Any) -> bool:
@@ -3897,6 +4472,19 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
             counts.get(f"dig:{item}", 0) for item in LOG_ITEMS
         ) == 3,
         "exact_three_stone_actions": counts.get("dig:stone", 0) == 3,
+        "pre_dig_pickup_access_machine_proof": (
+            len(stone_pickup_access_proofs) == 3
+            and {
+                proof.get("source_id")
+                for proof in stone_pickup_access_proofs
+                if isinstance(proof, dict)
+            }
+            == set(value.get("distinct_stone_source_ids", []))
+            and all(
+                valid_stone_pickup_access_proof(proof)
+                for proof in stone_pickup_access_proofs
+            )
+        ),
         "bounded_surface_clearance_machine_proof": (
             surface_clearance_action_count <= SP003_SURFACE_CLEARANCE_MAX
             and len(surface_clearance_proofs) == surface_clearance_action_count
