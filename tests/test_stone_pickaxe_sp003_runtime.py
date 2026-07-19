@@ -10,7 +10,7 @@ import pytest
 from singularity.core.agent import Agent
 from singularity.core.planner import Planner
 from singularity.core.task_system import TaskStatus, TaskSystem
-from singularity.evaluation.stone_pickaxe_protocol import PROTOCOL_SHA256
+from singularity.evaluation.stone_pickaxe_protocol import PROTOCOL_SHA256, canonical_sha256
 from singularity.evaluation.stone_pickaxe_sp002_runtime import (
     StonePickaxeRuntimeAgent as StonePickaxeSP002RuntimeAgent,
     build_runtime_config,
@@ -20,6 +20,7 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     SP003_GOAL,
     SP003_POLICY_PATH,
     SP003_RUNTIME_POLICY_ID,
+    SP003_SURFACE_CLEARANCE_MAX,
     StonePickaxeSP003RuntimeAgent,
     _bounded_complete_local_scan,
     _empty_progress,
@@ -28,6 +29,7 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     _progress_snapshot,
     _sp003_observation_targets,
     _stone_approach_stands,
+    _stone_surface_clearances,
     audit_sp003_initial_state,
     audit_sp003_reset,
     build_sp003_authorization,
@@ -105,6 +107,8 @@ def test_policy_identity_binds_frozen_protocol_and_promoted_skills():
     assert policy["protocol"]["bytes_must_remain_unchanged"] is True
     assert policy["reset_substrate"]["reset_only"] is True
     assert policy["reset_substrate"]["bm012_terminal_execution_allowed"] is False
+    assert policy["episode_contract"]["surface_clearance_actions_max"] == 3
+    assert policy["episode_contract"]["crafting_table_tool_settlement_delay_ms"] == 1000
     assert [(item["skill_id"], item["version"]) for item in policy["skills"]] == [
         ("learned:acquire_cobblestone", "1.1.0"),
         ("learned:craft_stone_pickaxe", "1.0.1"),
@@ -324,6 +328,14 @@ def complete_block_scan(blocks, *, origin=None, radius=1):
     }
 
 
+def attach_complete_sp003_scan(world, blocks, *, origin):
+    scan = complete_block_scan(blocks, origin=origin)
+    world["sp003_complete_local_scan"] = scan
+    world["sp003_stone_approach_stands"] = _stone_approach_stands(scan)
+    world["sp003_stone_surface_clearances"] = _stone_surface_clearances(scan)
+    return scan
+
+
 def cobblestone_progress():
     progress = preparation_progress()
     progress.update({
@@ -423,15 +435,16 @@ def test_phase88_retained_stone_target_requires_grounded_navigation_before_dig()
     local_blocks = [
         item
         for item in retained["nearby_blocks"]
-        if abs(item["position"]["x"] - 124) <= 1
-        and 139 <= item["position"]["y"] <= 145
-        and abs(item["position"]["z"] - -37) <= 1
+        if source_id(item["name"], item["position"]) == "stone:124:139:-37"
     ]
-    centered["sp003_stone_approach_stands"] = _stone_approach_stands(
-        complete_block_scan(
-            local_blocks,
-            origin={"x": 124, "y": 142, "z": -37},
-        )
+    centered_scan = complete_block_scan(
+        local_blocks,
+        origin={"x": 124, "y": 142, "z": -37},
+    )
+    centered["sp003_complete_local_scan"] = centered_scan
+    centered["sp003_stone_approach_stands"] = _stone_approach_stands(centered_scan)
+    centered["sp003_stone_surface_clearances"] = _stone_surface_clearances(
+        centered_scan
     )
     centered_targets = _sp003_observation_targets(centered, progress)
     assert centered_targets[0]["stand_position"] == {"x": 124, "y": 140, "z": -37}
@@ -463,6 +476,193 @@ def test_phase88_retained_stone_target_requires_grounded_navigation_before_dig()
     forged = copy.deepcopy(centered)
     forged["sp003_stone_approach_stands"][0]["proof"]["scan_complete"] = False
     assert _sp003_observation_targets(forged, progress) == []
+
+
+def test_phase91_retained_buried_stone_is_cleared_top_down_with_three_machine_proofs():
+    session_path = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_092557_f63c1161/session.json"
+    )
+    events = json.loads(session_path.read_text(encoding="utf-8"))
+    retained = copy.deepcopy(next(
+        event["data"]
+        for event in events
+        if event.get("type") == "observation"
+        and event.get("data", {}).get("position", {}).get("z") == -37.5
+        and (event.get("data", {}).get("equipment") or [{}])[0]
+    ))
+    progress = copy.deepcopy(retained["sp003_progress"])
+    origin = {"x": 123, "y": 142, "z": -38}
+    local_blocks = [
+        item
+        for item in retained["nearby_blocks"]
+        if abs(item["position"]["x"] - origin["x"]) <= 1
+        and origin["y"] - 3 <= item["position"]["y"] <= origin["y"] + 3
+        and abs(item["position"]["z"] - origin["z"]) <= 1
+    ]
+    assert len(local_blocks) == 29
+    attach_complete_sp003_scan(retained, local_blocks, origin=origin)
+
+    targets = _sp003_observation_targets(retained, progress)
+    assert targets[0]["source_id"] == "grass_block:124:142:-38"
+    assert targets[0]["support_source_id"] == "stone:124:139:-38"
+    assert targets[0]["stone_surface_clearance"] is True
+    assert targets[0]["remaining_clearance_count"] == 3
+    assert targets[0]["clearance_proof"]["response_count"] == 29
+    assert targets[0]["clearance_proof"]["obstruction_source_ids_top_down"] == [
+        "grass_block:124:142:-38",
+        "dirt:124:141:-38",
+        "dirt:124:140:-38",
+    ]
+
+    support_dig = guard_sp003_action(
+        {
+            "type": "dig",
+            "parameters": {"block": "stone", "x": 124, "y": 139, "z": -38},
+        },
+        retained,
+        progress,
+    )
+    assert not support_dig["allowed"]
+    assert "sp003_stone_surface_clearance_required_before_dig" in support_dig["issues"]
+    wrong_order = guard_sp003_action(
+        {
+            "type": "dig",
+            "parameters": {"block": "dirt", "x": 124, "y": 141, "z": -38},
+        },
+        retained,
+        progress,
+    )
+    assert not wrong_order["allowed"]
+    assert any("machine_proven" in issue for issue in wrong_order["issues"])
+
+    removed = set()
+    expected = [
+        ("grass_block", 142),
+        ("dirt", 141),
+        ("dirt", 140),
+    ]
+    for block_name, y in expected:
+        current = copy.deepcopy(retained)
+        current_blocks = [
+            item
+            for item in local_blocks
+            if source_id(item["name"], item["position"]) not in removed
+        ]
+        current["nearby_blocks"] = [
+            item
+            for item in current["nearby_blocks"]
+            if source_id(item["name"], item["position"]) not in removed
+        ]
+        attach_complete_sp003_scan(current, current_blocks, origin=origin)
+        target = _sp003_observation_targets(current, progress)[0]
+        assert target["name"] == block_name
+        assert target["position"] == {"x": 124, "y": y, "z": -38}
+        guarded = guard_sp003_action(
+            {
+                "type": "dig",
+                "parameters": {"block": block_name, "x": 124, "y": y, "z": -38},
+            },
+            current,
+            progress,
+        )
+        assert guarded["allowed"], guarded
+        assert guarded["action"]["parameters"]["stone_surface_clearance"] is True
+        assert guarded["action"]["parameters"]["support_source_id"] == "stone:124:139:-38"
+        result = accepted_result(
+            block=block_name,
+            block_removed=True,
+            target_block_before={"name": block_name},
+            target_block_after={"name": "air"},
+        )
+        snapshot = record_sp003_success(progress, guarded["action"], result)
+        removed.add(f"{block_name}:124:{y}:-38")
+        assert snapshot["surface_clearance_removal_count"] == len(removed)
+
+    opened = copy.deepcopy(retained)
+    opened_blocks = [
+        item
+        for item in local_blocks
+        if source_id(item["name"], item["position"]) not in removed
+    ]
+    opened["nearby_blocks"] = [
+        item
+        for item in opened["nearby_blocks"]
+        if source_id(item["name"], item["position"]) not in removed
+    ]
+    attach_complete_sp003_scan(opened, opened_blocks, origin=origin)
+    opened_target = _sp003_observation_targets(opened, progress)[0]
+    assert opened_target["source_id"] == "stone:124:139:-38"
+    assert opened_target["stone_pickup_approach"] is True
+    assert opened_target["stand_position"] == {"x": 124, "y": 140, "z": -38}
+    assert opened_target["clearance_proof"]["entry_shaft_cell_states"] == [
+        "air",
+        "air",
+        "air",
+    ]
+
+    fourth = guard_sp003_action(
+        {
+            "type": "dig",
+            "parameters": {"block": "grass_block", "x": 124, "y": 142, "z": -37},
+        },
+        retained,
+        progress,
+    )
+    assert not fourth["allowed"]
+    assert "sp003_surface_clearance_removal_limit_reached" in fourth["issues"]
+    assert _progress_snapshot(progress)["surface_clearance_removal_count"] == 3
+    assert SP003_SURFACE_CLEARANCE_MAX == 3
+
+
+def test_surface_clearance_scan_fails_closed_on_incomplete_forged_or_disallowed_geometry():
+    support = block("stone", 1, 61, 0, 3.162278)
+    allowed = complete_block_scan(
+        [
+            support,
+            block("dirt", 1, 62, 0, 2.236068),
+            block("dirt", 1, 63, 0, 1.414214),
+            block("grass_block", 1, 64, 0, 1.0),
+        ],
+        origin={"x": 0, "y": 64, "z": 0},
+    )
+    clearances = _stone_surface_clearances(allowed)
+    assert clearances[0]["source_id"] == "grass_block:1:64:0"
+
+    incomplete = copy.deepcopy(allowed)
+    incomplete["scan_complete"] = False
+    assert _stone_surface_clearances(incomplete) == []
+    truncated = copy.deepcopy(allowed)
+    truncated["response_count"] += 1
+    assert _stone_surface_clearances(truncated) == []
+    duplicate = copy.deepcopy(allowed)
+    duplicate["blocks"].append(copy.deepcopy(duplicate["blocks"][0]))
+    duplicate["response_count"] += 1
+    assert _stone_surface_clearances(duplicate) == []
+    disallowed = copy.deepcopy(allowed)
+    disallowed["blocks"][3]["name"] = "coarse_dirt"
+    assert _stone_surface_clearances(disallowed) == []
+    player_column = complete_block_scan(
+        [
+            block("stone", 0, 61, 0, 3.0),
+            block("dirt", 0, 62, 0, 2.0),
+        ],
+        origin={"x": 0, "y": 64, "z": 0},
+    )
+    assert _stone_surface_clearances(player_column) == []
+
+    world = observation(
+        {"wooden_pickaxe": 1},
+        copy.deepcopy(allowed["blocks"]),
+        held="wooden_pickaxe",
+        position={"x": 0.5, "y": 64.0, "z": 0.5},
+    )
+    progress = cobblestone_progress()
+    world["sp003_complete_local_scan"] = allowed
+    world["sp003_stone_approach_stands"] = []
+    world["sp003_stone_surface_clearances"] = copy.deepcopy(clearances)
+    world["sp003_stone_surface_clearances"][0]["clearance_proof"]["scan_complete"] = False
+    assert _sp003_observation_targets(world, progress) == []
 
 
 def test_grounded_stone_approach_excludes_anchor_and_allows_adjacent_stone_dig():
@@ -845,6 +1045,8 @@ def test_planner_compacts_sp003_state_and_requires_exact_five_node_graph():
     planner._expected_plan_kind = "continuation"
     prompt = Planner._stone_pickaxe_system_prompt(planner)
     assert "has canopy_egress=true, it is navigation-only" in prompt
+    assert "has stone_surface_clearance=true, dig exactly that entry's block" in prompt
+    assert "never dig its support_source_id stone" in prompt
     assert "has stone_clearance_probe=true, it is navigation-only" in prompt
     assert "wait for the bounded clearance scan" in prompt
     assert "has stone_pickup_approach=true, it is navigation-only" in prompt
@@ -1365,6 +1567,80 @@ def test_synthetic_empty_hand_episode_passes_both_component_verifiers(monkeypatc
     assert report["components"]["sp002"]["criteria_passed"] is True
     assert report["metrics"]["log_source_removal_count"] == 3
     assert report["metrics"]["stone_source_removal_count"] == 3
+
+
+def add_bounded_surface_clearance_evidence(episode):
+    support = block("stone", 1, 61, 0, 3.162278)
+    obstruction_sets = [
+        [
+            block("dirt", 1, 62, 0, 2.236068),
+            block("dirt", 1, 63, 0, 1.414214),
+            block("grass_block", 1, 64, 0, 1.0),
+        ],
+        [
+            block("dirt", 1, 62, 0, 2.236068),
+            block("dirt", 1, 63, 0, 1.414214),
+        ],
+        [block("dirt", 1, 62, 0, 2.236068)],
+    ]
+    transitions = []
+    for index, obstructions in enumerate(obstruction_sets, start=1):
+        scan = complete_block_scan(
+            [support, *obstructions],
+            origin={"x": 0, "y": 64, "z": 0},
+        )
+        target = _stone_surface_clearances(scan)[0]
+        proof = target["clearance_proof"]
+        transitions.append({
+            "index": 9 + index,
+            "source_id": target["source_id"],
+            "source_block": target["name"],
+            "support_source_id": target["support_source_id"],
+            "action_verified": True,
+            "block_removed": True,
+            "target_block_before": target["name"],
+            "target_block_after": "air",
+            "proof_fingerprint": canonical_sha256(proof),
+            "proof": copy.deepcopy(proof),
+        })
+    episode["surface_clearance_transition_proofs"] = transitions
+    episode["distinct_surface_clearance_source_ids"] = sorted(
+        item["source_id"] for item in transitions
+    )
+    episode["action_type_counts"]["dig:grass_block"] = 1
+    episode["action_type_counts"]["dig:dirt"] = 2
+    episode["action_count"] += 3
+    episode["goal_result"]["cycles"] += 3
+    return episode
+
+
+def test_machine_verifier_accepts_three_bounded_clearances_and_rejects_tamper_or_fourth(
+    monkeypatch,
+):
+    episode = add_bounded_surface_clearance_evidence(build_passing_episode(monkeypatch))
+    passed = verify_sp003_runtime_episode(episode)
+    assert passed["passed"], passed
+    assert passed["metrics"]["surface_clearance_removal_count"] == 3
+
+    tampered = copy.deepcopy(episode)
+    tampered["surface_clearance_transition_proofs"][0]["proof"][
+        "selected_is_highest_obstruction"
+    ] = False
+    assert "bounded_surface_clearance_machine_proof" in verify_sp003_runtime_episode(
+        tampered
+    )["criteria_issues"]
+
+    fourth = copy.deepcopy(episode)
+    fourth["action_type_counts"]["dig:dirt"] = 3
+    fourth["action_count"] += 1
+    fourth["surface_clearance_transition_proofs"].append(
+        copy.deepcopy(fourth["surface_clearance_transition_proofs"][-1])
+    )
+    fourth["surface_clearance_transition_proofs"][-1]["source_id"] = "dirt:2:62:0"
+    fourth["distinct_surface_clearance_source_ids"].append("dirt:2:62:0")
+    assert "bounded_surface_clearance_machine_proof" in verify_sp003_runtime_episode(
+        fourth
+    )["criteria_issues"]
 
 
 def test_candidate_requires_two_separate_exact_skill_attributions(monkeypatch):

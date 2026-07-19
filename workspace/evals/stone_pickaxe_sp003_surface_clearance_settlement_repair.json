@@ -1,0 +1,110 @@
+{
+  "type": "stone_pickaxe_sp003_surface_clearance_settlement_repair",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-19T02:28:04.246143+00:00",
+  "phase": 92,
+  "status": "offline_fix_verified_pending_commit_push",
+  "task_id": "SP-003",
+  "source_failure": {
+    "classification": "sp003_buried_stone_approach_clearance_obstruction",
+    "episode_id": "sp003_baseline_20260719_092557_f63c1161",
+    "session_id": "848c0055-6bd",
+    "manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_092557_f63c1161/manifest.json",
+    "manifest_sha256": "323689c2ea685fa75c4662876db8642ac84cd417d37f2762184cf3f70e95046c",
+    "session_sha256": "f78ee4054481d4ad1d33db8e00053f6eff5ba377f2f67a3af58de5fc77218f2c",
+    "complete_scan_non_air_response_count": 29,
+    "complete_scan_response_limit": 50,
+    "first_tool_craft_rollback_observed": true
+  },
+  "runtime_policy": {
+    "id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+    "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+    "sha256": "783a9fe31874400a5fd91993c347898f276ae9d3c648b4efac67479afe61cace",
+    "base_protocol_path": "workspace/evals/stone_pickaxe_protocol.json",
+    "base_protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+    "base_protocol_modified": false,
+    "shared_bridge_path": "src/bot/bot_server.js",
+    "shared_bridge_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+    "shared_bridge_modified": false
+  },
+  "interactive_craft_settlement": {
+    "preload_path": "src/bot/sp003_inventory_preserving_navigation.js",
+    "preload_sha256": "d4b0f5d3f35e98ce06f5bf801cf412e8fd969473520cf1989ba183dff7a31c12",
+    "process_local_create_bot_patch": true,
+    "interactive_craft_only": true,
+    "settlement_delay_ms": 1000,
+    "delay_occurs_after_original_craft_resolves": true,
+    "original_craft_call_count_per_action": 1,
+    "backend_retry_added": false,
+    "craft_failure_propagates": true
+  },
+  "bounded_surface_clearance": {
+    "complete_scan_required": true,
+    "scan_radius": 1,
+    "scan_vertical_min_offset": -3,
+    "scan_vertical_max_offset": 3,
+    "scan_cell_count": 63,
+    "response_limit": 50,
+    "response_must_be_below_limit": true,
+    "scan_origin_must_remain_stable": true,
+    "scan_fingerprint_required": true,
+    "allowed_blocks": ["grass_block", "dirt"],
+    "maximum_removals": 3,
+    "top_down_required": true,
+    "support_block_must_be_stone": true,
+    "support_column_must_not_be_player_column": true,
+    "direct_support_stone_dig_rejected": true,
+    "full_entry_shaft_must_be_clear_before_descent": true,
+    "skill_context_allowed": false,
+    "phase_91_replay_selected_sources": [
+      "grass_block:124:142:-38",
+      "dirt:124:141:-38",
+      "dirt:124:140:-38"
+    ],
+    "phase_91_replay_support_source": "stone:124:139:-38",
+    "phase_91_replay_stand_position": {"x": 124, "y": 140, "z": -38},
+    "incomplete_truncated_duplicate_forged_or_disallowed_scan_fails_closed": true,
+    "fourth_clearance_fails_closed": true
+  },
+  "machine_evidence": {
+    "distinct_clearance_source_ids_required": true,
+    "action_verification_accept_required": true,
+    "block_removed_required": true,
+    "target_before_after_required": true,
+    "proof_fingerprint_required": true,
+    "component_sp001_window_starts_at_first_stone_dig": true,
+    "component_sp002_contract_unchanged": true,
+    "counts_toward_capability": false,
+    "counts_toward_m4": false
+  },
+  "implementation_hashes": {
+    "runtime_sha256": "d879107934b95549379784a5b66ce8230891ef283d7859917c001395c633e8f2",
+    "planner_sha256": "a5c4547f11b11fdc954ff00cf0634afc6af9b2cfc69708ed05502e091965c2fc",
+    "python_test_sha256": "f22eb66eb6e8956a8781aef9956210dba585b9528002580738f29fe663112890",
+    "node_test_sha256": "bd712264dce26d7c9ce00e9a4ea32fb0260b40b42e64c9da7d1be312226a2317"
+  },
+  "validation": {
+    "sp003_dedicated_python_cases": "33/33",
+    "stone_pickaxe_related_python_cases": "214/214",
+    "repository_non_live_python_cases": "969/969",
+    "node_suites": "7/7",
+    "node_internal_cases": "61/61",
+    "policy_identity_passed": true,
+    "frozen_protocol_identity_passed": true,
+    "shared_bridge_identity_passed": true,
+    "ledger_path_hash_bindings": "578/578",
+    "ledger_unique_path_hash_bindings": "560/560",
+    "tracked_json_files_parsed": 1515,
+    "credential_scan_passed": true,
+    "retained_phase_91_evidence_immutable": true,
+    "git_diff_check_passed": true,
+    "live_episode_run": false
+  },
+  "authorization": {
+    "live_authorization": false,
+    "automatic_retry_allowed": false,
+    "next_step_after_push": "create_one_fresh_parent_bound_baseline_authorization"
+  },
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}
