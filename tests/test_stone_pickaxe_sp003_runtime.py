@@ -109,9 +109,38 @@ def test_policy_identity_binds_frozen_protocol_and_promoted_skills():
     assert policy["reset_substrate"]["bm012_terminal_execution_allowed"] is False
     assert policy["episode_contract"]["surface_clearance_actions_max"] == 3
     assert policy["episode_contract"]["crafting_table_tool_settlement_delay_ms"] == 1000
+    assert (
+        policy["episode_contract"]["crafting_table_tool_settlement_install_event"]
+        == "inject_allowed"
+    )
+    assert (
+        policy["episode_contract"][
+            "crafting_table_tool_settlement_requires_synchronous_craft"
+        ]
+        is False
+    )
     assert [(item["skill_id"], item["version"]) for item in policy["skills"]] == [
         ("learned:acquire_cobblestone", "1.1.0"),
         ("learned:craft_stone_pickaxe", "1.0.1"),
+    ]
+
+
+def test_policy_identity_rejects_eager_craft_settlement_installation():
+    policy = json.loads(SP003_POLICY_PATH.read_text(encoding="utf-8"))
+    eager = copy.deepcopy(policy)
+    eager["episode_contract"]["crafting_table_tool_settlement_install_event"] = (
+        "create_bot_return"
+    )
+    assert not verify_sp003_policy_identity(eager)["checks"][
+        "interactive_craft_settlement_contract"
+    ]
+
+    synchronous = copy.deepcopy(policy)
+    synchronous["episode_contract"][
+        "crafting_table_tool_settlement_requires_synchronous_craft"
+    ] = True
+    assert not verify_sp003_policy_identity(synchronous)["checks"][
+        "interactive_craft_settlement_contract"
     ]
 
 

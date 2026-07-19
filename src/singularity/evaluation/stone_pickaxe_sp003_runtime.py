@@ -222,6 +222,12 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
     checks["interactive_craft_settlement_contract"] = (
         episode_contract.get("crafting_table_tool_settlement_delay_ms")
         == SP003_CRAFT_SETTLEMENT_DELAY_MS
+        and episode_contract.get("crafting_table_tool_settlement_install_event")
+        == "inject_allowed"
+        and episode_contract.get(
+            "crafting_table_tool_settlement_requires_synchronous_craft"
+        )
+        is False
     )
 
     reset = value.get("reset_substrate") if isinstance(value.get("reset_substrate"), dict) else {}

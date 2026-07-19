@@ -4,6 +4,7 @@ const POLICY_ID = 'sp003-runtime-preload-v2';
 const CRAFT_SETTLEMENT_DELAY_MS = 1000;
 const MOVEMENTS_PATCH_MARK = Symbol.for('singularity.sp003.inventoryPreservingNavigation');
 const CREATE_BOT_PATCH_MARK = Symbol.for('singularity.sp003.createBot');
+const BOT_CRAFT_INSTALL_MARK = Symbol.for('singularity.sp003.craftSettlementInstall');
 const BOT_CRAFT_PATCH_MARK = Symbol.for('singularity.sp003.craftSettlement');
 const pathfinderModule = require('mineflayer-pathfinder');
 const mineflayerModule = require('mineflayer');
@@ -53,6 +54,31 @@ function wrapCraftSettlement(bot, wait = waitForSettlement) {
     return bot;
 }
 
+function installCraftSettlement(bot, wait = waitForSettlement) {
+    if (!bot || typeof bot !== 'object' || typeof bot.once !== 'function') {
+        throw new TypeError('SP-003 craft settlement requires an event-capable mineflayer bot');
+    }
+    if (typeof wait !== 'function') {
+        throw new TypeError('SP-003 craft settlement requires a wait function');
+    }
+    if (bot[BOT_CRAFT_PATCH_MARK] || bot[BOT_CRAFT_INSTALL_MARK]) return bot;
+    if (typeof bot.craft === 'function') return wrapCraftSettlement(bot, wait);
+
+    const installAfterPluginInjection = () => wrapCraftSettlement(bot, wait);
+    Object.defineProperty(bot, BOT_CRAFT_INSTALL_MARK, {
+        configurable: false,
+        enumerable: false,
+        writable: false,
+        value: Object.freeze({
+            policyId: POLICY_ID,
+            event: 'inject_allowed',
+            handler: installAfterPluginInjection,
+        }),
+    });
+    bot.once('inject_allowed', installAfterPluginInjection);
+    return bot;
+}
+
 if (!pathfinderModule[MOVEMENTS_PATCH_MARK]) {
     const OriginalMovements = pathfinderModule.Movements;
     class SP003InventoryPreservingMovements extends OriginalMovements {
@@ -72,11 +98,13 @@ if (!pathfinderModule[MOVEMENTS_PATCH_MARK]) {
 if (!mineflayerModule[CREATE_BOT_PATCH_MARK]) {
     const originalCreateBot = mineflayerModule.createBot;
     mineflayerModule.createBot = function sp003CreateBot(...args) {
-        return wrapCraftSettlement(originalCreateBot.apply(this, args));
+        return installCraftSettlement(originalCreateBot.apply(this, args));
     };
     mineflayerModule[CREATE_BOT_PATCH_MARK] = Object.freeze({
         policyId: POLICY_ID,
         delayMs: CRAFT_SETTLEMENT_DELAY_MS,
+        installationEvent: 'inject_allowed',
+        synchronousCraftRequired: false,
         originalCreateBot,
         patchedCreateBot: mineflayerModule.createBot,
     });
@@ -86,6 +114,7 @@ module.exports = {
     POLICY_ID,
     CRAFT_SETTLEMENT_DELAY_MS,
     hardenMovements,
+    installCraftSettlement,
     wrapCraftSettlement,
     status: pathfinderModule[MOVEMENTS_PATCH_MARK],
     craftStatus: mineflayerModule[CREATE_BOT_PATCH_MARK],

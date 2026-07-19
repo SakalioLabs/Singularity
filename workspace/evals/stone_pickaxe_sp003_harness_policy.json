@@ -137,6 +137,8 @@
     "planner_actions_per_cycle": 1,
     "bridge_craft_max_attempts": 1,
     "crafting_table_tool_settlement_delay_ms": 1000,
+    "crafting_table_tool_settlement_install_event": "inject_allowed",
+    "crafting_table_tool_settlement_requires_synchronous_craft": false,
     "automatic_retry_allowed": false,
     "stable_reobservation_delay_s": 0.25,
     "allowed_log_family": [
@@ -192,7 +194,7 @@
     "episode_runner": "scripts/stone_pickaxe_sp003_episode_runner.py",
     "launcher": "scripts/stone-pickaxe-sp003-runtime.ps1",
     "runtime_preload_module": "src/bot/sp003_inventory_preserving_navigation.js",
-    "runtime_preload_sha256": "d4b0f5d3f35e98ce06f5bf801cf412e8fd969473520cf1989ba183dff7a31c12",
+    "runtime_preload_sha256": "4cd25425a71e9d76871ffdf10013f2d3e93cb57a65f4368f7a27708684d9c1d1",
     "dedicated_tests": "tests/test_stone_pickaxe_sp003_runtime.py",
     "planner_module": "src/singularity/core/planner.py",
     "task_reconciliation_module": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",

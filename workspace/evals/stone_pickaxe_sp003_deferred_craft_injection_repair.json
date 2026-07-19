@@ -1,0 +1,95 @@
+{
+  "type": "stone_pickaxe_sp003_deferred_craft_injection_repair",
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-19T03:14:05.352811Z",
+  "phase": 94,
+  "status": "offline_fix_verified_pending_commit_push",
+  "task_id": "SP-003",
+  "source_failure": {
+    "classification": "sp003_craft_settlement_preload_eager_injection_failure",
+    "episode_id": "sp003_baseline_20260719_104845_aad1e286",
+    "authorization_commit": "dbaa4b0753ec017f6f00f6298e37ffa76ed8eaa4",
+    "evidence_commit": "582075e27c7cc0dec98b509b8e792079b4b6fc46",
+    "manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_104845_aad1e286/manifest.json",
+    "manifest_sha256": "6389aef1135c196911d245f85d12768cc0ce1c40a3a7edfe8330670d2fb1ef9f",
+    "infrastructure_failure_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_104845_aad1e286/infrastructure_failure.json",
+    "infrastructure_failure_sha256": "c894176ae766d8e6b7a19ff408e0d1a42e6632471b3189eda5b2b1341856cd2a",
+    "paper_ready": true,
+    "bridge_ready": false,
+    "agent_episode_created": false,
+    "llm_call_count": 0,
+    "action_count": 0
+  },
+  "root_cause": {
+    "mineflayer_create_bot_returns_before_internal_plugin_injection": true,
+    "bot_craft_before_inject_allowed": "undefined",
+    "bot_craft_after_internal_plugin_injection": "function",
+    "old_preload_required_bot_craft_synchronously": true,
+    "old_preload_error": "SP-003 craft settlement requires a mineflayer bot"
+  },
+  "deferred_installation": {
+    "preload_path": "src/bot/sp003_inventory_preserving_navigation.js",
+    "preload_sha256": "4cd25425a71e9d76871ffdf10013f2d3e93cb57a65f4368f7a27708684d9c1d1",
+    "process_local_create_bot_patch": true,
+    "original_bot_returned_immediately": true,
+    "installation_event": "inject_allowed",
+    "mineflayer_internal_listener_registered_first": true,
+    "craft_wrapper_listener_registered_once": true,
+    "synchronous_craft_required": false,
+    "missing_craft_after_injection_fails_closed": true,
+    "interactive_craft_only": true,
+    "settlement_delay_ms": 1000,
+    "original_craft_call_count_per_action": 1,
+    "backend_retry_added": false,
+    "craft_failure_propagates_without_delay": true
+  },
+  "runtime_policy": {
+    "id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+    "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+    "sha256": "ea1b762f3212e6d0259b47021407d4432c0c29b3b156f893d4eb0bfb901edc08",
+    "install_event_bound": "inject_allowed",
+    "synchronous_craft_requirement_bound": false,
+    "tampered_eager_installation_rejected": true,
+    "tampered_synchronous_requirement_rejected": true
+  },
+  "preserved_boundaries": {
+    "base_protocol_path": "workspace/evals/stone_pickaxe_protocol.json",
+    "base_protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006",
+    "base_protocol_modified": false,
+    "shared_bridge_path": "src/bot/bot_server.js",
+    "shared_bridge_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+    "shared_bridge_modified": false,
+    "surface_clearance_contract_modified": false,
+    "retained_phase_93_evidence_modified": false
+  },
+  "implementation_hashes": {
+    "runtime_sha256": "0123c77097ee12570ac901ae5a3043cb373fd04c5c5097c91911e87ccb2af646",
+    "planner_sha256": "a5c4547f11b11fdc954ff00cf0634afc6af9b2cfc69708ed05502e091965c2fc",
+    "python_test_sha256": "f58b3f16597887f6a6d1fb4514d4897afc0b008f2152dcec3c16348ebc14684f",
+    "node_test_sha256": "275877eeaaa435381549c86ffdcbb63d92acbbba6e260c798929908b8b9ca444"
+  },
+  "validation": {
+    "sp003_dedicated_python_cases": "34/34",
+    "stone_pickaxe_related_python_cases": "215/215",
+    "repository_non_live_python_cases": "970/970",
+    "node_suites": "7/7",
+    "node_internal_cases": "64/64",
+    "real_mineflayer_create_bot_lifecycle_smoke_passed": true,
+    "policy_identity_passed": true,
+    "frozen_protocol_identity_passed": true,
+    "shared_bridge_identity_passed": true,
+    "ledger_path_hash_bindings": "584/584",
+    "ledger_unique_path_hash_bindings": "566/566",
+    "tracked_json_files_parsed": 1519,
+    "credential_scan_passed": true,
+    "git_diff_check_passed": true,
+    "live_episode_run": false
+  },
+  "authorization": {
+    "live_authorization": false,
+    "automatic_retry_allowed": false,
+    "next_step_after_push": "create_one_fresh_parent_bound_baseline_authorization"
+  },
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}
