@@ -2312,6 +2312,128 @@ def test_phase109_retained_baseline_replays_exact_goalnear_false_resolution():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
+def test_phase111_retained_baseline_replays_deferred_pathfinder_stop_poisoning():
+    run_dir = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_210605_35b1bb55"
+    )
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    consumption = json.loads(
+        (run_dir / "authorization_consumption.json").read_text(encoding="utf-8")
+    )
+    episode = json.loads((run_dir / "episode.json").read_text(encoding="utf-8"))
+    events = json.loads((run_dir / "session.json").read_text(encoding="utf-8"))
+
+    assert manifest["passed"] is False
+    assert manifest["evidence_eligible"] is False
+    assert manifest["authorization_id"] == (
+        "c33ec22ec4f7090c98e6909f7b418ecaa4909f70687406f51ff253ae856f94cf"
+    )
+    assert manifest["automatic_retry_allowed"] is False
+    assert manifest["bm012_terminal_started"] is False
+    assert consumption["authorization_commit"] == (
+        "e148ac113e77e5d7cb61ea4647060d8838813dc1"
+    )
+    assert consumption["consumed_by"] == "fresh_sp003_process_start"
+    assert consumption["single_episode"] is True
+    assert consumption["automatic_retry_allowed"] is False
+
+    goal = episode["goal_result"]
+    assert goal["termination_reason"] == "max_actions"
+    assert goal["deadline_eligible"] is True
+    assert goal["cycles"] == 33
+    assert goal["action_count"] == 32
+    assert goal["elapsed_s"] == pytest.approx(242.078)
+    assert episode["action_count"] == 32
+    assert len(episode["raw_action_failures"]) == 29
+    assert episode["reconciled_action_failure_indexes"] == []
+    assert len(episode["unreconciled_action_failures"]) == 29
+    assert episode["post_deadline_action_indexes"] == []
+    assert len(episode["distinct_log_source_ids"]) == 2
+    assert episode["distinct_surface_clearance_source_ids"] == []
+    assert episode["distinct_stone_source_ids"] == []
+    assert episode["stable_observation"]["inventory"] == {"oak_log": 2}
+
+    planner_calls = [
+        event["data"]
+        for event in events
+        if event.get("type") == "llm_planner_call"
+    ]
+    assert [call["call_index"] for call in planner_calls] == list(range(33))
+    assert all(call["schema_valid"] is True for call in planner_calls)
+    assert all(
+        call["transport_evidence"]["attempt_count"] == 1
+        and call["transport_evidence"]["retry_count"] == 0
+        and call["transport_evidence"]["attempts"][0]["success"] is True
+        for call in planner_calls
+    )
+    assert max(
+        call["provider_metadata"]["prompt_tokens"] for call in planner_calls
+    ) == 2974
+    assert max(call["response_byte_count"] for call in planner_calls) == 2095
+
+    actions = [event["data"] for event in events if event.get("type") == "action"]
+    assert [item["action"]["type"] for item in actions].count("move_to") == 26
+    assert [item["action"]["type"] for item in actions].count("dig") == 6
+    assert sum(item["result"].get("success") is True for item in actions) == 3
+
+    first_pickup = actions[1]["result"]["pickup_collection"]["direct_navigation"]
+    assert first_pickup["pathfinder_resolved"] is False
+    assert first_pickup["error"] == "Took to long to decide path to goal!"
+    assert first_pickup["timeout_ms"] == 6000
+    assert first_pickup["final_distance"] == pytest.approx(1.8019531744461517)
+
+    stopped_error = (
+        "Path was stopped before it could be completed! Thus, the desired goal "
+        "was not reached."
+    )
+    stopped_results = 0
+    for item in actions:
+        result = item["result"]
+        direct = (result.get("pickup_collection") or {}).get("direct_navigation") or {}
+        if direct.get("error") == stopped_error or result.get("error") == stopped_error:
+            stopped_results += 1
+    assert stopped_results == 28
+
+    failed_moves = [
+        item
+        for item in actions
+        if item["action"]["type"] == "move_to"
+        and item["result"].get("success") is not True
+    ]
+    assert len(failed_moves) == 25
+    assert all(item["result"]["error"] == stopped_error for item in failed_moves)
+    assert all(
+        item["pre_observation"]["position"]
+        == item["post_observation"]["position"]
+        == {"x": 119.45600961424827, "y": 141, "z": -33.59777074730486}
+        for item in failed_moves
+    )
+    assert not any(
+        item["action"]["type"] in {"craft", "place", "equip"}
+        or item["action"].get("parameters", {}).get("block") == "stone"
+        for item in actions
+    )
+
+    ledger = json.loads(
+        (REPO / "workspace/evals/stone_pickaxe_failure_ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    failure = next(
+        item
+        for item in ledger["failures"]
+        if item["id"] == "sp003-baseline-018-pathfinder-deferred-stop-poisoning"
+    )
+    assert failure["automatic_retry_attempted"] is False
+    assert failure["counts_toward_baseline_success"] is False
+    assert len(failure["evidence"]) == 13
+    for record in failure["evidence"]:
+        path = REPO / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+
 def test_preparation_guard_enforces_exact_recipe_sequence_and_single_table():
     progress = preparation_progress()
     planks = guard_sp003_action(
