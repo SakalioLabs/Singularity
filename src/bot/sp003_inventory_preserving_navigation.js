@@ -2,6 +2,10 @@
 
 const POLICY_ID = 'sp003-runtime-preload-v2';
 const CRAFT_SETTLEMENT_DELAY_MS = 1000;
+const FIRST_TABLE_TOOL_CRAFT_READINESS_POLICY_ID = 'sp003-first-table-tool-craft-readiness-v1';
+const FIRST_TABLE_TOOL_CRAFT_READINESS_TIMEOUT_MS = 1500;
+const FIRST_TABLE_TOOL_CRAFT_READINESS_POST_CLOSE_WAIT_MS = 100;
+const TABLE_TOOL_CRAFT_ITEMS = new Set(['wooden_pickaxe', 'stone_pickaxe']);
 const EXACT_UNIT_GOAL_NEAR_POLICY_ID = 'sp003-exact-unit-goal-near-v1';
 const EXACT_UNIT_GOAL_NEAR_REQUESTED_RANGE = 1;
 const EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE = 0;
@@ -20,6 +24,7 @@ const BOT_PATHFINDER_STOP_DRAIN_MARK = Symbol.for('singularity.sp003.pathfinderS
 const CREATE_BOT_PATCH_MARK = Symbol.for('singularity.sp003.createBot');
 const BOT_CRAFT_INSTALL_MARK = Symbol.for('singularity.sp003.craftSettlementInstall');
 const BOT_CRAFT_PATCH_MARK = Symbol.for('singularity.sp003.craftSettlement');
+const BOT_CRAFT_READINESS_STATE_MARK = Symbol.for('singularity.sp003.firstTableToolCraftReadiness');
 const pathfinderModule = require('mineflayer-pathfinder');
 const mineflayerModule = require('mineflayer');
 const { Vec3 } = require('vec3');
@@ -319,6 +324,203 @@ function installPathfinderGoalCompletion(bot, wait = waitForSettlement) {
     return bot;
 }
 
+function compactCraftingTablePosition(craftingTable) {
+    const position = craftingTable?.position;
+    const values = [position?.x, position?.y, position?.z].map(Number);
+    if (!values.every(Number.isFinite)) return null;
+    return { x: values[0], y: values[1], z: values[2] };
+}
+
+function craftInventoryCounts(bot) {
+    if (typeof bot?.inventory?.items !== 'function') {
+        throw new TypeError('SP-003 craft readiness requires inventory items');
+    }
+    const counts = {};
+    for (const item of bot.inventory.items()) {
+        const name = String(item?.name || '');
+        const count = Number(item?.count || 0);
+        if (name && Number.isFinite(count) && count > 0) {
+            counts[name] = Number(counts[name] || 0) + count;
+        }
+    }
+    return Object.fromEntries(
+        Object.entries(counts).sort(([left], [right]) => left.localeCompare(right)),
+    );
+}
+
+function craftInventoriesMatch(left, right) {
+    return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function tableToolCraftTarget(bot, recipe, craftingTable) {
+    if (!craftingTable || recipe?.requiresTable !== true) return '';
+    const resultId = Number(recipe?.result?.id);
+    const target = String(
+        recipe?.result?.name
+        || (Number.isFinite(resultId) ? bot?.registry?.items?.[resultId]?.name : '')
+        || '',
+    );
+    return TABLE_TOOL_CRAFT_ITEMS.has(target) ? target : '';
+}
+
+function craftReadinessError(message, proof) {
+    const error = new Error(message);
+    error.name = 'SP003FirstTableToolCraftReadinessError';
+    error.policyId = FIRST_TABLE_TOOL_CRAFT_READINESS_POLICY_ID;
+    error.proof = proof;
+    return error;
+}
+
+async function preflightFirstTableToolCraft(
+    bot,
+    targetItem,
+    craftingTable,
+    wait = waitForSettlement,
+    options = {},
+) {
+    const timeoutMs = Math.max(
+        1,
+        Number(options.timeoutMs ?? FIRST_TABLE_TOOL_CRAFT_READINESS_TIMEOUT_MS) || 0,
+    );
+    const postCloseWaitMs = Math.max(
+        0,
+        Number(
+            options.postCloseWaitMs
+            ?? FIRST_TABLE_TOOL_CRAFT_READINESS_POST_CLOSE_WAIT_MS,
+        ) || 0,
+    );
+    const tablePosition = compactCraftingTablePosition(craftingTable);
+    const inventoryBefore = craftInventoryCounts(bot);
+    const proof = {
+        type: 'sp003_first_table_tool_craft_readiness_proof',
+        schema_version: 1,
+        policy_id: FIRST_TABLE_TOOL_CRAFT_READINESS_POLICY_ID,
+        target_item: targetItem,
+        crafting_table_position: tablePosition,
+        attempt_limit: 1,
+        attempt_count: 1,
+        timeout_ms: timeoutMs,
+        post_close_wait_ms: postCloseWaitMs,
+        inventory_before: inventoryBefore,
+        inventory_after: null,
+        inventory_unchanged: false,
+        window_id: null,
+        window_type: '',
+        open_count: 1,
+        close_count: 0,
+        original_craft_call_count: 0,
+        world_mutation: false,
+        passed: false,
+    };
+    if (String(craftingTable?.name || '') !== 'crafting_table' || !tablePosition) {
+        throw craftReadinessError(
+            'SP-003 craft readiness requires one exact crafting table',
+            proof,
+        );
+    }
+    if (typeof bot?.openBlock !== 'function' || typeof bot?.closeWindow !== 'function') {
+        throw craftReadinessError(
+            'SP-003 craft readiness window APIs are unavailable',
+            proof,
+        );
+    }
+    if (typeof wait !== 'function') {
+        throw new TypeError('SP-003 craft readiness requires a wait function');
+    }
+
+    let timeoutHandle = null;
+    let timedOut = false;
+    const openPromise = Promise.resolve().then(() => bot.openBlock(craftingTable));
+    const timeoutPromise = new Promise((resolve) => {
+        timeoutHandle = setTimeout(() => {
+            timedOut = true;
+            resolve({ timeout: true });
+        }, timeoutMs);
+    });
+    try {
+        const outcome = await Promise.race([
+            openPromise.then((window) => ({ window })),
+            timeoutPromise,
+        ]);
+        if (outcome?.timeout) {
+            openPromise.then((window) => {
+                try {
+                    if (window) bot.closeWindow(window);
+                } catch (_) {
+                    // A late readiness window is closed best-effort after timeout.
+                }
+            }).catch(() => {});
+            throw craftReadinessError(
+                'SP-003 first table tool craft readiness timed out',
+                proof,
+            );
+        }
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+        const window = outcome?.window;
+        if (!window) {
+            throw craftReadinessError(
+                'SP-003 first table tool craft readiness opened no window',
+                proof,
+            );
+        }
+        proof.window_id = Number.isFinite(Number(window.id)) ? Number(window.id) : null;
+        proof.window_type = String(window.type || '');
+        bot.closeWindow(window);
+        proof.close_count = 1;
+        if (!proof.window_type.startsWith('minecraft:crafting')) {
+            throw craftReadinessError(
+                'SP-003 first table tool craft readiness opened a non-crafting window',
+                proof,
+            );
+        }
+        if (postCloseWaitMs > 0) await wait(postCloseWaitMs);
+        proof.inventory_after = craftInventoryCounts(bot);
+        proof.inventory_unchanged = craftInventoriesMatch(
+            proof.inventory_before,
+            proof.inventory_after,
+        );
+        if (!proof.inventory_unchanged) {
+            throw craftReadinessError(
+                'SP-003 first table tool craft readiness changed inventory',
+                proof,
+            );
+        }
+        proof.passed = true;
+        return proof;
+    } catch (error) {
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+        if (error?.name === 'SP003FirstTableToolCraftReadinessError') throw error;
+        throw craftReadinessError(
+            `SP-003 first table tool craft readiness failed: ${error?.message || error}`,
+            proof,
+        );
+    } finally {
+        if (!timedOut && timeoutHandle) clearTimeout(timeoutHandle);
+    }
+}
+
+function firstTableToolCraftReadinessStatus(bot) {
+    const state = bot?.[BOT_CRAFT_READINESS_STATE_MARK];
+    if (!state) {
+        return {
+            installed: false,
+            policyId: FIRST_TABLE_TOOL_CRAFT_READINESS_POLICY_ID,
+            status: 'uninstalled',
+            attemptCount: 0,
+            originalCraftCallCount: 0,
+            proof: null,
+        };
+    }
+    return {
+        installed: true,
+        policyId: FIRST_TABLE_TOOL_CRAFT_READINESS_POLICY_ID,
+        status: state.status,
+        attemptCount: state.attemptCount,
+        originalCraftCallCount: state.originalCraftCallCount,
+        proof: state.proof ? JSON.parse(JSON.stringify(state.proof)) : null,
+    };
+}
+
 function wrapCraftSettlement(bot, wait = waitForSettlement) {
     if (!bot || typeof bot !== 'object' || typeof bot.craft !== 'function') {
         throw new TypeError('SP-003 craft settlement requires a mineflayer bot');
@@ -329,9 +531,45 @@ function wrapCraftSettlement(bot, wait = waitForSettlement) {
     if (bot[BOT_CRAFT_PATCH_MARK]) return bot;
 
     const originalCraft = bot.craft;
+    const readinessState = {
+        status: 'pending',
+        attemptCount: 0,
+        originalCraftCallCount: 0,
+        proof: null,
+    };
+    Object.defineProperty(bot, BOT_CRAFT_READINESS_STATE_MARK, {
+        configurable: false,
+        enumerable: false,
+        writable: false,
+        value: readinessState,
+    });
     bot.craft = async function sp003CraftWithSettlement(...args) {
-        const result = await originalCraft.apply(this, args);
         const craftingTable = args[2];
+        const targetItem = tableToolCraftTarget(bot, args[0], craftingTable);
+        if (targetItem && readinessState.status === 'failed') {
+            throw craftReadinessError(
+                'SP-003 first table tool craft readiness already failed',
+                readinessState.proof,
+            );
+        }
+        if (targetItem && readinessState.status === 'pending') {
+            readinessState.attemptCount += 1;
+            try {
+                readinessState.proof = await preflightFirstTableToolCraft(
+                    bot,
+                    targetItem,
+                    craftingTable,
+                    wait,
+                );
+                readinessState.status = 'ready';
+            } catch (error) {
+                readinessState.status = 'failed';
+                readinessState.proof = error?.proof || null;
+                throw error;
+            }
+        }
+        if (targetItem) readinessState.originalCraftCallCount += 1;
+        const result = await originalCraft.apply(this, args);
         if (craftingTable !== null && craftingTable !== undefined) {
             await wait(CRAFT_SETTLEMENT_DELAY_MS);
         }
@@ -344,6 +582,10 @@ function wrapCraftSettlement(bot, wait = waitForSettlement) {
         value: Object.freeze({
             policyId: POLICY_ID,
             delayMs: CRAFT_SETTLEMENT_DELAY_MS,
+            readinessPolicyId: FIRST_TABLE_TOOL_CRAFT_READINESS_POLICY_ID,
+            readinessTimeoutMs: FIRST_TABLE_TOOL_CRAFT_READINESS_TIMEOUT_MS,
+            readinessPostCloseWaitMs: FIRST_TABLE_TOOL_CRAFT_READINESS_POST_CLOSE_WAIT_MS,
+            readinessState,
             originalCraft,
             patchedCraft: bot.craft,
         }),
@@ -452,6 +694,9 @@ if (!mineflayerModule[CREATE_BOT_PATCH_MARK]) {
 module.exports = {
     POLICY_ID,
     CRAFT_SETTLEMENT_DELAY_MS,
+    FIRST_TABLE_TOOL_CRAFT_READINESS_POLICY_ID,
+    FIRST_TABLE_TOOL_CRAFT_READINESS_TIMEOUT_MS,
+    FIRST_TABLE_TOOL_CRAFT_READINESS_POST_CLOSE_WAIT_MS,
     EXACT_UNIT_GOAL_NEAR_POLICY_ID,
     EXACT_UNIT_GOAL_NEAR_REQUESTED_RANGE,
     EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE,
@@ -470,6 +715,9 @@ module.exports = {
     pathfinderStopDrainStatus,
     installPathfinderStopDrain,
     installPathfinderGoalCompletion,
+    tableToolCraftTarget,
+    preflightFirstTableToolCraft,
+    firstTableToolCraftReadinessStatus,
     installCraftSettlement,
     wrapCraftSettlement,
     status: pathfinderModule[MOVEMENTS_PATCH_MARK],

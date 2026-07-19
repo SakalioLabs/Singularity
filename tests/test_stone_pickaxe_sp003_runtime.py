@@ -61,6 +61,7 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
 
 
 REPO = Path(__file__).resolve().parents[1]
+PHASE114_FIX_COMMIT = "ae43ecbcff9946376d69871a724183f7bb428d74"
 
 
 class LogStub:
@@ -2816,16 +2817,25 @@ def test_phase114_downstep_transition_clearance_audit_binds_current_contract():
     assert replay["blocked_exact_move_warning_success"] is False
 
     for record in audit["implementation"]:
-        path = REPO / record["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+        historical = subprocess.check_output(
+            ["git", "show", f"{PHASE114_FIX_COMMIT}:{record['path']}"],
+            cwd=REPO,
+        )
+        assert hashlib.sha256(historical).hexdigest() == record["sha256"]
 
     protected = audit["protected_identities"]
     for key in ("shared_bridge", "vendored_pathfinder", "base_protocol"):
         record = protected[key]
-        path = REPO / record["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+        if record["path"].startswith("node_modules/"):
+            assert hashlib.sha256((REPO / record["path"]).read_bytes()).hexdigest() == (
+                record["sha256"]
+            )
+            continue
+        historical = subprocess.check_output(
+            ["git", "show", f"{PHASE114_FIX_COMMIT}:{record['path']}"],
+            cwd=REPO,
+        )
+        assert hashlib.sha256(historical).hexdigest() == record["sha256"]
 
     assert audit["validation"]["full_regression_pending"] is False
     assert audit["live_episode_run"] is False

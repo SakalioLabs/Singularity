@@ -1030,6 +1030,216 @@ async function testCraftFailurePropagatesWithoutSettlementDelay() {
     console.log('PASS: SP-003 craft failures propagate without hidden retries or delay');
 }
 
+async function testFirstTableToolCraftReadinessPrimesExactlyOneRealCraft() {
+    const table = {
+        name: 'crafting_table',
+        position: { x: 123, y: 142, z: -37 },
+    };
+    const woodenRecipe = { requiresTable: true, result: { id: 816 } };
+    const stoneRecipe = { requiresTable: true, result: { id: 817 } };
+    const waits = [];
+    const opened = [];
+    const closed = [];
+    const craftCalls = [];
+    let primed = false;
+    let items = [
+        { name: 'oak_planks', count: 6 },
+        { name: 'stick', count: 4 },
+        { name: 'dirt', count: 3 },
+    ];
+    const bot = {
+        registry: {
+            items: {
+                816: { name: 'wooden_pickaxe' },
+                817: { name: 'stone_pickaxe' },
+            },
+        },
+        inventory: { items: () => items },
+        async openBlock(value) {
+            opened.push(value);
+            primed = true;
+            return { id: 2, type: 'minecraft:crafting' };
+        },
+        closeWindow(window) {
+            closed.push(window);
+        },
+        async craft(recipe, count, value) {
+            craftCalls.push({ recipe, count, table: value });
+            if (!primed) return { noop: true };
+            if (recipe === woodenRecipe) {
+                items = [
+                    { name: 'oak_planks', count: 3 },
+                    { name: 'stick', count: 2 },
+                    { name: 'wooden_pickaxe', count: 1 },
+                    { name: 'dirt', count: 3 },
+                ];
+            }
+            return { crafted: bot.registry.items[recipe.result.id].name };
+        },
+    };
+
+    preload.wrapCraftSettlement(bot, async (ms) => waits.push(ms));
+    assert.deepStrictEqual(
+        await bot.craft(woodenRecipe, 1, table),
+        { crafted: 'wooden_pickaxe' },
+    );
+    assert.deepStrictEqual(
+        await bot.craft(stoneRecipe, 1, table),
+        { crafted: 'stone_pickaxe' },
+    );
+
+    assert.deepStrictEqual(opened, [table]);
+    assert.strictEqual(closed.length, 1);
+    assert.deepStrictEqual(waits, [100, 1000, 1000]);
+    assert.strictEqual(craftCalls.length, 2);
+    assert.strictEqual(craftCalls[0].table, table);
+    assert.strictEqual(craftCalls[1].table, table);
+    assert.deepStrictEqual(items, [
+        { name: 'oak_planks', count: 3 },
+        { name: 'stick', count: 2 },
+        { name: 'wooden_pickaxe', count: 1 },
+        { name: 'dirt', count: 3 },
+    ]);
+    const status = preload.firstTableToolCraftReadinessStatus(bot);
+    assert.strictEqual(status.policyId, 'sp003-first-table-tool-craft-readiness-v1');
+    assert.strictEqual(status.status, 'ready');
+    assert.strictEqual(status.attemptCount, 1);
+    assert.strictEqual(status.originalCraftCallCount, 2);
+    assert.strictEqual(status.proof.passed, true);
+    assert.strictEqual(status.proof.inventory_unchanged, true);
+    assert.strictEqual(status.proof.open_count, 1);
+    assert.strictEqual(status.proof.close_count, 1);
+    assert.strictEqual(status.proof.original_craft_call_count, 0);
+    assert.strictEqual(status.proof.world_mutation, false);
+    assert.deepStrictEqual(status.proof.crafting_table_position, {
+        x: 123,
+        y: 142,
+        z: -37,
+    });
+    console.log('PASS: first table tool craft receives one non-mutating readiness preflight');
+}
+
+async function testFirstTableToolCraftReadinessFailureIsTerminalAndNotRetried() {
+    const table = {
+        name: 'crafting_table',
+        position: { x: 11, y: 64, z: 10 },
+    };
+    const recipe = { requiresTable: true, result: { name: 'wooden_pickaxe' } };
+    let openCount = 0;
+    let closeCount = 0;
+    let craftCount = 0;
+    const bot = {
+        inventory: { items: () => [{ name: 'oak_planks', count: 3 }] },
+        async openBlock() {
+            openCount += 1;
+            return { id: 7, type: 'minecraft:chest' };
+        },
+        closeWindow() {
+            closeCount += 1;
+        },
+        async craft() {
+            craftCount += 1;
+        },
+    };
+    preload.wrapCraftSettlement(bot, async () => {});
+
+    await assert.rejects(
+        bot.craft(recipe, 1, table),
+        (error) => (
+            error.name === 'SP003FirstTableToolCraftReadinessError'
+            && error.policyId === 'sp003-first-table-tool-craft-readiness-v1'
+            && /non-crafting window/.test(error.message)
+        ),
+    );
+    await assert.rejects(
+        bot.craft(recipe, 1, table),
+        /readiness already failed/,
+    );
+    assert.strictEqual(openCount, 1);
+    assert.strictEqual(closeCount, 1);
+    assert.strictEqual(craftCount, 0);
+    const status = preload.firstTableToolCraftReadinessStatus(bot);
+    assert.strictEqual(status.status, 'failed');
+    assert.strictEqual(status.attemptCount, 1);
+    assert.strictEqual(status.originalCraftCallCount, 0);
+    assert.strictEqual(status.proof.window_type, 'minecraft:chest');
+    console.log('PASS: failed first-tool readiness is terminal without open or craft retry');
+}
+
+async function testFirstTableToolCraftReadinessRejectsInventoryMutation() {
+    const table = {
+        name: 'crafting_table',
+        position: { x: 11, y: 64, z: 10 },
+    };
+    const recipe = { requiresTable: true, result: { name: 'wooden_pickaxe' } };
+    const waits = [];
+    let items = [{ name: 'oak_planks', count: 3 }, { name: 'stick', count: 2 }];
+    let craftCount = 0;
+    const bot = {
+        inventory: { items: () => items },
+        async openBlock() {
+            return { id: 8, type: 'minecraft:crafting' };
+        },
+        closeWindow() {
+            items = [{ name: 'oak_planks', count: 2 }, { name: 'stick', count: 2 }];
+        },
+        async craft() {
+            craftCount += 1;
+        },
+    };
+    preload.wrapCraftSettlement(bot, async (ms) => waits.push(ms));
+
+    await assert.rejects(
+        bot.craft(recipe, 1, table),
+        /readiness changed inventory/,
+    );
+    assert.deepStrictEqual(waits, [100]);
+    assert.strictEqual(craftCount, 0);
+    const status = preload.firstTableToolCraftReadinessStatus(bot);
+    assert.strictEqual(status.status, 'failed');
+    assert.strictEqual(status.proof.inventory_unchanged, false);
+    assert.deepStrictEqual(status.proof.inventory_before, {
+        oak_planks: 3,
+        stick: 2,
+    });
+    assert.deepStrictEqual(status.proof.inventory_after, {
+        oak_planks: 2,
+        stick: 2,
+    });
+    console.log('PASS: readiness inventory mutation fails before the real craft call');
+}
+
+async function testCraftReadinessLeavesNonToolCraftsUnchanged() {
+    const table = {
+        name: 'crafting_table',
+        position: { x: 11, y: 64, z: 10 },
+    };
+    const calls = [];
+    const waits = [];
+    const bot = {
+        async craft(...args) {
+            calls.push(args);
+            return { crafted: 'chest' };
+        },
+    };
+    preload.wrapCraftSettlement(bot, async (ms) => waits.push(ms));
+    assert.deepStrictEqual(
+        await bot.craft(
+            { requiresTable: true, result: { name: 'chest' } },
+            1,
+            table,
+        ),
+        { crafted: 'chest' },
+    );
+    assert.strictEqual(calls.length, 1);
+    assert.deepStrictEqual(waits, [1000]);
+    const status = preload.firstTableToolCraftReadinessStatus(bot);
+    assert.strictEqual(status.status, 'pending');
+    assert.strictEqual(status.attemptCount, 0);
+    assert.strictEqual(status.originalCraftCallCount, 0);
+    console.log('PASS: non-tool table crafts retain the prior settlement-only path');
+}
+
 async function main() {
     testPreloadReplacesOnlyTheProcessLocalMovementsConstructor();
     testMovementHardeningDisablesHiddenWorldMutation();
@@ -1054,6 +1264,10 @@ async function main() {
     await testRealMineflayerCreateBotInstallsAfterPluginInjection();
     await testCraftSettlementIsBoundedToInteractiveCrafts();
     await testCraftFailurePropagatesWithoutSettlementDelay();
+    await testFirstTableToolCraftReadinessPrimesExactlyOneRealCraft();
+    await testFirstTableToolCraftReadinessFailureIsTerminalAndNotRetried();
+    await testFirstTableToolCraftReadinessRejectsInventoryMutation();
+    await testCraftReadinessLeavesNonToolCraftsUnchanged();
     console.log('\nSP-003 runtime preload tests PASSED');
 }
 

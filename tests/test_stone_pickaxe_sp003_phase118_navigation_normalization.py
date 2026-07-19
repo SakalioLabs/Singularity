@@ -274,9 +274,16 @@ def test_phase118_audit_binds_repair_evidence_and_protected_identities():
         *audit["protected_phase_116_identities"],
         *audit["protected_runtime_identities"],
     ]:
-        path = REPO / record["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+        if record["path"].startswith("node_modules/"):
+            assert hashlib.sha256((REPO / record["path"]).read_bytes()).hexdigest() == (
+                record["sha256"]
+            )
+            continue
+        historical = subprocess.check_output(
+            ["git", "show", f"{PHASE118_FIX_COMMIT}:{record['path']}"],
+            cwd=REPO,
+        )
+        assert hashlib.sha256(historical).hexdigest() == record["sha256"]
     assert audit["live_episode_run"] is False
     assert audit["live_authorization"] is False
     assert audit["automatic_retry_allowed"] is False

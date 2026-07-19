@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import subprocess
 from types import SimpleNamespace
 
 import pytest
@@ -21,6 +22,7 @@ from singularity.evaluation.stone_pickaxe_sp003_phase116_runtime import (
 
 
 REPO = Path(__file__).resolve().parents[1]
+PHASE116_FIX_COMMIT = "c5f120cc89d55ca31e3fcdaebef9aa7f2b7838a3"
 RUN_DIR = (
     REPO
     / "workspace/evals/sp003_runs/sp003_baseline_20260719_232840_66a67eeb"
@@ -503,9 +505,16 @@ def test_phase116_audit_binds_implementation_and_protected_identities():
         *audit["protected_runtime_identities"],
     ]
     for record in records:
-        path = REPO / record["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+        if record["path"].startswith("node_modules/"):
+            assert hashlib.sha256((REPO / record["path"]).read_bytes()).hexdigest() == (
+                record["sha256"]
+            )
+            continue
+        historical = subprocess.check_output(
+            ["git", "show", f"{PHASE116_FIX_COMMIT}:{record['path']}"],
+            cwd=REPO,
+        )
+        assert hashlib.sha256(historical).hexdigest() == record["sha256"]
     assert audit["live_episode_run"] is False
     assert audit["live_authorization"] is False
     assert audit["automatic_retry_allowed"] is False

@@ -1,0 +1,219 @@
+{
+  "type": "stone_pickaxe_sp003_first_table_tool_craft_readiness_repair",
+  "schema_version": 1,
+  "phase": 124,
+  "generated_at": "2026-07-20T05:06:57+08:00",
+  "base_commit": "33441a1877f43c5292f83ca61c29b2cdcdf112c0",
+  "task_id": "SP-003",
+  "policy_id": "sp003-first-table-tool-craft-readiness-v1",
+  "status": "offline_verified",
+  "retained_failure": {
+    "classification": "sp003_first_table_tool_craft_noop_after_behavioral_loop_completion",
+    "episode_id": "sp003_baseline_20260720_040104_4676408a",
+    "session_id": "d3792dd5-572",
+    "evidence_commit": "33441a1877f43c5292f83ca61c29b2cdcdf112c0",
+    "authorization_commit": "8dd14bfe7183c78218019cb3a3344d1e87a5c4ed",
+    "manifest_sha256": "6420a734dd42c74a7c866f7cb3a23e5d2bb2f2b774a037e0f853d0a9b12a6133",
+    "session_sha256": "aae89c099fb3ef43d0af68f9bceb69ae56880f37d1b2a2b1649773888ea01f97",
+    "episode_sha256": "c2a18b85600c84d00c54e153d1fee77618c8d808becf458145c4064256b3362a",
+    "behavioral_empty_hand_to_stone_pickaxe_loop_completed": true,
+    "strict_baseline_passed": false,
+    "first_wooden_pickaxe_action_ordinal": 15,
+    "first_backend_attempt_count": 1,
+    "first_backend_retry_count": 0,
+    "first_original_craft_call_count": 1,
+    "first_inventory_before": {
+      "oak_planks": 6,
+      "stick": 4,
+      "dirt": 3
+    },
+    "first_inventory_after": {
+      "oak_planks": 6,
+      "stick": 4,
+      "dirt": 3
+    },
+    "first_inventory_signed_delta": {},
+    "post_failure_authoritative_refresh_succeeded": true,
+    "post_failure_authoritative_refresh_window_id": 2,
+    "post_failure_authoritative_refresh_window_type": "minecraft:crafting",
+    "second_wooden_pickaxe_action_ordinal": 16,
+    "second_original_craft_call_count": 1,
+    "second_inventory_signed_delta": {
+      "oak_planks": -3,
+      "stick": -2,
+      "wooden_pickaxe": 1
+    },
+    "same_crafting_table_position": {
+      "x": 123,
+      "y": 142,
+      "z": -37
+    },
+    "automatic_retry_attempted": false
+  },
+  "causal_basis": {
+    "phase_91_first_tool_craft_rollback_independently_observed": true,
+    "phase_123_first_tool_craft_noop_independently_observed": true,
+    "phase_123_post_failure_window_refresh_was_non_mutating": true,
+    "phase_123_next_same_table_craft_succeeded": true,
+    "post_resolution_settlement_delay_alone_was_insufficient": true,
+    "single_next_hypothesis": "prime_authoritative_table_window_state_before_the_first_tool_craft"
+  },
+  "repair_contract": {
+    "scope": "sp003_only_process_local_preload",
+    "eligible_target_items": [
+      "wooden_pickaxe",
+      "stone_pickaxe"
+    ],
+    "activation_requires_structured_table_recipe": true,
+    "activation_requires_exact_crafting_table_block": true,
+    "same_table_object_passed_to_preflight_and_original_craft": true,
+    "preflight_attempt_limit": 1,
+    "preflight_timeout_ms": 1500,
+    "preflight_post_close_wait_ms": 100,
+    "preflight_open_count": 1,
+    "preflight_close_count": 1,
+    "preflight_inventory_must_remain_unchanged": true,
+    "preflight_world_mutation": false,
+    "preflight_original_craft_call_count": 0,
+    "original_craft_call_count_per_action": 1,
+    "backend_retry_added": false,
+    "failed_preflight_is_terminal": true,
+    "failed_preflight_second_open_allowed": false,
+    "failed_preflight_original_craft_allowed": false,
+    "non_tool_table_craft_behavior_changed": false,
+    "post_craft_settlement_delay_ms_unchanged": 1000,
+    "shared_bridge_changed": false,
+    "mineflayer_dependency_changed": false,
+    "base_protocol_changed": false,
+    "phase_122_python_guard_changed": false,
+    "planner_changed": false,
+    "action_budget_changed": false
+  },
+  "synthetic_replay": {
+    "unprimed_original_craft_would_noop": true,
+    "preflight_primes_exact_table": true,
+    "preflight_inventory_delta": {},
+    "first_original_craft_call_count": 1,
+    "first_original_craft_succeeds": true,
+    "second_tool_craft_reuses_ready_state": true,
+    "total_preflight_open_count_for_two_tool_crafts": 1,
+    "wrong_window_preflight_count": 1,
+    "wrong_window_original_craft_count": 0,
+    "wrong_window_second_preflight_count": 0,
+    "inventory_mutation_original_craft_count": 0,
+    "non_tool_preflight_count": 0
+  },
+  "implementation": [
+    {
+      "path": "src/bot/sp003_inventory_preserving_navigation.js",
+      "sha256": "981331f2aa8c1c27b61985d0407a0dc950efed75d68b93f0c20e5970013136a1"
+    },
+    {
+      "path": "tests/test_sp003_inventory_preserving_navigation.js",
+      "sha256": "5eb3258da0d0b8c65b63aedfa2c09c040ece2cc223b2ade66f07fced2be4f1e8"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_phase124_first_table_tool_craft_readiness.py",
+      "sha256": "93a1d78ba6015409d1bf0a7a8d39915d57758605799848ab82add721aa2dfa63"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_phase116_table_staging.py",
+      "sha256": "77ae257eb8f609cf28f740ebb6322a47840fb938996243a48e3b7a952338ec5e"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_phase118_navigation_normalization.py",
+      "sha256": "0c754955003f5c3b43cfd10c2c40450763a15e47b4f6f50ad157c908e47009d9"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_phase120_partial_shaft.py",
+      "sha256": "448032cf1ed59a93410c07d322cf2c3a9b81b6633a334b25ddc66c989333e032"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_phase122_step_up_egress.py",
+      "sha256": "67c652995401deb475c39e9550d77fc7a05e7e7946c11cc9165776b2be46ff5e"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_runtime.py",
+      "sha256": "28c16d9d13c994faa9eceed3edb0cf23c1a61e7f777b1c561382580c13deccd2"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+      "sha256": "aef9fe1e733476eb93a9264c7e33e7e3a8ed9cf50b400e44f7476691a2c8815f"
+    }
+  ],
+  "protected_identities": [
+    {
+      "path": "src/bot/bot_server.js",
+      "sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_protocol.json",
+      "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+    },
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_phase122_runtime.py",
+      "sha256": "38eb06ceb04ad464cbb9fa9ab498ee2a15ccff6acc1ffbdb89259e534d32f068"
+    },
+    {
+      "path": "scripts/stone_pickaxe_sp003_phase122_episode_runner.py",
+      "sha256": "35bca1ae12b7b173887dbec4b42afc6c47fd4c6d6ce314f59c084802dbe6405c"
+    },
+    {
+      "path": "scripts/stone-pickaxe-sp003-runtime.ps1",
+      "sha256": "1f107d6a152c2a2bb19dadbc841f7dc111dbd9b83b4c5faf27886a64adbf8551"
+    },
+    {
+      "path": "node_modules/mineflayer/lib/plugins/craft.js",
+      "sha256": "bb58944902a220874e1815d8ff272d6b60286759a133c892709602fefe7fc4fc"
+    }
+  ],
+  "retained_phase_123_identities": [
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_040104_4676408a/manifest.json",
+      "sha256": "6420a734dd42c74a7c866f7cb3a23e5d2bb2f2b774a037e0f853d0a9b12a6133"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_040104_4676408a/session.json",
+      "sha256": "aae89c099fb3ef43d0af68f9bceb69ae56880f37d1b2a2b1649773888ea01f97"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_040104_4676408a/episode.json",
+      "sha256": "c2a18b85600c84d00c54e153d1fee77618c8d808becf458145c4064256b3362a"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_040104_4676408a/verification.json",
+      "sha256": "57d73b14de8dcfd8939336d5a5ef65f88b5b137060dfea83d122377604962162"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_040104_4676408a/authorization_consumption.json",
+      "sha256": "62c84ffd64d12c1ae8ad294e0129ee6b6fb88eb2226be6dafff4a4d6c448a859"
+    }
+  ],
+  "validation": {
+    "phase_124_focused_cases": "3/3",
+    "node_preload_cases": "27/27",
+    "phase_118_through_phase_122_cases": "28/28",
+    "all_stone_pickaxe_cases": "316/316",
+    "task_goal_capability_cases": "140/140",
+    "selected_m1_m2_m3_cases": "72/72",
+    "node_suites": "7/7",
+    "node_internal_cases": "85/85",
+    "policy_identity_passed": true,
+    "wrapper_cli_passed": true,
+    "powershell_parse_passed": true,
+    "python_compile_passed": true,
+    "json_files_parsed": 1714,
+    "json_validation_passed": true,
+    "credential_scan_matches": 0,
+    "credential_scan_passed": true,
+    "git_diff_check_passed": true,
+    "full_repository_cases": "1069/1069"
+  },
+  "live_episode_run": false,
+  "live_authorization": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

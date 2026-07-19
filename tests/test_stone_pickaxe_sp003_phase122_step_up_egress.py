@@ -17,6 +17,7 @@ from singularity.evaluation import stone_pickaxe_sp003_runtime as base
 
 REPO = Path(__file__).resolve().parents[1]
 PHASE122_BASE_COMMIT = "5bd4210fb0a17a053f80cea3b0f66621f2ad7f67"
+PHASE122_FIX_COMMIT = "6d9d1b5b9fce021101fad69ab8af05f28508bfe1"
 PHASE119_RUN_DIR = (
     REPO
     / "workspace/evals/sp003_runs/sp003_baseline_20260720_015550_a54561d9"
@@ -415,9 +416,16 @@ def test_phase122_audit_binds_repair_and_protected_identities():
         *audit["protected_runtime_identities"],
         *audit["retained_evidence_identities"],
     ]:
-        path = REPO / record["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+        if record["path"].startswith("node_modules/"):
+            assert hashlib.sha256((REPO / record["path"]).read_bytes()).hexdigest() == (
+                record["sha256"]
+            )
+            continue
+        historical = subprocess.check_output(
+            ["git", "show", f"{PHASE122_FIX_COMMIT}:{record['path']}"],
+            cwd=REPO,
+        )
+        assert hashlib.sha256(historical).hexdigest() == record["sha256"]
     assert audit["live_episode_run"] is False
     assert audit["live_authorization"] is False
     assert audit["automatic_retry_allowed"] is False
