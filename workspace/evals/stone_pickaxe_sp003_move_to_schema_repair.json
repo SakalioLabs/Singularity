@@ -1,0 +1,108 @@
+{
+  "type": "stone_pickaxe_sp003_move_to_schema_repair",
+  "schema_version": 1,
+  "generated_at": "2026-07-19T16:28:35+08:00",
+  "phase": 104,
+  "status": "offline_fix_verified_pending_commit_push",
+  "base_commit": "06a8327a8d7a4ff358e0a2ec9b773c80a7da323f",
+  "task_id": "SP-003",
+  "runtime_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
+  "move_schema_policy_id": "sp003-horizontal-move-envelope-v1",
+  "retained_failure": {
+    "episode_id": "sp003_baseline_20260719_154642_73c81d37",
+    "session_id": "959ea189-7db",
+    "manifest_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_154642_73c81d37/manifest.json",
+    "manifest_sha256": "fcce5b84f435a8a606a61b8c1b1f1febf21ec64e2317d7e76fac8182da504310",
+    "session_path": "workspace/evals/sp003_runs/sp003_baseline_20260719_154642_73c81d37/session.json",
+    "session_sha256": "1ca5c1aeba236f8040527c009b424f781034629001444ca31bca6dce12f09537",
+    "raw_evidence_modified": false
+  },
+  "root_cause": {
+    "classification": "sp003_move_to_schema_y_contract_disconnect",
+    "terminal_call_index": 12,
+    "terminal_call_id": "llm-a2ab5103f3a14ec0",
+    "terminal_stage": "acquire_cobblestone",
+    "terminal_target_source_id": "stone:124:139:-37",
+    "terminal_target_navigation_only": true,
+    "terminal_target_stone_clearance_probe": true,
+    "prompt_required_axes": ["x", "z"],
+    "validator_required_axes_before_repair": ["x", "y", "z"],
+    "terminal_schema_issues": ["action_parameter_y_invalid"],
+    "transport_attempt_count": 1,
+    "transport_retry_count": 0,
+    "response_byte_count": 523,
+    "response_sha256": "5e986734658478dffa609910ba3a2f07978896c72a399d223e907ed88f2d062b"
+  },
+  "repair_contract": {
+    "sp003_move_to_required_axes": ["x", "z"],
+    "sp003_move_to_optional_axes": ["y"],
+    "optional_y_must_be_finite": true,
+    "sp003_look_at_required_axes": ["x", "y", "z"],
+    "non_sp003_move_to_required_axes": ["x", "y", "z"],
+    "action_rewrite_allowed": false,
+    "action_guard_changed": false,
+    "base_protocol_changed": false,
+    "shared_bridge_changed": false,
+    "automatic_retry_allowed": false
+  },
+  "retained_replay": {
+    "original_schema_issues": ["action_parameter_y_invalid"],
+    "reconstructed_x_z_envelope_passed": true,
+    "optional_finite_y_passed": true,
+    "optional_invalid_y_rejected": true,
+    "sp003_look_at_without_y_rejected": true,
+    "non_sp003_move_to_without_y_rejected": true,
+    "prompt_x_z_only_instruction_preserved": true,
+    "runtime_guard_machine_binding_preserved": true
+  },
+  "implementation": [
+    {
+      "path": "src/singularity/core/planner.py",
+      "sha256": "cd58961e1e4174e6e7b474044286bda255f243451426a5a0a4cf681afc9738f0"
+    },
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+      "sha256": "e6e601014ae26e4341c79721e9af37dce52091670c5341100078c5b57e3be9e6"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_runtime.py",
+      "sha256": "1e9f3bc0191514e9c11c113efeb40513fd0ff32c5d0bee548438599ae105ca75"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+      "sha256": "0048f540861691288d59c6726d3af4cd8c71c2ecf62f7c538bd5704c1863c208"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_protocol.json",
+      "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+    },
+    {
+      "path": "src/bot/bot_server.js",
+      "sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
+    }
+  ],
+  "validation": {
+    "targeted_contract_and_replay_cases": "4/4",
+    "sp003_dedicated_cases": "72/72",
+    "stone_pickaxe_related_cases": "253/253",
+    "repository_non_live_python_cases": "1008/1008",
+    "capability_consistency_cases": "8/8",
+    "node_suites": "7/7",
+    "node_internal_cases": "67/67",
+    "policy_identity_passed": true,
+    "python_compile_passed": true,
+    "tracked_json_parse_passed": true,
+    "probe_22_report_sha256": "3db980c2c95efa9c505cd3da92d78883f5628006871210904e18cf8f782251f0",
+    "probe_21_probe_22_comparison_sha256": "28679e2eafc632bfb26ce2f8c19737cf784a27cc9f16de0f996c44c2ee49a90a",
+    "credential_scan_passed": true,
+    "git_diff_check_passed": true
+  },
+  "live_episode_run": false,
+  "live_authorization": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false,
+  "next_gate": "commit_push_then_create_one_fresh_parent_bound_baseline_authorization"
+}

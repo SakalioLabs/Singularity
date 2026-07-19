@@ -1451,17 +1451,29 @@ Plan the steps to achieve this goal."""
                 for alias in sorted(alias_names.intersection(params)):
                     issues.append(f"action_parameter_alias_forbidden:{alias}")
 
+                def require_axis(axis):
+                    value = params.get(axis)
+                    if (
+                        not isinstance(value, (int, float))
+                        or isinstance(value, bool)
+                        or not math.isfinite(float(value))
+                    ):
+                        issues.append(f"action_parameter_{axis}_invalid")
+
                 def require_xyz():
                     for axis in ("x", "y", "z"):
-                        value = params.get(axis)
-                        if (
-                            not isinstance(value, (int, float))
-                            or isinstance(value, bool)
-                            or not math.isfinite(float(value))
-                        ):
-                            issues.append(f"action_parameter_{axis}_invalid")
+                        require_axis(axis)
 
-                if action_type in {"move_to", "look_at"}:
+                if action_type == "move_to":
+                    if str(runtime_mode or "") == "sp003":
+                        require_axis("x")
+                        require_axis("z")
+                        if "y" in params:
+                            require_axis("y")
+                    else:
+                        require_xyz()
+                    allowed = {"x", "y", "z"}
+                elif action_type == "look_at":
                     require_xyz()
                     allowed = {"x", "y", "z"}
                 elif action_type == "dig":

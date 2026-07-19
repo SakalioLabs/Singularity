@@ -132,6 +132,7 @@ SP003_PLANNER_TARGET_FIELDS = [
 SP003_PLANNER_TARGET_LIMIT = 1
 SP003_PLANNER_COMPACT_JSON_MAX_CHARS = 2500
 SP003_PLANNER_USER_PROMPT_MAX_CHARS = 5000
+SP003_PLANNER_MOVE_SCHEMA_POLICY_ID = "sp003-horizontal-move-envelope-v1"
 SP003_FROZEN_BRIDGE_SHA256 = "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
 REPLACEABLE_BLOCKS = {
     "air",
@@ -340,6 +341,20 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         == SP003_PLANNER_USER_PROMPT_MAX_CHARS
         and episode_contract.get("planner_action_rewrite_allowed") is False
         and episode_contract.get("planner_reasoning_limit_chars") == 320
+    )
+    checks["mode_specific_move_schema_contract"] = (
+        episode_contract.get("planner_move_to_schema_policy_id")
+        == SP003_PLANNER_MOVE_SCHEMA_POLICY_ID
+        and episode_contract.get("planner_move_to_required_axes") == ["x", "z"]
+        and episode_contract.get("planner_move_to_optional_axes") == ["y"]
+        and episode_contract.get("planner_move_to_optional_y_must_be_finite")
+        is True
+        and episode_contract.get("planner_look_at_required_axes")
+        == ["x", "y", "z"]
+        and episode_contract.get(
+            "planner_non_sp003_move_to_required_axes_unchanged"
+        )
+        is True
     )
 
     reset = value.get("reset_substrate") if isinstance(value.get("reset_substrate"), dict) else {}

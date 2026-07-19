@@ -185,6 +185,12 @@
     "planner_user_prompt_max_chars": 5000,
     "planner_action_rewrite_allowed": false,
     "planner_reasoning_limit_chars": 320,
+    "planner_move_to_schema_policy_id": "sp003-horizontal-move-envelope-v1",
+    "planner_move_to_required_axes": ["x", "z"],
+    "planner_move_to_optional_axes": ["y"],
+    "planner_move_to_optional_y_must_be_finite": true,
+    "planner_look_at_required_axes": ["x", "y", "z"],
+    "planner_non_sp003_move_to_required_axes_unchanged": true,
     "automatic_retry_allowed": false,
     "stable_reobservation_delay_s": 0.25,
     "allowed_log_family": [

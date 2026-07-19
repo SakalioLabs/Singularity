@@ -150,6 +150,26 @@ def test_policy_identity_binds_frozen_protocol_and_promoted_skills():
     assert policy["episode_contract"]["planner_user_prompt_max_chars"] == 5000
     assert policy["episode_contract"]["planner_action_rewrite_allowed"] is False
     assert policy["episode_contract"]["planner_reasoning_limit_chars"] == 320
+    assert policy["episode_contract"]["planner_move_to_schema_policy_id"] == (
+        "sp003-horizontal-move-envelope-v1"
+    )
+    assert policy["episode_contract"]["planner_move_to_required_axes"] == ["x", "z"]
+    assert policy["episode_contract"]["planner_move_to_optional_axes"] == ["y"]
+    assert (
+        policy["episode_contract"]["planner_move_to_optional_y_must_be_finite"]
+        is True
+    )
+    assert policy["episode_contract"]["planner_look_at_required_axes"] == [
+        "x",
+        "y",
+        "z",
+    ]
+    assert (
+        policy["episode_contract"][
+            "planner_non_sp003_move_to_required_axes_unchanged"
+        ]
+        is True
+    )
     assert [(item["skill_id"], item["version"]) for item in policy["skills"]] == [
         ("learned:acquire_cobblestone", "1.1.0"),
         ("learned:craft_stone_pickaxe", "1.0.1"),
@@ -210,6 +230,15 @@ def test_policy_identity_rejects_eager_craft_settlement_installation():
     unbounded_planner_state["episode_contract"]["planner_state_target_limit"] = 8
     assert not verify_sp003_policy_identity(unbounded_planner_state)["checks"][
         "bounded_planner_state_contract"
+    ]
+
+    widened_move_schema = copy.deepcopy(policy)
+    widened_move_schema["episode_contract"]["planner_move_to_optional_axes"] = [
+        "y",
+        "tolerance",
+    ]
+    assert not verify_sp003_policy_identity(widened_move_schema)["checks"][
+        "mode_specific_move_schema_contract"
     ]
 
 
@@ -1113,6 +1142,31 @@ def test_phase103_retained_baseline_replays_move_to_y_contract_disconnect():
     assert terminal_compact["sp003_targets"][0]["source_id"] == "stone:124:139:-37"
     assert terminal_compact["sp003_targets"][0]["stone_clearance_probe"] is True
     assert terminal_compact["sp003_targets"][0]["navigation_only"] is True
+    target_position = terminal_compact["sp003_targets"][0]["position"]
+    repaired_envelope = {
+        "schema_version": "stone-pickaxe-plan-v1",
+        "plan_kind": "continuation",
+        "goal": SP003_GOAL,
+        "status": "planning",
+        "reasoning": "Approach the machine-grounded clearance probe.",
+        "subtasks": [],
+        "actions": [
+            {
+                "type": "move_to",
+                "parameters": {
+                    "x": target_position["x"],
+                    "z": target_position["z"],
+                },
+            }
+        ],
+    }
+    repaired_report = Planner._validate_stone_pickaxe_plan_envelope(
+        repaired_envelope,
+        SP003_GOAL,
+        "continuation",
+        "sp003",
+    )
+    assert repaired_report["passed"], repaired_report
 
     ledger = json.loads(
         (REPO / "workspace/evals/stone_pickaxe_failure_ledger.json").read_text(
@@ -1128,6 +1182,39 @@ def test_phase103_retained_baseline_replays_move_to_y_contract_disconnect():
     assert failure["counts_toward_baseline_success"] is False
     assert len(failure["evidence"]) == 13
     for record in failure["evidence"]:
+        path = REPO / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+
+def test_phase104_move_to_schema_repair_audit_binds_current_contract():
+    audit_path = REPO / "workspace/evals/stone_pickaxe_sp003_move_to_schema_repair.json"
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+
+    assert audit["type"] == "stone_pickaxe_sp003_move_to_schema_repair"
+    assert audit["phase"] == 104
+    assert audit["base_commit"] == "06a8327a8d7a4ff358e0a2ec9b773c80a7da323f"
+    assert audit["move_schema_policy_id"] == "sp003-horizontal-move-envelope-v1"
+    assert audit["repair_contract"] == {
+        "sp003_move_to_required_axes": ["x", "z"],
+        "sp003_move_to_optional_axes": ["y"],
+        "optional_y_must_be_finite": True,
+        "sp003_look_at_required_axes": ["x", "y", "z"],
+        "non_sp003_move_to_required_axes": ["x", "y", "z"],
+        "action_rewrite_allowed": False,
+        "action_guard_changed": False,
+        "base_protocol_changed": False,
+        "shared_bridge_changed": False,
+        "automatic_retry_allowed": False,
+    }
+    assert audit["retained_replay"]["original_schema_issues"] == [
+        "action_parameter_y_invalid"
+    ]
+    assert audit["retained_replay"]["reconstructed_x_z_envelope_passed"] is True
+    assert audit["live_episode_run"] is False
+    assert audit["live_authorization"] is False
+
+    for record in audit["implementation"]:
         path = REPO / record["path"]
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
@@ -1678,6 +1765,66 @@ def test_local_sp003_scan_keeps_multiple_stone_sources_ahead_of_global_diversity
         "stone:1:62:0",
     ]
     assert len([item for item in merged if item["name"] == "stone"]) == 4
+
+
+def test_sp003_move_to_envelope_uses_horizontal_required_axes_only():
+    plan = {
+        "schema_version": "stone-pickaxe-plan-v1",
+        "plan_kind": "continuation",
+        "goal": SP003_GOAL,
+        "status": "planning",
+        "reasoning": "Approach the machine-grounded clearance probe.",
+        "subtasks": [],
+        "actions": [{"type": "move_to", "parameters": {"x": 124, "z": -37}}],
+    }
+
+    horizontal = Planner._validate_stone_pickaxe_plan_envelope(
+        plan,
+        SP003_GOAL,
+        "continuation",
+        "sp003",
+    )
+    assert horizontal["passed"], horizontal
+
+    with_y = copy.deepcopy(plan)
+    with_y["actions"][0]["parameters"]["y"] = 139
+    report = Planner._validate_stone_pickaxe_plan_envelope(
+        with_y,
+        SP003_GOAL,
+        "continuation",
+        "sp003",
+    )
+    assert report["passed"], report
+
+    for invalid_y in (None, True, "139", math.inf, math.nan):
+        invalid = copy.deepcopy(plan)
+        invalid["actions"][0]["parameters"]["y"] = invalid_y
+        report = Planner._validate_stone_pickaxe_plan_envelope(
+            invalid,
+            SP003_GOAL,
+            "continuation",
+            "sp003",
+        )
+        assert report["issues"] == ["action_parameter_y_invalid"]
+
+    for runtime_mode in ("", "sp001", "sp002"):
+        report = Planner._validate_stone_pickaxe_plan_envelope(
+            plan,
+            SP003_GOAL,
+            "continuation",
+            runtime_mode,
+        )
+        assert "action_parameter_y_invalid" in report["issues"]
+
+    look_at = copy.deepcopy(plan)
+    look_at["actions"][0]["type"] = "look_at"
+    report = Planner._validate_stone_pickaxe_plan_envelope(
+        look_at,
+        SP003_GOAL,
+        "continuation",
+        "sp003",
+    )
+    assert "action_parameter_y_invalid" in report["issues"]
 
 
 def test_planner_compacts_sp003_state_and_requires_exact_five_node_graph():
