@@ -3,6 +3,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import subprocess
 from types import SimpleNamespace
 
 from singularity.evaluation import stone_pickaxe_sp003_phase116_runtime as phase116
@@ -11,6 +12,7 @@ from singularity.evaluation import stone_pickaxe_sp003_runtime as base
 
 
 REPO = Path(__file__).resolve().parents[1]
+PHASE120_FIX_COMMIT = "360aa2d8d9de966b49f9140b048c3b016929db34"
 RUN_DIR = (
     REPO
     / "workspace/evals/sp003_runs/sp003_baseline_20260720_015550_a54561d9"
@@ -495,8 +497,15 @@ def test_phase120_runner_is_process_local_and_launcher_uses_it():
     wrapper = (
         REPO / "scripts/stone_pickaxe_sp003_phase120_episode_runner.py"
     ).read_text(encoding="utf-8")
-    launcher = (REPO / "scripts/stone-pickaxe-sp003-runtime.ps1").read_text(
-        encoding="utf-8-sig"
+    launcher = subprocess.check_output(
+        [
+            "git",
+            "show",
+            f"{PHASE120_FIX_COMMIT}:scripts/stone-pickaxe-sp003-runtime.ps1",
+        ],
+        cwd=REPO,
+        text=True,
+        encoding="utf-8",
     )
     frozen = (REPO / "scripts/stone_pickaxe_sp003_episode_runner.py").read_bytes()
     phase118_wrapper = (
@@ -535,8 +544,13 @@ def test_phase120_audit_binds_repair_and_protected_identities():
     assert audit["retained_failure"]["manifest_sha256"] == (
         "fb64e76fc8980421a7bb957740f1e11ddadbddf6d82576524c426270fe09080b"
     )
+    for record in audit["implementation"]:
+        historical = subprocess.check_output(
+            ["git", "show", f"{PHASE120_FIX_COMMIT}:{record['path']}"],
+            cwd=REPO,
+        )
+        assert hashlib.sha256(historical).hexdigest() == record["sha256"]
     for record in [
-        *audit["implementation"],
         *audit["protected_phase_118_identities"],
         *audit["protected_runtime_identities"],
         *audit["retained_evidence_identities"],

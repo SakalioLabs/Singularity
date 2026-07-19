@@ -1,0 +1,232 @@
+{
+  "type": "stone_pickaxe_sp003_partial_clearance_shaft_step_up_repair",
+  "schema_version": 1,
+  "phase": 122,
+  "generated_at": "2026-07-20T03:42:34+08:00",
+  "base_commit": "5bd4210fb0a17a053f80cea3b0f66621f2ad7f67",
+  "task_id": "SP-003",
+  "policy_id": "sp003-partial-clearance-shaft-step-up-egress-v1",
+  "status": "offline_verified",
+  "retained_failure": {
+    "classification": "sp003_cardinal_step_up_egress_proof_gap",
+    "episode_id": "sp003_baseline_20260720_030918_15498d1d",
+    "session_id": "fe0d4957-19d",
+    "evidence_commit": "5bd4210fb0a17a053f80cea3b0f66621f2ad7f67",
+    "manifest_sha256": "f7f8cb5791c54ef7a6d500d0786592ebbea8392e0591e647643796d624ac6ce4",
+    "session_sha256": "c918766a1ec648ac856ae712dfe1080a429da06f741337ce2bbf98472aee552a",
+    "episode_sha256": "085be16d35ad370ba11559d281bb6dfed085a1d5856555b909fda2390605568f",
+    "authorization_commit": "80bfb123169c4f45a2c43d35f37e5c5e5d32e20f",
+    "authorization_id": "be060bcac33b43af7ec318b6a3d73d2da1e5dc1bc72aa5900ffa30609c3e55fe",
+    "authorization_consumed": true,
+    "automatic_retry_attempted": false,
+    "action_count": 13,
+    "successful_action_count": 12,
+    "surface_clearance_count": 2,
+    "distinct_surface_clearance_support_count": 1,
+    "termination_reason": "blocked_plan",
+    "elapsed_s": 93.031,
+    "terminal_inventory": {
+      "oak_planks": 6,
+      "stick": 4,
+      "crafting_table": 1,
+      "dirt": 2
+    }
+  },
+  "root_cause": {
+    "locked_support_source_id": "stone:124:139:-37",
+    "locked_clearance_source_ids": [
+      "grass_block:124:142:-37",
+      "dirt:124:141:-37"
+    ],
+    "terminal_player_cell": {"x": 124, "y": 141, "z": -37},
+    "remaining_obstruction_source_id": "dirt:124:140:-37",
+    "same_level_cardinal_feet_cells_all_solid": true,
+    "phase_120_same_level_egress_available": false,
+    "step_up_ground_source_id": "grass_block:123:141:-37",
+    "step_up_stand_position": {"x": 123.5, "y": 142, "z": -36.5},
+    "step_up_feet_air_proven": true,
+    "step_up_head_air_proven": true,
+    "step_up_horizontal_manhattan_distance": 1,
+    "step_up_vertical_delta": 1,
+    "terminal_blocker": "locked_partial_shaft_machine_egress_unavailable"
+  },
+  "repair_contract": {
+    "scope": "sp003_only_process_local_overlay",
+    "parent_policy_id": "sp003-partial-clearance-shaft-continuation-v1",
+    "activation_requires_parent_blocker": "locked_partial_shaft_machine_egress_unavailable",
+    "same_level_egress_precedence_preserved": true,
+    "step_up_requires_validated_bounded_scan": true,
+    "step_up_requires_player_in_locked_support_column": true,
+    "step_up_requires_current_feet_and_head_air": true,
+    "step_up_cardinal_horizontal_distance": 1,
+    "step_up_vertical_delta": 1,
+    "step_up_requires_allowed_solid_ground": true,
+    "step_up_requires_destination_feet_and_head_air": true,
+    "step_up_requires_exact_y": true,
+    "step_up_continuous_tolerance": 1.0,
+    "step_up_attempt_limit_per_proof_fingerprint": 1,
+    "step_up_preserves_inventory": true,
+    "step_up_world_mutation": false,
+    "same_support_top_down_continuation_required": true,
+    "surface_clearance_episode_maximum_unchanged": 6,
+    "surface_clearance_shaft_maximum_unchanged": 3,
+    "wrong_y_allowed": false,
+    "unexpected_extra_parameters_allowed": false,
+    "skill_context_allowed": false,
+    "malformed_scan_allowed": false,
+    "blocked_destination_head_allowed": false,
+    "wrong_ground_family_allowed": false,
+    "same_fingerprint_second_attempt_allowed": false,
+    "shared_bridge_changed": false,
+    "vendored_dependency_changed": false,
+    "base_sp003_runtime_changed": false,
+    "phase_120_runtime_changed": false,
+    "frozen_runner_changed": false,
+    "planner_changed": false,
+    "base_protocol_changed": false,
+    "action_budget_changed": false
+  },
+  "retained_replay": {
+    "terminal_observation_replayed": true,
+    "parent_blocker_reproduced": "locked_partial_shaft_machine_egress_unavailable",
+    "new_target_mode": "locked_shaft_step_up_egress",
+    "machine_selected_egress_position": {"x": 123.5, "y": 142, "z": -36.5},
+    "machine_selected_egress_ground_source_id": "grass_block:123:141:-37",
+    "remaining_obstruction_source_ids_top_down": ["dirt:124:140:-37"],
+    "proof_fingerprint": "33ad0efd1d424ebd0532e34fccbd443e855efb2d308bb812b1568325f1e085b4",
+    "one_egress_attempt_allowed": true,
+    "same_fingerprint_second_attempt_allowed": false,
+    "extra_world_mutation_count": 0,
+    "hidden_retry_count": 0
+  },
+  "synthetic_replay": {
+    "same_level_egress_remains_first_choice": true,
+    "post_step_up_locked_support_source_id": "stone:124:139:-37",
+    "post_step_up_target_mode": "locked_surface_clearance",
+    "post_step_up_next_clearance_source_id": "dirt:124:140:-37",
+    "wrong_y_cases_allowed": 0,
+    "unexpected_extra_parameter_cases_allowed": 0,
+    "skill_context_cases_allowed": 0,
+    "tampered_scan_cases_allowed": 0,
+    "blocked_head_cases_allowed": 0,
+    "wrong_ground_cases_allowed": 0,
+    "attempt_exhaustion_cases_allowed": 0
+  },
+  "implementation": [
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_phase122_runtime.py",
+      "sha256": "38eb06ceb04ad464cbb9fa9ab498ee2a15ccff6acc1ffbdb89259e534d32f068"
+    },
+    {
+      "path": "scripts/stone_pickaxe_sp003_phase122_episode_runner.py",
+      "sha256": "35bca1ae12b7b173887dbec4b42afc6c47fd4c6d6ce314f59c084802dbe6405c"
+    },
+    {
+      "path": "scripts/stone-pickaxe-sp003-runtime.ps1",
+      "sha256": "1f107d6a152c2a2bb19dadbc841f7dc111dbd9b83b4c5faf27886a64adbf8551"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_phase122_step_up_egress.py",
+      "sha256": "edea5a9f0ce6387fe0980c5f88cf996c93148cee12fbd799a6cd82d7f346e622"
+    },
+    {
+      "path": "tests/test_stone_pickaxe_sp003_phase120_partial_shaft.py",
+      "sha256": "3c86741b38d4b8ce89142075f3b98cc1866dc868508463966667137d1501d9ad"
+    }
+  ],
+  "protected_phase_120_identities": [
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_phase120_runtime.py",
+      "sha256": "74d526fbb281a411e857a4db418757a6c4689d1b6eb42f5e6dd3b8d762fbe1b3"
+    },
+    {
+      "path": "scripts/stone_pickaxe_sp003_phase120_episode_runner.py",
+      "sha256": "11de351fe800ec0219d002266f1ad09561878499c621ea0a0704878b10011d2d"
+    },
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_phase118_runtime.py",
+      "sha256": "1bf2840658fbc9aa88c6ccb52539f5879d8a67a01ad265787a04be20faebcca7"
+    },
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_phase116_runtime.py",
+      "sha256": "c11225f0f42ca05558504b47f05fc87d8e57c051a98336d148c686fd6f0b2225"
+    },
+    {
+      "path": "src/singularity/core/planner.py",
+      "sha256": "0dff2d7dce103d4c7f5bfe4fe0c5d0d1454f91026c8f678bc27c8d7361274ea0"
+    },
+    {
+      "path": "scripts/stone_pickaxe_sp003_episode_runner.py",
+      "sha256": "0ca5ad64c0f77b246276bb9e9c01d8d88bc95227bcb9a017a14150e9173ba8a5"
+    }
+  ],
+  "protected_runtime_identities": [
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+      "sha256": "325ade1461c5465f83963de0b1346bc7aacba50b253713b542034277b0b1d5f3"
+    },
+    {
+      "path": "src/bot/sp003_inventory_preserving_navigation.js",
+      "sha256": "4925d9083e7e6d4a1253ea5c37e188236b6fbdbbca7a9b733341eb37e4ee5678"
+    },
+    {
+      "path": "src/bot/bot_server.js",
+      "sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
+    },
+    {
+      "path": "node_modules/mineflayer-pathfinder/index.js",
+      "sha256": "bfb62da3111470fa3f515ed89a95bc5018843d89b883ebafa97410d2f14d4fae"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_protocol.json",
+      "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+      "sha256": "41455c715752bdb6f485e10597518e98a9bfe11920ad10b9fcff24e870a243d5"
+    }
+  ],
+  "retained_evidence_identities": [
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_030918_15498d1d/manifest.json",
+      "sha256": "f7f8cb5791c54ef7a6d500d0786592ebbea8392e0591e647643796d624ac6ce4"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_030918_15498d1d/session.json",
+      "sha256": "c918766a1ec648ac856ae712dfe1080a429da06f741337ce2bbf98472aee552a"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_030918_15498d1d/episode.json",
+      "sha256": "085be16d35ad370ba11559d281bb6dfed085a1d5856555b909fda2390605568f"
+    },
+    {
+      "path": "workspace/evals/sp003_runs/sp003_baseline_20260720_030918_15498d1d/authorization_consumption.json",
+      "sha256": "a155f1e5eadbe0fad897616d5edd367b21516e4a804b2720ce55ac7edafe0fe4"
+    }
+  ],
+  "validation": {
+    "phase_122_focused_cases": "11/11",
+    "phase_116_through_phase_122_cases": "42/42",
+    "all_stone_pickaxe_cases": "310/310",
+    "task_goal_capability_cases": "140/140",
+    "selected_m1_m2_m3_cases": "72/72",
+    "node_suites": "7/7",
+    "node_internal_cases": "80/80",
+    "wrapper_cli_passed": true,
+    "powershell_parse_passed": true,
+    "python_compile_passed": true,
+    "json_files_parsed": 1701,
+    "json_validation_passed": true,
+    "credential_scan_matches": 0,
+    "credential_scan_passed": true,
+    "full_repository_cases": "1065/1065",
+    "git_diff_check_passed": true
+  },
+  "live_episode_run": false,
+  "live_authorization": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_skill_gate": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}
