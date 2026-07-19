@@ -93,6 +93,45 @@ SP003_MOVE_TO_CONTINUOUS_TOLERANCE = 1.6
 SP003_PICKUP_GOAL_POLICY_ID = "sp003-exact-unit-goal-near-v1"
 SP003_PICKUP_GOAL_REQUESTED_RANGE = 1
 SP003_PICKUP_GOAL_EFFECTIVE_RANGE = 0
+SP003_PLANNER_STATE_POLICY_ID = "sp003-bounded-planner-state-v1"
+SP003_PLANNER_PROGRESS_FIELDS = [
+    "log_source_removal_count",
+    "log_item",
+    "pending_log_pickup_count",
+    "delayed_log_pickup_reconciliation_count",
+    "plank_craft_count",
+    "stick_craft_count",
+    "crafting_table_craft_count",
+    "crafting_table_place_count",
+    "crafting_table_position",
+    "wooden_pickaxe_craft_count",
+    "wooden_pickaxe_equip_count",
+    "surface_clearance_removal_count",
+    "stone_source_removal_count",
+    "stone_pickaxe_craft_count",
+    "iron_mining_action_count",
+    "successful_mutation_count",
+]
+SP003_PLANNER_TARGET_FIELDS = [
+    "source_id",
+    "name",
+    "position",
+    "distance",
+    "horizontal_distance",
+    "stand_position",
+    "navigation_only",
+    "canopy_egress",
+    "stone_surface_clearance",
+    "support_source_id",
+    "remaining_clearance_count",
+    "stone_clearance_probe",
+    "stone_pickup_approach",
+    "machine_proven_placement",
+    "vertical_delta",
+]
+SP003_PLANNER_TARGET_LIMIT = 1
+SP003_PLANNER_COMPACT_JSON_MAX_CHARS = 2500
+SP003_PLANNER_USER_PROMPT_MAX_CHARS = 5000
 SP003_FROZEN_BRIDGE_SHA256 = "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60"
 REPLACEABLE_BLOCKS = {
     "air",
@@ -283,6 +322,24 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         is True
         and episode_contract.get("pickup_inventory_or_distance_grounding_required")
         is True
+    )
+    checks["bounded_planner_state_contract"] = (
+        episode_contract.get("planner_state_policy_id")
+        == SP003_PLANNER_STATE_POLICY_ID
+        and episode_contract.get("planner_state_authoritative_stage") is True
+        and episode_contract.get("planner_state_progress_fields")
+        == SP003_PLANNER_PROGRESS_FIELDS
+        and episode_contract.get("planner_state_target_fields")
+        == SP003_PLANNER_TARGET_FIELDS
+        and episode_contract.get("planner_state_target_limit")
+        == SP003_PLANNER_TARGET_LIMIT
+        and episode_contract.get("planner_state_clearance_proof_omitted") is True
+        and episode_contract.get("planner_state_compact_json_max_chars")
+        == SP003_PLANNER_COMPACT_JSON_MAX_CHARS
+        and episode_contract.get("planner_user_prompt_max_chars")
+        == SP003_PLANNER_USER_PROMPT_MAX_CHARS
+        and episode_contract.get("planner_action_rewrite_allowed") is False
+        and episode_contract.get("planner_reasoning_limit_chars") == 320
     )
 
     reset = value.get("reset_substrate") if isinstance(value.get("reset_substrate"), dict) else {}

@@ -83,6 +83,57 @@ _STONE_PICKAXE_SP003_ROOT_GRAPH = [
         "depends_on": ["acquire_cobblestone"],
     },
 ]
+
+_STONE_PICKAXE_SP003_PROGRESS_FIELDS = (
+    "log_source_removal_count",
+    "log_item",
+    "pending_log_pickup_count",
+    "delayed_log_pickup_reconciliation_count",
+    "plank_craft_count",
+    "stick_craft_count",
+    "crafting_table_craft_count",
+    "crafting_table_place_count",
+    "crafting_table_position",
+    "wooden_pickaxe_craft_count",
+    "wooden_pickaxe_equip_count",
+    "surface_clearance_removal_count",
+    "stone_source_removal_count",
+    "stone_pickaxe_craft_count",
+    "iron_mining_action_count",
+    "successful_mutation_count",
+)
+_STONE_PICKAXE_SP003_TARGET_FIELDS = (
+    "source_id",
+    "name",
+    "position",
+    "distance",
+    "horizontal_distance",
+    "stand_position",
+    "navigation_only",
+    "canopy_egress",
+    "stone_surface_clearance",
+    "support_source_id",
+    "remaining_clearance_count",
+    "stone_clearance_probe",
+    "stone_pickup_approach",
+    "machine_proven_placement",
+    "vertical_delta",
+)
+_STONE_PICKAXE_SP003_STAGE_INSTRUCTIONS = {
+    "acquire_wood": "Use only the first grounded target and follow its canopy/navigation or exact-log rule.",
+    "await_log_pickup": "Emit exactly one wait action with ms=250; do not repeat a completed dig.",
+    "craft_matching_planks": "Craft exactly 12 planks matching sp003_progress.log_item.",
+    "craft_sticks": "Craft exactly 4 sticks.",
+    "craft_crafting_table": "Craft exactly one crafting_table.",
+    "place_crafting_table": "Place exactly one crafting_table using the first target position as solid reference coordinates.",
+    "return_to_crafting_table": "Move to only the first crafting-table target's x and z coordinates.",
+    "craft_wooden_pickaxe": "Craft exactly one wooden_pickaxe.",
+    "equip_wooden_pickaxe": "Equip exactly the wooden_pickaxe.",
+    "acquire_cobblestone": "Use only the first grounded target and follow its clearance, approach, navigation, or exact-stone rule.",
+    "await_cobblestone_pickup": "Emit exactly one wait action with ms=250; do not repeat a completed dig.",
+    "craft_stone_pickaxe": "Craft exactly one stone_pickaxe.",
+    "complete": "Return status=complete with actions=[].",
+}
 try:
     _KB = KnowledgeBase()
     _CRAFTING_KNOWLEDGE = _KB.format_for_prompt()
@@ -675,7 +726,7 @@ RUNTIME RULES:
 - sp001: do not craft or place. Treat held_item as the authoritative current main-hand item. Equip the exact wooden_pickaxe only when held_item differs; when held_item is wooden_pickaxe, never equip it again and dig block="stone" at the nearest reachable observed stone coordinates. Never repeat a removed source.
 - prepare_sp002_fixture: preserve exactly two sticks and never craft stone_pickaxe. If no interactive crafting_table is observed, craft at most one table only when needed, then place or move to it. Equip wooden_pickaxe only when held_item differs. Mine only the nearest reachable observed stone and stop at exactly three cobblestone. On a root planning call, copy the exact two-node subtask graph supplied in the user prompt; never return subtasks=[]. Every response containing an action must use status planning. Never declare complete in the same response as placing, approaching, or moving to the table; the action counts only after the next machine observation. Report complete with actions=[] only when the current observation already has cobblestone=3, stick=2, stone_pickaxe=0, and crafting_table within 4.5 blocks.
 - sp002: on a root planning call, copy the exact two-node subtask graph supplied in the user prompt; never return subtasks=[]. Emit exactly one action: craft item="stone_pickaxe" count=1. Require current cobblestone=3, stick=2, stone_pickaxe=0, and an observed crafting_table within 4.5 blocks. Never move, wait, equip, retry, use a recipe alias, craft another item, or report textual success before the machine state changes. On continuation or replan, the one-action budget is already consumed: return complete with actions=[] only for exact cobblestone=0, stick=0, stone_pickaxe=1; otherwise return blocked with actions=[]. Never return planning after the root action.
-- sp003: begin from exact empty inventory and copy the exact five-node graph supplied in the user prompt on the root call. If the first sp003_targets entry has canopy_egress=true, it is navigation-only: emit move_to with only that target's x and z, never dig it, and wait for the next observation before selecting wood. Otherwise gather exactly three observed logs of one family, using only the first entry in sp003_targets and no repeated coordinate; when that wood target's distance exceeds 4.5, move_to with only its x and z before digging. Craft exactly 12 matching planks, exactly 4 sticks, exactly one crafting_table, place it once using the first sp003_targets position as the solid reference coordinates; the bridge places above that reference, so never add 1 to y or emit target_position. Then craft exactly one wooden_pickaxe and equip it once. To acquire stone, if the first sp003_targets entry has stone_surface_clearance=true, dig exactly that entry's block and x/y/z without skill context, never dig its support_source_id stone, and wait for the next machine observation before another action. If the first entry has stone_clearance_probe=true, it is navigation-only: emit move_to with only that target's x and z, never dig it, and wait for the bounded clearance scan in the next observation. If the first entry has stone_pickup_approach=true, it is navigation-only too: emit move_to with only that target's x and z, let the action guard bind the machine-proven stand y, never dig the anchor, and wait for the next observation before selecting an adjacent stone. Otherwise inspect the first sp003_targets distance: when it exceeds 4.5, emit move_to with only that target's x and z and do not emit dig; after the next observation, dig only when the first target is within 4.5. Remove exactly three stone sources, then approach the same machine-proven table with move_to x and z if needed and craft exactly one stone_pickaxe. Never dig a block directly below the player, clear more than three machine-proven grass_block/dirt obstructions, dig iron, gather extra logs or stone, repeat a table/wooden-pickaxe craft or placement, or use a family substitute for an exact item. Use the compact flags and sp003_progress as authoritative monotonic history. Return blocked with no actions when sp003_targets is empty and the current stage needs navigation, digging, or placement. Return complete only after the current machine state contains stone_pickaxe=1.
+- sp003: begin from exact empty inventory and copy the exact five-node graph supplied in the user prompt on the root call. Treat sp003_stage as the authoritative current machine stage and never emit an action from an earlier or later stage. If the first sp003_targets entry has canopy_egress=true, it is navigation-only: emit move_to with only that target's x and z, never dig it, and wait for the next observation before selecting wood. Otherwise gather exactly three observed logs of one family, using only the first entry in sp003_targets and no repeated coordinate; when that wood target's distance exceeds 4.5, move_to with only its x and z before digging. Craft exactly 12 matching planks, exactly 4 sticks, exactly one crafting_table, place it once using the first sp003_targets position as the solid reference coordinates; the bridge places above that reference, so never add 1 to y or emit target_position. Then craft exactly one wooden_pickaxe and equip it once. To acquire stone, if the first sp003_targets entry has stone_surface_clearance=true, dig exactly that entry's block and x/y/z without skill context, never dig its support_source_id stone, and wait for the next observation before another action. If the first entry has stone_clearance_probe=true, it is navigation-only: emit move_to with only that target's x and z, never dig it, and wait for the bounded clearance scan in the next observation. If the first entry has stone_pickup_approach=true, it is navigation-only too: emit move_to with only that target's x and z, let the action guard bind the machine-proven stand y, never dig the anchor, and wait for the next observation before selecting an adjacent stone. Otherwise inspect the first sp003_targets distance: when it exceeds 4.5, emit move_to with only that target's x and z and do not emit dig; after the next observation, dig only when the first target is within 4.5. Remove exactly three stone sources, then approach the same machine-proven table with move_to x and z if needed and craft exactly one stone_pickaxe. Never dig a block directly below the player, clear more than three machine-proven grass_block/dirt obstructions, dig iron, gather extra logs or stone, repeat a table/wooden-pickaxe craft or placement, or use a family substitute for an exact item. Use the compact flags and sp003_progress as authoritative monotonic history. Return blocked with no actions when sp003_targets is empty and the current stage needs navigation, digging, or placement. Return complete only after the current machine state contains stone_pickaxe=1.
 
 Required JSON shape:
 {{
@@ -913,6 +964,11 @@ This call must return subtasks=[]; do not create a new root graph."""
             elif machine_state.get("runtime_mode") == "sp003":
                 inventory = machine_state.get("inventory", {})
                 target_achieved = inventory.get("stone_pickaxe") == 1
+                current_stage = str(machine_state.get("sp003_stage") or "unknown")
+                stage_instruction = _STONE_PICKAXE_SP003_STAGE_INSTRUCTIONS.get(
+                    current_stage,
+                    "Return status=blocked with actions=[] because the machine stage is unknown.",
+                )
                 if self._expected_plan_kind == "root" and not target_achieved:
                     completion_gate = """
 SP-003 empty-hand action gate: target_achieved=false.
@@ -936,6 +992,10 @@ Return status=planning with exactly one action for the next unmet stage. Return 
                     root_graph_gate = """
 SP-003 root graph gate: root_graph_required=false.
 This continuation/replan call must return subtasks=[] and preserve the existing graph."""
+                completion_gate += f"""
+SP-003 authoritative machine stage: {current_stage}.
+Required response at this stage: {stage_instruction}
+The stage is derived from the current observation and monotonic verified progress. Do not infer completion from a prior response and do not repeat a completed-stage mutation."""
             return f"""Exact goal: {goal}
 Expected plan_kind: {self._expected_plan_kind}
 Runtime mode: {machine_state.get('runtime_mode') or 'unknown'}
@@ -1000,6 +1060,14 @@ Plan the steps to achieve this goal."""
                 if finite(value.get(axis))
             }
 
+        def compact_text(value, maximum=96):
+            return str(value or "")[:maximum]
+
+        def compact_count(value):
+            if not finite(value):
+                return 0
+            return max(0, min(int(float(value)), 64))
+
         raw_blocks = state.get("nearby_blocks")
         raw_blocks = raw_blocks if isinstance(raw_blocks, list) else []
         blocks = []
@@ -1007,7 +1075,7 @@ Plan the steps to achieve this goal."""
         for block in raw_blocks:
             if not isinstance(block, dict):
                 continue
-            name = str(block.get("name") or "")
+            name = compact_text(block.get("name"), 64)
             position = compact_position(block.get("position"))
             if not name or len(position) != 3:
                 continue
@@ -1030,15 +1098,36 @@ Plan the steps to achieve this goal."""
 
         prioritized = [block for block in blocks if relevant(block)]
         prioritized.extend(block for block in blocks if not relevant(block))
+        runtime_mode = compact_text(state.get("stone_pickaxe_runtime_mode"), 32)
+        is_sp003 = runtime_mode == "sp003"
         inventory = state.get("inventory") if isinstance(state.get("inventory"), dict) else {}
         compact_inventory = {}
-        for name, count in sorted(inventory.items()):
+        inventory_rows = sorted(
+            inventory.items(),
+            key=lambda item: (
+                is_sp003
+                and not (
+                    str(item[0])
+                    in {
+                        "stick",
+                        "crafting_table",
+                        "wooden_pickaxe",
+                        "cobblestone",
+                        "stone_pickaxe",
+                        "dirt",
+                    }
+                    or str(item[0]).endswith(("_log", "_stem", "_planks"))
+                ),
+                str(item[0]),
+            ),
+        )
+        for name, count in inventory_rows[:24] if is_sp003 else inventory_rows:
             try:
                 numeric = int(count)
             except (TypeError, ValueError):
                 continue
             if numeric > 0:
-                compact_inventory[str(name)] = numeric
+                compact_inventory[compact_text(name, 64)] = min(numeric, 64)
 
         equipment = state.get("equipment")
         equipment = equipment if isinstance(equipment, list) else []
@@ -1048,39 +1137,143 @@ Plan the steps to achieve this goal."""
             else {}
         )
 
+        raw_progress = (
+            state.get("sp003_progress")
+            if isinstance(state.get("sp003_progress"), dict)
+            else {}
+        )
+        compact_progress = {}
+        if is_sp003:
+            for field in _STONE_PICKAXE_SP003_PROGRESS_FIELDS:
+                if field == "log_item":
+                    compact_progress[field] = compact_text(raw_progress.get(field), 64)
+                elif field == "crafting_table_position":
+                    compact_progress[field] = compact_position(raw_progress.get(field))
+                else:
+                    compact_progress[field] = compact_count(raw_progress.get(field))
+
+        raw_targets = (
+            state.get("sp003_targets")
+            if isinstance(state.get("sp003_targets"), list)
+            else []
+        )
+        compact_targets = []
+        if is_sp003 and raw_targets and isinstance(raw_targets[0], dict):
+            raw_target = raw_targets[0]
+            target = {}
+            for field in _STONE_PICKAXE_SP003_TARGET_FIELDS:
+                value = raw_target.get(field)
+                if field in {"position", "stand_position"}:
+                    position = compact_position(value)
+                    if position:
+                        target[field] = position
+                elif field in {
+                    "distance",
+                    "horizontal_distance",
+                    "vertical_delta",
+                }:
+                    if finite(value):
+                        target[field] = round(float(value), 3)
+                elif field == "remaining_clearance_count":
+                    target[field] = compact_count(value)
+                elif field in {
+                    "navigation_only",
+                    "canopy_egress",
+                    "stone_surface_clearance",
+                    "stone_clearance_probe",
+                    "stone_pickup_approach",
+                    "machine_proven_placement",
+                }:
+                    if value is True:
+                        target[field] = True
+                elif value:
+                    target[field] = compact_text(value)
+            compact_targets.append(target)
+
+        compact_blocks = prioritized[:8] if is_sp003 else prioritized[:24]
+        held_item = compact_text(main_hand.get("name"), 64)
+
+        def table_observed():
+            return any(
+                block.get("name") == "crafting_table"
+                and finite(block.get("distance"))
+                and float(block["distance"]) <= 4.5
+                for block in compact_blocks
+            )
+
+        sp003_stage = ""
+        if is_sp003:
+            stone_pickaxe_ready = (
+                compact_inventory.get("stone_pickaxe", 0) >= 1
+                or compact_progress["stone_pickaxe_craft_count"] >= 1
+            )
+            stone_ready = (
+                compact_progress["stone_source_removal_count"] >= 3
+                or compact_inventory.get("cobblestone", 0) >= 3
+            )
+            wooden_pickaxe_ready = (
+                compact_progress["wooden_pickaxe_craft_count"] >= 1
+                or compact_inventory.get("wooden_pickaxe", 0) >= 1
+            )
+            logs_ready = compact_progress["log_source_removal_count"] >= 3
+            if stone_pickaxe_ready:
+                sp003_stage = "complete"
+            elif stone_ready:
+                if compact_inventory.get("cobblestone", 0) < 3:
+                    sp003_stage = "await_cobblestone_pickup"
+                elif not table_observed():
+                    sp003_stage = "return_to_crafting_table"
+                else:
+                    sp003_stage = "craft_stone_pickaxe"
+            elif wooden_pickaxe_ready:
+                if held_item != "wooden_pickaxe":
+                    sp003_stage = "equip_wooden_pickaxe"
+                else:
+                    sp003_stage = "acquire_cobblestone"
+            elif logs_ready:
+                log_item = compact_progress["log_item"]
+                if (
+                    compact_progress["plank_craft_count"] == 0
+                    and (not log_item or compact_inventory.get(log_item, 0) < 3)
+                ):
+                    sp003_stage = "await_log_pickup"
+                elif compact_progress["plank_craft_count"] == 0:
+                    sp003_stage = "craft_matching_planks"
+                elif compact_progress["stick_craft_count"] == 0:
+                    sp003_stage = "craft_sticks"
+                elif compact_progress["crafting_table_craft_count"] == 0:
+                    sp003_stage = "craft_crafting_table"
+                elif compact_progress["crafting_table_place_count"] == 0:
+                    sp003_stage = "place_crafting_table"
+                elif not table_observed():
+                    sp003_stage = "return_to_crafting_table"
+                else:
+                    sp003_stage = "craft_wooden_pickaxe"
+            else:
+                sp003_stage = "acquire_wood"
+
         return {
-            "runtime_mode": str(state.get("stone_pickaxe_runtime_mode") or ""),
-            "sp003_arm": str(state.get("sp003_arm") or ""),
+            "runtime_mode": runtime_mode,
+            "sp003_arm": compact_text(state.get("sp003_arm"), 32),
             "flags": sorted(
-                str(flag)
+                compact_text(flag, 64)
                 for flag in (
                     state.get("flags") if isinstance(state.get("flags"), list) else []
                 )
                 if str(flag)
             )[:16],
-            "sp003_progress": (
-                dict(state.get("sp003_progress"))
-                if isinstance(state.get("sp003_progress"), dict)
-                else {}
-            ),
-            "sp003_targets": [
-                dict(item)
-                for item in (
-                    state.get("sp003_targets")
-                    if isinstance(state.get("sp003_targets"), list)
-                    else []
-                )
-                if isinstance(item, dict)
-            ][:8],
+            "sp003_stage": sp003_stage,
+            "sp003_progress": compact_progress,
+            "sp003_targets": compact_targets,
             "position": compact_position(state.get("position")),
             "inventory": compact_inventory,
-            "held_item": str(main_hand.get("name") or ""),
+            "held_item": held_item,
             "health": state.get("health"),
             "hunger": state.get("hunger"),
-            "game_mode": str(state.get("game_mode") or ""),
-            "ground_block": str(state.get("ground_block") or ""),
+            "game_mode": compact_text(state.get("game_mode"), 32),
+            "ground_block": compact_text(state.get("ground_block"), 64),
             "nearby_block_count": len(blocks),
-            "nearby_blocks": prioritized[:24],
+            "nearby_blocks": compact_blocks,
         }
 
     @staticmethod

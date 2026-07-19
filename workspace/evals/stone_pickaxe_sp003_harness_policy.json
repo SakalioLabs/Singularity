@@ -160,6 +160,31 @@
     "pickup_goal_near_effective_range": 0,
     "pickup_non_unit_goal_near_ranges_unchanged": true,
     "pickup_inventory_or_distance_grounding_required": true,
+    "planner_state_policy_id": "sp003-bounded-planner-state-v1",
+    "planner_state_authoritative_stage": true,
+    "planner_state_progress_fields": [
+      "log_source_removal_count", "log_item", "pending_log_pickup_count",
+      "delayed_log_pickup_reconciliation_count", "plank_craft_count",
+      "stick_craft_count", "crafting_table_craft_count",
+      "crafting_table_place_count", "crafting_table_position",
+      "wooden_pickaxe_craft_count", "wooden_pickaxe_equip_count",
+      "surface_clearance_removal_count", "stone_source_removal_count",
+      "stone_pickaxe_craft_count", "iron_mining_action_count",
+      "successful_mutation_count"
+    ],
+    "planner_state_target_fields": [
+      "source_id", "name", "position", "distance", "horizontal_distance",
+      "stand_position", "navigation_only", "canopy_egress",
+      "stone_surface_clearance", "support_source_id",
+      "remaining_clearance_count", "stone_clearance_probe",
+      "stone_pickup_approach", "machine_proven_placement", "vertical_delta"
+    ],
+    "planner_state_target_limit": 1,
+    "planner_state_clearance_proof_omitted": true,
+    "planner_state_compact_json_max_chars": 2500,
+    "planner_user_prompt_max_chars": 5000,
+    "planner_action_rewrite_allowed": false,
+    "planner_reasoning_limit_chars": 320,
     "automatic_retry_allowed": false,
     "stable_reobservation_delay_s": 0.25,
     "allowed_log_family": [

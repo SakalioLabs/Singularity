@@ -140,6 +140,16 @@ def test_policy_identity_binds_frozen_protocol_and_promoted_skills():
         ]
         is True
     )
+    assert policy["episode_contract"]["planner_state_policy_id"] == (
+        "sp003-bounded-planner-state-v1"
+    )
+    assert policy["episode_contract"]["planner_state_authoritative_stage"] is True
+    assert policy["episode_contract"]["planner_state_target_limit"] == 1
+    assert policy["episode_contract"]["planner_state_clearance_proof_omitted"] is True
+    assert policy["episode_contract"]["planner_state_compact_json_max_chars"] == 2500
+    assert policy["episode_contract"]["planner_user_prompt_max_chars"] == 5000
+    assert policy["episode_contract"]["planner_action_rewrite_allowed"] is False
+    assert policy["episode_contract"]["planner_reasoning_limit_chars"] == 320
     assert [(item["skill_id"], item["version"]) for item in policy["skills"]] == [
         ("learned:acquire_cobblestone", "1.1.0"),
         ("learned:craft_stone_pickaxe", "1.0.1"),
@@ -194,6 +204,12 @@ def test_policy_identity_rejects_eager_craft_settlement_installation():
     loose_pickup_goal["episode_contract"]["pickup_goal_near_effective_range"] = 1
     assert not verify_sp003_policy_identity(loose_pickup_goal)["checks"][
         "exact_unit_pickup_goal_contract"
+    ]
+
+    unbounded_planner_state = copy.deepcopy(policy)
+    unbounded_planner_state["episode_contract"]["planner_state_target_limit"] = 8
+    assert not verify_sp003_policy_identity(unbounded_planner_state)["checks"][
+        "bounded_planner_state_contract"
     ]
 
 
@@ -1559,12 +1575,17 @@ def test_planner_compacts_sp003_state_and_requires_exact_five_node_graph():
         "stone_pickaxe_runtime_mode": "sp003",
         "sp003_arm": "baseline",
         "flags": ["sp003_wood_acquired"],
-        "sp003_progress": {"log_source_removal_count": 3},
+        "sp003_progress": {
+            "log_source_removal_count": 3,
+            "log_item": "oak_log",
+        },
         "sp003_targets": [{"name": "oak_log", "position": {"x": 2, "y": 64, "z": 0}}],
     })
+    world["inventory"] = {"oak_log": 3}
     compact = Planner._compact_stone_pickaxe_state(world)
     assert compact["runtime_mode"] == "sp003"
     assert compact["flags"] == ["sp003_wood_acquired"]
+    assert compact["sp003_stage"] == "craft_matching_planks"
     assert compact["sp003_progress"]["log_source_removal_count"] == 3
     assert compact["sp003_targets"][0]["name"] == "oak_log"
     valid = {
@@ -1582,7 +1603,20 @@ def test_planner_compacts_sp003_state_and_requires_exact_five_node_graph():
     report = Planner._validate_stone_pickaxe_plan_envelope(drifted, SP003_GOAL, "root", "sp003")
     assert not report["passed"]
     assert "sp003_exact_root_graph_required" in report["issues"]
+    verbose = copy.deepcopy(valid)
+    verbose["reasoning"] = "x" * 321
+    report = Planner._validate_stone_pickaxe_plan_envelope(
+        verbose,
+        SP003_GOAL,
+        "root",
+        "sp003",
+    )
+    assert not report["passed"]
+    assert "reasoning_too_long" in report["issues"]
     planner = object.__new__(Planner)
+    planner.strict_m2 = False
+    planner.strict_m4 = False
+    planner.strict_stone_pickaxe = True
     planner._expected_plan_kind = "continuation"
     prompt = Planner._stone_pickaxe_system_prompt(planner)
     assert "has canopy_egress=true, it is navigation-only" in prompt
@@ -1596,6 +1630,313 @@ def test_planner_compacts_sp003_state_and_requires_exact_five_node_graph():
     assert "never add 1 to y or emit target_position" in prompt
     assert "when it exceeds 4.5, emit move_to with only that target's x and z" in prompt
     assert "Never dig a block directly below the player" in prompt
+
+    planner._expected_plan_kind = "root"
+    user_prompt = Planner._build_planning_prompt(planner, SP003_GOAL, world, "")
+    assert len(user_prompt) <= 5000
+    assert "SP-003 authoritative machine stage: craft_matching_planks." in user_prompt
+
+
+def test_phase101_first_stage_drift_replays_as_exact_table_craft_stage():
+    run_dir = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_143554_ded97c9b"
+    )
+    events = json.loads((run_dir / "session.json").read_text(encoding="utf-8"))
+    call_index = next(
+        index
+        for index, event in enumerate(events)
+        if event.get("type") == "llm_planner_call"
+        and event.get("data", {}).get("call_index") == 6
+    )
+    full = next(
+        event["data"]
+        for event in reversed(events[:call_index])
+        if event.get("type") == "observation"
+    )
+
+    compact = Planner._compact_stone_pickaxe_state(full)
+    exact = guard_sp003_action(
+        {"type": "craft", "parameters": {"item": "crafting_table", "count": 1}},
+        full,
+        full["sp003_progress"],
+    )
+    stale = guard_sp003_action(
+        {"type": "craft", "parameters": {"item": "oak_planks", "count": 2}},
+        full,
+        full["sp003_progress"],
+    )
+
+    assert compact["sp003_stage"] == "craft_crafting_table"
+    assert exact["allowed"], exact
+    assert not stale["allowed"]
+    assert stale["issues"] == ["sp003_exact_one_table_craft_required"]
+
+
+@pytest.mark.parametrize(
+    ("progress_updates", "inventory", "held", "blocks", "expected"),
+    [
+        ({}, {}, "", [], "acquire_wood"),
+        (
+            {"log_source_removal_count": 3, "log_item": "oak_log"},
+            {"oak_log": 2},
+            "",
+            [],
+            "await_log_pickup",
+        ),
+        (
+            {"log_source_removal_count": 3, "log_item": "oak_log"},
+            {"oak_log": 3},
+            "",
+            [],
+            "craft_matching_planks",
+        ),
+        (
+            {
+                "log_source_removal_count": 3,
+                "log_item": "oak_log",
+                "plank_craft_count": 1,
+            },
+            {"oak_planks": 12},
+            "",
+            [],
+            "craft_sticks",
+        ),
+        (
+            {
+                "log_source_removal_count": 3,
+                "log_item": "oak_log",
+                "plank_craft_count": 1,
+                "stick_craft_count": 1,
+            },
+            {"oak_planks": 10, "stick": 4},
+            "",
+            [],
+            "craft_crafting_table",
+        ),
+        (
+            {
+                "log_source_removal_count": 3,
+                "log_item": "oak_log",
+                "plank_craft_count": 1,
+                "stick_craft_count": 1,
+                "crafting_table_craft_count": 1,
+            },
+            {"crafting_table": 1, "oak_planks": 6, "stick": 4},
+            "",
+            [],
+            "place_crafting_table",
+        ),
+        (
+            {
+                "log_source_removal_count": 3,
+                "log_item": "oak_log",
+                "plank_craft_count": 1,
+                "stick_craft_count": 1,
+                "crafting_table_craft_count": 1,
+                "crafting_table_place_count": 1,
+            },
+            {"oak_planks": 6, "stick": 4},
+            "",
+            [],
+            "return_to_crafting_table",
+        ),
+        (
+            {
+                "log_source_removal_count": 3,
+                "log_item": "oak_log",
+                "plank_craft_count": 1,
+                "stick_craft_count": 1,
+                "crafting_table_craft_count": 1,
+                "crafting_table_place_count": 1,
+            },
+            {"oak_planks": 6, "stick": 4},
+            "",
+            [block("crafting_table", 1, 64, 0, 1.0)],
+            "craft_wooden_pickaxe",
+        ),
+        (
+            {"wooden_pickaxe_craft_count": 1},
+            {"wooden_pickaxe": 1},
+            "",
+            [],
+            "equip_wooden_pickaxe",
+        ),
+        (
+            {"wooden_pickaxe_craft_count": 1},
+            {"wooden_pickaxe": 1},
+            "wooden_pickaxe",
+            [],
+            "acquire_cobblestone",
+        ),
+        (
+            {
+                "wooden_pickaxe_craft_count": 1,
+                "stone_source_removal_count": 3,
+            },
+            {"wooden_pickaxe": 1, "cobblestone": 2},
+            "wooden_pickaxe",
+            [],
+            "await_cobblestone_pickup",
+        ),
+        (
+            {
+                "wooden_pickaxe_craft_count": 1,
+                "stone_source_removal_count": 3,
+            },
+            {"wooden_pickaxe": 1, "cobblestone": 3, "stick": 2},
+            "wooden_pickaxe",
+            [],
+            "return_to_crafting_table",
+        ),
+        (
+            {
+                "wooden_pickaxe_craft_count": 1,
+                "stone_source_removal_count": 3,
+            },
+            {"wooden_pickaxe": 1, "cobblestone": 3, "stick": 2},
+            "wooden_pickaxe",
+            [block("crafting_table", 1, 64, 0, 1.0)],
+            "craft_stone_pickaxe",
+        ),
+        (
+            {"stone_pickaxe_craft_count": 1},
+            {"stone_pickaxe": 1},
+            "",
+            [],
+            "complete",
+        ),
+    ],
+)
+def test_sp003_compact_state_exposes_exact_machine_stage(
+    progress_updates,
+    inventory,
+    held,
+    blocks,
+    expected,
+):
+    world = observation(inventory, blocks, held=held)
+    progress = _progress_snapshot(_empty_progress())
+    progress.update(progress_updates)
+    world.update({
+        "stone_pickaxe_runtime_mode": "sp003",
+        "sp003_arm": "baseline",
+        "sp003_progress": progress,
+        "sp003_targets": [],
+    })
+
+    compact = Planner._compact_stone_pickaxe_state(world)
+
+    assert compact["sp003_stage"] == expected
+
+
+def test_sp003_compact_state_uses_one_whitelisted_target_without_proof_body():
+    world = observation(
+        {"wooden_pickaxe": 1},
+        [block("stone", index, 61, 0, float(index)) for index in range(1, 10)],
+        held="wooden_pickaxe",
+    )
+    progress = _progress_snapshot(_empty_progress())
+    progress["wooden_pickaxe_craft_count"] = 1
+    first = {
+        "source_id": "grass_block:1:63:0",
+        "name": "grass_block",
+        "position": {"x": 1, "y": 63, "z": 0},
+        "distance": 1.25,
+        "horizontal_distance": 1.0,
+        "stand_position": {"x": 0, "y": 64, "z": 0},
+        "navigation_only": True,
+        "stone_surface_clearance": True,
+        "support_source_id": "stone:1:62:0",
+        "remaining_clearance_count": 3,
+        "clearance_proof": {"history": ["x" * 1000] * 20},
+        "unexpected": "x" * 10000,
+    }
+    world.update({
+        "stone_pickaxe_runtime_mode": "sp003",
+        "sp003_arm": "baseline",
+        "sp003_progress": progress,
+        "sp003_targets": [first, {"source_id": "stone:2:62:0"}],
+    })
+
+    compact = Planner._compact_stone_pickaxe_state(world)
+    target = compact["sp003_targets"][0]
+
+    assert len(compact["sp003_targets"]) == 1
+    assert target["source_id"] == first["source_id"]
+    assert target["position"] == first["position"]
+    assert target["stone_surface_clearance"] is True
+    assert "clearance_proof" not in target
+    assert "unexpected" not in target
+    assert len(json.dumps(compact, sort_keys=True, separators=(",", ":"))) <= 2500
+
+
+def test_phase101_terminal_observation_compacts_to_bounded_stage_grounded_prompt():
+    run_dir = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_143554_ded97c9b"
+    )
+    events = json.loads((run_dir / "session.json").read_text(encoding="utf-8"))
+    call_index = next(
+        index
+        for index, event in enumerate(events)
+        if event.get("type") == "llm_planner_call"
+        and event.get("data", {}).get("call_index") == 19
+    )
+    full = next(
+        event["data"]
+        for event in reversed(events[:call_index])
+        if event.get("type") == "observation"
+    )
+    assert len(json.dumps(full["sp003_progress"], default=str)) > 2000
+    assert len(json.dumps(full["sp003_targets"], default=str)) > 11000
+
+    compact = Planner._compact_stone_pickaxe_state(full)
+    compact_json = json.dumps(compact, sort_keys=True, separators=(",", ":"))
+
+    assert compact["sp003_stage"] == "acquire_cobblestone"
+    assert len(compact["sp003_targets"]) == 1
+    assert compact["sp003_targets"][0]["source_id"] == (
+        full["sp003_targets"][0]["source_id"]
+    )
+    assert len(compact_json) <= 2500
+    assert "clearance_proof" not in compact_json
+    for excluded in (
+        "log_source_ids",
+        "pending_log_pickups",
+        "delayed_log_pickup_reconciliations",
+        "surface_clearance_source_ids",
+        "stone_source_ids",
+        "successful_mutations",
+    ):
+        assert excluded not in compact["sp003_progress"]
+
+    planner = object.__new__(Planner)
+    planner.strict_m2 = False
+    planner.strict_m4 = False
+    planner.strict_stone_pickaxe = True
+    planner._expected_plan_kind = "continuation"
+    prompt = Planner._build_planning_prompt(planner, SP003_GOAL, full, "")
+
+    assert len(prompt) <= 5000
+    assert "SP-003 authoritative machine stage: acquire_cobblestone." in prompt
+    assert "clearance_proof" not in prompt
+
+
+def test_non_sp003_compaction_retains_general_shape_without_machine_stage():
+    world = observation(
+        {"wooden_pickaxe": 1},
+        [block("stone", index, 63, 0, float(index)) for index in range(1, 12)],
+        held="wooden_pickaxe",
+    )
+
+    compact = Planner._compact_stone_pickaxe_state(world)
+
+    assert compact["runtime_mode"] == ""
+    assert compact["sp003_stage"] == ""
+    assert compact["sp003_progress"] == {}
+    assert compact["sp003_targets"] == []
+    assert len(compact["nearby_blocks"]) == 11
 
 
 def test_fourth_baseline_return_move_replays_as_horizontal_inventory_preserving_navigation():
