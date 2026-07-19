@@ -933,6 +933,78 @@ def test_phase100_provider_health_probe_matches_fixed_controls_without_credentia
     assert "api_key" not in path.read_text(encoding="utf-8").lower()
 
 
+def test_phase101_retained_baseline_replays_stage_drift_and_context_bloat():
+    run_dir = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_143554_ded97c9b"
+    )
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    episode = json.loads((run_dir / "episode.json").read_text(encoding="utf-8"))
+    events = json.loads((run_dir / "session.json").read_text(encoding="utf-8"))
+
+    assert manifest["passed"] is False
+    assert manifest["evidence_eligible"] is False
+    assert manifest["authorization_id"] == (
+        "579e77572b421ffb2ebf2f6ca90bc4340cc9700984d169c678c57e269b74ce3b"
+    )
+    assert manifest["automatic_retry_allowed"] is False
+    assert manifest["bm012_terminal_started"] is False
+    assert episode["goal_result"]["termination_reason"] == "empty_plan"
+    assert episode["goal_result"]["deadline_eligible"] is True
+    assert episode["action_count"] == 19
+    assert [failure["error"] for failure in episode["action_failures"]] == [
+        "SP-003 action guard rejected: sp003_exact_one_table_craft_required",
+        "SP-003 action guard rejected: sp003_exact_one_table_craft_required",
+        "SP-003 action guard rejected: sp003_stone_dig_requires_held_wooden_pickaxe",
+    ]
+    assert len(episode["distinct_log_source_ids"]) == 3
+    assert len(episode["distinct_surface_clearance_source_ids"]) == 3
+    assert len(episode["distinct_stone_source_ids"]) == 1
+    assert episode["stable_observation"]["inventory"] == {
+        "stick": 2,
+        "oak_planks": 3,
+        "wooden_pickaxe": 1,
+        "dirt": 3,
+        "cobblestone": 1,
+    }
+
+    planner_calls = {
+        event["data"]["call_index"]: event["data"]
+        for event in events
+        if event.get("type") == "llm_planner_call"
+    }
+    assert planner_calls[6]["schema_valid"] is True
+    assert planner_calls[7]["schema_valid"] is True
+    assert planner_calls[19]["provider_metadata"]["prompt_tokens"] == 7512
+    assert planner_calls[19]["response_byte_count"] == 928
+    assert planner_calls[19]["schema_validation"]["issues"] == [
+        "reasoning_too_long"
+    ]
+    assert all(
+        call["transport_evidence"]["attempt_count"] == 1
+        and call["transport_evidence"]["retry_count"] == 0
+        for call in planner_calls.values()
+    )
+
+    ledger = json.loads(
+        (REPO / "workspace/evals/stone_pickaxe_failure_ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    failure = next(
+        item
+        for item in ledger["failures"]
+        if item["id"] == "sp003-baseline-013-stage-drift-context-bloat"
+    )
+    assert failure["automatic_retry_attempted"] is False
+    assert failure["counts_toward_baseline_success"] is False
+    assert len(failure["evidence"]) == 13
+    for record in failure["evidence"]:
+        path = REPO / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+
 def test_preparation_guard_enforces_exact_recipe_sequence_and_single_table():
     progress = preparation_progress()
     planks = guard_sp003_action(
