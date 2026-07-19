@@ -5,13 +5,20 @@ const CRAFT_SETTLEMENT_DELAY_MS = 1000;
 const EXACT_UNIT_GOAL_NEAR_POLICY_ID = 'sp003-exact-unit-goal-near-v1';
 const EXACT_UNIT_GOAL_NEAR_REQUESTED_RANGE = 1;
 const EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE = 0;
+const GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID = 'sp003-goalblock-completion-grounding-v1';
+const GOALBLOCK_NUDGE_PULSE_MS = 125;
+const GOALBLOCK_NUDGE_MAX_PULSES = 4;
+const GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE = 1.6;
 const MOVEMENTS_PATCH_MARK = Symbol.for('singularity.sp003.inventoryPreservingNavigation');
 const GOAL_NEAR_PATCH_MARK = Symbol.for('singularity.sp003.exactUnitGoalNear');
+const PATHFINDER_PLUGIN_PATCH_MARK = Symbol.for('singularity.sp003.pathfinderPlugin');
+const BOT_PATHFINDER_PATCH_MARK = Symbol.for('singularity.sp003.goalBlockCompletionGrounding');
 const CREATE_BOT_PATCH_MARK = Symbol.for('singularity.sp003.createBot');
 const BOT_CRAFT_INSTALL_MARK = Symbol.for('singularity.sp003.craftSettlementInstall');
 const BOT_CRAFT_PATCH_MARK = Symbol.for('singularity.sp003.craftSettlement');
 const pathfinderModule = require('mineflayer-pathfinder');
 const mineflayerModule = require('mineflayer');
+const { Vec3 } = require('vec3');
 
 const waitForSettlement = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -30,6 +37,188 @@ function hardenMovements(movements) {
     movements.scafoldingBlocks = [];
     movements.sp003InventoryPreservationPolicy = POLICY_ID;
     return movements;
+}
+
+function flooredPosition(position) {
+    if (!position) return null;
+    if (typeof position.floored === 'function') return position.floored();
+    const values = [position.x, position.y, position.z].map(Number);
+    if (!values.every(Number.isFinite)) return null;
+    return new Vec3(
+        Math.floor(values[0]),
+        Math.floor(values[1]),
+        Math.floor(values[2]),
+    );
+}
+
+function blockCollision(bot, position) {
+    const block = typeof bot?.blockAt === 'function' ? bot.blockAt(position) : null;
+    const name = String(block?.name || 'air');
+    const type = Number(block?.type || 0);
+    const collision = String(
+        block?.boundingBox || ((type === 0 || name === 'air') ? 'empty' : 'block'),
+    );
+    return { name, type, collision };
+}
+
+function goalBlockNudgeProof(bot, goal) {
+    const currentPosition = bot?.entity?.position;
+    const currentCell = flooredPosition(currentPosition);
+    const GoalBlock = pathfinderModule.goals.GoalBlock;
+    const issues = [];
+    if (!(goal instanceof GoalBlock)) issues.push('goal_must_be_goalblock');
+    if (!currentCell) issues.push('current_position_must_be_finite');
+    if (bot?.entity?.onGround !== true) issues.push('player_must_be_grounded');
+
+    const target = new Vec3(
+        Math.floor(Number(goal?.x)),
+        Math.floor(Number(goal?.y)),
+        Math.floor(Number(goal?.z)),
+    );
+    if (![target.x, target.y, target.z].every(Number.isFinite)) {
+        issues.push('goal_coordinates_must_be_finite');
+    }
+    if (currentCell) {
+        const dx = target.x - currentCell.x;
+        const dy = target.y - currentCell.y;
+        const dz = target.z - currentCell.z;
+        if (dy !== -1) issues.push('goal_must_be_exactly_one_level_lower');
+        if (Math.max(Math.abs(dx), Math.abs(dz)) !== 1) {
+            issues.push('goal_must_be_horizontally_adjacent');
+        }
+    }
+
+    const expectedPlayerPosition = new Vec3(target.x + 0.5, target.y, target.z + 0.5);
+    const horizontalDistance = currentPosition
+        ? Math.hypot(
+            Number(currentPosition.x) - expectedPlayerPosition.x,
+            Number(currentPosition.z) - expectedPlayerPosition.z,
+        )
+        : null;
+    if (
+        horizontalDistance === null
+        || !Number.isFinite(horizontalDistance)
+        || horizontalDistance > GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE
+    ) {
+        issues.push('goal_center_outside_bounded_horizontal_distance');
+    }
+
+    const support = blockCollision(bot, target.offset(0, -1, 0));
+    const feet = blockCollision(bot, target);
+    const head = blockCollision(bot, target.offset(0, 1, 0));
+    if (support.collision !== 'block' || support.type === 0 || support.name === 'air') {
+        issues.push('goal_support_must_be_solid');
+    }
+    if (feet.collision !== 'empty') issues.push('goal_feet_must_be_passable');
+    if (head.collision !== 'empty') issues.push('goal_head_must_be_passable');
+
+    return {
+        policyId: GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
+        eligible: issues.length === 0,
+        issues,
+        currentCell,
+        target,
+        expectedPlayerPosition,
+        horizontalDistance,
+        support,
+        feet,
+        head,
+    };
+}
+
+function goalCompletionError(message, issues = []) {
+    const error = new Error(message);
+    error.name = 'SP003GoalCompletionGroundingError';
+    error.policyId = GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID;
+    error.issues = [...issues];
+    return error;
+}
+
+function installPathfinderGoalCompletion(bot, wait = waitForSettlement) {
+    if (!bot || typeof bot !== 'object' || !bot.pathfinder) {
+        throw new TypeError('SP-003 goal completion grounding requires a pathfinder bot');
+    }
+    if (typeof bot.pathfinder.goto !== 'function') {
+        throw new TypeError('SP-003 goal completion grounding requires pathfinder.goto');
+    }
+    if (typeof wait !== 'function') {
+        throw new TypeError('SP-003 goal completion grounding requires a wait function');
+    }
+    if (bot.pathfinder[BOT_PATHFINDER_PATCH_MARK]) return bot;
+
+    const originalGoto = bot.pathfinder.goto;
+    bot.pathfinder.goto = async function sp003GroundedGoto(goal) {
+        const result = await originalGoto.call(this, goal);
+        const currentCell = flooredPosition(bot.entity?.position);
+        if (typeof goal?.isEnd !== 'function') return result;
+        if (currentCell && goal.isEnd(currentCell)) return result;
+        if (!(goal instanceof pathfinderModule.goals.GoalBlock)) return result;
+
+        const proof = goalBlockNudgeProof(bot, goal);
+        if (!proof.eligible) {
+            throw goalCompletionError(
+                `SP-003 GoalBlock resolved outside the goal: ${proof.issues.join(', ')}`,
+                proof.issues,
+            );
+        }
+        if (
+            typeof bot.lookAt !== 'function'
+            || typeof bot.setControlState !== 'function'
+        ) {
+            throw goalCompletionError(
+                'SP-003 GoalBlock recovery controls are unavailable',
+                ['bounded_recovery_controls_unavailable'],
+            );
+        }
+
+        const lookTarget = new Vec3(
+            proof.expectedPlayerPosition.x,
+            Number(bot.entity.position.y) + 1.62,
+            proof.expectedPlayerPosition.z,
+        );
+        await bot.lookAt(lookTarget);
+        try {
+            bot.setControlState('forward', true);
+            for (let pulse = 0; pulse < GOALBLOCK_NUDGE_MAX_PULSES; pulse += 1) {
+                const support = blockCollision(bot, proof.target.offset(0, -1, 0));
+                const feet = blockCollision(bot, proof.target);
+                const head = blockCollision(bot, proof.target.offset(0, 1, 0));
+                if (
+                    support.collision !== 'block'
+                    || support.type === 0
+                    || support.name === 'air'
+                    || feet.collision !== 'empty'
+                    || head.collision !== 'empty'
+                ) {
+                    throw goalCompletionError(
+                        'SP-003 GoalBlock recovery geometry changed during movement',
+                        ['goal_geometry_changed_during_recovery'],
+                    );
+                }
+                await wait(GOALBLOCK_NUDGE_PULSE_MS);
+                if (goal.isEnd(flooredPosition(bot.entity?.position))) return result;
+            }
+        } finally {
+            bot.setControlState('forward', false);
+        }
+        throw goalCompletionError(
+            'SP-003 GoalBlock remained unresolved after bounded recovery',
+            ['bounded_recovery_exhausted'],
+        );
+    };
+    Object.defineProperty(bot.pathfinder, BOT_PATHFINDER_PATCH_MARK, {
+        configurable: false,
+        enumerable: false,
+        writable: false,
+        value: Object.freeze({
+            policyId: GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
+            pulseMs: GOALBLOCK_NUDGE_PULSE_MS,
+            maximumPulses: GOALBLOCK_NUDGE_MAX_PULSES,
+            originalGoto,
+            patchedGoto: bot.pathfinder.goto,
+        }),
+    });
+    return bot;
 }
 
 function wrapCraftSettlement(bot, wait = waitForSettlement) {
@@ -129,6 +318,20 @@ if (!pathfinderModule[GOAL_NEAR_PATCH_MARK]) {
     });
 }
 
+if (!pathfinderModule[PATHFINDER_PLUGIN_PATCH_MARK]) {
+    const originalPathfinder = pathfinderModule.pathfinder;
+    pathfinderModule.pathfinder = function sp003PathfinderPlugin(...args) {
+        const result = originalPathfinder.apply(this, args);
+        installPathfinderGoalCompletion(args[0]);
+        return result;
+    };
+    pathfinderModule[PATHFINDER_PLUGIN_PATCH_MARK] = Object.freeze({
+        policyId: GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
+        originalPathfinder,
+        patchedPathfinder: pathfinderModule.pathfinder,
+    });
+}
+
 if (!mineflayerModule[CREATE_BOT_PATCH_MARK]) {
     const originalCreateBot = mineflayerModule.createBot;
     mineflayerModule.createBot = function sp003CreateBot(...args) {
@@ -150,11 +353,18 @@ module.exports = {
     EXACT_UNIT_GOAL_NEAR_POLICY_ID,
     EXACT_UNIT_GOAL_NEAR_REQUESTED_RANGE,
     EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE,
+    GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
+    GOALBLOCK_NUDGE_PULSE_MS,
+    GOALBLOCK_NUDGE_MAX_PULSES,
+    GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE,
     exactUnitGoalNearRange,
+    goalBlockNudgeProof,
     hardenMovements,
+    installPathfinderGoalCompletion,
     installCraftSettlement,
     wrapCraftSettlement,
     status: pathfinderModule[MOVEMENTS_PATCH_MARK],
     goalStatus: pathfinderModule[GOAL_NEAR_PATCH_MARK],
+    pathfinderStatus: pathfinderModule[PATHFINDER_PLUGIN_PATCH_MARK],
     craftStatus: mineflayerModule[CREATE_BOT_PATCH_MARK],
 };

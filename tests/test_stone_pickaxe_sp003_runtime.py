@@ -24,6 +24,9 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     SP003_CLEARANCE_SHAFT_MAX,
     SP003_FROZEN_BRIDGE_SHA256,
     SP003_GOAL,
+    SP003_GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
+    SP003_GOALBLOCK_NUDGE_MAX_PULSES,
+    SP003_GOALBLOCK_NUDGE_PULSE_MS,
     SP003_POLICY_PATH,
     SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID,
     SP003_RUNTIME_POLICY_ID,
@@ -172,6 +175,24 @@ def test_policy_identity_binds_frozen_protocol_and_promoted_skills():
             "pickup_inventory_or_distance_grounding_required"
         ]
         is True
+    )
+    assert (
+        policy["episode_contract"][
+            "pickup_goalblock_completion_grounding_policy_id"
+        ]
+        == SP003_GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID
+    )
+    assert policy["episode_contract"]["pickup_goalblock_recovery_pulse_ms"] == (
+        SP003_GOALBLOCK_NUDGE_PULSE_MS
+    )
+    assert policy["episode_contract"]["pickup_goalblock_recovery_pulses_max"] == (
+        SP003_GOALBLOCK_NUDGE_MAX_PULSES
+    )
+    assert (
+        policy["episode_contract"][
+            "pickup_goalblock_recovery_world_mutation_allowed"
+        ]
+        is False
     )
     assert policy["episode_contract"]["planner_state_policy_id"] == (
         "sp003-bounded-planner-state-v1"
@@ -1974,6 +1995,77 @@ def test_phase107_retained_baseline_replays_goalblock_false_resolution():
     assert failure["counts_toward_baseline_success"] is False
     assert len(failure["evidence"]) == 13
     for record in failure["evidence"]:
+        path = REPO / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+
+def test_phase108_goalblock_completion_grounding_audit_binds_current_contract():
+    audit_path = (
+        REPO
+        / "workspace/evals/stone_pickaxe_sp003_goalblock_completion_grounding_repair.json"
+    )
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+
+    assert audit["type"] == (
+        "stone_pickaxe_sp003_goalblock_completion_grounding_repair"
+    )
+    assert audit["phase"] == 108
+    assert audit["base_commit"] == "7be57b4d5e990c82e08f0a66aa04b7e9f8b5d27a"
+    assert audit["policy_id"] == SP003_GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID
+    assert audit["retained_failure"]["manifest_sha256"] == (
+        "f4556504447040d19e2c49c29b44ee3c4b7e062350f296a88b08f8f5a318133e"
+    )
+    assert audit["retained_failure"]["session_sha256"] == (
+        "31d33f4ab1e772cac5d9b3a80a9bfb825c760ea7e477df912a405c80cc51e37b"
+    )
+    assert audit["retained_failure"]["fallback_position"] == audit[
+        "retained_failure"
+    ]["direct_position"]
+    assert audit["retained_failure"]["fallback_goal"] == {
+        "type": "GoalBlock",
+        "x": 124,
+        "y": 139,
+        "z": -38,
+    }
+    assert audit["retained_failure"]["fallback_expected_pickup_distance"] == (
+        0.5303300858899106
+    )
+    assert audit["dependency_root_cause"]["empty_path_checked_before_no_path_status"]
+    assert audit["dependency_root_cause"]["vendored_dependency_modified"] is False
+    dependency_path = REPO / audit["dependency_root_cause"]["path"]
+    assert hashlib.sha256(dependency_path.read_bytes()).hexdigest() == audit[
+        "dependency_root_cause"
+    ]["sha256"]
+
+    contract = audit["repair_contract"]
+    assert contract["scope"] == "sp003_process_local_preload_only"
+    assert contract["post_resolve_goal_is_end_checked"] is True
+    assert contract["target_exactly_one_level_lower"] is True
+    assert contract["target_horizontally_adjacent"] is True
+    assert contract["target_support_solid_required"] is True
+    assert contract["target_feet_passable_required"] is True
+    assert contract["target_head_passable_required"] is True
+    assert contract["movement_pulse_ms"] == SP003_GOALBLOCK_NUDGE_PULSE_MS
+    assert contract["movement_pulses_max"] == SP003_GOALBLOCK_NUDGE_MAX_PULSES
+    assert contract["movement_total_ms_max"] == 500
+    assert contract["world_mutation_allowed"] is False
+    assert contract["exhaustion_fails_closed"] is True
+    assert contract["shared_bridge_changed"] is False
+    assert contract["base_protocol_changed"] is False
+    assert audit["retained_replay"]["phase_107_geometry_eligible"] is True
+    assert audit["retained_replay"]["simulated_goal_is_end"] is True
+    assert audit["retained_replay"]["integrated_dig_fallback_pickup_passed"]
+    assert audit["retained_replay"]["integrated_pickup_inventory_delta"] == {
+        "cobblestone": 1
+    }
+    assert audit["retained_replay"]["four_pulse_exhaustion_rejected"] is True
+    assert audit["retained_replay"]["real_mineflayer_plugin_lifecycle_wrapped"]
+    assert audit["live_episode_run"] is False
+    assert audit["live_authorization"] is False
+    assert audit["counts_toward_capability"] is False
+
+    for record in audit["implementation"]:
         path = REPO / record["path"]
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]

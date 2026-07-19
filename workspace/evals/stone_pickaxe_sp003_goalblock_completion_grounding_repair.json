@@ -1,0 +1,143 @@
+{
+  "type": "stone_pickaxe_sp003_goalblock_completion_grounding_repair",
+  "schema_version": 1,
+  "phase": 108,
+  "generated_at": "2026-07-19T19:35:21+08:00",
+  "base_commit": "7be57b4d5e990c82e08f0a66aa04b7e9f8b5d27a",
+  "task_id": "SP-003",
+  "policy_id": "sp003-goalblock-completion-grounding-v1",
+  "status": "offline_verified",
+  "retained_failure": {
+    "episode_id": "sp003_baseline_20260719_184317_c5963fb7",
+    "session_id": "985718b8-48d",
+    "manifest_sha256": "f4556504447040d19e2c49c29b44ee3c4b7e062350f296a88b08f8f5a318133e",
+    "session_sha256": "31d33f4ab1e772cac5d9b3a80a9bfb825c760ea7e477df912a405c80cc51e37b",
+    "authorization_commit": "44b971a7a3836bdd02ff67cfaa5c4b22e2be0a24",
+    "authorization_id": "1857c3080329915309cb6d490c2a5636cf42269b0193473785aa4406adea9e85",
+    "authorization_consumed": true,
+    "automatic_retry_attempted": false,
+    "stone_action_event_index": 376,
+    "pickup_access_proof_fingerprint": "cbd7c37ddecac2a265a68fa05732461d9a9bf9117578f6e7a838e624576ec9e1",
+    "direct_position": {
+      "x": 124.43808494193001,
+      "y": 140,
+      "z": -36.47195326706993
+    },
+    "fallback_position": {
+      "x": 124.43808494193001,
+      "y": 140,
+      "z": -36.47195326706993
+    },
+    "fallback_goal": {
+      "type": "GoalBlock",
+      "x": 124,
+      "y": 139,
+      "z": -38
+    },
+    "fallback_expected_player_position": {
+      "x": 124.5,
+      "y": 139,
+      "z": -37.5
+    },
+    "fallback_expected_pickup_distance": 0.5303300858899106,
+    "fallback_support": "stone",
+    "fallback_feet": "air",
+    "fallback_head": "air",
+    "fallback_pathfinder_resolved": true,
+    "fallback_completion_grounded": false
+  },
+  "dependency_root_cause": {
+    "package": "mineflayer-pathfinder",
+    "version": "2.4.5",
+    "path": "node_modules/mineflayer-pathfinder/lib/goto.js",
+    "sha256": "c61d8b4490f1f9e14f544328badb51c642fdc3ea761c95b0194500e990c5d029",
+    "empty_path_checked_before_no_path_status": true,
+    "empty_path_can_resolve_without_goal_reached": true,
+    "vendored_dependency_modified": false
+  },
+  "repair_contract": {
+    "scope": "sp003_process_local_preload_only",
+    "pathfinder_plugin_wrapped_once": true,
+    "original_goto_attempts_max": 1,
+    "post_resolve_goal_is_end_checked": true,
+    "false_resolved_goal_type": "GoalBlock",
+    "other_goal_types_preserved": true,
+    "original_errors_propagated": true,
+    "player_on_ground_required": true,
+    "target_exactly_one_level_lower": true,
+    "target_horizontally_adjacent": true,
+    "target_center_horizontal_distance_max": 1.6,
+    "target_support_solid_required": true,
+    "target_feet_passable_required": true,
+    "target_head_passable_required": true,
+    "movement_control": "look_at_then_forward_only",
+    "movement_pulse_ms": 125,
+    "movement_pulses_max": 4,
+    "movement_total_ms_max": 500,
+    "geometry_rechecked_each_pulse": true,
+    "dig_allowed": false,
+    "place_allowed": false,
+    "scaffold_allowed": false,
+    "world_mutation_allowed": false,
+    "exhaustion_fails_closed": true,
+    "shared_bridge_changed": false,
+    "base_protocol_changed": false
+  },
+  "retained_replay": {
+    "phase_107_geometry_eligible": true,
+    "simulated_false_resolution_position_unchanged": true,
+    "simulated_target_reached_after_pulses": 2,
+    "simulated_elapsed_ms": 250,
+    "simulated_goal_is_end": true,
+    "integrated_dig_fallback_pickup_passed": true,
+    "integrated_pickup_inventory_delta": {"cobblestone": 1},
+    "solid_head_rejected": true,
+    "missing_controls_rejected": true,
+    "four_pulse_exhaustion_rejected": true,
+    "non_goalblock_behavior_preserved": true,
+    "original_pathfinder_failure_preserved": true,
+    "real_mineflayer_plugin_lifecycle_wrapped": true
+  },
+  "implementation": [
+    {
+      "path": "src/bot/sp003_inventory_preserving_navigation.js",
+      "sha256": "81f825e3d432b8bdea22d492029858bb124d559e83f2080e53cb77c86d33459a"
+    },
+    {
+      "path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+      "sha256": "d0751c0aa1682ead2eecb6bc03e5b59ed646de6b3040bebc2967243676ceb348"
+    },
+    {
+      "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+      "sha256": "c3e1f01f6c21cbdfdd23a20399d8df2eea11be5b524ee74e78990bc78a73ca5a"
+    },
+    {
+      "path": "tests/test_sp003_inventory_preserving_navigation.js",
+      "sha256": "efb6a4074c3eae9c07e9718344ebb2a519ac4bd0ce634ada8289f594995cf489"
+    }
+  ],
+  "protected_identities": {
+    "shared_bridge_path": "src/bot/bot_server.js",
+    "shared_bridge_sha256": "f1677b32fc726d6d983d4646d47cda80d57f49949f0759d8e735e59e18765f60",
+    "base_protocol_path": "workspace/evals/stone_pickaxe_protocol.json",
+    "base_protocol_sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
+  },
+  "validation": {
+    "node_preload_cases": "16/16",
+    "policy_identity_cases": "1/1",
+    "dedicated_sp003_cases": "79/79",
+    "stone_pickaxe_cases": "260/260",
+    "repository_python_cases": "1015/1015",
+    "node_suites": "7/7",
+    "node_internal_cases": "73/73",
+    "capability_consistency_cases": "8/8",
+    "python_compileall_passed": true,
+    "full_regression_pending": false
+  },
+  "live_episode_run": false,
+  "live_authorization": false,
+  "automatic_retry_allowed": false,
+  "counts_toward_baseline_success": false,
+  "counts_toward_capability": false,
+  "counts_toward_m4": false
+}

@@ -95,6 +95,12 @@ SP003_MOVE_TO_CONTINUOUS_TOLERANCE = 1.6
 SP003_PICKUP_GOAL_POLICY_ID = "sp003-exact-unit-goal-near-v1"
 SP003_PICKUP_GOAL_REQUESTED_RANGE = 1
 SP003_PICKUP_GOAL_EFFECTIVE_RANGE = 0
+SP003_GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID = (
+    "sp003-goalblock-completion-grounding-v1"
+)
+SP003_GOALBLOCK_NUDGE_PULSE_MS = 125
+SP003_GOALBLOCK_NUDGE_MAX_PULSES = 4
+SP003_GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE = 1.6
 SP003_PLANNER_STATE_POLICY_ID = "sp003-bounded-planner-state-v1"
 SP003_PLANNER_PROGRESS_FIELDS = [
     "log_source_removal_count",
@@ -349,6 +355,28 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         and episode_contract.get("pickup_non_unit_goal_near_ranges_unchanged")
         is True
         and episode_contract.get("pickup_inventory_or_distance_grounding_required")
+        is True
+    )
+    checks["goalblock_completion_grounding_contract"] = (
+        episode_contract.get("pickup_goalblock_completion_grounding_policy_id")
+        == SP003_GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID
+        and episode_contract.get("pickup_goalblock_post_resolve_is_end_required")
+        is True
+        and episode_contract.get("pickup_goalblock_recovery_downward_levels") == 1
+        and episode_contract.get("pickup_goalblock_recovery_adjacent_only") is True
+        and episode_contract.get("pickup_goalblock_recovery_support_solid_required")
+        is True
+        and episode_contract.get("pickup_goalblock_recovery_feet_head_air_required")
+        is True
+        and episode_contract.get("pickup_goalblock_recovery_pulse_ms")
+        == SP003_GOALBLOCK_NUDGE_PULSE_MS
+        and episode_contract.get("pickup_goalblock_recovery_pulses_max")
+        == SP003_GOALBLOCK_NUDGE_MAX_PULSES
+        and episode_contract.get("pickup_goalblock_recovery_horizontal_distance_max")
+        == SP003_GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE
+        and episode_contract.get("pickup_goalblock_recovery_world_mutation_allowed")
+        is False
+        and episode_contract.get("pickup_goalblock_recovery_failure_is_terminal")
         is True
     )
     checks["bounded_planner_state_contract"] = (

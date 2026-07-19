@@ -15,11 +15,11 @@ This project isolates two bounded Minecraft capabilities:
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
-| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 107 retained `GoalBlock` false resolution; evidence push then offline repair required |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 108 offline `GoalBlock` completion grounding verified; fix push required |
 
-Current phase: **Phase 107 live-exercises `sp003-pre-dig-pickup-access-v1`. The run reaches wooden-pickaxe equip, clears four blocks, proves exact stone/support plus post-dig air feet/head, removes one stone, and detects its cobblestone drop. The direct and fallback Pathfinder goals both resolve at the same unchanged player coordinate; even the exact clear `GoalBlock` fallback cell is never entered. SP-003 is 78/78, all stone-pickaxe tests are 259/259, and full Python is 1014/1014, but the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 108 offline-verifies `sp003-goalblock-completion-grounding-v1`. The SP-003 process-local plugin now checks real `goal.isEnd` after a nominal `GoalBlock` resolve and permits only an exact grounded adjacent down-step into a solid-supported clear cell. Recovery is bounded to four 125ms forward pulses with geometry rechecked each time and no mutation. The retained Phase 107 integrated dig replay reaches the fallback after two pulses and records `cobblestone:+1`. SP-003 is 79/79, all stone-pickaxe tests are 260/260, full Python is 1015/1015, and Node is 73/73, but the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all sixteen SP-003 baseline IDs through `sp003_baseline_20260719_184317_c5963fb7` cannot be reused. Phase 107 ran exactly once and cannot be retried. The next transaction is its evidence commit and push, followed by an offline SP-003-only goal-completion grounding repair. Any later baseline requires that fix to be committed and pushed before a separate fresh parent-bound authorization is created and pushed. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all sixteen SP-003 baseline IDs through `sp003_baseline_20260719_184317_c5963fb7` cannot be reused. Phase 107 ran exactly once and cannot be retried. The next transaction is the Phase 108 offline-fix commit and push. Any later baseline requires that fix to be synchronized before a separate fresh parent-bound authorization is created and pushed. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -201,7 +201,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 107 failure retained; sixteen authorizations consumed; baseline 0/1 and candidates 0/3; evidence push then offline navigation repair required |
+| 8. SP-003 composite acceptance | Phase 108 offline repair verified; sixteen authorizations consumed; baseline 0/1 and candidates 0/3; fix push then separate authorization required |
 
 ## Frozen Baseline
 
@@ -213,4 +213,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before the Phase 107 evidence and subsequent offline navigation repair are committed and pushed and a new one-use authorization is separately pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before the Phase 108 offline repair is committed and pushed and a new one-use authorization is separately pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.

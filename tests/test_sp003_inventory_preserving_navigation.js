@@ -7,6 +7,7 @@ const mineflayerModule = require('mineflayer');
 const OriginalMovements = pathfinderModule.Movements;
 const OriginalGoalNear = pathfinderModule.goals.GoalNear;
 const OriginalGoalNearXZ = pathfinderModule.goals.GoalNearXZ;
+const OriginalPathfinder = pathfinderModule.pathfinder;
 const OriginalCreateBot = mineflayerModule.createBot;
 const preload = require('../src/bot/sp003_inventory_preserving_navigation');
 const { createDigHandler } = require('../src/bot/bot_server');
@@ -75,6 +76,261 @@ function testPreloadTightensOnlyUnitRangeThreeDimensionalGoals() {
     assert.strictEqual(preload.exactUnitGoalNearRange(0), 0);
     assert.strictEqual(preload.exactUnitGoalNearRange(2), 2);
     console.log('PASS: SP-003 preload tightens only unit-range GoalNear instances');
+}
+
+function testPreloadPatchesPathfinderPluginOnceWithinItsNodeProcess() {
+    assert.notStrictEqual(pathfinderModule.pathfinder, OriginalPathfinder);
+    assert.strictEqual(preload.pathfinderStatus.originalPathfinder, OriginalPathfinder);
+    assert.strictEqual(
+        preload.pathfinderStatus.patchedPathfinder,
+        pathfinderModule.pathfinder,
+    );
+    assert.strictEqual(
+        preload.pathfinderStatus.policyId,
+        'sp003-goalblock-completion-grounding-v1',
+    );
+    assert.strictEqual(
+        require('../src/bot/sp003_inventory_preserving_navigation').pathfinderStatus,
+        preload.pathfinderStatus,
+    );
+    console.log('PASS: SP-003 preload patches the process-local pathfinder plugin once');
+}
+
+function phase107GoalBlockBot(overrides = {}) {
+    const target = new Vec3(124, 139, -38);
+    const calls = {
+        goto: [],
+        lookAt: [],
+        controls: [],
+        waits: [],
+    };
+    const bot = {
+        entity: {
+            position: new Vec3(124.43808494193001, 140, -36.47195326706993),
+            onGround: true,
+        },
+        blockAt(position) {
+            if (position.x === target.x && position.y === target.y - 1 && position.z === target.z) {
+                return { name: 'stone', type: 1, boundingBox: 'block', position };
+            }
+            return { name: 'air', type: 0, boundingBox: 'empty', position };
+        },
+        async lookAt(position) {
+            calls.lookAt.push(position.clone ? position.clone() : position);
+        },
+        setControlState(name, value) {
+            calls.controls.push([name, value]);
+        },
+        pathfinder: {
+            async goto(goal) {
+                calls.goto.push(goal);
+            },
+        },
+    };
+    Object.assign(bot, overrides);
+    return { bot, calls, target };
+}
+
+async function testFalseResolvedGoalBlockUsesBoundedClearDownStep() {
+    const { bot, calls, target } = phase107GoalBlockBot();
+    const wait = async (ms) => {
+        calls.waits.push(ms);
+        if (calls.waits.length === 2) {
+            bot.entity.position = new Vec3(target.x + 0.5, target.y, target.z + 0.5);
+            bot.entity.onGround = true;
+        }
+    };
+    const goal = new pathfinderModule.goals.GoalBlock(target.x, target.y, target.z);
+    const proof = preload.goalBlockNudgeProof(bot, goal);
+
+    assert.strictEqual(proof.eligible, true);
+    assert.deepStrictEqual(proof.issues, []);
+    assert.strictEqual(proof.support.name, 'stone');
+    assert.strictEqual(proof.feet.collision, 'empty');
+    assert.strictEqual(proof.head.collision, 'empty');
+    assert.strictEqual(preload.installPathfinderGoalCompletion(bot, wait), bot);
+    assert.strictEqual(preload.installPathfinderGoalCompletion(bot, wait), bot);
+    await bot.pathfinder.goto(goal);
+
+    assert.strictEqual(calls.goto.length, 1);
+    assert.deepStrictEqual(calls.waits, [125, 125]);
+    assert.strictEqual(calls.lookAt.length, 1);
+    assert.deepStrictEqual(calls.controls, [['forward', true], ['forward', false]]);
+    assert.strictEqual(goal.isEnd(bot.entity.position.floored()), true);
+    console.log('PASS: false-resolved GoalBlock enters the proven clear down-step cell');
+}
+
+async function testGoalBlockGroundingRejectsUnprovenGeometryAndMissingControls() {
+    const solidHead = phase107GoalBlockBot();
+    solidHead.bot.blockAt = (position) => {
+        if (
+            position.x === solidHead.target.x
+            && position.y === solidHead.target.y + 1
+            && position.z === solidHead.target.z
+        ) {
+            return { name: 'dirt', type: 9, boundingBox: 'block', position };
+        }
+        if (
+            position.x === solidHead.target.x
+            && position.y === solidHead.target.y - 1
+            && position.z === solidHead.target.z
+        ) {
+            return { name: 'stone', type: 1, boundingBox: 'block', position };
+        }
+        return { name: 'air', type: 0, boundingBox: 'empty', position };
+    };
+    const goal = new pathfinderModule.goals.GoalBlock(
+        solidHead.target.x,
+        solidHead.target.y,
+        solidHead.target.z,
+    );
+    preload.installPathfinderGoalCompletion(solidHead.bot, async () => {});
+    await assert.rejects(
+        solidHead.bot.pathfinder.goto(goal),
+        (error) => (
+            error.name === 'SP003GoalCompletionGroundingError'
+            && error.issues.includes('goal_head_must_be_passable')
+        ),
+    );
+    assert.deepStrictEqual(solidHead.calls.controls, []);
+
+    const missingControls = phase107GoalBlockBot();
+    delete missingControls.bot.lookAt;
+    preload.installPathfinderGoalCompletion(missingControls.bot, async () => {});
+    await assert.rejects(
+        missingControls.bot.pathfinder.goto(goal),
+        (error) => error.issues.includes('bounded_recovery_controls_unavailable'),
+    );
+    assert.deepStrictEqual(missingControls.calls.waits, []);
+    console.log('PASS: GoalBlock grounding rejects unproven geometry and controls');
+}
+
+async function testGoalBlockGroundingStopsAfterExactPulseBudget() {
+    const { bot, calls, target } = phase107GoalBlockBot();
+    const goal = new pathfinderModule.goals.GoalBlock(target.x, target.y, target.z);
+    preload.installPathfinderGoalCompletion(bot, async (ms) => calls.waits.push(ms));
+
+    await assert.rejects(
+        bot.pathfinder.goto(goal),
+        (error) => error.issues.includes('bounded_recovery_exhausted'),
+    );
+    assert.deepStrictEqual(calls.waits, [125, 125, 125, 125]);
+    assert.deepStrictEqual(calls.controls, [['forward', true], ['forward', false]]);
+    console.log('PASS: GoalBlock grounding fails closed after four movement pulses');
+}
+
+async function testGoalBlockGroundingPreservesOtherGoalsAndOriginalFailures() {
+    const falseNear = phase107GoalBlockBot();
+    const wait = async (ms) => falseNear.calls.waits.push(ms);
+    preload.installPathfinderGoalCompletion(falseNear.bot, wait);
+    const near = new pathfinderModule.goals.GoalNear(124, 139, -38, 0);
+    await falseNear.bot.pathfinder.goto(near);
+    assert.deepStrictEqual(falseNear.calls.waits, []);
+    assert.deepStrictEqual(falseNear.calls.controls, []);
+
+    const originalError = new Error('original pathfinder failure');
+    const rejected = phase107GoalBlockBot({
+        pathfinder: {
+            async goto() {
+                throw originalError;
+            },
+        },
+    });
+    preload.installPathfinderGoalCompletion(rejected.bot, async () => {});
+    await assert.rejects(
+        rejected.bot.pathfinder.goto(
+            new pathfinderModule.goals.GoalBlock(124, 139, -38),
+        ),
+        (error) => error === originalError,
+    );
+    console.log('PASS: GoalBlock grounding preserves other goals and original failures');
+}
+
+async function testPhase107PickupFallbackClosesThroughGroundedGoalBlock() {
+    const target = new Vec3(124, 139, -38);
+    const drop = {
+        id: 949,
+        name: 'item',
+        position: new Vec3(124.875, 139, -37.875),
+        getDroppedItem: () => ({ name: 'cobblestone' }),
+    };
+    let removed = false;
+    let items = [{ name: 'wooden_pickaxe', type: 816, count: 1 }];
+    let clockMs = 0;
+    let forward = false;
+    let movementPulses = 0;
+    const goals = [];
+    const bot = {
+        version: '1.20.4',
+        entity: {
+            position: new Vec3(124.43808494193001, 140, -36.47195326706993),
+            onGround: true,
+        },
+        entities: { [drop.id]: drop },
+        inventory: { items: () => items },
+        blockAt(position) {
+            if (position.x === target.x && position.y === target.y && position.z === target.z) {
+                return removed
+                    ? { name: 'air', type: 0, boundingBox: 'empty', position: target }
+                    : { name: 'stone', type: 1, boundingBox: 'block', drops: [35], position: target };
+            }
+            if (position.x === target.x && position.y === target.y - 1 && position.z === target.z) {
+                return { name: 'stone', type: 1, boundingBox: 'block', position };
+            }
+            return { name: 'air', type: 0, boundingBox: 'empty', position };
+        },
+        async dig() {
+            removed = true;
+        },
+        async lookAt() {},
+        setControlState(name, value) {
+            if (name === 'forward') forward = value;
+        },
+        pathfinder: {
+            async goto(goal) {
+                goals.push(goal);
+            },
+            stop() {},
+        },
+    };
+    preload.installPathfinderGoalCompletion(bot, async (ms) => {
+        clockMs += Number(ms) || 0;
+        if (forward) {
+            movementPulses += 1;
+            if (movementPulses === 2) {
+                bot.entity.position = new Vec3(target.x + 0.5, target.y, target.z + 0.5);
+                items = [...items, { name: 'cobblestone', count: 1 }];
+            }
+        }
+    });
+    const handler = createDigHandler(
+        () => ({ bot, botReady: true }),
+        async (ms) => { clockMs += Number(ms) || 0; },
+        { monotonicMs: () => clockMs },
+    );
+
+    const result = await handler({
+        x: target.x,
+        y: target.y,
+        z: target.z,
+        require_pickup: true,
+    });
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.block_removed, true);
+    assert.strictEqual(result.pickup_observed, true);
+    assert.deepStrictEqual(result.pickup_inventory_delta, { cobblestone: 1 });
+    assert.strictEqual(goals.length, 2);
+    assert.strictEqual(goals[0] instanceof pathfinderModule.goals.GoalNear, true);
+    assert.strictEqual(goals[1] instanceof pathfinderModule.goals.GoalBlock, true);
+    assert.strictEqual(result.pickup_collection.direct_navigation.pathfinder_resolved, true);
+    assert.strictEqual(result.pickup_collection.direct_navigation.completion_grounded, false);
+    assert.strictEqual(result.pickup_collection.fallback_navigation.pathfinder_resolved, true);
+    assert.strictEqual(result.pickup_collection.fallback_navigation.completion_grounded, true);
+    assert.strictEqual(result.pickup_collection.completion_grounded_by, 'inventory_delta');
+    assert.strictEqual(movementPulses, 2);
+    assert.strictEqual(goals[1].isEnd(bot.entity.position.floored()), true);
+    console.log('PASS: Phase107 fallback reaches the clear foot cell and collects cobblestone');
 }
 
 async function testPhase97PickupGeometryUsesExactGoalAndObservedInventoryDelta() {
@@ -222,6 +478,7 @@ async function testRealMineflayerCreateBotInstallsAfterPluginInjection() {
         client,
         logErrors: false,
     });
+    bot.loadPlugin(pathfinderModule.pathfinder);
     assert.strictEqual(bot.craft, undefined);
     await new Promise((resolve, reject) => {
         const timeout = setTimeout(
@@ -235,7 +492,9 @@ async function testRealMineflayerCreateBotInstallsAfterPluginInjection() {
     });
     assert.strictEqual(typeof bot.craft, 'function');
     assert.strictEqual(bot.craft.name, 'sp003CraftWithSettlement');
-    console.log('PASS: real Mineflayer createBot installs settlement after plugin injection');
+    assert.strictEqual(typeof bot.pathfinder?.goto, 'function');
+    assert.strictEqual(bot.pathfinder.goto.name, 'sp003GroundedGoto');
+    console.log('PASS: real Mineflayer lifecycle installs settlement and goal grounding');
 }
 
 async function testCraftSettlementIsBoundedToInteractiveCrafts() {
@@ -290,6 +549,12 @@ async function main() {
     testPreloadReplacesOnlyTheProcessLocalMovementsConstructor();
     testMovementHardeningDisablesHiddenWorldMutation();
     testPreloadTightensOnlyUnitRangeThreeDimensionalGoals();
+    testPreloadPatchesPathfinderPluginOnceWithinItsNodeProcess();
+    await testFalseResolvedGoalBlockUsesBoundedClearDownStep();
+    await testGoalBlockGroundingRejectsUnprovenGeometryAndMissingControls();
+    await testGoalBlockGroundingStopsAfterExactPulseBudget();
+    await testGoalBlockGroundingPreservesOtherGoalsAndOriginalFailures();
+    await testPhase107PickupFallbackClosesThroughGroundedGoalBlock();
     await testPhase97PickupGeometryUsesExactGoalAndObservedInventoryDelta();
     testPreloadPatchesCreateBotOnceWithinItsNodeProcess();
     await testCraftSettlementWaitsForMineflayerPluginInjection();
