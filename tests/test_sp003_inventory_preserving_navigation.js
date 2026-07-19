@@ -98,6 +98,10 @@ function testPreloadPatchesPathfinderPluginOnceWithinItsNodeProcess() {
         'sp003-pathfinder-stop-drain-v1',
     );
     assert.strictEqual(
+        preload.pathfinderStatus.transitionPolicyId,
+        'sp003-downstep-transition-clearance-v1',
+    );
+    assert.strictEqual(
         require('../src/bot/sp003_inventory_preserving_navigation').pathfinderStatus,
         preload.pathfinderStatus,
     );
@@ -566,6 +570,52 @@ async function testMoveToHandlerCannotAcceptPhase109PositionOutsideExactGoal() {
     console.log('PASS: Phase109 move_to reaches the exact stand cell before success');
 }
 
+async function testTransitionUpperHeadBlocksExactMoveWithoutWarningSuccess() {
+    const { bot, calls, target } = phase109ExactGoalNearBot();
+    bot.blockAt = (position) => {
+        if (position.x === target.x && position.y === target.y + 2 && position.z === target.z) {
+            return { name: 'dirt', type: 9, boundingBox: 'block', position };
+        }
+        if (position.x === target.x && position.y === target.y - 1 && position.z === target.z) {
+            return { name: 'stone', type: 1, boundingBox: 'block', position };
+        }
+        return { name: 'air', type: 0, boundingBox: 'empty', position };
+    };
+    const goal = new pathfinderModule.goals.GoalNear(
+        target.x,
+        target.y,
+        target.z,
+        1,
+    );
+    const proof = preload.goalCompletionNudgeProof(bot, goal);
+
+    assert.strictEqual(
+        preload.DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID,
+        'sp003-downstep-transition-clearance-v1',
+    );
+    assert.strictEqual(proof.transitionPolicyId, preload.DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID);
+    assert.strictEqual(proof.transitionUpperHead.name, 'dirt');
+    assert.strictEqual(proof.eligible, false);
+    assert(proof.issues.includes('goal_transition_upper_head_must_be_passable'));
+
+    preload.installPathfinderGoalCompletion(bot, async (ms) => calls.waits.push(ms));
+    const moveTo = createMoveToHandler(() => ({ bot, botReady: true }));
+    const result = await moveTo({
+        x: 124.5,
+        y: 140,
+        z: -37.5,
+        tolerance: 1.0,
+    });
+
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.reached, false);
+    assert(result.distance_to_target > 1.0);
+    assert.match(result.error, /goal_transition_upper_head_must_be_passable/);
+    assert.strictEqual(result.pathfinder_warning, undefined);
+    assert.deepStrictEqual(calls.controls, []);
+    console.log('PASS: blocked transition headroom remains an exact move failure');
+}
+
 async function testGoalBlockGroundingRejectsUnprovenGeometryAndMissingControls() {
     const solidHead = phase107GoalBlockBot();
     solidHead.bot.blockAt = (position) => {
@@ -992,6 +1042,7 @@ async function main() {
     await testFalseResolvedGoalBlockUsesBoundedClearDownStep();
     await testFalseResolvedExactUnitGoalNearUsesBoundedClearDownStep();
     await testMoveToHandlerCannotAcceptPhase109PositionOutsideExactGoal();
+    await testTransitionUpperHeadBlocksExactMoveWithoutWarningSuccess();
     await testGoalBlockGroundingRejectsUnprovenGeometryAndMissingControls();
     await testGoalBlockGroundingStopsAfterExactPulseBudget();
     await testGoalBlockGroundingPreservesOtherGoalsAndOriginalFailures();

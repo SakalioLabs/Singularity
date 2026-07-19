@@ -22,6 +22,8 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     EXPECTED_SKILLS,
     SP003_CLEARANCE_SCAN_RESPONSE_LIMIT,
     SP003_CLEARANCE_SHAFT_MAX,
+    SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID,
+    SP003_EXACT_MOVE_CONTINUOUS_TOLERANCE,
     SP003_FROZEN_BRIDGE_SHA256,
     SP003_EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID,
     SP003_GOAL,
@@ -170,6 +172,24 @@ def test_policy_identity_binds_frozen_protocol_and_promoted_skills():
     assert policy["episode_contract"]["table_reference_repair_attempts_max"] == 1
     assert policy["episode_contract"]["move_target_cell_centered"] is True
     assert policy["episode_contract"]["move_continuous_tolerance"] == 1.6
+    assert policy["episode_contract"]["move_exact_cell_continuous_tolerance"] == (
+        SP003_EXACT_MOVE_CONTINUOUS_TOLERANCE
+    )
+    assert (
+        policy["episode_contract"][
+            "move_exact_cell_failure_reclassification_allowed"
+        ]
+        is False
+    )
+    assert policy["episode_contract"]["pre_dig_downstep_transition_policy_id"] == (
+        SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID
+    )
+    assert (
+        policy["episode_contract"][
+            "pre_dig_downstep_transition_upper_head_air_required"
+        ]
+        is True
+    )
     assert policy["episode_contract"]["pickup_goal_near_requested_range"] == 1
     assert policy["episode_contract"]["pickup_goal_near_effective_range"] == 0
     assert (
@@ -743,10 +763,18 @@ def test_phase88_retained_stone_target_requires_grounded_navigation_before_dig()
         "x": 124.5,
         "y": 140,
         "z": -36.5,
-        "tolerance": 1.6,
+        "tolerance": 1.0,
         "preserve_inventory": True,
     }
     assert move["selected_source"]["stone_pickup_approach"] is True
+    assert move["action_repair"]["schema_version"] == 2
+    assert move["action_repair"]["continuous_bound_basis"] == (
+        "exact_cell_failure_must_remain_failure"
+    )
+    assert move["action_repair"]["failure_reclassification_allowed"] is False
+    assert move["action_repair"]["downstep_transition_policy_id"] == (
+        SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID
+    )
     forged = copy.deepcopy(centered)
     forged["sp003_stone_approach_stands"][0]["proof"]["scan_complete"] = False
     assert _sp003_observation_targets(forged, progress) == []
@@ -1045,12 +1073,14 @@ def test_saturated_priority_trace_proves_near_head_air_and_observed_obstruction(
     target_cell = (1, 63, 0)
     support_cell = (1, 62, 0)
     head_cell = (1, 64, 0)
+    transition_upper_head_cell = (1, 65, 0)
     excluded = {
         (0, 64, 0),
         (0, 65, 0),
         target_cell,
         support_cell,
         head_cell,
+        transition_upper_head_cell,
     }
     dense = [
         block(
@@ -1087,6 +1117,9 @@ def test_saturated_priority_trace_proves_near_head_air_and_observed_obstruction(
     )
     assert access["pickup_access_proof"]["scan_complete"] is False
     assert access["pickup_access_proof"]["head_cell_state"] == "air"
+    assert access["pickup_access_proof"]["transition_upper_head_cell_state"] == (
+        "air"
+    )
     assert len(access["pickup_access_proof"]["priority_selection_trace"]) == 50
 
     covered_dense = [*dense, block("dirt", *head_cell, 1.0)]
@@ -1711,8 +1744,8 @@ def test_phase105_retained_baseline_replays_covered_stone_pickup_failure():
         for item in _stone_surface_clearances(saturated_replay)
         if item["support_source_id"] == "stone:124:139:-38"
     )
-    assert first_clearance["source_id"] == "dirt:124:140:-38"
-    assert first_clearance["remaining_clearance_count"] == 1
+    assert first_clearance["source_id"] == "dirt:124:141:-38"
+    assert first_clearance["remaining_clearance_count"] == 2
 
     second_guard_index = next(
         index
@@ -1762,8 +1795,8 @@ def test_phase105_retained_baseline_replays_covered_stone_pickup_failure():
         for target in _sp003_observation_targets(replay, replay_progress)
         if target.get("support_source_id") == "stone:125:139:-37"
     )
-    assert clearance["source_id"] == "dirt:125:140:-37"
-    assert clearance["remaining_clearance_count"] == 1
+    assert clearance["source_id"] == "dirt:125:141:-37"
+    assert clearance["remaining_clearance_count"] == 2
     covered_guard = guard_sp003_action(
         {
             "type": "dig",
@@ -1777,10 +1810,33 @@ def test_phase105_retained_baseline_replays_covered_stone_pickup_failure():
         "issues"
     ]
 
-    opened = copy.deepcopy(replay)
-    opened_blocks = [
+    transition_opened = copy.deepcopy(replay)
+    transition_opened_blocks = [
         item
         for item in replay_blocks
+        if item["position"] != {"x": 125, "y": 141, "z": -37}
+    ]
+    transition_opened["nearby_blocks"] = copy.deepcopy(transition_opened_blocks)
+    attach_complete_sp003_scan(
+        transition_opened,
+        transition_opened_blocks,
+        origin=complete_scan["origin_cell"],
+    )
+    next_clearance = next(
+        target
+        for target in _sp003_observation_targets(
+            transition_opened,
+            replay_progress,
+        )
+        if target.get("support_source_id") == "stone:125:139:-37"
+    )
+    assert next_clearance["source_id"] == "dirt:125:140:-37"
+    assert next_clearance["remaining_clearance_count"] == 1
+
+    opened = copy.deepcopy(transition_opened)
+    opened_blocks = [
+        item
+        for item in transition_opened_blocks
         if item["position"] != {"x": 125, "y": 140, "z": -37}
     ]
     opened["nearby_blocks"] = copy.deepcopy(opened_blocks)
@@ -2638,6 +2694,148 @@ def test_phase113_retained_baseline_replays_downstep_transition_clearance_discon
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
+def test_phase114_retained_action18_requires_transition_clearance_before_stone():
+    run_dir = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_221125_16ea129e"
+    )
+    events = json.loads((run_dir / "session.json").read_text(encoding="utf-8"))
+    actions = [event["data"] for event in events if event.get("type") == "action"]
+    retained_pre_dig = copy.deepcopy(actions[17]["pre_observation"])
+    action_event_index = next(
+        index
+        for index, event in enumerate(events)
+        if event.get("type") == "action"
+        and event.get("data", {}).get("action_context", {}).get("cycle") == 18
+    )
+    retained_scan = copy.deepcopy(next(
+        event["data"]["sp003_complete_local_scan"]
+        for event in reversed(events[:action_event_index])
+        if event.get("type") == "observation"
+        and event.get("data", {}).get("position") == retained_pre_dig["position"]
+        and isinstance(
+            event.get("data", {}).get("sp003_complete_local_scan"),
+            dict,
+        )
+    ))
+
+    assert actions[17]["action"]["parameters"]["source_id"] == "stone:124:139:-38"
+    assert any(
+        item["name"] == "dirt"
+        and item["position"] == {"x": 124, "y": 141, "z": -38}
+        for item in retained_scan["blocks"]
+    )
+    assert not any(
+        item["source_id"] == "stone:124:139:-38"
+        for item in _stone_pickup_accesses(retained_scan)
+    )
+
+    transition_clearance = next(
+        item
+        for item in _stone_surface_clearances(retained_scan)
+        if item["support_source_id"] == "stone:124:139:-38"
+    )
+    assert transition_clearance["source_id"] == "dirt:124:141:-38"
+    assert transition_clearance["clearance_proof"]["entry_shaft_positions"] == [
+        {"x": 124, "y": 140, "z": -38},
+        {"x": 124, "y": 141, "z": -38},
+    ]
+    assert transition_clearance["clearance_proof"][
+        "downstep_transition_policy_id"
+    ] == SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID
+    assert transition_clearance["clearance_proof"][
+        "transition_upper_head_cell_state_before"
+    ] == "dirt"
+
+    opened_blocks = [
+        item
+        for item in retained_scan["blocks"]
+        if not (
+            item["name"] == "dirt"
+            and item["position"] == {"x": 124, "y": 141, "z": -38}
+        )
+    ]
+    opened_scan = complete_block_scan(
+        opened_blocks,
+        origin=retained_scan["origin_cell"],
+    )
+    access = next(
+        item
+        for item in _stone_pickup_accesses(opened_scan)
+        if item["source_id"] == "stone:124:139:-38"
+    )
+    proof = access["pickup_access_proof"]
+    assert proof["schema_version"] == 2
+    assert proof["downstep_transition_required"] is True
+    assert proof["transition_upper_head_position"] == {
+        "x": 124,
+        "y": 141,
+        "z": -38,
+    }
+    assert proof["transition_upper_head_cell_state"] == "air"
+    assert proof["transition_upper_head_clear"] is True
+
+
+def test_phase114_downstep_transition_clearance_audit_binds_current_contract():
+    audit_path = (
+        REPO
+        / "workspace/evals/stone_pickaxe_sp003_downstep_transition_clearance_repair.json"
+    )
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+
+    assert audit["type"] == (
+        "stone_pickaxe_sp003_downstep_transition_clearance_repair"
+    )
+    assert audit["phase"] == 114
+    assert audit["base_commit"] == "b5f9ceb2c11896ff8a6b08c41eccb72f9cffb7c3"
+    assert audit["policy_id"] == SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID
+    assert audit["status"] == "offline_verified"
+    assert audit["retained_failure"]["manifest_sha256"] == (
+        "10c7288815a75404ea3201d98fd1733bf49aa76bddcc72ebc555f97a870b285f"
+    )
+    assert audit["retained_failure"]["automatic_retry_attempted"] is False
+
+    contract = audit["repair_contract"]
+    assert contract["scope"] == "sp003_only"
+    assert contract["transition_upper_head_offset"] == 2
+    assert contract["surface_clearance_order"] == "top_down"
+    assert contract["exact_move_continuous_tolerance"] == 1.0
+    assert contract["exact_move_failure_reclassification_allowed"] is False
+    assert contract["navigation_retry_allowed"] is False
+    assert contract["action_retry_allowed"] is False
+    assert contract["shared_bridge_changed"] is False
+    assert contract["vendored_dependency_changed"] is False
+    assert contract["base_protocol_changed"] is False
+
+    replay = audit["retained_replay"]
+    assert replay["old_direct_stone_selection_preserved"] is True
+    assert replay["old_transition_upper_head_block"] == "dirt"
+    assert replay["repaired_direct_stone_access_rejected"] is True
+    assert replay["repaired_first_clearance_source_id"] == "dirt:124:141:-38"
+    assert replay["repaired_post_clear_stone_access_proven"] is True
+    assert replay["blocked_exact_move_warning_success"] is False
+
+    for record in audit["implementation"]:
+        path = REPO / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+    protected = audit["protected_identities"]
+    for key in ("shared_bridge", "vendored_pathfinder", "base_protocol"):
+        record = protected[key]
+        path = REPO / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+    assert audit["validation"]["full_regression_pending"] is False
+    assert audit["live_episode_run"] is False
+    assert audit["live_authorization"] is False
+    assert audit["automatic_retry_allowed"] is False
+    assert audit["counts_toward_baseline_success"] is False
+    assert audit["counts_toward_capability"] is False
+    assert audit["counts_toward_m4"] is False
+
+
 def test_phase112_pathfinder_stop_drain_audit_binds_current_contract():
     audit_path = (
         REPO / "workspace/evals/stone_pickaxe_sp003_pathfinder_stop_drain_repair.json"
@@ -2699,10 +2897,25 @@ def test_phase112_pathfinder_stop_drain_audit_binds_current_contract():
     assert replay["integrated_total_goto_count"] == 2
     assert replay["drain_world_mutation_count"] == 0
 
-    for record in audit["implementation"]:
-        path = REPO / record["path"]
-        assert path.is_file()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+    assert audit["implementation"] == [
+        {
+            "path": "src/bot/sp003_inventory_preserving_navigation.js",
+            "sha256": "d5b9798e6643bee6e609cee0a1786a1981667d922c6303005cc33d76b186acc5",
+        },
+        {
+            "path": "src/singularity/evaluation/stone_pickaxe_sp003_runtime.py",
+            "sha256": "6d5ff2c3aa1d543aa8afff50a4ff64e279e671383955668c6e8648cca45b8d00",
+        },
+        {
+            "path": "workspace/evals/stone_pickaxe_sp003_harness_policy.json",
+            "sha256": "1b75b69bd616afc19f21d4aba5652a3947469f5dc92bd9adfdf42c5567011f5e",
+        },
+        {
+            "path": "tests/test_sp003_inventory_preserving_navigation.js",
+            "sha256": "a8e374ec0f226a08d2510592b242edbf3c3100000a3134be1b975de0d6f06819",
+        },
+    ]
+    assert all((REPO / record["path"]).is_file() for record in audit["implementation"])
     protected = audit["protected_identities"]
     for prefix in ("shared_bridge", "base_protocol"):
         actual_sha256 = hashlib.sha256(
@@ -4297,12 +4510,14 @@ def test_episode_verifier_reconstructs_saturated_pickup_visibility(monkeypatch):
     target_cell = (1, 63, 0)
     support_cell = (1, 62, 0)
     head_cell = (1, 64, 0)
+    transition_upper_head_cell = (1, 65, 0)
     excluded = {
         (0, 64, 0),
         (0, 65, 0),
         target_cell,
         support_cell,
         head_cell,
+        transition_upper_head_cell,
     }
     dense = [
         block(

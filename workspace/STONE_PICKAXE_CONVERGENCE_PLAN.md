@@ -15,11 +15,11 @@ This project isolates two bounded Minecraft capabilities:
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
-| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 113 first stone removed; down-step transition clearance failure retained |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 114 transition-clearance repair offline-verified; live proof pending |
 
-Current phase: **Phase 113 ran exactly once from pushed authorization `4206aa17` over Phase 112 fix commit `b3394125`. All 33 Planner calls were schema-valid with zero retry. The run completed the empty-hand wood chain, placed the table, crafted and equipped the wooden pickaxe, cleared four surface blocks, and removed the first stone; the Phase 111 stopped-path cascade fell from 28 to zero. Cobblestone pickup still failed because the one-level-down transition required upper-head cell `(124,141,-38)`, which remained dirt while the pre-dig proof included only final head cell `(124,140,-38)`. Eleven later exact-goal grounding warnings were masked by continuous-distance move success, and the run ended at 32 actions. SP-003 is 84/84, all stone-pickaxe tests are 265/265, full Python is 1020/1020, and Node is 79/79, but the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 114 implements `sp003-downstep-transition-clearance-v1` over immutable Phase 113 evidence pushed at `b5f9ceb2`. A direct one-level-down stone proof now requires target `+2` headroom; the bounded clearance shaft removes the highest obstruction first; pickup and surface proofs use schema 2; and exact-y approach movement uses tolerance 1.0 with failure reclassification forbidden. The retained action-18 scan selects dirt `(124,141,-38)` before stone and proves stone access only after clearance. Audit `2cd04b4a...`, SP-003 86/86, stone-pickaxe 267/267, full Python 1022/1022, selected regressions 243/243, and Node 80/80 pass. The repair awaits this commit/push, and the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all nineteen SP-003 baseline IDs through `sp003_baseline_20260719_221125_16ea129e` cannot be reused. Phase 113 ran exactly once and cannot be retried. The next transaction is its immutable evidence commit and push, followed by a bounded offline transition-clearance repair. Only after that repair is verified, committed, and pushed may a separate fresh parent-bound one-use baseline authorization be considered. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all nineteen SP-003 baseline IDs through `sp003_baseline_20260719_221125_16ea129e` cannot be reused. Phase 113 ran exactly once and cannot be retried. The next transaction is the Phase 114 fix commit and push. Only afterward may a separate fresh parent-bound one-use baseline authorization be committed and pushed. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -201,7 +201,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 113 failure retained; nineteen authorizations consumed; baseline 0/1 and candidates 0/3; evidence push then offline transition-clearance fix required |
+| 8. SP-003 composite acceptance | Phase 114 offline repair verified; nineteen authorizations consumed; baseline 0/1 and candidates 0/3; fix push then separate baseline authorization required |
 
 ## Frozen Baseline
 
@@ -213,4 +213,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before Phase 113 evidence is pushed and a bounded transition-clearance repair is verified, committed, and pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before the Phase 114 repair is committed and pushed under a separate fresh authorization; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.

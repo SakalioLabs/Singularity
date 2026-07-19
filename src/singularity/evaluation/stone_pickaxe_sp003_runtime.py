@@ -83,6 +83,9 @@ SP003_SURFACE_CLEARANCE_BLOCKS = ("grass_block", "dirt")
 SP003_CLEARANCE_SHAFT_MAX = 3
 SP003_SURFACE_CLEARANCE_MAX = 6
 SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID = "sp003-pre-dig-pickup-access-v1"
+SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID = (
+    "sp003-downstep-transition-clearance-v1"
+)
 SP003_CRAFT_SETTLEMENT_DELAY_MS = 1000
 SP003_DELAYED_LOG_PICKUP_POLICY_ID = "sp003-delayed-log-pickup-reconciliation-v1"
 SP003_PENDING_LOG_PICKUP_MAX = 3
@@ -92,6 +95,7 @@ SP003_TABLE_REFERENCE_REPAIR_POLICY_ID = (
 SP003_TABLE_REFERENCE_REPAIR_MAX = 1
 SP003_MOVE_TO_GOAL_POLICY_ID = "sp003-goalnearxz-cell-metric-alignment-v1"
 SP003_MOVE_TO_CONTINUOUS_TOLERANCE = 1.6
+SP003_EXACT_MOVE_CONTINUOUS_TOLERANCE = 1.0
 SP003_PICKUP_GOAL_POLICY_ID = "sp003-exact-unit-goal-near-v1"
 SP003_PICKUP_GOAL_REQUESTED_RANGE = 1
 SP003_PICKUP_GOAL_EFFECTIVE_RANGE = 0
@@ -299,6 +303,16 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         and episode_contract.get("pre_dig_support_block_allowed") == "stone"
         and episode_contract.get("pre_dig_post_removal_stand_cell_required") is True
         and episode_contract.get("pre_dig_head_cell_air_required") is True
+        and episode_contract.get("pre_dig_downstep_transition_policy_id")
+        == SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID
+        and episode_contract.get(
+            "pre_dig_downstep_transition_upper_head_air_required"
+        )
+        is True
+        and episode_contract.get(
+            "pre_dig_downstep_transition_clearance_top_down"
+        )
+        is True
         and episode_contract.get("pre_dig_saturated_priority_visibility_allowed")
         is True
         and episode_contract.get("pre_dig_visibility_distance_must_be_strict")
@@ -344,6 +358,10 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         and episode_contract.get("move_target_cell_centered") is True
         and episode_contract.get("move_continuous_tolerance")
         == SP003_MOVE_TO_CONTINUOUS_TOLERANCE
+        and episode_contract.get("move_exact_cell_continuous_tolerance")
+        == SP003_EXACT_MOVE_CONTINUOUS_TOLERANCE
+        and episode_contract.get("move_exact_cell_failure_reclassification_allowed")
+        is False
         and episode_contract.get("move_pathfinder_goal_range") == 1
         and episode_contract.get("move_pathfinder_goal_cell_unchanged") is True
         and episode_contract.get("move_inventory_preservation_required")
@@ -371,6 +389,10 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         and episode_contract.get("pickup_goalblock_recovery_support_solid_required")
         is True
         and episode_contract.get("pickup_goalblock_recovery_feet_head_air_required")
+        is True
+        and episode_contract.get(
+            "pickup_goalblock_recovery_transition_upper_head_air_required"
+        )
         is True
         and episode_contract.get("pickup_goalblock_recovery_pulse_ms")
         == SP003_GOALBLOCK_NUDGE_PULSE_MS
@@ -404,6 +426,10 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         is True
         and episode_contract.get(
             "move_exact_goalnear_recovery_feet_head_air_required"
+        )
+        is True
+        and episode_contract.get(
+            "move_exact_goalnear_recovery_transition_upper_head_air_required"
         )
         is True
         and episode_contract.get("move_exact_goalnear_recovery_pulse_ms")
@@ -1419,6 +1445,24 @@ def _scan_proof_base(scan: dict) -> dict:
     }
 
 
+def _stone_surface_clearance_shaft(
+    support_cell: tuple[int, int, int],
+    origin_cell: tuple[int, int, int],
+) -> tuple[list[tuple[int, int, int]], bool]:
+    vertical_gap = origin_cell[1] - support_cell[1]
+    transition_clearance_required = vertical_gap in {1, 2}
+    highest_y = max(origin_cell[1], support_cell[1] + 1)
+    if transition_clearance_required:
+        highest_y = origin_cell[1] + 1
+    return (
+        [
+            (support_cell[0], y, support_cell[2])
+            for y in range(support_cell[1] + 1, highest_y + 1)
+        ],
+        transition_clearance_required,
+    )
+
+
 def _stone_approach_stands(scan_report: Any) -> list[dict]:
     scan = _validated_complete_scan_index(scan_report)
     if not scan:
@@ -1432,10 +1476,10 @@ def _stone_approach_stands(scan_report: Any) -> list[dict]:
         vertical_gap = origin_cell[1] - cell[1]
         if block.get("name") != "stone" or not 2 <= vertical_gap <= 3:
             continue
-        shaft = [
-            (cell[0], y, cell[2])
-            for y in range(cell[1] + 1, origin_cell[1] + 1)
-        ]
+        shaft, transition_clearance_required = _stone_surface_clearance_shaft(
+            cell,
+            origin_cell,
+        )
         if any(not inside_scan(item) or not air_proven(item) for item in shaft):
             continue
         stand_cell = shaft[0]
@@ -1443,6 +1487,9 @@ def _stone_approach_stands(scan_report: Any) -> list[dict]:
         support_position = {"x": cell[0], "y": cell[1], "z": cell[2]}
         stand_position = {"x": stand_cell[0], "y": stand_cell[1], "z": stand_cell[2]}
         head_position = {"x": head_cell[0], "y": head_cell[1], "z": head_cell[2]}
+        transition_upper_head = (
+            shaft[-1] if transition_clearance_required else None
+        )
         shaft_positions = [
             {"x": item[0], "y": item[1], "z": item[2]}
             for item in shaft
@@ -1463,6 +1510,23 @@ def _stone_approach_stands(scan_report: Any) -> list[dict]:
                 "head_position": head_position,
                 "stand_cell_state": "air",
                 "head_cell_state": "air",
+                "downstep_transition_policy_id": (
+                    SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID
+                ),
+                "downstep_transition_required": transition_clearance_required,
+                "transition_upper_head_position": (
+                    {
+                        "x": transition_upper_head[0],
+                        "y": transition_upper_head[1],
+                        "z": transition_upper_head[2],
+                    }
+                    if transition_upper_head is not None
+                    else {}
+                ),
+                "transition_upper_head_cell_state": (
+                    "air" if transition_clearance_required else "not_required"
+                ),
+                "transition_upper_head_clear": True,
                 "entry_shaft_positions": shaft_positions,
                 "entry_shaft_cell_states": ["air"] * len(shaft_positions),
                 "entry_shaft_clear": True,
@@ -1488,10 +1552,23 @@ def _stone_pickup_accesses(scan_report: Any) -> list[dict]:
             continue
         support_cell = (target_cell[0], target_cell[1] - 1, target_cell[2])
         head_cell = (target_cell[0], target_cell[1] + 1, target_cell[2])
+        transition_clearance_required = vertical_gap == 1
+        transition_upper_head_cell = (
+            (target_cell[0], target_cell[1] + 2, target_cell[2])
+            if transition_clearance_required
+            else None
+        )
         support_block = by_cell.get(support_cell)
         if (
             not inside_scan(support_cell)
             or not inside_scan(head_cell)
+            or (
+                transition_upper_head_cell is not None
+                and (
+                    not inside_scan(transition_upper_head_cell)
+                    or not air_proven(transition_upper_head_cell)
+                )
+            )
             or not isinstance(support_block, dict)
             or support_block.get("name") != "stone"
             or not air_proven(head_cell)
@@ -1516,8 +1593,11 @@ def _stone_pickup_accesses(scan_report: Any) -> list[dict]:
         support_source_id = source_id("stone", support_position)
         proof = {
             "type": "sp003_stone_pickup_access_proof",
-            "schema_version": 1,
+            "schema_version": 2,
             "policy_id": SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID,
+            "downstep_transition_policy_id": (
+                SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID
+            ),
             **_scan_proof_base(scan),
             "target_block": "stone",
             "target_source_id": target_source_id,
@@ -1530,6 +1610,20 @@ def _stone_pickup_accesses(scan_report: Any) -> list[dict]:
             "post_dig_stand_cell_state": "air_after_verified_removal",
             "head_position": head_position,
             "head_cell_state": "air",
+            "downstep_transition_required": transition_clearance_required,
+            "transition_upper_head_position": (
+                {
+                    "x": transition_upper_head_cell[0],
+                    "y": transition_upper_head_cell[1],
+                    "z": transition_upper_head_cell[2],
+                }
+                if transition_upper_head_cell is not None
+                else {}
+            ),
+            "transition_upper_head_cell_state": (
+                "air" if transition_clearance_required else "not_required"
+            ),
+            "transition_upper_head_clear": True,
             "pickup_access_proven": True,
         }
         accesses.append({
@@ -1562,13 +1656,10 @@ def _stone_surface_clearances(scan_report: Any) -> list[dict]:
             == (origin_cell[0], origin_cell[2])
         ):
             continue
-        shaft = [
-            (support_cell[0], y, support_cell[2])
-            for y in range(
-                support_cell[1] + 1,
-                max(origin_cell[1], support_cell[1] + 1) + 1,
-            )
-        ]
+        shaft, transition_clearance_required = _stone_surface_clearance_shaft(
+            support_cell,
+            origin_cell,
+        )
         if any(not inside_scan(item) for item in shaft):
             continue
         occupied = [item for item in shaft if item in by_cell]
@@ -1609,6 +1700,14 @@ def _stone_surface_clearances(scan_report: Any) -> list[dict]:
                 "source_id": source_id(name, position) if block else "",
             })
         support_source_id = source_id("stone", support_position)
+        transition_upper_head = (
+            shaft[-1] if transition_clearance_required else None
+        )
+        transition_upper_head_block = (
+            by_cell.get(transition_upper_head)
+            if transition_upper_head is not None
+            else None
+        )
         clearances.append({
             "source_id": selected_source_id,
             "name": selected_name,
@@ -1621,8 +1720,31 @@ def _stone_surface_clearances(scan_report: Any) -> list[dict]:
             "stone_surface_clearance": True,
             "clearance_proof": {
                 "type": "sp003_stone_surface_clearance_proof",
-                "schema_version": 1,
+                "schema_version": 2,
                 **_scan_proof_base(scan),
+                "downstep_transition_policy_id": (
+                    SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID
+                ),
+                "downstep_transition_clearance_required": (
+                    transition_clearance_required
+                ),
+                "transition_upper_head_position": (
+                    {
+                        "x": transition_upper_head[0],
+                        "y": transition_upper_head[1],
+                        "z": transition_upper_head[2],
+                    }
+                    if transition_upper_head is not None
+                    else {}
+                ),
+                "transition_upper_head_cell_state_before": (
+                    str(transition_upper_head_block.get("name") or "")
+                    if isinstance(transition_upper_head_block, dict)
+                    else "air" if transition_clearance_required else "not_required"
+                ),
+                "transition_upper_head_included_in_shaft": (
+                    transition_upper_head is None or transition_upper_head in shaft
+                ),
                 "support_block": "stone",
                 "support_source_id": support_source_id,
                 "support_position": support_position,
@@ -2044,13 +2166,22 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
                             coordinate = _finite(normalized["parameters"].get(axis))
                             if coordinate is not None:
                                 normalized["parameters"][axis] = math.floor(coordinate) + 0.5
+                        exact_cell_move = (
+                            selected_source.get("stone_pickup_approach") is True
+                            and "y" in normalized["parameters"]
+                        )
                         normalized["parameters"]["tolerance"] = (
-                            SP003_MOVE_TO_CONTINUOUS_TOLERANCE
+                            SP003_EXACT_MOVE_CONTINUOUS_TOLERANCE
+                            if exact_cell_move
+                            else SP003_MOVE_TO_CONTINUOUS_TOLERANCE
                         )
                         action_repair = {
                             "type": "sp003_centered_unit_tolerance_target",
-                            "schema_version": 1,
+                            "schema_version": 2,
                             "policy_id": SP003_MOVE_TO_GOAL_POLICY_ID,
+                            "downstep_transition_policy_id": (
+                                SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID
+                            ),
                             "attempt_limit": 1,
                             "attempt_count": 1,
                             "requested_target": requested_target,
@@ -2061,7 +2192,12 @@ def guard_sp003_action(action: Any, observation: Any, progress: Any, *, arm: str
                             },
                             "pathfinder_goal_cell_unchanged": True,
                             "pathfinder_goal_range": 1,
-                            "continuous_bound_basis": "adjacent_cell_far_corner",
+                            "continuous_bound_basis": (
+                                "exact_cell_failure_must_remain_failure"
+                                if exact_cell_move
+                                else "adjacent_cell_far_corner"
+                            ),
+                            "failure_reclassification_allowed": not exact_cell_move,
                             "world_mutation": False,
                         }
                     normalized["parameters"]["preserve_inventory"] = True
@@ -2617,6 +2753,10 @@ def record_sp003_success(progress: dict, action: Any, result: Any) -> dict:
             and identifier
             and support_identifier
             and proof.get("type") == "sp003_stone_surface_clearance_proof"
+            and proof.get("schema_version") == 2
+            and proof.get("downstep_transition_policy_id")
+            == SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID
+            and proof.get("transition_upper_head_included_in_shaft") is True
             and proof.get("selected_block") == block
             and proof.get("selected_source_id") == identifier
             and proof.get("support_source_id") == support_identifier
@@ -2651,7 +2791,11 @@ def record_sp003_success(progress: dict, action: Any, result: Any) -> dict:
             and identifier
             and params.get("stone_pickup_access") is True
             and proof.get("type") == "sp003_stone_pickup_access_proof"
+            and proof.get("schema_version") == 2
             and proof.get("policy_id") == SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID
+            and proof.get("downstep_transition_policy_id")
+            == SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID
+            and proof.get("transition_upper_head_clear") is True
             and proof.get("target_source_id") == identifier
             and params.get("pickup_access_proof_fingerprint")
             == canonical_sha256(proof)
@@ -4147,16 +4291,18 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
         origin_cell = _integer_cell(proof.get("scan_origin_cell"))
         support_cell = _integer_cell(proof.get("support_position"))
         selected_cell = _integer_cell(proof.get("selected_position"))
-        expected_shaft = (
-            [
-                (support_cell[0], y, support_cell[2])
-                for y in range(
-                    support_cell[1] + 1,
-                    max(origin_cell[1], support_cell[1] + 1) + 1,
-                )
-            ]
+        expected_shaft, transition_clearance_required = (
+            _stone_surface_clearance_shaft(support_cell, origin_cell)
             if origin_cell is not None and support_cell is not None
-            else []
+            else ([], False)
+        )
+        expected_transition_upper_head = (
+            expected_shaft[-1]
+            if transition_clearance_required and expected_shaft
+            else None
+        )
+        transition_upper_head_cell = _integer_cell(
+            proof.get("transition_upper_head_position")
         )
         shaft_position_cells = [_integer_cell(position) for position in shaft_positions]
         shaft_state_cells = [
@@ -4182,6 +4328,16 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
                 reverse=True,
             )
         ]
+        shaft_state_by_cell = {
+            _integer_cell(state.get("position")): str(state.get("state") or "")
+            for state in shaft_states
+            if isinstance(state, dict)
+        }
+        expected_transition_state = (
+            shaft_state_by_cell.get(expected_transition_upper_head, "")
+            if transition_clearance_required
+            else "not_required"
+        )
         return bool(
             item.get("source_block") in SP003_SURFACE_CLEARANCE_BLOCKS
             and item.get("source_id")
@@ -4192,7 +4348,15 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
             and item.get("target_block_after") in {"", "air", "cave_air", "void_air"}
             and item.get("proof_fingerprint") == canonical_sha256(proof)
             and proof.get("type") == "sp003_stone_surface_clearance_proof"
-            and proof.get("schema_version") == 1
+            and proof.get("schema_version") == 2
+            and proof.get("downstep_transition_policy_id")
+            == SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID
+            and proof.get("downstep_transition_clearance_required")
+            is transition_clearance_required
+            and transition_upper_head_cell == expected_transition_upper_head
+            and proof.get("transition_upper_head_cell_state_before")
+            == expected_transition_state
+            and proof.get("transition_upper_head_included_in_shaft") is True
             and valid_scan_visibility_proof(
                 proof,
                 air_cells=[
@@ -4242,6 +4406,23 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
         support_cell = _integer_cell(proof.get("support_position"))
         stand_cell = _integer_cell(proof.get("post_dig_stand_position"))
         head_cell = _integer_cell(proof.get("head_position"))
+        vertical_gap = (
+            origin_cell[1] - target_cell[1]
+            if origin_cell is not None and target_cell is not None
+            else None
+        )
+        transition_clearance_required = vertical_gap == 1
+        expected_transition_upper_head = (
+            (target_cell[0], target_cell[1] + 2, target_cell[2])
+            if transition_clearance_required and target_cell is not None
+            else None
+        )
+        transition_upper_head_cell = _integer_cell(
+            proof.get("transition_upper_head_position")
+        )
+        visibility_air_cells = [proof.get("head_position")]
+        if transition_clearance_required:
+            visibility_air_cells.append(proof.get("transition_upper_head_position"))
         return bool(
             item.get("source_id")
             and item.get("action_verified") is True
@@ -4254,11 +4435,13 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
             and item.get("tool_equip_passed") is True
             and item.get("proof_fingerprint") == canonical_sha256(proof)
             and proof.get("type") == "sp003_stone_pickup_access_proof"
-            and proof.get("schema_version") == 1
+            and proof.get("schema_version") == 2
             and proof.get("policy_id") == SP003_PRE_DIG_PICKUP_ACCESS_POLICY_ID
+            and proof.get("downstep_transition_policy_id")
+            == SP003_DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID
             and valid_scan_visibility_proof(
                 proof,
-                air_cells=[proof.get("head_position")],
+                air_cells=visibility_air_cells,
             )
             and origin_cell is not None
             and post_cell == origin_cell
@@ -4268,7 +4451,7 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
             and stand_cell == target_cell
             and head_cell
             == (target_cell[0], target_cell[1] + 1, target_cell[2])
-            and 0 <= origin_cell[1] - target_cell[1] <= 1
+            and vertical_gap in {0, 1}
             and proof.get("target_block") == "stone"
             and proof.get("target_cell_state_before") == "stone"
             and proof.get("target_source_id") == item.get("source_id")
@@ -4280,6 +4463,12 @@ def verify_sp003_runtime_episode(evidence: Any) -> dict:
             and proof.get("post_dig_stand_cell_state")
             == "air_after_verified_removal"
             and proof.get("head_cell_state") == "air"
+            and proof.get("downstep_transition_required")
+            is transition_clearance_required
+            and transition_upper_head_cell == expected_transition_upper_head
+            and proof.get("transition_upper_head_cell_state")
+            == ("air" if transition_clearance_required else "not_required")
+            and proof.get("transition_upper_head_clear") is True
             and proof.get("pickup_access_proven") is True
         )
 

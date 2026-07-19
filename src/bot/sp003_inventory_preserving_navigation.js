@@ -8,6 +8,7 @@ const EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE = 0;
 const GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID = 'sp003-goalblock-completion-grounding-v1';
 const EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID = 'sp003-exact-goalnear-completion-grounding-v1';
 const PATHFINDER_STOP_DRAIN_POLICY_ID = 'sp003-pathfinder-stop-drain-v1';
+const DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID = 'sp003-downstep-transition-clearance-v1';
 const GOALBLOCK_NUDGE_PULSE_MS = 125;
 const GOALBLOCK_NUDGE_MAX_PULSES = 4;
 const GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE = 1.6;
@@ -132,14 +133,19 @@ function goalCompletionNudgeProof(bot, goal) {
     const support = blockCollision(bot, target.offset(0, -1, 0));
     const feet = blockCollision(bot, target);
     const head = blockCollision(bot, target.offset(0, 1, 0));
+    const transitionUpperHead = blockCollision(bot, target.offset(0, 2, 0));
     if (support.collision !== 'block' || support.type === 0 || support.name === 'air') {
         issues.push('goal_support_must_be_solid');
     }
     if (feet.collision !== 'empty') issues.push('goal_feet_must_be_passable');
     if (head.collision !== 'empty') issues.push('goal_head_must_be_passable');
+    if (transitionUpperHead.collision !== 'empty') {
+        issues.push('goal_transition_upper_head_must_be_passable');
+    }
 
     return {
         policyId: completionKind?.policyId || GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
+        transitionPolicyId: DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID,
         goalType: completionKind?.goalType || '',
         eligible: issues.length === 0,
         issues,
@@ -150,6 +156,7 @@ function goalCompletionNudgeProof(bot, goal) {
         support,
         feet,
         head,
+        transitionUpperHead,
     };
 }
 
@@ -265,12 +272,17 @@ function installPathfinderGoalCompletion(bot, wait = waitForSettlement) {
                 const support = blockCollision(bot, proof.target.offset(0, -1, 0));
                 const feet = blockCollision(bot, proof.target);
                 const head = blockCollision(bot, proof.target.offset(0, 1, 0));
+                const transitionUpperHead = blockCollision(
+                    bot,
+                    proof.target.offset(0, 2, 0),
+                );
                 if (
                     support.collision !== 'block'
                     || support.type === 0
                     || support.name === 'air'
                     || feet.collision !== 'empty'
                     || head.collision !== 'empty'
+                    || transitionUpperHead.collision !== 'empty'
                 ) {
                     throw goalCompletionError(
                         `SP-003 ${proof.goalType} recovery geometry changed during movement`,
@@ -297,6 +309,7 @@ function installPathfinderGoalCompletion(bot, wait = waitForSettlement) {
         value: Object.freeze({
             policyId: GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
             exactGoalNearPolicyId: EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID,
+            transitionPolicyId: DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID,
             pulseMs: GOALBLOCK_NUDGE_PULSE_MS,
             maximumPulses: GOALBLOCK_NUDGE_MAX_PULSES,
             originalGoto,
@@ -414,6 +427,7 @@ if (!pathfinderModule[PATHFINDER_PLUGIN_PATCH_MARK]) {
     pathfinderModule[PATHFINDER_PLUGIN_PATCH_MARK] = Object.freeze({
         policyId: GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
         exactGoalNearPolicyId: EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID,
+        transitionPolicyId: DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID,
         stopDrainPolicyId: PATHFINDER_STOP_DRAIN_POLICY_ID,
         originalPathfinder,
         patchedPathfinder: pathfinderModule.pathfinder,
@@ -444,6 +458,7 @@ module.exports = {
     GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
     EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID,
     PATHFINDER_STOP_DRAIN_POLICY_ID,
+    DOWNSTEP_TRANSITION_CLEARANCE_POLICY_ID,
     GOALBLOCK_NUDGE_PULSE_MS,
     GOALBLOCK_NUDGE_MAX_PULSES,
     GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE,
