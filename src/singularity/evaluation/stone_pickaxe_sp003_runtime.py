@@ -98,6 +98,9 @@ SP003_PICKUP_GOAL_EFFECTIVE_RANGE = 0
 SP003_GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID = (
     "sp003-goalblock-completion-grounding-v1"
 )
+SP003_EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID = (
+    "sp003-exact-goalnear-completion-grounding-v1"
+)
 SP003_GOALBLOCK_NUDGE_PULSE_MS = 125
 SP003_GOALBLOCK_NUDGE_MAX_PULSES = 4
 SP003_GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE = 1.6
@@ -377,6 +380,52 @@ def verify_sp003_policy_identity(policy: Any = None) -> dict:
         and episode_contract.get("pickup_goalblock_recovery_world_mutation_allowed")
         is False
         and episode_contract.get("pickup_goalblock_recovery_failure_is_terminal")
+        is True
+    )
+    checks["exact_goalnear_completion_grounding_contract"] = (
+        episode_contract.get(
+            "move_exact_goalnear_completion_grounding_policy_id"
+        )
+        == SP003_EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID
+        and episode_contract.get(
+            "move_exact_goalnear_post_resolve_is_end_required"
+        )
+        is True
+        and episode_contract.get("move_exact_goalnear_marked_transformed_only")
+        is True
+        and episode_contract.get("move_exact_goalnear_recovery_downward_levels")
+        == 1
+        and episode_contract.get("move_exact_goalnear_recovery_adjacent_only")
+        is True
+        and episode_contract.get(
+            "move_exact_goalnear_recovery_support_solid_required"
+        )
+        is True
+        and episode_contract.get(
+            "move_exact_goalnear_recovery_feet_head_air_required"
+        )
+        is True
+        and episode_contract.get("move_exact_goalnear_recovery_pulse_ms")
+        == SP003_GOALBLOCK_NUDGE_PULSE_MS
+        and episode_contract.get("move_exact_goalnear_recovery_pulses_max")
+        == SP003_GOALBLOCK_NUDGE_MAX_PULSES
+        and episode_contract.get(
+            "move_exact_goalnear_recovery_horizontal_distance_max"
+        )
+        == SP003_GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE
+        and episode_contract.get(
+            "move_exact_goalnear_recovery_world_mutation_allowed"
+        )
+        is False
+        and episode_contract.get(
+            "move_exact_goalnear_recovery_failure_is_terminal"
+        )
+        is True
+        and episode_contract.get("move_unmarked_goal_near_unchanged") is True
+        and episode_contract.get("move_non_unit_goal_near_unchanged") is True
+        and episode_contract.get(
+            "move_exact_goalnear_original_pathfinder_errors_propagated"
+        )
         is True
     )
     checks["bounded_planner_state_contract"] = (

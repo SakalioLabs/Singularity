@@ -23,6 +23,7 @@ from singularity.evaluation.stone_pickaxe_sp003_runtime import (
     SP003_CLEARANCE_SCAN_RESPONSE_LIMIT,
     SP003_CLEARANCE_SHAFT_MAX,
     SP003_FROZEN_BRIDGE_SHA256,
+    SP003_EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID,
     SP003_GOAL,
     SP003_GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
     SP003_GOALBLOCK_NUDGE_MAX_PULSES,
@@ -194,6 +195,36 @@ def test_policy_identity_binds_frozen_protocol_and_promoted_skills():
         ]
         is False
     )
+    assert (
+        policy["episode_contract"][
+            "move_exact_goalnear_completion_grounding_policy_id"
+        ]
+        == SP003_EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID
+    )
+    assert (
+        policy["episode_contract"][
+            "move_exact_goalnear_post_resolve_is_end_required"
+        ]
+        is True
+    )
+    assert (
+        policy["episode_contract"]["move_exact_goalnear_marked_transformed_only"]
+        is True
+    )
+    assert policy["episode_contract"]["move_exact_goalnear_recovery_pulse_ms"] == (
+        SP003_GOALBLOCK_NUDGE_PULSE_MS
+    )
+    assert policy["episode_contract"]["move_exact_goalnear_recovery_pulses_max"] == (
+        SP003_GOALBLOCK_NUDGE_MAX_PULSES
+    )
+    assert (
+        policy["episode_contract"][
+            "move_exact_goalnear_recovery_world_mutation_allowed"
+        ]
+        is False
+    )
+    assert policy["episode_contract"]["move_unmarked_goal_near_unchanged"] is True
+    assert policy["episode_contract"]["move_non_unit_goal_near_unchanged"] is True
     assert policy["episode_contract"]["planner_state_policy_id"] == (
         "sp003-bounded-planner-state-v1"
     )
@@ -2061,6 +2092,93 @@ def test_phase108_goalblock_completion_grounding_audit_binds_current_contract():
     }
     assert audit["retained_replay"]["four_pulse_exhaustion_rejected"] is True
     assert audit["retained_replay"]["real_mineflayer_plugin_lifecycle_wrapped"]
+    assert audit["live_episode_run"] is False
+    assert audit["live_authorization"] is False
+    assert audit["counts_toward_capability"] is False
+
+    implementation_commit = "81dbf7141d1f64f54f787a80639700ddcdb2d08c"
+    for record in audit["implementation"]:
+        historical_bytes = subprocess.check_output(
+            ["git", "show", f"{implementation_commit}:{record['path']}"],
+            cwd=REPO,
+        )
+        assert hashlib.sha256(historical_bytes).hexdigest() == record["sha256"]
+
+
+def test_phase110_exact_goalnear_completion_grounding_audit_binds_current_contract():
+    audit_path = (
+        REPO
+        / "workspace/evals/stone_pickaxe_sp003_exact_goalnear_completion_grounding_repair.json"
+    )
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+
+    assert audit["type"] == (
+        "stone_pickaxe_sp003_exact_goalnear_completion_grounding_repair"
+    )
+    assert audit["phase"] == 110
+    assert audit["base_commit"] == "bc20b5a0dcb8bc3e32f08e73f4dc5411f97e4cf3"
+    assert audit["policy_id"] == (
+        SP003_EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID
+    )
+    assert audit["retained_failure"]["manifest_sha256"] == (
+        "20ac04c16decf3e704c22a8482b4b5b92273fd4bbc1e780511ac9c96a29d0afd"
+    )
+    assert audit["retained_failure"]["session_sha256"] == (
+        "09d3dd6bc605ac9a740349ca674285bf1583ec0be27cc753ee213c631c9f7a57"
+    )
+    assert audit["retained_failure"]["unchanged_success_count"] == 12
+    assert audit["retained_failure"]["player_cell"] == {
+        "x": 124,
+        "y": 141,
+        "z": -37,
+    }
+    assert audit["retained_failure"]["target_cell"] == {
+        "x": 124,
+        "y": 140,
+        "z": -38,
+    }
+    assert audit["retained_failure"]["continuous_distance"] == pytest.approx(
+        1.4205534244189506
+    )
+    assert audit["dependency_root_cause"][
+        "empty_path_checked_before_no_path_status"
+    ]
+    assert audit["dependency_root_cause"]["vendored_dependency_modified"] is False
+    dependency_path = REPO / audit["dependency_root_cause"]["path"]
+    assert hashlib.sha256(dependency_path.read_bytes()).hexdigest() == audit[
+        "dependency_root_cause"
+    ]["sha256"]
+
+    contract = audit["repair_contract"]
+    assert contract["scope"] == "sp003_process_local_preload_only"
+    assert contract["marked_exact_unit_goalnear_only"] is True
+    assert contract["requested_range"] == 1
+    assert contract["effective_range"] == 0
+    assert contract["post_resolve_goal_is_end_checked"] is True
+    assert contract["target_exactly_one_level_lower"] is True
+    assert contract["target_horizontally_adjacent"] is True
+    assert contract["target_support_solid_required"] is True
+    assert contract["target_feet_passable_required"] is True
+    assert contract["target_head_passable_required"] is True
+    assert contract["movement_pulse_ms"] == SP003_GOALBLOCK_NUDGE_PULSE_MS
+    assert contract["movement_pulses_max"] == SP003_GOALBLOCK_NUDGE_MAX_PULSES
+    assert contract["world_mutation_allowed"] is False
+    assert contract["unmarked_goal_near_unchanged"] is True
+    assert contract["non_unit_goal_near_unchanged"] is True
+    assert contract["original_errors_propagated"] is True
+    assert contract["shared_bridge_changed"] is False
+    assert contract["base_protocol_changed"] is False
+
+    replay = audit["retained_replay"]
+    assert replay["phase_109_geometry_eligible"] is True
+    assert replay["simulated_goal_is_end_after_pulses"] is True
+    assert replay["move_to_handler_exact_cell_grounded"] is True
+    assert replay["integrated_direct_pickup_inventory_delta"] == {
+        "cobblestone": 1
+    }
+    assert replay["solid_head_rejected"] is True
+    assert replay["four_pulse_exhaustion_rejected"] is True
+    assert replay["unsupported_goalnear_variants_preserved"] is True
     assert audit["live_episode_run"] is False
     assert audit["live_authorization"] is False
     assert audit["counts_toward_capability"] is False

@@ -15,11 +15,11 @@ This project isolates two bounded Minecraft capabilities:
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
-| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 109 exact-unit `GoalNear` false resolution retained; evidence push required |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 110 exact-unit `GoalNear` completion grounding verified offline; fix push required |
 
-Current phase: **Phase 109 retained one pushed, parent-bound baseline after Phase 108. The Agent completed three logs, four crafts, one table placement, one wooden-pickaxe equip, and four surface clearances with 33/33 schema-valid Planner calls and no transport retry. It then accepted twelve unchanged-position `SP003ExactUnitGoalNear` moves because continuous distance `1.420553` was below Bridge tolerance `1.6`, even though player cell `{124,141,-37}` did not equal exact target `{124,140,-38}`. Four alternate moves failed nearest-target grounding, the run exhausted 32 actions, no stone was dug, and Phase 108 GoalBlock recovery was not exercised. SP-003 is 80/80, all stone-pickaxe tests are 261/261, full Python is 1016/1016, and Node remains 73/73, but the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 110 offline repair after pushed Phase 109 evidence `bc20b5a0`. The process-local preload now rejects a false-resolved, SP-003-marked exact-unit `GoalNear` unless the player reaches its exact cell. A bounded recovery may move only into the machine-proven adjacent clear cell one level lower, using at most four 125ms forward pulses and no world mutation. The retained Phase 109 geometry reaches the target after two pulses; integrated `move_to` and direct pickup pass, and unsupported goal variants remain unchanged. SP-003 is 81/81, all stone-pickaxe tests are 262/262, full Python is 1017/1017, and Node is 75/75, but the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all seventeen SP-003 baseline IDs through `sp003_baseline_20260719_200026_f434442e` cannot be reused. Phase 109 ran exactly once and cannot be retried. The next transaction is the Phase 109 evidence commit and push, followed by an offline SP-003-only exact-unit GoalNear completion-grounding repair. Any later baseline requires that repair to be committed and synchronized before a separate fresh parent-bound authorization is created and pushed. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all seventeen SP-003 baseline IDs through `sp003_baseline_20260719_200026_f434442e` cannot be reused. Phase 109 ran exactly once and cannot be retried. The next transaction is the Phase 110 offline-fix commit and push. Only after synchronization may a separate fresh parent-bound one-use baseline authorization be created and pushed. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -201,7 +201,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 108 offline repair verified; sixteen authorizations consumed; baseline 0/1 and candidates 0/3; fix push then separate authorization required |
+| 8. SP-003 composite acceptance | Phase 110 offline repair verified; seventeen authorizations consumed; baseline 0/1 and candidates 0/3; fix push then separate authorization required |
 
 ## Frozen Baseline
 
@@ -213,4 +213,4 @@ The 30 numbered cases cover:
 
 ## Stop Boundary
 
-The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before the Phase 108 offline repair is committed and pushed and a new one-use authorization is separately pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.
+The retained fixture blockers, controlled SP-001 failures, first two SP-002 source failures, v1 `shadow-1` failure, and all SP-003 runs remain immutable. Three eligible SP-001 successes and three eligible SP-002 successes establish both extraction gates; v5 remains frozen at 3/3, and the append-only acquire 1.1.0 and craft 1.0.1 executable promotions are complete. Do not retry consumed arms; reuse prior IDs; alter the frozen base protocol or retained evidence; run SP-003 before the Phase 110 offline repair is committed and pushed and a new one-use authorization is separately pushed; authorize a candidate before a passing baseline; run full BM-012; run Probe 24; or begin iron mining.

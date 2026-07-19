@@ -6,6 +6,7 @@ const EXACT_UNIT_GOAL_NEAR_POLICY_ID = 'sp003-exact-unit-goal-near-v1';
 const EXACT_UNIT_GOAL_NEAR_REQUESTED_RANGE = 1;
 const EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE = 0;
 const GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID = 'sp003-goalblock-completion-grounding-v1';
+const EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID = 'sp003-exact-goalnear-completion-grounding-v1';
 const GOALBLOCK_NUDGE_PULSE_MS = 125;
 const GOALBLOCK_NUDGE_MAX_PULSES = 4;
 const GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE = 1.6;
@@ -61,12 +62,35 @@ function blockCollision(bot, position) {
     return { name, type, collision };
 }
 
-function goalBlockNudgeProof(bot, goal) {
+function completionGroundingKind(goal) {
+    if (goal instanceof pathfinderModule.goals.GoalBlock) {
+        return {
+            goalType: 'GoalBlock',
+            policyId: GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
+        };
+    }
+    const metadata = goal?.sp003ExactUnitGoalNear;
+    if (
+        goal instanceof pathfinderModule.goals.GoalNear
+        && metadata?.policyId === EXACT_UNIT_GOAL_NEAR_POLICY_ID
+        && Number(metadata.requestedRange) === EXACT_UNIT_GOAL_NEAR_REQUESTED_RANGE
+        && Number(metadata.effectiveRange) === EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE
+        && metadata.transformed === true
+    ) {
+        return {
+            goalType: 'SP003ExactUnitGoalNear',
+            policyId: EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID,
+        };
+    }
+    return null;
+}
+
+function goalCompletionNudgeProof(bot, goal) {
     const currentPosition = bot?.entity?.position;
     const currentCell = flooredPosition(currentPosition);
-    const GoalBlock = pathfinderModule.goals.GoalBlock;
+    const completionKind = completionGroundingKind(goal);
     const issues = [];
-    if (!(goal instanceof GoalBlock)) issues.push('goal_must_be_goalblock');
+    if (!completionKind) issues.push('goal_must_have_supported_completion_grounding');
     if (!currentCell) issues.push('current_position_must_be_finite');
     if (bot?.entity?.onGround !== true) issues.push('player_must_be_grounded');
 
@@ -113,7 +137,8 @@ function goalBlockNudgeProof(bot, goal) {
     if (head.collision !== 'empty') issues.push('goal_head_must_be_passable');
 
     return {
-        policyId: GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
+        policyId: completionKind?.policyId || GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
+        goalType: completionKind?.goalType || '',
         eligible: issues.length === 0,
         issues,
         currentCell,
@@ -126,10 +151,21 @@ function goalBlockNudgeProof(bot, goal) {
     };
 }
 
-function goalCompletionError(message, issues = []) {
+function goalBlockNudgeProof(bot, goal) {
+    const proof = goalCompletionNudgeProof(bot, goal);
+    if (goal instanceof pathfinderModule.goals.GoalBlock) return proof;
+    return {
+        ...proof,
+        policyId: GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
+        eligible: false,
+        issues: [...proof.issues, 'goal_must_be_goalblock'],
+    };
+}
+
+function goalCompletionError(message, issues = [], policyId = GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID) {
     const error = new Error(message);
     error.name = 'SP003GoalCompletionGroundingError';
-    error.policyId = GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID;
+    error.policyId = policyId;
     error.issues = [...issues];
     return error;
 }
@@ -152,13 +188,15 @@ function installPathfinderGoalCompletion(bot, wait = waitForSettlement) {
         const currentCell = flooredPosition(bot.entity?.position);
         if (typeof goal?.isEnd !== 'function') return result;
         if (currentCell && goal.isEnd(currentCell)) return result;
-        if (!(goal instanceof pathfinderModule.goals.GoalBlock)) return result;
+        const completionKind = completionGroundingKind(goal);
+        if (!completionKind) return result;
 
-        const proof = goalBlockNudgeProof(bot, goal);
+        const proof = goalCompletionNudgeProof(bot, goal);
         if (!proof.eligible) {
             throw goalCompletionError(
-                `SP-003 GoalBlock resolved outside the goal: ${proof.issues.join(', ')}`,
+                `SP-003 ${proof.goalType} resolved outside the goal: ${proof.issues.join(', ')}`,
                 proof.issues,
+                proof.policyId,
             );
         }
         if (
@@ -166,8 +204,9 @@ function installPathfinderGoalCompletion(bot, wait = waitForSettlement) {
             || typeof bot.setControlState !== 'function'
         ) {
             throw goalCompletionError(
-                'SP-003 GoalBlock recovery controls are unavailable',
+                `SP-003 ${proof.goalType} recovery controls are unavailable`,
                 ['bounded_recovery_controls_unavailable'],
+                proof.policyId,
             );
         }
 
@@ -191,8 +230,9 @@ function installPathfinderGoalCompletion(bot, wait = waitForSettlement) {
                     || head.collision !== 'empty'
                 ) {
                     throw goalCompletionError(
-                        'SP-003 GoalBlock recovery geometry changed during movement',
+                        `SP-003 ${proof.goalType} recovery geometry changed during movement`,
                         ['goal_geometry_changed_during_recovery'],
+                        proof.policyId,
                     );
                 }
                 await wait(GOALBLOCK_NUDGE_PULSE_MS);
@@ -202,8 +242,9 @@ function installPathfinderGoalCompletion(bot, wait = waitForSettlement) {
             bot.setControlState('forward', false);
         }
         throw goalCompletionError(
-            'SP-003 GoalBlock remained unresolved after bounded recovery',
+            `SP-003 ${proof.goalType} remained unresolved after bounded recovery`,
             ['bounded_recovery_exhausted'],
+            proof.policyId,
         );
     };
     Object.defineProperty(bot.pathfinder, BOT_PATHFINDER_PATCH_MARK, {
@@ -212,6 +253,7 @@ function installPathfinderGoalCompletion(bot, wait = waitForSettlement) {
         writable: false,
         value: Object.freeze({
             policyId: GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
+            exactGoalNearPolicyId: EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID,
             pulseMs: GOALBLOCK_NUDGE_PULSE_MS,
             maximumPulses: GOALBLOCK_NUDGE_MAX_PULSES,
             originalGoto,
@@ -327,6 +369,7 @@ if (!pathfinderModule[PATHFINDER_PLUGIN_PATCH_MARK]) {
     };
     pathfinderModule[PATHFINDER_PLUGIN_PATCH_MARK] = Object.freeze({
         policyId: GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
+        exactGoalNearPolicyId: EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID,
         originalPathfinder,
         patchedPathfinder: pathfinderModule.pathfinder,
     });
@@ -354,10 +397,13 @@ module.exports = {
     EXACT_UNIT_GOAL_NEAR_REQUESTED_RANGE,
     EXACT_UNIT_GOAL_NEAR_EFFECTIVE_RANGE,
     GOALBLOCK_COMPLETION_GROUNDING_POLICY_ID,
+    EXACT_GOALNEAR_COMPLETION_GROUNDING_POLICY_ID,
     GOALBLOCK_NUDGE_PULSE_MS,
     GOALBLOCK_NUDGE_MAX_PULSES,
     GOALBLOCK_NUDGE_MAX_HORIZONTAL_DISTANCE,
     exactUnitGoalNearRange,
+    completionGroundingKind,
+    goalCompletionNudgeProof,
     goalBlockNudgeProof,
     hardenMovements,
     installPathfinderGoalCompletion,
