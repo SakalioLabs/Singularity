@@ -14,7 +14,7 @@ BM-011 is closed at 3/3 independently eligible fresh live successes. BM-012 Prob
 
 ## Stone Pickaxe Research Gate
 
-The separate stone-pickaxe skill project remains non-capability research and does not authorize another M4 probe. SP-001 is 3/3 with executable `learned:acquire_cobblestone@1.1.0`; SP-002 is 3/3 with nonexecutable advisory `learned:craft_stone_pickaxe@1.0.0`, while SP-003 remains locked. Candidate extraction is pushed at `eba9c82f`; Phase 60 advisory review preserves all earlier records and grants no runtime permission. The requested SP-003 empty-hand chain will be governed by a stronger supplemental policy without changing the frozen v1 protocol or capability counts. No live paired arm or SP-003 episode is currently authorized, and M4 remains unchanged.
+The separate stone-pickaxe project remains non-capability research and does not authorize another M4 probe. SP-001 and SP-002 are each 3/3 with executable versions `learned:acquire_cobblestone@1.1.0` and `learned:craft_stone_pickaxe@1.0.1`. SP-003 remains 0/1 baseline and 0/3 candidate after twenty-two consumed baseline authorizations: twenty gameplay failures and two infrastructure failures. Phase 119 retains episode `sp003_baseline_20260720_015550_a54561d9`, where the Phase 118 exact-navigation repair succeeded twice but pickup displacement fragmented six bounded surface clearances across four shafts before table placement. No retry or live authorization remains. The next gate is an offline-only same-shaft lock and one machine-proven nonmutating egress repair; capability counts and M4 remain unchanged.
 
 ## Scope
 
