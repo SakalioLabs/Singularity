@@ -15,11 +15,11 @@ This project isolates two bounded Minecraft capabilities:
 |---|---:|---:|---|
 | SP-001 Acquire Cobblestone | 3 | 3 | `learned:acquire_cobblestone@1.1.0` executable; `1.0.0` retained advisory |
 | SP-002 Craft Stone Pickaxe | 3 | 3 | `learned:craft_stone_pickaxe@1.0.1` executable; `1.0.0` retained advisory |
-| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 99 external Planner failure retained; Phase 98 repair remains unexercised live |
+| SP-003 Composite Chain | 0 | One baseline, then 3 candidate successes | Phase 100 provider health restored; Phase 98 repair remains unexercised live |
 
-Current phase: **Phase 99 retains one separately authorized baseline that reached healthy Paper, Bridge, Mineflayer, reset, and Agent startup, then failed closed on the sole root Planner transport with HTTP 500. It produced zero response bytes, tasks, actions, retries, or chain mutations. Phase 98's observed-table repair, cell-centered stone approach, and exact process-local `GoalNear(1)` repair therefore remain live-unexercised. Retained replays and all regressions pass, but the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
+Current phase: **Phase 100 re-establishes fixed-provider health after the retained Phase 99 HTTP 500. One non-world, zero-retry request using the exact protocol endpoint, model, temperature, token limit, JSON mode, and thinking setting returns exact `{"ok":true}` in 1.969 seconds. Phase 98's observed-table repair, cell-centered stone approach, and exact process-local `GoalNear(1)` repair remain live-unexercised. Retained replays and all regressions pass, but the full chain remains unproven at 0/1 baseline and 0/3 candidate successes**.
 
-Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all twelve SP-003 baseline IDs through `sp003_baseline_20260719_135031_9aa6c664` cannot be reused. The next transaction is to commit and push the Phase 99 failure evidence. Only after that push and re-established provider health may a separate transaction create and push exactly one fresh parent-bound baseline authorization. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
+Current authorization: **none**. All prior SP-001/SP-002 authorizations remain consumed or excluded, and all twelve SP-003 baseline IDs through `sp003_baseline_20260719_135031_9aa6c664` cannot be reused. Phase 99 evidence is pushed and provider health is re-established; the next transaction is to commit and push the Phase 100 health proof, then create and push exactly one fresh parent-bound baseline authorization in a separate authorization-only commit. Automatic retry, authorization reuse, candidate execution before a passing baseline, full BM-012, Probe 24, and iron mining remain locked.
 
 ## Fixed Protocol
 
@@ -198,7 +198,7 @@ The 30 numbered cases cover:
 | 5. SP-002 controlled live convergence | Complete at 3/3; evidence pushed at `05b6c1fb` |
 | 6. Craft candidate/advisory | Complete; retained advisory 1.0.0 plus append-only executable 1.0.1 under approved runtime gate |
 | 7. Paired promotion evaluations | Complete at v5 3/3; executable 1.1.0 promotion pushed at `f1926e7f` |
-| 8. SP-003 composite acceptance | Phase 99 external Planner failure retained; twelve authorizations consumed; baseline 0/1 and candidates 0/3; next authorization locked until evidence push and provider health |
+| 8. SP-003 composite acceptance | Phase 100 provider health restored; twelve authorizations consumed; baseline 0/1 and candidates 0/3; next authorization locked until health-proof push |
 
 ## Frozen Baseline
 

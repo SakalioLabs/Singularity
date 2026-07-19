@@ -898,6 +898,41 @@ def test_phase99_provider_internal_server_error_is_fail_closed_and_immutable():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
+def test_phase100_provider_health_probe_matches_fixed_controls_without_credentials():
+    path = REPO / "workspace/evals/stone_pickaxe_sp003_provider_health_probe.json"
+    probe = json.loads(path.read_text(encoding="utf-8"))
+    protocol = json.loads(
+        (REPO / "workspace/evals/stone_pickaxe_protocol.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    planner = protocol["planner"]
+
+    assert probe["passed"] is True
+    assert probe["predecessor_commit"] == (
+        "812d2e647a05bf44c1b59b262635c9c14f016662"
+    )
+    assert probe["request_count"] == 1
+    assert probe["retry_count"] == 0
+    assert probe["provider"] == planner["provider"]
+    assert probe["base_url"] == planner["base_url"]
+    assert probe["model"] == planner["model"]
+    assert probe["temperature"] == planner["temperature"]
+    assert probe["max_tokens"] == planner["max_tokens"]
+    assert probe["extra_body"] == {"thinking": {"type": planner["thinking"]}}
+    assert probe["response_sha256"] == hashlib.sha256(b'{"ok":true}').hexdigest()
+    assert probe["response_byte_count"] == 11
+    assert probe["finish_reason"] == "stop"
+    assert probe["reasoning_content_byte_count"] == 0
+    assert probe["credential_value_retained"] is False
+    assert probe["minecraft_process_started"] is False
+    assert probe["authorization_created"] is False
+    assert probe["counts_toward_baseline_success"] is False
+    assert probe["counts_toward_capability"] is False
+    assert probe["counts_toward_m4"] is False
+    assert "api_key" not in path.read_text(encoding="utf-8").lower()
+
+
 def test_preparation_guard_enforces_exact_recipe_sequence_and_single_table():
     progress = preparation_progress()
     planks = guard_sp003_action(

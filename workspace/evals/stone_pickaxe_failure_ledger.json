@@ -1,14 +1,14 @@
 {
   "type": "stone_pickaxe_failure_ledger",
   "schema_version": 1,
-  "generated_at": "2026-07-19T14:00:47+08:00",
+  "generated_at": "2026-07-19T14:26:59+08:00",
   "protocol": {
     "id": "stone-pickaxe-skill-fixed-v1",
     "path": "workspace/evals/stone_pickaxe_protocol.json",
     "sha256": "e0722422b62da73d9c1c1c449ae6a3392913125e85c72adad8fa2c9bd0970006"
   },
-  "phase": "phase_99_sp003_root_planner_internal_server_error",
-  "status": "sp003_external_planner_failure_retained_pending_commit_push_live_authorization_false",
+  "phase": "phase_100_sp003_provider_health_reestablished",
+  "status": "sp003_provider_health_reestablished_pending_commit_push_live_authorization_false",
   "capability_evidence": false,
   "m4_evidence": false,
   "live_authorization": false,
@@ -445,6 +445,12 @@
       "last_planner_transport_attempt_count": 1,
       "last_planner_transport_retry_count": 0,
       "last_planner_response_byte_count": 0,
+      "provider_health_reestablished": true,
+      "provider_health_probe_path": "workspace/evals/stone_pickaxe_sp003_provider_health_probe.json",
+      "provider_health_probe_sha256": "8cb3fc4c60ce4e3f0f45fe01eb63c370eff141dea71278f9ad3dc819c5cdc18e",
+      "provider_health_request_count": 1,
+      "provider_health_retry_count": 0,
+      "provider_health_response_sha256": "4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef045150f93",
       "live_authorization": false
     }
   },
@@ -3858,6 +3864,33 @@
       "counts_toward_capability": false,
       "counts_toward_m4": false,
       "next_gate": "push_phase_99_failure_evidence_then_create_one_fresh_parent_bound_baseline_authorization"
+    },
+    {
+      "phase": 100,
+      "name": "sp003_provider_health_reestablished",
+      "status": "provider_health_probe_passed_pending_commit_push",
+      "task_id": "SP-003",
+      "predecessor_commit": "812d2e647a05bf44c1b59b262635c9c14f016662",
+      "probe_path": "workspace/evals/stone_pickaxe_sp003_provider_health_probe.json",
+      "probe_sha256": "8cb3fc4c60ce4e3f0f45fe01eb63c370eff141dea71278f9ad3dc819c5cdc18e",
+      "provider": "openai",
+      "base_url": "https://opencode.ai/zen/go/v1",
+      "model": "deepseek-v4-flash",
+      "request_count": 1,
+      "retry_count": 0,
+      "response_byte_count": 11,
+      "response_sha256": "4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef045150f93",
+      "finish_reason": "stop",
+      "reasoning_content_byte_count": 0,
+      "duration_ms": 1969,
+      "credential_value_retained": false,
+      "minecraft_process_started": false,
+      "authorization_created": false,
+      "automatic_retry_attempted": false,
+      "counts_toward_baseline_success": false,
+      "counts_toward_capability": false,
+      "counts_toward_m4": false,
+      "next_gate": "push_phase_100_health_evidence_then_create_one_fresh_parent_bound_baseline_authorization"
     }
   ],
   "failure_taxonomy": [
@@ -9295,14 +9328,14 @@
     "sp003_policy_id": "stone-pickaxe-sp003-empty-hand-runtime-v2",
     "sp003_policy_sha256": "3673464607280542c942faf8f81cafc7e58a1da4ea0493d110ea8811727e5399",
     "sp003_definition_audit_sha256": "a0d692cc7699e6bb675b774881c21f85c8c11d917c4206994fa797447abfbafe",
-    "sp003_dedicated_cases_passed": 49,
-    "sp003_dedicated_cases_total": 49,
-    "sp003_stone_pickaxe_regression_cases": "230/230",
+    "sp003_dedicated_cases_passed": 50,
+    "sp003_dedicated_cases_total": 50,
+    "sp003_stone_pickaxe_regression_cases": "231/231",
     "sp003_task_system_cases": "106/106",
     "sp003_core_regression_cases": "54/54",
     "sp003_m3_regression_cases": "21/21",
     "sp003_m4_reset_node_cases": "12/12",
-    "sp003_repository_non_live_python_cases": "985/985",
+    "sp003_repository_non_live_python_cases": "986/986",
     "sp003_node_suites": "7/7",
     "sp003_node_internal_cases": "67/67",
     "sp003_runtime_start_attempt_count": 12,
@@ -9336,10 +9369,13 @@
     "sp003_phase_99_action_count": 0,
     "sp003_phase_99_fail_closed_replay_passed": true,
     "sp003_phase_99_evidence_hashes_passed": 13,
-    "sp003_phase_99_repair_exercised": false
+    "sp003_phase_99_repair_exercised": false,
+    "sp003_phase_100_provider_health_probe_passed": true,
+    "sp003_phase_100_provider_health_probe_cases": "1/1",
+    "sp003_phase_100_provider_health_probe_sha256": "8cb3fc4c60ce4e3f0f45fe01eb63c370eff141dea71278f9ad3dc819c5cdc18e"
   },
   "next_required_gate": {
-    "id": "sp003_phase_99_failure_evidence_commit_push_then_fresh_baseline_authorization",
+    "id": "sp003_phase_100_health_evidence_commit_push_then_fresh_baseline_authorization",
     "authorization": false,
     "prerequisites": [
       "phase_98_offline_fix_commit_pushed_and_main_synchronized",
@@ -9347,13 +9383,14 @@
       "phase_99_provider_internal_server_error_failed_closed_before_any_action",
       "phase_99_evidence_hashes_and_fail_closed_replay_pass",
       "phase_99_failure_evidence_commit_is_pushed_and_main_synchronized",
-      "provider_health_is_reestablished_before_a_separate_authorization_transaction"
+      "phase_100_provider_health_reestablished_with_one_zero_retry_fixed_model_request",
+      "phase_100_health_evidence_commit_is_pushed_and_main_synchronized"
     ],
     "arm": "baseline",
     "replicate_id": "baseline",
     "live_episode_limit": 0,
     "normal_runtime_permission": false,
-    "normal_runtime_permission_scope": "no_live_execution_until_phase_99_evidence_and_a_separate_fresh_parent_bound_authorization_are_pushed",
+    "normal_runtime_permission_scope": "no_live_execution_until_phase_100_health_evidence_and_a_separate_fresh_parent_bound_authorization_are_pushed",
     "automatic_retry_allowed": false
   },
   "artifact_state": {
@@ -9398,6 +9435,8 @@
     "sp003_delayed_log_pickup_reconciliation_repair_sha256": "0041fd9d63c1fc44f59141041742dc9256a44a13bd7f347d8eb3033bf9236da0",
     "sp003_pickup_navigation_metric_repair_artifacts_created": 1,
     "sp003_pickup_navigation_metric_repair_sha256": "0f5df8f90de91205394a2349e434b9b0e60b7dfb0dac8af1a87e051c87ba6c0d",
+    "sp003_provider_health_probe_artifacts_created": 1,
+    "sp003_provider_health_probe_sha256": "8cb3fc4c60ce4e3f0f45fe01eb63c370eff141dea71278f9ad3dc819c5cdc18e",
     "sp003_runtime_modules_created": 2,
     "sp003_runner_artifacts_created": 1,
     "sp003_launcher_artifacts_created": 1,
