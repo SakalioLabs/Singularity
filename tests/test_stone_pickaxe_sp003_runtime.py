@@ -1021,6 +1021,118 @@ def test_phase101_retained_baseline_replays_stage_drift_and_context_bloat():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
+def test_phase103_retained_baseline_replays_move_to_y_contract_disconnect():
+    run_dir = (
+        REPO
+        / "workspace/evals/sp003_runs/sp003_baseline_20260719_154642_73c81d37"
+    )
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    episode = json.loads((run_dir / "episode.json").read_text(encoding="utf-8"))
+    events = json.loads((run_dir / "session.json").read_text(encoding="utf-8"))
+
+    assert manifest["passed"] is False
+    assert manifest["evidence_eligible"] is False
+    assert manifest["authorization_id"] == (
+        "523e81eb1e3025b17e2090990c148b4a67858bf3cc7f8f9bf60433141a1777cc"
+    )
+    assert manifest["automatic_retry_allowed"] is False
+    assert manifest["bm012_terminal_started"] is False
+    assert episode["goal_result"]["termination_reason"] == "empty_plan"
+    assert episode["goal_result"]["deadline_eligible"] is True
+    assert episode["action_count"] == 12
+    assert episode["action_failures"] == []
+    assert len(episode["distinct_log_source_ids"]) == 3
+    assert episode["distinct_surface_clearance_source_ids"] == []
+    assert episode["distinct_stone_source_ids"] == []
+    assert episode["stable_observation"]["inventory"] == {
+        "stick": 2,
+        "oak_planks": 3,
+        "wooden_pickaxe": 1,
+    }
+
+    action_types = [
+        event["data"]["action"]["type"]
+        for event in events
+        if event.get("type") == "action"
+    ]
+    assert {kind: action_types.count(kind) for kind in set(action_types)} == {
+        "move_to": 3,
+        "dig": 3,
+        "craft": 4,
+        "place": 1,
+        "equip": 1,
+    }
+
+    planner_calls = {
+        event["data"]["call_index"]: event["data"]
+        for event in events
+        if event.get("type") == "llm_planner_call"
+    }
+    assert sorted(planner_calls) == list(range(13))
+    assert all(planner_calls[index]["schema_valid"] is True for index in range(12))
+    terminal = planner_calls[12]
+    assert terminal["call_id"] == "llm-a2ab5103f3a14ec0"
+    assert terminal["schema_valid"] is False
+    assert terminal["schema_validation"]["issues"] == [
+        "action_parameter_y_invalid"
+    ]
+    assert terminal["provider_metadata"]["prompt_tokens"] == 2555
+    assert terminal["response_byte_count"] == 523
+    assert terminal["response_sha256"] == (
+        "5e986734658478dffa609910ba3a2f07978896c72a399d223e907ed88f2d062b"
+    )
+    assert all(
+        call["transport_evidence"]["attempt_count"] == 1
+        and call["transport_evidence"]["retry_count"] == 0
+        and call["transport_evidence"]["attempts"][0]["success"] is True
+        for call in planner_calls.values()
+    )
+
+    compact_by_call = {}
+    for call_index in (6, 12):
+        event_index = next(
+            index
+            for index, event in enumerate(events)
+            if event.get("type") == "llm_planner_call"
+            and event.get("data", {}).get("call_index") == call_index
+        )
+        full = next(
+            event["data"]
+            for event in reversed(events[:event_index])
+            if event.get("type") == "observation"
+        )
+        compact = Planner._compact_stone_pickaxe_state(full)
+        compact_by_call[call_index] = compact
+        compact_json = json.dumps(compact, sort_keys=True, separators=(",", ":"))
+        assert len(compact_json) <= 2500
+        assert "clearance_proof" not in compact_json
+
+    assert compact_by_call[6]["sp003_stage"] == "craft_crafting_table"
+    terminal_compact = compact_by_call[12]
+    assert terminal_compact["sp003_stage"] == "acquire_cobblestone"
+    assert terminal_compact["sp003_targets"][0]["source_id"] == "stone:124:139:-37"
+    assert terminal_compact["sp003_targets"][0]["stone_clearance_probe"] is True
+    assert terminal_compact["sp003_targets"][0]["navigation_only"] is True
+
+    ledger = json.loads(
+        (REPO / "workspace/evals/stone_pickaxe_failure_ledger.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    failure = next(
+        item
+        for item in ledger["failures"]
+        if item["id"] == "sp003-baseline-014-move-to-schema-y-contract-disconnect"
+    )
+    assert failure["automatic_retry_attempted"] is False
+    assert failure["counts_toward_baseline_success"] is False
+    assert len(failure["evidence"]) == 13
+    for record in failure["evidence"]:
+        path = REPO / record["path"]
+        assert path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
+
+
 def test_preparation_guard_enforces_exact_recipe_sequence_and_single_table():
     progress = preparation_progress()
     planks = guard_sp003_action(
